@@ -4,7 +4,7 @@ import {
 	TapestryLoomSettingTab,
 	DEFAULT_SETTINGS,
 } from "settings";
-import { TapestryLoomView, VIEW_TYPE } from "view";
+import { editorPlugin, TapestryLoomView, VIEW_TYPE } from "view";
 
 export default class TapestryLoom extends Plugin {
 	settings: TapestryLoomSettings;
@@ -17,11 +17,13 @@ export default class TapestryLoom extends Plugin {
 			(leaf) => new TapestryLoomView(leaf, this)
 		);
 
+		this.registerEditorExtension([editorPlugin]);
+
 		this.addRibbonIcon("list-tree", "Toggle Tapestry Loom", () => {
 			this.app.workspace.iterateAllLeaves((leaf) => {
 				console.log(leaf.getViewState().type);
 			});
-			this.activateView();
+			this.toggleView();
 		});
 
 		this.addSettingTab(new TapestryLoomSettingTab(this.app, this));
@@ -29,7 +31,7 @@ export default class TapestryLoom extends Plugin {
 
 	onunload() {}
 
-	async activateView() {
+	async toggleView() {
 		const { workspace } = this.app;
 
 		const leaves = workspace.getLeavesOfType(VIEW_TYPE);

@@ -1,5 +1,25 @@
 import { Editor, ItemView, WorkspaceLeaf } from "obsidian";
 import TapestryLoom from "main";
+import {
+	App,
+	ItemView,
+	Menu,
+	Modal,
+	Setting,
+	WorkspaceLeaf,
+	setIcon,
+} from "obsidian";
+import { Range } from "@codemirror/state";
+import {
+	Decoration,
+	DecorationSet,
+	ViewUpdate,
+	EditorView,
+	ViewPlugin,
+	PluginSpec,
+	PluginValue,
+	WidgetType,
+} from "@codemirror/view";
 
 export const VIEW_TYPE = "tapestry-loom-view";
 
@@ -35,3 +55,19 @@ export class TapestryLoomView extends ItemView {
 		// Nothing to clean up.
 	}
 }
+
+class TapestryLoomPlugin implements PluginValue {
+	constructor(view: EditorView) {
+		// ...
+	}
+
+	update(update: ViewUpdate) {
+		// ...
+	}
+
+	destroy() {
+		// ...
+	}
+}
+
+export const editorPlugin = ViewPlugin.fromClass(TapestryLoomPlugin);
