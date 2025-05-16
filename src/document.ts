@@ -102,7 +102,7 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 		const newContent =
 			"---\n" +
 			stringifyYaml({ FRONT_MATTER_KEY: JSON.stringify(document) }) +
-			"\n---\n\n" +
+			"\n---\n" +
 			rawContent;
 		editor.setValue(newContent);
 	}
