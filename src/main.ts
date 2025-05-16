@@ -16,9 +16,6 @@ export default class TapestryLoom extends Plugin {
 		this.registerEditorExtension([editorPlugin]);
 
 		this.addRibbonIcon("list-tree", "Toggle Tapestry Loom", () => {
-			this.app.workspace.iterateAllLeaves((leaf) => {
-				console.log(leaf.getViewState().type);
-			});
 			this.toggleView();
 		});
 
@@ -26,6 +23,16 @@ export default class TapestryLoom extends Plugin {
 	}
 
 	onunload() {}
+
+	closeView() {
+		const { workspace } = this.app;
+
+		const leaves = workspace.getLeavesOfType(VIEW_TYPE);
+
+		if (leaves.length > 0) {
+			workspace.detachLeavesOfType(VIEW_TYPE);
+		}
+	}
 
 	async toggleView() {
 		const { workspace } = this.app;
@@ -49,6 +56,7 @@ export default class TapestryLoom extends Plugin {
 	}
 
 	async saveSettings() {
+		this.closeView();
 		await this.saveData(this.settings);
 	}
 }
