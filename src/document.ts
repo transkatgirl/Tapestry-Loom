@@ -8,6 +8,7 @@ import {
 	EventRef,
 	Workspace,
 	WorkspaceLeaf,
+	stringifyYaml,
 } from "obsidian";
 import TapestryLoom from "main";
 import {
@@ -53,11 +54,7 @@ export function loadDocument(editor: Editor): WeaveDocument {
 	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
 	const content = rawContent.substring(frontMatterInfo.contentStart);
 
-	if (
-		frontMatter &&
-		typeof frontMatter === "object" &&
-		FRONT_MATTER_KEY in frontMatter
-	) {
+	if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
 		return JSON.parse(frontMatter[FRONT_MATTER_KEY]);
 	} else {
 		const nodes: Map<ULID, WeaveDocumentNode> = new Map();
@@ -82,11 +79,31 @@ export function refreshDocument(editor: Editor) {
 	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
 	const content = rawContent.substring(frontMatterInfo.contentStart);
 
-	/*if (typeof frontMatter === "object" && FRONT_MATTER_KEY in frontMatter) {
+	/*if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
 	}*/
 
 	console.log(frontMatterInfo);
 	console.log(content);
 }
 
-export function saveDocument(editor: Editor, document: WeaveDocument) {}
+export function saveDocument(editor: Editor, document: WeaveDocument) {
+	const rawContent = editor.getValue();
+	const frontMatterInfo = getFrontMatterInfo(rawContent);
+	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
+
+	if (frontMatterInfo.exists) {
+		frontMatter[FRONT_MATTER_KEY] = JSON.stringify(document);
+		editor.replaceRange(
+			stringifyYaml(frontMatter),
+			editor.offsetToPos(frontMatterInfo.from),
+			editor.offsetToPos(frontMatterInfo.to)
+		);
+	} else {
+		const newContent =
+			"---\n" +
+			stringifyYaml({ FRONT_MATTER_KEY: JSON.stringify(document) }) +
+			"\n---\n\n" +
+			rawContent;
+		editor.setValue(newContent);
+	}
+}
