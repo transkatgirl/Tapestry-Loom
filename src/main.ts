@@ -13,42 +13,37 @@ export default class TapestryLoom extends Plugin {
 			(leaf) => new TapestryLoomView(leaf, this)
 		);
 
+		this.showView();
+
 		this.registerEditorExtension([editorPlugin]);
+
+		this.addCommand({
+			id: "show-tapestry-loom-view",
+			name: "Show Tapestry Loom",
+			callback: async () => {
+				await this.showView();
+			},
+		});
 
 		for (const command of commandSet) {
 			this.addCommand(command);
 		}
-
-		this.addRibbonIcon("list-tree", "Toggle Tapestry Loom", () => {
-			this.toggleView();
-		});
 
 		this.addSettingTab(new TapestryLoomSettingTab(this.app, this));
 	}
 
 	onunload() {}
 
-	closeView() {
+	async showView() {
 		const { workspace } = this.app;
 
 		const leaves = workspace.getLeavesOfType(VIEW_TYPE);
 
 		if (leaves.length > 0) {
-			workspace.detachLeavesOfType(VIEW_TYPE);
-		}
-	}
-
-	async toggleView() {
-		const { workspace } = this.app;
-
-		const leaves = workspace.getLeavesOfType(VIEW_TYPE);
-
-		if (leaves.length > 0) {
-			workspace.detachLeavesOfType(VIEW_TYPE);
+			workspace.revealLeaf(leaves[0]);
 		} else {
 			const leaf = workspace.getRightLeaf(false);
 			await leaf?.setViewState({ type: VIEW_TYPE, active: true });
-
 			if (leaf) {
 				workspace.revealLeaf(leaf);
 			}
@@ -60,7 +55,6 @@ export default class TapestryLoom extends Plugin {
 	}
 
 	async saveSettings() {
-		this.closeView();
 		await this.saveData(this.settings);
 	}
 }

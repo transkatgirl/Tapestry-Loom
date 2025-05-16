@@ -50,7 +50,7 @@ export class TapestryLoomView extends ItemView {
 	async onOpen() {
 		const container = this.containerEl.children[1];
 		container.empty();
-		container.createEl("h4", { text: "Created on " + Date.now() });
+		container.createEl("h4", { text: "Title" });
 	}
 
 	async onClose() {
