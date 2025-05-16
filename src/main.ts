@@ -1,6 +1,11 @@
 import { Plugin } from "obsidian";
 import { TapestryLoomSettings, TapestryLoomSettingTab } from "settings";
-import { commandSet, editorPlugin, TapestryLoomView, VIEW_TYPE } from "view";
+import {
+	TapestryLoomView,
+	VIEW_TYPE,
+	VIEW_COMMANDS,
+	EDITOR_PLUGIN,
+} from "view";
 
 export default class TapestryLoom extends Plugin {
 	settings: TapestryLoomSettings;
@@ -15,7 +20,7 @@ export default class TapestryLoom extends Plugin {
 
 		this.showView();
 
-		this.registerEditorExtension([editorPlugin]);
+		this.registerEditorExtension([EDITOR_PLUGIN]);
 
 		this.addCommand({
 			id: "show-tapestry-loom-view",
@@ -25,9 +30,7 @@ export default class TapestryLoom extends Plugin {
 			},
 		});
 
-		for (const command of commandSet) {
-			this.addCommand(command);
-		}
+		VIEW_COMMANDS.forEach((command) => this.addCommand(command));
 
 		this.addSettingTab(new TapestryLoomSettingTab(this.app, this));
 	}

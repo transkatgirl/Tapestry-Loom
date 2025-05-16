@@ -1,4 +1,11 @@
-import { Command, Editor, ItemView, WorkspaceLeaf } from "obsidian";
+import {
+	debounce,
+	Command,
+	Editor,
+	ItemView,
+	EventRef,
+	WorkspaceLeaf,
+} from "obsidian";
 import TapestryLoom from "main";
 import {
 	App,
@@ -21,12 +28,13 @@ import {
 	WidgetType,
 } from "@codemirror/view";
 
-export const commandSet: Array<Command> = [];
+export const VIEW_COMMANDS: Array<Command> = [];
 
 export const VIEW_TYPE = "tapestry-loom-view";
 
 export class TapestryLoomView extends ItemView {
 	plugin: TapestryLoom;
+	listeners: EventRef[] = [];
 
 	constructor(leaf: WorkspaceLeaf, plugin: TapestryLoom) {
 		super(leaf);
@@ -45,16 +53,36 @@ export class TapestryLoomView extends ItemView {
 		return "list-tree";
 	}
 
-	async updateDocument(editor: Editor) {}
+	async update() {
+		const { workspace } = this.app;
+		const editor = workspace.activeEditor?.editor;
+
+		if (!editor) {
+			return;
+		}
+
+		console.log(editor.getValue());
+	}
 
 	async onOpen() {
 		const container = this.containerEl.children[1];
 		container.empty();
 		container.createEl("h4", { text: "Title" });
+
+		const { workspace } = this.app;
+
+		this.listeners = [
+			workspace.on("active-leaf-change", () => this.update()),
+			workspace.on(
+				"editor-change",
+				debounce(() => this.update(), 180, true)
+			),
+		];
 	}
 
 	async onClose() {
-		// Nothing to clean up.
+		const { workspace } = this.app;
+		this.listeners.forEach((listener) => workspace.offref(listener));
 	}
 }
 
@@ -72,4 +100,4 @@ class TapestryLoomPlugin implements PluginValue {
 	}
 }
 
-export const editorPlugin = ViewPlugin.fromClass(TapestryLoomPlugin);
+export const EDITOR_PLUGIN = ViewPlugin.fromClass(TapestryLoomPlugin);
