@@ -1,10 +1,14 @@
 import { Editor, ItemView, WorkspaceLeaf } from "obsidian";
+import TapestryLoom from "main";
 
 export const VIEW_TYPE = "tapestry-loom-view";
 
 export class TapestryLoomView extends ItemView {
-	constructor(leaf: WorkspaceLeaf) {
+	plugin: TapestryLoom;
+
+	constructor(leaf: WorkspaceLeaf, plugin: TapestryLoom) {
 		super(leaf);
+		this.plugin = plugin;
 	}
 
 	getViewType() {
@@ -12,7 +16,11 @@ export class TapestryLoomView extends ItemView {
 	}
 
 	getDisplayText() {
-		return "Example view";
+		return "Tapestry Loom";
+	}
+
+	getIcon(): string {
+		return "square-library";
 	}
 
 	async updateDocument(editor: Editor) {}

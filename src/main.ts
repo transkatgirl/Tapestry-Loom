@@ -1,4 +1,4 @@
-import { App, Notice, Plugin, WorkspaceLeaf } from "obsidian";
+import { Plugin } from "obsidian";
 import {
 	TapestryLoomSettings,
 	TapestryLoomSettingTab,
@@ -12,18 +12,12 @@ export default class TapestryLoom extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		this.registerView(VIEW_TYPE, (leaf) => new TapestryLoomView(leaf));
+		this.registerView(
+			VIEW_TYPE,
+			(leaf) => new TapestryLoomView(leaf, this)
+		);
 
-		/*this.registerEvent(
-			this.app.workspace.on("active-leaf-change", (leaf) => {
-				let editor = this.app.workspace.activeEditor?.editor;
-				if (editor) {
-					this.registerView(type, viewCreator);
-				}
-			})
-		);*/
-
-		this.addRibbonIcon("square-library", "Open Tapestry Loom", () => {
+		this.addRibbonIcon("square-library", "Toggle Tapestry Loom", () => {
 			this.app.workspace.iterateAllLeaves((leaf) => {
 				console.log(leaf.getViewState().type);
 			});
@@ -38,18 +32,17 @@ export default class TapestryLoom extends Plugin {
 	async activateView() {
 		const { workspace } = this.app;
 
-		let leaf: WorkspaceLeaf | null = null;
 		const leaves = workspace.getLeavesOfType(VIEW_TYPE);
 
 		if (leaves.length > 0) {
-			leaf = leaves[0];
+			workspace.detachLeavesOfType(VIEW_TYPE);
 		} else {
-			leaf = workspace.getRightLeaf(false);
+			const leaf = workspace.getRightLeaf(false);
 			await leaf?.setViewState({ type: VIEW_TYPE, active: true });
-		}
 
-		if (leaf) {
-			workspace.revealLeaf(leaf);
+			if (leaf) {
+				workspace.revealLeaf(leaf);
+			}
 		}
 	}
 
