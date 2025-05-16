@@ -1,5 +1,7 @@
 import {
+	getFrontMatterInfo,
 	debounce,
+	parseYaml,
 	Command,
 	Editor,
 	ItemView,
@@ -27,6 +29,7 @@ import {
 	PluginValue,
 	WidgetType,
 } from "@codemirror/view";
+import { loadDocument, refreshDocument, WeaveDocument } from "document";
 
 export const VIEW_COMMANDS: Array<Command> = [];
 
@@ -53,16 +56,11 @@ export class TapestryLoomView extends ItemView {
 		return "list-tree";
 	}
 
-	async update() {
-		const { workspace } = this.app;
-		const editor = workspace.activeEditor?.editor;
-
-		if (!editor) {
-			return;
-		}
-
-		console.log(editor.getValue());
+	async load() {
+		console.log(refreshDocument());
 	}
+
+	async update() {}
 
 	async onOpen() {
 		const container = this.containerEl.children[1];
@@ -72,7 +70,7 @@ export class TapestryLoomView extends ItemView {
 		const { workspace } = this.app;
 
 		this.listeners = [
-			workspace.on("active-leaf-change", () => this.update()),
+			workspace.on("active-leaf-change", () => this.load()),
 			workspace.on(
 				"editor-change",
 				debounce(() => this.update(), 180, true)
