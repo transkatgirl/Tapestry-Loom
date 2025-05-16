@@ -3,12 +3,8 @@ import { ClientSettings, ConfiguredEndpoint } from "client";
 import TapestryLoom from "main";
 
 export interface TapestryLoomSettings {
-	client: ClientSettings;
+	client?: ClientSettings;
 }
-
-export const DEFAULT_SETTINGS: TapestryLoomSettings = {
-	client: { endpoints: [] },
-};
 
 export class TapestryLoomSettingTab extends PluginSettingTab {
 	plugin: TapestryLoom;

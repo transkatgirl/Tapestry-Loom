@@ -1,9 +1,5 @@
 import { Plugin } from "obsidian";
-import {
-	TapestryLoomSettings,
-	TapestryLoomSettingTab,
-	DEFAULT_SETTINGS,
-} from "settings";
+import { TapestryLoomSettings, TapestryLoomSettingTab } from "settings";
 import { editorPlugin, TapestryLoomView, VIEW_TYPE } from "view";
 
 export default class TapestryLoom extends Plugin {
@@ -49,11 +45,7 @@ export default class TapestryLoom extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			await this.loadData()
-		);
+		this.settings = await this.loadData();
 	}
 
 	async saveSettings() {
