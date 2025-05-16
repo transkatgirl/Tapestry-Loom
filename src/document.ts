@@ -6,6 +6,7 @@ import {
 	Editor,
 	ItemView,
 	EventRef,
+	Workspace,
 	WorkspaceLeaf,
 } from "obsidian";
 import TapestryLoom from "main";
@@ -29,7 +30,7 @@ import {
 	PluginValue,
 	WidgetType,
 } from "@codemirror/view";
-import { ULID } from "ulid";
+import { ulid, ULID } from "ulid";
 
 export interface WeaveDocument {
 	models: Map<ULID, string>;
@@ -40,20 +41,13 @@ export interface WeaveDocument {
 export interface WeaveDocumentNode {
 	content: string | Array<[number, string]> | Array<Array<[number, string]>>;
 	model?: ULID;
-	metadata: Map<string, string>;
+	metadata?: Map<string, string>;
 	children: Set<ULID>;
 }
 
 export const FRONT_MATTER_KEY = "TapestryLoomWeave";
 
-export function loadDocument() {
-	const { workspace } = this.app;
-	const editor = workspace.activeEditor?.editor;
-
-	if (!editor) {
-		return;
-	}
-
+export function loadDocument(editor: Editor): WeaveDocument {
 	const rawContent = editor.getValue();
 	const frontMatterInfo = getFrontMatterInfo(rawContent);
 	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
@@ -64,18 +58,26 @@ export function loadDocument() {
 		typeof frontMatter === "object" &&
 		FRONT_MATTER_KEY in frontMatter
 	) {
-		return frontMatter[FRONT_MATTER_KEY];
+		return JSON.parse(frontMatter[FRONT_MATTER_KEY]);
+	} else {
+		const nodes: Map<ULID, WeaveDocumentNode> = new Map();
+
+		const identifier = ulid();
+
+		nodes.set(identifier, {
+			content: content,
+			children: new Set(),
+		});
+
+		return {
+			models: new Map(),
+			nodes: nodes,
+			currentNode: identifier,
+		};
 	}
 }
 
-export function refreshDocument() {
-	const { workspace } = this.app;
-	const editor = workspace.activeEditor?.editor;
-
-	if (!editor) {
-		return;
-	}
-
+export function refreshDocument(editor: Editor) {
 	const rawContent = editor.getValue();
 	const frontMatterInfo = getFrontMatterInfo(rawContent);
 	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
@@ -87,3 +89,5 @@ export function refreshDocument() {
 	console.log(frontMatterInfo);
 	console.log(content);
 }
+
+export function saveDocument(editor: Editor, document: WeaveDocument) {}
