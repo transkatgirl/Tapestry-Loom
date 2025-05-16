@@ -14,7 +14,19 @@ export default class TapestryLoom extends Plugin {
 
 		this.registerView(VIEW_TYPE, (leaf) => new TapestryLoomView(leaf));
 
-		this.addRibbonIcon("dice", "Open Tapestry Loom", () => {
+		/*this.registerEvent(
+			this.app.workspace.on("active-leaf-change", (leaf) => {
+				let editor = this.app.workspace.activeEditor?.editor;
+				if (editor) {
+					this.registerView(type, viewCreator);
+				}
+			})
+		);*/
+
+		this.addRibbonIcon("square-library", "Open Tapestry Loom", () => {
+			this.app.workspace.iterateAllLeaves((leaf) => {
+				console.log(leaf.getViewState().type);
+			});
 			this.activateView();
 		});
 
