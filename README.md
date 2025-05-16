@@ -1,5 +1,8 @@
 # Tapestry Loom
 
+early work in progress, not ready for use
+
+<!--
 ## How to use
 
 - Clone this repo.
@@ -10,3 +13,5 @@
 ### Manually installing the plugin
 
 - Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+
+-->
