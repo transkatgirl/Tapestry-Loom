@@ -55,7 +55,7 @@ export function loadDocument(editor: Editor): WeaveDocument {
 	const content = rawContent.substring(frontMatterInfo.contentStart);
 
 	if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
-		return JSON.parse(frontMatter[FRONT_MATTER_KEY]);
+		return frontMatter[FRONT_MATTER_KEY];
 	} else {
 		const nodes: Map<ULID, WeaveDocumentNode> = new Map();
 
@@ -79,11 +79,29 @@ export function refreshDocument(editor: Editor) {
 	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
 	const content = rawContent.substring(frontMatterInfo.contentStart);
 
-	/*if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
-	}*/
+	if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
+		console.log(frontMatterInfo);
+		console.log(content);
 
-	console.log(frontMatterInfo);
-	console.log(content);
+		// TODO
+	} else {
+		const nodes: Map<ULID, WeaveDocumentNode> = new Map();
+
+		const identifier = ulid();
+
+		nodes.set(identifier, {
+			content: content,
+		});
+
+		const document: WeaveDocument = {
+			models: new Map(),
+			nodes: nodes,
+			currentNode: identifier,
+		};
+
+		saveDocument(editor, document);
+		return document;
+	}
 }
 
 export function saveDocument(editor: Editor, document: WeaveDocument) {
@@ -92,7 +110,7 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
 
 	if (frontMatterInfo.exists) {
-		frontMatter[FRONT_MATTER_KEY] = JSON.stringify(document);
+		frontMatter[FRONT_MATTER_KEY] = document;
 		editor.replaceRange(
 			stringifyYaml(frontMatter),
 			editor.offsetToPos(frontMatterInfo.from),
@@ -101,7 +119,7 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 	} else {
 		const newContent =
 			"---\n" +
-			stringifyYaml({ FRONT_MATTER_KEY: JSON.stringify(document) }) +
+			stringifyYaml({ FRONT_MATTER_KEY: document }) +
 			"\n---\n" +
 			rawContent;
 		editor.setValue(newContent);
