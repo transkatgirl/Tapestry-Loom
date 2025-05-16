@@ -32,9 +32,10 @@ import {
 	WidgetType,
 } from "@codemirror/view";
 import { ulid, ULID } from "ulid";
+import { ModelLabel } from "client";
 
 export interface WeaveDocument {
-	models: Map<ULID, string>;
+	models: Map<ULID, ModelLabel>;
 	nodes: Map<ULID, WeaveDocumentNode>;
 	currentNode: ULID;
 }

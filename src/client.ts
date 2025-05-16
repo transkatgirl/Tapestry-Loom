@@ -1,4 +1,4 @@
-import { requestUrl, RequestUrlParam } from "obsidian";
+import { HexString, requestUrl, RequestUrlParam } from "obsidian";
 import { ULID } from "ulid";
 
 export interface ClientSettings {
@@ -29,11 +29,17 @@ export enum EndpointType {
 export interface ModelConfiguration {
 	type: ModelType;
 	identifier: string;
+	label: ModelLabel;
 	supportedValues: Set<string>;
 	maxLogits?: number;
 	maxContext?: number;
 	customHeaders?: Map<string, string>;
 	customValues?: Map<string, string>;
+}
+
+export interface ModelLabel {
+	label: string;
+	color: HexString;
 }
 
 export enum ModelType {
