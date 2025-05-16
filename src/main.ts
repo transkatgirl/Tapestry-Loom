@@ -17,7 +17,7 @@ export default class TapestryLoom extends Plugin {
 			(leaf) => new TapestryLoomView(leaf, this)
 		);
 
-		this.addRibbonIcon("square-library", "Toggle Tapestry Loom", () => {
+		this.addRibbonIcon("list-tree", "Toggle Tapestry Loom", () => {
 			this.app.workspace.iterateAllLeaves((leaf) => {
 				console.log(leaf.getViewState().type);
 			});

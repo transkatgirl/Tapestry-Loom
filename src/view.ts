@@ -20,7 +20,7 @@ export class TapestryLoomView extends ItemView {
 	}
 
 	getIcon(): string {
-		return "square-library";
+		return "list-tree";
 	}
 
 	async updateDocument(editor: Editor) {}
