@@ -1,5 +1,5 @@
-import { UUID } from "node:crypto";
 import { requestUrl, RequestUrlParam } from "obsidian";
+import { ULID } from "ulid";
 
 export interface ClientSettings {
 	clientIdentifier?: string;
@@ -11,7 +11,7 @@ export interface ConfiguredEndpoint {
 	type: EndpointType;
 	apiToken?: string;
 	organization?: string;
-	models: Map<UUID, ModelConfiguration>;
+	models: Map<ULID, ModelConfiguration>;
 	customHeaders?: Map<string, string>;
 	customValues?: Map<string, string>;
 }
@@ -44,7 +44,7 @@ export interface BranchRequest {
 	prompt: string;
 	completionCount: number;
 	completionLength: number;
-	modelSet: Set<UUID>;
+	modelSet: Set<ULID>;
 	temperature?: number;
 	topK?: number;
 	topP?: number;
@@ -55,7 +55,7 @@ export interface BranchRequest {
 }
 
 export interface BranchResponse {
-	responses: Map<UUID, Array<string> | Array<Array<[number, string]>>>;
+	responses: Map<ULID, Array<string> | Array<Array<[number, string]>>>;
 }
 
 export async function runBranches(
@@ -77,11 +77,11 @@ export interface LogitBranchRequest {
 	topK?: number;
 	topP?: number;
 	minP?: number;
-	modelSet: Set<UUID>;
+	modelSet: Set<ULID>;
 }
 
 export interface LogitBranchResponse {
-	responses: Map<UUID, Array<Array<[number, string]>>>;
+	responses: Map<ULID, Array<Array<[number, string]>>>;
 }
 
 export async function runLogitBranches(

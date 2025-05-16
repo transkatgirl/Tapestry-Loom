@@ -29,19 +29,19 @@ import {
 	PluginValue,
 	WidgetType,
 } from "@codemirror/view";
-import { UUID } from "crypto";
+import { ULID } from "ulid";
 
 export interface WeaveDocument {
-	models: Map<UUID, string>;
-	nodes: Map<UUID, WeaveDocumentNode>;
-	currentNode: UUID;
+	models: Map<ULID, string>;
+	nodes: Map<ULID, WeaveDocumentNode>;
+	currentNode: ULID;
 }
 
 export interface WeaveDocumentNode {
 	content: string | Array<[number, string]> | Array<Array<[number, string]>>;
-	model?: UUID;
+	model?: ULID;
 	metadata: Map<string, string>;
-	children: Set<UUID>;
+	children: Set<ULID>;
 }
 
 export const FRONT_MATTER_KEY = "TapestryLoomWeave";
