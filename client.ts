@@ -3,6 +3,7 @@ import { requestUrl, RequestUrlParam } from "obsidian";
 
 export interface ClientSettings {
 	clientIdentifier?: string;
+	endpoints: Array<ConfiguredEndpoint>;
 }
 
 export interface ConfiguredEndpoint {
@@ -39,11 +40,11 @@ export enum ModelType {
 	completion = "completion",
 }
 
-export interface CompletionRequest {
+export interface BranchRequest {
 	prompt: string;
 	completionCount: number;
 	completionLength: number;
-	modelSet: Map<ConfiguredEndpoint, Array<string>>;
+	modelSet: Set<UUID>;
 	temperature?: number;
 	topK?: number;
 	topP?: number;
@@ -53,31 +54,39 @@ export interface CompletionRequest {
 	bestOf?: number;
 }
 
-export interface CompletionResponse {
-	responses: Map<UUID, Array<string> | Array<[number, string]>>;
+export interface BranchResponse {
+	responses: Map<UUID, Array<string> | Array<Array<[number, string]>>>;
 }
 
-export async function runCompletions(
-	request: CompletionRequest
-): Promise<CompletionResponse> {
+export async function runBranches(
+	config: ClientSettings,
+	request: BranchRequest
+): Promise<BranchResponse> {
+	let requests = [];
+
+	for (const endpoint of config.endpoints) {
+		for (const [identifier, config] of endpoint.models) {
+		}
+	}
 	//fetch(endpoint.baseUrl);
 }
 
-export interface LogitCompletionRequest {
+export interface LogitBranchRequest {
 	prompt: string;
 	completionDepth: number;
 	topK?: number;
 	topP?: number;
 	minP?: number;
-	modelSet: Map<ConfiguredEndpoint, Array<string>>;
+	modelSet: Set<UUID>;
 }
 
-export interface LogitCompletionResponse {
+export interface LogitBranchResponse {
 	responses: Map<UUID, Array<Array<[number, string]>>>;
 }
 
-export async function runLogitCompletions(
-	request: LogitCompletionRequest
-): Promise<LogitCompletionResponse> {
-	//requestUrl()
+export async function runLogitBranches(
+	config: ClientSettings,
+	request: LogitBranchRequest
+): Promise<LogitBranchResponse> {
+	throw new Error("unimplemented");
 }
