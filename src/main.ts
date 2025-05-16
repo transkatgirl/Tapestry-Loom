@@ -38,7 +38,7 @@ export default class TapestryLoom extends Plugin {
 	onunload() {}
 
 	async showView() {
-		const workspace = this.app.workspace as Workspace;
+		const { workspace } = this.app;
 
 		const leaves = workspace.getLeavesOfType(VIEW_TYPE);
 
