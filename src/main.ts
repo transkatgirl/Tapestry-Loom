@@ -1,6 +1,6 @@
 import { Plugin } from "obsidian";
 import { TapestryLoomSettings, TapestryLoomSettingTab } from "settings";
-import { editorPlugin, TapestryLoomView, VIEW_TYPE } from "view";
+import { commandSet, editorPlugin, TapestryLoomView, VIEW_TYPE } from "view";
 
 export default class TapestryLoom extends Plugin {
 	settings: TapestryLoomSettings;
@@ -14,6 +14,10 @@ export default class TapestryLoom extends Plugin {
 		);
 
 		this.registerEditorExtension([editorPlugin]);
+
+		for (const command of commandSet) {
+			this.addCommand(command);
+		}
 
 		this.addRibbonIcon("list-tree", "Toggle Tapestry Loom", () => {
 			this.toggleView();

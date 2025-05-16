@@ -1,4 +1,4 @@
-import { App, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
+import { App, PluginSettingTab, Setting } from "obsidian";
 import { ClientSettings, ConfiguredEndpoint } from "client";
 import TapestryLoom from "main";
 

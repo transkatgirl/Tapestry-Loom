@@ -1,4 +1,4 @@
-import { Editor, ItemView, WorkspaceLeaf } from "obsidian";
+import { Command, Editor, ItemView, WorkspaceLeaf } from "obsidian";
 import TapestryLoom from "main";
 import {
 	App,
@@ -20,6 +20,8 @@ import {
 	PluginValue,
 	WidgetType,
 } from "@codemirror/view";
+
+export const commandSet: Array<Command> = [];
 
 export const VIEW_TYPE = "tapestry-loom-view";
 
