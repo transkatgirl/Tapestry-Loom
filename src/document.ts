@@ -41,8 +41,8 @@ export interface WeaveDocument {
 export interface WeaveDocumentNode {
 	content: string | Array<[number, string]> | Array<Array<[number, string]>>;
 	model?: ULID;
+	parentNode?: ULID;
 	metadata?: Map<string, string>;
-	children: Set<ULID>;
 }
 
 export const FRONT_MATTER_KEY = "TapestryLoomWeave";
@@ -66,7 +66,6 @@ export function loadDocument(editor: Editor): WeaveDocument {
 
 		nodes.set(identifier, {
 			content: content,
-			children: new Set(),
 		});
 
 		return {
