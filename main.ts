@@ -1,13 +1,16 @@
 import { App, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
+import { ClientSettings, ConfiguredEndpoint } from "client";
 
 // Remember to rename these classes and interfaces!
 
 interface TapestryLoomSettings {
-	mySetting: string;
+	client: ClientSettings;
+	endpoints: Array<ConfiguredEndpoint>;
 }
 
 const DEFAULT_SETTINGS: TapestryLoomSettings = {
-	mySetting: "default",
+	client: {},
+	endpoints: [],
 };
 
 export default class TapestryLoom extends Plugin {
@@ -64,17 +67,19 @@ class TapestryLoomSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		new Setting(containerEl)
-			.setName("Setting #1")
-			.setDesc("It's a secret")
-			.addText((text) =>
-				text
-					.setPlaceholder("Enter your secret")
-					.setValue(this.plugin.settings.mySetting)
-					.onChange(async (value) => {
-						this.plugin.settings.mySetting = value;
-						await this.plugin.saveSettings();
-					})
-			);
+		containerEl.createEl("h1", { text: "Heading 1" });
+
+		//new Setting(containerEl)
+		//	.setName("Setting #1")
+		//	.setDesc("It's a secret")
+		//	.addText((text) =>
+		//		text
+		//			.setPlaceholder("Enter your secret")
+		//			.setValue(this.plugin.settings.mySetting)
+		//			.onChange(async (value) => {
+		//				this.plugin.settings.mySetting = value;
+		//				await this.plugin.saveSettings();
+		//			})
+		//	);
 	}
 }
