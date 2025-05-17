@@ -108,6 +108,28 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 	}
 }
 
+export function getContent(document: WeaveDocument): string {
+	let content = "";
+
+	let node = document.nodes.get(document.currentNode);
+	while (node) {
+		content = node.content + content;
+		if (node.parentNode) {
+			node = document.nodes.get(node.parentNode);
+		} else {
+			node = undefined;
+		}
+	}
+
+	return content;
+}
+
+export function switchNode(
+	editor: Editor,
+	document: WeaveDocument,
+	node: ULID
+) {}
+
 function validateDocument(document: WeaveDocument, content: string) {
 	let modified = false;
 
@@ -206,9 +228,14 @@ function validateDocument(document: WeaveDocument, content: string) {
 		modified = true;
 	}
 
-	// TODO: Prune orphaned nodes; only prune root nodes if they do not have children
-
-	// TODO: Prune duplicate nodes
+	if (modified) {
+		pruneDocument(document);
+	}
 
 	return modified;
+}
+
+function pruneDocument(document: WeaveDocument) {
+	// TODO: Prune orphaned nodes; only prune root nodes if they do not have children
+	// TODO: Prune duplicate nodes, combine nodes w/o children
 }
