@@ -105,12 +105,17 @@ export function loadDocument(editor: Editor) {
 				const identifier = ulid();
 				const nodeContent = content.substring(offset);
 
-				document.nodes.set(identifier, {
-					content: nodeContent,
-					parentNode: node.parentNode,
-				});
+				if (nodeContent.length > 0 || !node.parentNode) {
+					document.nodes.set(identifier, {
+						content: nodeContent,
+						parentNode: node.parentNode,
+					});
 
-				document.currentNode = identifier;
+					document.currentNode = identifier;
+				} else {
+					document.currentNode = node.parentNode;
+				}
+
 				if (identifierList.length == i + 1) {
 					document.nodes.delete(identifierList[i]);
 				}
@@ -154,6 +159,8 @@ export function loadDocument(editor: Editor) {
 			document.currentNode = identifier;
 			saveDocument(editor, document);
 		}
+
+		// TODO: Prune orphaned (non-root) nodes
 
 		return document;
 	} else {
