@@ -56,32 +56,7 @@ function cleanDocument(document: WeaveDocument): WeaveDocument {
 	return document;
 }
 
-export function loadDocument(editor: Editor): WeaveDocument {
-	const rawContent = editor.getValue();
-	const frontMatterInfo = getFrontMatterInfo(rawContent);
-	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
-	const content = rawContent.substring(frontMatterInfo.contentStart);
-
-	if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
-		return cleanDocument(frontMatter[FRONT_MATTER_KEY]);
-	} else {
-		const nodes: Map<ULID, WeaveDocumentNode> = new Map();
-
-		const identifier = ulid();
-
-		nodes.set(identifier, {
-			content: content,
-		});
-
-		return {
-			models: new Map(),
-			nodes: nodes,
-			currentNode: identifier,
-		};
-	}
-}
-
-export function refreshDocument(editor: Editor) {
+export function loadDocument(editor: Editor) {
 	const rawContent = editor.getValue();
 	const frontMatterInfo = getFrontMatterInfo(rawContent);
 	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
@@ -123,7 +98,7 @@ export function refreshDocument(editor: Editor) {
 			if (
 				content.substring(
 					offset,
-					Math.min(content.length - offset, nodeContent.length)
+					Math.min(content.length, offset + nodeContent.length)
 				) == nodeContent
 			) {
 				offset = offset + nodeContent.length;

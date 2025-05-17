@@ -29,7 +29,7 @@ import {
 	PluginValue,
 	WidgetType,
 } from "@codemirror/view";
-import { loadDocument, refreshDocument, WeaveDocument } from "document";
+import { loadDocument, WeaveDocument } from "document";
 
 export const VIEW_COMMANDS: Array<Command> = [];
 
@@ -75,7 +75,7 @@ export class TapestryLoomView extends ItemView {
 			return;
 		}
 
-		console.log(refreshDocument(editor));
+		console.log(loadDocument(editor));
 	}
 
 	async onOpen() {
