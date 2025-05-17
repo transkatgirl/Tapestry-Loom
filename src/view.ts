@@ -89,7 +89,7 @@ export class TapestryLoomView extends ItemView {
 			workspace.on("active-leaf-change", () => this.load()),
 			workspace.on(
 				"editor-change",
-				debounce(() => this.update(), 180, true)
+				debounce(() => this.update(), 1500, true)
 			),
 		];
 	}
