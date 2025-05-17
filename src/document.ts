@@ -94,6 +94,7 @@ export function refreshDocument(editor: Editor) {
 		const identifierList: Array<ULID> = [];
 
 		let node = document.nodes.get(document.currentNode);
+		identifierList.push(document.currentNode);
 		while (node?.parentNode) {
 			nodeList.push(node);
 			identifierList.push(node.parentNode);
@@ -152,6 +153,7 @@ export function refreshDocument(editor: Editor) {
 					content: content,
 				});
 			}
+			document.currentNode = identifier;
 		}
 
 		return document;

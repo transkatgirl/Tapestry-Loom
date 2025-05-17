@@ -37,6 +37,8 @@ export interface ModelConfiguration {
 	customValues?: Map<string, string>;
 }
 
+// TODO: add function to get supported samplers
+
 export interface ModelLabel {
 	label: string;
 	color: HexString;
