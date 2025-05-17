@@ -1,40 +1,8 @@
-import {
-	getFrontMatterInfo,
-	debounce,
-	parseYaml,
-	Command,
-	Editor,
-	ItemView,
-	EventRef,
-	Workspace,
-	WorkspaceLeaf,
-	stringifyYaml,
-} from "obsidian";
+import { getFrontMatterInfo, parseYaml, Editor, stringifyYaml } from "obsidian";
 import serialize from "serialize-javascript";
 import { deserialize } from "common";
-import TapestryLoom from "main";
-import {
-	App,
-	ItemView,
-	Menu,
-	Modal,
-	Setting,
-	WorkspaceLeaf,
-	setIcon,
-} from "obsidian";
-import { Range } from "@codemirror/state";
-import {
-	Decoration,
-	DecorationSet,
-	ViewUpdate,
-	EditorView,
-	ViewPlugin,
-	PluginSpec,
-	PluginValue,
-	WidgetType,
-} from "@codemirror/view";
 import { ulid, ULID } from "ulid";
-import { ModelLabel } from "client";
+import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
 
 export interface WeaveDocument {
 	models: Map<ULID, ModelLabel>;
@@ -48,10 +16,9 @@ export interface WeaveDocumentNode {
 	parentNode?: ULID;
 	metadata?: Map<string, string>;
 }
-
 export const FRONT_MATTER_KEY = "TapestryLoomWeave";
 
-export function loadDocument(editor: Editor, validate: boolean) {
+export function loadDocument(editor: Editor) {
 	const rawContent = editor.getValue();
 	const frontMatterInfo = getFrontMatterInfo(rawContent);
 	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
@@ -60,27 +27,13 @@ export function loadDocument(editor: Editor, validate: boolean) {
 	if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
 		const document = deserialize(frontMatter[FRONT_MATTER_KEY]);
 
-		if (validate && validateDocument(document, content)) {
+		if (updateDocument(document, content)) {
 			saveDocument(editor, document);
 		}
 
 		return document;
 	} else {
-		const nodes: Map<ULID, WeaveDocumentNode> = new Map();
-
-		const identifier = ulid();
-
-		nodes.set(identifier, {
-			content: content,
-		});
-
-		const document: WeaveDocument = {
-			models: new Map(),
-			nodes: nodes,
-			currentNode: identifier,
-		};
-
-		return document;
+		return newDocument(content);
 	}
 }
 
@@ -108,6 +61,11 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 	}
 }
 
+export function overrideEditorContent(
+	editor: Editor,
+	document: WeaveDocument
+) {}
+
 export function getContent(document: WeaveDocument): string {
 	let content = "";
 
@@ -124,13 +82,7 @@ export function getContent(document: WeaveDocument): string {
 	return content;
 }
 
-export function switchNode(
-	editor: Editor,
-	document: WeaveDocument,
-	node: ULID
-) {}
-
-function validateDocument(document: WeaveDocument, content: string) {
+function updateDocument(document: WeaveDocument, content: string) {
 	let modified = false;
 
 	const nodeList: Array<WeaveDocumentNode> = [];
@@ -185,7 +137,7 @@ function validateDocument(document: WeaveDocument, content: string) {
 			}
 
 			if (identifierList.length == i + 1) {
-				document.nodes.delete(identifierList[i]);
+				deleteNode(document, identifierList[i]);
 			}
 			offset = offset + nodeContent.length;
 			modified = true;
@@ -198,29 +150,12 @@ function validateDocument(document: WeaveDocument, content: string) {
 		const nodeContent = content.substring(offset);
 
 		if (identifierList.length > 0) {
-			const parentNodeIdentifier =
-				identifierList[identifierList.length - 1];
-			const parentNode = document.nodes.get(parentNodeIdentifier);
-			if (parentNode) {
-				if (parentNode.content.length > 0) {
-					document.nodes.set(identifier, {
-						content: nodeContent,
-						parentNode: parentNodeIdentifier,
-					});
-				} else {
-					document.nodes.set(identifier, {
-						content: nodeContent,
-						parentNode: parentNode.parentNode,
-					});
-					document.nodes.delete(parentNodeIdentifier);
-				}
-			} else {
-				document.nodes.set(identifier, {
-					content: nodeContent,
-				});
-			}
+			appendNode(document, identifier, {
+				content: nodeContent,
+				parentNode: identifierList[identifierList.length - 1],
+			});
 		} else {
-			document.nodes.set(identifier, {
+			appendNode(document, identifier, {
 				content: nodeContent,
 			});
 		}
@@ -238,4 +173,57 @@ function validateDocument(document: WeaveDocument, content: string) {
 function pruneDocument(document: WeaveDocument) {
 	// TODO: Prune orphaned nodes; only prune root nodes if they do not have children
 	// TODO: Prune duplicate nodes, combine nodes w/o children
+}
+
+export function newDocument(content: string): WeaveDocument {
+	const nodes: Map<ULID, WeaveDocumentNode> = new Map();
+
+	const identifier = ulid();
+
+	nodes.set(identifier, {
+		content: content,
+	});
+
+	const document: WeaveDocument = {
+		models: new Map(),
+		nodes: nodes,
+		currentNode: identifier,
+	};
+
+	return document;
+}
+
+export function appendNode(
+	document: WeaveDocument,
+	identifier: ULID,
+	node: WeaveDocumentNode
+) {
+	if (node.parentNode) {
+		const parentNode = document.nodes.get(node.parentNode);
+
+		if (parentNode) {
+			if (parentNode.content.length > 0 || !parentNode.parentNode) {
+				document.nodes.set(identifier, node);
+			} else {
+				node.parentNode = parentNode.parentNode;
+				appendNode(document, identifier, node);
+			}
+		} else {
+			node.parentNode = undefined;
+			document.nodes.set(identifier, node);
+		}
+	} else {
+		document.nodes.set(identifier, node);
+	}
+	if (node.model) {
+		const model = document.models.get(node.model);
+
+		if (!model) {
+			document.models.set(node.model, UNKNOWN_MODEL_LABEL);
+		}
+	}
+}
+
+export function deleteNode(document: WeaveDocument, identifier: ULID) {
+	document.nodes.delete(identifier);
 }

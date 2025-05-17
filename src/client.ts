@@ -44,6 +44,11 @@ export interface ModelLabel {
 	color: HexString;
 }
 
+export const UNKNOWN_MODEL_LABEL: ModelLabel = {
+	label: "Unknown",
+	color: "#000000",
+};
+
 export enum ModelType {
 	completion = "completion",
 }
