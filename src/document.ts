@@ -129,9 +129,10 @@ export function refreshDocument(editor: Editor) {
 				offset = offset + nodeContent.length;
 			} else {
 				const identifier = ulid();
+				const nodeContent = content.substring(offset);
 
 				document.nodes.set(identifier, {
-					content: content,
+					content: nodeContent,
 					parentNode: node.parentNode,
 				});
 
@@ -139,6 +140,7 @@ export function refreshDocument(editor: Editor) {
 				if (identifierList.length == i + 1) {
 					document.nodes.delete(identifierList[i]);
 				}
+				offset = offset + nodeContent.length;
 				saveDocument(editor, document);
 				break;
 			}
