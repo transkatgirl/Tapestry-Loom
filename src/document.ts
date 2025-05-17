@@ -100,6 +100,7 @@ export function refreshDocument(editor: Editor) {
 			node = document.nodes.get(node.parentNode);
 		}
 		nodeList.reverse();
+		identifierList.reverse();
 
 		let offset = 0;
 
@@ -114,7 +115,12 @@ export function refreshDocument(editor: Editor) {
 				}
 			}
 
-			if (content.substring(offset).startsWith(nodeContent)) {
+			if (
+				content.substring(
+					offset,
+					Math.min(content.length - offset, nodeContent.length)
+				) == nodeContent
+			) {
 				offset = offset + nodeContent.length;
 			} else {
 				const identifier = ulid();
@@ -130,6 +136,21 @@ export function refreshDocument(editor: Editor) {
 				}
 				saveDocument(editor, document);
 				break;
+			}
+		}
+
+		if (content.length > offset) {
+			const identifier = ulid();
+
+			if (identifierList.length > 0) {
+				document.nodes.set(identifier, {
+					content: content,
+					parentNode: identifierList[identifierList.length - 1],
+				});
+			} else {
+				document.nodes.set(identifier, {
+					content: content,
+				});
 			}
 		}
 
@@ -149,7 +170,6 @@ export function refreshDocument(editor: Editor) {
 			currentNode: identifier,
 		};
 
-		saveDocument(editor, document);
 		return document;
 	}
 }
