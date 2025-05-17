@@ -64,7 +64,7 @@ export class TapestryLoomView extends ItemView {
 			return;
 		}
 
-		console.log(loadDocument(editor));
+		console.log(loadDocument(editor, true)); // TODO: Add option for fast document loading
 	}
 
 	async update() {
@@ -75,7 +75,7 @@ export class TapestryLoomView extends ItemView {
 			return;
 		}
 
-		console.log(loadDocument(editor));
+		console.log(loadDocument(editor, true));
 	}
 
 	async onOpen() {

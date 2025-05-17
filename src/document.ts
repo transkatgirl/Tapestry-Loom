@@ -49,6 +49,61 @@ export interface WeaveDocumentNode {
 
 export const FRONT_MATTER_KEY = "TapestryLoomWeave";
 
+export function loadDocument(editor: Editor, validate: boolean) {
+	const rawContent = editor.getValue();
+	const frontMatterInfo = getFrontMatterInfo(rawContent);
+	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
+	const content = rawContent.substring(frontMatterInfo.contentStart);
+
+	if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
+		const document = fixDocument(frontMatter[FRONT_MATTER_KEY]);
+
+		if (validate && validateDocument(document, content)) {
+			saveDocument(editor, document);
+		}
+
+		return document;
+	} else {
+		const nodes: Map<ULID, WeaveDocumentNode> = new Map();
+
+		const identifier = ulid();
+
+		nodes.set(identifier, {
+			content: content,
+		});
+
+		const document: WeaveDocument = {
+			models: new Map(),
+			nodes: nodes,
+			currentNode: identifier,
+		};
+
+		return document;
+	}
+}
+
+export function saveDocument(editor: Editor, document: WeaveDocument) {
+	const rawContent = editor.getValue();
+	const frontMatterInfo = getFrontMatterInfo(rawContent);
+	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
+
+	if (frontMatterInfo.exists) {
+		frontMatter[FRONT_MATTER_KEY] = document;
+		editor.replaceRange(
+			stringifyYaml(frontMatter),
+			editor.offsetToPos(frontMatterInfo.from),
+			editor.offsetToPos(frontMatterInfo.to)
+		);
+	} else {
+		const newContent =
+			"---\n" +
+			stringifyYaml({ FRONT_MATTER_KEY: document }) +
+			"\n---\n" +
+			rawContent;
+		editor.setValue(newContent);
+	}
+}
+
 function fixDocument(document: WeaveDocument): WeaveDocument {
 	// TODO
 	document.nodes = new Map(Object.entries(document.nodes));
@@ -157,59 +212,4 @@ function validateDocument(document: WeaveDocument, content: string) {
 	// TODO: Prune orphaned nodes; only prune root nodes if they do not have children
 
 	return modified;
-}
-
-export function loadDocument(editor: Editor) {
-	const rawContent = editor.getValue();
-	const frontMatterInfo = getFrontMatterInfo(rawContent);
-	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
-	const content = rawContent.substring(frontMatterInfo.contentStart);
-
-	if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
-		const document = fixDocument(frontMatter[FRONT_MATTER_KEY]);
-
-		if (validateDocument(document, content)) {
-			saveDocument(editor, document);
-		}
-
-		return document;
-	} else {
-		const nodes: Map<ULID, WeaveDocumentNode> = new Map();
-
-		const identifier = ulid();
-
-		nodes.set(identifier, {
-			content: content,
-		});
-
-		const document: WeaveDocument = {
-			models: new Map(),
-			nodes: nodes,
-			currentNode: identifier,
-		};
-
-		return document;
-	}
-}
-
-export function saveDocument(editor: Editor, document: WeaveDocument) {
-	const rawContent = editor.getValue();
-	const frontMatterInfo = getFrontMatterInfo(rawContent);
-	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
-
-	if (frontMatterInfo.exists) {
-		frontMatter[FRONT_MATTER_KEY] = document;
-		editor.replaceRange(
-			stringifyYaml(frontMatter),
-			editor.offsetToPos(frontMatterInfo.from),
-			editor.offsetToPos(frontMatterInfo.to)
-		);
-	} else {
-		const newContent =
-			"---\n" +
-			stringifyYaml({ FRONT_MATTER_KEY: document }) +
-			"\n---\n" +
-			rawContent;
-		editor.setValue(newContent);
-	}
 }
