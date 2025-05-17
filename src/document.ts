@@ -49,6 +49,13 @@ export interface WeaveDocumentNode {
 
 export const FRONT_MATTER_KEY = "TapestryLoomWeave";
 
+function cleanDocument(document: WeaveDocument): WeaveDocument {
+	// TODO
+	document.nodes = new Map(Object.entries(document.nodes));
+
+	return document;
+}
+
 export function loadDocument(editor: Editor): WeaveDocument {
 	const rawContent = editor.getValue();
 	const frontMatterInfo = getFrontMatterInfo(rawContent);
@@ -56,7 +63,7 @@ export function loadDocument(editor: Editor): WeaveDocument {
 	const content = rawContent.substring(frontMatterInfo.contentStart);
 
 	if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
-		return frontMatter[FRONT_MATTER_KEY];
+		return cleanDocument(frontMatter[FRONT_MATTER_KEY]);
 	} else {
 		const nodes: Map<ULID, WeaveDocumentNode> = new Map();
 
@@ -81,7 +88,7 @@ export function refreshDocument(editor: Editor) {
 	const content = rawContent.substring(frontMatterInfo.contentStart);
 
 	if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
-		const document: WeaveDocument = frontMatter[FRONT_MATTER_KEY];
+		const document = cleanDocument(frontMatter[FRONT_MATTER_KEY]);
 
 		const nodeList: Array<WeaveDocumentNode> = [];
 
@@ -93,7 +100,6 @@ export function refreshDocument(editor: Editor) {
 		nodeList.reverse();
 
 		let offset = 0;
-		let index = 0;
 
 		for (const node of nodeList) {
 			let nodeContent = "";
@@ -108,7 +114,6 @@ export function refreshDocument(editor: Editor) {
 
 			if (content.substring(offset).startsWith(nodeContent)) {
 				offset = offset + nodeContent.length;
-				index = index + 1;
 			} else {
 				const identifier = ulid();
 
@@ -118,14 +123,12 @@ export function refreshDocument(editor: Editor) {
 				});
 
 				document.currentNode = identifier;
+				saveDocument(editor, document);
 				break;
 			}
 		}
 
-		console.log(document);
-		console.log(content);
-
-		// TODO
+		return document;
 	} else {
 		const nodes: Map<ULID, WeaveDocumentNode> = new Map();
 
