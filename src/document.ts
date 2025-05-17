@@ -91,17 +91,19 @@ export function refreshDocument(editor: Editor) {
 		const document = cleanDocument(frontMatter[FRONT_MATTER_KEY]);
 
 		const nodeList: Array<WeaveDocumentNode> = [];
+		const identifierList: Array<ULID> = [];
 
 		let node = document.nodes.get(document.currentNode);
 		while (node?.parentNode) {
 			nodeList.push(node);
+			identifierList.push(node.parentNode);
 			node = document.nodes.get(node.parentNode);
 		}
 		nodeList.reverse();
 
 		let offset = 0;
 
-		for (const node of nodeList) {
+		for (const [i, node] of nodeList.entries()) {
 			let nodeContent = "";
 
 			if (typeof node.content == "string") {
@@ -123,6 +125,9 @@ export function refreshDocument(editor: Editor) {
 				});
 
 				document.currentNode = identifier;
+				if (identifierList.length == i + 1) {
+					document.nodes.delete(identifierList[i]);
+				}
 				saveDocument(editor, document);
 				break;
 			}
