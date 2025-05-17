@@ -41,7 +41,7 @@ export interface WeaveDocument {
 }
 
 export interface WeaveDocumentNode {
-	content: string | Array<[number, string]> | Array<Array<[number, string]>>;
+	content: string | Array<[number, string]>;
 	model?: ULID;
 	parentNode?: ULID;
 	metadata?: Map<string, string>;
@@ -81,7 +81,48 @@ export function refreshDocument(editor: Editor) {
 	const content = rawContent.substring(frontMatterInfo.contentStart);
 
 	if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
-		console.log(frontMatterInfo);
+		const document: WeaveDocument = frontMatter[FRONT_MATTER_KEY];
+
+		const nodeList: Array<WeaveDocumentNode> = [];
+
+		let node = document.nodes.get(document.currentNode);
+		while (node?.parentNode) {
+			nodeList.push(node);
+			node = document.nodes.get(node.parentNode);
+		}
+		nodeList.reverse();
+
+		let offset = 0;
+		let index = 0;
+
+		for (const node of nodeList) {
+			let nodeContent = "";
+
+			if (typeof node.content == "string") {
+				nodeContent = node.content;
+			} else {
+				for (const nodeToken of node.content) {
+					nodeContent = nodeContent + nodeToken;
+				}
+			}
+
+			if (content.substring(offset).startsWith(nodeContent)) {
+				offset = offset + nodeContent.length;
+				index = index + 1;
+			} else {
+				const identifier = ulid();
+
+				document.nodes.set(identifier, {
+					content: content,
+					parentNode: node.parentNode,
+				});
+
+				document.currentNode = identifier;
+				break;
+			}
+		}
+
+		console.log(document);
 		console.log(content);
 
 		// TODO
