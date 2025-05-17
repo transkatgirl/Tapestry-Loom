@@ -10,6 +10,8 @@ import {
 	WorkspaceLeaf,
 	stringifyYaml,
 } from "obsidian";
+import serialize from "serialize-javascript";
+import { deserialize } from "common";
 import TapestryLoom from "main";
 import {
 	App,
@@ -56,7 +58,7 @@ export function loadDocument(editor: Editor, validate: boolean) {
 	const content = rawContent.substring(frontMatterInfo.contentStart);
 
 	if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
-		const document = fixDocument(frontMatter[FRONT_MATTER_KEY]);
+		const document = deserialize(frontMatter[FRONT_MATTER_KEY]);
 
 		if (validate && validateDocument(document, content)) {
 			saveDocument(editor, document);
@@ -88,7 +90,7 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
 
 	if (frontMatterInfo.exists) {
-		frontMatter[FRONT_MATTER_KEY] = document;
+		frontMatter[FRONT_MATTER_KEY] = serialize(document);
 		editor.replaceRange(
 			stringifyYaml(frontMatter),
 			editor.offsetToPos(frontMatterInfo.from),
@@ -97,18 +99,11 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 	} else {
 		const newContent =
 			"---\n" +
-			stringifyYaml({ FRONT_MATTER_KEY: document }) +
+			stringifyYaml({ FRONT_MATTER_KEY: serialize(document) }) +
 			"\n---\n" +
 			rawContent;
 		editor.setValue(newContent);
 	}
-}
-
-function fixDocument(document: WeaveDocument): WeaveDocument {
-	// TODO
-	document.nodes = new Map(Object.entries(document.nodes));
-
-	return document;
 }
 
 function validateDocument(document: WeaveDocument, content: string) {
@@ -210,6 +205,8 @@ function validateDocument(document: WeaveDocument, content: string) {
 	}
 
 	// TODO: Prune orphaned nodes; only prune root nodes if they do not have children
+
+	// TODO: Prune duplicate nodes
 
 	return modified;
 }

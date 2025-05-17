@@ -1,4 +1,6 @@
 import { Plugin } from "obsidian";
+import serialize from "serialize-javascript";
+import { deserialize } from "common";
 import { TapestryLoomSettings, TapestryLoomSettingTab } from "settings";
 import {
 	TapestryLoomView,
@@ -54,10 +56,14 @@ export default class TapestryLoom extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = await this.loadData();
+		const data = await this.loadData();
+
+		if (data && "settings" in data) {
+			this.settings = deserialize(data.settings);
+		}
 	}
 
 	async saveSettings() {
-		await this.saveData(this.settings);
+		await this.saveData({ settings: serialize(this.settings) });
 	}
 }
