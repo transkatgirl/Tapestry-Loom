@@ -95,10 +95,14 @@ export function refreshDocument(editor: Editor) {
 
 		let node = document.nodes.get(document.currentNode);
 		identifierList.push(document.currentNode);
-		while (node?.parentNode) {
+		while (node) {
 			nodeList.push(node);
-			identifierList.push(node.parentNode);
-			node = document.nodes.get(node.parentNode);
+			if (node.parentNode) {
+				identifierList.push(node.parentNode);
+				node = document.nodes.get(node.parentNode);
+			} else {
+				node = undefined;
+			}
 		}
 		nodeList.reverse();
 		identifierList.reverse();
@@ -140,20 +144,22 @@ export function refreshDocument(editor: Editor) {
 			}
 		}
 
-		if (content.length > offset) {
+		if (content.length > offset && offset > 0) {
 			const identifier = ulid();
+			const nodeContent = content.substring(offset);
 
 			if (identifierList.length > 0) {
 				document.nodes.set(identifier, {
-					content: content,
+					content: nodeContent,
 					parentNode: identifierList[identifierList.length - 1],
 				});
 			} else {
 				document.nodes.set(identifier, {
-					content: content,
+					content: nodeContent,
 				});
 			}
 			document.currentNode = identifier;
+			saveDocument(editor, document);
 		}
 
 		return document;
