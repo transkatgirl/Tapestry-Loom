@@ -96,10 +96,9 @@ export function loadDocument(editor: Editor) {
 			}
 
 			if (
-				content.substring(
-					offset,
-					Math.min(content.length, offset + nodeContent.length)
-				) == nodeContent
+				content.length >= offset + nodeContent.length &&
+				content.substring(offset, offset + nodeContent.length) ==
+					nodeContent
 			) {
 				offset = offset + nodeContent.length;
 			} else {
@@ -121,15 +120,32 @@ export function loadDocument(editor: Editor) {
 			}
 		}
 
-		if (content.length > offset && offset > 0) {
+		if (content.length > offset) {
 			const identifier = ulid();
 			const nodeContent = content.substring(offset);
 
 			if (identifierList.length > 0) {
-				document.nodes.set(identifier, {
-					content: nodeContent,
-					parentNode: identifierList[identifierList.length - 1],
-				});
+				const parentNodeIdentifier =
+					identifierList[identifierList.length - 1];
+				const parentNode = document.nodes.get(parentNodeIdentifier);
+				if (parentNode) {
+					if (parentNode.content.length > 0) {
+						document.nodes.set(identifier, {
+							content: nodeContent,
+							parentNode: parentNodeIdentifier,
+						});
+					} else {
+						document.nodes.set(identifier, {
+							content: nodeContent,
+							parentNode: parentNode.parentNode,
+						});
+						document.nodes.delete(parentNodeIdentifier);
+					}
+				} else {
+					document.nodes.set(identifier, {
+						content: nodeContent,
+					});
+				}
 			} else {
 				document.nodes.set(identifier, {
 					content: nodeContent,
