@@ -49,11 +49,114 @@ export interface WeaveDocumentNode {
 
 export const FRONT_MATTER_KEY = "TapestryLoomWeave";
 
-function cleanDocument(document: WeaveDocument): WeaveDocument {
+function fixDocument(document: WeaveDocument): WeaveDocument {
 	// TODO
 	document.nodes = new Map(Object.entries(document.nodes));
 
 	return document;
+}
+
+function validateDocument(document: WeaveDocument, content: string) {
+	let modified = false;
+
+	const nodeList: Array<WeaveDocumentNode> = [];
+	const identifierList: Array<ULID> = [];
+
+	let node = document.nodes.get(document.currentNode);
+	identifierList.push(document.currentNode);
+	while (node) {
+		nodeList.push(node);
+		if (node.parentNode) {
+			identifierList.push(node.parentNode);
+			node = document.nodes.get(node.parentNode);
+		} else {
+			node = undefined;
+		}
+	}
+	nodeList.reverse();
+	identifierList.reverse();
+
+	let offset = 0;
+
+	for (const [i, node] of nodeList.entries()) {
+		let nodeContent = "";
+
+		if (typeof node.content == "string") {
+			nodeContent = node.content;
+		} else {
+			for (const nodeToken of node.content) {
+				nodeContent = nodeContent + nodeToken;
+			}
+		}
+
+		if (
+			content.length >= offset + nodeContent.length &&
+			content.substring(offset, offset + nodeContent.length) ==
+				nodeContent
+		) {
+			offset = offset + nodeContent.length;
+		} else {
+			const identifier = ulid();
+			const nodeContent = content.substring(offset);
+
+			if (nodeContent.length > 0 || !node.parentNode) {
+				document.nodes.set(identifier, {
+					content: nodeContent,
+					parentNode: node.parentNode,
+				});
+
+				document.currentNode = identifier;
+			} else {
+				document.currentNode = node.parentNode;
+			}
+
+			if (identifierList.length == i + 1) {
+				document.nodes.delete(identifierList[i]);
+			}
+			offset = offset + nodeContent.length;
+			modified = true;
+			break;
+		}
+	}
+
+	if (content.length > offset) {
+		const identifier = ulid();
+		const nodeContent = content.substring(offset);
+
+		if (identifierList.length > 0) {
+			const parentNodeIdentifier =
+				identifierList[identifierList.length - 1];
+			const parentNode = document.nodes.get(parentNodeIdentifier);
+			if (parentNode) {
+				if (parentNode.content.length > 0) {
+					document.nodes.set(identifier, {
+						content: nodeContent,
+						parentNode: parentNodeIdentifier,
+					});
+				} else {
+					document.nodes.set(identifier, {
+						content: nodeContent,
+						parentNode: parentNode.parentNode,
+					});
+					document.nodes.delete(parentNodeIdentifier);
+				}
+			} else {
+				document.nodes.set(identifier, {
+					content: nodeContent,
+				});
+			}
+		} else {
+			document.nodes.set(identifier, {
+				content: nodeContent,
+			});
+		}
+		document.currentNode = identifier;
+		modified = true;
+	}
+
+	// TODO: Prune orphaned nodes; only prune root nodes if they do not have children
+
+	return modified;
 }
 
 export function loadDocument(editor: Editor) {
@@ -63,104 +166,11 @@ export function loadDocument(editor: Editor) {
 	const content = rawContent.substring(frontMatterInfo.contentStart);
 
 	if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
-		const document = cleanDocument(frontMatter[FRONT_MATTER_KEY]);
+		const document = fixDocument(frontMatter[FRONT_MATTER_KEY]);
 
-		const nodeList: Array<WeaveDocumentNode> = [];
-		const identifierList: Array<ULID> = [];
-
-		let node = document.nodes.get(document.currentNode);
-		identifierList.push(document.currentNode);
-		while (node) {
-			nodeList.push(node);
-			if (node.parentNode) {
-				identifierList.push(node.parentNode);
-				node = document.nodes.get(node.parentNode);
-			} else {
-				node = undefined;
-			}
-		}
-		nodeList.reverse();
-		identifierList.reverse();
-
-		let offset = 0;
-
-		for (const [i, node] of nodeList.entries()) {
-			let nodeContent = "";
-
-			if (typeof node.content == "string") {
-				nodeContent = node.content;
-			} else {
-				for (const nodeToken of node.content) {
-					nodeContent = nodeContent + nodeToken;
-				}
-			}
-
-			if (
-				content.length >= offset + nodeContent.length &&
-				content.substring(offset, offset + nodeContent.length) ==
-					nodeContent
-			) {
-				offset = offset + nodeContent.length;
-			} else {
-				const identifier = ulid();
-				const nodeContent = content.substring(offset);
-
-				if (nodeContent.length > 0 || !node.parentNode) {
-					document.nodes.set(identifier, {
-						content: nodeContent,
-						parentNode: node.parentNode,
-					});
-
-					document.currentNode = identifier;
-				} else {
-					document.currentNode = node.parentNode;
-				}
-
-				if (identifierList.length == i + 1) {
-					document.nodes.delete(identifierList[i]);
-				}
-				offset = offset + nodeContent.length;
-				saveDocument(editor, document);
-				break;
-			}
-		}
-
-		if (content.length > offset) {
-			const identifier = ulid();
-			const nodeContent = content.substring(offset);
-
-			if (identifierList.length > 0) {
-				const parentNodeIdentifier =
-					identifierList[identifierList.length - 1];
-				const parentNode = document.nodes.get(parentNodeIdentifier);
-				if (parentNode) {
-					if (parentNode.content.length > 0) {
-						document.nodes.set(identifier, {
-							content: nodeContent,
-							parentNode: parentNodeIdentifier,
-						});
-					} else {
-						document.nodes.set(identifier, {
-							content: nodeContent,
-							parentNode: parentNode.parentNode,
-						});
-						document.nodes.delete(parentNodeIdentifier);
-					}
-				} else {
-					document.nodes.set(identifier, {
-						content: nodeContent,
-					});
-				}
-			} else {
-				document.nodes.set(identifier, {
-					content: nodeContent,
-				});
-			}
-			document.currentNode = identifier;
+		if (validateDocument(document, content)) {
 			saveDocument(editor, document);
 		}
-
-		// TODO: Prune orphaned (non-root) nodes
 
 		return document;
 	} else {
