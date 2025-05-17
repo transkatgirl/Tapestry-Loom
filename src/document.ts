@@ -90,7 +90,7 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
 
 	if (frontMatterInfo.exists) {
-		frontMatter[FRONT_MATTER_KEY] = serialize(document);
+		frontMatter[FRONT_MATTER_KEY] = serialize(document, { space: "\t" });
 		editor.replaceRange(
 			stringifyYaml(frontMatter),
 			editor.offsetToPos(frontMatterInfo.from),
@@ -99,7 +99,9 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 	} else {
 		const newContent =
 			"---\n" +
-			stringifyYaml({ FRONT_MATTER_KEY: serialize(document) }) +
+			stringifyYaml({
+				FRONT_MATTER_KEY: serialize(document, { space: "\t" }),
+			}) +
 			"\n---\n" +
 			rawContent;
 		editor.setValue(newContent);
