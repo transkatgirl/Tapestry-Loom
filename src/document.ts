@@ -5,7 +5,7 @@ import { ulid, ULID } from "ulid";
 import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
 
 export class WeaveDocument {
-	models: Map<ULID, ModelLabel> = new Map();
+	models: Map<ULID, ModelLabel> = new Map(); // TODO: implement pruning
 	protected nodes: Map<ULID, WeaveDocumentNode> = new Map();
 	protected rootNodes: Set<ULID> = new Set();
 	protected nodeChildren: Map<ULID, Set<ULID>> = new Map();
@@ -35,7 +35,6 @@ export class WeaveDocument {
 		return content;
 	}
 	setActiveContent(content: string) {
-		// WIP
 		let modified = false;
 
 		const nodeList = this.getActiveNodes();
@@ -44,6 +43,8 @@ export class WeaveDocument {
 
 		for (const [i, node] of nodeList.entries()) {
 			const nodeContent = getNodeContent(node);
+
+			// TODO: Combine nodes w/o children, combine duplicate nodes
 
 			if (
 				content.length >= offset + nodeContent.length &&
@@ -122,10 +123,6 @@ export class WeaveDocument {
 	getNodeTree() {
 		// TODO
 	}
-	private pruneNodeTree() {
-		// TODO: Prune orphaned nodes; only prune root nodes if they do not have children
-		// TODO: Prune duplicate nodes, combine nodes w/o children
-	}
 	addNode(node: WeaveDocumentNode, model: ModelLabel = UNKNOWN_MODEL_LABEL) {
 		if (node.parentNode) {
 			const parentNode = this.nodes.get(node.parentNode);
@@ -181,7 +178,6 @@ export class WeaveDocument {
 		}
 	}
 	removeNode(identifier: ULID) {
-		// TODO: prune document.models
 		const node = this.nodes.get(identifier);
 		if (node) {
 			this.nodes.delete(identifier);
