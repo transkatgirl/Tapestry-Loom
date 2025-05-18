@@ -54,13 +54,11 @@ export class WeaveDocument {
 			) {
 				offset = offset + nodeContent.length;
 			} else {
-				// TODO: Combine nodes w/o children, combine duplicate nodes
-
 				const identifier = ulid();
 				const nodeContent = content.substring(offset);
 
 				if (nodeContent.length > 0 || !node.parentNode) {
-					this.addNode({
+					this.addContentNode({
 						identifier: identifier,
 						content: nodeContent,
 						parentNode: node.parentNode,
@@ -85,21 +83,11 @@ export class WeaveDocument {
 			const identifier = ulid();
 			const nodeContent = content.substring(offset);
 
-			if (offset == 0) {
-				if (nodeList.length > 0) {
-					this.removeNode(nodeList[0].identifier);
-				}
-				this.addNode({
-					identifier: identifier,
-					content: nodeContent,
-				});
-			} else {
-				this.addNode({
-					identifier: identifier,
-					content: nodeContent,
-					parentNode: this.currentNode,
-				});
-			}
+			this.addContentNode({
+				identifier: identifier,
+				content: nodeContent,
+				parentNode: this.currentNode,
+			});
 			this.currentNode = identifier;
 			modified = true;
 		}
@@ -126,13 +114,31 @@ export class WeaveDocument {
 	getNodeTree() {
 		// TODO
 	}
+	private addContentNode(node: WeaveDocumentNode) {
+		// TODO: Combine nodes w/o children, combine duplicate nodes
+
+		/*if (node.parentNode) {
+			const parentNode = this.nodes.get(node.parentNode);
+			if (
+				parentNode &&
+				this.getNodeChildrenCount(node.parentNode) == 0
+			) {
+				nodeContent = getNodeContent(parentNode) + nodeContent;
+				node.parentNode = parentNode.parentNode;
+				this.removeNode(parentNode.identifier);
+			}
+		}*/
+
+		this.addNode(node);
+	}
 	addNode(node: WeaveDocumentNode, model: ModelLabel = UNKNOWN_MODEL_LABEL) {
 		if (node.parentNode) {
 			const parentNode = this.nodes.get(node.parentNode);
 
 			if (parentNode) {
-				if (parentNode.content.length > 0 || !parentNode.parentNode) {
+				if (parentNode.content.length > 0) {
 					this.nodes.set(node.identifier, node);
+					this.nodeChildren.set(node.identifier, new Set());
 					const parentChildren = this.nodeChildren.get(
 						node.parentNode
 					);
@@ -147,6 +153,9 @@ export class WeaveDocument {
 					}
 				} else {
 					node.parentNode = parentNode.parentNode;
+					if (this.getNodeChildrenCount(parentNode.identifier) == 0) {
+						this.removeNode(parentNode.identifier);
+					}
 					this.addNode(node);
 				}
 			} else {
