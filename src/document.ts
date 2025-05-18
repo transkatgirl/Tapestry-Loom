@@ -70,7 +70,7 @@ export class WeaveDocument {
 						node.parentNode
 					);
 					if (parentChildren) {
-						parentChildren.add(node.parentNode);
+						parentChildren.add(node.identifier);
 						this.nodeChildren.set(node.parentNode, parentChildren);
 					} else {
 						this.nodeChildren.set(
