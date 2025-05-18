@@ -59,7 +59,7 @@ export class WeaveDocument {
 		// TODO: Prune orphaned nodes; only prune root nodes if they do not have children
 		// TODO: Prune duplicate nodes, combine nodes w/o children
 	}
-	addNode(node: WeaveDocumentNode) {
+	addNode(node: WeaveDocumentNode, model: ModelLabel = UNKNOWN_MODEL_LABEL) {
 		if (node.parentNode) {
 			const parentNode = this.nodes.get(node.parentNode);
 
@@ -94,10 +94,10 @@ export class WeaveDocument {
 			this.nodeChildren.set(node.identifier, new Set());
 		}
 		if (node.model) {
-			const model = this.models.get(node.model);
+			const documentModel = this.models.get(node.model);
 
-			if (!model) {
-				this.models.set(node.model, UNKNOWN_MODEL_LABEL);
+			if (!documentModel) {
+				this.models.set(node.model, model);
 			}
 		}
 	}
