@@ -25,7 +25,17 @@ export class WeaveDocument {
 
 		let node = this.nodes.get(this.currentNode);
 		while (node) {
-			content = node.content + content;
+			let nodeContent = "";
+
+			if (typeof node.content == "string") {
+				nodeContent = node.content;
+			} else {
+				for (const nodeToken of node.content) {
+					nodeContent = nodeContent + nodeToken;
+				}
+			}
+
+			content = nodeContent + content;
 			if (node.parentNode) {
 				node = this.nodes.get(node.parentNode);
 			} else {
@@ -107,6 +117,7 @@ export class WeaveDocument {
 		return typeof size == "number" && size > 0;
 	}
 	removeNode(identifier: ULID) {
+		// TODO: handle currentNode
 		const node = this.nodes.get(identifier);
 		if (node) {
 			this.nodes.delete(identifier);
