@@ -10,7 +10,6 @@ export class WeaveDocument {
 	protected rootNodes: Set<ULID> = new Set();
 	protected nodeChildren: Map<ULID, Set<ULID>> = new Map();
 	currentNode: ULID;
-
 	constructor(content: string) {
 		const identifier = ulid();
 
@@ -82,24 +81,19 @@ export class WeaveDocument {
 			const identifier = ulid();
 			const nodeContent = content.substring(offset);
 
-			if (nodeList.length > 0) {
-				if (offset == 0) {
+			if (offset == 0) {
+				if (nodeList.length > 0) {
 					this.removeNode(nodeList[0].identifier);
-					this.addNode({
-						identifier: identifier,
-						content: nodeContent,
-					});
-				} else {
-					this.addNode({
-						identifier: identifier,
-						content: nodeContent,
-						parentNode: nodeList[nodeList.length - 1].identifier,
-					});
 				}
+				this.addNode({
+					identifier: identifier,
+					content: nodeContent,
+				});
 			} else {
 				this.addNode({
 					identifier: identifier,
 					content: nodeContent,
+					parentNode: this.currentNode,
 				});
 			}
 			this.currentNode = identifier;
@@ -187,12 +181,15 @@ export class WeaveDocument {
 		}
 	}
 	removeNode(identifier: ULID) {
-		// TODO: handle currentNode, prune document.models
+		// TODO: prune document.models
 		const node = this.nodes.get(identifier);
 		if (node) {
 			this.nodes.delete(identifier);
 			this.rootNodes.delete(identifier);
 			if (node.parentNode) {
+				if (this.currentNode == identifier) {
+					this.currentNode = node.parentNode;
+				}
 				const parentChildren = this.nodeChildren.get(node.parentNode);
 				if (parentChildren) {
 					parentChildren.delete(node.identifier);
