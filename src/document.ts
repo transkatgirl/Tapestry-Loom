@@ -57,17 +57,11 @@ export class WeaveDocument {
 				const identifier = ulid();
 				const nodeContent = content.substring(offset);
 
-				if (nodeContent.length > 0 || !node.parentNode) {
-					this.addContentNode({
-						identifier: identifier,
-						content: nodeContent,
-						parentNode: node.parentNode,
-					});
-
-					this.currentNode = identifier;
-				} else {
-					this.currentNode = node.parentNode;
-				}
+				this.addCurrentNode({
+					identifier: identifier,
+					content: nodeContent,
+					parentNode: node.parentNode,
+				});
 
 				if (this.getNodeChildrenCount(nodeList[i].identifier) <= 1) {
 					this.removeNode(nodeList[i].identifier);
@@ -83,12 +77,11 @@ export class WeaveDocument {
 			const identifier = ulid();
 			const nodeContent = content.substring(offset);
 
-			this.addContentNode({
+			this.addCurrentNode({
 				identifier: identifier,
 				content: nodeContent,
 				parentNode: this.currentNode,
 			});
-			this.currentNode = identifier;
 			modified = true;
 		}
 
@@ -114,22 +107,45 @@ export class WeaveDocument {
 	getNodeTree() {
 		// TODO
 	}
-	private addContentNode(node: WeaveDocumentNode) {
+	private addCurrentNode(node: WeaveDocumentNode) {
 		if (node.parentNode) {
 			const parentNode = this.nodes.get(node.parentNode);
 			if (parentNode) {
+				if (node.content.length == 0) {
+					this.currentNode = node.parentNode;
+					return;
+				}
 				if (this.getNodeChildrenCount(node.parentNode) == 0) {
 					node.content =
 						getNodeContent(parentNode) + getNodeContent(node);
 					node.parentNode = parentNode.parentNode;
 					this.removeNode(parentNode.identifier);
 				} else {
-					// TODO: Combine duplicate nodes
+					const parentNodeChildren = this.nodeChildren.get(
+						node.parentNode
+					);
+					if (parentNodeChildren) {
+						for (const childIdentifier of parentNodeChildren) {
+							const child = this.nodes.get(childIdentifier);
+
+							if (
+								child &&
+								child.parentNode == node.parentNode &&
+								child.content == node.content &&
+								child.model == node.model &&
+								child.metadata == node.metadata
+							) {
+								this.currentNode = child.identifier;
+								return;
+							}
+						}
+					}
 				}
 			}
 		}
 
 		this.addNode(node);
+		this.currentNode = node.identifier;
 	}
 	addNode(node: WeaveDocumentNode, model: ModelLabel = UNKNOWN_MODEL_LABEL) {
 		if (node.parentNode) {
