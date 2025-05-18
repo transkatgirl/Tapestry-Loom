@@ -5,7 +5,8 @@ import { ulid, ULID } from "ulid";
 import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
 
 export class WeaveDocument {
-	models: Map<ULID, ModelLabel> = new Map(); // TODO: implement pruning
+	models: Map<ULID, ModelLabel> = new Map();
+	protected modelNodes: Map<ULID, Set<ULID>>;
 	protected nodes: Map<ULID, WeaveDocumentNode> = new Map();
 	protected rootNodes: Set<ULID> = new Set();
 	protected nodeChildren: Map<ULID, Set<ULID>> = new Map();
@@ -163,6 +164,15 @@ export class WeaveDocument {
 			if (!documentModel) {
 				this.models.set(node.model, model);
 			}
+
+			const modelNodes = this.modelNodes.get(node.model);
+
+			if (modelNodes) {
+				modelNodes.add(node.identifier);
+				this.modelNodes.set(node.model, modelNodes);
+			} else {
+				this.modelNodes.set(node.model, new Set([node.identifier]));
+			}
 		}
 	}
 	splitNode(identifier: ULID, index: number) {
@@ -190,6 +200,18 @@ export class WeaveDocument {
 				if (parentChildren) {
 					parentChildren.delete(node.identifier);
 					this.nodeChildren.set(node.parentNode, parentChildren);
+				}
+			}
+			if (node.model) {
+				const modelNodes = this.modelNodes.get(node.model);
+				if (modelNodes) {
+					modelNodes.delete(identifier);
+					if (modelNodes.size == 0) {
+						this.models.delete(node.model);
+						this.modelNodes.delete(node.model);
+					} else {
+						this.modelNodes.set(node.model, modelNodes);
+					}
 				}
 			}
 			const childNodes = this.nodeChildren.get(identifier);
