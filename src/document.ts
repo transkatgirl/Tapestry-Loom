@@ -133,7 +133,8 @@ export class WeaveDocument {
 								child.parentNode == node.parentNode &&
 								child.content == node.content &&
 								child.model == node.model &&
-								child.metadata == node.metadata
+								child.metadata?.entries() ==
+									node.metadata?.entries()
 							) {
 								this.currentNode = child.identifier;
 								return;
