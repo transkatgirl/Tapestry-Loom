@@ -107,14 +107,24 @@ export class WeaveDocument {
 		return typeof size == "number" && size > 0;
 	}
 	removeNode(identifier: ULID) {
-		this.nodes.delete(identifier);
-		this.rootNodes.delete(identifier);
-		const childNodes = this.nodeChildren.get(identifier);
-		if (childNodes) {
-			for (const node of childNodes) {
-				this.removeNode(node);
+		const node = this.nodes.get(identifier);
+		if (node) {
+			this.nodes.delete(identifier);
+			this.rootNodes.delete(identifier);
+			if (node.parentNode) {
+				const parentChildren = this.nodeChildren.get(node.parentNode);
+				if (parentChildren) {
+					parentChildren.delete(node.identifier);
+					this.nodeChildren.set(node.parentNode, parentChildren);
+				}
 			}
-			this.nodeChildren.delete(identifier);
+			const childNodes = this.nodeChildren.get(identifier);
+			if (childNodes) {
+				for (const node of childNodes) {
+					this.removeNode(node);
+				}
+				this.nodeChildren.delete(identifier);
+			}
 		}
 	}
 }
