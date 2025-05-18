@@ -4,9 +4,11 @@ import { deserialize } from "common";
 import { ulid, ULID } from "ulid";
 import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
 
-class WeaveDocument {
+export class WeaveDocument {
 	models: Map<ULID, ModelLabel> = new Map();
 	protected nodes: Map<ULID, WeaveDocumentNode> = new Map();
+	protected rootNodes: Set<ULID> = new Set();
+	protected nodeChildren: Map<ULID, Set<ULID>> = new Map();
 	currentNode: ULID;
 
 	constructor(content: string) {
@@ -64,6 +66,18 @@ class WeaveDocument {
 			if (parentNode) {
 				if (parentNode.content.length > 0 || !parentNode.parentNode) {
 					this.nodes.set(node.identifier, node);
+					const parentChildren = this.nodeChildren.get(
+						node.parentNode
+					);
+					if (parentChildren) {
+						parentChildren.add(node.parentNode);
+						this.nodeChildren.set(node.parentNode, parentChildren);
+					} else {
+						this.nodeChildren.set(
+							node.parentNode,
+							new Set([node.identifier])
+						);
+					}
 				} else {
 					node.parentNode = parentNode.parentNode;
 					this.addNode(node);
@@ -71,9 +85,13 @@ class WeaveDocument {
 			} else {
 				node.parentNode = undefined;
 				this.nodes.set(node.identifier, node);
+				this.rootNodes.add(node.identifier);
+				this.nodeChildren.set(node.identifier, new Set());
 			}
 		} else {
 			this.nodes.set(node.identifier, node);
+			this.rootNodes.add(node.identifier);
+			this.nodeChildren.set(node.identifier, new Set());
 		}
 		if (node.model) {
 			const model = this.models.get(node.model);
@@ -85,6 +103,14 @@ class WeaveDocument {
 	}
 	removeNode(identifier: ULID) {
 		this.nodes.delete(identifier);
+		this.rootNodes.delete(identifier);
+		const childNodes = this.nodeChildren.get(identifier);
+		if (childNodes) {
+			for (const node of childNodes) {
+				this.removeNode(node);
+			}
+			this.nodeChildren.delete(identifier);
+		}
 	}
 }
 
@@ -144,10 +170,9 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 	}
 }
 
-export function overrideEditorContent(
-	editor: Editor,
-	document: WeaveDocument
-) {}
+export function overrideEditorContent(editor: Editor, document: WeaveDocument) {
+	// TODO
+}
 
 function updateDocument(document: WeaveDocument, content: string) {
 	let modified = false;
@@ -199,7 +224,7 @@ function updateDocument(document: WeaveDocument, content: string) {
 		const identifier = ulid();
 		const nodeContent = content.substring(offset);
 
-		if (nodeList.length > 1) {
+		if (nodeList.length > 0) {
 			document.addNode({
 				identifier: identifier,
 				content: nodeContent,
