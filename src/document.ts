@@ -115,19 +115,19 @@ export class WeaveDocument {
 		// TODO
 	}
 	private addContentNode(node: WeaveDocumentNode) {
-		// TODO: Combine nodes w/o children, combine duplicate nodes
-
-		/*if (node.parentNode) {
+		if (node.parentNode) {
 			const parentNode = this.nodes.get(node.parentNode);
-			if (
-				parentNode &&
-				this.getNodeChildrenCount(node.parentNode) == 0
-			) {
-				nodeContent = getNodeContent(parentNode) + nodeContent;
-				node.parentNode = parentNode.parentNode;
-				this.removeNode(parentNode.identifier);
+			if (parentNode) {
+				if (this.getNodeChildrenCount(node.parentNode) == 0) {
+					node.content =
+						getNodeContent(parentNode) + getNodeContent(node);
+					node.parentNode = parentNode.parentNode;
+					this.removeNode(parentNode.identifier);
+				} else {
+					// TODO: Combine duplicate nodes
+				}
 			}
-		}*/
+		}
 
 		this.addNode(node);
 	}
