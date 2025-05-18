@@ -111,13 +111,20 @@ export class WeaveDocument {
 			}
 		}
 	}
-	nodeHasChildren(identifier: ULID) {
+	splitNode(identifier: ULID, index: number) {
+		// TODO
+	}
+	getNodeChildrenCount(identifier: ULID) {
 		const size = this.nodeChildren.get(identifier)?.size;
 
-		return typeof size == "number" && size > 0;
+		if (size) {
+			return size;
+		} else {
+			return 0;
+		}
 	}
 	removeNode(identifier: ULID) {
-		// TODO: handle currentNode
+		// TODO: handle currentNode, prune document.models
 		const node = this.nodes.get(identifier);
 		if (node) {
 			this.nodes.delete(identifier);
@@ -242,7 +249,7 @@ function updateDocument(document: WeaveDocument, content: string) {
 
 			if (
 				nodeList.length == i + 1 &&
-				!document.nodeHasChildren(nodeList[i].identifier)
+				document.getNodeChildrenCount(nodeList[i].identifier) <= 1
 			) {
 				document.removeNode(nodeList[i].identifier);
 			}
