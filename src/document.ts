@@ -4,7 +4,7 @@ import { deserialize } from "common";
 import { ulid, ULID } from "ulid";
 import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
 
-// TODO: Implement document.getNodeTree(), document.splitNode(), overrideEditorContent()
+// TODO: Implement document.splitNode(), overrideEditorContent()
 
 export class WeaveDocument {
 	models: Map<ULID, ModelLabel> = new Map();
@@ -104,8 +104,40 @@ export class WeaveDocument {
 
 		return nodeList;
 	}
-	getNodeTree() {
-		// TODO
+	getRootNodes(): Array<WeaveDocumentNode> {
+		const nodes: Array<WeaveDocumentNode> = [];
+		for (const identifier of Array.from(this.rootNodes).sort(function (
+			a,
+			b
+		) {
+			return a.localeCompare(b);
+		})) {
+			const node = this.nodes.get(identifier);
+			if (node) {
+				nodes.push(node);
+			}
+		}
+
+		return nodes;
+	}
+	getNodeChildren(node: WeaveDocumentNode): Array<WeaveDocumentNode> {
+		const childSet = this.nodeChildren.get(node.identifier);
+
+		if (childSet) {
+			const childNodes: Array<WeaveDocumentNode> = [];
+			for (const identifier of Array.from(childSet).sort(function (a, b) {
+				return a.localeCompare(b);
+			})) {
+				const node = this.nodes.get(identifier);
+				if (node) {
+					childNodes.push(node);
+				}
+			}
+
+			return childNodes;
+		} else {
+			return [];
+		}
 	}
 	private addCurrentNode(node: WeaveDocumentNode) {
 		if (node.parentNode) {
