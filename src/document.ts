@@ -247,11 +247,19 @@ function updateDocument(document: WeaveDocument, content: string) {
 		const nodeContent = content.substring(offset);
 
 		if (nodeList.length > 0) {
-			document.addNode({
-				identifier: identifier,
-				content: nodeContent,
-				parentNode: nodeList[nodeList.length - 1].identifier,
-			});
+			if (offset == 0) {
+				document.removeNode(nodeList[0].identifier);
+				document.addNode({
+					identifier: identifier,
+					content: nodeContent,
+				});
+			} else {
+				document.addNode({
+					identifier: identifier,
+					content: nodeContent,
+					parentNode: nodeList[nodeList.length - 1].identifier,
+				});
+			}
 		} else {
 			document.addNode({
 				identifier: identifier,
