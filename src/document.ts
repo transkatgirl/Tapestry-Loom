@@ -106,12 +106,7 @@ export class WeaveDocument {
 	}
 	getRootNodes(): Array<WeaveDocumentNode> {
 		const nodes: Array<WeaveDocumentNode> = [];
-		for (const identifier of Array.from(this.rootNodes).sort(function (
-			a,
-			b
-		) {
-			return a.localeCompare(b);
-		})) {
+		for (const identifier of sortIdentifierSet(this.rootNodes)) {
 			const node = this.nodes.get(identifier);
 			if (node) {
 				nodes.push(node);
@@ -125,9 +120,7 @@ export class WeaveDocument {
 
 		if (childSet) {
 			const childNodes: Array<WeaveDocumentNode> = [];
-			for (const identifier of Array.from(childSet).sort(function (a, b) {
-				return a.localeCompare(b);
-			})) {
+			for (const identifier of sortIdentifierSet(childSet)) {
 				const node = this.nodes.get(identifier);
 				if (node) {
 					childNodes.push(node);
@@ -305,6 +298,12 @@ export function getNodeContent(node: WeaveDocumentNode) {
 	}
 
 	return nodeContent;
+}
+
+function sortIdentifierSet(set: Set<ULID>): Array<ULID> {
+	return Array.from(set).sort(function (a, b) {
+		return a.localeCompare(b);
+	});
 }
 
 export const FRONT_MATTER_KEY = "TapestryLoomWeave";
