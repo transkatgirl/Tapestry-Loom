@@ -25,17 +25,7 @@ export class WeaveDocument {
 
 		let node = this.nodes.get(this.currentNode);
 		while (node) {
-			let nodeContent = "";
-
-			if (typeof node.content == "string") {
-				nodeContent = node.content;
-			} else {
-				for (const nodeToken of node.content) {
-					nodeContent = nodeContent + nodeToken;
-				}
-			}
-
-			content = nodeContent + content;
+			content = getNodeContent(node) + content;
 			if (node.parentNode) {
 				node = this.nodes.get(node.parentNode);
 			} else {
@@ -44,6 +34,79 @@ export class WeaveDocument {
 		}
 
 		return content;
+	}
+	setActiveContent(content: string) {
+		// WIP
+		let modified = false;
+
+		const nodeList = this.getActiveNodes();
+
+		let offset = 0;
+
+		for (const [i, node] of nodeList.entries()) {
+			const nodeContent = getNodeContent(node);
+
+			if (
+				content.length >= offset + nodeContent.length &&
+				content.substring(offset, offset + nodeContent.length) ==
+					nodeContent
+			) {
+				offset = offset + nodeContent.length;
+			} else {
+				const identifier = ulid();
+				const nodeContent = content.substring(offset);
+
+				if (nodeContent.length > 0 || !node.parentNode) {
+					this.addNode({
+						identifier: identifier,
+						content: nodeContent,
+						parentNode: node.parentNode,
+					});
+
+					this.currentNode = identifier;
+				} else {
+					this.currentNode = node.parentNode;
+				}
+
+				if (this.getNodeChildrenCount(nodeList[i].identifier) <= 1) {
+					this.removeNode(nodeList[i].identifier);
+				}
+
+				offset = offset + nodeContent.length;
+				modified = true;
+				break;
+			}
+		}
+
+		if (content.length > offset) {
+			const identifier = ulid();
+			const nodeContent = content.substring(offset);
+
+			if (nodeList.length > 0) {
+				if (offset == 0) {
+					this.removeNode(nodeList[0].identifier);
+					this.addNode({
+						identifier: identifier,
+						content: nodeContent,
+					});
+				} else {
+					this.addNode({
+						identifier: identifier,
+						content: nodeContent,
+						parentNode: nodeList[nodeList.length - 1].identifier,
+					});
+				}
+			} else {
+				this.addNode({
+					identifier: identifier,
+					content: nodeContent,
+				});
+			}
+			this.currentNode = identifier;
+			modified = true;
+		}
+
+		return modified;
 	}
 	getActiveNodes(): Array<WeaveDocumentNode> {
 		const nodeList = [];
@@ -155,6 +218,20 @@ export interface WeaveDocumentNode {
 	metadata?: Map<string, string>;
 }
 
+function getNodeContent(node: WeaveDocumentNode) {
+	let nodeContent = "";
+
+	if (typeof node.content == "string") {
+		nodeContent = node.content;
+	} else {
+		for (const nodeToken of node.content) {
+			nodeContent = nodeContent + nodeToken;
+		}
+	}
+
+	return nodeContent;
+}
+
 export const FRONT_MATTER_KEY = "TapestryLoomWeave";
 
 export function loadDocument(editor: Editor) {
@@ -164,12 +241,12 @@ export function loadDocument(editor: Editor) {
 	const content = rawContent.substring(frontMatterInfo.contentStart);
 
 	if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
-		const document = Object.assign(
+		const document: WeaveDocument = Object.assign(
 			new WeaveDocument(""),
 			deserialize(frontMatter[FRONT_MATTER_KEY])
 		);
 
-		if (updateDocument(document, content)) {
+		if (document.setActiveContent(content)) {
 			saveDocument(editor, document);
 		}
 
@@ -205,88 +282,4 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 
 export function overrideEditorContent(editor: Editor, document: WeaveDocument) {
 	// TODO
-}
-
-function updateDocument(document: WeaveDocument, content: string) {
-	let modified = false;
-
-	const nodeList = document.getActiveNodes();
-
-	let offset = 0;
-
-	for (const [i, node] of nodeList.entries()) {
-		let nodeContent = "";
-
-		if (typeof node.content == "string") {
-			nodeContent = node.content;
-		} else {
-			for (const nodeToken of node.content) {
-				nodeContent = nodeContent + nodeToken;
-			}
-		}
-
-		if (
-			content.length >= offset + nodeContent.length &&
-			content.substring(offset, offset + nodeContent.length) ==
-				nodeContent
-		) {
-			offset = offset + nodeContent.length;
-		} else {
-			const identifier = ulid();
-			const nodeContent = content.substring(offset);
-
-			if (nodeContent.length > 0 || !node.parentNode) {
-				document.addNode({
-					identifier: identifier,
-					content: nodeContent,
-					parentNode: node.parentNode,
-				});
-
-				document.currentNode = identifier;
-			} else {
-				document.currentNode = node.parentNode;
-			}
-
-			if (
-				nodeList.length == i + 1 &&
-				document.getNodeChildrenCount(nodeList[i].identifier) <= 1
-			) {
-				document.removeNode(nodeList[i].identifier);
-			}
-
-			offset = offset + nodeContent.length;
-			modified = true;
-			break;
-		}
-	}
-
-	if (content.length > offset) {
-		const identifier = ulid();
-		const nodeContent = content.substring(offset);
-
-		if (nodeList.length > 0) {
-			if (offset == 0) {
-				document.removeNode(nodeList[0].identifier);
-				document.addNode({
-					identifier: identifier,
-					content: nodeContent,
-				});
-			} else {
-				document.addNode({
-					identifier: identifier,
-					content: nodeContent,
-					parentNode: nodeList[nodeList.length - 1].identifier,
-				});
-			}
-		} else {
-			document.addNode({
-				identifier: identifier,
-				content: nodeContent,
-			});
-		}
-		document.currentNode = identifier;
-		modified = true;
-	}
-
-	return modified;
 }
