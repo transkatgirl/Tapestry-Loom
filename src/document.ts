@@ -4,7 +4,7 @@ import { deserialize } from "common";
 import { ulid, ULID } from "ulid";
 import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
 
-// TODO: Implement document.splitNode(), overrideEditorContent()
+// TODO: Implement document.splitNode()
 
 export class WeaveDocument {
 	models: Map<ULID, ModelLabel> = new Map();
@@ -230,6 +230,7 @@ export class WeaveDocument {
 	}
 	splitNode(identifier: ULID, index: number) {
 		// TODO
+		throw "unimplemented!";
 	}
 	getNodeChildrenCount(identifier: ULID) {
 		const size = this.nodeChildren.get(identifier)?.size;
@@ -357,17 +358,38 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 			editor.offsetToPos(frontMatterInfo.to)
 		);
 	} else {
-		const newContent =
+		editor.setValue(
 			"---\n" +
-			stringifyYaml({
-				FRONT_MATTER_KEY: serialize(document, { space: "\t" }),
-			}) +
-			"\n---\n" +
-			rawContent;
-		editor.setValue(newContent);
+				stringifyYaml({
+					FRONT_MATTER_KEY: serialize(document, { space: "\t" }),
+				}) +
+				"\n---\n" +
+				rawContent
+		);
 	}
 }
 
 export function overrideEditorContent(editor: Editor, document: WeaveDocument) {
-	// TODO
+	const rawContent = editor.getValue();
+	const frontMatterInfo = getFrontMatterInfo(rawContent);
+	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
+
+	if (frontMatterInfo.exists) {
+		frontMatter[FRONT_MATTER_KEY] = serialize(document, { space: "\t" });
+		editor.setValue(
+			"---\n" +
+				stringifyYaml(frontMatter) +
+				"\n---\n" +
+				document.getActiveContent()
+		);
+	} else {
+		editor.setValue(
+			"---\n" +
+				stringifyYaml({
+					FRONT_MATTER_KEY: serialize(document, { space: "\t" }),
+				}) +
+				"\n---\n" +
+				document.getActiveContent()
+		);
+	}
 }
