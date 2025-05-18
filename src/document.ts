@@ -101,6 +101,11 @@ export class WeaveDocument {
 			}
 		}
 	}
+	nodeHasChildren(identifier: ULID) {
+		const size = this.nodeChildren.get(identifier)?.size;
+
+		return typeof size == "number" && size > 0;
+	}
 	removeNode(identifier: ULID) {
 		this.nodes.delete(identifier);
 		this.rootNodes.delete(identifier);
@@ -181,7 +186,7 @@ function updateDocument(document: WeaveDocument, content: string) {
 
 	let offset = 0;
 
-	for (const node of nodeList) {
+	for (const [i, node] of nodeList.entries()) {
 		let nodeContent = "";
 
 		if (typeof node.content == "string") {
@@ -212,6 +217,13 @@ function updateDocument(document: WeaveDocument, content: string) {
 				document.currentNode = identifier;
 			} else {
 				document.currentNode = node.parentNode;
+			}
+
+			if (
+				nodeList.length == i + 1 &&
+				!document.nodeHasChildren(nodeList[i].identifier)
+			) {
+				document.removeNode(nodeList[i].identifier);
 			}
 
 			offset = offset + nodeContent.length;
