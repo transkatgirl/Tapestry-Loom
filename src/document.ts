@@ -4,9 +4,11 @@ import { deserialize } from "common";
 import { ulid, ULID } from "ulid";
 import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
 
+// TODO: Implement document.getNodeTree(), document.splitNode(), overrideEditorContent()
+
 export class WeaveDocument {
 	models: Map<ULID, ModelLabel> = new Map();
-	protected modelNodes: Map<ULID, Set<ULID>>;
+	protected modelNodes: Map<ULID, Set<ULID>> = new Map();
 	protected nodes: Map<ULID, WeaveDocumentNode> = new Map();
 	protected rootNodes: Set<ULID> = new Set();
 	protected nodeChildren: Map<ULID, Set<ULID>> = new Map();
@@ -45,8 +47,6 @@ export class WeaveDocument {
 		for (const [i, node] of nodeList.entries()) {
 			const nodeContent = getNodeContent(node);
 
-			// TODO: Combine nodes w/o children, combine duplicate nodes
-
 			if (
 				content.length >= offset + nodeContent.length &&
 				content.substring(offset, offset + nodeContent.length) ==
@@ -54,6 +54,8 @@ export class WeaveDocument {
 			) {
 				offset = offset + nodeContent.length;
 			} else {
+				// TODO: Combine nodes w/o children, combine duplicate nodes
+
 				const identifier = ulid();
 				const nodeContent = content.substring(offset);
 
@@ -233,7 +235,7 @@ export interface WeaveDocumentNode {
 	metadata?: Map<string, string>;
 }
 
-function getNodeContent(node: WeaveDocumentNode) {
+export function getNodeContent(node: WeaveDocumentNode) {
 	let nodeContent = "";
 
 	if (typeof node.content == "string") {
@@ -269,6 +271,20 @@ export function loadDocument(editor: Editor) {
 	} else {
 		return new WeaveDocument(content);
 	}
+}
+
+export function updateDocument(editor: Editor, document: WeaveDocument) {
+	const rawContent = editor.getValue();
+	const frontMatterInfo = getFrontMatterInfo(rawContent);
+	const content = rawContent.substring(frontMatterInfo.contentStart);
+
+	const updated = document.setActiveContent(content);
+
+	if (updated) {
+		saveDocument(editor, document);
+	}
+
+	return updated;
 }
 
 export function saveDocument(editor: Editor, document: WeaveDocument) {
