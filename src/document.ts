@@ -105,7 +105,10 @@ export function loadDocument(editor: Editor) {
 	const content = rawContent.substring(frontMatterInfo.contentStart);
 
 	if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
-		const document = deserialize(frontMatter[FRONT_MATTER_KEY]);
+		const document = Object.assign(
+			new WeaveDocument(""),
+			deserialize(frontMatter[FRONT_MATTER_KEY])
+		);
 
 		if (updateDocument(document, content)) {
 			saveDocument(editor, document);
