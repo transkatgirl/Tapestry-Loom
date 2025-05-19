@@ -388,15 +388,20 @@ export function updateDocument(editor: Editor, document: WeaveDocument) {
 export function saveDocument(editor: Editor, document: WeaveDocument) {
 	const rawContent = editor.getValue();
 	const frontMatterInfo = getFrontMatterInfo(rawContent);
-	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
+	let frontMatter = parseYaml(frontMatterInfo.frontmatter);
 	const content = rawContent.substring(frontMatterInfo.contentStart);
 
 	if (document.getActiveContent().trim() != content.trim()) {
 		return;
 	}
 
+	if (!frontMatter) {
+		frontMatter = {};
+	}
+
+	frontMatter[FRONT_MATTER_KEY] = serialize(document);
+
 	if (frontMatterInfo.exists) {
-		frontMatter[FRONT_MATTER_KEY] = serialize(document);
 		editor.replaceRange(
 			stringifyYaml(frontMatter),
 			editor.offsetToPos(frontMatterInfo.from),
@@ -404,12 +409,7 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 		);
 	} else {
 		editor.setValue(
-			"---\n" +
-				stringifyYaml({
-					FRONT_MATTER_KEY: serialize(document),
-				}) +
-				"\n---\n" +
-				rawContent
+			"---\n" + stringifyYaml(frontMatter) + "---\n" + rawContent
 		);
 	}
 }
@@ -417,24 +417,18 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 export function overrideEditorContent(editor: Editor, document: WeaveDocument) {
 	const rawContent = editor.getValue();
 	const frontMatterInfo = getFrontMatterInfo(rawContent);
-	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
+	let frontMatter = parseYaml(frontMatterInfo.frontmatter);
 
-	if (frontMatterInfo.exists) {
-		frontMatter[FRONT_MATTER_KEY] = serialize(document);
-		editor.setValue(
-			"---\n" +
-				stringifyYaml(frontMatter) +
-				"\n---\n" +
-				document.getActiveContent()
-		);
-	} else {
-		editor.setValue(
-			"---\n" +
-				stringifyYaml({
-					FRONT_MATTER_KEY: serialize(document),
-				}) +
-				"\n---\n" +
-				document.getActiveContent()
-		);
+	if (!frontMatter) {
+		frontMatter = {};
 	}
+
+	frontMatter[FRONT_MATTER_KEY] = serialize(document);
+
+	editor.setValue(
+		"---\n" +
+			stringifyYaml(frontMatter) +
+			"---\n" +
+			document.getActiveContent()
+	);
 }
