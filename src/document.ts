@@ -249,7 +249,7 @@ export class WeaveDocument {
 			const primaryChildren = this.nodeChildren.get(node.identifier);
 
 			if (primaryChildren) {
-				for (const childIdentifier in primaryChildren) {
+				for (const childIdentifier of primaryChildren) {
 					const childNode = this.nodes.get(childIdentifier);
 
 					if (childNode) {
