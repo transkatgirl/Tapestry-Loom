@@ -38,7 +38,7 @@ import {
 	WeaveDocument,
 	WeaveDocumentNode,
 } from "document";
-import { ulid } from "ulid";
+import { ULID, ulid } from "ulid";
 
 export const VIEW_COMMANDS: Array<Command> = [];
 
@@ -49,7 +49,6 @@ export class TapestryLoomView extends ItemView {
 	listeners: EventRef[] = [];
 	editor?: Editor;
 	document?: WeaveDocument;
-
 	constructor(leaf: WorkspaceLeaf, plugin: TapestryLoom) {
 		super(leaf);
 		this.plugin = plugin;
@@ -119,21 +118,7 @@ export class TapestryLoomView extends ItemView {
 			type: "button",
 		});
 		addButton.addEventListener("click", () => {
-			console.log(this.document);
-
-			if (!this.document || !this.editor) {
-				return;
-			}
-
-			const identifier = ulid();
-			this.document.addNode({
-				identifier: identifier,
-				content: "",
-				parentNode: node.identifier,
-			});
-			this.document.currentNode = identifier;
-			saveDocument(this.editor, this.document);
-			this.renderDocument();
+			this.addNode(node.identifier);
 		});
 		if (node.identifier != this.document.currentNode) {
 			const switchButton = item.createEl("button", {
@@ -141,15 +126,7 @@ export class TapestryLoomView extends ItemView {
 				type: "button",
 			});
 			switchButton.addEventListener("click", () => {
-				console.log(this.document);
-
-				if (!this.document || !this.editor) {
-					return;
-				}
-
-				this.document.currentNode = node.identifier;
-				overrideEditorContent(this.editor, this.document);
-				this.renderDocument();
+				this.switchToNode(node.identifier);
 			});
 		}
 		const deleteButton = item.createEl("button", {
@@ -157,15 +134,7 @@ export class TapestryLoomView extends ItemView {
 			type: "button",
 		});
 		deleteButton.addEventListener("click", () => {
-			console.log(this.document);
-
-			if (!this.document || !this.editor) {
-				return;
-			}
-
-			this.document.removeNode(node.identifier);
-			overrideEditorContent(this.editor, this.document);
-			this.renderDocument();
+			this.deleteNode(node.identifier);
 		});
 
 		for (const childNode of this.document.getNodeChildren(node)) {
@@ -175,10 +144,42 @@ export class TapestryLoomView extends ItemView {
 			item.appendChild(list);
 		}
 	}
+	addNode(parentNode?: ULID) {
+		if (!this.document || !this.editor) {
+			return;
+		}
+
+		const identifier = ulid();
+		this.document.addNode({
+			identifier: identifier,
+			content: "",
+			parentNode: parentNode,
+		});
+		this.document.currentNode = identifier;
+		overrideEditorContent(this.editor, this.document);
+		this.renderDocument();
+	}
+	switchToNode(identifier: ULID) {
+		if (!this.document || !this.editor) {
+			return;
+		}
+
+		this.document.currentNode = identifier;
+		overrideEditorContent(this.editor, this.document);
+		this.renderDocument();
+	}
+	deleteNode(identifier: ULID) {
+		if (!this.document || !this.editor) {
+			return;
+		}
+
+		this.document.removeNode(identifier);
+		overrideEditorContent(this.editor, this.document);
+		this.renderDocument();
+	}
 	async onOpen() {
 		const container = this.containerEl.children[1];
 		container.empty();
-		//container.createEl("h4", { text: "Title" });
 
 		const { workspace } = this.app;
 
