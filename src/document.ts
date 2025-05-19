@@ -351,7 +351,7 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
 
 	if (frontMatterInfo.exists) {
-		frontMatter[FRONT_MATTER_KEY] = serialize(document, { space: "\t" });
+		frontMatter[FRONT_MATTER_KEY] = serialize(document);
 		editor.replaceRange(
 			stringifyYaml(frontMatter),
 			editor.offsetToPos(frontMatterInfo.from),
@@ -361,7 +361,7 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 		editor.setValue(
 			"---\n" +
 				stringifyYaml({
-					FRONT_MATTER_KEY: serialize(document, { space: "\t" }),
+					FRONT_MATTER_KEY: serialize(document),
 				}) +
 				"\n---\n" +
 				rawContent
@@ -375,7 +375,7 @@ export function overrideEditorContent(editor: Editor, document: WeaveDocument) {
 	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
 
 	if (frontMatterInfo.exists) {
-		frontMatter[FRONT_MATTER_KEY] = serialize(document, { space: "\t" });
+		frontMatter[FRONT_MATTER_KEY] = serialize(document);
 		editor.setValue(
 			"---\n" +
 				stringifyYaml(frontMatter) +
@@ -386,7 +386,7 @@ export function overrideEditorContent(editor: Editor, document: WeaveDocument) {
 		editor.setValue(
 			"---\n" +
 				stringifyYaml({
-					FRONT_MATTER_KEY: serialize(document, { space: "\t" }),
+					FRONT_MATTER_KEY: serialize(document),
 				}) +
 				"\n---\n" +
 				document.getActiveContent()
