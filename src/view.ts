@@ -29,7 +29,12 @@ import {
 	PluginValue,
 	WidgetType,
 } from "@codemirror/view";
-import { loadDocument, WeaveDocument } from "document";
+import {
+	loadDocument,
+	updateDocument,
+	WeaveDocument,
+	WeaveDocumentNode,
+} from "document";
 
 export const VIEW_COMMANDS: Array<Command> = [];
 
@@ -38,46 +43,57 @@ export const VIEW_TYPE = "tapestry-loom-view";
 export class TapestryLoomView extends ItemView {
 	plugin: TapestryLoom;
 	listeners: EventRef[] = [];
+	document?: WeaveDocument;
 
 	constructor(leaf: WorkspaceLeaf, plugin: TapestryLoom) {
 		super(leaf);
 		this.plugin = plugin;
 	}
-
 	getViewType() {
 		return VIEW_TYPE;
 	}
-
 	getDisplayText() {
 		return "Tapestry Loom";
 	}
-
 	getIcon(): string {
 		return "list-tree";
 	}
-
 	async load() {
 		const { workspace } = this.app;
 		const editor = workspace.activeEditor?.editor;
 
 		if (!editor) {
+			this.document = undefined;
 			return;
 		}
 
-		console.log(loadDocument(editor));
+		this.document = loadDocument(editor);
+		this.renderDocument();
 	}
-
 	async update() {
 		const { workspace } = this.app;
 		const editor = workspace.activeEditor?.editor;
 
 		if (!editor) {
+			this.document = undefined;
 			return;
 		}
 
-		console.log(loadDocument(editor));
+		if (this.document) {
+			const updated = updateDocument(editor, this.document);
+			if (updated) {
+				this.renderDocument();
+			}
+		} else {
+			this.document = loadDocument(editor);
+			this.renderDocument();
+		}
 	}
-
+	async renderDocument() {
+		if (this.document) {
+			console.log(this.document);
+		}
+	}
 	async onOpen() {
 		const container = this.containerEl.children[1];
 		container.empty();
