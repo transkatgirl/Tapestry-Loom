@@ -138,10 +138,10 @@ export class WeaveDocument {
 		if (node.parentNode) {
 			const parentNode = this.nodes.get(node.parentNode);
 			if (parentNode) {
-				if (node.content.length == 0) {
+				/*if (node.content.length == 0) {
 					this.currentNode = node.parentNode;
 					return;
-				}
+				}*/
 				if (
 					this.getNodeChildrenCount(node.parentNode) == 0 &&
 					!this.bookmarks.has(node.parentNode)
