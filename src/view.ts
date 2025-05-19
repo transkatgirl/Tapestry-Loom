@@ -7,6 +7,7 @@ import {
 	ItemView,
 	EventRef,
 	WorkspaceLeaf,
+	setIcon,
 } from "obsidian";
 import TapestryLoom from "main";
 import {
@@ -92,11 +93,7 @@ export class TapestryLoomView extends ItemView {
 			const container = this.contentEl;
 			container.empty();
 
-			const list = container.createEl("ul");
-
-			for (const node of this.document.getRootNodes()) {
-				this.renderNode(list, node);
-			}
+			this.renderTree(container);
 
 			console.log(this.document);
 		} else {
@@ -104,16 +101,66 @@ export class TapestryLoomView extends ItemView {
 			container.empty();
 		}
 	}
+	private renderTree(root: HTMLElement) {
+		if (!this.document) {
+			return;
+		}
+
+		const list = root.createEl("div");
+
+		for (const node of this.document.getRootNodes()) {
+			this.renderNode(list, node);
+		}
+	}
 	private renderNode(root: HTMLElement, node: WeaveDocumentNode) {
 		if (!this.document) {
 			return;
 		}
 
-		const item = root.createEl("li", {
-			text: getNodeContent(node),
-			attr: { id: node.identifier },
+		const children = this.document.getNodeChildren(node);
+
+		const item = root.createEl("div", {
+			cls: ["tree-item"],
+			//attr: { id: node.identifier },
 		});
-		const addButton = item.createEl("button", {
+		const labelContainer = item.createEl("div", {
+			cls: ["tree-item-self", "is-clickable"],
+			attr: { dragable: false },
+		});
+		const childrenContainer = item.createEl("div", {
+			cls: ["tree-item-children"],
+			attr: { dragable: false },
+		});
+
+		if (children.length > 0) {
+			labelContainer.classList.add("mod-collapsible");
+			const iconContainer = labelContainer.createEl("div", {
+				text: getNodeContent(node),
+				cls: ["tree-item-icon", "collapse-icon"],
+			});
+			iconContainer.innerHTML =
+				'<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon right-triangle"><path d="M3 8L12 17L21 8"></path></svg>';
+			iconContainer.addEventListener("click", (event) => {
+				event.stopPropagation();
+
+				if (iconContainer.classList.contains("is-collapsed")) {
+					iconContainer.classList.remove("is-collapsed");
+					childrenContainer.style = "";
+				} else {
+					iconContainer.classList.add("is-collapsed");
+					childrenContainer.style = "display: none";
+				}
+			});
+		}
+		labelContainer.createEl("div", {
+			text: getNodeContent(node),
+			cls: ["tree-item-inner"],
+		});
+		labelContainer.addEventListener("click", () => {
+			this.switchToNode(node.identifier);
+		});
+
+		/*const addButton = item.createEl("button", {
 			text: "Add node",
 			type: "button",
 		});
@@ -135,13 +182,10 @@ export class TapestryLoomView extends ItemView {
 		});
 		deleteButton.addEventListener("click", () => {
 			this.deleteNode(node.identifier);
-		});
+		});*/
 
 		for (const childNode of this.document.getNodeChildren(node)) {
-			const list = item.createEl("ul");
-
-			this.renderNode(list, childNode);
-			item.appendChild(list);
+			this.renderNode(childrenContainer, childNode);
 		}
 	}
 	addNode(parentNode?: ULID) {
