@@ -62,7 +62,10 @@ export class WeaveDocument {
 					parentNode: node.parentNode,
 				});
 
-				if (this.getNodeChildrenCount(nodeList[i].identifier) <= 1) {
+				if (
+					this.getNodeChildrenCount(nodeList[i].identifier) <= 1 &&
+					!this.bookmarks.has(nodeList[i].identifier)
+				) {
 					this.removeNode(nodeList[i].identifier);
 				}
 
@@ -139,7 +142,10 @@ export class WeaveDocument {
 					this.currentNode = node.parentNode;
 					return;
 				}
-				if (this.getNodeChildrenCount(node.parentNode) == 0) {
+				if (
+					this.getNodeChildrenCount(node.parentNode) == 0 &&
+					!this.bookmarks.has(node.parentNode)
+				) {
 					node.content =
 						getNodeContent(parentNode) + getNodeContent(node);
 					node.parentNode = parentNode.parentNode;
