@@ -11,6 +11,7 @@ export class WeaveDocument {
 	protected rootNodes: Set<ULID> = new Set();
 	protected nodeChildren: Map<ULID, Set<ULID>> = new Map();
 	currentNode: ULID;
+	bookmarks: Set<ULID>;
 	constructor(content: string) {
 		const identifier = ulid();
 
@@ -278,6 +279,7 @@ export class WeaveDocument {
 		if (node) {
 			this.nodes.delete(identifier);
 			this.rootNodes.delete(identifier);
+			this.bookmarks.delete(identifier);
 			if (node.parentNode) {
 				if (this.currentNode == identifier) {
 					this.currentNode = node.parentNode;
@@ -333,7 +335,7 @@ export function getNodeContent(node: WeaveDocumentNode) {
 	return nodeContent;
 }
 
-function sortIdentifierSet(set: Set<ULID>): Array<ULID> {
+export function sortIdentifierSet(set: Set<ULID>): Array<ULID> {
 	return Array.from(set).sort(function (a, b) {
 		return a.localeCompare(b);
 	});
