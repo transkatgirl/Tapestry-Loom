@@ -4,8 +4,6 @@ import { deserialize } from "common";
 import { ulid, ULID } from "ulid";
 import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
 
-// TODO: Implement document.splitNode()
-
 export class WeaveDocument {
 	models: Map<ULID, ModelLabel> = new Map();
 	protected modelNodes: Map<ULID, Set<ULID>> = new Map();
@@ -229,8 +227,42 @@ export class WeaveDocument {
 		}
 	}
 	splitNode(identifier: ULID, index: number) {
-		// TODO
-		throw "unimplemented!";
+		const node = this.nodes.get(identifier);
+
+		if (node && index > 0 && index < node.content.length) {
+			const splitContent = [
+				node.content.slice(0, index),
+				node.content.slice(index),
+			];
+
+			const secondaryIdentifier = ulid();
+
+			node.content = splitContent[0];
+			this.addNode({
+				identifier: secondaryIdentifier,
+				content: splitContent[1],
+				model: node.model,
+				parentNode: node.identifier,
+				metadata: node.metadata,
+			});
+
+			const primaryChildren = this.nodeChildren.get(node.identifier);
+
+			if (primaryChildren) {
+				for (const childIdentifier in primaryChildren) {
+					const childNode = this.nodes.get(childIdentifier);
+
+					if (childNode) {
+						childNode.parentNode = secondaryIdentifier;
+					}
+				}
+				this.nodeChildren.set(secondaryIdentifier, primaryChildren);
+				this.nodeChildren.set(
+					node.identifier,
+					new Set([secondaryIdentifier])
+				);
+			}
+		}
 	}
 	getNodeChildrenCount(identifier: ULID) {
 		const size = this.nodeChildren.get(identifier)?.size;
