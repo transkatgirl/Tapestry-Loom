@@ -91,40 +91,18 @@ export class TapestryLoomView extends ItemView {
 			this.renderDocument();
 		}
 	}
-	async renderDocument(incremental?: boolean) {
+	renderDocument(incremental?: boolean) {
 		if (this.document) {
 			const container = this.contentEl;
 			container.empty();
 
-			const list = container.createEl("ul");
-
-			for (const node of this.document.getRootNodes()) {
-				this.renderNodeTree(list, this.document, node);
-			}
+			renderNodeTree(container, this.document);
 
 			console.log(this.document);
 		} else {
 			const container = this.contentEl;
 			container.empty();
 		}
-	}
-	renderNodeTree(
-		root: HTMLElement,
-		document: WeaveDocument,
-		node: WeaveDocumentNode
-	) {
-		const item = root.createEl("li", {
-			text: getNodeContent(node),
-		});
-
-		for (const childNode of document.getNodeChildren(node)) {
-			const list = item.createEl("ul");
-
-			this.renderNodeTree(list, document, childNode);
-			item.appendChild(list);
-		}
-
-		return item;
 	}
 	async onOpen() {
 		const container = this.containerEl.children[1];
@@ -150,6 +128,31 @@ export class TapestryLoomView extends ItemView {
 			saveDocument(editor, this.document);
 		}
 		this.document = undefined;
+	}
+}
+
+function renderNodeTree(root: HTMLElement, document: WeaveDocument) {
+	const list = root.createEl("ul");
+
+	for (const node of document.getRootNodes()) {
+		renderTreeBranch(list, document, node);
+	}
+}
+
+function renderTreeBranch(
+	root: HTMLElement,
+	document: WeaveDocument,
+	node: WeaveDocumentNode
+) {
+	const item = root.createEl("li", {
+		text: getNodeContent(node),
+	});
+
+	for (const childNode of document.getNodeChildren(node)) {
+		const list = item.createEl("ul");
+
+		renderTreeBranch(list, document, childNode);
+		item.appendChild(list);
 	}
 }
 
