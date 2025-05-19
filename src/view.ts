@@ -31,6 +31,7 @@ import {
 } from "@codemirror/view";
 import {
 	loadDocument,
+	saveDocument,
 	updateDocument,
 	WeaveDocument,
 	WeaveDocumentNode,
@@ -109,10 +110,15 @@ export class TapestryLoomView extends ItemView {
 			),
 		];
 	}
-
 	async onClose() {
 		const { workspace } = this.app;
 		this.listeners.forEach((listener) => workspace.offref(listener));
+
+		const editor = workspace.activeEditor?.editor;
+		if (editor && this.document) {
+			saveDocument(editor, this.document);
+		}
+		this.document = undefined;
 	}
 }
 

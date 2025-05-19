@@ -381,6 +381,11 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 	const rawContent = editor.getValue();
 	const frontMatterInfo = getFrontMatterInfo(rawContent);
 	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
+	const content = rawContent.substring(frontMatterInfo.contentStart);
+
+	if (document.getActiveContent().trim() != content.trim()) {
+		return;
+	}
 
 	if (frontMatterInfo.exists) {
 		frontMatter[FRONT_MATTER_KEY] = serialize(document);
