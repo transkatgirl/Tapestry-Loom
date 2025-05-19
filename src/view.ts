@@ -32,11 +32,13 @@ import {
 import {
 	getNodeContent,
 	loadDocument,
+	overrideEditorContent,
 	saveDocument,
 	updateDocument,
 	WeaveDocument,
 	WeaveDocumentNode,
 } from "document";
+import { ulid } from "ulid";
 
 export const VIEW_COMMANDS: Array<Command> = [];
 
@@ -45,6 +47,7 @@ export const VIEW_TYPE = "tapestry-loom-view";
 export class TapestryLoomView extends ItemView {
 	plugin: TapestryLoom;
 	listeners: EventRef[] = [];
+	editor?: Editor;
 	document?: WeaveDocument;
 
 	constructor(leaf: WorkspaceLeaf, plugin: TapestryLoom) {
@@ -62,32 +65,31 @@ export class TapestryLoomView extends ItemView {
 	}
 	async load() {
 		const { workspace } = this.app;
-		const editor = workspace.activeEditor?.editor;
-
-		if (!editor) {
-			this.document = undefined;
+		if (!workspace.activeEditor?.editor) {
 			return;
 		}
 
-		this.document = loadDocument(editor);
+		this.editor = workspace.activeEditor?.editor;
+
+		this.document = loadDocument(this.editor);
 		this.renderDocument();
 	}
 	async update() {
 		const { workspace } = this.app;
-		const editor = workspace.activeEditor?.editor;
+		this.editor = workspace.activeEditor?.editor;
 
-		if (!editor) {
+		if (!this.editor) {
 			this.document = undefined;
 			return;
 		}
 
 		if (this.document) {
-			const updated = updateDocument(editor, this.document);
+			const updated = updateDocument(this.editor, this.document);
 			if (updated) {
 				this.renderDocument(true);
 			}
 		} else {
-			this.document = loadDocument(editor);
+			this.document = loadDocument(this.editor);
 			this.renderDocument();
 		}
 	}
@@ -96,12 +98,67 @@ export class TapestryLoomView extends ItemView {
 			const container = this.contentEl;
 			container.empty();
 
-			renderNodeTree(container, this.document);
+			const list = container.createEl("ul");
+
+			for (const node of this.document.getRootNodes()) {
+				this.renderNode(list, node);
+			}
 
 			console.log(this.document);
 		} else {
 			const container = this.contentEl;
 			container.empty();
+		}
+	}
+	private renderNode(root: HTMLElement, node: WeaveDocumentNode) {
+		if (!this.document) {
+			return;
+		}
+
+		const item = root.createEl("li", {
+			text: getNodeContent(node),
+			attr: { id: node.identifier },
+		});
+		const addButton = item.createEl("button", {
+			text: "Add node",
+			type: "button",
+		});
+		addButton.addEventListener("click", () => {
+			console.log(this.document);
+
+			if (!this.document || !this.editor) {
+				return;
+			}
+
+			const identifier = ulid();
+			this.document.addNode({
+				identifier: identifier,
+				content: "",
+				parentNode: node.identifier,
+			});
+			this.document.currentNode = identifier;
+			saveDocument(this.editor, this.document);
+		});
+		const deleteButton = item.createEl("button", {
+			text: "Delete node",
+			type: "button",
+		});
+		deleteButton.addEventListener("click", () => {
+			console.log(this.document);
+
+			if (!this.document || !this.editor) {
+				return;
+			}
+
+			this.document.removeNode(node.identifier);
+			overrideEditorContent(this.editor, this.document);
+		});
+
+		for (const childNode of this.document.getNodeChildren(node)) {
+			const list = item.createEl("ul");
+
+			this.renderNode(list, childNode);
+			item.appendChild(list);
 		}
 	}
 	async onOpen() {
@@ -117,6 +174,13 @@ export class TapestryLoomView extends ItemView {
 				"editor-change",
 				debounce(() => this.update(), 1500, true) // TODO: Add setting for timeout
 			),
+			/*workspace.on("editor-drop", (_evt, editor) => {
+				if (this.document) {
+					saveDocument(editor, this.document);
+				}
+
+				this.editor = undefined;
+			}),*/
 		];
 	}
 	async onClose() {
@@ -128,31 +192,6 @@ export class TapestryLoomView extends ItemView {
 			saveDocument(editor, this.document);
 		}
 		this.document = undefined;
-	}
-}
-
-function renderNodeTree(root: HTMLElement, document: WeaveDocument) {
-	const list = root.createEl("ul");
-
-	for (const node of document.getRootNodes()) {
-		renderTreeBranch(list, document, node);
-	}
-}
-
-function renderTreeBranch(
-	root: HTMLElement,
-	document: WeaveDocument,
-	node: WeaveDocumentNode
-) {
-	const item = root.createEl("li", {
-		text: getNodeContent(node),
-	});
-
-	for (const childNode of document.getNodeChildren(node)) {
-		const list = item.createEl("ul");
-
-		renderTreeBranch(list, document, childNode);
-		item.appendChild(list);
 	}
 }
 
