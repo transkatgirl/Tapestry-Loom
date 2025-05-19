@@ -83,22 +83,29 @@ export class TapestryLoomView extends ItemView {
 		if (this.document) {
 			const updated = updateDocument(editor, this.document);
 			if (updated) {
-				this.renderDocument();
+				this.renderDocument(true);
 			}
 		} else {
 			this.document = loadDocument(editor);
 			this.renderDocument();
 		}
 	}
-	async renderDocument() {
+	async renderDocument(incremental?: boolean) {
 		if (this.document) {
+			const container = this.contentEl;
+			container.empty();
+			container.createEl("p", { text: this.document.getActiveContent() });
+
 			console.log(this.document);
+		} else {
+			const container = this.contentEl;
+			container.empty();
 		}
 	}
 	async onOpen() {
 		const container = this.containerEl.children[1];
 		container.empty();
-		container.createEl("h4", { text: "Title" });
+		//container.createEl("h4", { text: "Title" });
 
 		const { workspace } = this.app;
 

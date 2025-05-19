@@ -11,7 +11,7 @@ export class WeaveDocument {
 	protected rootNodes: Set<ULID> = new Set();
 	protected nodeChildren: Map<ULID, Set<ULID>> = new Map();
 	currentNode: ULID;
-	bookmarks: Set<ULID>;
+	bookmarks: Set<ULID> = new Set();
 	constructor(content: string) {
 		const identifier = ulid();
 
