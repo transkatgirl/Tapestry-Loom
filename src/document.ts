@@ -4,6 +4,8 @@ import { deserialize } from "common";
 import { ulid, ULID } from "ulid";
 import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
 
+// TODO: Implement mergeNodes()
+
 export class WeaveDocument {
 	models: Map<ULID, ModelLabel> = new Map();
 	protected modelNodes: Map<ULID, Set<ULID>> = new Map();
