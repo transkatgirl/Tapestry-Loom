@@ -3,13 +3,20 @@
 - color coding by model used (or by human collaborator)
 - color coding by token probability
     - color coding by entropy
-- mix of logitloom and vanilla loom in terms of branching functionality
+- mix of logitloom, exoloom and vanilla loom in terms of branching functionality
 - running completions on multiple models at a time, color coding by model
 - toggling what JSON options a model supports
 - visualizing token distribution and how sampling parameters affect it
 - automatically adjust visible branches
-- implement a "birds-eye" tree view for navigating to distant branches, similar to exoloom
 - built in user guide
+
+## toggleable branching interfaces:
+
+- full tree view (similar to exoloom but simpler); no inference parameters displayed
+- recent nodes (similar to loomsidian, but with automatic hoisting) + inference parameters
+- recent logits (similar to logitloom) + inference parameters
+
+maybe the last two can be combined somehow?
 
 ## user guide
 
