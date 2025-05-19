@@ -135,6 +135,23 @@ export class TapestryLoomView extends ItemView {
 			saveDocument(this.editor, this.document);
 			this.renderDocument();
 		});
+		if (node.identifier != this.document.currentNode) {
+			const switchButton = item.createEl("button", {
+				text: "Switch to node",
+				type: "button",
+			});
+			switchButton.addEventListener("click", () => {
+				console.log(this.document);
+
+				if (!this.document || !this.editor) {
+					return;
+				}
+
+				this.document.currentNode = node.identifier;
+				overrideEditorContent(this.editor, this.document);
+				this.renderDocument();
+			});
+		}
 		const deleteButton = item.createEl("button", {
 			text: "Delete node",
 			type: "button",
