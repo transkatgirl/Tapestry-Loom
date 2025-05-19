@@ -65,23 +65,18 @@ export class TapestryLoomView extends ItemView {
 	}
 	async load() {
 		const { workspace } = this.app;
-		if (!workspace.activeEditor?.editor) {
+		const editor = workspace.activeEditor?.editor;
+		if (!editor) {
 			return;
 		}
 
-		this.editor = workspace.activeEditor?.editor;
+		this.editor = editor;
 
 		this.document = loadDocument(this.editor);
 		this.renderDocument();
 	}
-	async update() {
-		const { workspace } = this.app;
-		this.editor = workspace.activeEditor?.editor;
-
-		if (!this.editor) {
-			this.document = undefined;
-			return;
-		}
+	async update(editor: Editor) {
+		this.editor = editor;
 
 		if (this.document) {
 			const updated = updateDocument(this.editor, this.document);
@@ -138,6 +133,7 @@ export class TapestryLoomView extends ItemView {
 			});
 			this.document.currentNode = identifier;
 			saveDocument(this.editor, this.document);
+			this.renderDocument();
 		});
 		const deleteButton = item.createEl("button", {
 			text: "Delete node",
@@ -152,6 +148,7 @@ export class TapestryLoomView extends ItemView {
 
 			this.document.removeNode(node.identifier);
 			overrideEditorContent(this.editor, this.document);
+			this.renderDocument();
 		});
 
 		for (const childNode of this.document.getNodeChildren(node)) {
@@ -172,15 +169,17 @@ export class TapestryLoomView extends ItemView {
 			workspace.on("active-leaf-change", () => this.load()),
 			workspace.on(
 				"editor-change",
-				debounce(() => this.update(), 1500, true) // TODO: Add setting for timeout
+				debounce((editor) => this.update(editor), 500, true) // TODO: Add setting for timeout
 			),
-			/*workspace.on("editor-drop", (_evt, editor) => {
-				if (this.document) {
+			workspace.on("editor-drop", (_evt, editor) => {
+				/*if (this.document) {
 					saveDocument(editor, this.document);
-				}
+				}*/
 
+				this.document = undefined;
 				this.editor = undefined;
-			}),*/
+				container.empty();
+			}),
 		];
 	}
 	async onClose() {

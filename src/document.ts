@@ -10,27 +10,31 @@ export class WeaveDocument {
 	protected nodes: Map<ULID, WeaveDocumentNode> = new Map();
 	protected rootNodes: Set<ULID> = new Set();
 	protected nodeChildren: Map<ULID, Set<ULID>> = new Map();
-	currentNode: ULID;
+	currentNode?: ULID;
 	bookmarks: Set<ULID> = new Set();
-	constructor(content: string) {
-		const identifier = ulid();
+	constructor(content?: string) {
+		if (content) {
+			const identifier = ulid();
 
-		this.addNode({
-			identifier: identifier,
-			content: content,
-		});
-		this.currentNode = identifier;
+			this.addNode({
+				identifier: identifier,
+				content: content,
+			});
+			this.currentNode = identifier;
+		}
 	}
 	getActiveContent(): string {
 		let content = "";
 
-		let node = this.nodes.get(this.currentNode);
-		while (node) {
-			content = getNodeContent(node) + content;
-			if (node.parentNode) {
-				node = this.nodes.get(node.parentNode);
-			} else {
-				node = undefined;
+		if (this.currentNode) {
+			let node = this.nodes.get(this.currentNode);
+			while (node) {
+				content = getNodeContent(node) + content;
+				if (node.parentNode) {
+					node = this.nodes.get(node.parentNode);
+				} else {
+					node = undefined;
+				}
 			}
 		}
 
@@ -92,17 +96,19 @@ export class WeaveDocument {
 	getActiveNodes(): Array<WeaveDocumentNode> {
 		const nodeList = [];
 
-		let node = this.nodes.get(this.currentNode);
+		if (this.currentNode) {
+			let node = this.nodes.get(this.currentNode);
 
-		while (node) {
-			nodeList.push(node);
-			if (node.parentNode) {
-				node = this.nodes.get(node.parentNode);
-			} else {
-				node = undefined;
+			while (node) {
+				nodeList.push(node);
+				if (node.parentNode) {
+					node = this.nodes.get(node.parentNode);
+				} else {
+					node = undefined;
+				}
 			}
+			nodeList.reverse();
 		}
-		nodeList.reverse();
 
 		return nodeList;
 	}
@@ -357,7 +363,7 @@ export function loadDocument(editor: Editor) {
 
 	if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
 		const document: WeaveDocument = Object.assign(
-			new WeaveDocument(""),
+			new WeaveDocument(),
 			deserialize(frontMatter[FRONT_MATTER_KEY])
 		);
 
