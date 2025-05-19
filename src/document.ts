@@ -4,8 +4,6 @@ import { deserialize } from "common";
 import { ulid, ULID } from "ulid";
 import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
 
-// TODO: Implement mergeNodes()
-
 export class WeaveDocument {
 	models: Map<ULID, ModelLabel> = new Map();
 	protected modelNodes: Map<ULID, Set<ULID>> = new Map();
@@ -277,6 +275,69 @@ export class WeaveDocument {
 					new Set([secondaryIdentifier])
 				);
 			}
+		}
+	}
+	isNodeMergeable(primaryIdentifier: ULID, secondaryIdentifier: ULID) {
+		const primaryNode = this.nodes.get(primaryIdentifier);
+		const secondaryNode = this.nodes.get(secondaryIdentifier);
+
+		if (primaryNode && secondaryNode) {
+			return (
+				secondaryNode.parentNode == primaryNode.identifier &&
+				this.getNodeChildrenCount(primaryNode.identifier) == 1 &&
+				primaryNode.model == secondaryNode.model &&
+				((typeof primaryNode.content == "string" &&
+					typeof secondaryNode.content == "string") ||
+					(typeof primaryNode.content == "object" &&
+						Array.isArray(primaryNode.content) &&
+						typeof secondaryNode.content == "object" &&
+						Array.isArray(secondaryNode.content))) &&
+				primaryNode.metadata?.entries() ==
+					secondaryNode.metadata?.entries()
+			);
+		} else {
+			return false;
+		}
+	}
+	mergeNode(primaryIdentifier: ULID, secondaryIdentifier: ULID) {
+		if (this.isNodeMergeable(primaryIdentifier, secondaryIdentifier)) {
+			const primaryNode = this.nodes.get(primaryIdentifier);
+			const secondaryNode = this.nodes.get(secondaryIdentifier);
+
+			if (!primaryNode || !secondaryNode) {
+				return;
+			}
+
+			if (
+				typeof primaryNode.content == "string" &&
+				typeof secondaryNode.content == "string"
+			) {
+				secondaryNode.content =
+					primaryNode.content + secondaryNode.content;
+			} else if (
+				typeof primaryNode.content == "object" &&
+				Array.isArray(primaryNode.content) &&
+				typeof secondaryNode.content == "object" &&
+				Array.isArray(secondaryNode.content)
+			) {
+				secondaryNode.content = primaryNode.content.concat(
+					secondaryNode.content
+				);
+			} else {
+				return;
+			}
+			secondaryNode.parentNode = primaryNode.parentNode;
+			this.nodeChildren.set(primaryNode.identifier, new Set());
+
+			if (this.bookmarks.has(primaryNode.identifier)) {
+				this.bookmarks.add(secondaryNode.identifier);
+			}
+
+			if (this.currentNode == primaryNode.identifier) {
+				this.currentNode = secondaryNode.identifier;
+			}
+
+			this.removeNode(primaryNode.identifier);
 		}
 	}
 	getNodeChildrenCount(identifier: ULID) {
