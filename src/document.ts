@@ -15,7 +15,7 @@ export class WeaveDocument {
 	constructor(content: string) {
 		const identifier = ulid();
 
-		this.nodes.set(identifier, {
+		this.addNode({
 			identifier: identifier,
 			content: content,
 		});
