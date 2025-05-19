@@ -30,6 +30,7 @@ import {
 	WidgetType,
 } from "@codemirror/view";
 import {
+	getNodeContent,
 	loadDocument,
 	saveDocument,
 	updateDocument,
@@ -94,13 +95,36 @@ export class TapestryLoomView extends ItemView {
 		if (this.document) {
 			const container = this.contentEl;
 			container.empty();
-			container.createEl("p", { text: this.document.getActiveContent() });
+
+			const list = container.createEl("ul");
+
+			for (const node of this.document.getRootNodes()) {
+				this.renderNodeTree(list, this.document, node);
+			}
 
 			console.log(this.document);
 		} else {
 			const container = this.contentEl;
 			container.empty();
 		}
+	}
+	renderNodeTree(
+		root: HTMLElement,
+		document: WeaveDocument,
+		node: WeaveDocumentNode
+	) {
+		const item = root.createEl("li", {
+			text: getNodeContent(node),
+		});
+
+		for (const childNode of document.getNodeChildren(node)) {
+			const list = item.createEl("ul");
+
+			this.renderNodeTree(list, document, childNode);
+			item.appendChild(list);
+		}
+
+		return item;
 	}
 	async onOpen() {
 		const container = this.containerEl.children[1];
