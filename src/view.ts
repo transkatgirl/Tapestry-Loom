@@ -171,14 +171,16 @@ export class TapestryLoomView extends ItemView {
 			text: "Add node",
 			type: "button",
 		});
-		addButton.addEventListener("click", () => {
+		addButton.addEventListener("click", (event) => {
+			event.stopPropagation();
 			this.addNode(node.identifier);
 		});
 		const deleteButton = buttonContainer.createEl("button", {
 			text: "Delete node",
 			type: "button",
 		});
-		deleteButton.addEventListener("click", () => {
+		deleteButton.addEventListener("click", (event) => {
+			event.stopPropagation();
 			this.deleteNode(node.identifier);
 		});
 
