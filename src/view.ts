@@ -145,11 +145,11 @@ export class TapestryLoomView extends ItemView {
 				event.stopPropagation();
 
 				if (iconContainer.classList.contains("is-collapsed")) {
+					item.classList.remove("is-collapsed");
 					iconContainer.classList.remove("is-collapsed");
-					childrenContainer.style.display = "inherit";
 				} else {
+					item.classList.add("is-collapsed");
 					iconContainer.classList.add("is-collapsed");
-					childrenContainer.style.display = "none";
 				}
 			});
 		}
