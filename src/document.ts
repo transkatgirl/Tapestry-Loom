@@ -150,6 +150,9 @@ export class WeaveDocument {
 				}*/
 				if (
 					this.getNodeChildrenCount(node.parentNode) == 0 &&
+					node.model == parentNode.model &&
+					node.metadata?.entries() ==
+						parentNode.metadata?.entries() &&
 					!this.bookmarks.has(node.parentNode)
 				) {
 					node.content =
