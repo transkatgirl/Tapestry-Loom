@@ -184,7 +184,7 @@ export class TapestryLoomView extends ItemView {
 		const addButton = buttonContainer.createEl("div", {
 			cls: ["clickable-icon"],
 		});
-		setIcon(addButton, "plus");
+		setIcon(addButton, "message-square-plus");
 		addButton.addEventListener("click", (event) => {
 			event.stopPropagation();
 			this.addNode(node.identifier);
@@ -209,7 +209,7 @@ export class TapestryLoomView extends ItemView {
 		const deleteButton = buttonContainer.createEl("div", {
 			cls: ["clickable-icon"],
 		});
-		setIcon(deleteButton, "trash-2");
+		setIcon(deleteButton, "eraser");
 		deleteButton.addEventListener("click", (event) => {
 			event.stopPropagation();
 			this.deleteNode(node.identifier);
