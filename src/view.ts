@@ -128,6 +128,11 @@ export class TapestryLoomView extends ItemView {
 			cls: ["tree-item-self", "is-clickable"],
 			attr: { dragable: false },
 		});
+		if (this.document.currentNode == node.identifier) {
+			labelContainer.style.backgroundColor =
+				"var(--nav-item-background-selected)";
+			labelContainer.style.color = "var(--nav-item-color-selected)";
+		}
 		const childrenContainer = item.createEl("div", {
 			cls: ["tree-item-children"],
 			attr: { dragable: false },
@@ -147,11 +152,16 @@ export class TapestryLoomView extends ItemView {
 				if (iconContainer.classList.contains("is-collapsed")) {
 					item.classList.remove("is-collapsed");
 					iconContainer.classList.remove("is-collapsed");
+					childrenContainer.style.display = "inherit";
 				} else {
 					item.classList.add("is-collapsed");
 					iconContainer.classList.add("is-collapsed");
+					childrenContainer.style.display = "none";
 				}
 			});
+		} else {
+			labelContainer.style.paddingLeft =
+				"var(--nav-item-children-margin-start)";
 		}
 
 		const label = labelContainer.createEl("div", {
@@ -164,21 +174,21 @@ export class TapestryLoomView extends ItemView {
 		});
 
 		const buttonContainer = labelContainer.createEl("div", {
-			cls: ["tree-buttons"],
+			cls: ["tapestry_tree-buttons"],
 		});
 
-		const addButton = buttonContainer.createEl("button", {
-			text: "Add node",
-			type: "button",
+		const addButton = buttonContainer.createEl("div", {
+			cls: ["clickable-icon"],
 		});
+		setIcon(addButton, "plus");
 		addButton.addEventListener("click", (event) => {
 			event.stopPropagation();
 			this.addNode(node.identifier);
 		});
-		const deleteButton = buttonContainer.createEl("button", {
-			text: "Delete node",
-			type: "button",
+		const deleteButton = buttonContainer.createEl("div", {
+			cls: ["clickable-icon"],
 		});
+		setIcon(deleteButton, "minus");
 		deleteButton.addEventListener("click", (event) => {
 			event.stopPropagation();
 			this.deleteNode(node.identifier);
