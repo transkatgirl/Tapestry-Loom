@@ -160,10 +160,10 @@ export class TapestryLoomView extends ItemView {
 				}
 			});
 		} else {
-			labelContainer.style.marginLeft =
+			/*labelContainer.style.marginLeft =
 				"var(--nav-item-children-margin-start)";
 			labelContainer.style.paddingLeft =
-				"var(--nav-item-children-padding-start)";
+				"var(--nav-item-children-padding-start)";*/
 		}
 
 		const label = labelContainer.createEl("div", {
