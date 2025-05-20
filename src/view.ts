@@ -176,6 +176,7 @@ export class TapestryLoomView extends ItemView {
 			label.textContent = content;
 		} else {
 			label.innerHTML = "<em>Empty node</em>";
+			label.style.color = "var(--text-faint)";
 		}
 
 		label.style.flexGrow = "1";
