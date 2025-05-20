@@ -330,6 +330,22 @@ export class WeaveDocument {
 				return;
 			}
 			secondaryNode.parentNode = primaryNode.parentNode;
+			if (primaryNode.parentNode) {
+				let parentNodeChildren = this.nodeChildren.get(
+					primaryNode.parentNode
+				);
+				if (!parentNodeChildren) {
+					parentNodeChildren = new Set();
+				}
+				parentNodeChildren.add(secondaryNode.identifier);
+				this.nodeChildren.set(
+					primaryNode.parentNode,
+					parentNodeChildren
+				);
+			} else {
+				this.rootNodes.add(secondaryNode.identifier);
+			}
+
 			this.nodeChildren.set(primaryNode.identifier, new Set());
 
 			if (this.bookmarks.has(primaryNode.identifier)) {

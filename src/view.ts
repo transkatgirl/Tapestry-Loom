@@ -189,10 +189,27 @@ export class TapestryLoomView extends ItemView {
 			event.stopPropagation();
 			this.addNode(node.identifier);
 		});
+
+		if (
+			node.parentNode &&
+			this.document.isNodeMergeable(node.parentNode, node.identifier)
+		) {
+			const mergeButton = buttonContainer.createEl("div", {
+				cls: ["clickable-icon"],
+			});
+			setIcon(mergeButton, "merge");
+			mergeButton.addEventListener("click", (event) => {
+				event.stopPropagation();
+				if (node.parentNode) {
+					this.mergeNode(node.parentNode, node.identifier);
+				}
+			});
+		}
+
 		const deleteButton = buttonContainer.createEl("div", {
 			cls: ["clickable-icon"],
 		});
-		setIcon(deleteButton, "minus");
+		setIcon(deleteButton, "trash-2");
 		deleteButton.addEventListener("click", (event) => {
 			event.stopPropagation();
 			this.deleteNode(node.identifier);
@@ -223,6 +240,15 @@ export class TapestryLoomView extends ItemView {
 		}
 
 		this.document.currentNode = identifier;
+		overrideEditorContent(this.editor, this.document);
+		this.renderDocument();
+	}
+	mergeNode(primaryIdentifier: ULID, secondaryIdentifier: ULID) {
+		if (!this.document || !this.editor) {
+			return;
+		}
+
+		this.document.mergeNode(primaryIdentifier, secondaryIdentifier);
 		overrideEditorContent(this.editor, this.document);
 		this.renderDocument();
 	}
@@ -257,6 +283,8 @@ export class TapestryLoomView extends ItemView {
 				container.empty();
 			}),
 		];
+
+		this.load();
 	}
 	async onClose() {
 		const { workspace } = this.app;
