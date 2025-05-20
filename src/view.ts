@@ -108,7 +108,9 @@ export class TapestryLoomView extends ItemView {
 			return;
 		}
 
-		const list = root.createEl("div");
+		const list = root.createEl("div", {
+			cls: ["tapestry_tree"],
+		});
 
 		for (const node of this.document.getRootNodes()) {
 			this.renderNode(list, node);
@@ -160,10 +162,10 @@ export class TapestryLoomView extends ItemView {
 				}
 			});
 		} else {
-			/*labelContainer.style.marginLeft =
-				"var(--nav-item-children-margin-start)";
+			labelContainer.style.marginLeft =
+				"var(--nav-item-children-padding-start)";
 			labelContainer.style.paddingLeft =
-				"var(--nav-item-children-padding-start)";*/
+				"var(--nav-item-children-padding-start)";
 		}
 
 		const label = labelContainer.createEl("div", {
