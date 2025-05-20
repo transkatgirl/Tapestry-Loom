@@ -421,7 +421,7 @@ export function getNodeContent(node: WeaveDocumentNode) {
 	if (typeof node.content == "string") {
 		nodeContent = node.content;
 	} else {
-		for (const nodeToken of node.content) {
+		for (const [_nodeProb, nodeToken] of node.content) {
 			nodeContent = nodeContent + nodeToken;
 		}
 	}

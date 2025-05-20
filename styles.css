@@ -12,7 +12,11 @@
 	--icon-size: 1lh;
 }
 
-.tree-item-inner {
+.tapestry_tree .tree-item-inner {
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.tapestry_tree .tree-item-self:hover > .tree-item-flair-outer {
+	display: none;
 }

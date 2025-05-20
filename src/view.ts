@@ -179,6 +179,20 @@ export class TapestryLoomView extends ItemView {
 			label.style.color = "var(--text-faint)";
 		}
 
+		if (
+			node.content.length == 1 &&
+			typeof node.content == "object" &&
+			Array.isArray(node.content)
+		) {
+			const probContainer = labelContainer.createEl("div", {
+				cls: ["tree-item-flair-outer"],
+			});
+			probContainer.createEl("div", {
+				text: (node.content[0][0] * 100).toPrecision(3) + "%",
+				cls: ["tree-item-flair"],
+			});
+		}
+
 		label.style.flexGrow = "1";
 		labelContainer.addEventListener("click", () => {
 			this.switchToNode(node.identifier);
