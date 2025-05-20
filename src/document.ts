@@ -114,12 +114,13 @@ export class WeaveDocument {
 	}
 	getRootNodes(): Array<WeaveDocumentNode> {
 		const nodes: Array<WeaveDocumentNode> = [];
-		for (const identifier of sortIdentifierSet(this.rootNodes)) {
+		for (const identifier of this.rootNodes) {
 			const node = this.nodes.get(identifier);
 			if (node) {
 				nodes.push(node);
 			}
 		}
+		sortNodeList(nodes);
 
 		return nodes;
 	}
@@ -128,12 +129,13 @@ export class WeaveDocument {
 
 		if (childSet) {
 			const childNodes: Array<WeaveDocumentNode> = [];
-			for (const identifier of sortIdentifierSet(childSet)) {
+			for (const identifier of childSet) {
 				const node = this.nodes.get(identifier);
 				if (node) {
 					childNodes.push(node);
 				}
 			}
+			sortNodeList(childNodes);
 
 			return childNodes;
 		} else {
@@ -429,9 +431,22 @@ export function getNodeContent(node: WeaveDocumentNode) {
 	return nodeContent;
 }
 
-export function sortIdentifierSet(set: Set<ULID>): Array<ULID> {
-	return Array.from(set).sort(function (a, b) {
-		return a.localeCompare(b);
+function sortNodeList(nodes: Array<WeaveDocumentNode>) {
+	nodes.sort(function (a, b) {
+		const x =
+			typeof a.content == "object" &&
+			Array.isArray(a.content) &&
+			a.content.length == 1;
+		const y =
+			typeof b.content == "object" &&
+			Array.isArray(b.content) &&
+			b.content.length == 1;
+
+		return (
+			(a.model || "")?.localeCompare(b.model || "") ||
+			(x === y ? 0 : x ? -1 : 1) ||
+			a.identifier.localeCompare(b.identifier)
+		);
 	});
 }
 
