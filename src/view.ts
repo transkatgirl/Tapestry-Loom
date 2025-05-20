@@ -121,6 +121,7 @@ export class TapestryLoomView extends ItemView {
 			return;
 		}
 
+		const content = getNodeContent(node);
 		const children = this.document.getNodeChildren(node);
 
 		const item = root.createEl("div", {
@@ -169,9 +170,14 @@ export class TapestryLoomView extends ItemView {
 		}
 
 		const label = labelContainer.createEl("div", {
-			text: getNodeContent(node),
 			cls: ["tree-item-inner"],
 		});
+		if (content.length > 0) {
+			label.textContent = content;
+		} else {
+			label.innerHTML = "<em>Empty node</em>";
+		}
+
 		label.style.flexGrow = "1";
 		labelContainer.addEventListener("click", () => {
 			this.switchToNode(node.identifier);
@@ -179,15 +185,6 @@ export class TapestryLoomView extends ItemView {
 
 		const buttonContainer = labelContainer.createEl("div", {
 			cls: ["tapestry_tree-buttons"],
-		});
-
-		const addButton = buttonContainer.createEl("div", {
-			cls: ["clickable-icon"],
-		});
-		setIcon(addButton, "message-square-plus");
-		addButton.addEventListener("click", (event) => {
-			event.stopPropagation();
-			this.addNode(node.identifier);
 		});
 
 		if (
@@ -205,6 +202,24 @@ export class TapestryLoomView extends ItemView {
 				}
 			});
 		}
+
+		const generateButton = buttonContainer.createEl("div", {
+			cls: ["clickable-icon"],
+		});
+		setIcon(generateButton, "bot-message-square");
+		generateButton.addEventListener("click", (event) => {
+			event.stopPropagation();
+			throw new Error("unimplemented"); // TODO
+		});
+
+		const addButton = buttonContainer.createEl("div", {
+			cls: ["clickable-icon"],
+		});
+		setIcon(addButton, "message-square-plus");
+		addButton.addEventListener("click", (event) => {
+			event.stopPropagation();
+			this.addNode(node.identifier);
+		});
 
 		const deleteButton = buttonContainer.createEl("div", {
 			cls: ["clickable-icon"],

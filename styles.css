@@ -11,3 +11,11 @@
 	padding: 0 var(--size-2-1);
 	--icon-size: 1lh;
 }
+
+.tree-item-inner {
+	text-overflow: ellipsis;
+}
+
+.tree-item-self em {
+	padding-left: 0.5ch;
+}
