@@ -1,0 +1,8 @@
+.tree-buttons {
+	align-self: flex-end;
+	display: none;
+}
+
+.tree-item-self:hover > .tree-buttons {
+	display: inherit;
+}

@@ -93,6 +93,8 @@ export class TapestryLoomView extends ItemView {
 			const container = this.contentEl;
 			container.empty();
 
+			console.log(container);
+
 			this.renderTree(container);
 
 			console.log(this.document);
@@ -121,7 +123,6 @@ export class TapestryLoomView extends ItemView {
 
 		const item = root.createEl("div", {
 			cls: ["tree-item"],
-			//attr: { id: node.identifier },
 		});
 		const labelContainer = item.createEl("div", {
 			cls: ["tree-item-self", "is-clickable"],
@@ -145,44 +146,41 @@ export class TapestryLoomView extends ItemView {
 
 				if (iconContainer.classList.contains("is-collapsed")) {
 					iconContainer.classList.remove("is-collapsed");
-					childrenContainer.style = "";
+					childrenContainer.style.display = "inherit";
 				} else {
 					iconContainer.classList.add("is-collapsed");
-					childrenContainer.style = "display: none";
+					childrenContainer.style.display = "none";
 				}
 			});
 		}
-		labelContainer.createEl("div", {
+
+		const label = labelContainer.createEl("div", {
 			text: getNodeContent(node),
 			cls: ["tree-item-inner"],
 		});
+		label.style.flexGrow = "1";
 		labelContainer.addEventListener("click", () => {
 			this.switchToNode(node.identifier);
 		});
 
-		/*const addButton = item.createEl("button", {
+		const buttonContainer = labelContainer.createEl("div", {
+			cls: ["tree-buttons"],
+		});
+
+		const addButton = buttonContainer.createEl("button", {
 			text: "Add node",
 			type: "button",
 		});
 		addButton.addEventListener("click", () => {
 			this.addNode(node.identifier);
 		});
-		if (node.identifier != this.document.currentNode) {
-			const switchButton = item.createEl("button", {
-				text: "Switch to node",
-				type: "button",
-			});
-			switchButton.addEventListener("click", () => {
-				this.switchToNode(node.identifier);
-			});
-		}
-		const deleteButton = item.createEl("button", {
+		const deleteButton = buttonContainer.createEl("button", {
 			text: "Delete node",
 			type: "button",
 		});
 		deleteButton.addEventListener("click", () => {
 			this.deleteNode(node.identifier);
-		});*/
+		});
 
 		for (const childNode of this.document.getNodeChildren(node)) {
 			this.renderNode(childrenContainer, childNode);
