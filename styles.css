@@ -20,3 +20,8 @@
 .tapestry_tree .tree-item-self:hover > .tree-item-flair-outer {
 	display: none;
 }
+
+.tapestry_graph {
+	width: 100%;
+	height: 100%;
+}

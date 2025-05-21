@@ -12,6 +12,7 @@
 	"author": "transkatgirl",
 	"license": "GPL-3.0-only",
 	"devDependencies": {
+		"@types/cytoscape-dagre": "^2.3.3",
 		"@types/node": "^16.11.6",
 		"@types/serialize-javascript": "^5.0.4",
 		"@typescript-eslint/eslint-plugin": "5.29.0",
@@ -24,6 +25,8 @@
 	},
 	"dependencies": {
 		"cytoscape": "^3.32.0",
+		"cytoscape-dagre": "^2.5.0",
+		"dagre": "^0.8.5",
 		"serialize-javascript": "^6.0.2",
 		"ulid": "^3.0.0"
 	}

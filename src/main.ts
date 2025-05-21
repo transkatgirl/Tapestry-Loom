@@ -8,12 +8,16 @@ import {
 	VIEW_COMMANDS,
 	EDITOR_PLUGIN,
 } from "view";
+import cytoscape from "cytoscape";
+import dagre from "cytoscape-dagre";
 
 export default class TapestryLoom extends Plugin {
 	settings: TapestryLoomSettings;
 
 	async onload() {
 		await this.loadSettings();
+
+		cytoscape.use(dagre);
 
 		this.registerView(
 			VIEW_TYPE,

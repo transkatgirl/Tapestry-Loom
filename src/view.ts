@@ -40,7 +40,8 @@ import {
 	WeaveDocumentNode,
 } from "document";
 import { ULID, ulid } from "ulid";
-import cytoscape from "cytoscape";
+import cytoscape, { Core } from "cytoscape";
+import dagre from "cytoscape-dagre";
 
 // TODO: Use HoverPopover
 
@@ -98,12 +99,71 @@ export class TapestryLoomView extends ItemView {
 
 			console.log(container);
 
+			//this.renderGraph(container);
 			this.renderTree(container);
 
 			console.log(this.document);
 		} else {
 			const container = this.contentEl;
 			container.empty();
+		}
+	}
+	private renderGraph(root: HTMLElement) {
+		// TODO: Implements same functionality as renderTree()
+		if (!this.document) {
+			return;
+		}
+
+		const container = root.createEl("div", {
+			cls: ["tapestry_graph"],
+		});
+
+		const elements: Array<cytoscape.ElementDefinition> = [];
+
+		for (const node of this.document.getRootNodes()) {
+			this.buildGraphNode(elements, node);
+		}
+
+		const cy = cytoscape({
+			container: container,
+			elements: elements,
+			layout: { name: "dagre" },
+		});
+	}
+	private buildGraphNode(
+		elements: Array<cytoscape.ElementDefinition>,
+		node: WeaveDocumentNode
+	) {
+		if (!this.document) {
+			return;
+		}
+
+		const content = getNodeContent(node);
+		const children = this.document.getNodeChildren(node);
+		let modelLabel;
+		if (node.model) {
+			modelLabel = this.document.models.get(node.model);
+		}
+
+		elements.push({
+			group: "nodes",
+			data: {
+				id: node.identifier,
+			},
+			grabbable: false,
+		});
+		if (node.parentNode) {
+			elements.push({
+				group: "edges",
+				data: {
+					source: node.parentNode,
+					target: node.identifier,
+				},
+			});
+		}
+
+		for (const childNode of this.document.getNodeChildren(node)) {
+			this.buildGraphNode(elements, childNode);
 		}
 	}
 	private renderTree(root: HTMLElement) {
