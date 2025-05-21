@@ -3,41 +3,22 @@ import { ULID } from "ulid";
 
 export interface ClientSettings {
 	clientIdentifier?: string;
-	endpoints: Array<ConfiguredEndpoint>;
-}
-
-export interface ConfiguredEndpoint {
-	baseUrl: string;
-	type: EndpointType;
-	apiToken?: string;
-	organization?: string;
-	models: Map<ULID, ModelConfiguration>;
-	customHeaders?: Map<string, string>;
-	customValues?: Map<string, string>;
+	models: Array<ModelConfiguration>;
 }
 
 export enum EndpointType {
-	OpenRouter = "open_router",
-	OpenAIv1Compatible = "openai_v1_compatible",
-	VLLM_v0 = "vllm_v0",
-	TGI_v3 = "tgi_v3",
-	LlamaCppServer = "llama_cpp",
-	Ollama_v0 = "ollama_v0",
-	LMStudio_v0 = "lm_studio_v0",
+	OpenAICompletionv1Compatible = "openai_completion_v1_compatible",
 }
 
 export interface ModelConfiguration {
-	type: ModelType;
-	identifier: string;
+	baseUrl: string;
+	type: EndpointType;
+	apiToken?: string;
+	modelIdentifier: string;
 	label: ModelLabel;
-	supportedValues: Set<string>;
-	maxLogits?: number;
-	maxContext?: number;
 	customHeaders?: Map<string, string>;
 	customValues?: Map<string, string>;
 }
-
-// TODO: add function to get supported samplers
 
 export interface ModelLabel {
 	label: string;
@@ -48,57 +29,24 @@ export const UNKNOWN_MODEL_LABEL: ModelLabel = {
 	label: "Unknown",
 };
 
-export enum ModelType {
-	completion = "completion",
-}
-
-export interface BranchRequest {
+export interface CompletionRequest {
 	prompt: string;
-	completionCount: number;
-	completionLength: number;
-	modelSet: Set<ULID>;
-	temperature?: number;
-	topK?: number;
-	topP?: number;
-	minP?: number;
-	frequencyPenalty?: number;
-	presencePenalty?: number;
-	bestOf?: number;
+	count: number;
+	jsonValues?: Map<string, string>;
 }
 
-export interface BranchResponse {
+export interface CompletionResponse {
+	top_logprobs: Map<ULID, Array<Array<[number, string]>>>;
 	responses: Map<ULID, Array<string> | Array<Array<[number, string]>>>;
 }
 
-export async function runBranches(
+export async function runCompletion(
 	config: ClientSettings,
-	request: BranchRequest
-): Promise<BranchResponse> {
+	request: Request
+): Promise<Response> {
 	let requests = [];
 
-	for (const endpoint of config.endpoints) {
-		for (const [identifier, config] of endpoint.models) {
-		}
+	for (const model of config.models) {
 	}
 	//fetch(endpoint.baseUrl);
-}
-
-export interface LogitBranchRequest {
-	prompt: string;
-	completionDepth: number;
-	topK?: number;
-	topP?: number;
-	minP?: number;
-	modelSet: Set<ULID>;
-}
-
-export interface LogitBranchResponse {
-	responses: Map<ULID, Array<Array<[number, string]>>>;
-}
-
-export async function runLogitBranches(
-	config: ClientSettings,
-	request: LogitBranchRequest
-): Promise<LogitBranchResponse> {
-	throw new Error("unimplemented");
 }
