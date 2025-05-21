@@ -18,6 +18,7 @@ export const DOCUMENT_LOAD_EVENT = "tapestry-document:load";
 export const DOCUMENT_TRIGGER_UPDATE_EVENT = "tapestry-document:override";
 export const DOCUMENT_UPDATE_EVENT = "tapestry-document:update";
 export const DOCUMENT_DROP_EVENT = "tapestry-document:drop";
+export const SETTINGS_UPDATE_EVENT = "tapestry-settings:update";
 
 export default class TapestryLoom extends Plugin {
 	settings: TapestryLoomSettings;
@@ -150,5 +151,6 @@ export default class TapestryLoom extends Plugin {
 	}
 	async saveSettings() {
 		await this.saveData({ settings: serialize(this.settings) });
+		this.app.workspace.trigger(SETTINGS_UPDATE_EVENT);
 	}
 }

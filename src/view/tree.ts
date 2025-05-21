@@ -3,6 +3,7 @@ import TapestryLoom, {
 	DOCUMENT_LOAD_EVENT,
 	DOCUMENT_TRIGGER_UPDATE_EVENT,
 	DOCUMENT_UPDATE_EVENT,
+	SETTINGS_UPDATE_EVENT,
 } from "main";
 import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
@@ -379,6 +380,16 @@ export class TapestryLoomTreeView extends ItemView {
 				DOCUMENT_DROP_EVENT,
 				() => {
 					this.renderTree(treeContainer, false);
+				}
+			)
+		);
+		this.registerEvent(
+			workspace.on(
+				// ignore ts2769; custom event
+				// @ts-expect-error
+				SETTINGS_UPDATE_EVENT,
+				() => {
+					this.renderModels(modelContainer);
 				}
 			)
 		);
