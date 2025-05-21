@@ -42,6 +42,8 @@ import {
 import { ULID, ulid } from "ulid";
 import cytoscape from "cytoscape";
 
+// TODO: Use HoverPopover
+
 export const VIEW_COMMANDS: Array<Command> = [];
 
 export const VIEW_TYPE = "tapestry-loom-view";
@@ -124,6 +126,10 @@ export class TapestryLoomView extends ItemView {
 
 		const content = getNodeContent(node);
 		const children = this.document.getNodeChildren(node);
+		let modelLabel;
+		if (node.model) {
+			modelLabel = this.document.models.get(node.model);
+		}
 
 		const item = root.createEl("div", {
 			cls: ["tree-item"],
@@ -180,6 +186,13 @@ export class TapestryLoomView extends ItemView {
 			label.style.color = "var(--text-faint)";
 		}
 
+		if (modelLabel) {
+			label.title = modelLabel.label;
+			if (modelLabel.color) {
+				label.style.color = modelLabel.color;
+			}
+		}
+
 		if (
 			node.content.length == 1 &&
 			typeof node.content == "object" &&
@@ -208,6 +221,7 @@ export class TapestryLoomView extends ItemView {
 			this.document.isNodeMergeable(node.parentNode, node.identifier)
 		) {
 			const mergeButton = buttonContainer.createEl("div", {
+				title: "Merge node with parent",
 				cls: ["clickable-icon"],
 			});
 			setIcon(mergeButton, "merge");
@@ -220,6 +234,7 @@ export class TapestryLoomView extends ItemView {
 		}
 
 		const generateButton = buttonContainer.createEl("div", {
+			title: "Generate node",
 			cls: ["clickable-icon"],
 		});
 		setIcon(generateButton, "bot-message-square"); // alternate generate icon: "bot"
@@ -229,6 +244,7 @@ export class TapestryLoomView extends ItemView {
 		});
 
 		const addButton = buttonContainer.createEl("div", {
+			title: "Add node",
 			cls: ["clickable-icon"],
 		});
 		setIcon(addButton, "message-square-plus");
@@ -238,6 +254,7 @@ export class TapestryLoomView extends ItemView {
 		});
 
 		const deleteButton = buttonContainer.createEl("div", {
+			title: "Delete node",
 			cls: ["clickable-icon"],
 		});
 		setIcon(deleteButton, "eraser");
