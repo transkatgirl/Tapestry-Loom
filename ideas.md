@@ -15,8 +15,6 @@
 - full tree view (similar to exoloom); no inference parameters displayed
 - recent nodes/logits (similar to loomsidian + logitloom, but with automatic hoisting) + inference parameters
 
-maybe the last two can be combined somehow?
-
 ## user guide
 
 - not just an ordinary manual; contains compelling narratives and good aesthetics to help get the user interested in base models
