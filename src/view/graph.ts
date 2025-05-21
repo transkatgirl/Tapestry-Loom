@@ -26,7 +26,7 @@ export class TapestryLoomGraphView extends ItemView {
 		return "Tapestry Loom Graph";
 	}
 	getIcon(): string {
-		return "workflow";
+		return "network";
 	}
 	render(container: HTMLElement, incremental?: boolean) {
 		const document = this.plugin.document;
