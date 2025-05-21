@@ -2,12 +2,9 @@ import { debounce, Editor, MarkdownView, Plugin } from "obsidian";
 import serialize from "serialize-javascript";
 import { deserialize } from "common";
 import { TapestryLoomSettings, TapestryLoomSettingTab } from "settings";
-import {
-	TapestryLoomView,
-	VIEW_TYPE,
-	VIEW_COMMANDS,
-	EDITOR_PLUGIN,
-} from "view";
+import { VIEW_COMMANDS } from "view/common";
+import { TapestryLoomView, VIEW_TYPE } from "view/primary";
+import { EDITOR_PLUGIN } from "view/editor";
 import cytoscape from "cytoscape";
 import dagre from "cytoscape-dagre";
 import {
@@ -90,7 +87,7 @@ export default class TapestryLoom extends Plugin {
 			(leaf) => new TapestryLoomView(leaf, this)
 		);
 
-		this.showView();
+		this.showView(VIEW_TYPE);
 
 		this.registerEditorExtension([EDITOR_PLUGIN]);
 
@@ -98,7 +95,7 @@ export default class TapestryLoom extends Plugin {
 			id: "show-tapestry-loom-view",
 			name: "Show Tapestry Loom",
 			callback: async () => {
-				await this.showView();
+				await this.showView(VIEW_TYPE);
 			},
 		});
 
@@ -107,16 +104,16 @@ export default class TapestryLoom extends Plugin {
 		this.addSettingTab(new TapestryLoomSettingTab(this.app, this));
 	}
 	onunload() {}
-	async showView() {
+	async showView(viewType: string) {
 		const { workspace } = this.app;
 
-		const leaves = workspace.getLeavesOfType(VIEW_TYPE);
+		const leaves = workspace.getLeavesOfType(viewType);
 
 		if (leaves.length > 0) {
 			workspace.revealLeaf(leaves[0]);
 		} else {
 			const leaf = workspace.getRightLeaf(false);
-			await leaf?.setViewState({ type: VIEW_TYPE, active: true });
+			await leaf?.setViewState({ type: viewType, active: true });
 			if (leaf) {
 				workspace.revealLeaf(leaf);
 			}

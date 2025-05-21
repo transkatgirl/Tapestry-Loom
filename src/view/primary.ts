@@ -1,35 +1,5 @@
-import {
-	getFrontMatterInfo,
-	debounce,
-	parseYaml,
-	Command,
-	Editor,
-	ItemView,
-	EventRef,
-	WorkspaceLeaf,
-	setIcon,
-} from "obsidian";
 import TapestryLoom from "main";
-import {
-	App,
-	ItemView,
-	Menu,
-	Modal,
-	Setting,
-	WorkspaceLeaf,
-	setIcon,
-} from "obsidian";
-import { Range } from "@codemirror/state";
-import {
-	Decoration,
-	DecorationSet,
-	ViewUpdate,
-	EditorView,
-	ViewPlugin,
-	PluginSpec,
-	PluginValue,
-	WidgetType,
-} from "@codemirror/view";
+import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
 import cytoscape from "cytoscape";
@@ -37,8 +7,6 @@ import cytoscape from "cytoscape";
 // TODO: Use HoverPopover
 
 // TODO: Eliminate (mis)use of Obsidian's internal CSS classes
-
-export const VIEW_COMMANDS: Array<Command> = [];
 
 export const VIEW_TYPE = "tapestry-loom-view";
 
@@ -374,19 +342,3 @@ export class TapestryLoomView extends ItemView {
 	}
 	async onClose() {}
 }
-
-class TapestryLoomPlugin implements PluginValue {
-	constructor(view: EditorView) {
-		// ...
-	}
-
-	update(update: ViewUpdate) {
-		// ...
-	}
-
-	destroy() {
-		// ...
-	}
-}
-
-export const EDITOR_PLUGIN = ViewPlugin.fromClass(TapestryLoomPlugin);
