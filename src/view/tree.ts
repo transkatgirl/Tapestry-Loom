@@ -9,7 +9,7 @@ import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
 
-// TODO: Use HoverPopover
+// TODO: Use HoverPopover, render bookmarked nodes
 
 export const TREE_VIEW_TYPE = "tapestry-loom-view";
 
@@ -121,7 +121,7 @@ export class TapestryLoomTreeView extends ItemView {
 
 		buttons.generateButton.addEventListener("click", (event) => {
 			event.stopPropagation();
-			throw new Error("unimplemented"); // TODO
+			this.generateNodeChildren(node.identifier);
 		});
 		buttons.addButton.addEventListener("click", (event) => {
 			event.stopPropagation();
@@ -146,6 +146,13 @@ export class TapestryLoomTreeView extends ItemView {
 	private renderModels(container: HTMLElement) {
 		container.empty();
 		renderMenuNotice(container, "Placeholder text.");
+	}
+	private generateNodeChildren(parentNode?: ULID) {
+		if (!this.plugin.document) {
+			return;
+		}
+
+		throw new Error("unimplemented"); // TODO
 	}
 	private addNode(parentNode?: ULID) {
 		if (!this.plugin.document) {
