@@ -4,7 +4,7 @@ import TapestryLoom, {
 	DOCUMENT_TRIGGER_UPDATE_EVENT,
 	DOCUMENT_UPDATE_EVENT,
 } from "main";
-import { ItemView, WorkspaceLeaf, addIcon, setIcon } from "obsidian";
+import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
 
@@ -29,7 +29,7 @@ export class TapestryLoomTreeView extends ItemView {
 	getIcon(): string {
 		return "list-tree";
 	}
-	render(container: HTMLElement, incremental?: boolean) {
+	render(container: HTMLElement, _incremental?: boolean) {
 		const document = this.plugin.document;
 		container.empty();
 
@@ -202,6 +202,28 @@ export class TapestryLoomTreeView extends ItemView {
 			this.addNode(node.identifier);
 		});
 
+		/*if (document.bookmarks.has(node.identifier)) {
+			const bookmarkButton = buttonContainer.createEl("div", {
+				title: "Remove bookmark",
+				cls: ["clickable-icon"],
+			});
+			setIcon(bookmarkButton, "bookmark-minus");
+			bookmarkButton.addEventListener("click", (event) => {
+				event.stopPropagation();
+				this.toggleBookmarkNode(node.identifier);
+			});
+		} else {
+			const bookmarkButton = buttonContainer.createEl("div", {
+				title: "Bookmark node",
+				cls: ["clickable-icon"],
+			});
+			setIcon(bookmarkButton, "bookmark-plus");
+			bookmarkButton.addEventListener("click", (event) => {
+				event.stopPropagation();
+				this.toggleBookmarkNode(node.identifier);
+			});
+		}*/
+
 		const deleteButton = buttonContainer.createEl("div", {
 			title: "Delete node",
 			cls: ["clickable-icon"],
@@ -243,6 +265,19 @@ export class TapestryLoomTreeView extends ItemView {
 		}
 
 		this.plugin.document.currentNode = identifier;
+		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
+	}
+	toggleBookmarkNode(identifier: ULID) {
+		if (!this.plugin.document) {
+			return;
+		}
+
+		if (this.plugin.document.bookmarks.has(identifier)) {
+			this.plugin.document.bookmarks.delete(identifier);
+		} else {
+			this.plugin.document.bookmarks.add(identifier);
+		}
+
 		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
 	mergeNode(primaryIdentifier: ULID, secondaryIdentifier: ULID) {
