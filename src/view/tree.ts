@@ -232,6 +232,13 @@ export class TapestryLoomTreeView extends ItemView {
 			}
 		}
 	}
+	private renderModels(container: HTMLElement) {
+		container.empty();
+		container.createEl("div", {
+			text: "Placeholder text.",
+			cls: ["search-empty-state"],
+		});
+	}
 	private addNode(parentNode?: ULID) {
 		if (!this.plugin.document) {
 			return;
@@ -289,31 +296,58 @@ export class TapestryLoomTreeView extends ItemView {
 
 		const { workspace } = this.app;
 
-		const treeItem = container.createEl("div", {
+		const modelItem = container.createEl("div", {
 			cls: ["tree-item"],
 		});
-		const labelContainer = treeItem.createEl("div", {
+		const modelLabelContainer = modelItem.createEl("div", {
 			cls: ["tree-item-self", "is-clickable"],
 			attr: { dragable: false },
 		});
-		labelContainer.createEl("div", {
+		modelLabelContainer.createEl("div", {
+			text: "Inference parameters",
+			cls: ["tree-item-inner", "tapestry_tree-heading"],
+		});
+		const modelContainer = container.createEl("div", {
+			cls: ["tapestry_tree-heading-container"],
+		});
+		modelLabelContainer.addEventListener("click", (event) => {
+			event.stopPropagation();
+
+			if (modelLabelContainer.classList.contains("is-collapsed")) {
+				modelItem.classList.remove("is-collapsed");
+				modelLabelContainer.classList.remove("is-collapsed");
+				modelContainer.style.display = "inherit";
+			} else {
+				modelItem.classList.add("is-collapsed");
+				modelLabelContainer.classList.add("is-collapsed");
+				modelContainer.style.display = "none";
+			}
+		});
+
+		const treeItem = container.createEl("div", {
+			cls: ["tree-item"],
+		});
+		const treeLabelContainer = treeItem.createEl("div", {
+			cls: ["tree-item-self", "is-clickable"],
+			attr: { dragable: false },
+		});
+		treeLabelContainer.createEl("div", {
 			text: "Nearby nodes",
 			cls: ["tree-item-inner", "tapestry_tree-heading"],
 		});
 		const treeContainer = container.createEl("div", {
 			cls: ["tapestry_tree-heading-container", "tapestry_tree"],
 		});
-
-		labelContainer.addEventListener("click", (event) => {
+		treeLabelContainer.addEventListener("click", (event) => {
 			event.stopPropagation();
 
-			if (labelContainer.classList.contains("is-collapsed")) {
+			if (treeLabelContainer.classList.contains("is-collapsed")) {
 				treeItem.classList.remove("is-collapsed");
-				labelContainer.classList.remove("is-collapsed");
+				treeLabelContainer.classList.remove("is-collapsed");
 				treeContainer.style.display = "inherit";
 			} else {
 				treeItem.classList.add("is-collapsed");
-				labelContainer.classList.add("is-collapsed");
+				treeLabelContainer.classList.add("is-collapsed");
 				treeContainer.style.display = "none";
 			}
 		});
@@ -349,6 +383,7 @@ export class TapestryLoomTreeView extends ItemView {
 			)
 		);
 
+		this.renderModels(modelContainer);
 		this.renderTree(treeContainer, false);
 	}
 	async onClose() {}
