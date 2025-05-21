@@ -89,6 +89,12 @@ export class TapestryLoomGraphView extends ItemView {
 		const document = this.plugin.document;
 
 		if (document) {
+			const elements: Array<cytoscape.ElementDefinition> = [];
+
+			const activeNodes = getActiveNodeIdentifiers(document);
+			for (const node of document.getRootNodes()) {
+				this.buildNode(elements, node, activeNodes);
+			}
 			if (incremental && this.graph) {
 				this.graph.startBatch();
 
@@ -96,14 +102,6 @@ export class TapestryLoomGraphView extends ItemView {
 				const zoom = this.graph.zoom();
 
 				this.graph.remove(this.graph.elements("*"));
-
-				const elements: Array<cytoscape.ElementDefinition> = [];
-
-				const activeNodes = getActiveNodeIdentifiers(document);
-				for (const node of document.getRootNodes()) {
-					this.buildNode(elements, node, activeNodes);
-				}
-
 				this.graph.add(elements);
 
 				this.graph.endBatch();
@@ -119,13 +117,6 @@ export class TapestryLoomGraphView extends ItemView {
 			} else {
 				container.empty();
 				this.panned = false;
-
-				const elements: Array<cytoscape.ElementDefinition> = [];
-
-				const activeNodes = getActiveNodeIdentifiers(document);
-				for (const node of document.getRootNodes()) {
-					this.buildNode(elements, node, activeNodes);
-				}
 
 				this.graph = cytoscape({
 					container: container,
