@@ -12,6 +12,8 @@ import cytoscape, { Core, StylesheetJsonBlock } from "cytoscape";
 // @ts-expect-error
 import crass from "crass";
 
+// TODO: Implement node grouping
+
 export const GRAPH_VIEW_TYPE = "tapestry-loom-graph-view";
 
 const GRAPH_STYLE: Array<StylesheetJsonBlock> = [
