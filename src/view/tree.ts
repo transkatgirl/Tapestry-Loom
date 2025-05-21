@@ -4,7 +4,7 @@ import TapestryLoom, {
 	DOCUMENT_TRIGGER_UPDATE_EVENT,
 	DOCUMENT_UPDATE_EVENT,
 } from "main";
-import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
+import { ItemView, WorkspaceLeaf, addIcon, setIcon } from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
 
@@ -51,11 +51,28 @@ export class TapestryLoomTreeView extends ItemView {
 			cls: ["tapestry_tree"],
 		});
 
-		for (const node of document.getRootNodes()) {
-			this.renderNode(list, node);
+		const activeNodes = document.getActiveNodes();
+
+		if (document.currentNode) {
+			if (
+				activeNodes.length > 3 &&
+				document.getNodeChildrenCount(document.currentNode) > 0
+			) {
+				this.renderNode(list, activeNodes.slice(-3)[0]);
+			} else if (activeNodes.length > 4) {
+				this.renderNode(list, activeNodes.slice(-4)[0]);
+			} else {
+				for (const node of document.getRootNodes()) {
+					this.renderNode(list, node);
+				}
+			}
+		} else {
+			for (const node of document.getRootNodes()) {
+				this.renderNode(list, node);
+			}
 		}
 	}
-	private renderNode(root: HTMLElement, node: WeaveDocumentNode) {
+	private renderNode(root: HTMLElement, node: WeaveDocumentNode, depth = 0) {
 		const document = this.plugin.document;
 		if (!document) {
 			return;
@@ -119,7 +136,7 @@ export class TapestryLoomTreeView extends ItemView {
 		if (content.length > 0) {
 			label.textContent = content;
 		} else {
-			label.innerHTML = "<em>Empty node</em>";
+			label.innerHTML = "<em>No text</em>";
 			label.style.color = "var(--text-faint)";
 		}
 
@@ -200,8 +217,15 @@ export class TapestryLoomTreeView extends ItemView {
 			this.deleteNode(node.identifier);
 		});
 
-		for (const childNode of document.getNodeChildren(node)) {
-			this.renderNode(childrenContainer, childNode);
+		if (children.length > 0 && depth > 6) {
+			renderDepthNotice(childrenContainer);
+			childrenContainer.addEventListener("click", () => {
+				this.switchToNode(node.identifier);
+			});
+		} else {
+			for (const childNode of document.getNodeChildren(node)) {
+				this.renderNode(childrenContainer, childNode, depth + 1);
+			}
 		}
 	}
 	addNode(parentNode?: ULID) {
@@ -284,4 +308,27 @@ export class TapestryLoomTreeView extends ItemView {
 		}
 	}
 	async onClose() {}
+}
+
+function renderDepthNotice(root: HTMLElement) {
+	const item = root.createEl("div", {
+		cls: ["tree-item"],
+	});
+	const labelContainer = item.createEl("div", {
+		cls: ["tree-item-self", "is-clickable"],
+		attr: { dragable: false },
+	});
+
+	const iconContainer = labelContainer.createEl("div", {
+		cls: ["tree-item-icon"],
+	});
+	iconContainer.style.color = "var(--nav-collapse-icon-color)";
+	setIcon(iconContainer, "arrow-up");
+
+	const label = labelContainer.createEl("div", {
+		cls: ["tree-item-inner"],
+	});
+
+	label.innerHTML = "Show more";
+	label.style.color = "var(--text-faint)";
 }
