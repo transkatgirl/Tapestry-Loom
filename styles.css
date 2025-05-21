@@ -60,12 +60,8 @@
 	padding: var(--size-4-1) 1px var(--size-4-4);
 }
 
-.tapestry_tree-heading-container.tapestry_tree {
+.tapestry_tree-heading-container.tapestry_tree:not(:has(.search-empty-state)) {
 	padding: 0 1px 0;
-}
-
-.tapestry_tree-heading-container .search-empty-state {
-	padding-top: var(--size-4-1);
 }
 
 .tapestry_graph {

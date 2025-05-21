@@ -244,6 +244,9 @@ export class WeaveDocument {
 			}
 		}
 	}
+	getNode(identifier: ULID) {
+		return this.nodes.get(identifier);
+	}
 	splitNode(identifier: ULID, index: number) {
 		const node = this.nodes.get(identifier);
 

@@ -157,6 +157,28 @@ export class TapestryLoomTreeView extends ItemView {
 			}
 		}
 	}
+	private renderBookmarks(container: HTMLElement) {
+		container.empty();
+
+		const document = this.plugin.document;
+		if (!document) {
+			renderMenuNotice(container, "No document found.");
+			return;
+		}
+
+		if (document.bookmarks.size > 0) {
+			for (const identifier of document.bookmarks) {
+				const node = document.getNode(identifier);
+				if (node) {
+					this.renderNode(container, node);
+				}
+			}
+		} else {
+			renderMenuNotice(container, "No bookmarks found.");
+		}
+	}
+	private renderBookmarkedNode(root: HTMLElement, node: WeaveDocumentNode) {}
+
 	private renderModels(container: HTMLElement) {
 		container.empty();
 		renderMenuNotice(container, "Placeholder text.");
@@ -229,6 +251,11 @@ export class TapestryLoomTreeView extends ItemView {
 			container,
 			"Inference parameters"
 		);
+		const bookmarksContainer = renderCollapsibleMenu(
+			container,
+			"Bookmarked nodes",
+			["tapestry_tree"]
+		);
 		const treeContainer = renderCollapsibleMenu(container, "Nearby nodes", [
 			"tapestry_tree",
 		]);
@@ -239,6 +266,7 @@ export class TapestryLoomTreeView extends ItemView {
 				// @ts-expect-error
 				DOCUMENT_LOAD_EVENT,
 				() => {
+					this.renderBookmarks(bookmarksContainer);
 					this.renderTree(treeContainer, false);
 				}
 			)
@@ -249,6 +277,7 @@ export class TapestryLoomTreeView extends ItemView {
 				// @ts-expect-error
 				DOCUMENT_UPDATE_EVENT,
 				() => {
+					this.renderBookmarks(bookmarksContainer);
 					this.renderTree(treeContainer, true);
 				}
 			)
@@ -259,6 +288,7 @@ export class TapestryLoomTreeView extends ItemView {
 				// @ts-expect-error
 				DOCUMENT_DROP_EVENT,
 				() => {
+					this.renderBookmarks(bookmarksContainer);
 					this.renderTree(treeContainer, false);
 				}
 			)
@@ -275,6 +305,7 @@ export class TapestryLoomTreeView extends ItemView {
 		);
 
 		this.renderModels(modelContainer);
+		this.renderBookmarks(bookmarksContainer);
 		this.renderTree(treeContainer, false);
 	}
 	async onClose() {}
