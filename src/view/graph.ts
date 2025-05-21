@@ -6,12 +6,11 @@ import TapestryLoom, {
 } from "main";
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { getNodeContent, WeaveDocument, WeaveDocumentNode } from "document";
-import { ULID, ulid } from "ulid";
+import { ULID } from "ulid";
 import cytoscape, { Core, StylesheetJsonBlock } from "cytoscape";
+
 // @ts-expect-error
 import crass from "crass";
-
-// TODO: Use HoverPopover
 
 export const GRAPH_VIEW_TYPE = "tapestry-loom-graph-view";
 
@@ -28,27 +27,22 @@ const GRAPH_STYLE: Array<StylesheetJsonBlock> = [
 		},
 	},
 	{
-		selector: ".tapestry_graph-empty-node",
+		selector: "edge",
 		style: {
-			"background-color": getGlobalCSSColorVariable("--text-faint"),
+			"line-color": getGlobalCSSColorVariable("--graph-line"),
 		},
 	},
 	{
-		selector: ":grabbed",
+		selector: ".tapestry_graph-empty-node",
 		style: {
-			color: getGlobalCSSColorVariable("--nav-item-color-hover"),
-			"line-color": getGlobalCSSColorVariable(
-				"--nav-item-background-hover"
-			),
 			"background-color": getGlobalCSSColorVariable(
-				"--nav-item-background-hover"
+				"--graph-node-unresolved"
 			),
 		},
 	},
 	{
 		selector: ":selected",
 		style: {
-			color: getGlobalCSSColorVariable("--nav-item-color-selected"),
 			"line-color": getGlobalCSSColorVariable("--graph-node-focused"),
 			"background-color": getGlobalCSSColorVariable(
 				"--graph-node-focused"
@@ -174,6 +168,7 @@ export class TapestryLoomGraphView extends ItemView {
 					source: node.parentNode,
 					target: node.identifier,
 				},
+				classes: classes,
 				selected: activeNodes.has(node.identifier),
 				selectable: false,
 			});
