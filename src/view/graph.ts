@@ -144,7 +144,7 @@ export class TapestryLoomGraphView extends ItemView {
 		if (node.model) {
 			modelLabel = document.models.get(node.model);
 			style = {
-				color: "modelLabel?.color",
+				color: modelLabel?.color,
 			};
 		}
 
