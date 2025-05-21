@@ -40,81 +40,85 @@ export interface CompletionResponse {
 }
 
 export async function runCompletion(
-	_config: ClientSettings,
+	config: ClientSettings,
 	models: Array<ModelConfiguration>,
 	request: CompletionRequest
 ): Promise<Array<CompletionResponse>> {
 	const requests: Array<Promise<Array<CompletionResponse>>> = [];
 
 	for (const model of models) {
-		const body = {
-			text: request.prompt,
-			...model.json,
-			...request.json,
-		};
-
-		if (model.type == EndpointType.OpenAICompletionv1Compatible) {
-			requests.push(
-				requestUrl({
-					url: model.url,
-					method: "POST",
-					contentType: "application/json",
-					body: JSON.stringify(body),
-					headers: model.headers,
-				}).then((response) => {
-					const responses: Array<CompletionResponse> = [];
-
-					for (const result of response.json["choices"]) {
-						const logprobs = result["logprobs"];
-
-						if (logprobs) {
-							const tokens: Array<[number, string]> = [];
-							for (
-								let i = 0;
-								i < logprobs["tokens"].length;
-								i++
-							) {
-								tokens.push([
-									Math.exp(logprobs["logprob"][i]),
-									logprobs["tokens"][i],
-								]);
-							}
-							const topLogprobs = logprobs["top_logprobs"];
-							if (topLogprobs && topLogprobs.length > 0) {
-								const probs: Array<[number, string]> = [];
-								for (const [token, logprob] of topLogprobs) {
-									probs.push([Math.exp(logprob), token]);
-								}
-								probs.sort((a, b) => {
-									return a[0] - b[0];
-								});
-
-								responses.push({
-									model: model,
-									completion: tokens,
-									topProbs: probs,
-								});
-							} else {
-								responses.push({
-									model: model,
-									completion: tokens,
-								});
-							}
-						} else {
-							responses.push({
-								model: model,
-								completion: result["text"],
-							});
-						}
-					}
-
-					return responses;
-				})
-			);
-		} else {
-			throw new Error("unimplemented!");
+		for (let i = 0; i < request.count; i++) {
+			requests.push(inferenceRequest(config, model, request));
 		}
 	}
 
 	return Promise.all(requests).then((responses) => responses.flat());
+}
+
+async function inferenceRequest(
+	_config: ClientSettings,
+	model: ModelConfiguration,
+	request: CompletionRequest
+): Promise<Array<CompletionResponse>> {
+	const body = {
+		text: request.prompt,
+		...model.json,
+		...request.json,
+	};
+
+	if (model.type == EndpointType.OpenAICompletionv1Compatible) {
+		return requestUrl({
+			url: model.url,
+			method: "POST",
+			contentType: "application/json",
+			body: JSON.stringify(body),
+			headers: model.headers,
+		}).then((response) => {
+			const responses: Array<CompletionResponse> = [];
+
+			for (const result of response.json["choices"]) {
+				const logprobs = result["logprobs"];
+
+				if (logprobs) {
+					const tokens: Array<[number, string]> = [];
+					for (let i = 0; i < logprobs["tokens"].length; i++) {
+						tokens.push([
+							Math.exp(logprobs["logprob"][i]),
+							logprobs["tokens"][i],
+						]);
+					}
+					const topLogprobs = logprobs["top_logprobs"];
+					if (topLogprobs && topLogprobs.length > 0) {
+						const probs: Array<[number, string]> = [];
+						for (const [token, logprob] of topLogprobs) {
+							probs.push([Math.exp(logprob), token]);
+						}
+						probs.sort((a, b) => {
+							return a[0] - b[0];
+						});
+
+						responses.push({
+							model: model,
+							completion: tokens,
+							topProbs: probs,
+						});
+					} else {
+						responses.push({
+							model: model,
+							completion: tokens,
+						});
+					}
+				} else {
+					responses.push({
+						model: model,
+						completion: result["text"],
+					});
+				}
+			}
+
+			return responses;
+		});
+	} else {
+		throw new Error("unimplemented!");
+	}
 }
