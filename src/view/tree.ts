@@ -27,42 +27,33 @@ export class TapestryLoomTreeView extends ItemView {
 	getIcon(): string {
 		return "list-tree";
 	}
-	render(container: HTMLElement, _incremental?: boolean) {
-		const document = this.plugin.document;
-		container.empty();
-
-		if (document) {
-			console.log(container);
-
-			this.renderTree(container);
-
-			console.log(this.plugin.document);
-		}
-	}
-	private renderTree(root: HTMLElement) {
+	private renderTree(container: HTMLElement, _incremental?: boolean) {
 		const document = this.plugin.document;
 		if (!document) {
 			return;
 		}
-
-		const list = root.createEl("div", {
-			cls: ["tapestry_tree"],
-		});
+		container.empty();
 
 		const activeNodes = document.getActiveNodes();
+		const rootNodes = document.getRootNodes();
 
 		if (
 			document.currentNode &&
 			activeNodes.length > 3 &&
 			document.getNodeChildrenCount(document.currentNode) > 0
 		) {
-			this.renderNode(list, activeNodes.slice(-3)[0]);
+			this.renderNode(container, activeNodes.slice(-3)[0]);
 		} else if (document.currentNode && activeNodes.length > 4) {
-			this.renderNode(list, activeNodes.slice(-4)[0]);
-		} else {
-			for (const node of document.getRootNodes()) {
-				this.renderNode(list, node);
+			this.renderNode(container, activeNodes.slice(-4)[0]);
+		} else if (rootNodes.length > 0) {
+			for (const node of rootNodes) {
+				this.renderNode(container, node);
 			}
+		} else {
+			container.createEl("div", {
+				text: "No nodes found.",
+				cls: ["search-empty-state"],
+			});
 		}
 	}
 	private renderNode(root: HTMLElement, node: WeaveDocumentNode, depth = 0) {
@@ -293,13 +284,42 @@ export class TapestryLoomTreeView extends ItemView {
 
 		const { workspace } = this.app;
 
+		const item = container.createEl("div", {
+			cls: ["tree-item"],
+		});
+		const labelContainer = item.createEl("div", {
+			cls: ["tree-item-self", "is-clickable"],
+			attr: { dragable: false },
+		});
+		labelContainer.createEl("div", {
+			text: "Nearby nodes",
+			cls: ["tree-item-inner", "tapestry_tree-heading"],
+		});
+		const treeContainer = container.createEl("div", {
+			cls: ["tapestry_tree-heading-container", "tapestry_tree"],
+		});
+
+		labelContainer.addEventListener("click", (event) => {
+			event.stopPropagation();
+
+			if (labelContainer.classList.contains("is-collapsed")) {
+				item.classList.remove("is-collapsed");
+				labelContainer.classList.remove("is-collapsed");
+				treeContainer.style.display = "inherit";
+			} else {
+				item.classList.add("is-collapsed");
+				labelContainer.classList.add("is-collapsed");
+				treeContainer.style.display = "none";
+			}
+		});
+
 		this.registerEvent(
 			workspace.on(
 				// ignore ts2769; custom event
 				// @ts-expect-error
 				DOCUMENT_LOAD_EVENT,
 				() => {
-					this.render(container, false);
+					this.renderTree(treeContainer, false);
 				}
 			)
 		);
@@ -309,7 +329,7 @@ export class TapestryLoomTreeView extends ItemView {
 				// @ts-expect-error
 				DOCUMENT_UPDATE_EVENT,
 				() => {
-					this.render(container, true);
+					this.renderTree(treeContainer, true);
 				}
 			)
 		);
@@ -319,14 +339,12 @@ export class TapestryLoomTreeView extends ItemView {
 				// @ts-expect-error
 				DOCUMENT_DROP_EVENT,
 				() => {
-					this.render(container, false);
+					this.renderTree(treeContainer, false);
 				}
 			)
 		);
 
-		if (this.plugin.document) {
-			this.render(container, false);
-		}
+		this.renderTree(treeContainer, false);
 	}
 	async onClose() {}
 }

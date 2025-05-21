@@ -3,6 +3,10 @@
 	padding-left: var(--nav-item-children-padding-start);
 }
 
+.tree-item-self:has(.tapestry_tree-heading) {
+	padding-inline-start: var(--size-4-2);
+}
+
 .tapestry_tree .tree-item-self .tree-item-icon {
 	color: var(--nav-collapse-icon-color);
 }
@@ -24,6 +28,7 @@
 .tapestry_tree .tree-item-inner {
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	flex-grow: 1;
 }
 
 .tapestry_tree .tree-item-self:hover > .tree-item-flair-outer {
@@ -32,6 +37,23 @@
 
 .tapestry_tree-notice {
 	color: var(--text-faint);
+}
+
+.tapestry_tree-heading {
+	font-weight: var(--nav-heading-weight);
+	color: var(--nav-heading-color);
+}
+
+.tapestry_tree-heading-container {
+	padding: var(--size-4-1) 1px var(--size-4-4);
+}
+
+.tapestry_tree-heading-container.tapestry_tree {
+	padding: 0 1px 0;
+}
+
+.tapestry_tree-heading-container .search-empty-state {
+	padding-top: var(--size-4-1);
 }
 
 .tapestry_graph {
