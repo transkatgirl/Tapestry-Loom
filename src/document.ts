@@ -175,7 +175,8 @@ export class WeaveDocument {
 								child.content == node.content &&
 								child.model == node.model &&
 								child.metadata?.entries() ==
-									node.metadata?.entries()
+									node.metadata?.entries() &&
+								this.getNodeChildrenCount(child.identifier) == 0
 							) {
 								this.currentNode = child.identifier;
 								return;
