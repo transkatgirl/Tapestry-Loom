@@ -7,7 +7,7 @@ import TapestryLoom, {
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
-import cytoscape from "cytoscape";
+import cytoscape, { Core, Position } from "cytoscape";
 
 // TODO: Use HoverPopover
 
@@ -15,6 +15,7 @@ export const GRAPH_VIEW_TYPE = "tapestry-loom-graph-view";
 
 export class TapestryLoomGraphView extends ItemView {
 	plugin: TapestryLoom;
+	graph?: Core;
 	constructor(leaf: WorkspaceLeaf, plugin: TapestryLoom) {
 		super(leaf);
 		this.plugin = plugin;
@@ -30,38 +31,54 @@ export class TapestryLoomGraphView extends ItemView {
 	}
 	render(container: HTMLElement, incremental?: boolean) {
 		const document = this.plugin.document;
-		container.empty();
 
 		if (document) {
-			console.log(container);
+			if (incremental && this.graph) {
+				this.graph.startBatch();
 
-			this.renderGraph(container);
+				this.graph.remove(this.graph.elements("*"));
 
-			console.log(this.plugin.document);
+				const elements: Array<cytoscape.ElementDefinition> = [];
+
+				for (const node of document.getRootNodes()) {
+					this.buildNode(elements, node);
+				}
+
+				this.graph.add(elements);
+
+				this.graph.endBatch();
+				this.graph.createLayout({ name: "dagre" }).run();
+			} else {
+				container.empty();
+
+				const elements: Array<cytoscape.ElementDefinition> = [];
+
+				for (const node of document.getRootNodes()) {
+					this.buildNode(elements, node);
+				}
+
+				this.graph = cytoscape({
+					container: container,
+					elements: elements,
+					layout: { name: "dagre" },
+				});
+				this.graph.on("select", "node", (event) => {
+					const node = event.target.data().id;
+					this.switchToNode(node);
+				});
+			}
+		} else {
+			container.empty();
+			this.graph = undefined;
 		}
 	}
-	private renderGraph(root: HTMLElement) {
-		// TODO: Implement same functionality as renderTree()
-		const document = this.plugin.document;
-		if (!document) {
+	switchToNode(identifier: ULID) {
+		if (!this.plugin.document) {
 			return;
 		}
 
-		const container = root.createEl("div", {
-			cls: ["tapestry_graph"],
-		});
-
-		const elements: Array<cytoscape.ElementDefinition> = [];
-
-		for (const node of document.getRootNodes()) {
-			this.buildNode(elements, node);
-		}
-
-		const cy = cytoscape({
-			container: container,
-			elements: elements,
-			layout: { name: "dagre" },
-		});
+		this.plugin.document.currentNode = identifier;
+		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
 	private buildNode(
 		elements: Array<cytoscape.ElementDefinition>,
@@ -84,6 +101,7 @@ export class TapestryLoomGraphView extends ItemView {
 			data: {
 				id: node.identifier,
 			},
+			selected: document.currentNode == node.identifier,
 			grabbable: false,
 		});
 		if (node.parentNode) {
@@ -101,8 +119,12 @@ export class TapestryLoomGraphView extends ItemView {
 		}
 	}
 	async onOpen() {
-		const container = this.containerEl.children[1] as HTMLElement;
-		container.empty();
+		const root = this.containerEl.children[1] as HTMLElement;
+		root.empty();
+
+		const container = root.createEl("div", {
+			cls: ["tapestry_graph"],
+		});
 
 		const { workspace } = this.app;
 
