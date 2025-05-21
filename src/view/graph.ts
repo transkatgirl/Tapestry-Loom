@@ -12,7 +12,7 @@ import cytoscape, { Core, StylesheetJsonBlock } from "cytoscape";
 // @ts-expect-error
 import crass from "crass";
 
-// TODO: Implement node grouping
+// TODO: Implement node grouping, implement bookmarks
 
 export const GRAPH_VIEW_TYPE = "tapestry-loom-graph-view";
 
