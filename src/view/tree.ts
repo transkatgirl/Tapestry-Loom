@@ -15,6 +15,7 @@ export const TREE_VIEW_TYPE = "tapestry-loom-view";
 
 export class TapestryLoomTreeView extends ItemView {
 	plugin: TapestryLoom;
+	collapsedNodes: Set<ULID> = new Set();
 	constructor(leaf: WorkspaceLeaf, plugin: TapestryLoom) {
 		super(leaf);
 		this.plugin = plugin;
@@ -28,13 +29,18 @@ export class TapestryLoomTreeView extends ItemView {
 	getIcon(): string {
 		return "list-tree";
 	}
-	private renderTree(container: HTMLElement, _incremental?: boolean) {
+	private renderTree(container: HTMLElement, incremental?: boolean) {
 		container.empty();
 
 		const document = this.plugin.document;
 		if (!document) {
+			this.collapsedNodes = new Set();
 			renderMenuNotice(container, "No document found.");
 			return;
+		}
+
+		if (!incremental) {
+			this.collapsedNodes = new Set();
 		}
 
 		const activeNodes = document.getActiveNodes();
@@ -83,7 +89,15 @@ export class TapestryLoomTreeView extends ItemView {
 			content,
 			document.currentNode == node.identifier,
 			children.length > 0,
-			flair
+			this.collapsedNodes.has(node.identifier),
+			flair,
+			(collapsed) => {
+				if (collapsed) {
+					this.collapsedNodes.add(node.identifier);
+				} else {
+					this.collapsedNodes.delete(node.identifier);
+				}
+			}
 		);
 		if (modelLabel) {
 			tree.label.title = modelLabel.label;
@@ -321,7 +335,9 @@ function renderTree(
 	text: string,
 	selected: boolean,
 	collapsible: boolean,
-	flair?: string
+	collapsed?: boolean,
+	flair?: string,
+	collapseCallback?: (collapsed: boolean) => void
 ): TreeElements {
 	const item = root.createEl("div", {
 		cls: ["tree-item"],
@@ -357,7 +373,22 @@ function renderTree(
 				iconContainer.classList.add("is-collapsed");
 				childrenContainer.style.display = "none";
 			}
+			if (collapseCallback) {
+				collapseCallback(
+					iconContainer.classList.contains("is-collapsed")
+				);
+			}
 		});
+
+		if (collapsed) {
+			item.classList.add("is-collapsed");
+			iconContainer.classList.add("is-collapsed");
+			childrenContainer.style.display = "none";
+		} else {
+			item.classList.remove("is-collapsed");
+			iconContainer.classList.remove("is-collapsed");
+			childrenContainer.style.display = "inherit";
+		}
 	}
 
 	const label = labelContainer.createEl("div", {
