@@ -18,6 +18,29 @@ const GRAPH_STYLE: Array<StylesheetJsonBlock> = [
 		selector: "node",
 		style: {
 			label: "data(content)",
+			"font-size": getGlobalCSSVariable("--font-ui-smaller"),
+			color: getGlobalCSSVariable("--nav-item-color"),
+			"text-wrap": "ellipsis",
+			"text-max-width": "8em",
+			"background-color": getGlobalCSSVariable("--nav-item-color"),
+		},
+	},
+	{
+		selector: ".tapestry_graph-empty-node",
+		style: {
+			"background-color": getGlobalCSSVariable("--text-faint"),
+		},
+	},
+	{
+		selector: ":selected",
+		style: {
+			color: getGlobalCSSVariable("--nav-item-color-selected"),
+			"line-color": getGlobalCSSVariable(
+				"--nav-item-background-selected"
+			),
+			"background-color": getGlobalCSSVariable(
+				"--nav-item-background-selected"
+			),
 		},
 	},
 ];
@@ -104,11 +127,19 @@ export class TapestryLoomGraphView extends ItemView {
 			return;
 		}
 
+		let classes;
 		const content = getNodeContent(node);
+		if (content.length == 0) {
+			classes = ["tapestry_graph-empty-node"];
+		}
 
 		let modelLabel;
+		let style;
 		if (node.model) {
 			modelLabel = document.models.get(node.model);
+			style = {
+				color: "modelLabel?.color",
+			};
 		}
 
 		elements.push({
@@ -118,9 +149,8 @@ export class TapestryLoomGraphView extends ItemView {
 				content: content,
 				model: modelLabel?.label,
 			},
-			style: {
-				color: modelLabel?.color,
-			},
+			classes: classes,
+			style: style,
 			selected: document.currentNode == node.identifier,
 			selectable: false,
 			grabbable: false,
@@ -197,4 +227,8 @@ function getActiveNodeIdentifiers(document: WeaveDocument): Set<ULID> {
 	}
 
 	return identifiers;
+}
+
+function getGlobalCSSVariable(key: string) {
+	return window.getComputedStyle(window.document.body).getPropertyValue(key);
 }
