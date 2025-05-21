@@ -40,6 +40,7 @@ import {
 	WeaveDocumentNode,
 } from "document";
 import { ULID, ulid } from "ulid";
+import cytoscape from "cytoscape";
 
 export const VIEW_COMMANDS: Array<Command> = [];
 
@@ -221,7 +222,7 @@ export class TapestryLoomView extends ItemView {
 		const generateButton = buttonContainer.createEl("div", {
 			cls: ["clickable-icon"],
 		});
-		setIcon(generateButton, "bot-message-square");
+		setIcon(generateButton, "bot-message-square"); // alternate generate icon: "bot"
 		generateButton.addEventListener("click", (event) => {
 			event.stopPropagation();
 			throw new Error("unimplemented"); // TODO

@@ -41,12 +41,11 @@ export interface ModelConfiguration {
 
 export interface ModelLabel {
 	label: string;
-	color: HexString;
+	color?: HexString;
 }
 
 export const UNKNOWN_MODEL_LABEL: ModelLabel = {
 	label: "Unknown",
-	color: "#000000",
 };
 
 export enum ModelType {
