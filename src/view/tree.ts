@@ -90,6 +90,7 @@ export class TapestryLoomTreeView extends ItemView {
 			document.currentNode == node.identifier,
 			children.length > 0,
 			this.collapsedNodes.has(node.identifier),
+			document.bookmarks.has(node.identifier),
 			flair,
 			(collapsed) => {
 				if (collapsed) {
@@ -194,7 +195,9 @@ export class TapestryLoomTreeView extends ItemView {
 			root,
 			content,
 			document.currentNode == node.identifier,
-			false
+			false,
+			undefined,
+			true
 		);
 		if (modelLabel) {
 			tree.label.title = modelLabel.label;
@@ -402,6 +405,7 @@ function renderTree(
 	selected: boolean,
 	collapsible: boolean,
 	collapsed?: boolean,
+	bookmarked?: boolean,
 	flair?: string,
 	collapseCallback?: (collapsed: boolean) => void
 ): TreeElements {
@@ -470,6 +474,14 @@ function renderTree(
 	const flairContainer = labelContainer.createEl("div", {
 		cls: ["tree-item-flair-outer"],
 	});
+
+	if (bookmarked) {
+		const bookmarkIcon = flairContainer.createEl("div", {
+			text: flair,
+			cls: ["tree-item-flair"],
+		});
+		setIcon(bookmarkIcon, "bookmark");
+	}
 
 	if (flair && flair.length > 0) {
 		flairContainer.createEl("div", {

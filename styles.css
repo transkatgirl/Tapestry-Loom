@@ -22,7 +22,15 @@
 
 .tapestry_tree-buttons .clickable-icon {
 	padding: 0 var(--size-2-1);
+}
+
+.tapestry_tree-buttons .clickable-icon,
+.tree-item-flair-outer .svg-icon {
 	--icon-size: 1lh;
+}
+
+.tree-item-flair:nth-of-type(2) {
+	padding-left: var(--size-2-2);
 }
 
 .tapestry_tree .tree-item-inner {
