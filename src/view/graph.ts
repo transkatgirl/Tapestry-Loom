@@ -8,6 +8,8 @@ import { ItemView, WorkspaceLeaf } from "obsidian";
 import { getNodeContent, WeaveDocument, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
 import cytoscape, { Core, StylesheetJsonBlock } from "cytoscape";
+// @ts-expect-error
+import crass from "crass";
 
 // TODO: Use HoverPopover
 
@@ -19,27 +21,37 @@ const GRAPH_STYLE: Array<StylesheetJsonBlock> = [
 		style: {
 			label: "data(content)",
 			"font-size": getGlobalCSSVariable("--font-ui-smaller"),
-			color: getGlobalCSSVariable("--nav-item-color"),
+			color: getGlobalCSSColorVariable("--graph-text"),
 			"text-wrap": "ellipsis",
 			"text-max-width": "8em",
-			"background-color": getGlobalCSSVariable("--nav-item-color"),
+			"background-color": getGlobalCSSColorVariable("--graph-node"),
 		},
 	},
 	{
 		selector: ".tapestry_graph-empty-node",
 		style: {
-			"background-color": getGlobalCSSVariable("--text-faint"),
+			"background-color": getGlobalCSSColorVariable("--text-faint"),
+		},
+	},
+	{
+		selector: ":grabbed",
+		style: {
+			color: getGlobalCSSColorVariable("--nav-item-color-hover"),
+			"line-color": getGlobalCSSColorVariable(
+				"--nav-item-background-hover"
+			),
+			"background-color": getGlobalCSSColorVariable(
+				"--nav-item-background-hover"
+			),
 		},
 	},
 	{
 		selector: ":selected",
 		style: {
-			color: getGlobalCSSVariable("--nav-item-color-selected"),
-			"line-color": getGlobalCSSVariable(
-				"--nav-item-background-selected"
-			),
-			"background-color": getGlobalCSSVariable(
-				"--nav-item-background-selected"
+			color: getGlobalCSSColorVariable("--nav-item-color-selected"),
+			"line-color": getGlobalCSSColorVariable("--graph-node-focused"),
+			"background-color": getGlobalCSSColorVariable(
+				"--graph-node-focused"
 			),
 		},
 	},
@@ -231,4 +243,16 @@ function getActiveNodeIdentifiers(document: WeaveDocument): Set<ULID> {
 
 function getGlobalCSSVariable(key: string) {
 	return window.getComputedStyle(window.document.body).getPropertyValue(key);
+}
+
+function getGlobalCSSColorVariable(key: string) {
+	let parsed = crass.parse(
+		"a{color:" +
+			window
+				.getComputedStyle(window.document.body)
+				.getPropertyValue(key) +
+			"}"
+	);
+	parsed = parsed.optimize();
+	return parsed.toString().slice(8, -1);
 }
