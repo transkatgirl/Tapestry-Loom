@@ -45,6 +45,8 @@ import dagre from "cytoscape-dagre";
 
 // TODO: Use HoverPopover
 
+// TODO: Eliminate (mis)use of Obsidian's internal CSS classes
+
 export const VIEW_COMMANDS: Array<Command> = [];
 
 export const VIEW_TYPE = "tapestry-loom-view";
