@@ -44,6 +44,18 @@
 	color: var(--nav-heading-color);
 }
 
+.tree-item-self.is-collapsed > .tapestry_tree-heading {
+	color: var(--nav-heading-color-collapsed);
+}
+
+.tree-item-self.is-collapsed:hover > .tapestry_tree-heading {
+	color: var(--nav-heading-color-collapsed-hover);
+}
+
+.tree-item-self.is-collapsed:hover > .tapestry_tree-heading-container {
+	background-color: var(--nav-item-background-hover);
+}
+
 .tapestry_tree-heading-container {
 	padding: var(--size-4-1) 1px var(--size-4-4);
 }
