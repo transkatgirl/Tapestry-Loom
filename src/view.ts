@@ -109,7 +109,7 @@ export class TapestryLoomView extends ItemView {
 		}
 	}
 	private renderGraph(root: HTMLElement) {
-		// TODO: Implements same functionality as renderTree()
+		// TODO: Implement same functionality as renderTree()
 		if (!this.document) {
 			return;
 		}
