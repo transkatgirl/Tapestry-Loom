@@ -5,13 +5,22 @@ import TapestryLoom, {
 	DOCUMENT_UPDATE_EVENT,
 } from "main";
 import { ItemView, WorkspaceLeaf } from "obsidian";
-import { getNodeContent, WeaveDocumentNode } from "document";
+import { getNodeContent, WeaveDocument, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
-import cytoscape, { Core, Position } from "cytoscape";
+import cytoscape, { Core, StylesheetJsonBlock } from "cytoscape";
 
 // TODO: Use HoverPopover
 
 export const GRAPH_VIEW_TYPE = "tapestry-loom-graph-view";
+
+const GRAPH_STYLE: Array<StylesheetJsonBlock> = [
+	{
+		selector: "node",
+		style: {
+			label: "data(content)",
+		},
+	},
+];
 
 export class TapestryLoomGraphView extends ItemView {
 	plugin: TapestryLoom;
@@ -40,8 +49,9 @@ export class TapestryLoomGraphView extends ItemView {
 
 				const elements: Array<cytoscape.ElementDefinition> = [];
 
+				const activeNodes = getActiveNodeIdentifiers(document);
 				for (const node of document.getRootNodes()) {
-					this.buildNode(elements, node);
+					this.buildNode(elements, node, activeNodes);
 				}
 
 				this.graph.add(elements);
@@ -53,18 +63,22 @@ export class TapestryLoomGraphView extends ItemView {
 
 				const elements: Array<cytoscape.ElementDefinition> = [];
 
+				const activeNodes = getActiveNodeIdentifiers(document);
 				for (const node of document.getRootNodes()) {
-					this.buildNode(elements, node);
+					this.buildNode(elements, node, activeNodes);
 				}
 
 				this.graph = cytoscape({
 					container: container,
 					elements: elements,
 					layout: { name: "dagre" },
+					style: GRAPH_STYLE,
 				});
-				this.graph.on("select", "node", (event) => {
+				this.graph.on("tap", "node", (event) => {
 					const node = event.target.data().id;
-					this.switchToNode(node);
+					if (typeof node == "string") {
+						this.switchToNode(node);
+					}
 				});
 			}
 		} else {
@@ -82,7 +96,8 @@ export class TapestryLoomGraphView extends ItemView {
 	}
 	private buildNode(
 		elements: Array<cytoscape.ElementDefinition>,
-		node: WeaveDocumentNode
+		node: WeaveDocumentNode,
+		activeNodes: Set<ULID>
 	) {
 		const document = this.plugin.document;
 		if (!document) {
@@ -90,7 +105,7 @@ export class TapestryLoomGraphView extends ItemView {
 		}
 
 		const content = getNodeContent(node);
-		const children = document.getNodeChildren(node);
+
 		let modelLabel;
 		if (node.model) {
 			modelLabel = document.models.get(node.model);
@@ -100,8 +115,14 @@ export class TapestryLoomGraphView extends ItemView {
 			group: "nodes",
 			data: {
 				id: node.identifier,
+				content: content,
+				model: modelLabel?.label,
+			},
+			style: {
+				color: modelLabel?.color,
 			},
 			selected: document.currentNode == node.identifier,
+			selectable: false,
 			grabbable: false,
 		});
 		if (node.parentNode) {
@@ -111,11 +132,13 @@ export class TapestryLoomGraphView extends ItemView {
 					source: node.parentNode,
 					target: node.identifier,
 				},
+				selected: activeNodes.has(node.identifier),
+				selectable: false,
 			});
 		}
 
 		for (const childNode of document.getNodeChildren(node)) {
-			this.buildNode(elements, childNode);
+			this.buildNode(elements, childNode, activeNodes);
 		}
 	}
 	async onOpen() {
@@ -164,4 +187,14 @@ export class TapestryLoomGraphView extends ItemView {
 		}
 	}
 	async onClose() {}
+}
+
+function getActiveNodeIdentifiers(document: WeaveDocument): Set<ULID> {
+	const identifiers: Set<ULID> = new Set();
+
+	for (const node of document.getActiveNodes()) {
+		identifiers.add(node.identifier);
+	}
+
+	return identifiers;
 }
