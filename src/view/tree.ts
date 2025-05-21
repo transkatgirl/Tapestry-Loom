@@ -9,7 +9,7 @@ import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
 
-// TODO: Use HoverPopover, render bookmarked nodes
+// TODO: Use HoverPopover
 
 export const TREE_VIEW_TYPE = "tapestry-loom-view";
 
@@ -170,15 +170,50 @@ export class TapestryLoomTreeView extends ItemView {
 			for (const identifier of document.bookmarks) {
 				const node = document.getNode(identifier);
 				if (node) {
-					this.renderNode(container, node);
+					this.renderBookmarkedNode(container, node);
 				}
 			}
 		} else {
 			renderMenuNotice(container, "No bookmarks found.");
 		}
 	}
-	private renderBookmarkedNode(root: HTMLElement, node: WeaveDocumentNode) {}
+	private renderBookmarkedNode(root: HTMLElement, node: WeaveDocumentNode) {
+		const document = this.plugin.document;
+		if (!document) {
+			return;
+		}
 
+		const content = getNodeContent(node);
+
+		let modelLabel;
+		if (node.model) {
+			modelLabel = document.models.get(node.model);
+		}
+
+		const tree = renderTree(
+			root,
+			content,
+			document.currentNode == node.identifier,
+			false
+		);
+		if (modelLabel) {
+			tree.label.title = modelLabel.label;
+			if (modelLabel.color) {
+				tree.label.style.color = modelLabel.color;
+			}
+		}
+
+		tree.labelContainer.addEventListener("click", () => {
+			this.switchToNode(node.identifier);
+		});
+
+		const bookmarkToggleButton = renderBookmarkNodeButton(tree);
+
+		bookmarkToggleButton.addEventListener("click", (event) => {
+			event.stopPropagation();
+			this.toggleBookmarkNode(node.identifier);
+		});
+	}
 	private renderModels(container: HTMLElement) {
 		container.empty();
 		renderMenuNotice(container, "Placeholder text.");
@@ -254,7 +289,7 @@ export class TapestryLoomTreeView extends ItemView {
 		const bookmarksContainer = renderCollapsibleMenu(
 			container,
 			"Bookmarked nodes",
-			["tapestry_tree"]
+			["tapestry_tree", "tapestry_bookmarks"]
 		);
 		const treeContainer = renderCollapsibleMenu(container, "Nearby nodes", [
 			"tapestry_tree",
@@ -544,4 +579,31 @@ function renderNodeButtons(
 		bookmarkToggleButton: bookmarkButton,
 		deleteButton: deleteButton,
 	};
+}
+
+function renderBookmarkNodeButton(
+	tree: TreeElements,
+	bookmarked = true
+): HTMLElement {
+	const buttonContainer = tree.labelContainer.createEl("div", {
+		cls: ["tapestry_tree-buttons"],
+	});
+
+	let bookmarkButton;
+
+	if (bookmarked) {
+		bookmarkButton = buttonContainer.createEl("div", {
+			title: "Remove bookmark",
+			cls: ["clickable-icon"],
+		});
+		setIcon(bookmarkButton, "bookmark-minus");
+	} else {
+		bookmarkButton = buttonContainer.createEl("div", {
+			title: "Bookmark node",
+			cls: ["clickable-icon"],
+		});
+		setIcon(bookmarkButton, "bookmark-plus");
+	}
+
+	return bookmarkButton;
 }
