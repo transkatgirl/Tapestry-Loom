@@ -247,6 +247,7 @@ export class TapestryLoomGraphView extends ItemView {
 	async onOpen() {
 		const root = this.containerEl.children[1] as HTMLElement;
 		root.empty();
+		root.style.padding = "var(--size-4-3) var(--size-4-3) var(--size-4-3)";
 
 		const container = root.createEl("div", {
 			cls: ["tapestry_graph"],
