@@ -12,8 +12,6 @@ import cytoscape, { Core, StylesheetJsonBlock } from "cytoscape";
 // @ts-expect-error
 import crass from "crass";
 
-// TODO: Implement node grouping, implement bookmarks
-
 export const GRAPH_VIEW_TYPE = "tapestry-loom-graph-view";
 
 const GRAPH_STYLE: Array<StylesheetJsonBlock> = [
@@ -21,6 +19,8 @@ const GRAPH_STYLE: Array<StylesheetJsonBlock> = [
 		selector: "node",
 		style: {
 			label: "data(content)",
+			"text-halign": "center",
+			"text-valign": "bottom",
 			"font-size": getGlobalCSSVariable("--font-ui-smaller"),
 			color: getGlobalCSSColorVariable("--graph-text"),
 			"text-wrap": "ellipsis",
@@ -39,6 +39,21 @@ const GRAPH_STYLE: Array<StylesheetJsonBlock> = [
 		style: {
 			"background-color": getGlobalCSSColorVariable(
 				"--graph-node-unresolved"
+			),
+		},
+	},
+	{
+		selector: ".tapestry_graph-logit-node",
+		style: {
+			"text-valign": "center",
+			"background-color": getGlobalCSSColorVariable("--graph-line"),
+		},
+	},
+	{
+		selector: ".tapestry_graph-bookmarked-node",
+		style: {
+			"background-color": getGlobalCSSColorVariable(
+				"--graph-node-attachment"
 			),
 		},
 	},
@@ -111,6 +126,17 @@ export class TapestryLoomGraphView extends ItemView {
 						this.switchToNode(node);
 					}
 				});
+				this.graph.on("cxttap", "node", (event) => {
+					const node = event.target.data().id;
+					if (typeof node == "string") {
+						this.toggleBookmarkNode(node);
+					}
+				});
+			}
+			if (document.currentNode) {
+				this.graph.fit(
+					this.graph.elements(getActiveNodesSelector(document))
+				);
 			}
 		} else {
 			container.empty();
@@ -125,6 +151,19 @@ export class TapestryLoomGraphView extends ItemView {
 		this.plugin.document.currentNode = identifier;
 		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
+	toggleBookmarkNode(identifier: ULID) {
+		if (!this.plugin.document) {
+			return;
+		}
+
+		if (this.plugin.document.bookmarks.has(identifier)) {
+			this.plugin.document.bookmarks.delete(identifier);
+		} else {
+			this.plugin.document.bookmarks.add(identifier);
+		}
+
+		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
+	}
 	private buildNode(
 		elements: Array<cytoscape.ElementDefinition>,
 		node: WeaveDocumentNode,
@@ -135,10 +174,10 @@ export class TapestryLoomGraphView extends ItemView {
 			return;
 		}
 
-		let classes;
-		const content = getNodeContent(node);
+		const classes = [];
+		let content = getNodeContent(node);
 		if (content.length == 0) {
-			classes = ["tapestry_graph-empty-node"];
+			classes.push("tapestry_graph-empty-node");
 		}
 
 		let modelLabel;
@@ -148,6 +187,20 @@ export class TapestryLoomGraphView extends ItemView {
 			style = {
 				color: modelLabel?.color,
 			};
+		}
+
+		if (document.bookmarks.has(node.identifier)) {
+			classes.push("tapestry_graph-bookmarked-node");
+		}
+
+		if (
+			node.content.length == 1 &&
+			typeof node.content == "object" &&
+			Array.isArray(node.content)
+		) {
+			classes.push("tapestry_graph-logit-node");
+			content =
+				"(" + (node.content[0][0] * 100).toFixed(0) + "%) " + content;
 		}
 
 		elements.push({
@@ -170,7 +223,6 @@ export class TapestryLoomGraphView extends ItemView {
 					source: node.parentNode,
 					target: node.identifier,
 				},
-				classes: classes,
 				selected: activeNodes.has(node.identifier),
 				selectable: false,
 			});
@@ -226,6 +278,20 @@ export class TapestryLoomGraphView extends ItemView {
 		}
 	}
 	async onClose() {}
+}
+
+function getActiveNodesSelector(document: WeaveDocument): string {
+	let selector = "";
+
+	for (const node of document.getActiveNodes()) {
+		if (selector.length > 0) {
+			selector = selector + ",#" + node.identifier;
+		} else {
+			selector = "#" + node.identifier;
+		}
+	}
+
+	return selector;
 }
 
 function getActiveNodeIdentifiers(document: WeaveDocument): Set<ULID> {
