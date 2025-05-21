@@ -191,13 +191,10 @@ export class TapestryLoomTreeView extends ItemView {
 			modelLabel = document.models.get(node.model);
 		}
 
-		const tree = renderTree(
+		const tree = renderBookmarkNode(
 			root,
 			content,
-			document.currentNode == node.identifier,
-			false,
-			undefined,
-			true
+			document.currentNode == node.identifier
 		);
 		if (modelLabel) {
 			tree.label.title = modelLabel.label;
@@ -392,10 +389,10 @@ function renderMenuNotice(root: HTMLElement, text: string) {
 	});
 }
 
-interface TreeElements {
+interface TreeElement {
 	label: HTMLElement;
 	labelContainer: HTMLElement;
-	flairContainer: HTMLElement;
+	flairContainer?: HTMLElement;
 	childrenContainer: HTMLElement;
 }
 
@@ -408,7 +405,7 @@ function renderTree(
 	bookmarked?: boolean,
 	flair?: string,
 	collapseCallback?: (collapsed: boolean) => void
-): TreeElements {
+): TreeElement {
 	const item = root.createEl("div", {
 		cls: ["tree-item"],
 	});
@@ -498,7 +495,50 @@ function renderTree(
 	};
 }
 
-function renderDepthNotice(tree: TreeElements) {
+function renderBookmarkNode(
+	root: HTMLElement,
+	text: string,
+	selected: boolean
+): TreeElement {
+	const item = root.createEl("div", {
+		cls: ["tree-item"],
+	});
+	const labelContainer = item.createEl("div", {
+		cls: ["tree-item-self", "is-clickable"],
+		attr: { dragable: false },
+	});
+	if (selected) {
+		labelContainer.classList.add("is-selected");
+	}
+
+	const iconContainer = labelContainer.createEl("div", {
+		cls: ["tree-item-icon"],
+	});
+	setIcon(iconContainer, "bookmark");
+
+	const childrenContainer = item.createEl("div", {
+		cls: ["tree-item-children"],
+		attr: { dragable: false },
+	});
+
+	const label = labelContainer.createEl("div", {
+		cls: ["tree-item-inner"],
+	});
+	if (text.length > 0) {
+		label.textContent = text;
+	} else {
+		label.innerHTML = "<em>No text</em>";
+		label.classList.add("tapestry_tree-notice");
+	}
+
+	return {
+		label: label,
+		labelContainer: labelContainer,
+		childrenContainer: childrenContainer,
+	};
+}
+
+function renderDepthNotice(tree: TreeElement) {
 	const root = tree.childrenContainer;
 
 	const item = root.createEl("div", {
@@ -530,7 +570,7 @@ interface NodeButtonElements {
 }
 
 function renderNodeButtons(
-	tree: TreeElements,
+	tree: TreeElement,
 	mergeable: boolean,
 	bookmarkable: boolean,
 	bookmarked?: boolean
@@ -594,7 +634,7 @@ function renderNodeButtons(
 }
 
 function renderBookmarkNodeButton(
-	tree: TreeElements,
+	tree: TreeElement,
 	bookmarked = true
 ): HTMLElement {
 	const buttonContainer = tree.labelContainer.createEl("div", {
