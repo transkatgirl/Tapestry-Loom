@@ -53,19 +53,14 @@ export class TapestryLoomTreeView extends ItemView {
 
 		const activeNodes = document.getActiveNodes();
 
-		if (document.currentNode) {
-			if (
-				activeNodes.length > 3 &&
-				document.getNodeChildrenCount(document.currentNode) > 0
-			) {
-				this.renderNode(list, activeNodes.slice(-3)[0]);
-			} else if (activeNodes.length > 4) {
-				this.renderNode(list, activeNodes.slice(-4)[0]);
-			} else {
-				for (const node of document.getRootNodes()) {
-					this.renderNode(list, node);
-				}
-			}
+		if (
+			document.currentNode &&
+			activeNodes.length > 3 &&
+			document.getNodeChildrenCount(document.currentNode) > 0
+		) {
+			this.renderNode(list, activeNodes.slice(-3)[0]);
+		} else if (document.currentNode && activeNodes.length > 4) {
+			this.renderNode(list, activeNodes.slice(-4)[0]);
 		} else {
 			for (const node of document.getRootNodes()) {
 				this.renderNode(list, node);
