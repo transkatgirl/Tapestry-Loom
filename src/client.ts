@@ -60,13 +60,13 @@ async function inferenceRequest(
 	model: ModelConfiguration,
 	request: CompletionRequest
 ): Promise<Array<CompletionResponse>> {
-	const body = {
-		text: request.prompt,
-		...model.json,
-		...request.json,
-	};
-
 	if (model.type == EndpointType.OpenAICompletionv1Compatible) {
+		const body = {
+			text: request.prompt,
+			...model.json,
+			...request.json,
+		};
+
 		return requestUrl({
 			url: model.url,
 			method: "POST",
