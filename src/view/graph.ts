@@ -24,7 +24,7 @@ const GRAPH_STYLE: Array<StylesheetJsonBlock> = [
 			"font-size": getGlobalCSSVariable("--font-ui-smaller"),
 			color: getGlobalCSSColorVariable("--graph-text"),
 			"text-wrap": "ellipsis",
-			"text-max-width": "8em",
+			"text-max-width": "6em",
 			"background-color": getGlobalCSSColorVariable("--graph-node"),
 		},
 	},
