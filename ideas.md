@@ -12,9 +12,8 @@
 
 ## toggleable branching interfaces:
 
-- full tree view (similar to exoloom but simpler); no inference parameters displayed
-- recent nodes (similar to loomsidian, but with automatic hoisting) + inference parameters
-- recent logits (similar to logitloom) + inference parameters
+- full tree view (similar to exoloom); no inference parameters displayed
+- recent nodes/logits (similar to loomsidian + logitloom, but with automatic hoisting) + inference parameters
 
 maybe the last two can be combined somehow?
 
