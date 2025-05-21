@@ -442,11 +442,18 @@ function sortNodeList(nodes: Array<WeaveDocumentNode>) {
 			Array.isArray(b.content) &&
 			b.content.length == 1;
 
-		return (
-			(a.model || "")?.localeCompare(b.model || "") ||
-			(x === y ? 0 : x ? -1 : 1) ||
-			a.identifier.localeCompare(b.identifier)
-		);
+		if (x && y) {
+			return (
+				(a.model || "")?.localeCompare(b.model || "") ||
+				(a.content[0][0] as number) - (b.content[0][0] as number)
+			);
+		} else {
+			return (
+				(a.model || "")?.localeCompare(b.model || "") ||
+				(x === y ? 0 : x ? 1 : -1) ||
+				a.identifier.localeCompare(b.identifier)
+			);
+		}
 	});
 }
 
