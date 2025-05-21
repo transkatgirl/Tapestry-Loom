@@ -15,7 +15,7 @@ export interface ModelConfiguration {
 	url: string;
 	type: EndpointType;
 	headers?: Record<string, string>;
-	json?: Record<string, string>;
+	parameters?: Record<string, string>;
 }
 
 export interface ModelLabel {
@@ -30,7 +30,7 @@ export const UNKNOWN_MODEL_LABEL: ModelLabel = {
 export interface CompletionRequest {
 	prompt: string;
 	count: number;
-	json?: Record<string, string>;
+	parameters?: Record<string, string>;
 }
 
 export interface CompletionResponse {
@@ -63,8 +63,8 @@ async function inferenceRequest(
 	if (model.type == EndpointType.OpenAICompletionv1Compatible) {
 		const body = {
 			text: request.prompt,
-			...model.json,
-			...request.json,
+			...model.parameters,
+			...request.parameters,
 		};
 
 		return requestUrl({
