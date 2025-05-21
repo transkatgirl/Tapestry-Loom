@@ -14,60 +14,6 @@ import crass from "crass";
 
 export const GRAPH_VIEW_TYPE = "tapestry-loom-graph-view";
 
-const GRAPH_STYLE: Array<StylesheetJsonBlock> = [
-	{
-		selector: "node",
-		style: {
-			label: "data(content)",
-			"text-halign": "center",
-			"text-valign": "bottom",
-			"font-size": getGlobalCSSVariable("--font-ui-smaller"),
-			color: getGlobalCSSColorVariable("--graph-text"),
-			"text-wrap": "ellipsis",
-			"text-max-width": "5em",
-			"background-color": getGlobalCSSColorVariable("--graph-node"),
-		},
-	},
-	{
-		selector: "edge",
-		style: {
-			"line-color": getGlobalCSSColorVariable("--graph-line"),
-		},
-	},
-	{
-		selector: ".tapestry_graph-empty-node",
-		style: {
-			"background-color": getGlobalCSSColorVariable(
-				"--graph-node-unresolved"
-			),
-		},
-	},
-	{
-		selector: ".tapestry_graph-logit-node",
-		style: {
-			"text-valign": "center",
-			"background-color": getGlobalCSSColorVariable("--graph-line"),
-		},
-	},
-	{
-		selector: ".tapestry_graph-bookmarked-node",
-		style: {
-			"background-color": getGlobalCSSColorVariable(
-				"--graph-node-attachment"
-			),
-		},
-	},
-	{
-		selector: ":selected",
-		style: {
-			"line-color": getGlobalCSSColorVariable("--graph-node-focused"),
-			"background-color": getGlobalCSSColorVariable(
-				"--graph-node-focused"
-			),
-		},
-	},
-];
-
 export class TapestryLoomGraphView extends ItemView {
 	plugin: TapestryLoom;
 	graph?: Core;
@@ -118,11 +64,71 @@ export class TapestryLoomGraphView extends ItemView {
 				container.empty();
 				this.panned = false;
 
+				const graphStyle: Array<StylesheetJsonBlock> = [
+					{
+						selector: "node",
+						style: {
+							label: "data(content)",
+							"text-halign": "center",
+							"text-valign": "bottom",
+							"font-size":
+								getGlobalCSSVariable("--font-ui-smaller"),
+							color: getGlobalCSSColorVariable("--graph-text"),
+							"text-wrap": "ellipsis",
+							"text-max-width": "5em",
+							"background-color":
+								getGlobalCSSColorVariable("--graph-node"),
+						},
+					},
+					{
+						selector: "edge",
+						style: {
+							"line-color":
+								getGlobalCSSColorVariable("--graph-line"),
+						},
+					},
+					{
+						selector: ".tapestry_graph-empty-node",
+						style: {
+							"background-color": getGlobalCSSColorVariable(
+								"--graph-node-unresolved"
+							),
+						},
+					},
+					{
+						selector: ".tapestry_graph-logit-node",
+						style: {
+							"text-valign": "center",
+							"background-color":
+								getGlobalCSSColorVariable("--graph-line"),
+						},
+					},
+					{
+						selector: ".tapestry_graph-bookmarked-node",
+						style: {
+							"background-color": getGlobalCSSColorVariable(
+								"--graph-node-attachment"
+							),
+						},
+					},
+					{
+						selector: ":selected",
+						style: {
+							"line-color": getGlobalCSSColorVariable(
+								"--graph-node-focused"
+							),
+							"background-color": getGlobalCSSColorVariable(
+								"--graph-node-focused"
+							),
+						},
+					},
+				];
+
 				this.graph = cytoscape({
 					container: container,
 					elements: elements,
 					layout: { name: "dagre" },
-					style: GRAPH_STYLE,
+					style: graphStyle,
 					headless: false,
 				});
 				this.graph.on("tap", "node", (event) => {
