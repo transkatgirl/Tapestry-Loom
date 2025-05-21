@@ -331,6 +331,15 @@ function getPanSelector(document: WeaveDocument): string {
 				selector = "#" + child.identifier;
 			}
 		}
+		for (const child of document.getNodeChildren(
+			activeNodes[activeNodes.length - 3]
+		)) {
+			if (selector.length > 0) {
+				selector = selector + ",#" + child.identifier;
+			} else {
+				selector = "#" + child.identifier;
+			}
+		}
 	} else {
 		for (const node of document.getRootNodes()) {
 			if (selector.length > 0) {
