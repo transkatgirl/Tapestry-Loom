@@ -1,4 +1,9 @@
-import TapestryLoom from "main";
+import TapestryLoom, {
+	DOCUMENT_DROP_EVENT,
+	DOCUMENT_LOAD_EVENT,
+	DOCUMENT_TRIGGER_UPDATE_EVENT,
+	DOCUMENT_UPDATE_EVENT,
+} from "main";
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
