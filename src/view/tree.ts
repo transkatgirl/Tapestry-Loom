@@ -28,11 +28,16 @@ export class TapestryLoomTreeView extends ItemView {
 		return "list-tree";
 	}
 	private renderTree(container: HTMLElement, _incremental?: boolean) {
+		container.empty();
+
 		const document = this.plugin.document;
 		if (!document) {
+			container.createEl("div", {
+				text: "No document found.",
+				cls: ["search-empty-state"],
+			});
 			return;
 		}
-		container.empty();
 
 		const activeNodes = document.getActiveNodes();
 		const rootNodes = document.getRootNodes();
@@ -227,7 +232,7 @@ export class TapestryLoomTreeView extends ItemView {
 			}
 		}
 	}
-	addNode(parentNode?: ULID) {
+	private addNode(parentNode?: ULID) {
 		if (!this.plugin.document) {
 			return;
 		}
@@ -241,7 +246,7 @@ export class TapestryLoomTreeView extends ItemView {
 		this.plugin.document.currentNode = identifier;
 		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
-	switchToNode(identifier: ULID) {
+	private switchToNode(identifier: ULID) {
 		if (!this.plugin.document) {
 			return;
 		}
@@ -249,7 +254,7 @@ export class TapestryLoomTreeView extends ItemView {
 		this.plugin.document.currentNode = identifier;
 		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
-	toggleBookmarkNode(identifier: ULID) {
+	private toggleBookmarkNode(identifier: ULID) {
 		if (!this.plugin.document) {
 			return;
 		}
@@ -262,7 +267,7 @@ export class TapestryLoomTreeView extends ItemView {
 
 		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
-	mergeNode(primaryIdentifier: ULID, secondaryIdentifier: ULID) {
+	private mergeNode(primaryIdentifier: ULID, secondaryIdentifier: ULID) {
 		if (!this.plugin.document) {
 			return;
 		}
@@ -270,7 +275,7 @@ export class TapestryLoomTreeView extends ItemView {
 		this.plugin.document.mergeNode(primaryIdentifier, secondaryIdentifier);
 		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
-	deleteNode(identifier: ULID) {
+	private deleteNode(identifier: ULID) {
 		if (!this.plugin.document) {
 			return;
 		}
@@ -284,10 +289,10 @@ export class TapestryLoomTreeView extends ItemView {
 
 		const { workspace } = this.app;
 
-		const item = container.createEl("div", {
+		const treeItem = container.createEl("div", {
 			cls: ["tree-item"],
 		});
-		const labelContainer = item.createEl("div", {
+		const labelContainer = treeItem.createEl("div", {
 			cls: ["tree-item-self", "is-clickable"],
 			attr: { dragable: false },
 		});
@@ -303,11 +308,11 @@ export class TapestryLoomTreeView extends ItemView {
 			event.stopPropagation();
 
 			if (labelContainer.classList.contains("is-collapsed")) {
-				item.classList.remove("is-collapsed");
+				treeItem.classList.remove("is-collapsed");
 				labelContainer.classList.remove("is-collapsed");
 				treeContainer.style.display = "inherit";
 			} else {
-				item.classList.add("is-collapsed");
+				treeItem.classList.add("is-collapsed");
 				labelContainer.classList.add("is-collapsed");
 				treeContainer.style.display = "none";
 			}

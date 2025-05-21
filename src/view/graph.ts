@@ -85,7 +85,7 @@ export class TapestryLoomGraphView extends ItemView {
 	getIcon(): string {
 		return "network";
 	}
-	render(container: HTMLElement, incremental?: boolean) {
+	private render(container: HTMLElement, incremental?: boolean) {
 		const document = this.plugin.document;
 
 		if (document) {
@@ -155,7 +155,7 @@ export class TapestryLoomGraphView extends ItemView {
 			this.panned = false;
 		}
 	}
-	switchToNode(identifier: ULID) {
+	private switchToNode(identifier: ULID) {
 		if (!this.plugin.document) {
 			return;
 		}
@@ -163,7 +163,7 @@ export class TapestryLoomGraphView extends ItemView {
 		this.plugin.document.currentNode = identifier;
 		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
-	toggleBookmarkNode(identifier: ULID) {
+	private toggleBookmarkNode(identifier: ULID) {
 		if (!this.plugin.document) {
 			return;
 		}
