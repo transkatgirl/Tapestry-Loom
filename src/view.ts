@@ -30,18 +30,9 @@ import {
 	PluginValue,
 	WidgetType,
 } from "@codemirror/view";
-import {
-	getNodeContent,
-	loadDocument,
-	overrideEditorContent,
-	saveDocument,
-	updateDocument,
-	WeaveDocument,
-	WeaveDocumentNode,
-} from "document";
+import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
-import cytoscape, { Core } from "cytoscape";
-import dagre from "cytoscape-dagre";
+import cytoscape from "cytoscape";
 
 // TODO: Use HoverPopover
 
@@ -53,9 +44,6 @@ export const VIEW_TYPE = "tapestry-loom-view";
 
 export class TapestryLoomView extends ItemView {
 	plugin: TapestryLoom;
-	listeners: EventRef[] = [];
-	editor?: Editor;
-	document?: WeaveDocument;
 	constructor(leaf: WorkspaceLeaf, plugin: TapestryLoom) {
 		super(leaf);
 		this.plugin = plugin;
@@ -69,50 +57,23 @@ export class TapestryLoomView extends ItemView {
 	getIcon(): string {
 		return "list-tree";
 	}
-	async load() {
-		const { workspace } = this.app;
-		const editor = workspace.activeEditor?.editor;
-		if (!editor) {
-			return;
-		}
+	render(container: HTMLElement, incremental?: boolean) {
+		const document = this.plugin.document;
+		container.empty();
 
-		this.editor = editor;
-
-		this.document = loadDocument(this.editor);
-		this.renderDocument();
-	}
-	async update(editor: Editor) {
-		this.editor = editor;
-
-		if (this.document) {
-			const updated = updateDocument(this.editor, this.document);
-			if (updated) {
-				this.renderDocument(true);
-			}
-		} else {
-			this.document = loadDocument(this.editor);
-			this.renderDocument();
-		}
-	}
-	renderDocument(incremental?: boolean) {
-		if (this.document) {
-			const container = this.contentEl;
-			container.empty();
-
+		if (document) {
 			console.log(container);
 
 			//this.renderGraph(container);
 			this.renderTree(container);
 
-			console.log(this.document);
-		} else {
-			const container = this.contentEl;
-			container.empty();
+			console.log(this.plugin.document);
 		}
 	}
 	private renderGraph(root: HTMLElement) {
 		// TODO: Implement same functionality as renderTree()
-		if (!this.document) {
+		const document = this.plugin.document;
+		if (!document) {
 			return;
 		}
 
@@ -122,7 +83,7 @@ export class TapestryLoomView extends ItemView {
 
 		const elements: Array<cytoscape.ElementDefinition> = [];
 
-		for (const node of this.document.getRootNodes()) {
+		for (const node of document.getRootNodes()) {
 			this.buildGraphNode(elements, node);
 		}
 
@@ -136,15 +97,16 @@ export class TapestryLoomView extends ItemView {
 		elements: Array<cytoscape.ElementDefinition>,
 		node: WeaveDocumentNode
 	) {
-		if (!this.document) {
+		const document = this.plugin.document;
+		if (!document) {
 			return;
 		}
 
 		const content = getNodeContent(node);
-		const children = this.document.getNodeChildren(node);
+		const children = document.getNodeChildren(node);
 		let modelLabel;
 		if (node.model) {
-			modelLabel = this.document.models.get(node.model);
+			modelLabel = document.models.get(node.model);
 		}
 
 		elements.push({
@@ -164,12 +126,13 @@ export class TapestryLoomView extends ItemView {
 			});
 		}
 
-		for (const childNode of this.document.getNodeChildren(node)) {
+		for (const childNode of document.getNodeChildren(node)) {
 			this.buildGraphNode(elements, childNode);
 		}
 	}
 	private renderTree(root: HTMLElement) {
-		if (!this.document) {
+		const document = this.plugin.document;
+		if (!document) {
 			return;
 		}
 
@@ -177,20 +140,21 @@ export class TapestryLoomView extends ItemView {
 			cls: ["tapestry_tree"],
 		});
 
-		for (const node of this.document.getRootNodes()) {
+		for (const node of document.getRootNodes()) {
 			this.renderNode(list, node);
 		}
 	}
 	private renderNode(root: HTMLElement, node: WeaveDocumentNode) {
-		if (!this.document) {
+		const document = this.plugin.document;
+		if (!document) {
 			return;
 		}
 
 		const content = getNodeContent(node);
-		const children = this.document.getNodeChildren(node);
+		const children = document.getNodeChildren(node);
 		let modelLabel;
 		if (node.model) {
-			modelLabel = this.document.models.get(node.model);
+			modelLabel = document.models.get(node.model);
 		}
 
 		const item = root.createEl("div", {
@@ -200,7 +164,7 @@ export class TapestryLoomView extends ItemView {
 			cls: ["tree-item-self", "is-clickable"],
 			attr: { dragable: false },
 		});
-		if (this.document.currentNode == node.identifier) {
+		if (document.currentNode == node.identifier) {
 			labelContainer.style.backgroundColor =
 				"var(--nav-item-background-selected)";
 			labelContainer.style.color = "var(--nav-item-color-selected)";
@@ -280,7 +244,7 @@ export class TapestryLoomView extends ItemView {
 
 		if (
 			node.parentNode &&
-			this.document.isNodeMergeable(node.parentNode, node.identifier)
+			document.isNodeMergeable(node.parentNode, node.identifier)
 		) {
 			const mergeButton = buttonContainer.createEl("div", {
 				title: "Merge node with parent",
@@ -325,87 +289,90 @@ export class TapestryLoomView extends ItemView {
 			this.deleteNode(node.identifier);
 		});
 
-		for (const childNode of this.document.getNodeChildren(node)) {
+		for (const childNode of document.getNodeChildren(node)) {
 			this.renderNode(childrenContainer, childNode);
 		}
 	}
 	addNode(parentNode?: ULID) {
-		if (!this.document || !this.editor) {
+		if (!this.plugin.document) {
 			return;
 		}
 
 		const identifier = ulid();
-		this.document.addNode({
+		this.plugin.document.addNode({
 			identifier: identifier,
 			content: "",
 			parentNode: parentNode,
 		});
-		this.document.currentNode = identifier;
-		overrideEditorContent(this.editor, this.document);
-		this.renderDocument();
+		this.plugin.document.currentNode = identifier;
+		this.app.workspace.trigger("tapestry-document:override");
 	}
 	switchToNode(identifier: ULID) {
-		if (!this.document || !this.editor) {
+		if (!this.plugin.document) {
 			return;
 		}
 
-		this.document.currentNode = identifier;
-		overrideEditorContent(this.editor, this.document);
-		this.renderDocument();
+		this.plugin.document.currentNode = identifier;
+		this.app.workspace.trigger("tapestry-document:override");
 	}
 	mergeNode(primaryIdentifier: ULID, secondaryIdentifier: ULID) {
-		if (!this.document || !this.editor) {
+		if (!this.plugin.document) {
 			return;
 		}
 
-		this.document.mergeNode(primaryIdentifier, secondaryIdentifier);
-		overrideEditorContent(this.editor, this.document);
-		this.renderDocument();
+		this.plugin.document.mergeNode(primaryIdentifier, secondaryIdentifier);
+		this.app.workspace.trigger("tapestry-document:override");
 	}
 	deleteNode(identifier: ULID) {
-		if (!this.document || !this.editor) {
+		if (!this.plugin.document) {
 			return;
 		}
 
-		this.document.removeNode(identifier);
-		overrideEditorContent(this.editor, this.document);
-		this.renderDocument();
+		this.plugin.document.removeNode(identifier);
+		this.app.workspace.trigger("tapestry-document:override");
 	}
 	async onOpen() {
-		const container = this.containerEl.children[1];
+		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();
 
 		const { workspace } = this.app;
 
-		this.listeners = [
-			workspace.on("active-leaf-change", () => this.load()),
+		this.registerEvent(
 			workspace.on(
-				"editor-change",
-				debounce((editor) => this.update(editor), 500, true) // TODO: Add setting for timeout
-			),
-			workspace.on("editor-drop", (_evt, editor) => {
-				/*if (this.document) {
-					saveDocument(editor, this.document);
-				}*/
+				// ignore ts2769; custom event
+				// @ts-expect-error
+				"tapestry-document:load",
+				() => {
+					this.render(container, false);
+				}
+			)
+		);
+		this.registerEvent(
+			workspace.on(
+				// ignore ts2769; custom event
+				// @ts-expect-error
+				"tapestry-document:update",
+				() => {
+					this.render(container, true);
+				}
+			)
+		);
+		this.registerEvent(
+			workspace.on(
+				// ignore ts2769; custom event
+				// @ts-expect-error
+				"tapestry-document:drop",
+				() => {
+					this.render(container, false);
+				}
+			)
+		);
 
-				this.document = undefined;
-				this.editor = undefined;
-				container.empty();
-			}),
-		];
-
-		this.load();
-	}
-	async onClose() {
-		const { workspace } = this.app;
-		this.listeners.forEach((listener) => workspace.offref(listener));
-
-		const editor = workspace.activeEditor?.editor;
-		if (editor && this.document) {
-			saveDocument(editor, this.document);
+		if (this.plugin.document) {
+			this.render(container, false);
 		}
-		this.document = undefined;
 	}
+	async onClose() {}
 }
 
 class TapestryLoomPlugin implements PluginValue {
