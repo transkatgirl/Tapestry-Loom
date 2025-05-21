@@ -355,13 +355,15 @@ function getPanSelector(document: WeaveDocument): string {
 				}
 			}
 		}
-		for (const child of document.getNodeChildren(
-			activeNodes[activeNodes.length - 1]
-		)) {
-			if (selector.length > 0) {
-				selector = selector + ",#" + child.identifier;
-			} else {
-				selector = "#" + child.identifier;
+		if (activeNodes.length > 0) {
+			for (const child of document.getNodeChildren(
+				activeNodes[activeNodes.length - 1]
+			)) {
+				if (selector.length > 0) {
+					selector = selector + ",#" + child.identifier;
+				} else {
+					selector = "#" + child.identifier;
+				}
 			}
 		}
 	}
