@@ -91,6 +91,9 @@ export class TapestryLoomGraphView extends ItemView {
 			if (incremental && this.graph) {
 				this.graph.startBatch();
 
+				const pan = this.graph.pan();
+				const zoom = this.graph.zoom();
+
 				this.graph.remove(this.graph.elements("*"));
 
 				const elements: Array<cytoscape.ElementDefinition> = [];
@@ -104,6 +107,8 @@ export class TapestryLoomGraphView extends ItemView {
 
 				this.graph.endBatch();
 				this.graph.createLayout({ name: "dagre" }).run();
+				this.graph.pan(pan);
+				this.graph.zoom(zoom);
 			} else {
 				container.empty();
 
@@ -132,11 +137,7 @@ export class TapestryLoomGraphView extends ItemView {
 						this.toggleBookmarkNode(node);
 					}
 				});
-			}
-			if (document.currentNode) {
-				this.graph.fit(
-					this.graph.elements(getActiveNodesSelector(document))
-				);
+				this.graph.fit(this.graph.elements(getPanSelector(document)));
 			}
 		} else {
 			container.empty();
@@ -280,14 +281,32 @@ export class TapestryLoomGraphView extends ItemView {
 	async onClose() {}
 }
 
-function getActiveNodesSelector(document: WeaveDocument): string {
+function getPanSelector(document: WeaveDocument): string {
 	let selector = "";
+	const activeNodes = document.getActiveNodes();
 
-	for (const node of document.getActiveNodes()) {
-		if (selector.length > 0) {
-			selector = selector + ",#" + node.identifier;
-		} else {
-			selector = "#" + node.identifier;
+	if (document.currentNode && activeNodes.length >= 3) {
+		for (const node of activeNodes) {
+			if (selector.length > 0) {
+				selector = selector + ",#" + node.identifier;
+			} else {
+				selector = "#" + node.identifier;
+			}
+		}
+	} else {
+		for (const node of document.getRootNodes()) {
+			if (selector.length > 0) {
+				selector = selector + ",#" + node.identifier;
+			} else {
+				selector = "#" + node.identifier;
+			}
+			for (const child of document.getNodeChildren(node)) {
+				if (selector.length > 0) {
+					selector = selector + ",#" + child.identifier;
+				} else {
+					selector = "#" + child.identifier;
+				}
+			}
 		}
 	}
 
