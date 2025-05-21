@@ -10,8 +10,6 @@ import { ULID, ulid } from "ulid";
 
 // TODO: Use HoverPopover
 
-// TODO: Eliminate (mis)use of Obsidian's internal CSS classes
-
 export const TREE_VIEW_TYPE = "tapestry-loom-view";
 
 export class TapestryLoomTreeView extends ItemView {
@@ -88,9 +86,7 @@ export class TapestryLoomTreeView extends ItemView {
 			attr: { dragable: false },
 		});
 		if (document.currentNode == node.identifier) {
-			labelContainer.style.backgroundColor =
-				"var(--nav-item-background-selected)";
-			labelContainer.style.color = "var(--nav-item-color-selected)";
+			labelContainer.classList.add("is-selected");
 		}
 		const childrenContainer = item.createEl("div", {
 			cls: ["tree-item-children"],
@@ -118,11 +114,6 @@ export class TapestryLoomTreeView extends ItemView {
 					childrenContainer.style.display = "none";
 				}
 			});
-		} else {
-			labelContainer.style.marginLeft =
-				"var(--nav-item-children-padding-start)";
-			labelContainer.style.paddingLeft =
-				"var(--nav-item-children-padding-start)";
 		}
 
 		const label = labelContainer.createEl("div", {
@@ -132,7 +123,7 @@ export class TapestryLoomTreeView extends ItemView {
 			label.textContent = content;
 		} else {
 			label.innerHTML = "<em>No text</em>";
-			label.style.color = "var(--text-faint)";
+			label.classList.add("tapestry_tree-notice");
 		}
 
 		if (modelLabel) {
@@ -142,21 +133,21 @@ export class TapestryLoomTreeView extends ItemView {
 			}
 		}
 
+		const probContainer = labelContainer.createEl("div", {
+			cls: ["tree-item-flair-outer"],
+		});
+
 		if (
 			node.content.length == 1 &&
 			typeof node.content == "object" &&
 			Array.isArray(node.content)
 		) {
-			const probContainer = labelContainer.createEl("div", {
-				cls: ["tree-item-flair-outer"],
-			});
 			probContainer.createEl("div", {
 				text: (node.content[0][0] * 100).toPrecision(3) + "%",
 				cls: ["tree-item-flair"],
 			});
 		}
 
-		label.style.flexGrow = "1";
 		labelContainer.addEventListener("click", () => {
 			this.switchToNode(node.identifier);
 		});
@@ -352,13 +343,11 @@ function renderDepthNotice(root: HTMLElement) {
 	const iconContainer = labelContainer.createEl("div", {
 		cls: ["tree-item-icon"],
 	});
-	iconContainer.style.color = "var(--nav-collapse-icon-color)";
 	setIcon(iconContainer, "arrow-up");
 
 	const label = labelContainer.createEl("div", {
-		cls: ["tree-item-inner"],
+		cls: ["tree-item-inner", "tapestry_tree-notice"],
 	});
 
 	label.innerHTML = "Show more";
-	label.style.color = "var(--text-faint)";
 }
