@@ -71,6 +71,7 @@ const GRAPH_STYLE: Array<StylesheetJsonBlock> = [
 export class TapestryLoomGraphView extends ItemView {
 	plugin: TapestryLoom;
 	graph?: Core;
+	panned = false;
 	constructor(leaf: WorkspaceLeaf, plugin: TapestryLoom) {
 		super(leaf);
 		this.plugin = plugin;
@@ -107,10 +108,17 @@ export class TapestryLoomGraphView extends ItemView {
 
 				this.graph.endBatch();
 				this.graph.createLayout({ name: "dagre" }).run();
-				this.graph.pan(pan);
-				this.graph.zoom(zoom);
+				if (this.panned) {
+					this.graph.pan(pan);
+					this.graph.zoom(zoom);
+				} else {
+					this.graph.fit(
+						this.graph.elements(getPanSelector(document))
+					);
+				}
 			} else {
 				container.empty();
+				this.panned = false;
 
 				const elements: Array<cytoscape.ElementDefinition> = [];
 
@@ -124,6 +132,7 @@ export class TapestryLoomGraphView extends ItemView {
 					elements: elements,
 					layout: { name: "dagre" },
 					style: GRAPH_STYLE,
+					headless: false,
 				});
 				this.graph.on("tap", "node", (event) => {
 					const node = event.target.data().id;
@@ -137,11 +146,22 @@ export class TapestryLoomGraphView extends ItemView {
 						this.toggleBookmarkNode(node);
 					}
 				});
+				this.graph.on("dragpan", (_event) => {
+					this.panned = true;
+				});
+				this.graph.on("pinchzoom", (_event) => {
+					this.panned = true;
+				});
+				this.graph.on("scrollzoom", (_event) => {
+					this.panned = true;
+				});
+
 				this.graph.fit(this.graph.elements(getPanSelector(document)));
 			}
 		} else {
 			container.empty();
 			this.graph = undefined;
+			this.panned = false;
 		}
 	}
 	switchToNode(identifier: ULID) {
@@ -293,6 +313,24 @@ function getPanSelector(document: WeaveDocument): string {
 				selector = "#" + node.identifier;
 			}
 		}
+		for (const child of document.getNodeChildren(
+			activeNodes[activeNodes.length - 1]
+		)) {
+			if (selector.length > 0) {
+				selector = selector + ",#" + child.identifier;
+			} else {
+				selector = "#" + child.identifier;
+			}
+		}
+		for (const child of document.getNodeChildren(
+			activeNodes[activeNodes.length - 2]
+		)) {
+			if (selector.length > 0) {
+				selector = selector + ",#" + child.identifier;
+			} else {
+				selector = "#" + child.identifier;
+			}
+		}
 	} else {
 		for (const node of document.getRootNodes()) {
 			if (selector.length > 0) {
@@ -306,6 +344,15 @@ function getPanSelector(document: WeaveDocument): string {
 				} else {
 					selector = "#" + child.identifier;
 				}
+			}
+		}
+		for (const child of document.getNodeChildren(
+			activeNodes[activeNodes.length - 1]
+		)) {
+			if (selector.length > 0) {
+				selector = selector + ",#" + child.identifier;
+			} else {
+				selector = "#" + child.identifier;
 			}
 		}
 	}
