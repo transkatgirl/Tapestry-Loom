@@ -1,26 +1,30 @@
-import TapestryLoom from "main";
+import TapestryLoom, {
+	DOCUMENT_DROP_EVENT,
+	DOCUMENT_LOAD_EVENT,
+	DOCUMENT_TRIGGER_UPDATE_EVENT,
+	DOCUMENT_UPDATE_EVENT,
+} from "main";
 import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
-import cytoscape from "cytoscape";
 
 // TODO: Use HoverPopover
 
 // TODO: Eliminate (mis)use of Obsidian's internal CSS classes
 
-export const VIEW_TYPE = "tapestry-loom-view";
+export const TREE_VIEW_TYPE = "tapestry-loom-view";
 
-export class TapestryLoomView extends ItemView {
+export class TapestryLoomTreeView extends ItemView {
 	plugin: TapestryLoom;
 	constructor(leaf: WorkspaceLeaf, plugin: TapestryLoom) {
 		super(leaf);
 		this.plugin = plugin;
 	}
 	getViewType() {
-		return VIEW_TYPE;
+		return TREE_VIEW_TYPE;
 	}
 	getDisplayText() {
-		return "Tapestry Loom";
+		return "Tapestry Loom Tree";
 	}
 	getIcon(): string {
 		return "list-tree";
@@ -32,70 +36,9 @@ export class TapestryLoomView extends ItemView {
 		if (document) {
 			console.log(container);
 
-			//this.renderGraph(container);
 			this.renderTree(container);
 
 			console.log(this.plugin.document);
-		}
-	}
-	private renderGraph(root: HTMLElement) {
-		// TODO: Implement same functionality as renderTree()
-		const document = this.plugin.document;
-		if (!document) {
-			return;
-		}
-
-		const container = root.createEl("div", {
-			cls: ["tapestry_graph"],
-		});
-
-		const elements: Array<cytoscape.ElementDefinition> = [];
-
-		for (const node of document.getRootNodes()) {
-			this.buildGraphNode(elements, node);
-		}
-
-		const cy = cytoscape({
-			container: container,
-			elements: elements,
-			layout: { name: "dagre" },
-		});
-	}
-	private buildGraphNode(
-		elements: Array<cytoscape.ElementDefinition>,
-		node: WeaveDocumentNode
-	) {
-		const document = this.plugin.document;
-		if (!document) {
-			return;
-		}
-
-		const content = getNodeContent(node);
-		const children = document.getNodeChildren(node);
-		let modelLabel;
-		if (node.model) {
-			modelLabel = document.models.get(node.model);
-		}
-
-		elements.push({
-			group: "nodes",
-			data: {
-				id: node.identifier,
-			},
-			grabbable: false,
-		});
-		if (node.parentNode) {
-			elements.push({
-				group: "edges",
-				data: {
-					source: node.parentNode,
-					target: node.identifier,
-				},
-			});
-		}
-
-		for (const childNode of document.getNodeChildren(node)) {
-			this.buildGraphNode(elements, childNode);
 		}
 	}
 	private renderTree(root: HTMLElement) {
@@ -273,7 +216,7 @@ export class TapestryLoomView extends ItemView {
 			parentNode: parentNode,
 		});
 		this.plugin.document.currentNode = identifier;
-		this.app.workspace.trigger("tapestry-document:override");
+		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
 	switchToNode(identifier: ULID) {
 		if (!this.plugin.document) {
@@ -281,7 +224,7 @@ export class TapestryLoomView extends ItemView {
 		}
 
 		this.plugin.document.currentNode = identifier;
-		this.app.workspace.trigger("tapestry-document:override");
+		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
 	mergeNode(primaryIdentifier: ULID, secondaryIdentifier: ULID) {
 		if (!this.plugin.document) {
@@ -289,7 +232,7 @@ export class TapestryLoomView extends ItemView {
 		}
 
 		this.plugin.document.mergeNode(primaryIdentifier, secondaryIdentifier);
-		this.app.workspace.trigger("tapestry-document:override");
+		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
 	deleteNode(identifier: ULID) {
 		if (!this.plugin.document) {
@@ -297,7 +240,7 @@ export class TapestryLoomView extends ItemView {
 		}
 
 		this.plugin.document.removeNode(identifier);
-		this.app.workspace.trigger("tapestry-document:override");
+		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
 	async onOpen() {
 		const container = this.containerEl.children[1] as HTMLElement;
@@ -309,7 +252,7 @@ export class TapestryLoomView extends ItemView {
 			workspace.on(
 				// ignore ts2769; custom event
 				// @ts-expect-error
-				"tapestry-document:load",
+				DOCUMENT_LOAD_EVENT,
 				() => {
 					this.render(container, false);
 				}
@@ -319,7 +262,7 @@ export class TapestryLoomView extends ItemView {
 			workspace.on(
 				// ignore ts2769; custom event
 				// @ts-expect-error
-				"tapestry-document:update",
+				DOCUMENT_UPDATE_EVENT,
 				() => {
 					this.render(container, true);
 				}
@@ -329,7 +272,7 @@ export class TapestryLoomView extends ItemView {
 			workspace.on(
 				// ignore ts2769; custom event
 				// @ts-expect-error
-				"tapestry-document:drop",
+				DOCUMENT_DROP_EVENT,
 				() => {
 					this.render(container, false);
 				}
