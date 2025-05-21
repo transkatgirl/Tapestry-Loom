@@ -96,7 +96,7 @@ export default class TapestryLoom extends Plugin {
 		);
 		Promise.all([
 			this.showView(TREE_VIEW_TYPE),
-			this.showView(GRAPH_VIEW_TYPE),
+			this.showView(GRAPH_VIEW_TYPE, true),
 		]).then(() => this.showView(TREE_VIEW_TYPE));
 
 		this.registerEditorExtension([EDITOR_PLUGIN]);
@@ -112,7 +112,7 @@ export default class TapestryLoom extends Plugin {
 			id: "show-tapestry-loom-graph-view",
 			name: "Show Tapestry Loom graph view",
 			callback: async () => {
-				await this.showView(GRAPH_VIEW_TYPE);
+				await this.showView(GRAPH_VIEW_TYPE, true);
 			},
 		});
 
@@ -121,7 +121,7 @@ export default class TapestryLoom extends Plugin {
 		this.addSettingTab(new TapestryLoomSettingTab(this.app, this));
 	}
 	onunload() {}
-	async showView(viewType: string) {
+	async showView(viewType: string, left?: boolean) {
 		const { workspace } = this.app;
 
 		const leaves = workspace.getLeavesOfType(viewType);
@@ -129,7 +129,12 @@ export default class TapestryLoom extends Plugin {
 		if (leaves.length > 0) {
 			workspace.revealLeaf(leaves[0]);
 		} else {
-			const leaf = workspace.getRightLeaf(false);
+			let leaf;
+			if (left) {
+				leaf = workspace.getLeftLeaf(true);
+			} else {
+				leaf = workspace.getRightLeaf(false);
+			}
 			await leaf?.setViewState({ type: viewType, active: true });
 			if (leaf) {
 				workspace.revealLeaf(leaf);
