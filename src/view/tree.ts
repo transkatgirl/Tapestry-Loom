@@ -33,10 +33,7 @@ export class TapestryLoomTreeView extends ItemView {
 
 		const document = this.plugin.document;
 		if (!document) {
-			container.createEl("div", {
-				text: "No document found.",
-				cls: ["search-empty-state"],
-			});
+			renderMenuNotice(container, "No document found.");
 			return;
 		}
 
@@ -56,10 +53,7 @@ export class TapestryLoomTreeView extends ItemView {
 				this.renderNode(container, node);
 			}
 		} else {
-			container.createEl("div", {
-				text: "No nodes found.",
-				cls: ["search-empty-state"],
-			});
+			renderMenuNotice(container, "No nodes found.");
 		}
 	}
 	private renderNode(root: HTMLElement, node: WeaveDocumentNode, depth = 0) {
@@ -70,175 +64,88 @@ export class TapestryLoomTreeView extends ItemView {
 
 		const content = getNodeContent(node);
 		const children = document.getNodeChildren(node);
-		let modelLabel;
-		if (node.model) {
-			modelLabel = document.models.get(node.model);
-		}
-
-		const item = root.createEl("div", {
-			cls: ["tree-item"],
-		});
-		const labelContainer = item.createEl("div", {
-			cls: ["tree-item-self", "is-clickable"],
-			attr: { dragable: false },
-		});
-		if (document.currentNode == node.identifier) {
-			labelContainer.classList.add("is-selected");
-		}
-		const childrenContainer = item.createEl("div", {
-			cls: ["tree-item-children"],
-			attr: { dragable: false },
-		});
-
-		if (children.length > 0) {
-			labelContainer.classList.add("mod-collapsible");
-			const iconContainer = labelContainer.createEl("div", {
-				text: getNodeContent(node),
-				cls: ["tree-item-icon", "collapse-icon"],
-			});
-			iconContainer.innerHTML =
-				'<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon right-triangle"><path d="M3 8L12 17L21 8"></path></svg>';
-			iconContainer.addEventListener("click", (event) => {
-				event.stopPropagation();
-
-				if (iconContainer.classList.contains("is-collapsed")) {
-					item.classList.remove("is-collapsed");
-					iconContainer.classList.remove("is-collapsed");
-					childrenContainer.style.display = "inherit";
-				} else {
-					item.classList.add("is-collapsed");
-					iconContainer.classList.add("is-collapsed");
-					childrenContainer.style.display = "none";
-				}
-			});
-		}
-
-		const label = labelContainer.createEl("div", {
-			cls: ["tree-item-inner"],
-		});
-		if (content.length > 0) {
-			label.textContent = content;
-		} else {
-			label.innerHTML = "<em>No text</em>";
-			label.classList.add("tapestry_tree-notice");
-		}
-
-		if (modelLabel) {
-			label.title = modelLabel.label;
-			if (modelLabel.color) {
-				label.style.color = modelLabel.color;
-			}
-		}
-
-		const probContainer = labelContainer.createEl("div", {
-			cls: ["tree-item-flair-outer"],
-		});
-
+		let flair;
 		if (
 			node.content.length == 1 &&
 			typeof node.content == "object" &&
 			Array.isArray(node.content)
 		) {
-			probContainer.createEl("div", {
-				text: (node.content[0][0] * 100).toPrecision(3) + "%",
-				cls: ["tree-item-flair"],
-			});
+			flair = (node.content[0][0] * 100).toPrecision(3) + "%";
 		}
 
-		labelContainer.addEventListener("click", () => {
+		let modelLabel;
+		if (node.model) {
+			modelLabel = document.models.get(node.model);
+		}
+
+		const tree = renderTree(
+			root,
+			content,
+			document.currentNode == node.identifier,
+			children.length > 0,
+			flair
+		);
+		if (modelLabel) {
+			tree.label.title = modelLabel.label;
+			if (modelLabel.color) {
+				tree.label.style.color = modelLabel.color;
+			}
+		}
+
+		tree.labelContainer.addEventListener("click", () => {
 			this.switchToNode(node.identifier);
 		});
 
-		const buttonContainer = labelContainer.createEl("div", {
-			cls: ["tapestry_tree-buttons"],
-		});
+		const buttons = renderNodeButtons(
+			tree,
+			typeof node.parentNode == "string" &&
+				document.isNodeMergeable(node.parentNode, node.identifier),
+			true,
+			document.bookmarks.has(node.identifier)
+		);
 
-		if (
-			node.parentNode &&
-			document.isNodeMergeable(node.parentNode, node.identifier)
-		) {
-			const mergeButton = buttonContainer.createEl("div", {
-				title: "Merge node with parent",
-				cls: ["clickable-icon"],
-			});
-			setIcon(mergeButton, "merge");
-			mergeButton.addEventListener("click", (event) => {
+		if (buttons.mergeButton) {
+			buttons.mergeButton.addEventListener("click", (event) => {
 				event.stopPropagation();
 				if (node.parentNode) {
 					this.mergeNode(node.parentNode, node.identifier);
 				}
 			});
 		}
+		if (buttons.bookmarkToggleButton) {
+			buttons.bookmarkToggleButton.addEventListener("click", (event) => {
+				event.stopPropagation();
+				this.toggleBookmarkNode(node.identifier);
+			});
+		}
 
-		const generateButton = buttonContainer.createEl("div", {
-			title: "Generate node",
-			cls: ["clickable-icon"],
-		});
-		setIcon(generateButton, "bot-message-square"); // alternate generate icon: "bot"
-		generateButton.addEventListener("click", (event) => {
+		buttons.generateButton.addEventListener("click", (event) => {
 			event.stopPropagation();
 			throw new Error("unimplemented"); // TODO
 		});
-
-		const addButton = buttonContainer.createEl("div", {
-			title: "Add node",
-			cls: ["clickable-icon"],
-		});
-		setIcon(addButton, "message-square-plus");
-		addButton.addEventListener("click", (event) => {
+		buttons.addButton.addEventListener("click", (event) => {
 			event.stopPropagation();
 			this.addNode(node.identifier);
 		});
-
-		/*if (document.bookmarks.has(node.identifier)) {
-			const bookmarkButton = buttonContainer.createEl("div", {
-				title: "Remove bookmark",
-				cls: ["clickable-icon"],
-			});
-			setIcon(bookmarkButton, "bookmark-minus");
-			bookmarkButton.addEventListener("click", (event) => {
-				event.stopPropagation();
-				this.toggleBookmarkNode(node.identifier);
-			});
-		} else {
-			const bookmarkButton = buttonContainer.createEl("div", {
-				title: "Bookmark node",
-				cls: ["clickable-icon"],
-			});
-			setIcon(bookmarkButton, "bookmark-plus");
-			bookmarkButton.addEventListener("click", (event) => {
-				event.stopPropagation();
-				this.toggleBookmarkNode(node.identifier);
-			});
-		}*/
-
-		const deleteButton = buttonContainer.createEl("div", {
-			title: "Delete node",
-			cls: ["clickable-icon"],
-		});
-		setIcon(deleteButton, "eraser");
-		deleteButton.addEventListener("click", (event) => {
+		buttons.deleteButton.addEventListener("click", (event) => {
 			event.stopPropagation();
 			this.deleteNode(node.identifier);
 		});
 
 		if (children.length > 0 && depth > 6) {
-			renderDepthNotice(childrenContainer);
-			childrenContainer.addEventListener("click", () => {
+			renderDepthNotice(tree);
+			tree.childrenContainer.addEventListener("click", () => {
 				this.switchToNode(node.identifier);
 			});
 		} else {
 			for (const childNode of document.getNodeChildren(node)) {
-				this.renderNode(childrenContainer, childNode, depth + 1);
+				this.renderNode(tree.childrenContainer, childNode, depth + 1);
 			}
 		}
 	}
 	private renderModels(container: HTMLElement) {
 		container.empty();
-		container.createEl("div", {
-			text: "Placeholder text.",
-			cls: ["search-empty-state"],
-		});
+		renderMenuNotice(container, "Placeholder text.");
 	}
 	private addNode(parentNode?: ULID) {
 		if (!this.plugin.document) {
@@ -297,61 +204,13 @@ export class TapestryLoomTreeView extends ItemView {
 
 		const { workspace } = this.app;
 
-		const modelItem = container.createEl("div", {
-			cls: ["tree-item"],
-		});
-		const modelLabelContainer = modelItem.createEl("div", {
-			cls: ["tree-item-self", "is-clickable"],
-			attr: { dragable: false },
-		});
-		modelLabelContainer.createEl("div", {
-			text: "Inference parameters",
-			cls: ["tree-item-inner", "tapestry_tree-heading"],
-		});
-		const modelContainer = container.createEl("div", {
-			cls: ["tapestry_tree-heading-container"],
-		});
-		modelLabelContainer.addEventListener("click", (event) => {
-			event.stopPropagation();
-
-			if (modelLabelContainer.classList.contains("is-collapsed")) {
-				modelItem.classList.remove("is-collapsed");
-				modelLabelContainer.classList.remove("is-collapsed");
-				modelContainer.style.display = "inherit";
-			} else {
-				modelItem.classList.add("is-collapsed");
-				modelLabelContainer.classList.add("is-collapsed");
-				modelContainer.style.display = "none";
-			}
-		});
-
-		const treeItem = container.createEl("div", {
-			cls: ["tree-item"],
-		});
-		const treeLabelContainer = treeItem.createEl("div", {
-			cls: ["tree-item-self", "is-clickable"],
-			attr: { dragable: false },
-		});
-		treeLabelContainer.createEl("div", {
-			text: "Nearby nodes",
-			cls: ["tree-item-inner", "tapestry_tree-heading"],
-		});
-		const treeContainer = container.createEl("div", {
-			cls: ["tapestry_tree-heading-container", "tapestry_tree"],
-		});
-		treeLabelContainer.addEventListener("click", (event) => {
-			event.stopPropagation();
-
-			if (treeLabelContainer.classList.contains("is-collapsed")) {
-				treeItem.classList.remove("is-collapsed");
-				treeLabelContainer.classList.remove("is-collapsed");
-				treeContainer.style.display = "inherit";
-			} else {
-				treeItem.classList.add("is-collapsed");
-				treeLabelContainer.classList.add("is-collapsed");
-				treeContainer.style.display = "none";
-			}
-		});
+		const modelContainer = renderCollapsibleMenu(
+			container,
+			"Inference parameters"
+		);
+		const treeContainer = renderCollapsibleMenu(container, "Nearby nodes", [
+			"tapestry_tree",
+		]);
 
 		this.registerEvent(
 			workspace.on(
@@ -400,7 +259,132 @@ export class TapestryLoomTreeView extends ItemView {
 	async onClose() {}
 }
 
-function renderDepthNotice(root: HTMLElement) {
+function renderCollapsibleMenu(
+	root: HTMLElement,
+	title: string,
+	classes: Array<string> = []
+) {
+	const item = root.createEl("div", {
+		cls: ["tree-item"],
+	});
+	const labelContainer = item.createEl("div", {
+		cls: ["tree-item-self", "is-clickable"],
+		attr: { dragable: false },
+	});
+	labelContainer.createEl("div", {
+		text: title,
+		cls: ["tree-item-inner", "tapestry_tree-heading"],
+	});
+	const container = root.createEl("div", {
+		cls: ["tapestry_tree-heading-container"].concat(classes),
+	});
+	labelContainer.addEventListener("click", (event) => {
+		event.stopPropagation();
+
+		if (labelContainer.classList.contains("is-collapsed")) {
+			item.classList.remove("is-collapsed");
+			labelContainer.classList.remove("is-collapsed");
+			container.style.display = "inherit";
+		} else {
+			item.classList.add("is-collapsed");
+			labelContainer.classList.add("is-collapsed");
+			container.style.display = "none";
+		}
+	});
+
+	return container;
+}
+
+function renderMenuNotice(root: HTMLElement, text: string) {
+	root.createEl("div", {
+		text: text,
+		cls: ["search-empty-state"],
+	});
+}
+
+interface TreeElements {
+	label: HTMLElement;
+	labelContainer: HTMLElement;
+	flairContainer: HTMLElement;
+	childrenContainer: HTMLElement;
+}
+
+function renderTree(
+	root: HTMLElement,
+	text: string,
+	selected: boolean,
+	collapsible: boolean,
+	flair?: string
+): TreeElements {
+	const item = root.createEl("div", {
+		cls: ["tree-item"],
+	});
+	const labelContainer = item.createEl("div", {
+		cls: ["tree-item-self", "is-clickable"],
+		attr: { dragable: false },
+	});
+	if (selected) {
+		labelContainer.classList.add("is-selected");
+	}
+	const childrenContainer = item.createEl("div", {
+		cls: ["tree-item-children"],
+		attr: { dragable: false },
+	});
+
+	if (collapsible) {
+		labelContainer.classList.add("mod-collapsible");
+		const iconContainer = labelContainer.createEl("div", {
+			cls: ["tree-item-icon", "collapse-icon"],
+		});
+		iconContainer.innerHTML =
+			'<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="svg-icon right-triangle"><path d="M3 8L12 17L21 8"></path></svg>';
+		iconContainer.addEventListener("click", (event) => {
+			event.stopPropagation();
+
+			if (iconContainer.classList.contains("is-collapsed")) {
+				item.classList.remove("is-collapsed");
+				iconContainer.classList.remove("is-collapsed");
+				childrenContainer.style.display = "inherit";
+			} else {
+				item.classList.add("is-collapsed");
+				iconContainer.classList.add("is-collapsed");
+				childrenContainer.style.display = "none";
+			}
+		});
+	}
+
+	const label = labelContainer.createEl("div", {
+		cls: ["tree-item-inner"],
+	});
+	if (text.length > 0) {
+		label.textContent = text;
+	} else {
+		label.innerHTML = "<em>No text</em>";
+		label.classList.add("tapestry_tree-notice");
+	}
+
+	const flairContainer = labelContainer.createEl("div", {
+		cls: ["tree-item-flair-outer"],
+	});
+
+	if (flair && flair.length > 0) {
+		flairContainer.createEl("div", {
+			text: flair,
+			cls: ["tree-item-flair"],
+		});
+	}
+
+	return {
+		label: label,
+		labelContainer: labelContainer,
+		flairContainer: flairContainer,
+		childrenContainer: childrenContainer,
+	};
+}
+
+function renderDepthNotice(tree: TreeElements) {
+	const root = tree.childrenContainer;
+
 	const item = root.createEl("div", {
 		cls: ["tree-item"],
 	});
@@ -419,4 +403,76 @@ function renderDepthNotice(root: HTMLElement) {
 	});
 
 	label.innerHTML = "Show more";
+}
+
+interface NodeButtonElements {
+	mergeButton?: HTMLElement;
+	generateButton: HTMLElement;
+	addButton: HTMLElement;
+	bookmarkToggleButton?: HTMLElement;
+	deleteButton: HTMLElement;
+}
+
+function renderNodeButtons(
+	tree: TreeElements,
+	mergeable: boolean,
+	bookmarkable: boolean,
+	bookmarked?: boolean
+): NodeButtonElements {
+	const buttonContainer = tree.labelContainer.createEl("div", {
+		cls: ["tapestry_tree-buttons"],
+	});
+
+	let mergeButton;
+
+	if (mergeable) {
+		mergeButton = buttonContainer.createEl("div", {
+			title: "Merge node with parent",
+			cls: ["clickable-icon"],
+		});
+		setIcon(mergeButton, "merge");
+	}
+
+	const generateButton = buttonContainer.createEl("div", {
+		title: "Generate node",
+		cls: ["clickable-icon"],
+	});
+	setIcon(generateButton, "bot-message-square"); // alternate generate icon: "bot"
+
+	const addButton = buttonContainer.createEl("div", {
+		title: "Add node",
+		cls: ["clickable-icon"],
+	});
+	setIcon(addButton, "message-square-plus");
+
+	let bookmarkButton;
+	if (bookmarkable) {
+		if (bookmarked) {
+			bookmarkButton = buttonContainer.createEl("div", {
+				title: "Remove bookmark",
+				cls: ["clickable-icon"],
+			});
+			setIcon(bookmarkButton, "bookmark-minus");
+		} else {
+			bookmarkButton = buttonContainer.createEl("div", {
+				title: "Bookmark node",
+				cls: ["clickable-icon"],
+			});
+			setIcon(bookmarkButton, "bookmark-plus");
+		}
+	}
+
+	const deleteButton = buttonContainer.createEl("div", {
+		title: "Delete node",
+		cls: ["clickable-icon"],
+	});
+	setIcon(deleteButton, "eraser");
+
+	return {
+		mergeButton: mergeButton,
+		generateButton: generateButton,
+		addButton: addButton,
+		bookmarkToggleButton: bookmarkButton,
+		deleteButton: deleteButton,
+	};
 }
