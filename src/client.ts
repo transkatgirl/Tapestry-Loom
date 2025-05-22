@@ -1,5 +1,5 @@
 import { HexString, requestUrl } from "obsidian";
-import { ULID } from "ulid";
+import { ulid, ULID } from "ulid";
 
 export interface ClientSettings {
 	models: Array<ModelConfiguration>;
@@ -14,14 +14,43 @@ export interface ModelConfiguration {
 	label: ModelLabel;
 	url: string;
 	type: EndpointType;
-	convertParameters: boolean;
-	headers?: Record<string, string>;
-	parameters?: Record<string, string>;
+	headers: Record<string, string>;
+	parameters: Record<string, string>;
 }
 
 export interface ModelLabel {
 	label: string;
 	color?: HexString;
+}
+
+export function newModel(
+	type: EndpointType,
+	url?: string,
+	identifier?: string,
+	apiKey?: string
+): ModelConfiguration | void {
+	if (url && type == EndpointType.OpenAICompletionv1Compatible) {
+		const headers: Record<string, string> = {};
+		if (apiKey) {
+			headers["Bearer"] = apiKey;
+		}
+
+		const parameters: Record<string, string> = {};
+		if (identifier) {
+			parameters["model"] = identifier;
+		}
+
+		return {
+			ulid: ulid(),
+			label: {
+				label: identifier || url,
+			},
+			url: url,
+			type: type,
+			headers: headers,
+			parameters: parameters,
+		};
+	}
 }
 
 export const UNKNOWN_MODEL_LABEL: ModelLabel = {
@@ -55,6 +84,8 @@ export async function runCompletion(
 
 	return Promise.all(requests).then((responses) => responses.flat());
 }
+
+// TODO: Handle string -> number conversion when applicable
 
 async function inferenceRequest(
 	_config: ClientSettings,

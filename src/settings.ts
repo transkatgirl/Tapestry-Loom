@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
-import { ClientSettings, ConfiguredEndpoint } from "client";
+import { arrayMoveMutable } from "array-move";
+import { ClientSettings, EndpointType, newModel } from "client";
 import TapestryLoom from "main";
 
 export interface TapestryLoomSettings {
@@ -46,29 +47,254 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 					)
 					.setValue(document.debounce.toString())
 					.onChange(async (value) => {
-						this.plugin.settings.document =
-							this.plugin.settings.document ||
-							DEFAULT_DOCUMENT_SETTINGS;
-						this.plugin.settings.document.debounce =
-							parseInt(value);
+						document.debounce = parseInt(value);
+						this.plugin.settings.document = document;
 						await this.plugin.saveSettings();
-						//this.display();
 					})
 			);
 
-		containerEl.createEl("h1", { text: "Heading 1" });
+		new Setting(containerEl).setHeading().setName("Models");
+		const modelForm = {
+			url: "",
+			identifier: "",
+			apiKey: "",
+			type: "openai_completion_v1_compatible",
+		};
+		new Setting(containerEl)
+			.addText((text) => {
+				text.setPlaceholder("URL").onChange((value) => {
+					modelForm.url = value;
+				});
+			})
+			.addText((text) => {
+				text.setPlaceholder("Model Identifier (Optional)").onChange(
+					(value) => {
+						modelForm.identifier = value;
+					}
+				);
+			})
+			.addText((text) => {
+				text.setPlaceholder("API Key (Optional)").onChange((value) => {
+					modelForm.apiKey = value;
+				});
+			})
+			.addDropdown((dropdown) => {
+				dropdown
+					.addOption(
+						"openai_completion_v1_compatible",
+						"OpenAI v1 (or similar) Completion API"
+					)
+					.setValue(modelForm.type)
+					.onChange((value) => {
+						modelForm.type = value;
+					});
+			})
+			.addButton((button) => {
+				button.setButtonText("Add model").onClick(async (_event) => {
+					if (modelForm.type.length > 0) {
+						const model = newModel(
+							modelForm.type as EndpointType,
+							modelForm.url,
+							modelForm.identifier,
+							modelForm.apiKey
+						);
+						if (model) {
+							client.models.push(model);
+							this.plugin.settings.client = client;
+							await this.plugin.saveSettings();
+							this.display();
+						}
+					}
+				});
+			});
 
-		//new Setting(containerEl)
-		//	.setName("Setting #1")
-		//	.setDesc("It's a secret")
-		//	.addText((text) =>
-		//		text
-		//			.setPlaceholder("Enter your secret")
-		//			.setValue(this.plugin.settings.mySetting)
-		//			.onChange(async (value) => {
-		//				this.plugin.settings.mySetting = value;
-		//				await this.plugin.saveSettings();
-		//			})
-		//	);
+		console.log(this.plugin.settings.client.models);
+
+		for (let i = 0; i < client.models.length; i++) {
+			new Setting(containerEl).setHeading().setName("Edit model");
+			new Setting(containerEl).setName("Label").addText((text) => {
+				text.setValue(client.models[i].label.label).onChange(
+					async (value) => {
+						client.models[i].label.label = value;
+						this.plugin.settings.client = client;
+						await this.plugin.saveSettings();
+					}
+				);
+			});
+			new Setting(containerEl)
+				.setName("Endpoint")
+				.addText((text) => {
+					text.setPlaceholder("URL")
+						.setValue(client.models[i].url)
+						.onChange(async (value) => {
+							client.models[i].url = value;
+							this.plugin.settings.client = client;
+							await this.plugin.saveSettings();
+						});
+				})
+				.addDropdown((dropdown) => {
+					dropdown
+						.addOption(
+							"openai_completion_v1_compatible",
+							"OpenAI v1 (or similar) Completion API"
+						)
+						.setValue(client.models[i].type)
+						.onChange(async (value) => {
+							client.models[i].type = value as EndpointType;
+							this.plugin.settings.client = client;
+							await this.plugin.saveSettings();
+						});
+					dropdown.selectEl.style.maxWidth = "max-content";
+				});
+
+			for (let [headerKey, headerValue] of Object.entries(
+				client.models[i].headers
+			)) {
+				new Setting(containerEl)
+					.setName("Request header")
+					.addText((text) => {
+						text.setPlaceholder("key")
+							.setValue(headerKey)
+							.onChange(async (value) => {
+								if (value.length > 0) {
+									delete client.models[i].headers[headerKey];
+									client.models[i].headers[value] =
+										headerValue;
+									headerKey = value;
+									this.plugin.settings.client = client;
+									await this.plugin.saveSettings();
+								} else {
+									delete client.models[i].headers[headerKey];
+									this.plugin.settings.client = client;
+									await this.plugin.saveSettings();
+									this.display();
+								}
+							});
+					})
+					.addText((text) => {
+						text.setPlaceholder("value")
+							.setValue(headerValue)
+							.onChange(async (value) => {
+								client.models[i].headers[headerKey] = value;
+								headerValue = value;
+								this.plugin.settings.client = client;
+								await this.plugin.saveSettings();
+							});
+					});
+			}
+			let headerFormValue = "";
+			new Setting(containerEl)
+				.setName("Request header")
+				.addText((text) => {
+					text.setPlaceholder("key").onChange(async (value) => {
+						if (value.length > 0) {
+							client.models[i].headers[value] = headerFormValue;
+							this.plugin.settings.client = client;
+							await this.plugin.saveSettings();
+							this.display();
+						}
+					});
+				})
+				.addText((text) => {
+					text.setPlaceholder("value").onChange(async (value) => {
+						headerFormValue = value;
+					});
+				});
+
+			for (let [parameterKey, parameterValue] of Object.entries(
+				client.models[i].parameters
+			)) {
+				new Setting(containerEl)
+					.setName("Request parameter")
+					.addText((text) => {
+						text.setPlaceholder("key")
+							.setValue(parameterKey)
+							.onChange(async (value) => {
+								if (value.length > 0) {
+									delete client.models[i].parameters[
+										parameterKey
+									];
+									client.models[i].parameters[value] =
+										parameterValue;
+									parameterKey = value;
+									this.plugin.settings.client = client;
+									await this.plugin.saveSettings();
+								} else {
+									delete client.models[i].parameters[
+										parameterKey
+									];
+									this.plugin.settings.client = client;
+									await this.plugin.saveSettings();
+									this.display();
+								}
+							});
+					})
+					.addText((text) => {
+						text.setPlaceholder("value")
+							.setValue(parameterValue)
+							.onChange(async (value) => {
+								client.models[i].parameters[parameterKey] =
+									value;
+								parameterValue = value;
+								this.plugin.settings.client = client;
+								await this.plugin.saveSettings();
+							});
+					});
+			}
+
+			let parameterFormValue = "";
+			new Setting(containerEl)
+				.setName("Request parameter")
+				.addText((text) => {
+					text.setPlaceholder("key").onChange(async (value) => {
+						if (value.length > 0) {
+							client.models[i].parameters[value] =
+								parameterFormValue;
+							this.plugin.settings.client = client;
+							await this.plugin.saveSettings();
+							this.display();
+						}
+					});
+				})
+				.addText((text) => {
+					text.setPlaceholder("value").onChange(async (value) => {
+						parameterFormValue = value;
+					});
+				});
+
+			const moveSetting = new Setting(containerEl);
+			if (i > 0) {
+				moveSetting.addButton((button) => {
+					button
+						.setIcon("arrow-up-from-dot")
+						.onClick(async (_event) => {
+							arrayMoveMutable(client.models, i, i - 1);
+							this.plugin.settings.client = client;
+							await this.plugin.saveSettings();
+							this.display();
+						});
+				});
+			}
+			if (i < client.models.length - 1) {
+				moveSetting.addButton((button) => {
+					button
+						.setIcon("arrow-down-to-dot")
+						.onClick(async (_event) => {
+							arrayMoveMutable(client.models, i, i + 1);
+							this.plugin.settings.client = client;
+							await this.plugin.saveSettings();
+							this.display();
+						});
+				});
+			}
+			moveSetting.addButton((button) => {
+				button.setIcon("trash").onClick(async (_event) => {
+					client.models.splice(i, 1);
+					this.plugin.settings.client = client;
+					await this.plugin.saveSettings();
+					this.display();
+				});
+			});
+		}
 	}
 }
