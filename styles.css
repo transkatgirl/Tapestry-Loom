@@ -91,3 +91,12 @@
 	padding: var(--size-4-1) var(--size-4-3);
 	border-top: none;
 }
+
+.tapestry_tree-heading-container .setting-item-control input[type="text"] {
+	width: 100%;
+}
+
+.tapestry_tree-heading-container
+	.setting-item-info:has(.setting-item-name:empty) {
+	display: none;
+}
