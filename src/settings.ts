@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, HexString, PluginSettingTab, Setting } from "obsidian";
 import { arrayMoveMutable } from "array-move";
 import { ClientSettings, EndpointType, newModel } from "client";
 import TapestryLoom from "main";
@@ -10,6 +10,7 @@ export interface TapestryLoomSettings {
 
 export const DEFAULT_CLIENT_SETTINGS: ClientSettings = { models: [] };
 export const DEFAULT_DOCUMENT_SETTINGS: DocumentSettings = { debounce: 500 };
+const DEFAULT_LABEL_COLOR: HexString = "#000000";
 
 export interface DocumentSettings {
 	debounce: number;
@@ -62,7 +63,7 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 		};
 		new Setting(containerEl)
 			.addText((text) => {
-				text.setPlaceholder("URL").onChange((value) => {
+				text.setPlaceholder("Request URL").onChange((value) => {
 					modelForm.url = value;
 				});
 			})
@@ -82,7 +83,7 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 				dropdown
 					.addOption(
 						"openai_completion_v1_compatible",
-						"OpenAI v1 (or similar) Completion API"
+						"OpenAI v1 (or similar) Completion"
 					)
 					.setValue(modelForm.type)
 					.onChange((value) => {
@@ -112,19 +113,52 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 
 		for (let i = 0; i < client.models.length; i++) {
 			new Setting(containerEl).setHeading().setName("Edit model");
-			new Setting(containerEl).setName("Label").addText((text) => {
-				text.setValue(client.models[i].label.label).onChange(
-					async (value) => {
-						client.models[i].label.label = value;
+			const labelSetting = new Setting(containerEl)
+				.setName("Label")
+				.addText((text) => {
+					text.setPlaceholder("Label")
+						.setValue(client.models[i].label.label)
+						.onChange(async (value) => {
+							client.models[i].label.label = value;
+							this.plugin.settings.client = client;
+							await this.plugin.saveSettings();
+						});
+				});
+			const color = client.models[i].label.color;
+			if (color) {
+				labelSetting
+					.addColorPicker((colorPicker) => {
+						colorPicker.setValue(color).onChange(async (value) => {
+							client.models[i].label.color = value;
+							this.plugin.settings.client = client;
+							await this.plugin.saveSettings();
+						});
+					})
+					.addButton((button) => {
+						button.setIcon("rotate-ccw");
+						button.onClick(async (_event) => {
+							client.models[i].label.color = undefined;
+							this.plugin.settings.client = client;
+							await this.plugin.saveSettings();
+							this.display();
+						});
+					});
+			} else {
+				labelSetting.addButton((button) => {
+					button.setIcon("palette");
+					button.onClick(async (_event) => {
+						client.models[i].label.color = DEFAULT_LABEL_COLOR;
 						this.plugin.settings.client = client;
 						await this.plugin.saveSettings();
-					}
-				);
-			});
+						this.display();
+					});
+				});
+			}
+
 			new Setting(containerEl)
 				.setName("Endpoint")
 				.addText((text) => {
-					text.setPlaceholder("URL")
+					text.setPlaceholder("Request URL")
 						.setValue(client.models[i].url)
 						.onChange(async (value) => {
 							client.models[i].url = value;
@@ -136,7 +170,7 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 					dropdown
 						.addOption(
 							"openai_completion_v1_compatible",
-							"OpenAI v1 (or similar) Completion API"
+							"OpenAI v1 (or similar) Completion"
 						)
 						.setValue(client.models[i].type)
 						.onChange(async (value) => {
