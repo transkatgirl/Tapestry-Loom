@@ -239,7 +239,13 @@ export class TapestryLoomTreeView extends ItemView {
 		});
 
 		new Setting(container).setHeading().setName("Model parameters");
-		new Setting(container).addText((text) => {}).addText((text) => {});
+		new Setting(container)
+			.addText((text) => {
+				text.setPlaceholder("key");
+			})
+			.addText((text) => {
+				text.setPlaceholder("value");
+			});
 
 		//renderMenuNotice(container, "This menu is not yet functional.");
 	}
