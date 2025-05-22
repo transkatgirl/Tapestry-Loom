@@ -238,7 +238,7 @@ export class TapestryLoomTreeView extends ItemView {
 			button.buttonEl.style.width = "100%";
 		});
 
-		new Setting(container).setHeading().setName("Model parameters");
+		new Setting(container).setHeading().setName("Request parameters");
 		new Setting(container)
 			.addText((text) => {
 				text.setPlaceholder("key");
