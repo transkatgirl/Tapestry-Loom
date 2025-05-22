@@ -16,8 +16,8 @@ export const GRAPH_VIEW_TYPE = "tapestry-loom-graph-view";
 
 export class TapestryLoomGraphView extends ItemView {
 	plugin: TapestryLoom;
-	graph?: Core;
-	panned = false;
+	private graph?: Core;
+	private panned = false;
 	constructor(leaf: WorkspaceLeaf, plugin: TapestryLoom) {
 		super(leaf);
 		this.plugin = plugin;

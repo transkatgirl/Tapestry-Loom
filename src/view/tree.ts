@@ -15,7 +15,10 @@ export const TREE_VIEW_TYPE = "tapestry-loom-view";
 
 export class TapestryLoomTreeView extends ItemView {
 	plugin: TapestryLoom;
-	collapsedNodes: Set<ULID> = new Set();
+	private collapsedNodes: Set<ULID> = new Set();
+	private modelMenu?: CollapsibleMenuElement;
+	private bookmarksMenu?: CollapsibleMenuElement;
+	private treeMenu?: CollapsibleMenuElement;
 	constructor(leaf: WorkspaceLeaf, plugin: TapestryLoom) {
 		super(leaf);
 		this.plugin = plugin;
@@ -256,6 +259,9 @@ export class TapestryLoomTreeView extends ItemView {
 			this.plugin.document.bookmarks.delete(identifier);
 		} else {
 			this.plugin.document.bookmarks.add(identifier);
+			if (this.bookmarksMenu) {
+				updateCollapsibleMenu(this.bookmarksMenu, true);
+			}
 		}
 
 		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
@@ -282,18 +288,21 @@ export class TapestryLoomTreeView extends ItemView {
 
 		const { workspace } = this.app;
 
-		const modelContainer = renderCollapsibleMenu(
+		const modelMenu = renderCollapsibleMenu(
 			container,
 			"Inference parameters"
 		);
-		const bookmarksContainer = renderCollapsibleMenu(
+		const bookmarksMenu = renderCollapsibleMenu(
 			container,
 			"Bookmarked nodes",
 			["tapestry_tree", "tapestry_bookmarks"]
 		);
-		const treeContainer = renderCollapsibleMenu(container, "Nearby nodes", [
+		const treeMenu = renderCollapsibleMenu(container, "Nearby nodes", [
 			"tapestry_tree",
 		]);
+		this.modelMenu = modelMenu;
+		this.bookmarksMenu = bookmarksMenu;
+		this.treeMenu = treeMenu;
 
 		this.registerEvent(
 			workspace.on(
@@ -301,8 +310,8 @@ export class TapestryLoomTreeView extends ItemView {
 				// @ts-expect-error
 				DOCUMENT_LOAD_EVENT,
 				() => {
-					this.renderBookmarks(bookmarksContainer);
-					this.renderTree(treeContainer, false);
+					this.renderBookmarks(bookmarksMenu.childrenContainer);
+					this.renderTree(treeMenu.childrenContainer, false);
 				}
 			)
 		);
@@ -312,8 +321,8 @@ export class TapestryLoomTreeView extends ItemView {
 				// @ts-expect-error
 				DOCUMENT_UPDATE_EVENT,
 				() => {
-					this.renderBookmarks(bookmarksContainer);
-					this.renderTree(treeContainer, true);
+					this.renderBookmarks(bookmarksMenu.childrenContainer);
+					this.renderTree(treeMenu.childrenContainer, true);
 				}
 			)
 		);
@@ -323,8 +332,8 @@ export class TapestryLoomTreeView extends ItemView {
 				// @ts-expect-error
 				DOCUMENT_DROP_EVENT,
 				() => {
-					this.renderBookmarks(bookmarksContainer);
-					this.renderTree(treeContainer, false);
+					this.renderBookmarks(bookmarksMenu.childrenContainer);
+					this.renderTree(treeMenu.childrenContainer, false);
 				}
 			)
 		);
@@ -334,23 +343,29 @@ export class TapestryLoomTreeView extends ItemView {
 				// @ts-expect-error
 				SETTINGS_UPDATE_EVENT,
 				() => {
-					this.renderModels(modelContainer);
+					this.renderModels(modelMenu.childrenContainer);
 				}
 			)
 		);
 
-		this.renderModels(modelContainer);
-		this.renderBookmarks(bookmarksContainer);
-		this.renderTree(treeContainer, false);
+		this.renderModels(modelMenu.childrenContainer);
+		this.renderBookmarks(bookmarksMenu.childrenContainer);
+		this.renderTree(treeMenu.childrenContainer, false);
 	}
 	async onClose() {}
+}
+
+interface CollapsibleMenuElement {
+	item: HTMLElement;
+	labelContainer: HTMLElement;
+	childrenContainer: HTMLElement;
 }
 
 function renderCollapsibleMenu(
 	root: HTMLElement,
 	title: string,
 	classes: Array<string> = []
-) {
+): CollapsibleMenuElement {
 	const item = root.createEl("div", {
 		cls: ["tree-item"],
 	});
@@ -379,7 +394,23 @@ function renderCollapsibleMenu(
 		}
 	});
 
-	return container;
+	return {
+		item: item,
+		labelContainer: labelContainer,
+		childrenContainer: container,
+	};
+}
+
+function updateCollapsibleMenu(menu: CollapsibleMenuElement, open: boolean) {
+	if (open) {
+		menu.item.classList.remove("is-collapsed");
+		menu.labelContainer.classList.remove("is-collapsed");
+		menu.childrenContainer.style.display = "inherit";
+	} else {
+		menu.item.classList.add("is-collapsed");
+		menu.labelContainer.classList.add("is-collapsed");
+		menu.childrenContainer.style.display = "none";
+	}
 }
 
 function renderMenuNotice(root: HTMLElement, text: string) {
