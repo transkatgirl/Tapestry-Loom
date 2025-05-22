@@ -85,19 +85,27 @@ export async function runCompletion(
 	return Promise.all(requests).then((responses) => responses.flat());
 }
 
-// TODO: Handle string -> number conversion when applicable
-
 async function inferenceRequest(
 	_config: ClientSettings,
 	model: ModelConfiguration,
 	request: CompletionRequest
 ): Promise<Array<CompletionResponse>> {
 	if (model.type == EndpointType.OpenAICompletionv1Compatible) {
-		const body = {
+		const body: Record<string, string | number> = {
 			text: request.prompt,
 			...model.parameters,
 			...request.parameters,
 		};
+
+		for (const [key, value] of Object.entries(body)) {
+			if (
+				typeof value == "string" &&
+				!isNaN(value as never) &&
+				!isNaN(parseFloat(value))
+			) {
+				body[key] = +value;
+			}
+		}
 
 		return requestUrl({
 			url: model.url,
