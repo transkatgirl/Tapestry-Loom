@@ -14,6 +14,7 @@ export interface ModelConfiguration {
 	label: ModelLabel;
 	url: string;
 	type: EndpointType;
+	convertParameters: boolean;
 	headers?: Record<string, string>;
 	parameters?: Record<string, string>;
 }
