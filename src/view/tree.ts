@@ -220,12 +220,24 @@ export class TapestryLoomTreeView extends ItemView {
 	private renderModels(container: HTMLElement) {
 		container.empty();
 
-		new Setting(container).setName("Model").addDropdown((dropdown) => {
-			dropdown.addOption("test", "this menu is not yet functional");
-		});
 		new Setting(container).setName("Requests").addText((text) => {
 			text.setPlaceholder((1).toString());
 		});
+		new Setting(container).setHeading().setName("Models");
+		new Setting(container)
+			.addDropdown((dropdown) => {
+				dropdown.addOption("test", "this menu is not yet functional");
+				dropdown.addOption("test", "this menu is not yet functional");
+				dropdown.addOption("test", "this menu is not yet functional");
+			})
+			.addExtraButton((button) => {
+				button.setIcon("x");
+			});
+		new Setting(container).addButton((button) => {
+			button.setButtonText("Add model");
+			button.buttonEl.style.width = "100%";
+		});
+
 		new Setting(container).setHeading().setName("Model parameters");
 		new Setting(container).addText((text) => {}).addText((text) => {});
 
