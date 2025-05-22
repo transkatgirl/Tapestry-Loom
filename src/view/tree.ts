@@ -312,6 +312,13 @@ export class TapestryLoomTreeView extends ItemView {
 				() => {
 					this.renderBookmarks(bookmarksMenu.childrenContainer);
 					this.renderTree(treeMenu.childrenContainer, false);
+					if (this.plugin.document) {
+						if (this.plugin.document.bookmarks.size > 0) {
+							updateCollapsibleMenu(bookmarksMenu, true);
+						} else {
+							updateCollapsibleMenu(bookmarksMenu, false);
+						}
+					}
 				}
 			)
 		);
