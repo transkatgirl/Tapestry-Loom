@@ -3,6 +3,8 @@ import { arrayMoveMutable } from "array-move";
 import { ClientSettings, EndpointType, newModel } from "client";
 import TapestryLoom from "main";
 
+// TODO: Allow customizing default SessionSettings
+
 export interface TapestryLoomSettings {
 	client?: ClientSettings;
 	document?: DocumentSettings;

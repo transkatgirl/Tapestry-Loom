@@ -20,7 +20,7 @@ export interface SessionSettings {
 export const DEFAULT_SESSION_SETTINGS: SessionSettings = {
 	requests: 1,
 	models: [],
-	parameters: { temperature: "1" },
+	parameters: { temperature: "1", max_tokens: "10" },
 };
 
 export class TapestryLoomTreeView extends ItemView {
