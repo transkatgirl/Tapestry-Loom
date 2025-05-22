@@ -11,6 +11,18 @@ import { ULID, ulid } from "ulid";
 
 export const TREE_VIEW_TYPE = "tapestry-loom-view";
 
+export interface SessionSettings {
+	requests: number;
+	models: Array<ULID>;
+	parameters: Record<string, string>;
+}
+
+export const DEFAULT_SESSION_SETTINGS: SessionSettings = {
+	requests: 1,
+	models: [],
+	parameters: { temperature: "1" },
+};
+
 export class TapestryLoomTreeView extends ItemView {
 	plugin: TapestryLoom;
 	private collapsedNodes: Set<ULID> = new Set();
@@ -218,34 +230,115 @@ export class TapestryLoomTreeView extends ItemView {
 	private renderModels(container: HTMLElement) {
 		container.empty();
 
+		if (
+			!this.plugin.settings.client ||
+			this.plugin.settings.client.models.length == 0
+		) {
+			renderMenuNotice(
+				container,
+				"No models found. Models can be added in the plugin's settings menu."
+			);
+			return;
+		}
+
+		const models = this.plugin.settings.client.models;
+
 		new Setting(container).setName("Requests").addText((text) => {
-			text.setPlaceholder((1).toString());
+			text.setPlaceholder((1).toString())
+				.setValue(this.plugin.sessionSettings.requests.toString())
+				.onChange(async (value) => {
+					this.plugin.sessionSettings.requests = parseInt(value) || 1;
+					if (this.plugin.sessionSettings.requests > 1) {
+						this.plugin.sessionSettings.requests = 1;
+					}
+				});
 		});
+
 		new Setting(container).setHeading().setName("Models");
-		new Setting(container)
-			.addDropdown((dropdown) => {
-				dropdown.addOption("test", "this menu is not yet functional");
-				dropdown.addOption("test", "this menu is not yet functional");
-				dropdown.addOption("test", "this menu is not yet functional");
-			})
-			.addExtraButton((button) => {
-				button.setIcon("x");
-			});
+		for (let i = 0; i < this.plugin.sessionSettings.models.length; i++) {
+			new Setting(container)
+				.addDropdown((dropdown) => {
+					for (const modelOption of models) {
+						dropdown.addOption(
+							modelOption.ulid,
+							modelOption.label.label
+						);
+					}
+					dropdown
+						.setValue(this.plugin.sessionSettings.models[i])
+						.onChange((value) => {
+							this.plugin.sessionSettings.models[i] = value;
+						});
+				})
+				.addExtraButton((button) => {
+					button.setIcon("x").onClick(() => {
+						this.plugin.sessionSettings.models.splice(i, 1);
+						this.renderModels(container);
+					});
+				});
+		}
+
 		new Setting(container).addButton((button) => {
-			button.setButtonText("Add model");
+			button.setButtonText("Add model").onClick((_event) => {
+				this.plugin.sessionSettings.models.push(models[0].ulid);
+				this.renderModels(container);
+			});
 			button.buttonEl.style.width = "100%";
 		});
 
 		new Setting(container).setHeading().setName("Request parameters");
+
+		for (let [parameterKey, parameterValue] of Object.entries(
+			this.plugin.sessionSettings.parameters
+		)) {
+			new Setting(container)
+				.addText((text) => {
+					text.setPlaceholder("key")
+						.setValue(parameterKey)
+						.onChange(async (value) => {
+							if (value.length > 0) {
+								delete this.plugin.sessionSettings.parameters[
+									parameterKey
+								];
+								this.plugin.sessionSettings.parameters[value] =
+									parameterValue;
+								parameterKey = value;
+							} else {
+								delete this.plugin.sessionSettings.parameters[
+									parameterKey
+								];
+								this.renderModels(container);
+							}
+						});
+				})
+				.addText((text) => {
+					text.setPlaceholder("value")
+						.setValue(parameterValue)
+						.onChange(async (value) => {
+							this.plugin.sessionSettings.parameters[
+								parameterKey
+							] = value;
+							parameterValue = value;
+						});
+				});
+		}
+
+		let parameterFormValue = "";
 		new Setting(container)
 			.addText((text) => {
-				text.setPlaceholder("key");
+				text.setPlaceholder("key").onChange(async (value) => {
+					if (value.length > 0) {
+						this.plugin.sessionSettings.parameters[value] =
+							parameterFormValue;
+						this.renderModels(container);
+					}
+				});
 			})
 			.addText((text) => {
-				text.setPlaceholder("value");
+				text.setPlaceholder("value").onChange(async (value) => {
+					parameterFormValue = value;
+				});
 			});
-
-		//renderMenuNotice(container, "This menu is not yet functional.");
 	}
 	private generateNodeChildren(parentNode?: ULID) {
 		if (!this.plugin.document) {

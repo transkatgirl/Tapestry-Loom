@@ -6,7 +6,11 @@ import {
 	TapestryLoomSettings,
 	TapestryLoomSettingTab,
 } from "settings";
-import { TapestryLoomTreeView, TREE_VIEW_TYPE } from "view/tree";
+import {
+	DEFAULT_SESSION_SETTINGS,
+	TapestryLoomTreeView,
+	TREE_VIEW_TYPE,
+} from "view/tree";
 import { TapestryLoomGraphView, GRAPH_VIEW_TYPE } from "view/graph";
 import { EDITOR_COMMANDS, EDITOR_PLUGIN } from "view/editor";
 import cytoscape from "cytoscape";
@@ -28,6 +32,7 @@ export default class TapestryLoom extends Plugin {
 	settings: TapestryLoomSettings;
 	editor?: Editor = this.app.workspace.activeEditor?.editor;
 	document?: WeaveDocument;
+	sessionSettings = DEFAULT_SESSION_SETTINGS;
 	async onload() {
 		const { workspace } = this.app;
 

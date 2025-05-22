@@ -10,6 +10,7 @@ export interface TapestryLoomSettings {
 
 export const DEFAULT_CLIENT_SETTINGS: ClientSettings = { models: [] };
 export const DEFAULT_DOCUMENT_SETTINGS: DocumentSettings = { debounce: 500 };
+
 const DEFAULT_LABEL_COLOR: HexString = "#000000";
 
 export interface DocumentSettings {
@@ -39,7 +40,7 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Debounce time")
 			.setDesc(
-				"Time to wait after last document update before refreshing nodes. Requires plugin restart to take effect."
+				"Milliseconds to wait after last document update before refreshing nodes. Requires plugin restart to take effect."
 			)
 			.addText((text) =>
 				text
@@ -48,7 +49,10 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 					)
 					.setValue(document.debounce.toString())
 					.onChange(async (value) => {
-						document.debounce = parseInt(value);
+						document.debounce = parseInt(value) || 20;
+						if (document.debounce < 20) {
+							document.debounce = 20;
+						}
 						this.plugin.settings.document = document;
 						await this.plugin.saveSettings();
 					})
