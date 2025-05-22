@@ -221,7 +221,7 @@ export class TapestryLoomTreeView extends ItemView {
 		container.empty();
 
 		new Setting(container).setName("Model").addDropdown((dropdown) => {
-			dropdown.addOption("test", "test");
+			dropdown.addOption("test", "this menu is not yet functional");
 		});
 		new Setting(container).setName("Requests").addText((text) => {
 			text.setPlaceholder((1).toString());
@@ -229,7 +229,7 @@ export class TapestryLoomTreeView extends ItemView {
 		new Setting(container).setHeading().setName("Model parameters");
 		new Setting(container).addText((text) => {}).addText((text) => {});
 
-		renderMenuNotice(container, "This menu is not yet functional.");
+		//renderMenuNotice(container, "This menu is not yet functional.");
 	}
 	private generateNodeChildren(parentNode?: ULID) {
 		if (!this.plugin.document) {
