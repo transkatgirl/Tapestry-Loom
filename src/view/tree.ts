@@ -9,8 +9,6 @@ import { ItemView, Setting, WorkspaceLeaf, setIcon } from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
 
-// TODO: Use HoverPopover
-
 export const TREE_VIEW_TYPE = "tapestry-loom-view";
 
 export class TapestryLoomTreeView extends ItemView {
@@ -663,7 +661,7 @@ function renderNodeButtons(
 	}
 
 	const generateButton = buttonContainer.createEl("div", {
-		title: "Generate node",
+		title: "Generate completions",
 		cls: ["clickable-icon"],
 	});
 	setIcon(generateButton, "bot-message-square"); // alternate generate icon: "bot"
