@@ -1,7 +1,11 @@
 import { debounce, Editor, MarkdownView, Plugin } from "obsidian";
 import serialize from "serialize-javascript";
 import { deserialize } from "common";
-import { TapestryLoomSettings, TapestryLoomSettingTab } from "settings";
+import {
+	DEFAULT_DOCUMENT_SETTINGS,
+	TapestryLoomSettings,
+	TapestryLoomSettingTab,
+} from "settings";
 import { TapestryLoomTreeView, TREE_VIEW_TYPE } from "view/tree";
 import { TapestryLoomGraphView, GRAPH_VIEW_TYPE } from "view/graph";
 import { EDITOR_COMMANDS, EDITOR_PLUGIN } from "view/editor";
@@ -36,6 +40,11 @@ export default class TapestryLoom extends Plugin {
 			workspace.trigger(DOCUMENT_LOAD_EVENT);
 		}
 
+		let debounceTime = DEFAULT_DOCUMENT_SETTINGS.debounce;
+		if (this.settings.document) {
+			debounceTime = this.settings.document.debounce;
+		}
+
 		this.registerEvent(
 			workspace.on("active-leaf-change", (leaf) => {
 				if (leaf && leaf.view instanceof MarkdownView) {
@@ -66,7 +75,7 @@ export default class TapestryLoom extends Plugin {
 							workspace.trigger(DOCUMENT_LOAD_EVENT);
 						}
 					},
-					500, // TODO: Add setting for debounce time
+					debounceTime,
 					true
 				)
 			)
@@ -152,6 +161,8 @@ export default class TapestryLoom extends Plugin {
 
 		if (data && "settings" in data) {
 			this.settings = deserialize(data.settings);
+		} else {
+			this.settings = {};
 		}
 	}
 	async saveSettings() {
