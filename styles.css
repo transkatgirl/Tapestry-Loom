@@ -82,3 +82,11 @@
 	width: 100%;
 	height: 100%;
 }
+
+.tapestry_tree-heading-container .setting-item-name {
+	font-size: var(--font-ui-small);
+}
+
+.tapestry_tree-heading-container .setting-item {
+	padding: 0 var(--size-4-3);
+}
