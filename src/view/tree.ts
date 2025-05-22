@@ -5,7 +5,7 @@ import TapestryLoom, {
 	DOCUMENT_UPDATE_EVENT,
 	SETTINGS_UPDATE_EVENT,
 } from "main";
-import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
+import { ItemView, Setting, WorkspaceLeaf, setIcon } from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
 
@@ -219,7 +219,17 @@ export class TapestryLoomTreeView extends ItemView {
 	}
 	private renderModels(container: HTMLElement) {
 		container.empty();
-		renderMenuNotice(container, "Placeholder text.");
+
+		new Setting(container).setName("Model").addDropdown((dropdown) => {
+			dropdown.addOption("test", "test");
+		});
+		new Setting(container).setName("Requests").addText((text) => {
+			text.setPlaceholder((1).toString());
+		});
+		new Setting(container).setHeading().setName("Model parameters");
+		new Setting(container).addText((text) => {}).addText((text) => {});
+
+		renderMenuNotice(container, "This menu is not yet functional.");
 	}
 	private generateNodeChildren(parentNode?: ULID) {
 		if (!this.plugin.document) {

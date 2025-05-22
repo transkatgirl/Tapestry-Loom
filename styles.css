@@ -92,11 +92,23 @@
 	border-top: none;
 }
 
-.tapestry_tree-heading-container .setting-item-control input[type="text"] {
+.tapestry_tree-heading-container
+	.setting-item-control:has(input[type="text"]:nth-of-type(2))
+	input[type="text"] {
 	width: 100%;
 }
 
 .tapestry_tree-heading-container
 	.setting-item-info:has(.setting-item-name:empty) {
 	display: none;
+}
+
+.tapestry_tree-heading-container .setting-item + .setting-item-heading {
+	font-weight: var(--nav-heading-weight);
+	color: var(--nav-heading-color);
+	margin-top: var(--size-4-1);
+}
+
+.tapestry_tree-heading-container .setting-item-control select {
+	width: 100%;
 }
