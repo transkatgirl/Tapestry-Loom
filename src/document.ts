@@ -5,6 +5,7 @@ import { ulid, ULID } from "ulid";
 import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
 
 export class WeaveDocument {
+	identifier: ULID = ulid();
 	models: Map<ULID, ModelLabel> = new Map();
 	protected modelNodes: Map<ULID, Set<ULID>> = new Map();
 	protected nodes: Map<ULID, WeaveDocumentNode> = new Map();

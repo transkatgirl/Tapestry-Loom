@@ -25,26 +25,33 @@ export default class TapestryLoom extends Plugin {
 	editor?: Editor = this.app.workspace.activeEditor?.editor;
 	document?: WeaveDocument;
 	async onload() {
+		const { workspace } = this.app;
+
 		await this.loadSettings();
 
 		cytoscape.use(dagre);
 
 		if (this.editor) {
 			this.document = loadDocument(this.editor);
-			this.app.workspace.trigger(DOCUMENT_LOAD_EVENT);
+			workspace.trigger(DOCUMENT_LOAD_EVENT);
 		}
 
 		this.registerEvent(
-			this.app.workspace.on("active-leaf-change", (leaf) => {
+			workspace.on("active-leaf-change", (leaf) => {
 				if (leaf && leaf.view instanceof MarkdownView) {
 					this.editor = leaf.view.editor;
+					const oldIdentifier = this.document?.identifier;
 					this.document = loadDocument(this.editor);
-					this.app.workspace.trigger(DOCUMENT_LOAD_EVENT);
+					if (this.document.identifier == oldIdentifier) {
+						workspace.trigger(DOCUMENT_UPDATE_EVENT);
+					} else {
+						workspace.trigger(DOCUMENT_LOAD_EVENT);
+					}
 				}
 			})
 		);
 		this.registerEvent(
-			this.app.workspace.on(
+			workspace.on(
 				"editor-change",
 				debounce(
 					(editor) => {
@@ -52,13 +59,11 @@ export default class TapestryLoom extends Plugin {
 
 						if (this.document) {
 							if (updateDocument(this.editor, this.document)) {
-								this.app.workspace.trigger(
-									DOCUMENT_UPDATE_EVENT
-								);
+								workspace.trigger(DOCUMENT_UPDATE_EVENT);
 							}
 						} else {
 							this.document = loadDocument(this.editor);
-							this.app.workspace.trigger(DOCUMENT_LOAD_EVENT);
+							workspace.trigger(DOCUMENT_LOAD_EVENT);
 						}
 					},
 					500, // TODO: Add setting for debounce time
@@ -67,21 +72,21 @@ export default class TapestryLoom extends Plugin {
 			)
 		);
 		this.registerEvent(
-			this.app.workspace.on("editor-drop", (_evt, _editor) => {
+			workspace.on("editor-drop", (_evt, _editor) => {
 				this.editor = undefined;
 				this.document = undefined;
-				this.app.workspace.trigger(DOCUMENT_DROP_EVENT);
+				workspace.trigger(DOCUMENT_DROP_EVENT);
 			})
 		);
 		this.registerEvent(
-			this.app.workspace.on(
+			workspace.on(
 				// ignore ts2769; custom event
 				// @ts-expect-error
 				DOCUMENT_TRIGGER_UPDATE_EVENT,
 				() => {
 					if (this.editor && this.document) {
 						overrideEditorContent(this.editor, this.document);
-						this.app.workspace.trigger(DOCUMENT_UPDATE_EVENT);
+						workspace.trigger(DOCUMENT_UPDATE_EVENT);
 					}
 				}
 			)
