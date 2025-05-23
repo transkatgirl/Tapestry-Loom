@@ -19,7 +19,7 @@ export interface SessionSettings {
 }
 
 export const DEFAULT_SESSION_SETTINGS: SessionSettings = {
-	requests: 1,
+	requests: 6,
 	models: [],
 	parameters: { temperature: "1", max_tokens: "10" },
 };
