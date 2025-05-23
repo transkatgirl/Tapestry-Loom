@@ -125,14 +125,14 @@ export default class TapestryLoom extends Plugin {
 
 		this.addCommand({
 			id: "show-tapestry-loom-tree-view",
-			name: "Show Tapestry Loom tree view",
+			name: "Show node tree view",
 			callback: async () => {
 				await this.showView(TREE_VIEW_TYPE);
 			},
 		});
 		this.addCommand({
 			id: "show-tapestry-loom-graph-view",
-			name: "Show Tapestry Loom graph view",
+			name: "Show node graph view",
 			callback: async () => {
 				await this.showView(GRAPH_VIEW_TYPE, true);
 			},

@@ -16,7 +16,7 @@ import {
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
 import { runCompletion } from "client";
-import { DEFAULT_DOCUMENT_SETTINGS } from "settings";
+import { DEFAULT_DOCUMENT_SETTINGS, DEFAULT_SESSION_SETTINGS } from "settings";
 
 export const TREE_VIEW_TYPE = "tapestry-loom-view";
 
@@ -573,6 +573,24 @@ export class TapestryLoomTreeView extends ItemView {
 				}
 			)
 		);
+
+		this.plugin.addCommand({
+			id: "run-tapestry-loom-completion",
+			name: "Run completion",
+			callback: () => {
+				this.generateNodeChildren(this.plugin.document?.currentNode);
+			},
+		});
+
+		this.plugin.addCommand({
+			id: "reset-tapestry-loom-tree-parameters",
+			name: "Reset inference parameters to defaults",
+			callback: () => {
+				this.plugin.sessionSettings =
+					this.plugin.settings.defaultSession ||
+					DEFAULT_SESSION_SETTINGS;
+			},
+		});
 
 		if (this.plugin.document) {
 			if (this.plugin.document.bookmarks.size > 0) {
