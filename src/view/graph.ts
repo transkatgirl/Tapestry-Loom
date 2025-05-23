@@ -71,11 +71,12 @@ export class TapestryLoomGraphView extends ItemView {
 							label: "data(content)",
 							"text-halign": "center",
 							"text-valign": "bottom",
-							"font-size":
-								getGlobalCSSVariable("--font-ui-smaller"),
+							"font-size": "7px",
 							color: getGlobalCSSColorVariable("--graph-text"),
 							"text-wrap": "ellipsis",
-							"text-max-width": "80px",
+							"text-max-width": "70px",
+							width: "20px",
+							height: "20px",
 							"background-color":
 								getGlobalCSSColorVariable("--graph-node"),
 						},
@@ -382,9 +383,9 @@ function getActiveNodeIdentifiers(document: WeaveDocument): Set<ULID> {
 	return identifiers;
 }
 
-function getGlobalCSSVariable(key: string) {
+/*function getGlobalCSSVariable(key: string) {
 	return window.getComputedStyle(window.document.body).getPropertyValue(key);
-}
+}*/
 
 function getGlobalCSSColorVariable(key: string) {
 	let parsed = crass.parse(
