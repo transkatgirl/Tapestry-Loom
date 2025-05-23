@@ -4,7 +4,15 @@ import { ULID, ulid } from "ulid";
 import { runCompletion } from "client";
 import { DEFAULT_DOCUMENT_SETTINGS } from "settings";
 
-// TODO: Show active request count in status bar
+let activeRequests = 0;
+
+function updateStatusBar(plugin: TapestryLoom) {
+	if (activeRequests > 0) {
+		plugin.statusBar.innerText = activeRequests + " requests";
+	} else {
+		plugin.statusBar.innerText = "";
+	}
+}
 
 export async function generateNodeChildren(
 	plugin: TapestryLoom,
@@ -23,6 +31,9 @@ export async function generateNodeChildren(
 			parameters: plugin.sessionSettings.parameters,
 		}
 	);
+
+	activeRequests = activeRequests + completionPromises.length;
+	updateStatusBar(plugin);
 
 	const debounceTime =
 		plugin.settings.document?.debounce ||
@@ -78,11 +89,16 @@ export async function generateNodeChildren(
 			})
 			.catch((error) => {
 				new Notice(error);
+			})
+			.finally(() => {
+				activeRequests = activeRequests - 1;
+				updateStatusBar(plugin);
 			});
 	}
 
 	await Promise.all(completionPromises);
 
+	updateStatusBar(plugin);
 	plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 }
 
