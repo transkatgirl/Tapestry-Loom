@@ -14,6 +14,17 @@ import crass from "crass";
 
 export const GRAPH_VIEW_TYPE = "tapestry-loom-graph-view";
 
+const GRAPH_LAYOUT = {
+	name: "elk",
+	//fit: false,
+	nodeDimensionsIncludeLabels: true,
+	elk: {
+		algorithm: "mrtree",
+		interactive: true,
+		"mrtree.searchOrder": "BFS",
+	},
+};
+
 export class TapestryLoomGraphView extends ItemView {
 	plugin: TapestryLoom;
 	private graph?: Core;
@@ -51,7 +62,7 @@ export class TapestryLoomGraphView extends ItemView {
 				this.graph.add(elements);
 
 				this.graph.endBatch();
-				this.graph.createLayout({ name: "dagre" }).run();
+				this.graph.createLayout(GRAPH_LAYOUT).run();
 				if (this.panned) {
 					this.graph.pan(pan);
 					this.graph.zoom(zoom);
@@ -128,7 +139,7 @@ export class TapestryLoomGraphView extends ItemView {
 				this.graph = cytoscape({
 					container: container,
 					elements: elements,
-					layout: { name: "dagre" },
+					layout: GRAPH_LAYOUT,
 					style: graphStyle,
 					headless: false,
 				});

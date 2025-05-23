@@ -11,7 +11,6 @@ import { TapestryLoomTreeView, TREE_VIEW_TYPE } from "view/tree";
 import { TapestryLoomGraphView, GRAPH_VIEW_TYPE } from "view/graph";
 import { EDITOR_PLUGIN } from "view/editor";
 import cytoscape from "cytoscape";
-import dagre from "cytoscape-dagre";
 import {
 	loadDocument,
 	overrideEditorContent,
@@ -19,6 +18,9 @@ import {
 	WeaveDocument,
 } from "document";
 import { buildCommands } from "commands";
+
+// @ts-expect-error
+import elk from "cytoscape-elk";
 
 export const DOCUMENT_LOAD_EVENT = "tapestry-document:load";
 export const DOCUMENT_TRIGGER_UPDATE_EVENT = "tapestry-document:override";
@@ -42,7 +44,7 @@ export default class TapestryLoom extends Plugin {
 			);
 		}
 
-		cytoscape.use(dagre);
+		cytoscape.use(elk);
 
 		if (this.editor) {
 			this.document = loadDocument(this.editor);
