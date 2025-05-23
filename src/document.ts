@@ -24,18 +24,21 @@ export class WeaveDocument {
 			this.currentNode = identifier;
 		}
 	}
-	getActiveContent(): string {
+	getActiveContent(identifier?: ULID): string {
 		let content = "";
 
-		if (this.currentNode) {
-			let node = this.nodes.get(this.currentNode);
-			while (node) {
-				content = getNodeContent(node) + content;
-				if (node.parentNode) {
-					node = this.nodes.get(node.parentNode);
-				} else {
-					node = undefined;
-				}
+		let node: WeaveDocumentNode | undefined;
+		if (identifier) {
+			node = this.nodes.get(identifier);
+		} else if (this.currentNode) {
+			node = this.nodes.get(this.currentNode);
+		}
+		while (node) {
+			content = getNodeContent(node) + content;
+			if (node.parentNode) {
+				node = this.nodes.get(node.parentNode);
+			} else {
+				node = undefined;
 			}
 		}
 
@@ -196,6 +199,24 @@ export class WeaveDocument {
 			const parentNode = this.nodes.get(node.parentNode);
 
 			if (parentNode) {
+				const parentNodeChildren =
+					this.nodeChildren.get(node.parentNode) || new Set();
+
+				for (const childIdentifier of parentNodeChildren) {
+					const child = this.nodes.get(childIdentifier);
+
+					if (
+						child &&
+						child.parentNode == node.parentNode &&
+						child.content == node.content &&
+						node.model &&
+						child.model == node.model &&
+						child.metadata?.entries() == node.metadata?.entries()
+					) {
+						return;
+					}
+				}
+
 				if (parentNode.content.length > 0) {
 					this.nodes.set(node.identifier, node);
 					this.nodeChildren.set(node.identifier, new Set());
