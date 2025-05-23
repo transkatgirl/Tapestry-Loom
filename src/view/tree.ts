@@ -581,7 +581,6 @@ export class TapestryLoomTreeView extends ItemView {
 				this.generateNodeChildren(this.plugin.document?.currentNode);
 			},
 		});
-
 		this.plugin.addCommand({
 			id: "reset-tapestry-loom-tree-parameters",
 			name: "Reset inference parameters to defaults",
@@ -589,6 +588,7 @@ export class TapestryLoomTreeView extends ItemView {
 				this.plugin.sessionSettings =
 					this.plugin.settings.defaultSession ||
 					DEFAULT_SESSION_SETTINGS;
+				this.renderModels(modelMenu.childrenContainer);
 			},
 		});
 

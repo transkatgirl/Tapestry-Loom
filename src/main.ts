@@ -37,7 +37,9 @@ export default class TapestryLoom extends Plugin {
 		await this.loadSettings();
 
 		if (this.settings.defaultSession) {
-			this.sessionSettings = this.settings.defaultSession;
+			this.sessionSettings = structuredClone(
+				this.settings.defaultSession
+			);
 		}
 
 		cytoscape.use(dagre);
