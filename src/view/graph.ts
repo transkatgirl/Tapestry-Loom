@@ -236,7 +236,7 @@ export class TapestryLoomGraphView extends ItemView {
 			group: "nodes",
 			data: {
 				id: node.identifier,
-				content: content,
+				content: content.trim(),
 				model: modelLabel?.label,
 			},
 			classes: classes,
