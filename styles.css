@@ -112,3 +112,7 @@
 .tapestry_tree-heading-container .setting-item-control select {
 	width: 100%;
 }
+
+.plugin-tapestry-loom.status-bar-item:has(span:empty) {
+	display: none;
+}
