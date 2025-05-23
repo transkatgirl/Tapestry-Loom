@@ -5,10 +5,11 @@ import TapestryLoom, {
 	DOCUMENT_UPDATE_EVENT,
 	SETTINGS_UPDATE_EVENT,
 } from "main";
-import { ItemView, Setting, WorkspaceLeaf, setIcon } from "obsidian";
+import { ItemView, Setting, WorkspaceLeaf, debounce, setIcon } from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
 import { runCompletion } from "client";
+import { DEFAULT_DOCUMENT_SETTINGS } from "settings";
 
 export const TREE_VIEW_TYPE = "tapestry-loom-view";
 
@@ -242,6 +243,10 @@ export class TapestryLoomTreeView extends ItemView {
 			return;
 		}
 
+		const debounceTime =
+			this.plugin.settings.document?.debounce ||
+			DEFAULT_DOCUMENT_SETTINGS.debounce;
+
 		const models = this.plugin.settings.client.models;
 
 		const modelColors = new Map();
@@ -308,21 +313,22 @@ export class TapestryLoomTreeView extends ItemView {
 				.addText((text) => {
 					text.setPlaceholder("key")
 						.setValue(parameterKey)
-						.onChange(async (value) => {
-							if (value.length > 0) {
-								delete this.plugin.sessionSettings.parameters[
-									parameterKey
-								];
-								this.plugin.sessionSettings.parameters[value] =
-									parameterValue;
-								parameterKey = value;
-							} else {
-								delete this.plugin.sessionSettings.parameters[
-									parameterKey
-								];
-								this.renderModels(container);
-							}
-						});
+						.onChange(
+							debounce(async (value) => {
+								if (value.length > 0) {
+									delete this.plugin.sessionSettings
+										.parameters[parameterKey];
+									this.plugin.sessionSettings.parameters[
+										value
+									] = parameterValue;
+									parameterKey = value;
+								} else {
+									delete this.plugin.sessionSettings
+										.parameters[parameterKey];
+									this.renderModels(container);
+								}
+							}, debounceTime)
+						);
 				})
 				.addText((text) => {
 					text.setPlaceholder("value")
@@ -339,13 +345,15 @@ export class TapestryLoomTreeView extends ItemView {
 		let parameterFormValue = "";
 		new Setting(container)
 			.addText((text) => {
-				text.setPlaceholder("key").onChange(async (value) => {
-					if (value.length > 0) {
-						this.plugin.sessionSettings.parameters[value] =
-							parameterFormValue;
-						this.renderModels(container);
-					}
-				});
+				text.setPlaceholder("key").onChange(
+					debounce(async (value) => {
+						if (value.length > 0) {
+							this.plugin.sessionSettings.parameters[value] =
+								parameterFormValue;
+							this.renderModels(container);
+						}
+					}, debounceTime)
+				);
 			})
 			.addText((text) => {
 				text.setPlaceholder("value").onChange(async (value) => {

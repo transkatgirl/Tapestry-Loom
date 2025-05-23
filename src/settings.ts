@@ -1,4 +1,4 @@
-import { App, HexString, PluginSettingTab, Setting } from "obsidian";
+import { App, debounce, HexString, PluginSettingTab, Setting } from "obsidian";
 import { arrayMoveMutable } from "array-move";
 import { ClientSettings, EndpointType, newModel } from "client";
 import TapestryLoom from "main";
@@ -193,21 +193,27 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 					.addText((text) => {
 						text.setPlaceholder("key")
 							.setValue(headerKey)
-							.onChange(async (value) => {
-								if (value.length > 0) {
-									delete client.models[i].headers[headerKey];
-									client.models[i].headers[value] =
-										headerValue;
-									headerKey = value;
-									this.plugin.settings.client = client;
-									await this.plugin.saveSettings();
-								} else {
-									delete client.models[i].headers[headerKey];
-									this.plugin.settings.client = client;
-									await this.plugin.saveSettings();
-									this.display();
-								}
-							});
+							.onChange(
+								debounce(async (value) => {
+									if (value.length > 0) {
+										delete client.models[i].headers[
+											headerKey
+										];
+										client.models[i].headers[value] =
+											headerValue;
+										headerKey = value;
+										this.plugin.settings.client = client;
+										await this.plugin.saveSettings();
+									} else {
+										delete client.models[i].headers[
+											headerKey
+										];
+										this.plugin.settings.client = client;
+										await this.plugin.saveSettings();
+										this.display();
+									}
+								}, document.debounce)
+							);
 					})
 					.addText((text) => {
 						text.setPlaceholder("value")
@@ -224,14 +230,17 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 			new Setting(containerEl)
 				.setName("Request header")
 				.addText((text) => {
-					text.setPlaceholder("key").onChange(async (value) => {
-						if (value.length > 0) {
-							client.models[i].headers[value] = headerFormValue;
-							this.plugin.settings.client = client;
-							await this.plugin.saveSettings();
-							this.display();
-						}
-					});
+					text.setPlaceholder("key").onChange(
+						debounce(async (value) => {
+							if (value.length > 0) {
+								client.models[i].headers[value] =
+									headerFormValue;
+								this.plugin.settings.client = client;
+								await this.plugin.saveSettings();
+								this.display();
+							}
+						}, document.debounce)
+					);
 				})
 				.addText((text) => {
 					text.setPlaceholder("value").onChange(async (value) => {
@@ -247,25 +256,27 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 					.addText((text) => {
 						text.setPlaceholder("key")
 							.setValue(parameterKey)
-							.onChange(async (value) => {
-								if (value.length > 0) {
-									delete client.models[i].parameters[
-										parameterKey
-									];
-									client.models[i].parameters[value] =
-										parameterValue;
-									parameterKey = value;
-									this.plugin.settings.client = client;
-									await this.plugin.saveSettings();
-								} else {
-									delete client.models[i].parameters[
-										parameterKey
-									];
-									this.plugin.settings.client = client;
-									await this.plugin.saveSettings();
-									this.display();
-								}
-							});
+							.onChange(
+								debounce(async (value) => {
+									if (value.length > 0) {
+										delete client.models[i].parameters[
+											parameterKey
+										];
+										client.models[i].parameters[value] =
+											parameterValue;
+										parameterKey = value;
+										this.plugin.settings.client = client;
+										await this.plugin.saveSettings();
+									} else {
+										delete client.models[i].parameters[
+											parameterKey
+										];
+										this.plugin.settings.client = client;
+										await this.plugin.saveSettings();
+										this.display();
+									}
+								}, document.debounce)
+							);
 					})
 					.addText((text) => {
 						text.setPlaceholder("value")
@@ -284,15 +295,17 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 			new Setting(containerEl)
 				.setName("Request parameter")
 				.addText((text) => {
-					text.setPlaceholder("key").onChange(async (value) => {
-						if (value.length > 0) {
-							client.models[i].parameters[value] =
-								parameterFormValue;
-							this.plugin.settings.client = client;
-							await this.plugin.saveSettings();
-							this.display();
-						}
-					});
+					text.setPlaceholder("key").onChange(
+						debounce(async (value) => {
+							if (value.length > 0) {
+								client.models[i].parameters[value] =
+									parameterFormValue;
+								this.plugin.settings.client = client;
+								await this.plugin.saveSettings();
+								this.display();
+							}
+						}, document.debounce)
+					);
 				})
 				.addText((text) => {
 					text.setPlaceholder("value").onChange(async (value) => {
