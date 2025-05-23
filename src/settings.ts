@@ -10,6 +10,8 @@ export interface TapestryLoomSettings {
 	defaultSession?: SessionSettings;
 }
 
+// TODO: Allow customizing displayed depth in graph & tree
+
 export const DEFAULT_CLIENT_SETTINGS: ClientSettings = { models: [] };
 export const DEFAULT_DOCUMENT_SETTINGS: DocumentSettings = { debounce: 500 };
 export const DEFAULT_SESSION_SETTINGS: SessionSettings = {
