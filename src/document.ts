@@ -44,6 +44,30 @@ export class WeaveDocument {
 
 		return content;
 	}
+	getActiveIdentifier(
+		content: string,
+		position: number
+	): [ULID, number] | undefined {
+		const nodeList = this.getActiveNodes();
+
+		let offset = 0;
+
+		for (const [_, node] of nodeList.entries()) {
+			const nodeContent = getNodeContent(node);
+
+			if (
+				content.length >= offset + nodeContent.length &&
+				content.substring(offset, offset + nodeContent.length) ==
+					nodeContent
+			) {
+				if (position < offset + nodeContent.length) {
+					offset = offset + nodeContent.length;
+				} else {
+					return [node.identifier, position - offset];
+				}
+			}
+		}
+	}
 	setActiveContent(content: string) {
 		let modified = false;
 
