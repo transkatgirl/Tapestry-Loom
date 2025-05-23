@@ -293,6 +293,20 @@ export class TapestryLoomGraphView extends ItemView {
 			)
 		);
 
+		this.plugin.addCommand({
+			id: "reset-tapestry-loom-graph-zoom",
+			name: "Reset node graph zoom",
+			callback: () => {
+				if (this.graph && this.plugin.document) {
+					this.graph.fit(
+						this.graph.elements(
+							getPanSelector(this.plugin.document)
+						)
+					);
+				}
+			},
+		});
+
 		if (this.plugin.document) {
 			this.render(container, false);
 		}
