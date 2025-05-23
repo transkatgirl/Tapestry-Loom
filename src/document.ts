@@ -97,22 +97,25 @@ export class WeaveDocument {
 
 		return modified;
 	}
-	getActiveNodes(): Array<WeaveDocumentNode> {
+	getActiveNodes(identifier?: ULID): Array<WeaveDocumentNode> {
 		const nodeList = [];
 
-		if (this.currentNode) {
-			let node = this.nodes.get(this.currentNode);
-
-			while (node) {
-				nodeList.push(node);
-				if (node.parentNode) {
-					node = this.nodes.get(node.parentNode);
-				} else {
-					node = undefined;
-				}
-			}
-			nodeList.reverse();
+		let node: WeaveDocumentNode | undefined;
+		if (identifier) {
+			node = this.nodes.get(identifier);
+		} else if (this.currentNode) {
+			node = this.nodes.get(this.currentNode);
 		}
+
+		while (node) {
+			nodeList.push(node);
+			if (node.parentNode) {
+				node = this.nodes.get(node.parentNode);
+			} else {
+				node = undefined;
+			}
+		}
+		nodeList.reverse();
 
 		return nodeList;
 	}
