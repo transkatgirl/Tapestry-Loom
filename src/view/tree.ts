@@ -5,7 +5,14 @@ import TapestryLoom, {
 	DOCUMENT_UPDATE_EVENT,
 	SETTINGS_UPDATE_EVENT,
 } from "main";
-import { ItemView, Setting, WorkspaceLeaf, debounce, setIcon } from "obsidian";
+import {
+	ItemView,
+	Notice,
+	Setting,
+	WorkspaceLeaf,
+	debounce,
+	setIcon,
+} from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
 import { runCompletion } from "client";
@@ -378,7 +385,13 @@ export class TapestryLoomTreeView extends ItemView {
 				count: this.plugin.sessionSettings.requests,
 				parameters: this.plugin.sessionSettings.parameters,
 			}
-		);
+		).catch((error) => {
+			new Notice(error);
+		});
+
+		if (!completions) {
+			return;
+		}
 
 		for (const completion of completions) {
 			if (completion.topProbs && completion.topProbs.length > 1) {
