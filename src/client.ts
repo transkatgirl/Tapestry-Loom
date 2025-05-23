@@ -134,22 +134,26 @@ async function inferenceRequest(
 				const logprobs = result["logprobs"];
 
 				if (logprobs) {
-					const tokens: Array<[number, string]> = [];
-					for (let i = 0; i < logprobs["tokens"].length; i++) {
-						tokens.push([
-							Math.exp(logprobs["logprob"][i]),
-							logprobs["tokens"][i],
-						]);
-					}
-					const topLogprobs = logprobs["top_logprobs"];
-					if (topLogprobs && topLogprobs.length > 0) {
+					if ("content" in logprobs && logprobs["content"]) {
+						const tokens: Array<[number, string]> = [];
 						const probs: Array<[number, string]> = [];
-						for (const [token, logprob] of topLogprobs) {
-							probs.push([Math.exp(logprob), token]);
+						for (let i = 0; i < logprobs["content"].length; i++) {
+							const prob = logprobs["content"][0];
+
+							tokens.push([
+								Math.exp(prob["logprob"]),
+								prob["token"],
+							]);
+
+							if (i == 0) {
+								for (const topProb of prob["top_logprobs"]) {
+									probs.push([
+										Math.exp(topProb["logprob"]),
+										topProb["token"],
+									]);
+								}
+							}
 						}
-						probs.sort((a, b) => {
-							return a[0] - b[0];
-						});
 
 						responses.push({
 							model: model,
@@ -157,10 +161,34 @@ async function inferenceRequest(
 							topProbs: probs,
 						});
 					} else {
-						responses.push({
-							model: model,
-							completion: tokens,
-						});
+						const tokens: Array<[number, string]> = [];
+						for (let i = 0; i < logprobs["tokens"].length; i++) {
+							tokens.push([
+								Math.exp(logprobs["logprob"][i]),
+								logprobs["tokens"][i],
+							]);
+						}
+						const topLogprobs = logprobs["top_logprobs"];
+						if (topLogprobs && topLogprobs.length > 0) {
+							const probs: Array<[number, string]> = [];
+							for (const [token, logprob] of topLogprobs) {
+								probs.push([Math.exp(logprob), token]);
+							}
+							probs.sort((a, b) => {
+								return a[0] - b[0];
+							});
+
+							responses.push({
+								model: model,
+								completion: tokens,
+								topProbs: probs,
+							});
+						} else {
+							responses.push({
+								model: model,
+								completion: tokens,
+							});
+						}
 					}
 				} else {
 					responses.push({
