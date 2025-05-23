@@ -138,7 +138,7 @@ async function inferenceRequest(
 						const tokens: Array<[number, string]> = [];
 						const probs: Array<[number, string]> = [];
 						for (let i = 0; i < logprobs["content"].length; i++) {
-							const prob = logprobs["content"][0];
+							const prob = logprobs["content"][i];
 
 							tokens.push([
 								Math.exp(prob["logprob"]),
