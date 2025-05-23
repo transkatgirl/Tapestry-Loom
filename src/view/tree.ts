@@ -5,18 +5,17 @@ import TapestryLoom, {
 	DOCUMENT_UPDATE_EVENT,
 	SETTINGS_UPDATE_EVENT,
 } from "main";
-import {
-	ItemView,
-	Notice,
-	Setting,
-	WorkspaceLeaf,
-	debounce,
-	setIcon,
-} from "obsidian";
+import { ItemView, Setting, WorkspaceLeaf, debounce, setIcon } from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
-import { ULID, ulid } from "ulid";
-import { runCompletion } from "client";
+import { ULID } from "ulid";
 import { DEFAULT_DOCUMENT_SETTINGS, DEFAULT_SESSION_SETTINGS } from "settings";
+import {
+	addNode,
+	deleteNode,
+	generateNodeChildren,
+	mergeNode,
+	switchToNode,
+} from "./common";
 
 export const TREE_VIEW_TYPE = "tapestry-loom-view";
 
@@ -26,7 +25,7 @@ export interface SessionSettings {
 	parameters: Record<string, string>;
 }
 
-// TODO: Refactor out document management functions, add editor commands for more functions, incorporate cursor position into editor commands
+// TODO: Add editor commands for more functions, incorporate cursor position into editor commands
 // TODO: Show active request count in status bar
 
 export class TapestryLoomTreeView extends ItemView {
@@ -127,7 +126,7 @@ export class TapestryLoomTreeView extends ItemView {
 		}
 
 		tree.labelContainer.addEventListener("click", () => {
-			this.switchToNode(node.identifier);
+			switchToNode(this.plugin, node.identifier);
 		});
 
 		const buttons = renderNodeButtons(
@@ -142,7 +141,7 @@ export class TapestryLoomTreeView extends ItemView {
 			buttons.mergeButton.addEventListener("click", (event) => {
 				event.stopPropagation();
 				if (node.parentNode) {
-					this.mergeNode(node.parentNode, node.identifier);
+					mergeNode(this.plugin, node.parentNode, node.identifier);
 				}
 			});
 		}
@@ -155,21 +154,21 @@ export class TapestryLoomTreeView extends ItemView {
 
 		buttons.generateButton.addEventListener("click", async (event) => {
 			event.stopPropagation();
-			await this.generateNodeChildren(node.identifier);
+			await generateNodeChildren(this.plugin, node.identifier);
 		});
 		buttons.addButton.addEventListener("click", (event) => {
 			event.stopPropagation();
-			this.addNode(node.identifier);
+			addNode(this.plugin, node.identifier);
 		});
 		buttons.deleteButton.addEventListener("click", (event) => {
 			event.stopPropagation();
-			this.deleteNode(node.identifier);
+			deleteNode(this.plugin, node.identifier);
 		});
 
 		if (children.length > 0 && depth > 6) {
 			renderDepthNotice(tree);
 			tree.childrenContainer.addEventListener("click", () => {
-				this.switchToNode(node.identifier);
+				switchToNode(this.plugin, node.identifier);
 			});
 		} else {
 			for (const childNode of document.getNodeChildren(node)) {
@@ -223,7 +222,7 @@ export class TapestryLoomTreeView extends ItemView {
 		}
 
 		tree.labelContainer.addEventListener("click", () => {
-			this.switchToNode(node.identifier);
+			switchToNode(this.plugin, node.identifier);
 		});
 
 		const bookmarkToggleButton = renderBookmarkNodeButton(tree);
@@ -369,109 +368,6 @@ export class TapestryLoomTreeView extends ItemView {
 				});
 			});
 	}
-	private async generateNodeChildren(parentNode?: ULID) {
-		if (!this.plugin.document || !this.plugin.settings.client) {
-			return;
-		}
-
-		const completionPromises = runCompletion(
-			this.plugin.settings.client,
-			this.plugin.sessionSettings.models,
-			{
-				prompt: this.plugin.document.getActiveContent(parentNode),
-				count: this.plugin.sessionSettings.requests,
-				parameters: this.plugin.sessionSettings.parameters,
-			}
-		);
-
-		const debounceTime =
-			this.plugin.settings.document?.debounce ||
-			DEFAULT_DOCUMENT_SETTINGS.debounce;
-
-		let lastUpdate = performance.now();
-
-		for (const completionPromise of completionPromises) {
-			completionPromise
-				.then((completions) => {
-					if (!this.plugin.document) {
-						return;
-					}
-
-					for (const completion of completions) {
-						if (
-							completion.topProbs &&
-							completion.topProbs.length > 1
-						) {
-							for (const prob of completion.topProbs) {
-								this.plugin.document.addNode(
-									{
-										identifier: ulid(),
-										content: [prob],
-										model: completion.model.ulid,
-										parentNode: parentNode,
-									},
-									completion.model.label
-								);
-							}
-						}
-
-						if (
-							typeof completion.completion == "string" ||
-							!completion.topProbs ||
-							completion.completion.length > 1
-						) {
-							this.plugin.document.addNode(
-								{
-									identifier: ulid(),
-									content: completion.completion,
-									model: completion.model.ulid,
-									parentNode: parentNode,
-								},
-								completion.model.label
-							);
-						}
-					}
-
-					const currentTimestamp = performance.now();
-
-					if (currentTimestamp - lastUpdate > debounceTime) {
-						this.app.workspace.trigger(
-							DOCUMENT_TRIGGER_UPDATE_EVENT
-						);
-						lastUpdate = currentTimestamp;
-					}
-				})
-				.catch((error) => {
-					new Notice(error);
-				});
-		}
-
-		await Promise.all(completionPromises);
-
-		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
-	}
-	private addNode(parentNode?: ULID) {
-		if (!this.plugin.document) {
-			return;
-		}
-
-		const identifier = ulid();
-		this.plugin.document.addNode({
-			identifier: identifier,
-			content: "",
-			parentNode: parentNode,
-		});
-		this.plugin.document.currentNode = identifier;
-		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
-	}
-	private switchToNode(identifier: ULID) {
-		if (!this.plugin.document) {
-			return;
-		}
-
-		this.plugin.document.currentNode = identifier;
-		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
-	}
 	private toggleBookmarkNode(identifier: ULID) {
 		if (!this.plugin.document) {
 			return;
@@ -486,22 +382,6 @@ export class TapestryLoomTreeView extends ItemView {
 			}
 		}
 
-		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
-	}
-	private mergeNode(primaryIdentifier: ULID, secondaryIdentifier: ULID) {
-		if (!this.plugin.document) {
-			return;
-		}
-
-		this.plugin.document.mergeNode(primaryIdentifier, secondaryIdentifier);
-		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
-	}
-	private deleteNode(identifier: ULID) {
-		if (!this.plugin.document) {
-			return;
-		}
-
-		this.plugin.document.removeNode(identifier);
 		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
 	async onOpen() {
@@ -581,7 +461,10 @@ export class TapestryLoomTreeView extends ItemView {
 			id: "run-tapestry-loom-completion",
 			name: "Run completion",
 			callback: () => {
-				this.generateNodeChildren(this.plugin.document?.currentNode);
+				generateNodeChildren(
+					this.plugin,
+					this.plugin.document?.currentNode
+				);
 			},
 		});
 		this.plugin.addCommand({

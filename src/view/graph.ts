@@ -1,16 +1,14 @@
 import TapestryLoom, {
 	DOCUMENT_DROP_EVENT,
 	DOCUMENT_LOAD_EVENT,
-	DOCUMENT_TRIGGER_UPDATE_EVENT,
 	DOCUMENT_UPDATE_EVENT,
 } from "main";
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { getNodeContent, WeaveDocument, WeaveDocumentNode } from "document";
 import { ULID } from "ulid";
 import cytoscape, { Core, StylesheetJsonBlock } from "cytoscape";
-
-// @ts-expect-error
-import crass from "crass";
+import { getGlobalCSSColorVariable } from "common";
+import { switchToNode, toggleBookmarkNode } from "./common";
 
 export const GRAPH_VIEW_TYPE = "tapestry-loom-graph-view";
 
@@ -145,13 +143,13 @@ export class TapestryLoomGraphView extends ItemView {
 				this.graph.on("tap", "node", (event) => {
 					const node = event.target.data().id;
 					if (typeof node == "string") {
-						this.switchToNode(node);
+						switchToNode(this.plugin, node);
 					}
 				});
 				this.graph.on("cxttap", "node", (event) => {
 					const node = event.target.data().id;
 					if (typeof node == "string") {
-						this.toggleBookmarkNode(node);
+						toggleBookmarkNode(this.plugin, node);
 					}
 				});
 				this.graph.on("dragpan", (_event) => {
@@ -171,27 +169,6 @@ export class TapestryLoomGraphView extends ItemView {
 			this.graph = undefined;
 			this.panned = false;
 		}
-	}
-	private switchToNode(identifier: ULID) {
-		if (!this.plugin.document) {
-			return;
-		}
-
-		this.plugin.document.currentNode = identifier;
-		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
-	}
-	private toggleBookmarkNode(identifier: ULID) {
-		if (!this.plugin.document) {
-			return;
-		}
-
-		if (this.plugin.document.bookmarks.has(identifier)) {
-			this.plugin.document.bookmarks.delete(identifier);
-		} else {
-			this.plugin.document.bookmarks.add(identifier);
-		}
-
-		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
 	private buildNode(
 		elements: Array<cytoscape.ElementDefinition>,
@@ -405,20 +382,4 @@ function getActiveNodeIdentifiers(document: WeaveDocument): Set<ULID> {
 	}
 
 	return identifiers;
-}
-
-/*function getGlobalCSSVariable(key: string) {
-	return window.getComputedStyle(window.document.body).getPropertyValue(key);
-}*/
-
-function getGlobalCSSColorVariable(key: string) {
-	let parsed = crass.parse(
-		"a{color:" +
-			window
-				.getComputedStyle(window.document.body)
-				.getPropertyValue(key) +
-			"}"
-	);
-	parsed = parsed.optimize();
-	return parsed.toString().slice(8, -1);
 }
