@@ -69,11 +69,11 @@ export interface CompletionResponse {
 	completion: string | Array<[number, string]>;
 }
 
-export async function runCompletion(
+export function runCompletion(
 	config: ClientSettings,
 	models: Array<ULID>,
 	request: CompletionRequest
-): Promise<Array<CompletionResponse>> {
+): Array<Promise<Array<CompletionResponse>>> {
 	const modelIdentifiers = new Set(models);
 	const modelObjects = [];
 
@@ -91,7 +91,7 @@ export async function runCompletion(
 		}
 	}
 
-	return Promise.all(requests).then((responses) => responses.flat());
+	return requests;
 }
 
 async function inferenceRequest(

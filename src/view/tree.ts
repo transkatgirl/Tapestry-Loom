@@ -377,7 +377,7 @@ export class TapestryLoomTreeView extends ItemView {
 			return;
 		}
 
-		const completions = await runCompletion(
+		const completionPromises = runCompletion(
 			this.plugin.settings.client,
 			this.plugin.sessionSettings.models,
 			{
@@ -385,45 +385,56 @@ export class TapestryLoomTreeView extends ItemView {
 				count: this.plugin.sessionSettings.requests,
 				parameters: this.plugin.sessionSettings.parameters,
 			}
-		).catch((error) => {
-			new Notice(error);
-		});
+		);
 
-		if (!completions) {
-			return;
+		for (const completionPromise of completionPromises) {
+			completionPromise
+				.then((completions) => {
+					if (!this.plugin.document) {
+						return;
+					}
+
+					for (const completion of completions) {
+						if (
+							completion.topProbs &&
+							completion.topProbs.length > 1
+						) {
+							for (const prob of completion.topProbs) {
+								this.plugin.document.addNode(
+									{
+										identifier: ulid(),
+										content: [prob],
+										model: completion.model.ulid,
+										parentNode: parentNode,
+									},
+									completion.model.label
+								);
+							}
+						}
+
+						if (
+							typeof completion.completion == "string" ||
+							!completion.topProbs ||
+							completion.completion.length > 1
+						) {
+							this.plugin.document.addNode(
+								{
+									identifier: ulid(),
+									content: completion.completion,
+									model: completion.model.ulid,
+									parentNode: parentNode,
+								},
+								completion.model.label
+							);
+						}
+					}
+				})
+				.catch((error) => {
+					new Notice(error);
+				});
 		}
 
-		for (const completion of completions) {
-			if (completion.topProbs && completion.topProbs.length > 1) {
-				for (const prob of completion.topProbs) {
-					this.plugin.document.addNode(
-						{
-							identifier: ulid(),
-							content: [prob],
-							model: completion.model.ulid,
-							parentNode: parentNode,
-						},
-						completion.model.label
-					);
-				}
-			}
-
-			if (
-				typeof completion.completion == "string" ||
-				!completion.topProbs ||
-				completion.completion.length > 1
-			) {
-				this.plugin.document.addNode(
-					{
-						identifier: ulid(),
-						content: completion.completion,
-						model: completion.model.ulid,
-						parentNode: parentNode,
-					},
-					completion.model.label
-				);
-			}
-		}
+		await Promise.all(completionPromises);
 
 		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
