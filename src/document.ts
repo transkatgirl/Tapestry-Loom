@@ -4,8 +4,6 @@ import { deserialize } from "common";
 import { ulid, ULID } from "ulid";
 import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
 
-// TODO: Allow for handling invalid UTF-8
-
 export class WeaveDocument {
 	identifier: ULID = ulid();
 	models: Map<ULID, ModelLabel> = new Map();
