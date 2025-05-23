@@ -281,8 +281,12 @@ export class TapestryLoomTreeView extends ItemView {
 						.setValue(this.plugin.sessionSettings.models[i])
 						.onChange((value) => {
 							this.plugin.sessionSettings.models[i] = value;
-							dropdown.selectEl.style.color =
-								modelColors.get(value);
+							if (modelColors.has(value)) {
+								dropdown.selectEl.style.color =
+									modelColors.get(value);
+							} else {
+								dropdown.selectEl.style.color = "inherit";
+							}
 						});
 					dropdown.selectEl.style.color = modelColors.get(
 						this.plugin.sessionSettings.models[i]
