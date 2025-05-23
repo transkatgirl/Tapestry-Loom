@@ -9,7 +9,7 @@ import {
 } from "settings";
 import { TapestryLoomTreeView, TREE_VIEW_TYPE } from "view/tree";
 import { TapestryLoomGraphView, GRAPH_VIEW_TYPE } from "view/graph";
-import { EDITOR_COMMANDS, EDITOR_PLUGIN } from "view/editor";
+import { EDITOR_PLUGIN } from "view/editor";
 import cytoscape from "cytoscape";
 import dagre from "cytoscape-dagre";
 import {
@@ -18,6 +18,7 @@ import {
 	updateDocument,
 	WeaveDocument,
 } from "document";
+import { buildCommands } from "commands";
 
 export const DOCUMENT_LOAD_EVENT = "tapestry-document:load";
 export const DOCUMENT_TRIGGER_UPDATE_EVENT = "tapestry-document:override";
@@ -137,7 +138,7 @@ export default class TapestryLoom extends Plugin {
 			},
 		});
 
-		EDITOR_COMMANDS.forEach((command) => this.addCommand(command));
+		buildCommands(this).forEach((command) => this.addCommand(command));
 
 		this.addSettingTab(new TapestryLoomSettingTab(this.app, this));
 	}

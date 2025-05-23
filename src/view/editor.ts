@@ -23,8 +23,6 @@ import {
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
 
-export const EDITOR_COMMANDS: Array<Command> = [];
-
 class TapestryLoomPlugin implements PluginValue {
 	constructor(view: EditorView) {
 		// ...
