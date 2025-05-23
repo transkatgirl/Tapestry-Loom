@@ -3,14 +3,11 @@ import serialize from "serialize-javascript";
 import { deserialize } from "common";
 import {
 	DEFAULT_DOCUMENT_SETTINGS,
+	DEFAULT_SESSION_SETTINGS,
 	TapestryLoomSettings,
 	TapestryLoomSettingTab,
 } from "settings";
-import {
-	DEFAULT_SESSION_SETTINGS,
-	TapestryLoomTreeView,
-	TREE_VIEW_TYPE,
-} from "view/tree";
+import { TapestryLoomTreeView, TREE_VIEW_TYPE } from "view/tree";
 import { TapestryLoomGraphView, GRAPH_VIEW_TYPE } from "view/graph";
 import { EDITOR_COMMANDS, EDITOR_PLUGIN } from "view/editor";
 import cytoscape from "cytoscape";
@@ -37,6 +34,10 @@ export default class TapestryLoom extends Plugin {
 		const { workspace } = this.app;
 
 		await this.loadSettings();
+
+		if (this.settings.defaultSession) {
+			this.sessionSettings = this.settings.defaultSession;
+		}
 
 		cytoscape.use(dagre);
 

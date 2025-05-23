@@ -2,16 +2,21 @@ import { App, debounce, HexString, PluginSettingTab, Setting } from "obsidian";
 import { arrayMoveMutable } from "array-move";
 import { ClientSettings, EndpointType, newModel } from "client";
 import TapestryLoom from "main";
-
-// TODO: Allow customizing default SessionSettings
+import { SessionSettings } from "view/tree";
 
 export interface TapestryLoomSettings {
 	client?: ClientSettings;
 	document?: DocumentSettings;
+	defaultSession?: SessionSettings;
 }
 
 export const DEFAULT_CLIENT_SETTINGS: ClientSettings = { models: [] };
 export const DEFAULT_DOCUMENT_SETTINGS: DocumentSettings = { debounce: 500 };
+export const DEFAULT_SESSION_SETTINGS: SessionSettings = {
+	requests: 6,
+	models: [],
+	parameters: { temperature: "1", max_tokens: "10" },
+};
 
 const DEFAULT_LABEL_COLOR: HexString = "#000000";
 
@@ -59,6 +64,31 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					})
 			);
+
+		new Setting(containerEl)
+			.setName("Inference parameter defaults")
+			.setDesc(
+				"Modify the inference parameters used when starting a new session."
+			)
+			.addButton((button) => {
+				button
+					.setButtonText("Replace defaults with current values")
+					.onClick(async (_event) => {
+						this.plugin.settings.defaultSession =
+							this.plugin.sessionSettings;
+						await this.plugin.saveSettings();
+						this.display();
+					});
+			})
+			.addButton((button) => {
+				button
+					.setButtonText("Reset defaults")
+					.onClick(async (_event) => {
+						this.plugin.settings.defaultSession = undefined;
+						await this.plugin.saveSettings();
+						this.display();
+					});
+			});
 
 		new Setting(containerEl).setHeading().setName("Models");
 		const modelForm = {

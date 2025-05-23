@@ -26,12 +26,6 @@ export interface SessionSettings {
 	parameters: Record<string, string>;
 }
 
-export const DEFAULT_SESSION_SETTINGS: SessionSettings = {
-	requests: 6,
-	models: [],
-	parameters: { temperature: "1", max_tokens: "10" },
-};
-
 export class TapestryLoomTreeView extends ItemView {
 	plugin: TapestryLoom;
 	private collapsedNodes: Set<ULID> = new Set();
