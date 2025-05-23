@@ -27,6 +27,7 @@ export interface SessionSettings {
 }
 
 // TODO: Refactor out document management functions, add editor commands for more functions, incorporate cursor position into editor commands
+// TODO: Show active request count in status bar
 
 export class TapestryLoomTreeView extends ItemView {
 	plugin: TapestryLoom;
