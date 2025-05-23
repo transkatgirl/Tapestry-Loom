@@ -359,20 +359,26 @@ export class TapestryLoomTreeView extends ItemView {
 		for (const completion of completions) {
 			if (completion.topProbs && completion.topProbs.length > 0) {
 				for (const prob of completion.topProbs) {
-					this.plugin.document.addNode({
-						identifier: ulid(),
-						content: [prob],
-						model: completion.model.ulid,
-						parentNode: parentNode,
-					});
+					this.plugin.document.addNode(
+						{
+							identifier: ulid(),
+							content: [prob],
+							model: completion.model.ulid,
+							parentNode: parentNode,
+						},
+						completion.model.label
+					);
 				}
 			} else {
-				this.plugin.document.addNode({
-					identifier: ulid(),
-					content: completion.completion,
-					model: completion.model.ulid,
-					parentNode: parentNode,
-				});
+				this.plugin.document.addNode(
+					{
+						identifier: ulid(),
+						content: completion.completion,
+						model: completion.model.ulid,
+						parentNode: parentNode,
+					},
+					completion.model.label
+				);
 			}
 		}
 
