@@ -60,7 +60,7 @@ export class WeaveDocument {
 				content.substring(offset, offset + nodeContent.length) ==
 					nodeContent
 			) {
-				if (position < offset + nodeContent.length) {
+				if (position > offset + nodeContent.length) {
 					offset = offset + nodeContent.length;
 				} else {
 					return [node.identifier, position - offset];
