@@ -1,5 +1,5 @@
 import TapestryLoom, { DOCUMENT_TRIGGER_UPDATE_EVENT } from "main";
-import { Notice } from "obsidian";
+import { Editor, getFrontMatterInfo, Notice } from "obsidian";
 import { ULID, ulid } from "ulid";
 import { runCompletion } from "client";
 import { DEFAULT_DOCUMENT_SETTINGS } from "settings";
@@ -160,4 +160,24 @@ export function deleteNode(plugin: TapestryLoom, identifier: ULID) {
 
 	plugin.document.removeNode(identifier);
 	plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
+}
+
+export function getEditorContent(editor: Editor) {
+	const rawContent = editor.getValue();
+	const frontMatterInfo = getFrontMatterInfo(rawContent);
+	const content = rawContent.substring(frontMatterInfo.contentStart);
+
+	return content;
+}
+
+export function getEditorOffset(editor: Editor) {
+	const rawContent = editor.getValue();
+	const frontMatterInfo = getFrontMatterInfo(rawContent);
+	const offset =
+		editor.posToOffset(editor.getCursor("head")) -
+		frontMatterInfo.contentStart;
+
+	if (offset >= 0) {
+		return offset;
+	}
 }
