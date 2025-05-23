@@ -115,8 +115,6 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 				});
 			});
 
-		console.log(this.plugin.settings.client.models);
-
 		for (let i = 0; i < client.models.length; i++) {
 			new Setting(containerEl).setHeading().setName("Edit model");
 			const labelSetting = new Setting(containerEl)

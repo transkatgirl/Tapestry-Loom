@@ -32,7 +32,7 @@ export function newModel(
 	if (url && type == EndpointType.OpenAICompletionv1Compatible) {
 		const headers: Record<string, string> = {};
 		if (apiKey) {
-			headers["Bearer"] = apiKey;
+			headers["Authorization"] = "Bearer " + apiKey;
 		}
 
 		const parameters: Record<string, string> = {};
@@ -101,7 +101,7 @@ async function inferenceRequest(
 ): Promise<Array<CompletionResponse>> {
 	if (model.type == EndpointType.OpenAICompletionv1Compatible) {
 		const body: Record<string, string | number> = {
-			text: request.prompt,
+			prompt: request.prompt,
 			...model.parameters,
 			...request.parameters,
 		};
