@@ -22,6 +22,8 @@ const GRAPH_LAYOUT = {
 	},
 };
 
+// TODO: Improve graphing performance
+
 export class TapestryLoomGraphView extends ItemView {
 	plugin: TapestryLoom;
 	private graph?: Core;
