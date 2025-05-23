@@ -25,9 +25,6 @@ export interface SessionSettings {
 	parameters: Record<string, string>;
 }
 
-// TODO: Add editor commands for more functions, incorporate cursor position into editor commands
-// TODO: Show active request count in status bar
-
 export class TapestryLoomTreeView extends ItemView {
 	plugin: TapestryLoom;
 	private collapsedNodes: Set<ULID> = new Set();
@@ -457,16 +454,6 @@ export class TapestryLoomTreeView extends ItemView {
 			)
 		);
 
-		this.plugin.addCommand({
-			id: "run-tapestry-loom-completion",
-			name: "Run completion",
-			callback: () => {
-				generateNodeChildren(
-					this.plugin,
-					this.plugin.document?.currentNode
-				);
-			},
-		});
 		this.plugin.addCommand({
 			id: "reset-tapestry-loom-tree-parameters",
 			name: "Reset inference parameters to defaults",

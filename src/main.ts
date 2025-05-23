@@ -17,7 +17,7 @@ import {
 	updateDocument,
 	WeaveDocument,
 } from "document";
-import { buildCommands } from "commands";
+import { buildCommands } from "view/commands";
 
 // @ts-expect-error
 import elk from "cytoscape-elk";

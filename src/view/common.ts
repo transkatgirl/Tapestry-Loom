@@ -4,6 +4,8 @@ import { ULID, ulid } from "ulid";
 import { runCompletion } from "client";
 import { DEFAULT_DOCUMENT_SETTINGS } from "settings";
 
+// TODO: Show active request count in status bar
+
 export async function generateNodeChildren(
 	plugin: TapestryLoom,
 	parentNode?: ULID
