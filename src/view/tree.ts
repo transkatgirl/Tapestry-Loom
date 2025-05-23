@@ -387,6 +387,12 @@ export class TapestryLoomTreeView extends ItemView {
 			}
 		);
 
+		const debounceTime =
+			this.plugin.settings.document?.debounce ||
+			DEFAULT_DOCUMENT_SETTINGS.debounce;
+
+		let lastUpdate = performance.now();
+
 		for (const completionPromise of completionPromises) {
 			completionPromise
 				.then((completions) => {
@@ -427,6 +433,15 @@ export class TapestryLoomTreeView extends ItemView {
 								completion.model.label
 							);
 						}
+					}
+
+					const currentTimestamp = performance.now();
+
+					if (currentTimestamp - lastUpdate > debounceTime) {
+						this.app.workspace.trigger(
+							DOCUMENT_TRIGGER_UPDATE_EVENT
+						);
+						lastUpdate = currentTimestamp;
 					}
 				})
 				.catch((error) => {

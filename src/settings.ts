@@ -51,9 +51,9 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 					)
 					.setValue(document.debounce.toString())
 					.onChange(async (value) => {
-						document.debounce = parseInt(value) || 20;
-						if (document.debounce < 20) {
-							document.debounce = 20;
+						document.debounce = parseInt(value) || 500;
+						if (document.debounce < 30) {
+							document.debounce = 30;
 						}
 						this.plugin.settings.document = document;
 						await this.plugin.saveSettings();
