@@ -254,11 +254,7 @@ export class WeaveDocument {
 			this.nodeChildren.set(node.identifier, new Set());
 		}
 		if (node.model) {
-			const documentModel = this.models.get(node.model);
-
-			if (!documentModel) {
-				this.models.set(node.model, model);
-			}
+			this.models.set(node.model, model);
 
 			const modelNodes = this.modelNodes.get(node.model);
 
