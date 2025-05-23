@@ -71,12 +71,21 @@ export interface CompletionResponse {
 
 export async function runCompletion(
 	config: ClientSettings,
-	models: Array<ModelConfiguration>,
+	models: Array<ULID>,
 	request: CompletionRequest
 ): Promise<Array<CompletionResponse>> {
+	const modelIdentifiers = new Set(models);
+	const modelObjects = [];
+
+	for (const model of config.models) {
+		if (modelIdentifiers.has(model.ulid)) {
+			modelObjects.push(model);
+		}
+	}
+
 	const requests: Array<Promise<Array<CompletionResponse>>> = [];
 
-	for (const model of models) {
+	for (const model of modelObjects) {
 		for (let i = 0; i < request.count; i++) {
 			requests.push(inferenceRequest(config, model, request));
 		}
@@ -107,13 +116,20 @@ async function inferenceRequest(
 			}
 		}
 
+		const headers: Record<string, string> = {
+			Accept: "application/json",
+			...model.headers,
+		};
+
 		return requestUrl({
 			url: model.url,
 			method: "POST",
 			contentType: "application/json",
 			body: JSON.stringify(body),
-			headers: model.headers,
+			headers: headers,
 		}).then((response) => {
+			console.log(response);
+
 			const responses: Array<CompletionResponse> = [];
 
 			for (const result of response.json["choices"]) {

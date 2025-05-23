@@ -8,6 +8,7 @@ import TapestryLoom, {
 import { ItemView, Setting, WorkspaceLeaf, setIcon } from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
+import { runCompletion } from "client";
 
 export const TREE_VIEW_TYPE = "tapestry-loom-view";
 
@@ -147,9 +148,9 @@ export class TapestryLoomTreeView extends ItemView {
 			});
 		}
 
-		buttons.generateButton.addEventListener("click", (event) => {
+		buttons.generateButton.addEventListener("click", async (event) => {
 			event.stopPropagation();
-			this.generateNodeChildren(node.identifier);
+			await this.generateNodeChildren(node.identifier);
 		});
 		buttons.addButton.addEventListener("click", (event) => {
 			event.stopPropagation();
@@ -340,12 +341,42 @@ export class TapestryLoomTreeView extends ItemView {
 				});
 			});
 	}
-	private generateNodeChildren(parentNode?: ULID) {
-		if (!this.plugin.document) {
+	private async generateNodeChildren(parentNode?: ULID) {
+		if (!this.plugin.document || !this.plugin.settings.client) {
 			return;
 		}
 
-		throw new Error("unimplemented"); // TODO
+		const completions = await runCompletion(
+			this.plugin.settings.client,
+			this.plugin.sessionSettings.models,
+			{
+				prompt: this.plugin.document.getActiveContent(parentNode),
+				count: this.plugin.sessionSettings.requests,
+				parameters: this.plugin.sessionSettings.parameters,
+			}
+		);
+
+		for (const completion of completions) {
+			if (completion.topProbs && completion.topProbs.length > 0) {
+				for (const prob of completion.topProbs) {
+					this.plugin.document.addNode({
+						identifier: ulid(),
+						content: [prob],
+						model: completion.model.ulid,
+						parentNode: parentNode,
+					});
+				}
+			} else {
+				this.plugin.document.addNode({
+					identifier: ulid(),
+					content: completion.completion,
+					model: completion.model.ulid,
+					parentNode: parentNode,
+				});
+			}
+		}
+
+		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
 	private addNode(parentNode?: ULID) {
 		if (!this.plugin.document) {
