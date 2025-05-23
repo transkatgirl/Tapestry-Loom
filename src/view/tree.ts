@@ -261,7 +261,7 @@ export class TapestryLoomTreeView extends ItemView {
 				.setValue(this.plugin.sessionSettings.requests.toString())
 				.onChange(async (value) => {
 					this.plugin.sessionSettings.requests = parseInt(value) || 1;
-					if (this.plugin.sessionSettings.requests > 1) {
+					if (this.plugin.sessionSettings.requests < 1) {
 						this.plugin.sessionSettings.requests = 1;
 					}
 				});
