@@ -95,6 +95,7 @@ export function runCompletion(
 }
 
 // TODO: Handle invalid UTF-8 (characters can be split over multiple tokens)
+// TODO: Improve error messages
 
 async function inferenceRequest(
 	_config: ClientSettings,

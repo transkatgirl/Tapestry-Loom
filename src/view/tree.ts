@@ -26,6 +26,8 @@ export interface SessionSettings {
 	parameters: Record<string, string>;
 }
 
+// TODO: Refactor out document management functions, add editor commands for more functions, incorporate cursor position into editor commands
+
 export class TapestryLoomTreeView extends ItemView {
 	plugin: TapestryLoom;
 	private collapsedNodes: Set<ULID> = new Set();
