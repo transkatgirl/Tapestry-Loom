@@ -10,7 +10,7 @@ export interface TapestryLoomSettings {
 	defaultSession?: SessionSettings;
 }
 
-// TODO: Allow customizing displayed depth in graph & tree
+// TODO: Allow customizing displayed depth in graph & tree, allow disabling color-coding for blind model comparisons
 
 export const DEFAULT_CLIENT_SETTINGS: ClientSettings = { models: [] };
 export const DEFAULT_DOCUMENT_SETTINGS: DocumentSettings = { debounce: 500 };
