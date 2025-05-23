@@ -74,7 +74,7 @@ export class WeaveDocument {
 					this.getNodeChildrenCount(nodeList[i].identifier) <= 1 &&
 					!this.bookmarks.has(nodeList[i].identifier) &&
 					!node.model &&
-					node.metadata?.size == 0
+					!node.metadata
 				) {
 					this.removeNode(nodeList[i].identifier);
 				}
