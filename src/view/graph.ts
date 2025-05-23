@@ -16,7 +16,6 @@ export const GRAPH_VIEW_TYPE = "tapestry-loom-graph-view";
 
 const GRAPH_LAYOUT = {
 	name: "elk",
-	//fit: false,
 	nodeDimensionsIncludeLabels: true,
 	elk: {
 		algorithm: "mrtree",
@@ -85,7 +84,7 @@ export class TapestryLoomGraphView extends ItemView {
 							"font-size": "7px",
 							color: getGlobalCSSColorVariable("--graph-text"),
 							"text-wrap": "ellipsis",
-							"text-max-width": "70px",
+							"text-max-width": "100px",
 							width: "20px",
 							height: "20px",
 							"background-color":
