@@ -153,10 +153,6 @@ export class WeaveDocument {
 		if (node.parentNode) {
 			const parentNode = this.nodes.get(node.parentNode);
 			if (parentNode) {
-				/*if (node.content.length == 0) {
-					this.currentNode = node.parentNode;
-					return;
-				}*/
 				if (
 					this.getNodeChildrenCount(node.parentNode) == 0 &&
 					node.model == parentNode.model &&
@@ -211,16 +207,17 @@ export class WeaveDocument {
 					if (
 						child &&
 						child.parentNode == node.parentNode &&
-						child.content == node.content &&
-						node.model &&
+						JSON.stringify(child.content) ==
+							JSON.stringify(node.content) &&
 						child.model == node.model &&
-						child.metadata?.entries() == node.metadata?.entries()
+						JSON.stringify(child.metadata?.entries()) ==
+							JSON.stringify(node.metadata?.entries())
 					) {
 						return;
 					}
 				}
 
-				if (parentNode.content.length > 0) {
+				if (getNodeContent(parentNode).length > 0) {
 					this.nodes.set(node.identifier, node);
 					this.nodeChildren.set(node.identifier, new Set());
 					const parentChildren = this.nodeChildren.get(
