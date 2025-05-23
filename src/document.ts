@@ -467,7 +467,7 @@ function sortNodeList(nodes: Array<WeaveDocumentNode>) {
 		if (x && y) {
 			return (
 				(a.model || "")?.localeCompare(b.model || "") ||
-				(a.content[0][0] as number) - (b.content[0][0] as number)
+				(b.content[0][0] as number) - (a.content[0][0] as number)
 			);
 		} else {
 			return (
