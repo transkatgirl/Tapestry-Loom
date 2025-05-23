@@ -75,7 +75,7 @@ export class TapestryLoomGraphView extends ItemView {
 								getGlobalCSSVariable("--font-ui-smaller"),
 							color: getGlobalCSSColorVariable("--graph-text"),
 							"text-wrap": "ellipsis",
-							"text-max-width": "5em",
+							"text-max-width": "80px",
 							"background-color":
 								getGlobalCSSColorVariable("--graph-node"),
 						},

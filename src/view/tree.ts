@@ -244,6 +244,13 @@ export class TapestryLoomTreeView extends ItemView {
 
 		const models = this.plugin.settings.client.models;
 
+		const modelColors = new Map();
+		for (const model of models) {
+			if (model.label.color) {
+				modelColors.set(model.ulid, model.label.color);
+			}
+		}
+
 		new Setting(container).setName("Requests").addText((text) => {
 			text.setPlaceholder((1).toString())
 				.setValue(this.plugin.sessionSettings.requests.toString())
@@ -269,7 +276,12 @@ export class TapestryLoomTreeView extends ItemView {
 						.setValue(this.plugin.sessionSettings.models[i])
 						.onChange((value) => {
 							this.plugin.sessionSettings.models[i] = value;
+							dropdown.selectEl.style.color =
+								modelColors.get(value);
 						});
+					dropdown.selectEl.style.color = modelColors.get(
+						this.plugin.sessionSettings.models[i]
+					);
 				})
 				.addExtraButton((button) => {
 					button.setIcon("x").onClick(() => {

@@ -128,8 +128,6 @@ async function inferenceRequest(
 			body: JSON.stringify(body),
 			headers: headers,
 		}).then((response) => {
-			console.log(response);
-
 			const responses: Array<CompletionResponse> = [];
 
 			for (const result of response.json["choices"]) {
