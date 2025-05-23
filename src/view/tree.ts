@@ -391,15 +391,21 @@ export class TapestryLoomTreeView extends ItemView {
 				}
 			}
 
-			this.plugin.document.addNode(
-				{
-					identifier: ulid(),
-					content: completion.completion,
-					model: completion.model.ulid,
-					parentNode: parentNode,
-				},
-				completion.model.label
-			);
+			if (
+				typeof completion.completion == "string" ||
+				!completion.topProbs ||
+				completion.completion.length > 1
+			) {
+				this.plugin.document.addNode(
+					{
+						identifier: ulid(),
+						content: completion.completion,
+						model: completion.model.ulid,
+						parentNode: parentNode,
+					},
+					completion.model.label
+				);
+			}
 		}
 
 		this.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
