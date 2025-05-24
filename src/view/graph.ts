@@ -159,8 +159,14 @@ export class TapestryLoomGraphView extends ItemView {
 				this.graph.on("scrollzoom", (_event) => {
 					this.panned = true;
 				});
-
-				this.graph.fit(this.graph.elements(getPanSelector(document)));
+				this.graph.on("ready", (_event) => {
+					if (!this.graph) {
+						return;
+					}
+					this.graph.fit(
+						this.graph.elements(getPanSelector(document))
+					);
+				});
 			}
 		} else {
 			container.empty();
