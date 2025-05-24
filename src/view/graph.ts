@@ -22,8 +22,6 @@ const GRAPH_LAYOUT = {
 	},
 };
 
-// TODO: Improve graphing performance
-
 export class TapestryLoomGraphView extends ItemView {
 	plugin: TapestryLoom;
 	private graph?: Core;
@@ -51,17 +49,76 @@ export class TapestryLoomGraphView extends ItemView {
 			for (const node of document.getRootNodes()) {
 				this.buildNode(elements, node, activeNodes);
 			}
-			if (incremental && this.graph) {
-				this.graph.startBatch();
 
+			const graphStyle: Array<StylesheetJsonBlock> = [
+				{
+					selector: "node",
+					style: {
+						label: "data(content)",
+						"text-halign": "center",
+						"text-valign": "bottom",
+						"font-size": "7px",
+						color: getGlobalCSSColorVariable("--graph-text"),
+						"text-wrap": "ellipsis",
+						"text-max-width": "100px",
+						width: "20px",
+						height: "20px",
+						"background-color":
+							getGlobalCSSColorVariable("--graph-node"),
+					},
+				},
+				{
+					selector: "edge",
+					style: {
+						"line-color": getGlobalCSSColorVariable("--graph-line"),
+					},
+				},
+				{
+					selector: ".tapestry_graph-empty-node",
+					style: {
+						"background-color": getGlobalCSSColorVariable(
+							"--graph-node-unresolved"
+						),
+					},
+				},
+				{
+					selector: ".tapestry_graph-logit-node",
+					style: {
+						"text-valign": "center",
+						"background-color":
+							getGlobalCSSColorVariable("--graph-line"),
+					},
+				},
+				{
+					selector: ".tapestry_graph-bookmarked-node",
+					style: {
+						"background-color": getGlobalCSSColorVariable(
+							"--graph-node-attachment"
+						),
+					},
+				},
+				{
+					selector: ".tapestry_graph-selected",
+					style: {
+						"line-color": getGlobalCSSColorVariable(
+							"--graph-node-focused"
+						),
+						"background-color": getGlobalCSSColorVariable(
+							"--graph-node-focused"
+						),
+					},
+				},
+			];
+
+			if (incremental && this.graph) {
 				const pan = this.graph.pan();
 				const zoom = this.graph.zoom();
 
-				this.graph.remove(this.graph.elements("*"));
-				this.graph.add(elements);
+				this.graph.json({
+					elements: elements,
+					layout: GRAPH_LAYOUT,
+				});
 
-				this.graph.endBatch();
-				this.graph.createLayout(GRAPH_LAYOUT).run();
 				if (this.panned) {
 					this.graph.pan(pan);
 					this.graph.zoom(zoom);
@@ -73,67 +130,6 @@ export class TapestryLoomGraphView extends ItemView {
 			} else {
 				container.empty();
 				this.panned = false;
-
-				const graphStyle: Array<StylesheetJsonBlock> = [
-					{
-						selector: "node",
-						style: {
-							label: "data(content)",
-							"text-halign": "center",
-							"text-valign": "bottom",
-							"font-size": "7px",
-							color: getGlobalCSSColorVariable("--graph-text"),
-							"text-wrap": "ellipsis",
-							"text-max-width": "100px",
-							width: "20px",
-							height: "20px",
-							"background-color":
-								getGlobalCSSColorVariable("--graph-node"),
-						},
-					},
-					{
-						selector: "edge",
-						style: {
-							"line-color":
-								getGlobalCSSColorVariable("--graph-line"),
-						},
-					},
-					{
-						selector: ".tapestry_graph-empty-node",
-						style: {
-							"background-color": getGlobalCSSColorVariable(
-								"--graph-node-unresolved"
-							),
-						},
-					},
-					{
-						selector: ".tapestry_graph-logit-node",
-						style: {
-							"text-valign": "center",
-							"background-color":
-								getGlobalCSSColorVariable("--graph-line"),
-						},
-					},
-					{
-						selector: ".tapestry_graph-bookmarked-node",
-						style: {
-							"background-color": getGlobalCSSColorVariable(
-								"--graph-node-attachment"
-							),
-						},
-					},
-					{
-						selector: ":selected",
-						style: {
-							"line-color": getGlobalCSSColorVariable(
-								"--graph-node-focused"
-							),
-							"background-color": getGlobalCSSColorVariable(
-								"--graph-node-focused"
-							),
-						},
-					},
-				];
 
 				this.graph = cytoscape({
 					container: container,
@@ -182,7 +178,7 @@ export class TapestryLoomGraphView extends ItemView {
 			return;
 		}
 
-		const classes = [];
+		const classes: string[] = [];
 		let content = getNodeContent(node);
 		if (content.length == 0) {
 			classes.push("tapestry_graph-empty-node");
@@ -211,6 +207,15 @@ export class TapestryLoomGraphView extends ItemView {
 				"(" + (node.content[0][0] * 100).toFixed(0) + "%) " + content;
 		}
 
+		if (document.currentNode == node.identifier) {
+			classes.push("tapestry_graph-selected");
+		}
+
+		const edgeClasses: string[] = [];
+		if (activeNodes.has(node.identifier)) {
+			edgeClasses.push("tapestry_graph-selected");
+		}
+
 		elements.push({
 			group: "nodes",
 			data: {
@@ -220,7 +225,6 @@ export class TapestryLoomGraphView extends ItemView {
 			},
 			classes: classes,
 			style: style,
-			selected: document.currentNode == node.identifier,
 			selectable: false,
 			grabbable: false,
 		});
@@ -228,10 +232,11 @@ export class TapestryLoomGraphView extends ItemView {
 			elements.push({
 				group: "edges",
 				data: {
+					id: node.parentNode + "-" + node.identifier,
 					source: node.parentNode,
 					target: node.identifier,
 				},
-				selected: activeNodes.has(node.identifier),
+				classes: edgeClasses,
 				selectable: false,
 			});
 		}
