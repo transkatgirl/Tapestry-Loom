@@ -1,6 +1,6 @@
 import { getFrontMatterInfo, parseYaml, Editor, stringifyYaml } from "obsidian";
 import serialize from "serialize-javascript";
-import { deserialize, joinByteArrays } from "common";
+import { deserialize } from "common";
 import { ulid, ULID } from "ulid";
 import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
 
@@ -201,8 +201,8 @@ export class WeaveDocument {
 							if (
 								child &&
 								child.parentNode == node.parentNode &&
-								child.model == node.model &&
 								child.content == node.content &&
+								child.model == node.model &&
 								child.metadata?.entries() ==
 									node.metadata?.entries() &&
 								this.getNodeChildrenCount(child.identifier) == 0
@@ -459,32 +459,24 @@ export class WeaveDocument {
 
 export interface WeaveDocumentNode {
 	identifier: ULID;
-	content: string | Array<[number, string | Array<number>]>;
+	content: string | Array<[number, string]>;
 	model?: ULID;
 	parentNode?: ULID;
 	metadata?: Map<string, string>;
 }
 
 export function getNodeContent(node: WeaveDocumentNode) {
+	let nodeContent = "";
+
 	if (typeof node.content == "string") {
-		return node.content;
+		nodeContent = node.content;
 	} else {
-		const encoder = new TextEncoder();
-		const decoder = new TextDecoder();
-
-		const rawStrings: Array<Uint8Array<ArrayBuffer>> = [];
-
 		for (const [_nodeProb, nodeToken] of node.content) {
-			if (typeof nodeToken == "string") {
-				const encoded = encoder.encode(nodeToken);
-				rawStrings.push(encoded);
-			} else {
-				rawStrings.push(new Uint8Array(nodeToken));
-			}
+			nodeContent = nodeContent + nodeToken;
 		}
-
-		return decoder.decode(joinByteArrays(rawStrings));
 	}
+
+	return nodeContent;
 }
 
 function sortNodeList(nodes: Array<WeaveDocumentNode>) {

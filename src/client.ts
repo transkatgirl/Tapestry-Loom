@@ -65,8 +65,8 @@ export interface CompletionRequest {
 
 export interface CompletionResponse {
 	model: ModelConfiguration;
-	topProbs?: Array<[number, string | Array<number>]>;
-	completion: string | Array<[number, string | Array<number>]>;
+	topProbs?: Array<[number, string]>;
+	completion: string | Array<[number, string]>;
 }
 
 export function runCompletion(
@@ -94,6 +94,7 @@ export function runCompletion(
 	return requests;
 }
 
+// TODO: Handle invalid UTF-8 (characters can be split over multiple tokens)
 // TODO: Improve error messages
 
 async function inferenceRequest(
@@ -123,8 +124,6 @@ async function inferenceRequest(
 			...model.headers,
 		};
 
-		const decoder = new TextDecoder(undefined, { fatal: true });
-
 		return requestUrl({
 			url: model.url,
 			method: "POST",
@@ -139,42 +138,22 @@ async function inferenceRequest(
 
 				if (logprobs) {
 					if ("content" in logprobs && logprobs["content"]) {
-						const tokens: Array<[number, string | Array<number>]> =
-							[];
-						const probs: Array<[number, string | Array<number>]> =
-							[];
+						const tokens: Array<[number, string]> = [];
+						const probs: Array<[number, string]> = [];
 						for (let i = 0; i < logprobs["content"].length; i++) {
 							const prob = logprobs["content"][i];
 
-							try {
-								tokens.push([
-									Math.exp(prob["logprob"]),
-									decoder.decode(
-										new Uint8Array(prob["bytes"])
-									),
-								]);
-							} catch {
-								tokens.push([
-									Math.exp(prob["logprob"]),
-									prob["bytes"],
-								]);
-							}
+							tokens.push([
+								Math.exp(prob["logprob"]),
+								prob["token"],
+							]);
 
 							if (i == 0) {
 								for (const topProb of prob["top_logprobs"]) {
-									try {
-										probs.push([
-											Math.exp(topProb["logprob"]),
-											decoder.decode(
-												new Uint8Array(topProb["bytes"])
-											),
-										]);
-									} catch {
-										probs.push([
-											Math.exp(topProb["logprob"]),
-											topProb["bytes"],
-										]);
-									}
+									probs.push([
+										Math.exp(topProb["logprob"]),
+										topProb["token"],
+									]);
 								}
 							}
 						}
