@@ -58,7 +58,7 @@ export const UNKNOWN_MODEL_LABEL: ModelLabel = {
 };
 
 export interface CompletionRequest {
-	prompt: string;
+	prompt: string | Array<number>;
 	count: number;
 	parameters?: Record<string, string>;
 }
@@ -102,19 +102,18 @@ async function inferenceRequest(
 	request: CompletionRequest
 ): Promise<Array<CompletionResponse>> {
 	if (model.type == EndpointType.OpenAICompletionv1Compatible) {
-		const body: Record<string, string | number> = {
-			prompt: request.prompt,
+		const parameters: Record<string, string | number> = {
 			...model.parameters,
 			...request.parameters,
 		};
 
-		for (const [key, value] of Object.entries(body)) {
+		for (const [key, value] of Object.entries(parameters)) {
 			if (
 				typeof value == "string" &&
 				!isNaN(value as never) &&
 				!isNaN(parseFloat(value))
 			) {
-				body[key] = +value;
+				parameters[key] = +value;
 			}
 		}
 
@@ -127,7 +126,10 @@ async function inferenceRequest(
 			url: model.url,
 			method: "POST",
 			contentType: "application/json",
-			body: JSON.stringify(body),
+			body: JSON.stringify({
+				...parameters,
+				prompt: request.prompt,
+			}),
 			headers: headers,
 		}).then((response) => {
 			const responses: Array<CompletionResponse> = [];
