@@ -6,7 +6,7 @@ import TapestryLoom, {
 	SETTINGS_UPDATE_EVENT,
 } from "main";
 import { ItemView, Setting, WorkspaceLeaf, debounce, setIcon } from "obsidian";
-import { WeaveDocumentNode } from "document";
+import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID } from "ulid";
 import { DEFAULT_DOCUMENT_SETTINGS, DEFAULT_SESSION_SETTINGS } from "settings";
 import {
@@ -83,7 +83,7 @@ export class TapestryLoomTreeView extends ItemView {
 			return;
 		}
 
-		const content = document.getNodeContent(node);
+		const content = getNodeContent(node);
 		const children = document.getNodeChildren(node);
 		let flair;
 		if (
@@ -199,7 +199,7 @@ export class TapestryLoomTreeView extends ItemView {
 			return;
 		}
 
-		const content = document.getNodeContent(node);
+		const content = getNodeContent(node);
 
 		let modelLabel;
 		if (node.model) {

@@ -4,7 +4,7 @@ import TapestryLoom, {
 	DOCUMENT_UPDATE_EVENT,
 } from "main";
 import { ItemView, WorkspaceLeaf } from "obsidian";
-import { WeaveDocument, WeaveDocumentNode } from "document";
+import { getNodeContent, WeaveDocument, WeaveDocumentNode } from "document";
 import { ULID } from "ulid";
 import cytoscape, { Core, StylesheetJsonBlock } from "cytoscape";
 import { getGlobalCSSColorVariable } from "common";
@@ -185,7 +185,7 @@ export class TapestryLoomGraphView extends ItemView {
 		}
 
 		const classes: string[] = [];
-		let content = document.getNodeContent(node);
+		let content = getNodeContent(node);
 		if (content.length == 0) {
 			classes.push("tapestry_graph-empty-node");
 		}

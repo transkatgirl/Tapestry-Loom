@@ -9,7 +9,7 @@ import {
 	WorkspaceLeaf,
 	setIcon,
 } from "obsidian";
-import { WeaveDocumentNode } from "document";
+import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
 import {
 	generateNodeChildren,
@@ -51,11 +51,7 @@ async function runCompletion(plugin: TapestryLoom, split: boolean) {
 		);
 		if (active) {
 			const node = plugin.document.getNode(active[0]);
-			if (
-				node &&
-				split &&
-				plugin.document.getNodeContent(node).length > active[1]
-			) {
+			if (node && split && getNodeContent(node).length > active[1]) {
 				plugin.document.splitNode(active[0], active[1]);
 			} else {
 				await generateNodeChildren(plugin, active[0]);
