@@ -123,8 +123,6 @@ async function inferenceRequest(
 			...model.headers,
 		};
 
-		const decoder = new TextDecoder(undefined, { fatal: true });
-
 		return requestUrl({
 			url: model.url,
 			method: "POST",
@@ -143,6 +141,9 @@ async function inferenceRequest(
 							[];
 						const probs: Array<[number, string | Array<number>]> =
 							[];
+						const decoder = new TextDecoder(undefined, {
+							fatal: true,
+						});
 						for (let i = 0; i < logprobs["content"].length; i++) {
 							const prob = logprobs["content"][i];
 

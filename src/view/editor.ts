@@ -20,7 +20,7 @@ import {
 	PluginValue,
 	WidgetType,
 } from "@codemirror/view";
-import { getNodeContent, WeaveDocumentNode } from "document";
+import { WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
 
 class TapestryLoomPlugin implements PluginValue {

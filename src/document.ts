@@ -34,7 +34,7 @@ export class WeaveDocument {
 			node = this.nodes.get(this.currentNode);
 		}
 		while (node) {
-			content = getNodeContent(node) + content;
+			content = this.getNodeContent(node) + content;
 			if (node.parentNode) {
 				node = this.nodes.get(node.parentNode);
 			} else {
@@ -53,7 +53,7 @@ export class WeaveDocument {
 		let offset = 0;
 
 		for (const [_, node] of nodeList.entries()) {
-			const nodeContent = getNodeContent(node);
+			const nodeContent = this.getNodeContent(node);
 
 			if (
 				content.length >= offset + nodeContent.length &&
@@ -76,7 +76,7 @@ export class WeaveDocument {
 		let offset = 0;
 
 		for (const [i, node] of nodeList.entries()) {
-			const nodeContent = getNodeContent(node);
+			const nodeContent = this.getNodeContent(node);
 
 			if (
 				content.length >= offset + nodeContent.length &&
@@ -187,7 +187,8 @@ export class WeaveDocument {
 					!this.bookmarks.has(node.parentNode)
 				) {
 					node.content =
-						getNodeContent(parentNode) + getNodeContent(node);
+						this.getNodeContent(parentNode) +
+						this.getNodeContent(node);
 					node.parentNode = parentNode.parentNode;
 					this.removeNode(parentNode.identifier);
 				} else {
@@ -243,7 +244,7 @@ export class WeaveDocument {
 					}
 				}
 
-				if (getNodeContent(parentNode).length > 0) {
+				if (this.getNodeContent(parentNode).length > 0) {
 					this.nodes.set(node.identifier, node);
 					this.nodeChildren.set(node.identifier, new Set());
 					const parentChildren = this.nodeChildren.get(
@@ -291,6 +292,60 @@ export class WeaveDocument {
 	}
 	getNode(identifier: ULID) {
 		return this.nodes.get(identifier);
+	}
+	getNodeContent(node: WeaveDocumentNode) {
+		if (typeof node.content == "string") {
+			return node.content;
+		} else {
+			const bytes = getNodeSetRawBytes([node]);
+
+			if (bytes.length == 0) {
+				return "";
+			}
+
+			/*const decoder = new TextDecoder(undefined, { fatal: true });
+			const replacementDecoder = new TextDecoder();
+
+			try {
+				return decoder.decode(bytes);
+			} catch {
+				if (node.parentNode) {
+					const previousBytes = getNodeSetRawBytes(
+						this.getActiveNodes(node.parentNode)
+					);
+
+					let prefixBytes = new Uint8Array();
+
+					for (
+						let i = 0;
+						i < Math.min(previousBytes.length, 8);
+						i++
+					) {
+						const lastByte =
+							previousBytes[previousBytes.length - (i + 1)];
+						prefixBytes = joinByteArrays([
+							new Uint8Array(lastByte),
+							prefixBytes,
+						]);
+
+						try {
+							return decoder.decode(
+								joinByteArrays([prefixBytes, bytes])
+							);
+						} catch {
+							// empty
+						}
+					}
+
+					return replacementDecoder.decode(bytes);
+				} else {
+					return replacementDecoder.decode(bytes);
+				}
+			}*/
+
+			const decoder = new TextDecoder();
+			return decoder.decode(bytes);
+		}
 	}
 	splitNode(identifier: ULID, index: number) {
 		const node = this.nodes.get(identifier);
@@ -465,26 +520,30 @@ export interface WeaveDocumentNode {
 	metadata?: Map<string, string>;
 }
 
-export function getNodeContent(node: WeaveDocumentNode) {
-	if (typeof node.content == "string") {
-		return node.content;
-	} else {
-		const encoder = new TextEncoder();
-		const decoder = new TextDecoder();
+function getNodeSetRawBytes(nodes: Array<WeaveDocumentNode>) {
+	const encoder = new TextEncoder();
+	let bytes: Uint8Array<ArrayBuffer> = new Uint8Array();
 
-		const rawStrings: Array<Uint8Array<ArrayBuffer>> = [];
+	for (const node of nodes) {
+		if (typeof node.content == "string") {
+			bytes = joinByteArrays([bytes, encoder.encode(node.content)]);
+		} else {
+			const rawStrings: Array<Uint8Array<ArrayBuffer>> = [];
 
-		for (const [_nodeProb, nodeToken] of node.content) {
-			if (typeof nodeToken == "string") {
-				const encoded = encoder.encode(nodeToken);
-				rawStrings.push(encoded);
-			} else {
-				rawStrings.push(new Uint8Array(nodeToken));
+			for (const [_nodeProb, nodeToken] of node.content) {
+				if (typeof nodeToken == "string") {
+					const encoded = encoder.encode(nodeToken);
+					rawStrings.push(encoded);
+				} else {
+					rawStrings.push(new Uint8Array(nodeToken));
+				}
 			}
-		}
 
-		return decoder.decode(joinByteArrays(rawStrings));
+			bytes = joinByteArrays([bytes, joinByteArrays(rawStrings)]);
+		}
 	}
+
+	return bytes;
 }
 
 function sortNodeList(nodes: Array<WeaveDocumentNode>) {
