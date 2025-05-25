@@ -25,7 +25,6 @@ const GRAPH_LAYOUT = {
 export class TapestryLoomGraphView extends ItemView {
 	plugin: TapestryLoom;
 	private graph?: Core;
-	private panned = false;
 	constructor(leaf: WorkspaceLeaf, plugin: TapestryLoom) {
 		super(leaf);
 		this.plugin = plugin;
@@ -111,32 +110,17 @@ export class TapestryLoomGraphView extends ItemView {
 			];
 
 			if (incremental && this.graph) {
-				const pan = this.graph.pan();
-				const zoom = this.graph.zoom();
-
 				this.graph.json({
 					elements: elements,
-					layout: GRAPH_LAYOUT,
 				});
-
-				if (this.panned) {
-					this.graph.pan(pan);
-					this.graph.zoom(zoom);
-				} else {
-					this.graph.fit(
-						this.graph.elements(getPanSelector(document))
-					);
-				}
 			} else {
 				container.empty();
-				this.panned = false;
 
 				this.graph = cytoscape({
 					container: container,
 					elements: elements,
 					layout: GRAPH_LAYOUT,
 					style: graphStyle,
-					headless: false,
 				});
 				this.graph.on("tap", "node", (event) => {
 					const node = event.target.data().id;
@@ -150,15 +134,6 @@ export class TapestryLoomGraphView extends ItemView {
 						toggleBookmarkNode(this.plugin, node);
 					}
 				});
-				this.graph.on("dragpan", (_event) => {
-					this.panned = true;
-				});
-				this.graph.on("pinchzoom", (_event) => {
-					this.panned = true;
-				});
-				this.graph.on("scrollzoom", (_event) => {
-					this.panned = true;
-				});
 				this.graph.on("ready", (_event) => {
 					if (!this.graph) {
 						return;
@@ -167,11 +142,24 @@ export class TapestryLoomGraphView extends ItemView {
 						this.graph.elements(getPanSelector(document))
 					);
 				});
+				this.graph.on("move", (_event) => {
+					if (!this.graph) {
+						return;
+					}
+					this.graph.fit(
+						this.graph.elements(getPanSelector(document))
+					);
+				});
+				this.graph.on("add", (_event) => {
+					if (!this.graph) {
+						return;
+					}
+					this.graph.layout(GRAPH_LAYOUT).run();
+				});
 			}
 		} else {
 			container.empty();
 			this.graph = undefined;
-			this.panned = false;
 		}
 	}
 	private buildNode(
