@@ -7,6 +7,8 @@ export interface ClientSettings {
 
 export enum EndpointType {
 	OpenAICompletionv1Compatible = "openai_completion_v1_compatible",
+	//OpenAIChatCompletionv1Compatible = "openai_chatcompletion_v1_compatible",
+	//OpenRouterv1 = "openrouter_v1",
 }
 
 export interface ModelConfiguration {
@@ -100,21 +102,13 @@ async function inferenceRequest(
 	request: CompletionRequest
 ): Promise<Array<CompletionResponse>> {
 	if (model.type == EndpointType.OpenAICompletionv1Compatible) {
-		const body: Record<string, string | number> = {
-			prompt: request.prompt,
+		const body: Record<string, unknown> = {
 			...model.parameters,
 			...request.parameters,
+			prompt: request.prompt,
 		};
 
-		for (const [key, value] of Object.entries(body)) {
-			if (
-				typeof value == "string" &&
-				!isNaN(value as never) &&
-				!isNaN(parseFloat(value))
-			) {
-				body[key] = +value;
-			}
-		}
+		parseToObject(body);
 
 		const headers: Record<string, string> = {
 			Accept: "application/json",
@@ -209,5 +203,30 @@ async function inferenceRequest(
 		});
 	} else {
 		throw new Error("unimplemented!");
+	}
+}
+
+function parseToObject(data: Record<string, unknown>) {
+	for (const [key, value] of Object.entries(data)) {
+		if (
+			typeof value == "string" &&
+			!isNaN(value as never) &&
+			!isNaN(parseFloat(value))
+		) {
+			data[key] = +value;
+		} else if (
+			typeof value == "string" &&
+			((value.startsWith("{") && value.endsWith("}")) ||
+				(value.startsWith("[") && value.endsWith("]")) ||
+				(value.startsWith('"') && value.endsWith('"')))
+		) {
+			data[key] = JSON.parse(value);
+		} else if (typeof value == "string" && value == "null") {
+			data[key] = null;
+		} else if (typeof value == "string" && value == "true") {
+			data[key] = true;
+		} else if (typeof value == "string" && value == "false") {
+			data[key] = false;
+		}
 	}
 }
