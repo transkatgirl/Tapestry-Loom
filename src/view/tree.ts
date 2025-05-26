@@ -99,7 +99,7 @@ export class TapestryLoomTreeView extends ItemView {
 			return;
 		}
 
-		const content = getNodeContent(node);
+		const content = getNodeContent(node).trim();
 		const children = document.getNodeChildren(node.identifier);
 		let flair;
 		if (
@@ -306,7 +306,7 @@ export class TapestryLoomTreeView extends ItemView {
 			return;
 		}
 
-		const content = getNodeContent(node);
+		const content = getNodeContent(node).trim();
 
 		let modelLabel;
 		if (node.model) {
