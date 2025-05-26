@@ -1,7 +1,7 @@
 {
 	"name": "tapestry-loom",
 	"version": "0.1.0",
-	"description": "A power tool for interfacing with Pretrained (Base Model) LLMs",
+	"description": "An IDE for working with Pretrained (Base Model) LLMs",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
