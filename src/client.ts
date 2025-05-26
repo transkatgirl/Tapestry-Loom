@@ -8,7 +8,6 @@ export interface ClientSettings {
 export enum EndpointType {
 	OpenAICompletionv1Compatible = "openai_completion_v1_compatible",
 	//OpenAIChatCompletionv1Compatible = "openai_chatcompletion_v1_compatible",
-	//OpenRouterv1 = "openrouter_v1",
 }
 
 export interface ModelConfiguration {
