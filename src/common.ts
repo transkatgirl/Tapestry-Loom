@@ -21,3 +21,10 @@ export function getGlobalCSSColorVariable(key: string) {
 	parsed = parsed.optimize();
 	return parsed.toString().slice(8, -1);
 }
+
+export function truncateWithEllipses(text: string, max: number) {
+	if (text.length > max) {
+		return text.substring(0, max) + "…";
+	}
+	return text;
+}

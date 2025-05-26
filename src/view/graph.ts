@@ -8,7 +8,7 @@ import { ItemView, WorkspaceLeaf } from "obsidian";
 import { getNodeContent, WeaveDocument, WeaveDocumentNode } from "document";
 import { ULID } from "ulid";
 import cytoscape, { Core, StylesheetJsonBlock } from "cytoscape";
-import { getGlobalCSSColorVariable } from "common";
+import { getGlobalCSSColorVariable, truncateWithEllipses } from "common";
 import { switchToNode, toggleBookmarkNode } from "./common";
 import { DEFAULT_DOCUMENT_SETTINGS } from "settings";
 
@@ -59,10 +59,10 @@ export class TapestryLoomGraphView extends ItemView {
 						label: "data(content)",
 						"text-halign": "center",
 						"text-valign": "bottom",
-						"font-size": "7px",
+						"font-size": "12px",
 						color: getGlobalCSSColorVariable("--graph-text"),
-						"text-wrap": "ellipsis",
-						"text-max-width": "100px",
+						"text-wrap": "wrap",
+						"text-max-width": "140px",
 						width: "20px",
 						height: "20px",
 						"background-color":
@@ -234,7 +234,7 @@ export class TapestryLoomGraphView extends ItemView {
 			group: "nodes",
 			data: {
 				id: node.identifier,
-				content: content.trim(),
+				content: truncateWithEllipses(content.trim(), 60),
 				model: modelLabel?.label,
 			},
 			classes: classes,
