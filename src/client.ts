@@ -117,12 +117,9 @@ async function inferenceRequest(
 		const headers: Record<string, string> = {
 			Accept: "application/json",
 			"User-Agent": "TapestryLoom",
+			"X-Title": "TapestryLoom",
 			...model.headers,
 		};
-
-		if (model.url.contains("openrouter.ai/api/")) {
-			headers["X-Title"] = "TapestryLoom";
-		}
 
 		return requestUrl({
 			url: model.url,
