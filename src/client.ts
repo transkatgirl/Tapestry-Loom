@@ -10,6 +10,12 @@ export enum EndpointType {
 	//OpenAIChatCompletionv1Compatible = "openai_chatcompletion_v1_compatible",
 }
 
+export const ENDPOINT_TYPE_DESCRIPTIONS: Record<EndpointType, string> = {
+	openai_completion_v1_compatible: "OpenAI v1 (or similar) Completion",
+	/*openai_chatcompletion_v1_compatible:
+		"OpenAI v1 (or similar) ChatCompletion",*/
+};
+
 export interface ModelConfiguration {
 	ulid: ULID;
 	label: ModelLabel;

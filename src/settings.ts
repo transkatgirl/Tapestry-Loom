@@ -1,6 +1,11 @@
 import { App, debounce, HexString, PluginSettingTab, Setting } from "obsidian";
 import { arrayMoveMutable } from "array-move";
-import { ClientSettings, EndpointType, newModel } from "client";
+import {
+	ClientSettings,
+	ENDPOINT_TYPE_DESCRIPTIONS,
+	EndpointType,
+	newModel,
+} from "client";
 import TapestryLoom from "main";
 import { SessionSettings } from "view/tree";
 
@@ -150,7 +155,7 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 			url: "",
 			identifier: "",
 			apiKey: "",
-			type: "openai_completion_v1_compatible",
+			type: EndpointType.OpenAICompletionv1Compatible,
 		};
 		new Setting(containerEl)
 			.addText((text) => {
@@ -171,15 +176,14 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 				});
 			})
 			.addDropdown((dropdown) => {
-				dropdown
-					.addOption(
-						"openai_completion_v1_compatible",
-						"OpenAI v1 (or similar) Completion"
-					)
-					.setValue(modelForm.type)
-					.onChange((value) => {
-						modelForm.type = value;
-					});
+				for (const [key, value] of Object.entries(
+					ENDPOINT_TYPE_DESCRIPTIONS
+				)) {
+					dropdown.addOption(key, value);
+				}
+				dropdown.setValue(modelForm.type).onChange((value) => {
+					modelForm.type = value as EndpointType;
+				});
 			})
 			.addButton((button) => {
 				button.setButtonText("Add model").onClick(async (_event) => {
@@ -256,11 +260,12 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 						});
 				})
 				.addDropdown((dropdown) => {
+					for (const [key, value] of Object.entries(
+						ENDPOINT_TYPE_DESCRIPTIONS
+					)) {
+						dropdown.addOption(key, value);
+					}
 					dropdown
-						.addOption(
-							"openai_completion_v1_compatible",
-							"OpenAI v1 (or similar) Completion"
-						)
 						.setValue(client.models[i].type)
 						.onChange(async (value) => {
 							client.models[i].type = value as EndpointType;
