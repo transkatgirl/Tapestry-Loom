@@ -74,7 +74,7 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Displayed Tree Depth")
+			.setName("Displayed tree depth")
 			.setDesc(
 				"The number of layers to typically display in the node tree view."
 			)
@@ -98,7 +98,7 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Displayed Graph Depth")
+			.setName("Displayed graph depth")
 			.setDesc(
 				"The number of layers to typically focus in the node graph view."
 			)
