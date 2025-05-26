@@ -99,7 +99,7 @@ export class TapestryLoomTreeView extends ItemView {
 			return;
 		}
 
-		const content = getNodeContent(node).trim();
+		const content = getNodeContent(node);
 		const children = document.getNodeChildren(node.identifier);
 		let flair;
 		if (
@@ -306,7 +306,7 @@ export class TapestryLoomTreeView extends ItemView {
 			return;
 		}
 
-		const content = getNodeContent(node).trim();
+		const content = getNodeContent(node);
 
 		let modelLabel;
 		if (node.model) {
@@ -758,7 +758,7 @@ function renderTree(
 		cls: ["tree-item-inner"],
 	});
 	if (text.length > 0) {
-		label.textContent = text;
+		label.textContent = text.trim();
 	} else {
 		label.innerHTML = "<em>No text</em>";
 		label.classList.add("tapestry_tree-notice");
