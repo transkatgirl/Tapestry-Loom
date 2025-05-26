@@ -51,7 +51,7 @@ export function buildCommands(plugin: TapestryLoom): Array<Command> {
 			},
 		},
 		{
-			id: "node-tapestry-loom-toggle-bookmarked",
+			id: "node-tapestry-loom-toggle-bookmarked-current",
 			name: "Toggle whether current node is bookmarked",
 			callback: () => {
 				const identifier = plugin.document?.currentNode;
@@ -61,7 +61,7 @@ export function buildCommands(plugin: TapestryLoom): Array<Command> {
 			},
 		},
 		{
-			id: "node-tapestry-loom-toggle-bookmarked",
+			id: "node-tapestry-loom-toggle-bookmarked-cursor",
 			name: "Toggle whether node at current position is bookmarked",
 			callback: () => {
 				const identifier = getCursorNode(plugin);
