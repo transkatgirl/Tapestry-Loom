@@ -21,7 +21,7 @@ export const DEFAULT_CLIENT_SETTINGS: ClientSettings = { models: [] };
 export const DEFAULT_DOCUMENT_SETTINGS: DocumentSettings = {
 	debounce: 500,
 	treeDepth: 4,
-	graphDepth: 4,
+	graphDepth: 3,
 };
 export const DEFAULT_SESSION_SETTINGS: SessionSettings = {
 	requests: 6,

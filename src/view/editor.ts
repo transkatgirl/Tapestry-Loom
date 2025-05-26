@@ -24,16 +24,16 @@ class TapestryLoomPlugin implements PluginValue {
 		document: WeaveDocument,
 		settings: TapestryLoomSettings
 	) {
-		console.log("load");
+		// TODO
 	}
 	handleTapestryDocumentUpdate(
 		document: WeaveDocument,
 		settings: TapestryLoomSettings
 	) {
-		console.log("update");
+		// TODO
 	}
 	handleTapestryDocumentDestroy(settings: TapestryLoomSettings) {
-		console.log("destroy");
+		// TODO
 	}
 	destroy() {}
 }
