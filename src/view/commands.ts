@@ -16,9 +16,8 @@ import {
 	moveToParent,
 	moveToPreviousSibling,
 	toggleBookmarkNode,
+	WeaveSearchModal,
 } from "./common";
-
-// TODO: add search command
 
 export function buildCommands(plugin: TapestryLoom): Array<Command> {
 	return [
@@ -155,6 +154,15 @@ export function buildCommands(plugin: TapestryLoom): Array<Command> {
 			name: "Move to previous sibling node",
 			callback: () => {
 				moveToPreviousSibling(plugin);
+			},
+		},
+		{
+			id: "node-tapestry-loom-search",
+			name: "Search for node by content",
+			callback: async () => {
+				if (plugin.document) {
+					new WeaveSearchModal(plugin.app, plugin).open();
+				}
 			},
 		},
 	];

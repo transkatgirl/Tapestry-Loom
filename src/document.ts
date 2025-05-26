@@ -157,6 +157,17 @@ export class WeaveDocument {
 
 		return nodes;
 	}
+	getAllNodes(): Array<WeaveDocumentNode> {
+		const nodes: Array<WeaveDocumentNode> = [];
+		for (const [_identifier, node] of this.nodes) {
+			nodes.push(node);
+		}
+		nodes.sort(function (a, b) {
+			return a.identifier.localeCompare(b.identifier);
+		});
+
+		return nodes;
+	}
 	getNodeChildren(identifier: ULID): Array<WeaveDocumentNode> {
 		const childSet = this.nodeChildren.get(identifier);
 

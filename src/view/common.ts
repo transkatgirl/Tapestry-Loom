@@ -1,8 +1,15 @@
 import TapestryLoom, { DOCUMENT_TRIGGER_UPDATE_EVENT } from "main";
-import { Editor, getFrontMatterInfo, Notice } from "obsidian";
+import {
+	App,
+	Editor,
+	FuzzySuggestModal,
+	getFrontMatterInfo,
+	Notice,
+} from "obsidian";
 import { ULID, ulid } from "ulid";
 import { runCompletion } from "client";
 import { DEFAULT_DOCUMENT_SETTINGS } from "settings";
+import { getNodeContent, WeaveDocumentNode } from "document";
 
 let activeRequests = 0;
 
@@ -302,5 +309,25 @@ export function moveToNextSibling(plugin: TapestryLoom) {
 		plugin.document.currentNode = siblings[index + 1].identifier;
 
 		plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
+	}
+}
+
+export class WeaveSearchModal extends FuzzySuggestModal<WeaveDocumentNode> {
+	plugin: TapestryLoom;
+	constructor(app: App, plugin: TapestryLoom) {
+		super(app);
+		this.plugin = plugin;
+	}
+	getItems(): WeaveDocumentNode[] {
+		return this.plugin.document?.getAllNodes() || [];
+	}
+	getItemText(node: WeaveDocumentNode): string {
+		return getNodeContent(node);
+	}
+	onChooseItem(node: WeaveDocumentNode, _evt: MouseEvent | KeyboardEvent) {
+		if (this.plugin.document) {
+			this.plugin.document.currentNode = node.identifier;
+			this.plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
+		}
 	}
 }
