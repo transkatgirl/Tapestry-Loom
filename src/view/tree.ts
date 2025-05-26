@@ -5,19 +5,27 @@ import TapestryLoom, {
 	DOCUMENT_UPDATE_EVENT,
 	SETTINGS_UPDATE_EVENT,
 } from "main";
-import { ItemView, Setting, WorkspaceLeaf, debounce, setIcon } from "obsidian";
+import {
+	ItemView,
+	Menu,
+	Setting,
+	WorkspaceLeaf,
+	debounce,
+	setIcon,
+} from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID } from "ulid";
 import { DEFAULT_DOCUMENT_SETTINGS, DEFAULT_SESSION_SETTINGS } from "settings";
 import {
 	addNode,
+	addNodeSibling,
 	deleteNode,
+	deleteNodeChildren,
+	deleteNodeSiblings,
 	generateNodeChildren,
 	mergeNode,
 	switchToNode,
 } from "./common";
-
-// TODO: Add right click menu
 
 export const TREE_VIEW_TYPE = "tapestry-loom-view";
 
@@ -167,6 +175,10 @@ export class TapestryLoomTreeView extends ItemView {
 			event.stopPropagation();
 			deleteNode(this.plugin, node.identifier);
 		});
+		tree.labelContainer.addEventListener("contextmenu", (event) => {
+			event.preventDefault();
+			this.renderMenu(node, event);
+		});
 
 		const renderDepth =
 			this.plugin.settings.document?.treeDepth ||
@@ -182,6 +194,82 @@ export class TapestryLoomTreeView extends ItemView {
 				this.renderNode(tree.childrenContainer, childNode, depth + 1);
 			}
 		}
+	}
+	private renderMenu(node: WeaveDocumentNode, event: MouseEvent) {
+		const identifier = node.identifier;
+
+		const menu = new Menu();
+
+		menu.addItem((item) => {
+			item.setTitle("Generate");
+			item.onClick(() => {
+				generateNodeChildren(this.plugin, identifier);
+			});
+		});
+
+		menu.addItem((item) => {
+			if (
+				this.plugin.document &&
+				this.plugin.document.bookmarks.has(node.identifier)
+			) {
+				item.setTitle("Remove bookmark");
+			} else {
+				item.setTitle("Bookmark");
+			}
+			item.onClick(() => {
+				this.toggleBookmarkNode(identifier);
+			});
+		});
+
+		menu.addSeparator();
+
+		menu.addItem((item) => {
+			item.setTitle("Create child");
+			item.onClick(() => {
+				addNode(this.plugin, identifier);
+			});
+		});
+		menu.addItem((item) => {
+			item.setTitle("Create sibling");
+			item.onClick(() => {
+				addNodeSibling(this.plugin, identifier);
+			});
+		});
+
+		menu.addSeparator();
+
+		menu.addItem((item) => {
+			item.setTitle("Delete all children");
+			item.onClick(() => {
+				deleteNodeChildren(this.plugin, identifier);
+			});
+		});
+		menu.addItem((item) => {
+			item.setTitle("Delete all siblings");
+			item.onClick(() => {
+				deleteNodeSiblings(this.plugin, identifier, true);
+			});
+		});
+
+		menu.addSeparator();
+
+		menu.addItem((item) => {
+			item.setTitle("Merge with parent");
+			item.onClick(() => {
+				mergeNode(this.plugin, identifier);
+			});
+		});
+
+		menu.addSeparator();
+
+		menu.addItem((item) => {
+			item.setTitle("Delete");
+			item.onClick(() => {
+				deleteNode(this.plugin, identifier);
+			});
+		});
+
+		menu.showAtMouseEvent(event);
 	}
 	private renderBookmarks(container: HTMLElement) {
 		container.empty();

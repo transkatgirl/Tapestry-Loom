@@ -446,13 +446,22 @@ export class WeaveDocument {
 				metadata = secondaryNode.metadata;
 			}
 
+			const identifier = ulid();
+
 			this.addNode({
-				identifier: ulid(),
+				identifier: identifier,
 				content: content,
 				model: model,
 				parentNode: primaryNode.parentNode,
 				metadata: metadata,
 			});
+
+			if (
+				this.currentNode == primaryIdentifier ||
+				this.currentNode == secondaryIdentifier
+			) {
+				this.currentNode = identifier;
+			}
 		}
 	}
 	getNodeChildrenCount(identifier: ULID) {
