@@ -17,6 +17,8 @@ import {
 	switchToNode,
 } from "./common";
 
+// TODO: Add right click menu
+
 export const TREE_VIEW_TYPE = "tapestry-loom-view";
 
 export interface SessionSettings {
