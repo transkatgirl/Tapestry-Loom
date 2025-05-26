@@ -117,6 +117,7 @@ async function inferenceRequest(
 		const headers: Record<string, string> = {
 			Accept: "application/json",
 			"User-Agent": "TapestryLoom",
+			"HTTP-Referer": "https://github.com/transkatgirl/Tapestry-Loom",
 			"X-Title": "Tapestry Loom",
 			...model.headers,
 		};
