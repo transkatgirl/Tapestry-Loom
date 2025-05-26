@@ -117,6 +117,7 @@ async function inferenceRequest(
 
 		const headers: Record<string, string> = {
 			Accept: "application/json",
+			"User-Agent": "TapestryLoom",
 			...model.headers,
 		};
 
