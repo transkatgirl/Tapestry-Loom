@@ -117,6 +117,27 @@ export function addNode(plugin: TapestryLoom, parentNode?: ULID) {
 	plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 }
 
+export function addNodeSibling(plugin: TapestryLoom, targetNode?: ULID) {
+	if (!plugin.document) {
+		return;
+	}
+
+	let parentNode;
+	if (targetNode) {
+		const node = plugin.document.getNode(targetNode);
+		parentNode = node?.parentNode;
+	}
+
+	const identifier = ulid();
+	plugin.document.addNode({
+		identifier: identifier,
+		content: "",
+		parentNode: parentNode,
+	});
+	plugin.document.currentNode = identifier;
+	plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
+}
+
 export function switchToNode(plugin: TapestryLoom, identifier: ULID) {
 	if (!plugin.document) {
 		return;
@@ -140,16 +161,16 @@ export function toggleBookmarkNode(plugin: TapestryLoom, identifier: ULID) {
 	plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 }
 
-export function mergeNode(
-	plugin: TapestryLoom,
-	primaryIdentifier: ULID,
-	secondaryIdentifier: ULID
-) {
+export function mergeNode(plugin: TapestryLoom, childIdentifier: ULID) {
 	if (!plugin.document) {
 		return;
 	}
 
-	plugin.document.mergeNode(primaryIdentifier, secondaryIdentifier);
+	const childNode = plugin.document.getNode(childIdentifier);
+	if (childNode?.parentNode) {
+		plugin.document.mergeNode(childNode?.parentNode, childIdentifier);
+	}
+
 	plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 }
 

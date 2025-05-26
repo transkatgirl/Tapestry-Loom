@@ -348,7 +348,9 @@ export class TapestryLoomGraphView extends ItemView {
 			this.render(container, false);
 		}
 	}
-	async onClose() {}
+	async onClose() {
+		this.plugin.removeCommand("reset-tapestry-loom-graph-zoom");
+	}
 }
 
 function getPanSelector(document: WeaveDocument, renderDepth: number): string {

@@ -145,9 +145,7 @@ export class TapestryLoomTreeView extends ItemView {
 		if (buttons.mergeButton) {
 			buttons.mergeButton.addEventListener("click", (event) => {
 				event.stopPropagation();
-				if (node.parentNode) {
-					mergeNode(this.plugin, node.parentNode, node.identifier);
-				}
+				mergeNode(this.plugin, node.identifier);
 			});
 		}
 		if (buttons.bookmarkToggleButton) {
@@ -485,6 +483,23 @@ export class TapestryLoomTreeView extends ItemView {
 				this.renderModels(modelMenu.childrenContainer);
 			},
 		});
+		this.plugin.addCommand({
+			id: "node-tapestry-loom-toggle-folding",
+			name: "Toggle whether current node is collapsed",
+			callback: () => {
+				const identifier = this.plugin.document?.currentNode;
+				if (!identifier) {
+					return;
+				}
+
+				if (this.collapsedNodes.has(identifier)) {
+					this.collapsedNodes.delete(identifier);
+				} else {
+					this.collapsedNodes.add(identifier);
+				}
+				this.renderTree(treeMenu.childrenContainer, true);
+			},
+		});
 
 		if (this.plugin.document) {
 			if (this.plugin.document.bookmarks.size > 0) {
@@ -497,7 +512,10 @@ export class TapestryLoomTreeView extends ItemView {
 		this.renderBookmarks(bookmarksMenu.childrenContainer);
 		this.renderTree(treeMenu.childrenContainer, false);
 	}
-	async onClose() {}
+	async onClose() {
+		this.plugin.removeCommand("reset-tapestry-loom-tree-parameters");
+		this.plugin.removeCommand("node-tapestry-loom-toggle-folding");
+	}
 }
 
 interface CollapsibleMenuElement {
