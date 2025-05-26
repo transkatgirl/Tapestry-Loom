@@ -94,7 +94,7 @@ export function runCompletion(
 
 	for (const model of modelObjects) {
 		for (let i = 0; i < request.count; i++) {
-			requests.push(inferenceRequest(config, model, request));
+			requests.push(inferenceRequest(model, request));
 		}
 	}
 
@@ -102,7 +102,6 @@ export function runCompletion(
 }
 
 async function inferenceRequest(
-	_config: ClientSettings,
 	model: ModelConfiguration,
 	request: CompletionRequest
 ): Promise<Array<CompletionResponse>> {
@@ -120,6 +119,10 @@ async function inferenceRequest(
 			"User-Agent": "TapestryLoom",
 			...model.headers,
 		};
+
+		if (model.url.contains("openrouter.ai/api/")) {
+			headers["X-Title"] = "TapestryLoom";
+		}
 
 		return requestUrl({
 			url: model.url,
