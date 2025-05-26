@@ -100,7 +100,7 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Displayed Graph Depth")
 			.setDesc(
-				"The number of layers to typically display in the node graph view."
+				"The number of layers to typically focus in the node graph view."
 			)
 			.addText((text) =>
 				text
