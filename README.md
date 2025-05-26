@@ -2,7 +2,7 @@
 
 An Obsidian plugin that aims to turn your editor into an IDE for working with base model LLMs.
 
-> [!NOTE]
+> [!WARNING]
 > This plugin is a work in progress. Avoid using it with other plugins and backup your vaults regularly to avoid data loss.
 
 ## How to use
