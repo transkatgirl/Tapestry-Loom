@@ -94,8 +94,6 @@ export function runCompletion(
 	return requests;
 }
 
-// TODO: Improve error messages
-
 async function inferenceRequest(
 	_config: ClientSettings,
 	model: ModelConfiguration,
@@ -129,7 +127,14 @@ async function inferenceRequest(
 			contentType: "application/json",
 			body: JSON.stringify(body),
 			headers: headers,
+			throw: false,
 		}).then((response) => {
+			if (response.status >= 400) {
+				throw new Error(
+					"HTTP " + response.status + "\n\n" + response.text
+				);
+			}
+
 			const responses: Array<CompletionResponse> = [];
 
 			for (const result of response.json["choices"]) {
