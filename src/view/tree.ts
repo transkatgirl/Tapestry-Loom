@@ -197,6 +197,8 @@ export class TapestryLoomTreeView extends ItemView {
 	}
 	private renderMenu(node: WeaveDocumentNode, event: MouseEvent) {
 		const identifier = node.identifier;
+		const hasChildren =
+			(this.plugin.document?.getNodeChildrenCount(identifier) || 0) > 0;
 
 		const menu = new Menu();
 
@@ -236,29 +238,36 @@ export class TapestryLoomTreeView extends ItemView {
 			});
 		});
 
-		menu.addSeparator();
+		if (hasChildren || node.parentNode) {
+			menu.addSeparator();
+		}
 
-		menu.addItem((item) => {
-			item.setTitle("Delete all children");
-			item.onClick(() => {
-				deleteNodeChildren(this.plugin, identifier);
+		if (hasChildren) {
+			menu.addItem((item) => {
+				item.setTitle("Delete all children");
+				item.onClick(() => {
+					deleteNodeChildren(this.plugin, identifier);
+				});
 			});
-		});
-		menu.addItem((item) => {
-			item.setTitle("Delete all siblings");
-			item.onClick(() => {
-				deleteNodeSiblings(this.plugin, identifier, true);
-			});
-		});
+		}
 
-		menu.addSeparator();
-
-		menu.addItem((item) => {
-			item.setTitle("Merge with parent");
-			item.onClick(() => {
-				mergeNode(this.plugin, identifier);
+		if (node.parentNode) {
+			menu.addItem((item) => {
+				item.setTitle("Delete all siblings");
+				item.onClick(() => {
+					deleteNodeSiblings(this.plugin, identifier, true);
+				});
 			});
-		});
+
+			menu.addSeparator();
+
+			menu.addItem((item) => {
+				item.setTitle("Merge with parent");
+				item.onClick(() => {
+					mergeNode(this.plugin, identifier);
+				});
+			});
+		}
 
 		menu.addSeparator();
 
