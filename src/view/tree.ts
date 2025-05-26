@@ -497,11 +497,6 @@ export class TapestryLoomTreeView extends ItemView {
 		this.renderBookmarks(bookmarksMenu.childrenContainer);
 		this.renderTree(treeMenu.childrenContainer, false);
 	}
-	onResize() {
-		if (this.treeMenu && this.plugin.document) {
-			this.renderTree(this.treeMenu.childrenContainer, false);
-		}
-	}
 	async onClose() {}
 }
 
