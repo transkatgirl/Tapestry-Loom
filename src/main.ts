@@ -17,6 +17,7 @@ import {
 	updateDocument,
 	WeaveDocument,
 } from "document";
+import { EditorView } from "@codemirror/view";
 import { buildCommands } from "view/commands";
 
 // @ts-expect-error
@@ -63,10 +64,27 @@ export default class TapestryLoom extends Plugin {
 					this.editor = leaf.view.editor;
 					const oldIdentifier = this.document?.identifier;
 					this.document = loadDocument(this.editor);
+
+					// @ts-expect-error not typed
+					const editorView = this.editor.cm as EditorView;
+					const plugin = editorView.plugin(EDITOR_PLUGIN);
+
 					if (this.document.identifier == oldIdentifier) {
 						workspace.trigger(DOCUMENT_UPDATE_EVENT);
+						if (plugin) {
+							plugin.handleTapestryDocumentUpdate(
+								this.document,
+								this.settings
+							);
+						}
 					} else {
 						workspace.trigger(DOCUMENT_LOAD_EVENT);
+						if (plugin) {
+							plugin.handleTapestryDocumentLoad(
+								this.document,
+								this.settings
+							);
+						}
 					}
 				}
 			})
@@ -78,13 +96,29 @@ export default class TapestryLoom extends Plugin {
 					(editor) => {
 						this.editor = editor;
 
+						// @ts-expect-error not typed
+						const editorView = editor.cm as EditorView;
+						const plugin = editorView.plugin(EDITOR_PLUGIN);
+
 						if (this.document) {
 							if (updateDocument(this.editor, this.document)) {
 								workspace.trigger(DOCUMENT_UPDATE_EVENT);
+								if (plugin) {
+									plugin.handleTapestryDocumentUpdate(
+										this.document,
+										this.settings
+									);
+								}
 							}
 						} else {
 							this.document = loadDocument(this.editor);
 							workspace.trigger(DOCUMENT_LOAD_EVENT);
+							if (plugin) {
+								plugin.handleTapestryDocumentLoad(
+									this.document,
+									this.settings
+								);
+							}
 						}
 					},
 					debounceTime,
@@ -93,10 +127,17 @@ export default class TapestryLoom extends Plugin {
 			)
 		);
 		this.registerEvent(
-			workspace.on("editor-drop", (_evt, _editor) => {
+			workspace.on("editor-drop", (_evt, editor) => {
 				this.editor = undefined;
 				this.document = undefined;
 				workspace.trigger(DOCUMENT_DROP_EVENT);
+
+				// @ts-expect-error not typed
+				const editorView = editor.cm as EditorView;
+				const plugin = editorView.plugin(EDITOR_PLUGIN);
+				if (plugin) {
+					plugin.handleTapestryDocumentDestroy(this.settings);
+				}
 			})
 		);
 		this.registerEvent(

@@ -20,21 +20,28 @@ import {
 	PluginValue,
 	WidgetType,
 } from "@codemirror/view";
-import { getNodeContent, WeaveDocumentNode } from "document";
+import { getNodeContent, WeaveDocument, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
+import { TapestryLoomSettings } from "settings";
 
-class TapestryLoomPlugin implements PluginValue {
-	constructor(view: EditorView) {
-		// ...
+export class TapestryLoomPlugin implements PluginValue {
+	decorations: DecorationSet;
+	constructor(_view: EditorView) {
+		this.decorations = Decoration.none;
 	}
 
-	update(update: ViewUpdate) {
-		// ...
-	}
+	update(_update: ViewUpdate) {}
+	handleTapestryDocumentLoad(
+		document: WeaveDocument,
+		settings: TapestryLoomSettings
+	) {}
+	handleTapestryDocumentUpdate(
+		document: WeaveDocument,
+		settings: TapestryLoomSettings
+	) {}
+	handleTapestryDocumentDestroy(settings: TapestryLoomSettings) {}
 
-	destroy() {
-		// ...
-	}
+	destroy() {}
 }
 
 export const EDITOR_PLUGIN = ViewPlugin.fromClass(TapestryLoomPlugin);
