@@ -149,6 +149,17 @@ export default class TapestryLoom extends Plugin {
 					if (this.editor && this.document) {
 						overrideEditorContent(this.editor, this.document);
 						workspace.trigger(DOCUMENT_UPDATE_EVENT);
+
+						// @ts-expect-error not typed
+						const editorView = this.editor.cm as EditorView;
+						const plugin = editorView.plugin(EDITOR_PLUGIN);
+
+						if (plugin) {
+							plugin.handleTapestryDocumentUpdate(
+								this.document,
+								this.settings
+							);
+						}
 					}
 				}
 			)
