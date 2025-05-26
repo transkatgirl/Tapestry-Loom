@@ -22,6 +22,7 @@ const GRAPH_LAYOUT = {
 		interactive: true,
 		"mrtree.searchOrder": "BFS",
 	},
+	fit: false,
 };
 
 export class TapestryLoomGraphView extends ItemView {
@@ -111,14 +112,15 @@ export class TapestryLoomGraphView extends ItemView {
 					},
 				},
 			];
-			const renderDepth =
-				this.plugin.settings.document?.graphDepth ||
-				DEFAULT_DOCUMENT_SETTINGS.graphDepth;
 
 			if (incremental && this.graph) {
 				this.graph.json({
 					elements: elements,
 				});
+
+				const renderDepth =
+					this.plugin.settings.document?.graphDepth ||
+					DEFAULT_DOCUMENT_SETTINGS.graphDepth;
 
 				if (!this.panned) {
 					this.graph.fit(
@@ -158,13 +160,18 @@ export class TapestryLoomGraphView extends ItemView {
 				this.graph.on("scrollzoom", (_event) => {
 					this.panned = true;
 				});
-				this.graph.on("ready move resize", (_event) => {
-					if (!this.graph) {
+				this.graph.on("ready move resize layoutstop", (_event) => {
+					if (!this.graph || !this.plugin.document) {
 						return;
 					}
+
+					const renderDepth =
+						this.plugin.settings.document?.graphDepth ||
+						DEFAULT_DOCUMENT_SETTINGS.graphDepth;
+
 					this.graph.fit(
 						this.graph.elements(
-							getPanSelector(document, renderDepth)
+							getPanSelector(this.plugin.document, renderDepth)
 						)
 					);
 					this.panned = false;
