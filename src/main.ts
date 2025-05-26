@@ -9,7 +9,7 @@ import {
 } from "settings";
 import { TapestryLoomTreeView, TREE_VIEW_TYPE } from "view/tree";
 import { TapestryLoomGraphView, GRAPH_VIEW_TYPE } from "view/graph";
-import { EDITOR_PLUGIN } from "view/editor";
+import { EDITOR_PLUGIN, updateEditorPluginState } from "view/editor";
 import cytoscape from "cytoscape";
 import {
 	loadDocument,
@@ -17,7 +17,6 @@ import {
 	updateDocument,
 	WeaveDocument,
 } from "document";
-import { EditorView } from "@codemirror/view";
 import { buildCommands } from "view/commands";
 
 // @ts-expect-error
@@ -65,26 +64,22 @@ export default class TapestryLoom extends Plugin {
 					const oldIdentifier = this.document?.identifier;
 					this.document = loadDocument(this.editor);
 
-					// @ts-expect-error not typed
-					const editorView = this.editor.cm as EditorView;
-					const plugin = editorView.plugin(EDITOR_PLUGIN);
-
 					if (this.document.identifier == oldIdentifier) {
 						workspace.trigger(DOCUMENT_UPDATE_EVENT);
-						if (plugin) {
-							plugin.handleTapestryDocumentUpdate(
-								this.document,
-								this.settings
-							);
-						}
+						updateEditorPluginState(
+							this.editor,
+							this.settings,
+							this.document,
+							true
+						);
 					} else {
 						workspace.trigger(DOCUMENT_LOAD_EVENT);
-						if (plugin) {
-							plugin.handleTapestryDocumentLoad(
-								this.document,
-								this.settings
-							);
-						}
+						updateEditorPluginState(
+							this.editor,
+							this.settings,
+							this.document,
+							false
+						);
 					}
 				}
 			})
@@ -96,29 +91,25 @@ export default class TapestryLoom extends Plugin {
 					(editor) => {
 						this.editor = editor;
 
-						// @ts-expect-error not typed
-						const editorView = editor.cm as EditorView;
-						const plugin = editorView.plugin(EDITOR_PLUGIN);
-
 						if (this.document) {
 							if (updateDocument(this.editor, this.document)) {
 								workspace.trigger(DOCUMENT_UPDATE_EVENT);
-								if (plugin) {
-									plugin.handleTapestryDocumentUpdate(
-										this.document,
-										this.settings
-									);
-								}
+								updateEditorPluginState(
+									this.editor,
+									this.settings,
+									this.document,
+									true
+								);
 							}
 						} else {
 							this.document = loadDocument(this.editor);
 							workspace.trigger(DOCUMENT_LOAD_EVENT);
-							if (plugin) {
-								plugin.handleTapestryDocumentLoad(
-									this.document,
-									this.settings
-								);
-							}
+							updateEditorPluginState(
+								this.editor,
+								this.settings,
+								this.document,
+								false
+							);
 						}
 					},
 					debounceTime,
@@ -132,12 +123,7 @@ export default class TapestryLoom extends Plugin {
 				this.document = undefined;
 				workspace.trigger(DOCUMENT_DROP_EVENT);
 
-				// @ts-expect-error not typed
-				const editorView = editor.cm as EditorView;
-				const plugin = editorView.plugin(EDITOR_PLUGIN);
-				if (plugin) {
-					plugin.handleTapestryDocumentDestroy(this.settings);
-				}
+				updateEditorPluginState(editor, this.settings);
 			})
 		);
 		this.registerEvent(
@@ -149,17 +135,12 @@ export default class TapestryLoom extends Plugin {
 					if (this.editor && this.document) {
 						overrideEditorContent(this.editor, this.document);
 						workspace.trigger(DOCUMENT_UPDATE_EVENT);
-
-						// @ts-expect-error not typed
-						const editorView = this.editor.cm as EditorView;
-						const plugin = editorView.plugin(EDITOR_PLUGIN);
-
-						if (plugin) {
-							plugin.handleTapestryDocumentUpdate(
-								this.document,
-								this.settings
-							);
-						}
+						updateEditorPluginState(
+							this.editor,
+							this.settings,
+							this.document,
+							true
+						);
 					}
 				}
 			)
@@ -232,5 +213,13 @@ export default class TapestryLoom extends Plugin {
 	async saveSettings() {
 		await this.saveData({ settings: serialize(this.settings) });
 		this.app.workspace.trigger(SETTINGS_UPDATE_EVENT);
+		if (this.editor) {
+			updateEditorPluginState(
+				this.editor,
+				this.settings,
+				this.document,
+				true
+			);
+		}
 	}
 }

@@ -9,6 +9,8 @@ import {
 import TapestryLoom from "main";
 import { SessionSettings } from "view/tree";
 
+// TODO: Add setting to enable/disable color coding
+
 export interface TapestryLoomSettings {
 	client?: ClientSettings;
 	document?: DocumentSettings;

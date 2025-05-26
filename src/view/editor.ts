@@ -1,15 +1,4 @@
-import TapestryLoom from "main";
-import {
-	App,
-	Command,
-	ItemView,
-	Menu,
-	Modal,
-	Setting,
-	WorkspaceLeaf,
-	setIcon,
-} from "obsidian";
-import { Range } from "@codemirror/state";
+import { Extension, Range } from "@codemirror/state";
 import {
 	Decoration,
 	DecorationSet,
@@ -23,25 +12,54 @@ import {
 import { getNodeContent, WeaveDocument, WeaveDocumentNode } from "document";
 import { ULID, ulid } from "ulid";
 import { TapestryLoomSettings } from "settings";
+import { Editor } from "obsidian";
 
-export class TapestryLoomPlugin implements PluginValue {
+class TapestryLoomPlugin implements PluginValue {
 	decorations: DecorationSet;
 	constructor(_view: EditorView) {
 		this.decorations = Decoration.none;
 	}
-
 	update(_update: ViewUpdate) {}
 	handleTapestryDocumentLoad(
 		document: WeaveDocument,
 		settings: TapestryLoomSettings
-	) {}
+	) {
+		console.log("load");
+	}
 	handleTapestryDocumentUpdate(
 		document: WeaveDocument,
 		settings: TapestryLoomSettings
-	) {}
-	handleTapestryDocumentDestroy(settings: TapestryLoomSettings) {}
-
+	) {
+		console.log("update");
+	}
+	handleTapestryDocumentDestroy(settings: TapestryLoomSettings) {
+		console.log("destroy");
+	}
 	destroy() {}
 }
 
 export const EDITOR_PLUGIN = ViewPlugin.fromClass(TapestryLoomPlugin);
+
+export function updateEditorPluginState(
+	editor: Editor,
+	settings: TapestryLoomSettings,
+	document?: WeaveDocument,
+	incremental?: boolean
+) {
+	// @ts-expect-error not typed
+	const editorView = editor.cm as EditorView;
+	const plugin = editorView.plugin(EDITOR_PLUGIN);
+	if (!plugin) {
+		return;
+	}
+
+	if (document) {
+		if (incremental) {
+			plugin.handleTapestryDocumentUpdate(document, settings);
+		} else {
+			plugin.handleTapestryDocumentLoad(document, settings);
+		}
+	} else {
+		plugin.handleTapestryDocumentDestroy(settings);
+	}
+}
