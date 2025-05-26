@@ -18,6 +18,8 @@ import {
 	toggleBookmarkNode,
 } from "./common";
 
+// TODO: add search command
+
 export function buildCommands(plugin: TapestryLoom): Array<Command> {
 	return [
 		{
