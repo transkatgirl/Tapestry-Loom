@@ -75,7 +75,9 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Displayed Tree Depth")
-			.setDesc("")
+			.setDesc(
+				"The number of layers to typically display in the node tree view."
+			)
 			.addText((text) =>
 				text
 					.setPlaceholder(
@@ -86,8 +88,8 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 						document.treeDepth =
 							parseInt(value) ||
 							DEFAULT_DOCUMENT_SETTINGS.treeDepth;
-						if (document.treeDepth < 2) {
-							document.treeDepth = 2;
+						if (document.treeDepth < 3) {
+							document.treeDepth = 3;
 						}
 
 						this.plugin.settings.document = document;
@@ -97,7 +99,9 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Displayed Graph Depth")
-			.setDesc("")
+			.setDesc(
+				"The number of layers to typically display in the node graph view."
+			)
 			.addText((text) =>
 				text
 					.setPlaceholder(
