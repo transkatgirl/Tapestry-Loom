@@ -157,8 +157,8 @@ export class WeaveDocument {
 
 		return nodes;
 	}
-	getNodeChildren(node: WeaveDocumentNode): Array<WeaveDocumentNode> {
-		const childSet = this.nodeChildren.get(node.identifier);
+	getNodeChildren(identifier: ULID): Array<WeaveDocumentNode> {
+		const childSet = this.nodeChildren.get(identifier);
 
 		if (childSet) {
 			const childNodes: Array<WeaveDocumentNode> = [];
@@ -277,7 +277,9 @@ export class WeaveDocument {
 			this.nodeChildren.set(node.identifier, new Set());
 		}
 		if (node.model) {
-			this.models.set(node.model, model);
+			if (model) {
+				this.models.set(node.model, model);
+			}
 
 			const modelNodes = this.modelNodes.get(node.model);
 
@@ -353,14 +355,14 @@ export class WeaveDocument {
 		}
 	}
 	mergeNode(primaryIdentifier: ULID, secondaryIdentifier: ULID) {
+		const primaryNode = this.nodes.get(primaryIdentifier);
+		const secondaryNode = this.nodes.get(secondaryIdentifier);
+
+		if (!primaryNode || !secondaryNode) {
+			return;
+		}
+
 		if (this.isNodeMergeable(primaryIdentifier, secondaryIdentifier)) {
-			const primaryNode = this.nodes.get(primaryIdentifier);
-			const secondaryNode = this.nodes.get(secondaryIdentifier);
-
-			if (!primaryNode || !secondaryNode) {
-				return;
-			}
-
 			if (
 				typeof primaryNode.content == "string" &&
 				typeof secondaryNode.content == "string"
@@ -407,6 +409,47 @@ export class WeaveDocument {
 			}
 
 			this.removeNode(primaryNode.identifier);
+		} else {
+			let content: string | [number, string][];
+
+			if (
+				typeof primaryNode.content == "string" &&
+				typeof secondaryNode.content == "string"
+			) {
+				content = primaryNode.content + secondaryNode.content;
+			} else if (
+				typeof primaryNode.content == "object" &&
+				Array.isArray(primaryNode.content) &&
+				typeof secondaryNode.content == "object" &&
+				Array.isArray(secondaryNode.content) &&
+				primaryNode.model == secondaryNode.model
+			) {
+				content = primaryNode.content.concat(secondaryNode.content);
+			} else {
+				content =
+					getNodeContent(primaryNode) + getNodeContent(secondaryNode);
+			}
+
+			let model;
+			if (primaryNode.model == secondaryNode.model) {
+				model = secondaryNode.model;
+			}
+
+			let metadata;
+			if (
+				primaryNode.metadata?.entries() ==
+				secondaryNode.metadata?.entries()
+			) {
+				metadata = secondaryNode.metadata;
+			}
+
+			this.addNode({
+				identifier: ulid(),
+				content: content,
+				model: model,
+				parentNode: primaryNode.parentNode,
+				metadata: metadata,
+			});
 		}
 	}
 	getNodeChildrenCount(identifier: ULID) {

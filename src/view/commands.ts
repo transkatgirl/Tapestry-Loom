@@ -1,28 +1,22 @@
 import TapestryLoom from "main";
-import {
-	App,
-	Command,
-	ItemView,
-	Menu,
-	Modal,
-	Setting,
-	WorkspaceLeaf,
-	setIcon,
-} from "obsidian";
-import { getNodeContent, WeaveDocumentNode } from "document";
-import { ULID, ulid } from "ulid";
+import { Command } from "obsidian";
+import { getNodeContent } from "document";
 import {
 	addNode,
 	addNodeSibling,
 	deleteNode,
+	deleteNodeChildren,
+	deleteNodeSiblings,
 	generateNodeChildren,
 	getEditorContent,
 	getEditorOffset,
 	mergeNode,
+	moveToChild,
+	moveToNextSibling,
+	moveToParent,
+	moveToPreviousSibling,
 	toggleBookmarkNode,
 } from "./common";
-
-// TODO: Add editor commands for more functions, incorporate cursor position into editor commands
 
 export function buildCommands(plugin: TapestryLoom): Array<Command> {
 	return [
@@ -106,32 +100,60 @@ export function buildCommands(plugin: TapestryLoom): Array<Command> {
 		{
 			id: "node-tapestry-loom-delete-children",
 			name: "Delete all children of current node",
-			callback: () => {},
+			callback: () => {
+				const identifier = plugin.document?.currentNode;
+				if (identifier) {
+					deleteNodeChildren(plugin, identifier);
+				}
+			},
 		},
 		{
-			id: "node-tapestry-loom-delete-siblings",
+			id: "node-tapestry-loom-delete-other-siblings",
+			name: "Delete other siblings of current node",
+			callback: () => {
+				const identifier = plugin.document?.currentNode;
+				if (identifier) {
+					deleteNodeSiblings(plugin, identifier, true);
+				}
+			},
+		},
+		{
+			id: "node-tapestry-loom-delete-all-siblings",
 			name: "Delete all siblings of current node",
-			callback: () => {},
+			callback: () => {
+				const identifier = plugin.document?.currentNode;
+				if (identifier) {
+					deleteNodeSiblings(plugin, identifier, false);
+				}
+			},
 		},
 		{
 			id: "node-tapestry-loom-move-to-parent",
 			name: "Move to parent node",
-			callback: () => {},
+			callback: () => {
+				moveToParent(plugin);
+			},
 		},
 		{
 			id: "node-tapestry-loom-move-to-child",
 			name: "Move to child node",
-			callback: () => {},
+			callback: () => {
+				moveToChild(plugin);
+			},
 		},
 		{
 			id: "node-tapestry-loom-move-to-next-sibling",
 			name: "Move to next sibling node",
-			callback: () => {},
+			callback: () => {
+				moveToNextSibling(plugin);
+			},
 		},
 		{
 			id: "node-tapestry-loom-move-to-previous-sibling",
 			name: "Move to previous sibling node",
-			callback: () => {},
+			callback: () => {
+				moveToPreviousSibling(plugin);
+			},
 		},
 	];
 }

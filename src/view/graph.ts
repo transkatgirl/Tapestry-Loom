@@ -255,7 +255,7 @@ export class TapestryLoomGraphView extends ItemView {
 			});
 		}
 
-		for (const childNode of document.getNodeChildren(node)) {
+		for (const childNode of document.getNodeChildren(node.identifier)) {
 			this.buildNode(elements, childNode, activeNodes);
 		}
 	}
@@ -370,7 +370,7 @@ function getPanSelector(document: WeaveDocument, renderDepth: number): string {
 			}
 		}
 		for (const node of activeNodes.slice(-1 * (renderDepth - 1))) {
-			for (const child of document.getNodeChildren(node)) {
+			for (const child of document.getNodeChildren(node.identifier)) {
 				if (selector.length > 0) {
 					selector = selector + ",#" + child.identifier;
 				} else {
@@ -387,7 +387,7 @@ function getPanSelector(document: WeaveDocument, renderDepth: number): string {
 			}
 		}
 		for (const node of activeNodes.slice(-1 * renderDepth)) {
-			for (const child of document.getNodeChildren(node)) {
+			for (const child of document.getNodeChildren(node.identifier)) {
 				if (selector.length > 0) {
 					selector = selector + ",#" + child.identifier;
 				} else {
@@ -402,7 +402,7 @@ function getPanSelector(document: WeaveDocument, renderDepth: number): string {
 			} else {
 				selector = "#" + node.identifier;
 			}
-			for (const child of document.getNodeChildren(node)) {
+			for (const child of document.getNodeChildren(node.identifier)) {
 				if (selector.length > 0) {
 					selector = selector + ",#" + child.identifier;
 				} else {
@@ -419,7 +419,7 @@ function getPanSelector(document: WeaveDocument, renderDepth: number): string {
 				}
 			}
 			for (const node of activeNodes) {
-				for (const child of document.getNodeChildren(node)) {
+				for (const child of document.getNodeChildren(node.identifier)) {
 					if (selector.length > 0) {
 						selector = selector + ",#" + child.identifier;
 					} else {

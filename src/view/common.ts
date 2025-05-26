@@ -183,6 +183,44 @@ export function deleteNode(plugin: TapestryLoom, identifier: ULID) {
 	plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 }
 
+export function deleteNodeChildren(plugin: TapestryLoom, identifier: ULID) {
+	if (!plugin.document) {
+		return;
+	}
+
+	const children = plugin.document.getNodeChildren(identifier);
+	for (const node of children) {
+		plugin.document.removeNode(node.identifier);
+	}
+
+	plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
+}
+
+export function deleteNodeSiblings(
+	plugin: TapestryLoom,
+	identifier: ULID,
+	excludeTarget: boolean
+) {
+	if (!plugin.document) {
+		return;
+	}
+
+	const node = plugin.document.getNode(identifier);
+
+	if (!node?.parentNode) {
+		return;
+	}
+
+	const siblings = plugin.document.getNodeChildren(node.parentNode);
+	for (const node of siblings) {
+		if (node.identifier != identifier || !excludeTarget) {
+			plugin.document.removeNode(node.identifier);
+		}
+	}
+
+	plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
+}
+
 export function getEditorContent(editor: Editor) {
 	const rawContent = editor.getValue();
 	const frontMatterInfo = getFrontMatterInfo(rawContent);
@@ -200,5 +238,69 @@ export function getEditorOffset(editor: Editor) {
 
 	if (offset >= 0) {
 		return offset;
+	}
+}
+
+export function moveToParent(plugin: TapestryLoom) {
+	if (!plugin.document || !plugin.document.currentNode) {
+		return;
+	}
+
+	const node = plugin.document.getNode(plugin.document.currentNode);
+	plugin.document.currentNode = node?.parentNode;
+
+	plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
+}
+
+export function moveToChild(plugin: TapestryLoom) {
+	if (!plugin.document || !plugin.document.currentNode) {
+		return;
+	}
+
+	const children = plugin.document.getNodeChildren(
+		plugin.document.currentNode
+	);
+	if (children.length > 0) {
+		plugin.document.currentNode = children[0].identifier;
+
+		plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
+	}
+}
+
+export function moveToPreviousSibling(plugin: TapestryLoom) {
+	if (!plugin.document || !plugin.document.currentNode) {
+		return;
+	}
+
+	const node = plugin.document.getNode(plugin.document.currentNode);
+	if (!node || !node.parentNode) {
+		return;
+	}
+
+	const siblings = plugin.document.getNodeChildren(node.parentNode);
+	const index = siblings.indexOf(node);
+	if (index > 0) {
+		plugin.document.currentNode = siblings[index - 1].identifier;
+
+		plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
+	}
+}
+
+export function moveToNextSibling(plugin: TapestryLoom) {
+	if (!plugin.document || !plugin.document.currentNode) {
+		return;
+	}
+
+	const node = plugin.document.getNode(plugin.document.currentNode);
+	if (!node || !node.parentNode) {
+		return;
+	}
+
+	const siblings = plugin.document.getNodeChildren(node.parentNode);
+	const index = siblings.indexOf(node);
+	if (index < siblings.length - 1) {
+		plugin.document.currentNode = siblings[index + 1].identifier;
+
+		plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 	}
 }

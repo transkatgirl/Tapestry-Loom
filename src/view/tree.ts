@@ -92,7 +92,7 @@ export class TapestryLoomTreeView extends ItemView {
 		}
 
 		const content = getNodeContent(node);
-		const children = document.getNodeChildren(node);
+		const children = document.getNodeChildren(node.identifier);
 		let flair;
 		if (
 			node.content.length == 1 &&
@@ -178,7 +178,7 @@ export class TapestryLoomTreeView extends ItemView {
 				switchToNode(this.plugin, node.identifier);
 			});
 		} else {
-			for (const childNode of document.getNodeChildren(node)) {
+			for (const childNode of document.getNodeChildren(node.identifier)) {
 				this.renderNode(tree.childrenContainer, childNode, depth + 1);
 			}
 		}
