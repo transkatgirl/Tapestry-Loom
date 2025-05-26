@@ -326,6 +326,11 @@ export class TapestryLoomTreeView extends ItemView {
 			event.stopPropagation();
 			this.toggleBookmarkNode(node.identifier);
 		});
+
+		tree.labelContainer.addEventListener("contextmenu", (event) => {
+			event.preventDefault();
+			this.renderMenu(node, event);
+		});
 	}
 	private renderModels(container: HTMLElement) {
 		container.empty();
