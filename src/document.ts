@@ -219,7 +219,7 @@ export class WeaveDocument {
 		this.addNode(node);
 		this.currentNode = node.identifier;
 	}
-	addNode(node: WeaveDocumentNode, model: ModelLabel = UNKNOWN_MODEL_LABEL) {
+	addNode(node: WeaveDocumentNode, model?: ModelLabel) {
 		if (node.parentNode) {
 			const parentNode = this.nodes.get(node.parentNode);
 
@@ -277,8 +277,8 @@ export class WeaveDocument {
 			this.nodeChildren.set(node.identifier, new Set());
 		}
 		if (node.model) {
-			if (model) {
-				this.models.set(node.model, model);
+			if (model || !this.models.has(node.model)) {
+				this.models.set(node.model, model || UNKNOWN_MODEL_LABEL);
 			}
 
 			const modelNodes = this.modelNodes.get(node.model);
@@ -305,6 +305,10 @@ export class WeaveDocument {
 
 			const secondaryIdentifier = ulid();
 
+			const primaryChildren = structuredClone(
+				this.nodeChildren.get(node.identifier)
+			);
+
 			node.content = splitContent[0];
 			this.addNode({
 				identifier: secondaryIdentifier,
@@ -314,8 +318,6 @@ export class WeaveDocument {
 				metadata: node.metadata,
 			});
 
-			const primaryChildren = this.nodeChildren.get(node.identifier);
-
 			if (primaryChildren) {
 				for (const childIdentifier of primaryChildren) {
 					const childNode = this.nodes.get(childIdentifier);
@@ -324,6 +326,7 @@ export class WeaveDocument {
 						childNode.parentNode = secondaryIdentifier;
 					}
 				}
+
 				this.nodeChildren.set(secondaryIdentifier, primaryChildren);
 				this.nodeChildren.set(
 					node.identifier,

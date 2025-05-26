@@ -1,4 +1,4 @@
-import TapestryLoom from "main";
+import TapestryLoom, { DOCUMENT_TRIGGER_UPDATE_EVENT } from "main";
 import { Command } from "obsidian";
 import { getNodeContent } from "document";
 import {
@@ -171,7 +171,7 @@ async function runCompletion(plugin: TapestryLoom, useOffset: boolean) {
 		);
 		if (active) {
 			const node = plugin.document.getNode(active[0]);
-			if (node && getNodeContent(node).length > active[1]) {
+			if (node && getNodeContent(node).length - 1 > active[1]) {
 				plugin.document.splitNode(active[0], active[1]);
 			}
 
@@ -197,8 +197,9 @@ function splitNode(plugin: TapestryLoom) {
 		);
 		if (active) {
 			const node = plugin.document.getNode(active[0]);
-			if (node && getNodeContent(node).length > active[1]) {
+			if (node && getNodeContent(node).length - 1 > active[1]) {
 				plugin.document.splitNode(active[0], active[1]);
+				plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 			}
 		}
 	}
