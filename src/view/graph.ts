@@ -368,7 +368,7 @@ function getPanSelector(document: WeaveDocument, renderDepth: number): string {
 
 	if (
 		document.currentNode &&
-		activeNodes.length > renderDepth &&
+		activeNodes.length > renderDepth - 1 &&
 		document.getNodeChildrenCount(document.currentNode) > 0
 	) {
 		for (const node of activeNodes.slice(-1 * (renderDepth - 1))) {
@@ -387,7 +387,7 @@ function getPanSelector(document: WeaveDocument, renderDepth: number): string {
 				}
 			}
 		}
-	} else if (document.currentNode && activeNodes.length > renderDepth + 1) {
+	} else if (document.currentNode && activeNodes.length > renderDepth) {
 		for (const node of activeNodes.slice(-1 * renderDepth)) {
 			if (selector.length > 0) {
 				selector = selector + ",#" + node.identifier;
