@@ -159,7 +159,7 @@ export class WeaveDocument {
 	}
 	getAllNodes(): Array<WeaveDocumentNode> {
 		const nodes: Array<WeaveDocumentNode> = [];
-		for (const [_identifier, node] of this.nodes) {
+		for (const [_identifier, node] of this.nodes.entries()) {
 			nodes.push(node);
 		}
 		nodes.sort(function (a, b) {
