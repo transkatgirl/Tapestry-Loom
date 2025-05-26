@@ -10,10 +10,12 @@ export interface TapestryLoomSettings {
 	defaultSession?: SessionSettings;
 }
 
-// TODO: Allow customizing displayed depth in graph & tree, allow disabling color-coding for blind model comparisons
-
 export const DEFAULT_CLIENT_SETTINGS: ClientSettings = { models: [] };
-export const DEFAULT_DOCUMENT_SETTINGS: DocumentSettings = { debounce: 500 };
+export const DEFAULT_DOCUMENT_SETTINGS: DocumentSettings = {
+	debounce: 500,
+	treeDepth: 4,
+	graphDepth: 4,
+};
 export const DEFAULT_SESSION_SETTINGS: SessionSettings = {
 	requests: 6,
 	models: [],
@@ -24,6 +26,8 @@ const DEFAULT_LABEL_COLOR: HexString = "#000000";
 
 export interface DocumentSettings {
 	debounce: number;
+	treeDepth: number;
+	graphDepth: number;
 }
 
 export class TapestryLoomSettingTab extends PluginSettingTab {
@@ -58,9 +62,54 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 					)
 					.setValue(document.debounce.toString())
 					.onChange(async (value) => {
-						document.debounce = parseInt(value) || 500;
+						document.debounce =
+							parseInt(value) ||
+							DEFAULT_DOCUMENT_SETTINGS.debounce;
 						if (document.debounce < 30) {
 							document.debounce = 30;
+						}
+						this.plugin.settings.document = document;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Displayed Tree Depth")
+			.setDesc("")
+			.addText((text) =>
+				text
+					.setPlaceholder(
+						DEFAULT_DOCUMENT_SETTINGS.treeDepth.toString()
+					)
+					.setValue(document.treeDepth.toString())
+					.onChange(async (value) => {
+						document.treeDepth =
+							parseInt(value) ||
+							DEFAULT_DOCUMENT_SETTINGS.treeDepth;
+						if (document.treeDepth < 2) {
+							document.treeDepth = 2;
+						}
+
+						this.plugin.settings.document = document;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Displayed Graph Depth")
+			.setDesc("")
+			.addText((text) =>
+				text
+					.setPlaceholder(
+						DEFAULT_DOCUMENT_SETTINGS.graphDepth.toString()
+					)
+					.setValue(document.graphDepth.toString())
+					.onChange(async (value) => {
+						document.graphDepth =
+							parseInt(value) ||
+							DEFAULT_DOCUMENT_SETTINGS.graphDepth;
+						if (document.graphDepth < 2) {
+							document.graphDepth = 2;
 						}
 						this.plugin.settings.document = document;
 						await this.plugin.saveSettings();

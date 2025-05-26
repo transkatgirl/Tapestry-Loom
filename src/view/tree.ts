@@ -60,15 +60,24 @@ export class TapestryLoomTreeView extends ItemView {
 
 		const activeNodes = document.getActiveNodes();
 		const rootNodes = document.getRootNodes();
+		const renderDepth =
+			this.plugin.settings.document?.treeDepth ||
+			DEFAULT_DOCUMENT_SETTINGS.treeDepth;
 
 		if (
 			document.currentNode &&
-			activeNodes.length > 3 &&
+			activeNodes.length > renderDepth &&
 			document.getNodeChildrenCount(document.currentNode) > 0
 		) {
-			this.renderNode(container, activeNodes.slice(-3)[0]);
-		} else if (document.currentNode && activeNodes.length > 4) {
-			this.renderNode(container, activeNodes.slice(-4)[0]);
+			this.renderNode(
+				container,
+				activeNodes.slice(-1 * (renderDepth - 1))[0]
+			);
+		} else if (
+			document.currentNode &&
+			activeNodes.length > renderDepth + 1
+		) {
+			this.renderNode(container, activeNodes.slice(-1 * renderDepth)[0]);
 		} else if (rootNodes.length > 0) {
 			for (const node of rootNodes) {
 				this.renderNode(container, node);
@@ -162,7 +171,11 @@ export class TapestryLoomTreeView extends ItemView {
 			deleteNode(this.plugin, node.identifier);
 		});
 
-		if (children.length > 0 && depth > 6) {
+		const renderDepth =
+			this.plugin.settings.document?.treeDepth ||
+			DEFAULT_DOCUMENT_SETTINGS.treeDepth;
+
+		if (children.length > 0 && depth > renderDepth) {
 			renderDepthNotice(tree);
 			tree.childrenContainer.addEventListener("click", () => {
 				switchToNode(this.plugin, node.identifier);
@@ -450,6 +463,15 @@ export class TapestryLoomTreeView extends ItemView {
 				SETTINGS_UPDATE_EVENT,
 				() => {
 					this.renderModels(modelMenu.childrenContainer);
+					this.renderBookmarks(bookmarksMenu.childrenContainer);
+					this.renderTree(treeMenu.childrenContainer, false);
+					if (this.plugin.document) {
+						if (this.plugin.document.bookmarks.size > 0) {
+							updateCollapsibleMenu(bookmarksMenu, true);
+						} else {
+							updateCollapsibleMenu(bookmarksMenu, false);
+						}
+					}
 				}
 			)
 		);
@@ -475,6 +497,11 @@ export class TapestryLoomTreeView extends ItemView {
 		this.renderModels(modelMenu.childrenContainer);
 		this.renderBookmarks(bookmarksMenu.childrenContainer);
 		this.renderTree(treeMenu.childrenContainer, false);
+	}
+	onResize() {
+		if (this.treeMenu && this.plugin.document) {
+			this.renderTree(this.treeMenu.childrenContainer, false);
+		}
 	}
 	async onClose() {}
 }

@@ -2,6 +2,7 @@ import TapestryLoom, {
 	DOCUMENT_DROP_EVENT,
 	DOCUMENT_LOAD_EVENT,
 	DOCUMENT_UPDATE_EVENT,
+	SETTINGS_UPDATE_EVENT,
 } from "main";
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { getNodeContent, WeaveDocument, WeaveDocumentNode } from "document";
@@ -9,6 +10,7 @@ import { ULID } from "ulid";
 import cytoscape, { Core, StylesheetJsonBlock } from "cytoscape";
 import { getGlobalCSSColorVariable } from "common";
 import { switchToNode, toggleBookmarkNode } from "./common";
+import { DEFAULT_DOCUMENT_SETTINGS } from "settings";
 
 export const GRAPH_VIEW_TYPE = "tapestry-loom-graph-view";
 
@@ -25,6 +27,7 @@ const GRAPH_LAYOUT = {
 export class TapestryLoomGraphView extends ItemView {
 	plugin: TapestryLoom;
 	private graph?: Core;
+	private panned = false;
 	constructor(leaf: WorkspaceLeaf, plugin: TapestryLoom) {
 		super(leaf);
 		this.plugin = plugin;
@@ -108,13 +111,25 @@ export class TapestryLoomGraphView extends ItemView {
 					},
 				},
 			];
+			const renderDepth =
+				this.plugin.settings.document?.graphDepth ||
+				DEFAULT_DOCUMENT_SETTINGS.graphDepth;
 
 			if (incremental && this.graph) {
 				this.graph.json({
 					elements: elements,
 				});
+
+				if (!this.panned) {
+					this.graph.fit(
+						this.graph.elements(
+							getPanSelector(document, renderDepth)
+						)
+					);
+				}
 			} else {
 				container.empty();
+				this.panned = false;
 
 				this.graph = cytoscape({
 					container: container,
@@ -134,21 +149,36 @@ export class TapestryLoomGraphView extends ItemView {
 						toggleBookmarkNode(this.plugin, node);
 					}
 				});
+				this.graph.on("dragpan", (_event) => {
+					this.panned = true;
+				});
+				this.graph.on("pinchzoom", (_event) => {
+					this.panned = true;
+				});
+				this.graph.on("scrollzoom", (_event) => {
+					this.panned = true;
+				});
 				this.graph.on("ready", (_event) => {
 					if (!this.graph) {
 						return;
 					}
 					this.graph.fit(
-						this.graph.elements(getPanSelector(document))
+						this.graph.elements(
+							getPanSelector(document, renderDepth)
+						)
 					);
+					this.panned = false;
 				});
 				this.graph.on("move", (_event) => {
 					if (!this.graph) {
 						return;
 					}
 					this.graph.fit(
-						this.graph.elements(getPanSelector(document))
+						this.graph.elements(
+							getPanSelector(document, renderDepth)
+						)
 					);
+					this.panned = false;
 				});
 				this.graph.on("add", (_event) => {
 					if (!this.graph) {
@@ -160,6 +190,7 @@ export class TapestryLoomGraphView extends ItemView {
 		} else {
 			container.empty();
 			this.graph = undefined;
+			this.panned = false;
 		}
 	}
 	private buildNode(
@@ -280,17 +311,46 @@ export class TapestryLoomGraphView extends ItemView {
 				}
 			)
 		);
+		this.registerEvent(
+			workspace.on(
+				// ignore ts2769; custom event
+				// @ts-expect-error
+				SETTINGS_UPDATE_EVENT,
+				() => {
+					if (this.graph && this.plugin.document) {
+						const renderDepth =
+							this.plugin.settings.document?.graphDepth ||
+							DEFAULT_DOCUMENT_SETTINGS.graphDepth;
+
+						this.graph.fit(
+							this.graph.elements(
+								getPanSelector(
+									this.plugin.document,
+									renderDepth
+								)
+							)
+						);
+						this.panned = false;
+					}
+				}
+			)
+		);
 
 		this.plugin.addCommand({
 			id: "reset-tapestry-loom-graph-zoom",
 			name: "Reset node graph zoom",
 			callback: () => {
 				if (this.graph && this.plugin.document) {
+					const renderDepth =
+						this.plugin.settings.document?.graphDepth ||
+						DEFAULT_DOCUMENT_SETTINGS.graphDepth;
+
 					this.graph.fit(
 						this.graph.elements(
-							getPanSelector(this.plugin.document)
+							getPanSelector(this.plugin.document, renderDepth)
 						)
 					);
+					this.panned = false;
 				}
 			},
 		});
@@ -302,23 +362,23 @@ export class TapestryLoomGraphView extends ItemView {
 	async onClose() {}
 }
 
-function getPanSelector(document: WeaveDocument): string {
+function getPanSelector(document: WeaveDocument, renderDepth: number): string {
 	let selector = "";
 	const activeNodes = document.getActiveNodes();
 
 	if (
 		document.currentNode &&
-		activeNodes.length > 3 &&
+		activeNodes.length > renderDepth &&
 		document.getNodeChildrenCount(document.currentNode) > 0
 	) {
-		for (const node of activeNodes.slice(-6)) {
+		for (const node of activeNodes.slice(-1 * (renderDepth - 1))) {
 			if (selector.length > 0) {
 				selector = selector + ",#" + node.identifier;
 			} else {
 				selector = "#" + node.identifier;
 			}
 		}
-		for (const node of activeNodes.slice(-3)) {
+		for (const node of activeNodes.slice(-1 * (renderDepth - 1))) {
 			for (const child of document.getNodeChildren(node)) {
 				if (selector.length > 0) {
 					selector = selector + ",#" + child.identifier;
@@ -327,15 +387,15 @@ function getPanSelector(document: WeaveDocument): string {
 				}
 			}
 		}
-	} else if (document.currentNode && activeNodes.length > 4) {
-		for (const node of activeNodes.slice(-6)) {
+	} else if (document.currentNode && activeNodes.length > renderDepth + 1) {
+		for (const node of activeNodes.slice(-1 * renderDepth)) {
 			if (selector.length > 0) {
 				selector = selector + ",#" + node.identifier;
 			} else {
 				selector = "#" + node.identifier;
 			}
 		}
-		for (const node of activeNodes.slice(-4)) {
+		for (const node of activeNodes.slice(-1 * renderDepth)) {
 			for (const child of document.getNodeChildren(node)) {
 				if (selector.length > 0) {
 					selector = selector + ",#" + child.identifier;
@@ -360,13 +420,20 @@ function getPanSelector(document: WeaveDocument): string {
 			}
 		}
 		if (activeNodes.length > 0) {
-			for (const child of document.getNodeChildren(
-				activeNodes[activeNodes.length - 1]
-			)) {
+			for (const node of activeNodes) {
 				if (selector.length > 0) {
-					selector = selector + ",#" + child.identifier;
+					selector = selector + ",#" + node.identifier;
 				} else {
-					selector = "#" + child.identifier;
+					selector = "#" + node.identifier;
+				}
+			}
+			for (const node of activeNodes) {
+				for (const child of document.getNodeChildren(node)) {
+					if (selector.length > 0) {
+						selector = selector + ",#" + child.identifier;
+					} else {
+						selector = "#" + child.identifier;
+					}
 				}
 			}
 		}
