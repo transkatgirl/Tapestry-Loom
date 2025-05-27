@@ -12,6 +12,7 @@ import {
 import { getNodeContent, WeaveDocument } from "document";
 import { TapestryLoomSettings } from "settings";
 import { Editor, getFrontMatterInfo } from "obsidian";
+import { decodeTime } from "ulid";
 
 class TapestryLoomPlugin implements PluginValue {
 	decorations: DecorationSet;
@@ -78,6 +79,18 @@ class TapestryLoomPlugin implements PluginValue {
 						}
 						classString =
 							classString + " tapestry_editor-node-generated";
+					}
+					if ("title" in attributes) {
+						attributes["title"] =
+							attributes["title"] +
+							"\n" +
+							new Date(
+								decodeTime(node.identifier)
+							).toLocaleString();
+					} else {
+						attributes["title"] = new Date(
+							decodeTime(node.identifier)
+						).toLocaleString();
 					}
 
 					const range = Decoration.mark({
