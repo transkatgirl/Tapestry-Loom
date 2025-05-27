@@ -2,10 +2,29 @@
 
 An Obsidian plugin that aims to turn your editor into an IDE for working with base model LLMs.
 
-Many of the [included features](https://x.com/transkatgirl/status/1927328228802187329) take significant inspiration from [loom](https://github.com/socketteer/loom), [loomsidian](https://github.com/cosmicoptima/loom), [exoloom](https://exoloom.io), and [logitloom](https://github.com/vgel/logitloom). The goal of this plugin is to create an interface which can replace all of these different base model interfaces for most use cases.
-
 > [!NOTE]
 > This plugin is a work in progress, and may contain bugs and missing/broken functionality.
+
+## Included features
+
+- Tree-based completion management
+	- Nodes include metadata about the model and inference parameters used, along with a timestamp
+	- Nodes include token probabilities when available
+	- Prevents accidental deletion of generated nodes & preserves the context used to generate nodes
+	- Support for bookmarking, splitting, and merging nodes
+	- Completion tree storage within document
+- List-based tree view, similar to [loomsidian](https://github.com/cosmicoptima/loom)
+- Graph-based tree view, similar to [exoloom](https://exoloom.io)
+- Editor overlay view, similar to [loomsidian](https://github.com/cosmicoptima/loom)
+	- Token probability display in editor, similar to [loom](https://github.com/socketteer/loom)
+- Automatic creation of single-token probability nodes, similar to [logitloom](https://github.com/vgel/logitloom)
+- Color coding by model used (requires a model color to be configured)
+- Note metadata display on hover (currently only in list and editor), similar to [exoloom](https://exoloom.io)
+- Flexible LLM API client
+	- Support for completions with multiple different models at a time
+	- Support for custom JSON/headers, similar to [loomsidian](https://github.com/cosmicoptima/loom)
+
+You can see example screenshots on [this Twitter post](https://x.com/transkatgirl/status/1927328228802187329).
 
 ## Usage
 
