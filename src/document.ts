@@ -193,8 +193,8 @@ export class WeaveDocument {
 				if (
 					this.getNodeChildrenCount(node.parentNode) == 0 &&
 					node.model == parentNode.model &&
-					node.metadata?.entries() ==
-						parentNode.metadata?.entries() &&
+					JSON.stringify(node.metadata) ==
+						JSON.stringify(parentNode.metadata) &&
 					!this.bookmarks.has(node.parentNode)
 				) {
 					node.content =
@@ -214,8 +214,8 @@ export class WeaveDocument {
 								child.parentNode == node.parentNode &&
 								child.content == node.content &&
 								child.model == node.model &&
-								child.metadata?.entries() ==
-									node.metadata?.entries() &&
+								JSON.stringify(child.metadata) ==
+									JSON.stringify(node.metadata) &&
 								this.getNodeChildrenCount(child.identifier) == 0
 							) {
 								this.currentNode = child.identifier;
@@ -247,8 +247,8 @@ export class WeaveDocument {
 						JSON.stringify(child.content) ==
 							JSON.stringify(node.content) &&
 						child.model == node.model &&
-						JSON.stringify(child.metadata?.entries()) ==
-							JSON.stringify(node.metadata?.entries())
+						JSON.stringify(child.metadata) ==
+							JSON.stringify(node.metadata)
 					) {
 						return;
 					}
@@ -361,8 +361,8 @@ export class WeaveDocument {
 						Array.isArray(primaryNode.content) &&
 						typeof secondaryNode.content == "object" &&
 						Array.isArray(secondaryNode.content))) &&
-				primaryNode.metadata?.entries() ==
-					secondaryNode.metadata?.entries()
+				JSON.stringify(primaryNode.metadata) ==
+					JSON.stringify(secondaryNode.metadata)
 			);
 		} else {
 			return false;
@@ -451,8 +451,8 @@ export class WeaveDocument {
 
 			let metadata;
 			if (
-				primaryNode.metadata?.entries() ==
-				secondaryNode.metadata?.entries()
+				JSON.stringify(primaryNode.metadata) ==
+				JSON.stringify(secondaryNode.metadata)
 			) {
 				metadata = secondaryNode.metadata;
 			}
@@ -528,7 +528,7 @@ export interface WeaveDocumentNode {
 	content: string | Array<[number, string]>;
 	model?: ULID;
 	parentNode?: ULID;
-	metadata?: Map<string, string>;
+	metadata?: Record<string, string>;
 }
 
 export function getNodeContent(node: WeaveDocumentNode) {
