@@ -34,6 +34,7 @@ import fromBase64 from "es-arraybuffer-base64/Uint8Array.fromBase64";
 
 export async function compress(string: string) {
 	const byteArray = new TextEncoder().encode(string);
+	// @ts-ignore
 	const cs = new CompressionStream("deflate");
 	const writer = cs.writable.getWriter();
 	writer.write(byteArray);
@@ -44,6 +45,7 @@ export async function compress(string: string) {
 
 export async function decompress(compressed: string) {
 	const byteArray = fromBase64(compressed);
+	// @ts-ignore
 	const cs = new DecompressionStream("deflate");
 	const writer = cs.writable.getWriter();
 	writer.write(byteArray);
