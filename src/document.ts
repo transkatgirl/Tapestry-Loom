@@ -193,8 +193,8 @@ export class WeaveDocument {
 				if (
 					this.getNodeChildrenCount(node.parentNode) == 0 &&
 					node.model == parentNode.model &&
-					Object.entries(node.parameters || {}) ==
-						Object.entries(parentNode.parameters || {}) &&
+					JSON.stringify(node.parameters) ==
+						JSON.stringify(parentNode.parameters) &&
 					!this.bookmarks.has(node.parentNode)
 				) {
 					node.content =
@@ -214,8 +214,8 @@ export class WeaveDocument {
 								child.parentNode == node.parentNode &&
 								child.content == node.content &&
 								child.model == node.model &&
-								Object.entries(child.parameters || {}) ==
-									Object.entries(node.parameters || {}) &&
+								JSON.stringify(child.parameters) ==
+									JSON.stringify(node.parameters) &&
 								this.getNodeChildrenCount(child.identifier) == 0
 							) {
 								this.currentNode = child.identifier;
@@ -244,11 +244,11 @@ export class WeaveDocument {
 					if (
 						child &&
 						child.parentNode == node.parentNode &&
-						Object.entries(child.content) ==
-							Object.entries(node.content) &&
+						JSON.stringify(child.content) ==
+							JSON.stringify(node.content) &&
 						child.model == node.model &&
-						Object.entries(child.parameters || {}) ==
-							Object.entries(node.parameters || {})
+						JSON.stringify(child.parameters) ==
+							JSON.stringify(node.parameters)
 					) {
 						return;
 					}
@@ -389,8 +389,8 @@ export class WeaveDocument {
 						Array.isArray(primaryNode.content) &&
 						typeof secondaryNode.content == "object" &&
 						Array.isArray(secondaryNode.content))) &&
-				Object.entries(primaryNode.parameters || {}) ==
-					Object.entries(secondaryNode.parameters || {})
+				JSON.stringify(primaryNode.parameters) ==
+					JSON.stringify(secondaryNode.parameters)
 			);
 		} else {
 			return false;
@@ -479,8 +479,8 @@ export class WeaveDocument {
 
 			let parameters;
 			if (
-				Object.entries(primaryNode.parameters || {}) ==
-				Object.entries(secondaryNode.parameters || {})
+				JSON.stringify(primaryNode.parameters) ==
+				JSON.stringify(secondaryNode.parameters || {})
 			) {
 				parameters = secondaryNode.parameters;
 			}
