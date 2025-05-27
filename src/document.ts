@@ -1,7 +1,7 @@
 import { getFrontMatterInfo, parseYaml, Editor, stringifyYaml } from "obsidian";
 import serialize from "serialize-javascript";
 import { compress, decompress, deserialize } from "common";
-import { ulid, ULID } from "ulid";
+import { decodeTime, ulid, ULID } from "ulid";
 import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
 
 export class WeaveDocument {
@@ -315,7 +315,7 @@ export class WeaveDocument {
 					node.content.slice(index),
 				];
 
-				const secondaryIdentifier = ulid();
+				const secondaryIdentifier = ulid(decodeTime(node.identifier));
 
 				const primaryChildren = structuredClone(
 					this.nodeChildren.get(node.identifier)
@@ -345,14 +345,15 @@ export class WeaveDocument {
 						new Set([secondaryIdentifier])
 					);
 				}
-			} else {
+			} else if (node) {
 				const nodeContent = getNodeContent(node);
 				const splitContent = [
 					nodeContent.slice(0, index),
 					nodeContent.slice(index),
 				];
+				const timestamp = decodeTime(node.identifier);
 
-				const primaryIdentifier = ulid();
+				const primaryIdentifier = ulid(timestamp);
 				this.addNode({
 					identifier: primaryIdentifier,
 					content: splitContent[0],
@@ -361,7 +362,7 @@ export class WeaveDocument {
 					parameters: node.parameters,
 				});
 				this.addNode({
-					identifier: ulid(),
+					identifier: ulid(timestamp),
 					content: splitContent[1],
 					model: node.model,
 					parentNode: primaryIdentifier,
@@ -485,7 +486,7 @@ export class WeaveDocument {
 				parameters = secondaryNode.parameters;
 			}
 
-			const identifier = ulid();
+			const identifier = ulid(decodeTime(secondaryNode.identifier));
 
 			this.addNode({
 				identifier: identifier,
