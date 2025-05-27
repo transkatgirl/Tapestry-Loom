@@ -1,4 +1,4 @@
-import { Extension, Range } from "@codemirror/state";
+import { Range } from "@codemirror/state";
 import {
 	Decoration,
 	DecorationSet,
@@ -7,7 +7,7 @@ import {
 	ViewPlugin,
 	PluginSpec,
 	PluginValue,
-	WidgetType,
+	//WidgetType,
 } from "@codemirror/view";
 import { getNodeContent, WeaveDocument } from "document";
 import { TapestryLoomSettings } from "settings";
@@ -54,8 +54,19 @@ class TapestryLoomPlugin implements PluginValue {
 				offset = to;
 
 				if (nodeContent.length > 0) {
+					const attributes: Record<string, string> = {};
+					if (node.model) {
+						const model = this.document.models.get(node.model);
+						if (model?.color) {
+							attributes["style"] =
+								"border-bottom: var(--border-width) solid " +
+								model?.color;
+						}
+					}
+
 					const range = Decoration.mark({
 						class: "tapestry_editor-node",
+						attributes: attributes,
 					}).range(from, to);
 					decorations.push(range);
 				}
@@ -92,7 +103,7 @@ export function buildEditorPlugin(
 	}, pluginSpec);
 }
 
-class NodeBorderWidget extends WidgetType {
+/*class NodeBorderWidget extends WidgetType {
 	toDOM() {
 		return document.createEl("span", {
 			cls: "tapestry_editor-node",
@@ -102,7 +113,7 @@ class NodeBorderWidget extends WidgetType {
 	eq() {
 		return true;
 	}
-}
+}*/
 
 export function updateEditorPluginState(
 	editorPlugin: EditorPlugin,

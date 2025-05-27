@@ -116,3 +116,7 @@
 .plugin-tapestry-loom.status-bar-item:has(span:empty) {
 	display: none;
 }
+
+span.tapestry_editor-node {
+	border-right: var(--blockquote-border-thickness) dashed var(--text-faint);
+}
