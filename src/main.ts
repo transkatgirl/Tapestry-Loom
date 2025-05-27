@@ -53,7 +53,7 @@ export default class TapestryLoom extends Plugin {
 		cytoscape.use(elk);
 
 		if (this.editor) {
-			this.document = loadDocument(this.editor);
+			this.document = await loadDocument(this.editor, true);
 			workspace.trigger(DOCUMENT_LOAD_EVENT);
 		}
 
@@ -66,11 +66,11 @@ export default class TapestryLoom extends Plugin {
 		this.registerEditorExtension([this.editorPlugin]);
 
 		this.registerEvent(
-			workspace.on("active-leaf-change", (leaf) => {
+			workspace.on("active-leaf-change", async (leaf) => {
 				if (leaf && leaf.view instanceof MarkdownView) {
 					this.editor = leaf.view.editor;
 					const oldIdentifier = this.document?.identifier;
-					this.document = loadDocument(this.editor);
+					this.document = await loadDocument(this.editor, true);
 
 					if (this.document.identifier == oldIdentifier) {
 						workspace.trigger(DOCUMENT_UPDATE_EVENT);
@@ -90,11 +90,17 @@ export default class TapestryLoom extends Plugin {
 			workspace.on(
 				"editor-change",
 				debounce(
-					(editor) => {
+					async (editor) => {
 						this.editor = editor;
 
 						if (this.document) {
-							if (updateDocument(this.editor, this.document)) {
+							if (
+								await updateDocument(
+									this.editor,
+									this.document,
+									true
+								)
+							) {
 								workspace.trigger(DOCUMENT_UPDATE_EVENT);
 								updateEditorPluginState(
 									this.editorPlugin,
@@ -104,7 +110,10 @@ export default class TapestryLoom extends Plugin {
 								);
 							}
 						} else {
-							this.document = loadDocument(this.editor);
+							this.document = await loadDocument(
+								this.editor,
+								true
+							);
 							workspace.trigger(DOCUMENT_LOAD_EVENT);
 							updateEditorPluginState(
 								this.editorPlugin,
@@ -136,9 +145,13 @@ export default class TapestryLoom extends Plugin {
 				// ignore ts2769; custom event
 				// @ts-expect-error
 				DOCUMENT_TRIGGER_UPDATE_EVENT,
-				() => {
+				async () => {
 					if (this.editor && this.document) {
-						overrideEditorContent(this.editor, this.document);
+						await overrideEditorContent(
+							this.editor,
+							this.document,
+							true
+						);
 						workspace.trigger(DOCUMENT_UPDATE_EVENT);
 						updateEditorPluginState(
 							this.editorPlugin,

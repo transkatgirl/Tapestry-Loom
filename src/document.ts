@@ -1,6 +1,6 @@
 import { getFrontMatterInfo, parseYaml, Editor, stringifyYaml } from "obsidian";
 import serialize from "serialize-javascript";
-import { deserialize } from "common";
+import { compress, decompress, deserialize } from "common";
 import { ulid, ULID } from "ulid";
 import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
 
@@ -571,22 +571,39 @@ function sortNodeList(nodes: Array<WeaveDocumentNode>) {
 	});
 }
 
-export const FRONT_MATTER_KEY = "TapestryLoomWeave";
+export const UNCOMPRESSED_FRONT_MATTER_KEY = "TapestryLoomWeave";
+export const COMPRESSED_FRONT_MATTER_KEY = "TapestryLoomWeaveCompressed";
 
-export function loadDocument(editor: Editor) {
+export async function loadDocument(editor: Editor, storeCompressed: boolean) {
 	const rawContent = editor.getValue();
 	const frontMatterInfo = getFrontMatterInfo(rawContent);
 	const frontMatter = parseYaml(frontMatterInfo.frontmatter);
 	const content = rawContent.substring(frontMatterInfo.contentStart);
 
-	if (frontMatterInfo.exists && FRONT_MATTER_KEY in frontMatter) {
+	if (frontMatterInfo.exists && COMPRESSED_FRONT_MATTER_KEY in frontMatter) {
 		const document: WeaveDocument = Object.assign(
 			new WeaveDocument(),
-			deserialize(frontMatter[FRONT_MATTER_KEY])
+			deserialize(
+				await decompress(frontMatter[COMPRESSED_FRONT_MATTER_KEY])
+			)
 		);
 
 		if (document.setActiveContent(content)) {
-			saveDocument(editor, document);
+			await saveDocument(editor, document, storeCompressed);
+		}
+
+		return document;
+	} else if (
+		frontMatterInfo.exists &&
+		UNCOMPRESSED_FRONT_MATTER_KEY in frontMatter
+	) {
+		const document: WeaveDocument = Object.assign(
+			new WeaveDocument(),
+			deserialize(frontMatter[UNCOMPRESSED_FRONT_MATTER_KEY])
+		);
+
+		if (document.setActiveContent(content)) {
+			await saveDocument(editor, document, storeCompressed);
 		}
 
 		return document;
@@ -595,7 +612,11 @@ export function loadDocument(editor: Editor) {
 	}
 }
 
-export function updateDocument(editor: Editor, document: WeaveDocument) {
+export async function updateDocument(
+	editor: Editor,
+	document: WeaveDocument,
+	storeCompressed: boolean
+) {
 	const rawContent = editor.getValue();
 	const frontMatterInfo = getFrontMatterInfo(rawContent);
 	const content = rawContent.substring(frontMatterInfo.contentStart);
@@ -603,13 +624,17 @@ export function updateDocument(editor: Editor, document: WeaveDocument) {
 	const updated = document.setActiveContent(content);
 
 	if (updated) {
-		saveDocument(editor, document);
+		await saveDocument(editor, document, storeCompressed);
 	}
 
 	return updated;
 }
 
-export function saveDocument(editor: Editor, document: WeaveDocument) {
+export async function saveDocument(
+	editor: Editor,
+	document: WeaveDocument,
+	storeCompressed: boolean
+) {
 	const rawContent = editor.getValue();
 	const frontMatterInfo = getFrontMatterInfo(rawContent);
 	let frontMatter = parseYaml(frontMatterInfo.frontmatter);
@@ -623,7 +648,19 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 		frontMatter = {};
 	}
 
-	frontMatter[FRONT_MATTER_KEY] = serialize(document);
+	if (storeCompressed) {
+		frontMatter[COMPRESSED_FRONT_MATTER_KEY] = await compress(
+			serialize(document)
+		);
+		if (UNCOMPRESSED_FRONT_MATTER_KEY in frontMatter) {
+			delete frontMatter[UNCOMPRESSED_FRONT_MATTER_KEY];
+		}
+	} else {
+		frontMatter[UNCOMPRESSED_FRONT_MATTER_KEY] = serialize(document);
+		if (COMPRESSED_FRONT_MATTER_KEY in frontMatter) {
+			delete frontMatter[COMPRESSED_FRONT_MATTER_KEY];
+		}
+	}
 
 	if (frontMatterInfo.exists) {
 		editor.replaceRange(
@@ -638,7 +675,11 @@ export function saveDocument(editor: Editor, document: WeaveDocument) {
 	}
 }
 
-export function overrideEditorContent(editor: Editor, document: WeaveDocument) {
+export async function overrideEditorContent(
+	editor: Editor,
+	document: WeaveDocument,
+	storeCompressed: boolean
+) {
 	const rawContent = editor.getValue();
 	const frontMatterInfo = getFrontMatterInfo(rawContent);
 	let frontMatter = parseYaml(frontMatterInfo.frontmatter);
@@ -647,7 +688,19 @@ export function overrideEditorContent(editor: Editor, document: WeaveDocument) {
 		frontMatter = {};
 	}
 
-	frontMatter[FRONT_MATTER_KEY] = serialize(document);
+	if (storeCompressed) {
+		frontMatter[COMPRESSED_FRONT_MATTER_KEY] = await compress(
+			serialize(document)
+		);
+		if (UNCOMPRESSED_FRONT_MATTER_KEY in frontMatter) {
+			delete frontMatter[UNCOMPRESSED_FRONT_MATTER_KEY];
+		}
+	} else {
+		frontMatter[UNCOMPRESSED_FRONT_MATTER_KEY] = serialize(document);
+		if (COMPRESSED_FRONT_MATTER_KEY in frontMatter) {
+			delete frontMatter[COMPRESSED_FRONT_MATTER_KEY];
+		}
+	}
 
 	editor.setValue(
 		"---\n" +
