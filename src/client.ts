@@ -7,13 +7,13 @@ export interface ClientSettings {
 
 export enum EndpointType {
 	OpenAICompletionv1Compatible = "openai_completion_v1_compatible",
-	//OpenAIChatCompletionv1Compatible = "openai_chatcompletion_v1_compatible",
+	OpenAIChatCompletionv1Compatible = "openai_chatcompletion_v1_compatible",
 }
 
 export const ENDPOINT_TYPE_DESCRIPTIONS: Record<EndpointType, string> = {
 	openai_completion_v1_compatible: "OpenAI v1 (or similar) Completion",
-	/*openai_chatcompletion_v1_compatible:
-		"OpenAI v1 (or similar) ChatCompletion",*/
+	openai_chatcompletion_v1_compatible:
+		"OpenAI v1 (or similar) ChatCompletion",
 };
 
 export interface ModelConfiguration {
@@ -36,7 +36,11 @@ export function newModel(
 	identifier?: string,
 	apiKey?: string
 ): ModelConfiguration | void {
-	if (url && type == EndpointType.OpenAICompletionv1Compatible) {
+	if (
+		url &&
+		(type == EndpointType.OpenAICompletionv1Compatible ||
+			type == EndpointType.OpenAIChatCompletionv1Compatible)
+	) {
 		const headers: Record<string, string> = {};
 		if (apiKey) {
 			headers["Authorization"] = "Bearer " + apiKey;
@@ -202,6 +206,75 @@ async function inferenceRequest(
 					responses.push({
 						model: model,
 						completion: result["text"],
+					});
+				}
+			}
+
+			return responses;
+		});
+	} else if (model.type == EndpointType.OpenAIChatCompletionv1Compatible) {
+		const body: Record<string, unknown> = {
+			...model.parameters,
+			...request.parameters,
+			messages: [{ role: "assistant", content: request.prompt }],
+		};
+
+		parseToObject(body);
+
+		const headers: Record<string, string> = {
+			Accept: "application/json",
+			"User-Agent": "TapestryLoom",
+			"HTTP-Referer": "https://github.com/transkatgirl/Tapestry-Loom",
+			"X-Title": "Tapestry Loom",
+			...model.headers,
+		};
+
+		return requestUrl({
+			url: model.url,
+			method: "POST",
+			contentType: "application/json",
+			body: JSON.stringify(body),
+			headers: headers,
+			throw: false,
+		}).then((response) => {
+			if (response.status >= 400) {
+				throw new Error(
+					"HTTP " + response.status + "\n\n" + response.text
+				);
+			}
+
+			const responses: Array<CompletionResponse> = [];
+
+			for (const result of response.json["choices"]) {
+				const logprobs = result["logprobs"];
+
+				if (logprobs && "content" in logprobs && logprobs["content"]) {
+					const tokens: Array<[number, string]> = [];
+					const probs: Array<[number, string]> = [];
+					for (let i = 0; i < logprobs["content"].length; i++) {
+						const prob = logprobs["content"][i];
+
+						tokens.push([Math.exp(prob["logprob"]), prob["token"]]);
+
+						if (i == 0) {
+							for (const topProb of prob["top_logprobs"]) {
+								probs.push([
+									Math.exp(topProb["logprob"]),
+									topProb["token"],
+								]);
+							}
+						}
+					}
+
+					responses.push({
+						model: model,
+						completion: tokens,
+						topProbs: probs,
+					});
+				} else {
+					responses.push({
+						model: model,
+						completion: result["message"]["content"],
 					});
 				}
 			}
