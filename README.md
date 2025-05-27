@@ -20,7 +20,7 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 ### Installation
 
 > [!IMPORTANT]
-> It is recommended (but not required) that you create a dedicated Obsidian vault for this plugin.
+> It is recommended that you create a dedicated Obsidian vault for this plugin.
 
 1. Make sure community plugins are enabled within Obsidian.
 2. Copy the `main.js`, `styles.css`, and `manifest.json` files into a folder named `tapestry-loom` within your vault's `.obsidian/plugins/` folder.
