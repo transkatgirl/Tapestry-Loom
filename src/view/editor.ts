@@ -7,7 +7,6 @@ import {
 	ViewPlugin,
 	PluginSpec,
 	PluginValue,
-	//WidgetType,
 } from "@codemirror/view";
 import { getNodeContent, WeaveDocument } from "document";
 import { TapestryLoomSettings } from "settings";
@@ -32,7 +31,7 @@ class TapestryLoomPlugin implements PluginValue {
 		}
 	}
 	buildDecorations(view: EditorView): DecorationSet {
-		if (!this.document || !this.settings) {
+		if (!this.document || !this.settings?.document?.renderOverlay) {
 			return Decoration.none;
 		}
 
@@ -55,27 +54,48 @@ class TapestryLoomPlugin implements PluginValue {
 
 				if (nodeContent.length > 0) {
 					const attributes: Record<string, string> = {};
+					let classString = "tapestry_editor-node";
 					if (node.model) {
 						const model = this.document.models.get(node.model);
 						if (model?.color) {
-							attributes["style"] =
-								"border-bottom: var(--border-width) solid " +
-								model?.color;
+							attributes["style"] = "color: " + model?.color;
 						}
+						classString =
+							classString + " tapestry_editor-node-generated";
 					}
 
 					const range = Decoration.mark({
-						class: "tapestry_editor-node",
+						class: classString,
 						attributes: attributes,
 					}).range(from, to);
 					decorations.push(range);
-				}
 
-				/*const range = Decoration.widget({
-					widget: new NodeBorderWidget(),
-					side: 0,
-				}).range(from, from);
-				decorations.push(range);*/
+					if (
+						typeof node.content == "object" &&
+						Array.isArray(node.content)
+					) {
+						let innerOffset = from;
+
+						for (const [prob, token] of node.content) {
+							const from = innerOffset;
+							const to = innerOffset + token.length;
+							innerOffset = to;
+
+							const range = Decoration.mark({
+								class: "tapestry_editor-token",
+								attributes: {
+									style:
+										"opacity: " +
+										Math.max(
+											1 - Math.log10(1 / prob) / 3,
+											0.1
+										).toString(),
+								},
+							}).range(from, to);
+							decorations.push(range);
+						}
+					}
+				}
 			} else {
 				break;
 			}
@@ -102,18 +122,6 @@ export function buildEditorPlugin(
 		return plugin;
 	}, pluginSpec);
 }
-
-/*class NodeBorderWidget extends WidgetType {
-	toDOM() {
-		return document.createEl("span", {
-			cls: "tapestry_editor-node",
-			text: "test",
-		});
-	}
-	eq() {
-		return true;
-	}
-}*/
 
 export function updateEditorPluginState(
 	editorPlugin: EditorPlugin,

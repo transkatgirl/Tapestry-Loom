@@ -9,8 +9,6 @@ import {
 import TapestryLoom from "main";
 import { SessionSettings } from "view/tree";
 
-// TODO: Add setting to enable/disable color coding
-
 export interface TapestryLoomSettings {
 	client?: ClientSettings;
 	document?: DocumentSettings;
@@ -22,6 +20,7 @@ export const DEFAULT_DOCUMENT_SETTINGS: DocumentSettings = {
 	debounce: 500,
 	treeDepth: 4,
 	graphDepth: 3,
+	renderOverlay: true,
 };
 export const DEFAULT_SESSION_SETTINGS: SessionSettings = {
 	requests: 6,
@@ -35,6 +34,7 @@ export interface DocumentSettings {
 	debounce: number;
 	treeDepth: number;
 	graphDepth: number;
+	renderOverlay: boolean;
 }
 
 export class TapestryLoomSettingTab extends PluginSettingTab {
@@ -126,6 +126,19 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					})
 			);
+
+		new Setting(containerEl)
+			.setName("Render editor overlay")
+			.setDesc("Render an overlay over the text editor.")
+			.addToggle((toggle) => {
+				toggle
+					.setValue(document.renderOverlay)
+					.onChange(async (value) => {
+						document.renderOverlay = value;
+						this.plugin.settings.document = document;
+						await this.plugin.saveSettings();
+					});
+			});
 
 		new Setting(containerEl)
 			.setName("Inference parameter defaults")
