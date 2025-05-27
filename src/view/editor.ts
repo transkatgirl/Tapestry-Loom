@@ -63,6 +63,24 @@ class TapestryLoomPlugin implements PluginValue {
 						}
 						if (model?.label) {
 							attributes["title"] = model?.label;
+							if (
+								node.metadata &&
+								"parameters" in node.metadata &&
+								node.metadata["parameters"].length > 0
+							) {
+								attributes["title"] =
+									attributes["title"] + "\n";
+								for (const [key, value] of Object.entries(
+									JSON.parse(node.metadata["parameters"])
+								)) {
+									attributes["title"] =
+										attributes["title"] +
+										"\n" +
+										key +
+										": " +
+										value;
+								}
+							}
 						}
 						classString =
 							classString + " tapestry_editor-node-generated";

@@ -137,6 +137,19 @@ export class TapestryLoomTreeView extends ItemView {
 			if (modelLabel.color) {
 				tree.label.style.color = modelLabel.color;
 			}
+			if (
+				node.metadata &&
+				"parameters" in node.metadata &&
+				node.metadata["parameters"].length > 0
+			) {
+				tree.label.title = tree.label.title + "\n";
+				for (const [key, value] of Object.entries(
+					JSON.parse(node.metadata["parameters"])
+				)) {
+					tree.label.title =
+						tree.label.title + "\n" + key + ": " + value;
+				}
+			}
 		}
 
 		tree.labelContainer.addEventListener("click", () => {
@@ -323,6 +336,19 @@ export class TapestryLoomTreeView extends ItemView {
 			tree.label.title = modelLabel.label;
 			if (modelLabel.color) {
 				tree.label.style.color = modelLabel.color;
+			}
+			if (
+				node.metadata &&
+				"parameters" in node.metadata &&
+				node.metadata["parameters"].length > 0
+			) {
+				tree.label.title = tree.label.title + "\n";
+				for (const [key, value] of Object.entries(
+					JSON.parse(node.metadata["parameters"])
+				)) {
+					tree.label.title =
+						tree.label.title + "\n" + key + ": " + value;
+				}
 			}
 		}
 
