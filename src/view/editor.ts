@@ -38,27 +38,35 @@ class TapestryLoomPlugin implements PluginValue {
 
 		const decorations: Range<Decoration>[] = [];
 
-		let offset = getEditorOffset(view);
-		console.log(offset);
+		const content = view.state.doc.toString();
+		let offset = getEditorOffset(content);
 
 		for (const node of this.document.getActiveNodes()) {
-			const contentLength = getNodeContent(node).length;
+			const nodeContent = getNodeContent(node);
 
-			if (contentLength > 0) {
+			if (
+				content.length >= offset + nodeContent.length &&
+				content.substring(offset, offset + nodeContent.length) ==
+					nodeContent
+			) {
 				const from = offset;
-				const to = offset + contentLength;
-				offset = offset + contentLength;
+				const to = offset + nodeContent.length;
+				offset = to;
 
-				const range = Decoration.mark({
-					class: "tapestry_editor-node",
-				}).range(from, to);
-				decorations.push(range);
+				if (nodeContent.length > 0) {
+					const range = Decoration.mark({
+						class: "tapestry_editor-node",
+					}).range(from, to);
+					decorations.push(range);
+				}
 
 				/*const range = Decoration.widget({
 					widget: new NodeBorderWidget(),
 					side: 0,
 				}).range(from, from);
 				decorations.push(range);*/
+			} else {
+				break;
 			}
 		}
 
@@ -113,8 +121,7 @@ export function updateEditorPluginState(
 	plugin.document = document;
 }
 
-export function getEditorOffset(view: EditorView) {
-	const rawContent = view.state.doc.toString();
-	const frontMatterInfo = getFrontMatterInfo(rawContent);
+export function getEditorOffset(content: string) {
+	const frontMatterInfo = getFrontMatterInfo(content);
 	return frontMatterInfo.contentStart;
 }
