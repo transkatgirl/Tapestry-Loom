@@ -21,6 +21,7 @@ const GRAPH_LAYOUT = {
 		algorithm: "mrtree",
 		interactive: true,
 		"mrtree.searchOrder": "BFS",
+		"mrtree.compaction": true,
 	},
 	fit: false,
 };
