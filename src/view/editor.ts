@@ -61,6 +61,9 @@ class TapestryLoomPlugin implements PluginValue {
 						if (model?.color) {
 							attributes["style"] = "color: " + model?.color;
 						}
+						if (model?.label) {
+							attributes["title"] = model?.label;
+						}
 						classString =
 							classString + " tapestry_editor-node-generated";
 					}
