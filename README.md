@@ -12,10 +12,9 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 
 ### Building
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode, or `npm run build` to build a release copy.
+1. Clone this repo.
+2. Run `npm install` to install dependencies.
+3. Run `npm run build` to build a release copy.
 
 ### Installation
 
