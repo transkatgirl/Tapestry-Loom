@@ -8,6 +8,7 @@ import {
 } from "client";
 import TapestryLoom from "main";
 import { SessionSettings } from "view/tree";
+import { ulid } from "ulid";
 
 export interface TapestryLoomSettings {
 	client?: ClientSettings;
@@ -443,14 +444,25 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 						});
 				});
 			}
-			moveSetting.addButton((button) => {
-				button.setIcon("trash").onClick(async (_event) => {
-					client.models.splice(i, 1);
-					this.plugin.settings.client = client;
-					await this.plugin.saveSettings();
-					this.display();
+			moveSetting
+				.addButton((button) => {
+					button.setIcon("copy").onClick(async (_event) => {
+						const newModel = structuredClone(client.models[i]);
+						newModel.ulid = ulid();
+						client.models.push(newModel);
+						this.plugin.settings.client = client;
+						await this.plugin.saveSettings();
+						this.display();
+					});
+				})
+				.addButton((button) => {
+					button.setIcon("trash").onClick(async (_event) => {
+						client.models.splice(i, 1);
+						this.plugin.settings.client = client;
+						await this.plugin.saveSettings();
+						this.display();
+					});
 				});
-			});
 		}
 	}
 }
