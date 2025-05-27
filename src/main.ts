@@ -96,17 +96,23 @@ export default class TapestryLoom extends Plugin {
 						if (this.document) {
 							if (updateDocument(this.editor, this.document)) {
 								workspace.trigger(DOCUMENT_UPDATE_EVENT);
+								updateEditorPluginState(
+									this.editorPlugin,
+									this.editor,
+									this.settings,
+									this.document
+								);
 							}
 						} else {
 							this.document = loadDocument(this.editor);
 							workspace.trigger(DOCUMENT_LOAD_EVENT);
+							updateEditorPluginState(
+								this.editorPlugin,
+								this.editor,
+								this.settings,
+								this.document
+							);
 						}
-						updateEditorPluginState(
-							this.editorPlugin,
-							this.editor,
-							this.settings,
-							this.document
-						);
 					},
 					debounceTime,
 					true
@@ -118,7 +124,6 @@ export default class TapestryLoom extends Plugin {
 				this.editor = undefined;
 				this.document = undefined;
 				workspace.trigger(DOCUMENT_DROP_EVENT);
-
 				updateEditorPluginState(
 					this.editorPlugin,
 					editor,

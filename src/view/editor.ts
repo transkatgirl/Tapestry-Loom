@@ -7,6 +7,7 @@ import {
 	ViewPlugin,
 	PluginSpec,
 	PluginValue,
+	WidgetType,
 } from "@codemirror/view";
 import { getNodeContent, WeaveDocument } from "document";
 import { TapestryLoomSettings } from "settings";
@@ -76,10 +77,12 @@ class TapestryLoomPlugin implements PluginValue {
 					) {
 						let innerOffset = from;
 
+						let i = 0;
 						for (const [prob, token] of node.content) {
 							const from = innerOffset;
 							const to = innerOffset + token.length;
 							innerOffset = to;
+							i = i + 1;
 
 							const range = Decoration.mark({
 								class: "tapestry_editor-token",
@@ -93,8 +96,22 @@ class TapestryLoomPlugin implements PluginValue {
 								},
 							}).range(from, to);
 							decorations.push(range);
+
+							if (i < node.content.length) {
+								const borderRange = Decoration.widget({
+									widget: new TokenBorderWidget(),
+									side: -1,
+								}).range(to, to);
+								decorations.push(borderRange);
+							}
 						}
 					}
+
+					const borderRange = Decoration.widget({
+						widget: new NodeBorderWidget(),
+						side: -1,
+					}).range(to, to);
+					decorations.push(borderRange);
 				}
 			} else {
 				break;
@@ -104,6 +121,28 @@ class TapestryLoomPlugin implements PluginValue {
 		return Decoration.set(decorations);
 	}
 	destroy() {}
+}
+
+class NodeBorderWidget extends WidgetType {
+	toDOM() {
+		const span = document.createElement("span");
+		span.classList.add("tapestry_editor-node-border");
+		return span;
+	}
+	eq() {
+		return true;
+	}
+}
+
+class TokenBorderWidget extends WidgetType {
+	toDOM() {
+		const span = document.createElement("span");
+		span.classList.add("tapestry_editor-token-border");
+		return span;
+	}
+	eq() {
+		return true;
+	}
 }
 
 export type EditorPlugin = ViewPlugin<TapestryLoomPlugin>;
