@@ -138,6 +138,7 @@ export function updateEditorPluginState(
 
 	plugin.settings = settings;
 	plugin.document = document;
+	plugin.decorations = plugin.buildDecorations(editorView);
 }
 
 export function getEditorOffset(content: string) {
