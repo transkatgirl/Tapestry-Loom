@@ -29,7 +29,7 @@ You can see example screenshots on [this Twitter post](https://x.com/transkatgir
 ### Possible future features
 
 - Generation presets
-- Implementing a less restrictive tree updating algorithm, potentially based on [diff-match-patch](https://github.com/google/diff-match-patch)
+- Implementing a less restrictive tree updating algorithm, potentially based on [diff-match-patch](https://github.com/google/diff-match-patch), similar to [minihf's loom](https://github.com/JD-P/minihf)
 - Prompt logprobs support
 - Support for additional endpoint types (especially if they allow implementing additional features)
 - Document analysis tools
