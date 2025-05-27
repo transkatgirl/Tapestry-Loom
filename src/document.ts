@@ -308,41 +308,69 @@ export class WeaveDocument {
 	splitNode(identifier: ULID, index: number) {
 		const node = this.nodes.get(identifier);
 
-		if (node && index > 0 && index < node.content.length) {
-			const splitContent = [
-				node.content.slice(0, index),
-				node.content.slice(index),
-			];
+		if (node && index > 0 && getNodeContent(node).length > index) {
+			if (typeof node.content == "string") {
+				const splitContent = [
+					node.content.slice(0, index),
+					node.content.slice(index),
+				];
 
-			const secondaryIdentifier = ulid();
+				const secondaryIdentifier = ulid();
 
-			const primaryChildren = structuredClone(
-				this.nodeChildren.get(node.identifier)
-			);
-
-			node.content = splitContent[0];
-			this.addNode({
-				identifier: secondaryIdentifier,
-				content: splitContent[1],
-				model: node.model,
-				parentNode: node.identifier,
-				parameters: node.parameters,
-			});
-
-			if (primaryChildren) {
-				for (const childIdentifier of primaryChildren) {
-					const childNode = this.nodes.get(childIdentifier);
-
-					if (childNode) {
-						childNode.parentNode = secondaryIdentifier;
-					}
-				}
-
-				this.nodeChildren.set(secondaryIdentifier, primaryChildren);
-				this.nodeChildren.set(
-					node.identifier,
-					new Set([secondaryIdentifier])
+				const primaryChildren = structuredClone(
+					this.nodeChildren.get(node.identifier)
 				);
+
+				node.content = splitContent[0];
+				this.addNode({
+					identifier: secondaryIdentifier,
+					content: splitContent[1],
+					model: node.model,
+					parentNode: node.identifier,
+					parameters: node.parameters,
+				});
+
+				if (primaryChildren) {
+					for (const childIdentifier of primaryChildren) {
+						const childNode = this.nodes.get(childIdentifier);
+
+						if (childNode) {
+							childNode.parentNode = secondaryIdentifier;
+						}
+					}
+
+					this.nodeChildren.set(secondaryIdentifier, primaryChildren);
+					this.nodeChildren.set(
+						node.identifier,
+						new Set([secondaryIdentifier])
+					);
+				}
+			} else {
+				const nodeContent = getNodeContent(node);
+				const splitContent = [
+					nodeContent.slice(0, index),
+					nodeContent.slice(index),
+				];
+
+				const primaryIdentifier = ulid();
+				this.addNode({
+					identifier: primaryIdentifier,
+					content: splitContent[0],
+					model: node.model,
+					parentNode: node.parentNode,
+					parameters: node.parameters,
+				});
+				this.addNode({
+					identifier: ulid(),
+					content: splitContent[1],
+					model: node.model,
+					parentNode: primaryIdentifier,
+					parameters: node.parameters,
+				});
+
+				if (this.currentNode == node.identifier) {
+					this.currentNode = primaryIdentifier;
+				}
 			}
 		}
 	}
