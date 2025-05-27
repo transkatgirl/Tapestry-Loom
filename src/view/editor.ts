@@ -87,8 +87,8 @@ class TapestryLoomPlugin implements PluginValue {
 									style:
 										"opacity: " +
 										Math.max(
-											1 - Math.log10(1 / prob) / 3,
-											0.1
+											1 - Math.log10(1 / prob) / 4,
+											0.25
 										).toString(),
 								},
 							}).range(from, to);
