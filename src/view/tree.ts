@@ -26,6 +26,7 @@ import {
 	mergeNode,
 	switchToNode,
 } from "./common";
+import { ModelConfiguration } from "client";
 
 export const TREE_VIEW_TYPE = "tapestry-loom-view";
 
@@ -361,11 +362,9 @@ export class TapestryLoomTreeView extends ItemView {
 
 		const models = this.plugin.settings.client.models;
 
-		const modelColors = new Map();
+		const modelMap: Map<ULID, ModelConfiguration> = new Map();
 		for (const model of models) {
-			if (model.label.color) {
-				modelColors.set(model.ulid, model.label.color);
-			}
+			modelMap.set(model.ulid, model);
 		}
 
 		new Setting(container).setName("Requests").addText((text) => {
@@ -393,16 +392,28 @@ export class TapestryLoomTreeView extends ItemView {
 						.setValue(this.plugin.sessionSettings.models[i])
 						.onChange((value) => {
 							this.plugin.sessionSettings.models[i] = value;
-							if (modelColors.has(value)) {
+							const model = modelMap.get(value);
+							if (model?.label.color) {
 								dropdown.selectEl.style.color =
-									modelColors.get(value);
+									model?.label.color;
 							} else {
 								dropdown.selectEl.style.color = "inherit";
 							}
+							if (model?.url) {
+								dropdown.selectEl.title = model.url;
+							} else {
+								dropdown.selectEl.title = "";
+							}
 						});
-					dropdown.selectEl.style.color = modelColors.get(
+					const model = modelMap.get(
 						this.plugin.sessionSettings.models[i]
 					);
+					if (model?.label.color) {
+						dropdown.selectEl.style.color = model?.label.color;
+					}
+					if (model?.url) {
+						dropdown.selectEl.title = model.url;
+					}
 				})
 				.addExtraButton((button) => {
 					button.setIcon("x").onClick(() => {
