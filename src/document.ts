@@ -193,8 +193,8 @@ export class WeaveDocument {
 				if (
 					this.getNodeChildrenCount(node.parentNode) == 0 &&
 					node.model == parentNode.model &&
-					JSON.stringify(node.metadata) ==
-						JSON.stringify(parentNode.metadata) &&
+					Object.entries(node.metadata || {}) ==
+						Object.entries(parentNode.metadata || {}) &&
 					!this.bookmarks.has(node.parentNode)
 				) {
 					node.content =
@@ -214,8 +214,8 @@ export class WeaveDocument {
 								child.parentNode == node.parentNode &&
 								child.content == node.content &&
 								child.model == node.model &&
-								JSON.stringify(child.metadata) ==
-									JSON.stringify(node.metadata) &&
+								Object.entries(child.metadata || {}) ==
+									Object.entries(node.metadata || {}) &&
 								this.getNodeChildrenCount(child.identifier) == 0
 							) {
 								this.currentNode = child.identifier;
@@ -244,11 +244,11 @@ export class WeaveDocument {
 					if (
 						child &&
 						child.parentNode == node.parentNode &&
-						JSON.stringify(child.content) ==
-							JSON.stringify(node.content) &&
+						Object.entries(child.content) ==
+							Object.entries(node.content) &&
 						child.model == node.model &&
-						JSON.stringify(child.metadata) ==
-							JSON.stringify(node.metadata)
+						Object.entries(child.metadata || {}) ==
+							Object.entries(node.metadata || {})
 					) {
 						return;
 					}
@@ -361,8 +361,8 @@ export class WeaveDocument {
 						Array.isArray(primaryNode.content) &&
 						typeof secondaryNode.content == "object" &&
 						Array.isArray(secondaryNode.content))) &&
-				JSON.stringify(primaryNode.metadata) ==
-					JSON.stringify(secondaryNode.metadata)
+				Object.entries(primaryNode.metadata || {}) ==
+					Object.entries(secondaryNode.metadata || {})
 			);
 		} else {
 			return false;
@@ -451,8 +451,8 @@ export class WeaveDocument {
 
 			let metadata;
 			if (
-				JSON.stringify(primaryNode.metadata) ==
-				JSON.stringify(secondaryNode.metadata)
+				Object.entries(primaryNode.metadata || {}) ==
+				Object.entries(secondaryNode.metadata || {})
 			) {
 				metadata = secondaryNode.metadata;
 			}
