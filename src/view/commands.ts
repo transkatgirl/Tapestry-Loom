@@ -165,6 +165,17 @@ export function buildCommands(plugin: TapestryLoom): Array<Command> {
 				}
 			},
 		},
+		{
+			id: "setting-tapestry-loom-toggle-document-showOverlay",
+			name: "Toggle the editor overlay",
+			callback: async () => {
+				if (plugin.settings.document) {
+					plugin.settings.document.renderOverlay =
+						!plugin.settings.document.renderOverlay;
+					await plugin.saveSettings();
+				}
+			},
+		},
 	];
 }
 
