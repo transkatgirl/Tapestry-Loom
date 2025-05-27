@@ -65,11 +65,8 @@ class TapestryLoomPlugin implements PluginValue {
 							attributes["title"] = model?.label;
 							if (
 								node.metadata &&
-								"parameters" in node.metadata &&
-								node.metadata["parameters"].length > 0
+								"parameters" in node.metadata
 							) {
-								attributes["title"] =
-									attributes["title"] + "\n";
 								for (const [key, value] of Object.entries(
 									JSON.parse(node.metadata["parameters"])
 								)) {
