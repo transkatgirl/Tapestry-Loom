@@ -26,6 +26,16 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 
 You can see example screenshots on [this Twitter post](https://x.com/transkatgirl/status/1927328228802187329).
 
+### Possible future features
+
+- Generation presets
+- Implementing a less restrictive tree updating algorithm, potentially based on [diff-match-patch](https://github.com/google/diff-match-patch)
+- Prompt logprobs support
+- Support for additional endpoint types (especially if they allow implementing additional features)
+- Document analysis tools
+- Interactive sampling parameter visualizations
+- Built in user manual
+
 ## Usage
 
 > [!WARNING]
