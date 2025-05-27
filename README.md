@@ -19,7 +19,7 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 	- Token probability display in editor, similar to [loom](https://github.com/socketteer/loom)
 - Automatic creation of single-token probability nodes, similar to [logitloom](https://github.com/vgel/logitloom)
 - Color coding by model used (requires a model color to be configured)
-- Note metadata display on hover (currently only in list and editor), similar to [exoloom](https://exoloom.io)
+- Node metadata display on hover (currently only in list and editor), similar to [exoloom](https://exoloom.io)
 - Flexible LLM API client
 	- Support for completions with multiple different models at a time
 	- Support for custom JSON/headers, similar to [loomsidian](https://github.com/cosmicoptima/loom)
