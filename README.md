@@ -2,6 +2,8 @@
 
 An Obsidian plugin that aims to turn your editor into an IDE for working with base model LLMs.
 
+Many of the included features take significant inspiration from [loom](https://github.com/socketteer/loom), [loomsidian](https://github.com/cosmicoptima/loom), [exoloom](https://exoloom.io), and [logitloom](https://github.com/vgel/logitloom). The goal of this plugin is to create an interface which can replace all of these different base model interfaces for most use cases.
+
 > [!NOTE]
 > This plugin is a work in progress, and may contain bugs and missing/broken functionality.
 
