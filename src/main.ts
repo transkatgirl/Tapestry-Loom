@@ -66,21 +66,14 @@ export default class TapestryLoom extends Plugin {
 
 					if (this.document.identifier == oldIdentifier) {
 						workspace.trigger(DOCUMENT_UPDATE_EVENT);
-						updateEditorPluginState(
-							this.editor,
-							this.settings,
-							this.document,
-							true
-						);
 					} else {
 						workspace.trigger(DOCUMENT_LOAD_EVENT);
-						updateEditorPluginState(
-							this.editor,
-							this.settings,
-							this.document,
-							false
-						);
 					}
+					updateEditorPluginState(
+						this.editor,
+						this.settings,
+						this.document
+					);
 				}
 			})
 		);
@@ -94,23 +87,16 @@ export default class TapestryLoom extends Plugin {
 						if (this.document) {
 							if (updateDocument(this.editor, this.document)) {
 								workspace.trigger(DOCUMENT_UPDATE_EVENT);
-								updateEditorPluginState(
-									this.editor,
-									this.settings,
-									this.document,
-									true
-								);
 							}
 						} else {
 							this.document = loadDocument(this.editor);
 							workspace.trigger(DOCUMENT_LOAD_EVENT);
-							updateEditorPluginState(
-								this.editor,
-								this.settings,
-								this.document,
-								false
-							);
 						}
+						updateEditorPluginState(
+							this.editor,
+							this.settings,
+							this.document
+						);
 					},
 					debounceTime,
 					true
@@ -138,8 +124,7 @@ export default class TapestryLoom extends Plugin {
 						updateEditorPluginState(
 							this.editor,
 							this.settings,
-							this.document,
-							true
+							this.document
 						);
 					}
 				}
@@ -214,12 +199,7 @@ export default class TapestryLoom extends Plugin {
 		await this.saveData({ settings: serialize(this.settings) });
 		this.app.workspace.trigger(SETTINGS_UPDATE_EVENT);
 		if (this.editor) {
-			updateEditorPluginState(
-				this.editor,
-				this.settings,
-				this.document,
-				true
-			);
+			updateEditorPluginState(this.editor, this.settings, this.document);
 		}
 	}
 }
