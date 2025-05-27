@@ -225,7 +225,10 @@ export class TapestryLoomGraphView extends ItemView {
 		) {
 			classes.push("tapestry_graph-logit-node");
 			content =
-				"(" + (node.content[0][0] * 100).toFixed(0) + "%) " + content;
+				"(" +
+				(node.content[0][0] * 100).toFixed(0) +
+				"%) " +
+				content.trim();
 		}
 
 		if (document.currentNode == node.identifier) {
