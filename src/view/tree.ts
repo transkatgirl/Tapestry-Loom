@@ -137,10 +137,8 @@ export class TapestryLoomTreeView extends ItemView {
 			if (modelLabel.color) {
 				tree.label.style.color = modelLabel.color;
 			}
-			if (node.metadata && "parameters" in node.metadata) {
-				for (const [key, value] of Object.entries(
-					JSON.parse(node.metadata["parameters"])
-				)) {
+			if (node.parameters) {
+				for (const [key, value] of Object.entries(node.parameters)) {
 					tree.label.title =
 						tree.label.title + "\n" + key + ": " + value;
 				}
@@ -332,10 +330,8 @@ export class TapestryLoomTreeView extends ItemView {
 			if (modelLabel.color) {
 				tree.label.style.color = modelLabel.color;
 			}
-			if (node.metadata && "parameters" in node.metadata) {
-				for (const [key, value] of Object.entries(
-					JSON.parse(node.metadata["parameters"])
-				)) {
+			if (node.parameters) {
+				for (const [key, value] of Object.entries(node.parameters)) {
 					tree.label.title =
 						tree.label.title + "\n" + key + ": " + value;
 				}

@@ -98,7 +98,7 @@ export class WeaveDocument {
 					this.getNodeChildrenCount(nodeList[i].identifier) <= 1 &&
 					!this.bookmarks.has(nodeList[i].identifier) &&
 					!node.model &&
-					!node.metadata
+					!node.parameters
 				) {
 					this.removeNode(nodeList[i].identifier);
 				}
@@ -193,8 +193,8 @@ export class WeaveDocument {
 				if (
 					this.getNodeChildrenCount(node.parentNode) == 0 &&
 					node.model == parentNode.model &&
-					Object.entries(node.metadata || {}) ==
-						Object.entries(parentNode.metadata || {}) &&
+					Object.entries(node.parameters || {}) ==
+						Object.entries(parentNode.parameters || {}) &&
 					!this.bookmarks.has(node.parentNode)
 				) {
 					node.content =
@@ -214,8 +214,8 @@ export class WeaveDocument {
 								child.parentNode == node.parentNode &&
 								child.content == node.content &&
 								child.model == node.model &&
-								Object.entries(child.metadata || {}) ==
-									Object.entries(node.metadata || {}) &&
+								Object.entries(child.parameters || {}) ==
+									Object.entries(node.parameters || {}) &&
 								this.getNodeChildrenCount(child.identifier) == 0
 							) {
 								this.currentNode = child.identifier;
@@ -247,8 +247,8 @@ export class WeaveDocument {
 						Object.entries(child.content) ==
 							Object.entries(node.content) &&
 						child.model == node.model &&
-						Object.entries(child.metadata || {}) ==
-							Object.entries(node.metadata || {})
+						Object.entries(child.parameters || {}) ==
+							Object.entries(node.parameters || {})
 					) {
 						return;
 					}
@@ -326,7 +326,7 @@ export class WeaveDocument {
 				content: splitContent[1],
 				model: node.model,
 				parentNode: node.identifier,
-				metadata: node.metadata,
+				parameters: node.parameters,
 			});
 
 			if (primaryChildren) {
@@ -361,8 +361,8 @@ export class WeaveDocument {
 						Array.isArray(primaryNode.content) &&
 						typeof secondaryNode.content == "object" &&
 						Array.isArray(secondaryNode.content))) &&
-				Object.entries(primaryNode.metadata || {}) ==
-					Object.entries(secondaryNode.metadata || {})
+				Object.entries(primaryNode.parameters || {}) ==
+					Object.entries(secondaryNode.parameters || {})
 			);
 		} else {
 			return false;
@@ -449,12 +449,12 @@ export class WeaveDocument {
 				model = secondaryNode.model;
 			}
 
-			let metadata;
+			let parameters;
 			if (
-				Object.entries(primaryNode.metadata || {}) ==
-				Object.entries(secondaryNode.metadata || {})
+				Object.entries(primaryNode.parameters || {}) ==
+				Object.entries(secondaryNode.parameters || {})
 			) {
-				metadata = secondaryNode.metadata;
+				parameters = secondaryNode.parameters;
 			}
 
 			const identifier = ulid();
@@ -464,7 +464,7 @@ export class WeaveDocument {
 				content: content,
 				model: model,
 				parentNode: primaryNode.parentNode,
-				metadata: metadata,
+				parameters: parameters,
 			});
 
 			if (
@@ -528,7 +528,7 @@ export interface WeaveDocumentNode {
 	content: string | Array<[number, string]>;
 	model?: ULID;
 	parentNode?: ULID;
-	metadata?: Record<string, string>;
+	parameters?: Record<string, string>;
 }
 
 export function getNodeContent(node: WeaveDocumentNode) {

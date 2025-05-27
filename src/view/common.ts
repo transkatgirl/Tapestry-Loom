@@ -81,11 +81,7 @@ export async function generateNodeChildren(
 								content: completion.completion,
 								model: completion.model.ulid,
 								parentNode: parentNode,
-								/*metadata: {
-									parameters: JSON.stringify(
-										plugin.sessionSettings.parameters
-									),
-								},*/
+								//parameters: plugin.sessionSettings.parameters,
 							},
 							completion.model.label
 						);
