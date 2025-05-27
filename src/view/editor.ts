@@ -17,7 +17,13 @@ class TapestryLoomPlugin implements PluginValue {
 	decorations: DecorationSet;
 	document?: WeaveDocument;
 	settings?: TapestryLoomSettings;
-	constructor(view: EditorView) {
+	constructor(
+		view: EditorView,
+		settings: TapestryLoomSettings,
+		document?: WeaveDocument
+	) {
+		this.settings = settings;
+		this.document = document;
 		this.decorations = this.buildDecorations(view);
 	}
 	update(update: ViewUpdate) {
@@ -61,14 +67,22 @@ class TapestryLoomPlugin implements PluginValue {
 	destroy() {}
 }
 
-const pluginSpec: PluginSpec<TapestryLoomPlugin> = {
-	decorations: (value: TapestryLoomPlugin) => value.decorations,
-};
+export type EditorPlugin = ViewPlugin<TapestryLoomPlugin>;
 
-export const EDITOR_PLUGIN = ViewPlugin.fromClass(
-	TapestryLoomPlugin,
-	pluginSpec
-);
+export function buildEditorPlugin(
+	settings: TapestryLoomSettings,
+	document?: WeaveDocument
+): EditorPlugin {
+	const pluginSpec: PluginSpec<TapestryLoomPlugin> = {
+		decorations: (value: TapestryLoomPlugin) => value.decorations,
+	};
+
+	return ViewPlugin.define((view) => {
+		const plugin = new TapestryLoomPlugin(view, settings, document);
+
+		return plugin;
+	}, pluginSpec);
+}
 
 class NodeBorderWidget extends WidgetType {
 	toDOM() {
@@ -83,20 +97,19 @@ class NodeBorderWidget extends WidgetType {
 }
 
 export function updateEditorPluginState(
+	editorPlugin: EditorPlugin,
 	editor: Editor,
-	settings?: TapestryLoomSettings,
+	settings: TapestryLoomSettings,
 	document?: WeaveDocument
 ) {
 	// @ts-expect-error not typed
 	const editorView = editor.cm as EditorView;
-	const plugin = editorView.plugin(EDITOR_PLUGIN);
+	const plugin = editorView.plugin(editorPlugin);
 	if (!plugin) {
 		return;
 	}
 
-	if (settings) {
-		plugin.settings = settings;
-	}
+	plugin.settings = settings;
 	plugin.document = document;
 }
 

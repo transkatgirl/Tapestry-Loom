@@ -9,7 +9,11 @@ import {
 } from "settings";
 import { TapestryLoomTreeView, TREE_VIEW_TYPE } from "view/tree";
 import { TapestryLoomGraphView, GRAPH_VIEW_TYPE } from "view/graph";
-import { EDITOR_PLUGIN, updateEditorPluginState } from "view/editor";
+import {
+	buildEditorPlugin,
+	EditorPlugin,
+	updateEditorPluginState,
+} from "view/editor";
 import cytoscape from "cytoscape";
 import {
 	loadDocument,
@@ -30,6 +34,7 @@ export const SETTINGS_UPDATE_EVENT = "tapestry-settings:update";
 
 export default class TapestryLoom extends Plugin {
 	settings: TapestryLoomSettings;
+	editorPlugin: EditorPlugin;
 	editor?: Editor = this.app.workspace.activeEditor?.editor;
 	document?: WeaveDocument;
 	sessionSettings = DEFAULT_SESSION_SETTINGS;
@@ -57,6 +62,9 @@ export default class TapestryLoom extends Plugin {
 			debounceTime = this.settings.document.debounce;
 		}
 
+		this.editorPlugin = buildEditorPlugin(this.settings, this.document);
+		this.registerEditorExtension([this.editorPlugin]);
+
 		this.registerEvent(
 			workspace.on("active-leaf-change", (leaf) => {
 				if (leaf && leaf.view instanceof MarkdownView) {
@@ -70,6 +78,7 @@ export default class TapestryLoom extends Plugin {
 						workspace.trigger(DOCUMENT_LOAD_EVENT);
 					}
 					updateEditorPluginState(
+						this.editorPlugin,
 						this.editor,
 						this.settings,
 						this.document
@@ -93,6 +102,7 @@ export default class TapestryLoom extends Plugin {
 							workspace.trigger(DOCUMENT_LOAD_EVENT);
 						}
 						updateEditorPluginState(
+							this.editorPlugin,
 							this.editor,
 							this.settings,
 							this.document
@@ -109,7 +119,11 @@ export default class TapestryLoom extends Plugin {
 				this.document = undefined;
 				workspace.trigger(DOCUMENT_DROP_EVENT);
 
-				updateEditorPluginState(editor, this.settings);
+				updateEditorPluginState(
+					this.editorPlugin,
+					editor,
+					this.settings
+				);
 			})
 		);
 		this.registerEvent(
@@ -122,6 +136,7 @@ export default class TapestryLoom extends Plugin {
 						overrideEditorContent(this.editor, this.document);
 						workspace.trigger(DOCUMENT_UPDATE_EVENT);
 						updateEditorPluginState(
+							this.editorPlugin,
 							this.editor,
 							this.settings,
 							this.document
@@ -143,8 +158,6 @@ export default class TapestryLoom extends Plugin {
 			this.showView(TREE_VIEW_TYPE),
 			this.showView(GRAPH_VIEW_TYPE, true),
 		]).then(() => this.showView(TREE_VIEW_TYPE));
-
-		this.registerEditorExtension([EDITOR_PLUGIN]);
 
 		this.addCommand({
 			id: "show-tapestry-loom-tree-view",
@@ -199,7 +212,12 @@ export default class TapestryLoom extends Plugin {
 		await this.saveData({ settings: serialize(this.settings) });
 		this.app.workspace.trigger(SETTINGS_UPDATE_EVENT);
 		if (this.editor) {
-			updateEditorPluginState(this.editor, this.settings, this.document);
+			updateEditorPluginState(
+				this.editorPlugin,
+				this.editor,
+				this.settings,
+				this.document
+			);
 		}
 	}
 }
