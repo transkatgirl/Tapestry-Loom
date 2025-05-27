@@ -191,6 +191,26 @@ export default class TapestryLoom extends Plugin {
 				await this.showView(GRAPH_VIEW_TYPE, true);
 			},
 		});
+		this.addCommand({
+			id: "debug-tapestry-loom-decompress-document",
+			name: "Debug: Save weave in plaintext representation",
+			callback: async () => {
+				if (this.editor && this.document) {
+					await overrideEditorContent(
+						this.editor,
+						this.document,
+						false
+					);
+					workspace.trigger(DOCUMENT_UPDATE_EVENT);
+					updateEditorPluginState(
+						this.editorPlugin,
+						this.editor,
+						this.settings,
+						this.document
+					);
+				}
+			},
+		});
 
 		buildCommands(this).forEach((command) => this.addCommand(command));
 
