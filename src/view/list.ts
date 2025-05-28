@@ -108,9 +108,19 @@ export class TapestryLoomListView extends ItemView {
 		const item = container.createEl("div", {
 			cls: ["search-result-file-match tappable"],
 		});
-		item.createEl("span", {
-			text: content.trim(),
-		});
+
+		if (content.length > 0) {
+			item.createEl("span", {
+				text: content.trim(),
+			});
+		} else {
+			const textWrapper = item.createEl("span", {
+				cls: "tapestry_tree-notice",
+			});
+			textWrapper.createEl("em", {
+				text: "No text",
+			});
+		}
 		if (document.currentNode == node.identifier) {
 			item.classList.add("tapestry_list-selected");
 		}
