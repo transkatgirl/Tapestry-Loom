@@ -45,20 +45,21 @@ I'm likely not going to be able to work on these features very soon, but I'm hap
 > [!WARNING]
 > This plugin relies on Obsidian's internal styling rules, and will likely have a broken interface on earlier or later versions than what it was built for. At the moment, this plugin is targeting Obsidian **1.8.x**, and was last tested on Obsidian **1.8.10**.
 
-### Building
-
-1. Clone this repo.
-2. Run `npm install` to install dependencies.
-3. Run `npm run build` to build a release copy.
-
 ### Installation
 
 > [!IMPORTANT]
 > It is recommended that you create a dedicated Obsidian vault for this plugin.
 
 1. Make sure community plugins are enabled within Obsidian.
-2. Copy the `main.js`, `styles.css`, and `manifest.json` files into a folder named `tapestry-loom` within your vault's `.obsidian/plugins/` folder.
-3. Open Obsidian's plugin settings, and enable the plugin.
+2. Clone this repository into your vault's `.obsidian/plugins/` folder.
+3. Run `npm install && npm run build` to fetch dependencies and build the plugin.
+4. Open Obsidian's plugin settings and enable the plugin.
+
+#### Updating
+
+1. Pull recent commits to the repository using `git pull`.
+2. Run `npm install && npm run build` to fetch dependencies and build the plugin.
+3. Open Obsidian's plugin settings and disable the plugin, then re-enable it.
 
 ### Post-install
 
