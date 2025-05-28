@@ -25,6 +25,7 @@ export const DEFAULT_DOCUMENT_SETTINGS: DocumentSettings = {
 };
 export const DEFAULT_SESSION_SETTINGS: SessionSettings = {
 	requests: 6,
+	depth: 1,
 	models: [],
 	parameters: { temperature: "1", max_tokens: "10" },
 };

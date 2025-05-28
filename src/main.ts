@@ -49,6 +49,9 @@ export default class TapestryLoom extends Plugin {
 			this.sessionSettings = structuredClone(
 				this.settings.defaultSession
 			);
+			if (!this.sessionSettings.depth) {
+				this.sessionSettings.depth = DEFAULT_SESSION_SETTINGS.depth;
+			}
 		}
 
 		cytoscape.use(elk);

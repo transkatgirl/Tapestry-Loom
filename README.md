@@ -19,6 +19,7 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 - Editor overlay view, similar to [loomsidian](https://github.com/cosmicoptima/loom)
 	- Token probability display in editor, similar to [loom](https://github.com/socketteer/loom)
 - Automatic creation of single-token probability nodes, similar to [logitloom](https://github.com/vgel/logitloom)
+- Recursive completion generation, similar to [loom](https://github.com/socketteer/loom) and [logitloom](https://github.com/vgel/logitloom)
 - Color coding by model used (requires a model color to be configured)
 - Node metadata display on hover (currently only in list and editor), similar to [exoloom](https://exoloom.io)
 - Flexible LLM API client
@@ -29,7 +30,6 @@ You can see example screenshots on [this Twitter post](https://x.com/transkatgir
 
 ### Possible future features
 
-- Recursive completions, similar to [loom](https://github.com/socketteer/loom) and [logitloom](https://github.com/vgel/logitloom)
 - Improve weave flexibility (in next major version):
 	- Option 1: Store content diffs inside of nodes rather than raw text using [diff-match-patch](https://github.com/google/diff-match-patch), similar to [minihf's loom](https://github.com/JD-P/minihf)
 	- Option 2: Store nodes in a DAG to allow for middle-of-text completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)

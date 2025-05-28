@@ -32,6 +32,7 @@ export const TREE_LIST_VIEW_TYPE = "tapestry-loom-main-list-view";
 
 export interface SessionSettings {
 	requests: number;
+	depth: number;
 	models: Array<ULID>;
 	parameters: Record<string, string>;
 }
@@ -379,16 +380,33 @@ export class TapestryLoomTreeListView extends ItemView {
 			modelMap.set(model.ulid, model);
 		}
 
-		new Setting(container).setName("Requests").addText((text) => {
-			text.setPlaceholder((1).toString())
-				.setValue(this.plugin.sessionSettings.requests.toString())
-				.onChange(async (value) => {
-					this.plugin.sessionSettings.requests = parseInt(value) || 1;
-					if (this.plugin.sessionSettings.requests < 1) {
-						this.plugin.sessionSettings.requests = 1;
-					}
-				});
-		});
+		new Setting(container)
+			.setName("Requests per iteration")
+			.addText((text) => {
+				text.setPlaceholder((1).toString())
+					.setValue(this.plugin.sessionSettings.requests.toString())
+					.onChange(async (value) => {
+						this.plugin.sessionSettings.requests =
+							parseInt(value) || 1;
+						if (this.plugin.sessionSettings.requests < 1) {
+							this.plugin.sessionSettings.requests = 1;
+						}
+					});
+			});
+
+		new Setting(container)
+			.setName("Max recursion depth")
+			.addText((text) => {
+				text.setPlaceholder((1).toString())
+					.setValue(this.plugin.sessionSettings.depth.toString())
+					.onChange(async (value) => {
+						this.plugin.sessionSettings.depth =
+							parseInt(value) || 1;
+						if (this.plugin.sessionSettings.depth < 1) {
+							this.plugin.sessionSettings.depth = 1;
+						}
+					});
+			});
 
 		new Setting(container).setHeading().setName("Models");
 		for (let i = 0; i < this.plugin.sessionSettings.models.length; i++) {

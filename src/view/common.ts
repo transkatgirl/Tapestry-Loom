@@ -8,7 +8,6 @@ import {
 } from "obsidian";
 import { ULID, ulid } from "ulid";
 import { runCompletion } from "client";
-import { DEFAULT_DOCUMENT_SETTINGS } from "settings";
 import { getNodeContent, WeaveDocumentNode } from "document";
 
 let activeRequests = 0;
@@ -25,7 +24,8 @@ function updateStatusBar(plugin: TapestryLoom) {
 
 export async function generateNodeChildren(
 	plugin: TapestryLoom,
-	parentNode?: ULID
+	parentNode?: ULID,
+	depth: number = plugin.sessionSettings.depth
 ) {
 	if (!plugin.document || !plugin.settings.client) {
 		return;
@@ -44,12 +44,6 @@ export async function generateNodeChildren(
 	activeRequests = activeRequests + completionPromises.length;
 	updateStatusBar(plugin);
 
-	const debounceTime =
-		plugin.settings.document?.debounce ||
-		DEFAULT_DOCUMENT_SETTINGS.debounce;
-
-	let lastUpdate = performance.now();
-
 	for (const completionPromise of completionPromises) {
 		completionPromise
 			.then((completions) => {
@@ -60,15 +54,23 @@ export async function generateNodeChildren(
 				for (const completion of completions) {
 					if (completion.topProbs && completion.topProbs.length > 1) {
 						for (const prob of completion.topProbs) {
+							const identifier = ulid();
 							plugin.document.addNode(
 								{
-									identifier: ulid(),
+									identifier: identifier,
 									content: [prob],
 									model: completion.model.ulid,
 									parentNode: parentNode,
 								},
 								completion.model.label
 							);
+							if (depth > 1) {
+								generateNodeChildren(
+									plugin,
+									identifier,
+									depth - 1
+								);
+							}
 						}
 					}
 
@@ -77,9 +79,10 @@ export async function generateNodeChildren(
 						!completion.topProbs ||
 						completion.completion.length > 1
 					) {
+						const identifier = ulid();
 						plugin.document.addNode(
 							{
-								identifier: ulid(),
+								identifier: identifier,
 								content: completion.completion,
 								model: completion.model.ulid,
 								parentNode: parentNode,
@@ -87,15 +90,13 @@ export async function generateNodeChildren(
 							},
 							completion.model.label
 						);
+						if (depth > 1) {
+							generateNodeChildren(plugin, identifier, depth - 1);
+						}
 					}
 				}
 
-				const currentTimestamp = performance.now();
-
-				if (currentTimestamp - lastUpdate > debounceTime) {
-					plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
-					lastUpdate = currentTimestamp;
-				}
+				plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 			})
 			.catch((error) => {
 				new Notice(error);
