@@ -33,7 +33,7 @@ You can see example screenshots on [this Twitter post](https://x.com/transkatgir
 	- Support middle-of-text completions, similar to this [unknown loom implementation](https://www.youtube.com/watch?£v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 - Generation presets
 - Prompt logprobs support
-- Rewrite weave data storage to improve performance
+- Implement lazy weave storage updating to improve performance
 - Support for additional endpoint types (especially if they allow implementing additional features)
 - Document analysis tools
 - Interactive sampling parameter visualizations
