@@ -14,8 +14,10 @@ import { getNodeContent, WeaveDocumentNode } from "document";
 let activeRequests = 0;
 
 function updateStatusBar(plugin: TapestryLoom) {
-	if (activeRequests > 0) {
+	if (activeRequests > 1) {
 		plugin.statusBar.innerText = activeRequests + " requests";
+	} else if (activeRequests == 1) {
+		plugin.statusBar.innerText = "1 request";
 	} else {
 		plugin.statusBar.innerText = "";
 	}
