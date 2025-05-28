@@ -28,6 +28,7 @@ You can see example screenshots on [this Twitter post](https://x.com/transkatgir
 
 ### Possible future features
 
+- Child-node list view, similar to [loomsidian](https://github.com/cosmicoptima/loom) and [exoloom](https://exoloom.io)
 - Rewriting weave data storage to improve performance
 - Implementing a less restrictive tree updating algorithm, potentially based on [diff-match-patch](https://github.com/google/diff-match-patch), similar to [minihf's loom](https://github.com/JD-P/minihf)
 	- Switching to a DAG and supporting middle-of-text completions, similar to this [unknown loom implementation](https://www.youtube.com/watch?£v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
