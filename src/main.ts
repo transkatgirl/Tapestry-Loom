@@ -22,6 +22,7 @@ import {
 	WeaveDocument,
 } from "document";
 import { buildCommands } from "view/commands";
+import { LIST_VIEW_TYPE, TapestryLoomListView } from "view/list";
 
 // @ts-expect-error
 import elk from "cytoscape-elk";
@@ -172,13 +173,18 @@ export default class TapestryLoom extends Plugin {
 			GRAPH_VIEW_TYPE,
 			(leaf) => new TapestryLoomGraphView(leaf, this)
 		);
+		this.registerView(
+			LIST_VIEW_TYPE,
+			(leaf) => new TapestryLoomListView(leaf, this)
+		);
 		Promise.all([
+			this.showView(LIST_VIEW_TYPE),
 			this.showView(TREE_LIST_VIEW_TYPE),
 			this.showView(GRAPH_VIEW_TYPE, true),
 		]).then(() => this.showView(TREE_LIST_VIEW_TYPE));
 
 		this.addCommand({
-			id: "show-tapestry-loom-tree-view",
+			id: "show-tapestry-loom-tree-list-view",
 			name: "Show node tree list view",
 			callback: async () => {
 				await this.showView(TREE_LIST_VIEW_TYPE);
@@ -189,6 +195,13 @@ export default class TapestryLoom extends Plugin {
 			name: "Show node graph view",
 			callback: async () => {
 				await this.showView(GRAPH_VIEW_TYPE, true);
+			},
+		});
+		this.addCommand({
+			id: "show-tapestry-loom-sibling-list-view",
+			name: "Show node sibling list view",
+			callback: async () => {
+				await this.showView(LIST_VIEW_TYPE);
 			},
 		});
 		this.addCommand({

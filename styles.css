@@ -124,3 +124,29 @@ span.tapestry_editor-node-border {
 /*span.tapestry_editor-token-border {
 	border-right: var(--table-border-width) dotted var(--text-faint);
 }*/
+
+.tapestry_list .search-result-file-match:hover {
+	color: var(--text-normal);
+	background-color: var(--nav-item-background-hover);
+}
+
+.tapestry_list .search-result-file-match.tapestry_list-selected {
+	color: var(--text-normal);
+	background-color: var(--text-selection);
+}
+
+.tapestry_list:has(.search-empty-state) {
+	padding: var(--size-2-1) 1px var(--size-4-4);
+}
+
+.tapestry_list .search-result-file-match {
+	display: flex;
+}
+
+.tapestry_list .search-result-file-match span {
+	flex-grow: 1;
+}
+
+.tapestry_list .search-result-file-match .tree-item-flair {
+	align-self: flex-end;
+}
