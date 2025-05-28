@@ -28,14 +28,17 @@ You can see example screenshots on [this Twitter post](https://x.com/transkatgir
 
 ### Possible future features
 
-- Generation presets
+- Rewriting weave data storage to improve performance
 - Implementing a less restrictive tree updating algorithm, potentially based on [diff-match-patch](https://github.com/google/diff-match-patch), similar to [minihf's loom](https://github.com/JD-P/minihf)
 	- Switching to a DAG and supporting middle-of-text completions, similar to this [unknown loom implementation](https://www.youtube.com/watch?£v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
+- Generation presets
 - Prompt logprobs support
 - Support for additional endpoint types (especially if they allow implementing additional features)
 - Document analysis tools
 - Interactive sampling parameter visualizations
 - Built in user manual
+
+I'm likely not going to be able to work on these features very soon, but I'm happy to review any pull requests if you would like to try implementing these features yourself.
 
 ## Usage
 
