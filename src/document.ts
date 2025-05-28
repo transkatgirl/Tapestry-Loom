@@ -3,7 +3,6 @@ import serialize from "serialize-javascript";
 import { compress, decompress, deserialize } from "common";
 import { decodeTime, ulid, ULID } from "ulid";
 import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
-//import DiffMatchPatch from "diff-match-patch";
 
 export class WeaveDocument {
 	identifier: ULID = ulid();
@@ -44,25 +43,6 @@ export class WeaveDocument {
 		}
 
 		return content;
-	}
-	getActiveContentSegmented(identifier?: ULID): Array<WeaveDocumentSegment> {
-		const segments: Array<WeaveDocumentSegment> = [];
-
-		for (const node of this.getActiveNodes(identifier)) {
-			let modelLabel;
-			if (node.model) {
-				modelLabel = this.models.get(node.model) || UNKNOWN_MODEL_LABEL;
-			}
-
-			segments.push({
-				timestamp: new Date(decodeTime(node.identifier)),
-				content: node.content,
-				model: modelLabel,
-				parameters: node.parameters,
-			});
-		}
-
-		return segments;
 	}
 	getActiveIdentifier(
 		content: string,
@@ -325,31 +305,6 @@ export class WeaveDocument {
 	getNode(identifier: ULID) {
 		return this.nodes.get(identifier);
 	}
-	getNodeLabel(node: WeaveDocumentNode) {
-		const nodeContent: [string, string | undefined] = ["", undefined];
-
-		if (typeof node.content == "string") {
-			nodeContent[0] = node.content;
-		} else {
-			for (const [_nodeProb, nodeToken] of node.content) {
-				nodeContent[0] = nodeContent[0] + nodeToken;
-			}
-		}
-		if (nodeContent[0].trim().length > 0) {
-			nodeContent[0] = nodeContent[0].trim();
-		} else if (nodeContent[0].length > 0) {
-			nodeContent[0] = " ";
-		}
-		if (
-			node.content.length == 1 &&
-			typeof node.content == "object" &&
-			Array.isArray(node.content)
-		) {
-			nodeContent[1] = (node.content[0][0] * 100).toPrecision(3) + "%";
-		}
-
-		return nodeContent;
-	}
 	splitNode(identifier: ULID, index: number) {
 		const node = this.nodes.get(identifier);
 
@@ -605,7 +560,7 @@ export interface WeaveDocumentNode {
 	parameters?: Record<string, string>;
 }
 
-function getNodeContent(node: WeaveDocumentNode) {
+export function getNodeContent(node: WeaveDocumentNode) {
 	let nodeContent = "";
 
 	if (typeof node.content == "string") {
@@ -617,27 +572,6 @@ function getNodeContent(node: WeaveDocumentNode) {
 	}
 
 	return nodeContent;
-}
-
-export interface WeaveDocumentSegment {
-	timestamp: Date;
-	content: string | Array<[number, string]>;
-	model?: ModelLabel;
-	parameters?: Record<string, string>;
-}
-
-export function getSegmentContent(segment: WeaveDocumentSegment) {
-	let content = "";
-
-	if (typeof segment.content == "string") {
-		content = segment.content;
-	} else {
-		for (const [_probability, token] of segment.content) {
-			content = content + token;
-		}
-	}
-
-	return content;
 }
 
 function sortNodeList(nodes: Array<WeaveDocumentNode>) {

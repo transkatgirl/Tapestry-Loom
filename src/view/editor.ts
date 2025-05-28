@@ -9,9 +9,10 @@ import {
 	PluginValue,
 	WidgetType,
 } from "@codemirror/view";
-import { getSegmentContent, WeaveDocument } from "document";
+import { getNodeContent, WeaveDocument } from "document";
 import { TapestryLoomSettings } from "settings";
 import { Editor, getFrontMatterInfo } from "obsidian";
+import { decodeTime } from "ulid";
 
 class TapestryLoomPlugin implements PluginValue {
 	decorations: DecorationSet;
@@ -41,31 +42,31 @@ class TapestryLoomPlugin implements PluginValue {
 		const content = view.state.doc.toString();
 		let offset = getEditorOffset(content);
 
-		for (const segment of this.document.getActiveContentSegmented()) {
-			const segmentContent = getSegmentContent(segment);
+		for (const node of this.document.getActiveNodes()) {
+			const nodeContent = getNodeContent(node);
 
 			if (
-				content.length >= offset + segmentContent.length &&
-				content.substring(offset, offset + segmentContent.length) ==
-					segmentContent
+				content.length >= offset + nodeContent.length &&
+				content.substring(offset, offset + nodeContent.length) ==
+					nodeContent
 			) {
 				const from = offset;
-				const to = offset + segmentContent.length;
+				const to = offset + nodeContent.length;
 				offset = to;
 
-				if (segmentContent.length > 0) {
+				if (nodeContent.length > 0) {
 					const attributes: Record<string, string> = {};
-					let classString = "tapestry_editor-segment";
-					if (segment.model) {
-						if (segment.model.color) {
-							attributes["style"] =
-								"color: " + segment.model.color;
+					let classString = "tapestry_editor-node";
+					if (node.model) {
+						const model = this.document.models.get(node.model);
+						if (model?.color) {
+							attributes["style"] = "color: " + model?.color;
 						}
-						if (segment.model.label) {
-							attributes["title"] = segment.model.label;
-							if (segment.parameters) {
+						if (model?.label) {
+							attributes["title"] = model?.label;
+							if (node.parameters) {
 								for (const [key, value] of Object.entries(
-									segment.parameters
+									node.parameters
 								)) {
 									attributes["title"] =
 										attributes["title"] +
@@ -77,16 +78,19 @@ class TapestryLoomPlugin implements PluginValue {
 							}
 						}
 						classString =
-							classString + " tapestry_editor-segment-generated";
+							classString + " tapestry_editor-node-generated";
 					}
 					if ("title" in attributes) {
 						attributes["title"] =
 							attributes["title"] +
 							"\n" +
-							segment.timestamp.toLocaleString();
+							new Date(
+								decodeTime(node.identifier)
+							).toLocaleString();
 					} else {
-						attributes["title"] =
-							segment.timestamp.toLocaleString();
+						attributes["title"] = new Date(
+							decodeTime(node.identifier)
+						).toLocaleString();
 					}
 
 					const range = Decoration.mark({
@@ -96,13 +100,13 @@ class TapestryLoomPlugin implements PluginValue {
 					decorations.push(range);
 
 					if (
-						typeof segment.content == "object" &&
-						Array.isArray(segment.content)
+						typeof node.content == "object" &&
+						Array.isArray(node.content)
 					) {
 						let innerOffset = from;
 
 						let i = 0;
-						for (const [prob, token] of segment.content) {
+						for (const [prob, token] of node.content) {
 							const from = innerOffset;
 							const to = innerOffset + token.length;
 							innerOffset = to;
@@ -121,7 +125,7 @@ class TapestryLoomPlugin implements PluginValue {
 							}).range(from, to);
 							decorations.push(range);
 
-							if (i < segment.content.length) {
+							if (i < node.content.length) {
 								const borderRange = Decoration.widget({
 									widget: new TokenBorderWidget(),
 									side: -1,
@@ -132,7 +136,7 @@ class TapestryLoomPlugin implements PluginValue {
 					}
 
 					const borderRange = Decoration.widget({
-						widget: new SegmentBorderWidget(),
+						widget: new NodeBorderWidget(),
 						side: -1,
 					}).range(to, to);
 					decorations.push(borderRange);
@@ -147,10 +151,10 @@ class TapestryLoomPlugin implements PluginValue {
 	destroy() {}
 }
 
-class SegmentBorderWidget extends WidgetType {
+class NodeBorderWidget extends WidgetType {
 	toDOM() {
 		const span = document.createElement("span");
-		span.classList.add("tapestry_editor-segment-border");
+		span.classList.add("tapestry_editor-node-border");
 		return span;
 	}
 	eq() {
