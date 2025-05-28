@@ -26,9 +26,9 @@ import {
 	mergeNode,
 	switchToNode,
 } from "./common";
-import { ModelConfiguration } from "client";
+import { ModelConfiguration, UNKNOWN_MODEL_LABEL } from "client";
 
-export const TREE_VIEW_TYPE = "tapestry-loom-view";
+export const TREE_LIST_VIEW_TYPE = "tapestry-loom-main-list-view";
 
 export interface SessionSettings {
 	requests: number;
@@ -36,7 +36,7 @@ export interface SessionSettings {
 	parameters: Record<string, string>;
 }
 
-export class TapestryLoomTreeView extends ItemView {
+export class TapestryLoomTreeListView extends ItemView {
 	plugin: TapestryLoom;
 	private collapsedNodes: Set<ULID> = new Set();
 	private modelMenu?: CollapsibleMenuElement;
@@ -47,10 +47,10 @@ export class TapestryLoomTreeView extends ItemView {
 		this.plugin = plugin;
 	}
 	getViewType() {
-		return TREE_VIEW_TYPE;
+		return TREE_LIST_VIEW_TYPE;
 	}
 	getDisplayText() {
-		return "Tapestry Loom Tree";
+		return "Tapestry Loom Tree List";
 	}
 	getIcon(): string {
 		return "list-tree";
@@ -113,7 +113,7 @@ export class TapestryLoomTreeView extends ItemView {
 
 		let modelLabel;
 		if (node.model) {
-			modelLabel = document.models.get(node.model);
+			modelLabel = document.models.get(node.model) || UNKNOWN_MODEL_LABEL;
 		}
 
 		const tree = renderTree(
@@ -317,7 +317,7 @@ export class TapestryLoomTreeView extends ItemView {
 
 		let modelLabel;
 		if (node.model) {
-			modelLabel = document.models.get(node.model);
+			modelLabel = document.models.get(node.model) || UNKNOWN_MODEL_LABEL;
 		}
 
 		const tree = renderBookmarkNode(

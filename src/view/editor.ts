@@ -13,6 +13,7 @@ import { getNodeContent, WeaveDocument } from "document";
 import { TapestryLoomSettings } from "settings";
 import { Editor, getFrontMatterInfo } from "obsidian";
 import { decodeTime } from "ulid";
+import { UNKNOWN_MODEL_LABEL } from "client";
 
 class TapestryLoomPlugin implements PluginValue {
 	decorations: DecorationSet;
@@ -58,7 +59,9 @@ class TapestryLoomPlugin implements PluginValue {
 					const attributes: Record<string, string> = {};
 					let classString = "tapestry_editor-node";
 					if (node.model) {
-						const model = this.document.models.get(node.model);
+						const model =
+							this.document.models.get(node.model) ||
+							UNKNOWN_MODEL_LABEL;
 						if (model?.color) {
 							attributes["style"] = "color: " + model?.color;
 						}

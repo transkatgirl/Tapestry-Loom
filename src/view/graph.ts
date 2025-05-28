@@ -11,6 +11,7 @@ import cytoscape, { Core, StylesheetJsonBlock } from "cytoscape";
 import { getGlobalCSSColorVariable } from "common";
 import { switchToNode, toggleBookmarkNode } from "./common";
 import { DEFAULT_DOCUMENT_SETTINGS } from "settings";
+import { UNKNOWN_MODEL_LABEL } from "client";
 
 export const GRAPH_VIEW_TYPE = "tapestry-loom-graph-view";
 
@@ -210,7 +211,7 @@ export class TapestryLoomGraphView extends ItemView {
 		let modelLabel;
 		let style;
 		if (node.model) {
-			modelLabel = document.models.get(node.model);
+			modelLabel = document.models.get(node.model) || UNKNOWN_MODEL_LABEL;
 			style = {
 				color: modelLabel?.color,
 			};
