@@ -55,6 +55,10 @@ class TapestryLoomPlugin implements PluginValue {
 				const to = offset + nodeContent.length;
 				offset = to;
 
+				if (nodeContent.length == 0) {
+					continue;
+				}
+
 				if (nodeContent.length > 0) {
 					const attributes: Record<string, string> = {};
 					let classString = "tapestry_editor-node";
@@ -114,6 +118,10 @@ class TapestryLoomPlugin implements PluginValue {
 							const to = innerOffset + token.length;
 							innerOffset = to;
 							i = i + 1;
+
+							if (token.length == 0) {
+								continue;
+							}
 
 							const range = Decoration.mark({
 								class: "tapestry_editor-token",
