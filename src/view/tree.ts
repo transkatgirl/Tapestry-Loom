@@ -394,19 +394,16 @@ export class TapestryLoomTreeListView extends ItemView {
 					});
 			});
 
-		new Setting(container)
-			.setName("Max recursion depth")
-			.addText((text) => {
-				text.setPlaceholder((1).toString())
-					.setValue(this.plugin.sessionSettings.depth.toString())
-					.onChange(async (value) => {
-						this.plugin.sessionSettings.depth =
-							parseInt(value) || 1;
-						if (this.plugin.sessionSettings.depth < 1) {
-							this.plugin.sessionSettings.depth = 1;
-						}
-					});
-			});
+		new Setting(container).setName("Recursion depth").addText((text) => {
+			text.setPlaceholder((1).toString())
+				.setValue(this.plugin.sessionSettings.depth.toString())
+				.onChange(async (value) => {
+					this.plugin.sessionSettings.depth = parseInt(value) || 1;
+					if (this.plugin.sessionSettings.depth < 1) {
+						this.plugin.sessionSettings.depth = 1;
+					}
+				});
+		});
 
 		new Setting(container).setHeading().setName("Models");
 		for (let i = 0; i < this.plugin.sessionSettings.models.length; i++) {
