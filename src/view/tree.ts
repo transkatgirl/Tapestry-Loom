@@ -71,6 +71,11 @@ export class TapestryLoomTreeListView extends ItemView {
 		}
 
 		const activeNodes = document.getActiveNodes();
+		for (const node of activeNodes) {
+			if (node.parentNode) {
+				this.collapsedNodes.delete(node.parentNode);
+			}
+		}
 		const rootNodes = document.getRootNodes();
 		const renderDepth =
 			this.plugin.settings.document?.treeDepth ||
