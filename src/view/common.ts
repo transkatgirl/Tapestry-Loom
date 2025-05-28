@@ -9,7 +9,7 @@ import {
 import { ULID, ulid } from "ulid";
 import { runCompletion } from "client";
 import { DEFAULT_DOCUMENT_SETTINGS } from "settings";
-import { getNodeContent, WeaveDocumentNode } from "document";
+import { WeaveDocumentNode } from "document";
 
 let activeRequests = 0;
 
@@ -325,7 +325,7 @@ export class WeaveSearchModal extends FuzzySuggestModal<WeaveDocumentNode> {
 		return this.plugin.document?.getAllNodes() || [];
 	}
 	getItemText(node: WeaveDocumentNode): string {
-		return getNodeContent(node).trim();
+		return this.plugin.document?.getNodeLabel(node)[0] || "";
 	}
 	onChooseItem(node: WeaveDocumentNode, _evt: MouseEvent | KeyboardEvent) {
 		if (this.plugin.document) {

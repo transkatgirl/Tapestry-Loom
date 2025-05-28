@@ -5,12 +5,13 @@ import TapestryLoom, {
 	SETTINGS_UPDATE_EVENT,
 } from "main";
 import { ItemView, WorkspaceLeaf } from "obsidian";
-import { getNodeContent, WeaveDocument, WeaveDocumentNode } from "document";
+import { WeaveDocument, WeaveDocumentNode } from "document";
 import { ULID } from "ulid";
 import cytoscape, { Core, StylesheetJsonBlock } from "cytoscape";
 import { getGlobalCSSColorVariable } from "common";
 import { switchToNode, toggleBookmarkNode } from "./common";
 import { DEFAULT_DOCUMENT_SETTINGS } from "settings";
+import { UNKNOWN_MODEL_LABEL } from "client";
 
 export const GRAPH_VIEW_TYPE = "tapestry-loom-graph-view";
 
@@ -202,17 +203,18 @@ export class TapestryLoomGraphView extends ItemView {
 		}
 
 		const classes: string[] = [];
-		let content = getNodeContent(node);
-		if (content.length == 0) {
+		// eslint-disable-next-line prefer-const
+		let [label, flair] = document.getNodeLabel(node);
+		if (label.length == 0) {
 			classes.push("tapestry_graph-empty-node");
 		}
 
 		let modelLabel;
 		let style;
 		if (node.model) {
-			modelLabel = document.models.get(node.model);
+			modelLabel = document.models.get(node.model) || UNKNOWN_MODEL_LABEL;
 			style = {
-				color: modelLabel?.color,
+				color: modelLabel.color,
 			};
 		}
 
@@ -220,17 +222,9 @@ export class TapestryLoomGraphView extends ItemView {
 			classes.push("tapestry_graph-bookmarked-node");
 		}
 
-		if (
-			node.content.length == 1 &&
-			typeof node.content == "object" &&
-			Array.isArray(node.content)
-		) {
+		if (flair) {
 			classes.push("tapestry_graph-logit-node");
-			content =
-				"(" +
-				(node.content[0][0] * 100).toFixed(0) +
-				"%) " +
-				content.trim();
+			label = "(" + flair + ") " + label;
 		}
 
 		if (document.currentNode == node.identifier) {
@@ -246,7 +240,7 @@ export class TapestryLoomGraphView extends ItemView {
 			group: "nodes",
 			data: {
 				id: node.identifier,
-				content: content.trim(),
+				content: label,
 				model: modelLabel?.label,
 			},
 			classes: classes,

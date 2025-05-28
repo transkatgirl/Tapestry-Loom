@@ -7,7 +7,7 @@ import {
 	newModel,
 } from "client";
 import TapestryLoom from "main";
-import { SessionSettings } from "view/tree";
+import { SessionSettings } from "view/treelist";
 import { ulid } from "ulid";
 
 export interface TapestryLoomSettings {

@@ -13,7 +13,7 @@ import {
 	debounce,
 	setIcon,
 } from "obsidian";
-import { getNodeContent, WeaveDocumentNode } from "document";
+import { WeaveDocumentNode } from "document";
 import { ULID } from "ulid";
 import { DEFAULT_DOCUMENT_SETTINGS, DEFAULT_SESSION_SETTINGS } from "settings";
 import {
@@ -26,9 +26,9 @@ import {
 	mergeNode,
 	switchToNode,
 } from "./common";
-import { ModelConfiguration } from "client";
+import { ModelConfiguration, UNKNOWN_MODEL_LABEL } from "client";
 
-export const TREE_VIEW_TYPE = "tapestry-loom-view";
+export const TREE_LIST_VIEW_TYPE = "tapestry-loom-view";
 
 export interface SessionSettings {
 	requests: number;
@@ -36,7 +36,7 @@ export interface SessionSettings {
 	parameters: Record<string, string>;
 }
 
-export class TapestryLoomTreeView extends ItemView {
+export class TapestryLoomTreeListView extends ItemView {
 	plugin: TapestryLoom;
 	private collapsedNodes: Set<ULID> = new Set();
 	private modelMenu?: CollapsibleMenuElement;
@@ -47,10 +47,10 @@ export class TapestryLoomTreeView extends ItemView {
 		this.plugin = plugin;
 	}
 	getViewType() {
-		return TREE_VIEW_TYPE;
+		return TREE_LIST_VIEW_TYPE;
 	}
 	getDisplayText() {
-		return "Tapestry Loom Tree";
+		return "Tapestry Loom Tree List";
 	}
 	getIcon(): string {
 		return "list-tree";
@@ -100,25 +100,17 @@ export class TapestryLoomTreeView extends ItemView {
 			return;
 		}
 
-		const content = getNodeContent(node);
+		const [label, flair] = document.getNodeLabel(node);
 		const children = document.getNodeChildren(node.identifier);
-		let flair;
-		if (
-			node.content.length == 1 &&
-			typeof node.content == "object" &&
-			Array.isArray(node.content)
-		) {
-			flair = (node.content[0][0] * 100).toPrecision(3) + "%";
-		}
 
 		let modelLabel;
 		if (node.model) {
-			modelLabel = document.models.get(node.model);
+			modelLabel = document.models.get(node.model) || UNKNOWN_MODEL_LABEL;
 		}
 
 		const tree = renderTree(
 			root,
-			content,
+			label,
 			document.currentNode == node.identifier,
 			children.length > 0,
 			this.collapsedNodes.has(node.identifier),
@@ -313,16 +305,16 @@ export class TapestryLoomTreeView extends ItemView {
 			return;
 		}
 
-		const content = getNodeContent(node);
+		const [label, _flair] = document.getNodeLabel(node);
 
 		let modelLabel;
 		if (node.model) {
-			modelLabel = document.models.get(node.model);
+			modelLabel = document.models.get(node.model) || UNKNOWN_MODEL_LABEL;
 		}
 
 		const tree = renderBookmarkNode(
 			root,
-			content,
+			label,
 			document.currentNode == node.identifier
 		);
 		if (modelLabel) {
@@ -781,7 +773,7 @@ function renderTree(
 		cls: ["tree-item-inner"],
 	});
 	if (text.length > 0) {
-		label.textContent = text.trim();
+		label.textContent = text;
 	} else {
 		label.innerHTML = "<em>No text</em>";
 		label.classList.add("tapestry_tree-notice");

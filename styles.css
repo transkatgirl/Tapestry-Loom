@@ -117,7 +117,7 @@
 	display: none;
 }
 
-span.tapestry_editor-node-border {
+span.tapestry_editor-segment-border {
 	border-right: var(--blockquote-border-thickness) dotted var(--text-faint);
 }
 

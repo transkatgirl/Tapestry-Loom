@@ -157,7 +157,7 @@ export function buildCommands(plugin: TapestryLoom): Array<Command> {
 		},
 		{
 			id: "node-tapestry-loom-search",
-			name: "Search for node by content",
+			name: "Search for node by label",
 			callback: async () => {
 				if (plugin.document) {
 					new WeaveSearchModal(plugin.app, plugin).open();
