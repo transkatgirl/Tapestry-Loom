@@ -51,15 +51,17 @@ I'm likely not going to be able to work on these features very soon, but I'm hap
 > It is recommended that you create a dedicated Obsidian vault for this plugin.
 
 1. Make sure community plugins are enabled within Obsidian.
-2. Clone this repository into your vault's `.obsidian/plugins/` folder.
-3. Run `npm install && npm run build` to fetch dependencies and build the plugin.
-4. Open Obsidian's plugin settings and enable the plugin.
+2. Clone this git repository into your vault's `.obsidian/plugins/` folder.
+3. Open a terminal in the plugin folder.
+4. Run `npm install && npm run build` to fetch dependencies and build the plugin.
+5. Open Obsidian's plugin settings and enable the plugin.
 
 #### Updating
 
-1. Pull recent commits to the repository using `git pull`.
-2. Run `npm install && npm run build` to fetch dependencies and build the plugin.
-3. Open Obsidian's plugin settings and disable the plugin, then re-enable it.
+1. Open a terminal in the plugin folder.
+2. Pull recent commits to the repository using `git pull`.
+3. Run `npm install && npm run build` to fetch dependencies and build the plugin.
+4. Open Obsidian's plugin settings and disable the plugin, then re-enable it.
 
 ### Post-install
 
