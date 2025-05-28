@@ -30,7 +30,7 @@ You can see example screenshots on [this Twitter post](https://x.com/transkatgir
 
 - Child node list view, similar to [loomsidian](https://github.com/cosmicoptima/loom) and [exoloom](https://exoloom.io)
 - Store content diffs inside of nodes rather than raw text using [diff-match-patch](https://github.com/google/diff-match-patch), similar to [minihf's loom](https://github.com/JD-P/minihf)
-	- Support middle-of-text completions, similar to this [unknown loom implementation](https://www.youtube.com/watch?£v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
+	- Support middle-of-text completions, similar to this [unknown loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 - Generation presets
 - Prompt logprobs support
 - Implement lazy weave storage updating to improve performance
