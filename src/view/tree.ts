@@ -252,6 +252,21 @@ export class TapestryLoomTreeListView extends ItemView {
 
 		if (hasChildren) {
 			menu.addItem((item) => {
+				item.setTitle("Collapse all children");
+				item.onClick(() => {
+					this.collapseNodeChildren(identifier);
+				});
+			});
+			menu.addItem((item) => {
+				item.setTitle("Expand all children");
+				item.onClick(() => {
+					this.expandNodeChildren(identifier);
+				});
+			});
+
+			menu.addSeparator();
+
+			menu.addItem((item) => {
 				item.setTitle("Delete all children");
 				item.onClick(() => {
 					deleteNodeChildren(this.plugin, identifier);
@@ -287,6 +302,84 @@ export class TapestryLoomTreeListView extends ItemView {
 		});
 
 		menu.showAtMouseEvent(event);
+	}
+	private toggleNodeExpansion(identifier: ULID) {
+		if (!this.treeMenu) {
+			return;
+		}
+
+		if (this.collapsedNodes.has(identifier)) {
+			this.collapsedNodes.delete(identifier);
+		} else {
+			this.collapsedNodes.add(identifier);
+		}
+		this.renderTree(this.treeMenu.childrenContainer, true);
+	}
+	private collapseOtherNodes() {
+		if (!this.treeMenu || !this.plugin.document) {
+			return;
+		}
+
+		const activeNodes = this.plugin.document.getActiveNodes();
+
+		for (let i = 0; i < activeNodes.length; i++) {
+			const activeNode = activeNodes[i];
+			let nextActiveNode;
+			if (i + 1 < activeNodes.length) {
+				nextActiveNode = activeNodes[i + 1];
+			}
+			const nodes = this.plugin.document.getNodeChildren(
+				activeNode.identifier
+			);
+
+			for (const node of nodes) {
+				if (nextActiveNode?.identifier != node.identifier) {
+					this.collapsedNodes.add(node.identifier);
+				}
+			}
+		}
+
+		this.renderTree(this.treeMenu.childrenContainer, true);
+	}
+	private expandNodes() {
+		if (!this.treeMenu || !this.plugin.document) {
+			return;
+		}
+
+		const activeNodes = this.plugin.document.getActiveNodes();
+
+		for (const activeNode of activeNodes) {
+			const nodes = this.plugin.document.getNodeChildren(
+				activeNode.identifier
+			);
+			for (const node of nodes) {
+				this.collapsedNodes.delete(node.identifier);
+			}
+		}
+
+		this.renderTree(this.treeMenu.childrenContainer, true);
+	}
+	private collapseNodeChildren(identifier: ULID) {
+		if (!this.treeMenu || !this.plugin.document) {
+			return;
+		}
+
+		const nodes = this.plugin.document.getNodeChildren(identifier);
+		for (const node of nodes) {
+			this.collapsedNodes.add(node.identifier);
+		}
+		this.renderTree(this.treeMenu.childrenContainer, true);
+	}
+	private expandNodeChildren(identifier: ULID) {
+		if (!this.treeMenu || !this.plugin.document) {
+			return;
+		}
+
+		const nodes = this.plugin.document.getNodeChildren(identifier);
+		for (const node of nodes) {
+			this.collapsedNodes.delete(node.identifier);
+		}
+		this.renderTree(this.treeMenu.childrenContainer, true);
 	}
 	private renderBookmarks(container: HTMLElement) {
 		container.empty();
@@ -628,16 +721,43 @@ export class TapestryLoomTreeListView extends ItemView {
 			name: "Toggle whether current node is collapsed",
 			callback: () => {
 				const identifier = this.plugin.document?.currentNode;
-				if (!identifier) {
-					return;
+				if (identifier) {
+					this.toggleNodeExpansion(identifier);
 				}
-
-				if (this.collapsedNodes.has(identifier)) {
-					this.collapsedNodes.delete(identifier);
-				} else {
-					this.collapsedNodes.add(identifier);
+			},
+		});
+		this.plugin.addCommand({
+			id: "node-tapestry-loom-collapse-folding-children",
+			name: "Collapse children of current node",
+			callback: () => {
+				const identifier = this.plugin.document?.currentNode;
+				if (identifier) {
+					this.collapseNodeChildren(identifier);
 				}
-				this.renderTree(treeMenu.childrenContainer, true);
+			},
+		});
+		this.plugin.addCommand({
+			id: "node-tapestry-loom-expand-folding-children",
+			name: "Expand children of current node",
+			callback: () => {
+				const identifier = this.plugin.document?.currentNode;
+				if (identifier) {
+					this.expandNodeChildren(identifier);
+				}
+			},
+		});
+		this.plugin.addCommand({
+			id: "node-tapestry-loom-collapse-folding-all-inactive",
+			name: "Collapse all inactive nodes down to current layer",
+			callback: () => {
+				this.collapseOtherNodes();
+			},
+		});
+		this.plugin.addCommand({
+			id: "node-tapestry-loom-expand-folding-all",
+			name: "Expand all nodes down to current layer",
+			callback: () => {
+				this.expandNodes();
 			},
 		});
 
