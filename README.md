@@ -28,8 +28,8 @@ You can see example screenshots on [this Twitter post](https://x.com/transkatgir
 
 ### Possible future features
 
-- Child node list view, similar to [loomsidian](https://github.com/cosmicoptima/loom) and [exoloom](https://exoloom.io)
-- Improve weave flexibility:
+- Sibling node list view, similar to [loomsidian](https://github.com/cosmicoptima/loom) and [exoloom](https://exoloom.io)
+- Improve weave flexibility (in next major version):
 	- Option 1: Store content diffs inside of nodes rather than raw text using [diff-match-patch](https://github.com/google/diff-match-patch), similar to [minihf's loom](https://github.com/JD-P/minihf)
 	- Option 2: Store nodes in a DAG to allow for middle-of-text completions, similar to this [unknown loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 - Generation presets
