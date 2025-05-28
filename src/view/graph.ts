@@ -181,6 +181,7 @@ export class TapestryLoomGraphView extends ItemView {
 					if (!this.graph) {
 						return;
 					}
+					this.graph.style(graphStyle);
 					this.graph.layout(GRAPH_LAYOUT).run();
 				});
 			}
