@@ -174,7 +174,7 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 			apiKey: "",
 			type: EndpointType.OpenAICompletionv1Compatible,
 		};
-		new Setting(containerEl)
+		const modelFormSetting = new Setting(containerEl)
 			.addText((text) => {
 				text.setPlaceholder("Request URL").onChange((value) => {
 					modelForm.url = value;
@@ -220,6 +220,8 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 					}
 				});
 			});
+		modelFormSetting.controlEl.style.flexWrap = "wrap";
+		modelFormSetting.controlEl.style.justifyContent = "flex-start";
 
 		for (let i = 0; i < client.models.length; i++) {
 			new Setting(containerEl).setHeading().setName("Edit model");
