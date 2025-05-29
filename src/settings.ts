@@ -221,7 +221,6 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 				});
 			});
 		modelFormSetting.controlEl.style.flexWrap = "wrap";
-		modelFormSetting.controlEl.style.justifyContent = "flex-start";
 
 		for (let i = 0; i < client.models.length; i++) {
 			new Setting(containerEl).setHeading().setName("Edit model");
