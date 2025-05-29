@@ -19,7 +19,7 @@ export interface TapestryLoomSettings {
 export const DEFAULT_CLIENT_SETTINGS: ClientSettings = { models: [] };
 export const DEFAULT_DOCUMENT_SETTINGS: DocumentSettings = {
 	debounce: 500,
-	treeDepth: 4,
+	treeDepth: 3,
 	graphDepth: 3,
 	renderOverlay: true,
 };
