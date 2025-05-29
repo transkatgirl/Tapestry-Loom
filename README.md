@@ -74,6 +74,7 @@ After installing and enabling the plugin, you will need to do some post-install 
 - Add your LLM model endpoints in the Tapestry Loom settings.
 	- Unlike other LLM clients, the endpoint *must* be specified by the full URL rather than just the API prefix.
 	- If you plan on using multiple models at a time, adding color labels to your models is recommended.
+		- As a starting point, consider looking at [brand colors for popular models](model colors.md)
 - Open Obsidian's hotkey settings, and add hotkeys for frequently used Tapestry Loom commands.
 	- It is strongly recommended that you at least add hotkeys for moving between nodes, splitting nodes, and generating completions.
 - Find inference parameters you like, and then set them as your new defaults in the Tapestry Loom settings.
