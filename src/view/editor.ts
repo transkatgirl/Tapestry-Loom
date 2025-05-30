@@ -43,7 +43,12 @@ class TapestryLoomPlugin implements PluginValue {
 		const content = view.state.doc.toString();
 		let offset = getEditorOffset(content);
 
-		for (const node of this.document.getActiveNodes()) {
+		const activeNodes = this.document.getActiveNodes();
+		if (activeNodes.length <= 1) {
+			return Decoration.none;
+		}
+
+		for (const node of activeNodes) {
 			const nodeContent = getNodeContent(node);
 
 			if (
