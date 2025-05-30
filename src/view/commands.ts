@@ -179,7 +179,7 @@ export function buildCommands(plugin: TapestryLoom): Array<Command> {
 }
 
 async function runCompletion(plugin: TapestryLoom, useOffset: boolean) {
-	if (!plugin.document || !plugin.editor) {
+	if (!plugin.document || !plugin.document.currentNode || !plugin.editor) {
 		return;
 	}
 
@@ -193,10 +193,10 @@ async function runCompletion(plugin: TapestryLoom, useOffset: boolean) {
 			plugin.document.splitNode(active[0], active[1]);
 			await generateNodeChildren(plugin, active[0]);
 		} else {
-			await generateNodeChildren(plugin, plugin.document?.currentNode);
+			await generateNodeChildren(plugin, plugin.document.currentNode);
 		}
 	} else {
-		await generateNodeChildren(plugin, plugin.document?.currentNode);
+		await generateNodeChildren(plugin, plugin.document.currentNode);
 	}
 }
 

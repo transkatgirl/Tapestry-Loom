@@ -24,7 +24,7 @@ function updateStatusBar(plugin: TapestryLoom) {
 
 export async function generateNodeChildren(
 	plugin: TapestryLoom,
-	parentNode?: ULID,
+	parentNode: ULID,
 	depth: number = plugin.sessionSettings.depth
 ) {
 	if (!plugin.document || !plugin.settings.client) {
