@@ -121,6 +121,10 @@ span.tapestry_editor-node-border {
 	border-right: var(--blockquote-border-thickness) dotted var(--text-faint);
 }
 
+span.tapestry_editor-node:hover {
+	background-color: var(--background-modifier-hover);
+}
+
 /*span.tapestry_editor-token-border {
 	border-right: var(--table-border-width) dotted var(--text-faint);
 }*/
