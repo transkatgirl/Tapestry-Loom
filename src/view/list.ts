@@ -4,10 +4,19 @@ import TapestryLoom, {
 	DOCUMENT_UPDATE_EVENT,
 	SETTINGS_UPDATE_EVENT,
 } from "main";
-import { ItemView, WorkspaceLeaf } from "obsidian";
+import { ItemView, Menu, setIcon, WorkspaceLeaf } from "obsidian";
 import { getNodeContent, WeaveDocumentNode } from "document";
 import { ULID } from "ulid";
-import { switchToNode } from "./common";
+import {
+	addNode,
+	addNodeSibling,
+	deleteNode,
+	deleteNodeChildren,
+	deleteNodeSiblings,
+	generateNodeChildren,
+	switchToNode,
+	toggleBookmarkNode,
+} from "./common";
 import { UNKNOWN_MODEL_LABEL } from "client";
 
 export const LIST_VIEW_TYPE = "tapestry-loom-sibling-list-view";
@@ -124,8 +133,19 @@ export class TapestryLoomListView extends ItemView {
 		if (document.currentNode == node.identifier) {
 			item.classList.add("tapestry_list-selected");
 		}
+
+		const flairContainer = item.createEl("div", {
+			cls: ["tree-item-flair-outer"],
+		});
+		if (document.bookmarks.has(node.identifier)) {
+			const bookmarkIcon = flairContainer.createEl("div", {
+				text: flair,
+				cls: ["tree-item-flair"],
+			});
+			setIcon(bookmarkIcon, "bookmark");
+		}
 		if (flair) {
-			item.createEl("div", {
+			flairContainer.createEl("div", {
 				text: flair,
 				cls: ["tree-item-flair"],
 			});
@@ -149,7 +169,88 @@ export class TapestryLoomListView extends ItemView {
 		item.addEventListener("click", () => {
 			switchToNode(this.plugin, node.identifier);
 		});
+		item.addEventListener("contextmenu", (event) => {
+			event.preventDefault();
+			this.renderMenu(node, event);
+		});
 	}
+	private renderMenu(node: WeaveDocumentNode, event: MouseEvent) {
+		const identifier = node.identifier;
+		const hasChildren =
+			(this.plugin.document?.getNodeChildrenCount(identifier) || 0) > 0;
+
+		const menu = new Menu();
+
+		menu.addItem((item) => {
+			item.setTitle("Generate");
+			item.onClick(() => {
+				generateNodeChildren(this.plugin, identifier);
+			});
+		});
+
+		menu.addItem((item) => {
+			if (
+				this.plugin.document &&
+				this.plugin.document.bookmarks.has(node.identifier)
+			) {
+				item.setTitle("Remove bookmark");
+			} else {
+				item.setTitle("Bookmark");
+			}
+			item.onClick(() => {
+				toggleBookmarkNode(this.plugin, identifier);
+			});
+		});
+
+		menu.addSeparator();
+
+		menu.addItem((item) => {
+			item.setTitle("Create child");
+			item.onClick(() => {
+				addNode(this.plugin, identifier);
+			});
+		});
+		menu.addItem((item) => {
+			item.setTitle("Create sibling");
+			item.onClick(() => {
+				addNodeSibling(this.plugin, identifier);
+			});
+		});
+
+		if (hasChildren || node.parentNode) {
+			menu.addSeparator();
+		}
+
+		if (hasChildren) {
+			menu.addItem((item) => {
+				item.setTitle("Delete all children");
+				item.onClick(() => {
+					deleteNodeChildren(this.plugin, identifier);
+				});
+			});
+		}
+
+		if (node.parentNode) {
+			menu.addItem((item) => {
+				item.setTitle("Delete all siblings");
+				item.onClick(() => {
+					deleteNodeSiblings(this.plugin, identifier, true);
+				});
+			});
+		}
+
+		menu.addSeparator();
+
+		menu.addItem((item) => {
+			item.setTitle("Delete");
+			item.onClick(() => {
+				deleteNode(this.plugin, identifier);
+			});
+		});
+
+		menu.showAtMouseEvent(event);
+	}
+
 	async onOpen() {
 		const container = this.containerEl.children[1] as HTMLElement;
 		container.empty();

@@ -129,6 +129,11 @@ span.tapestry_editor-node:hover {
 	border-right: var(--table-border-width) dotted var(--text-faint);
 }*/
 
+.tapestry_list .search-result-file-match {
+	padding: var(--size-4-2) var(--size-4-3) var(--size-4-2) var(--size-4-3);
+	display: flex;
+}
+
 .tapestry_list .search-result-file-match:hover {
 	color: var(--text-normal);
 	background-color: var(--nav-item-background-hover);
@@ -141,10 +146,6 @@ span.tapestry_editor-node:hover {
 
 .tapestry_list:has(.search-empty-state) {
 	padding: var(--size-2-1) 1px var(--size-4-4);
-}
-
-.tapestry_list .search-result-file-match {
-	display: flex;
 }
 
 .tapestry_list .search-result-file-match span {
