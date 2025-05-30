@@ -103,7 +103,10 @@ export default class TapestryLoom extends Plugin {
 
 						if (
 							this.document &&
-							this.document.identifier == newDocument.identifier
+							this.document.identifier ==
+								newDocument.identifier &&
+							this.document.getActiveContent() ==
+								newDocument.getActiveContent()
 						) {
 							if (
 								await updateDocument(
