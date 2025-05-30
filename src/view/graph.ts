@@ -339,8 +339,8 @@ export class TapestryLoomGraphView extends ItemView {
 		);
 
 		this.plugin.addCommand({
-			id: "reset-tapestry-loom-graph-zoom",
-			name: "Reset node graph zoom",
+			id: "fit-tapestry-loom-graph-automatic",
+			name: "Reset node graph position",
 			callback: () => {
 				if (this.graph && this.plugin.document) {
 					const renderDepth =
@@ -352,6 +352,16 @@ export class TapestryLoomGraphView extends ItemView {
 							getPanSelector(this.plugin.document, renderDepth)
 						)
 					);
+					this.panned = false;
+				}
+			},
+		});
+		this.plugin.addCommand({
+			id: "fit-tapestry-loom-graph-to-weave",
+			name: "Fit node graph to full weave",
+			callback: () => {
+				if (this.graph && this.plugin.document) {
+					this.graph.fit();
 					this.panned = false;
 				}
 			},
