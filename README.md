@@ -42,7 +42,7 @@ You can see example screenshots on [this Twitter post](https://x.com/transkatgir
 - Support for additional endpoint types (especially if they allow implementing additional features)
 - Document analysis tools
 - Interactive sampling parameter visualizations
-- Built in user manual
+- Built in user manual, based on my [notes about loom](https://gist.github.com/transkatgirl/9d04c9d05e041f062bcb31ed5fd915e1)
 
 I'm likely not going to be able to work on these features very soon, but I'm happy to review any pull requests if you would like to try implementing these features yourself.
 
