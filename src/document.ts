@@ -519,10 +519,10 @@ export class WeaveDocument {
 			this.nodes.delete(identifier);
 			this.rootNodes.delete(identifier);
 			this.bookmarks.delete(identifier);
+			if (this.currentNode == identifier) {
+				this.currentNode = node.parentNode;
+			}
 			if (node.parentNode) {
-				if (this.currentNode == identifier) {
-					this.currentNode = node.parentNode;
-				}
 				const parentChildren = this.nodeChildren.get(node.parentNode);
 				if (parentChildren) {
 					parentChildren.delete(node.identifier);
