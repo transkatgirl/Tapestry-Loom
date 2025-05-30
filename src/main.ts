@@ -123,13 +123,13 @@ export default class TapestryLoom extends Plugin {
 						} else {
 							this.document = newDocument;
 							workspace.trigger(DOCUMENT_LOAD_EVENT);
+							updateEditorPluginState(
+								this.editorPlugin,
+								this.editor,
+								this.settings,
+								this.document
+							);
 						}
-						updateEditorPluginState(
-							this.editorPlugin,
-							this.editor,
-							this.settings,
-							this.document
-						);
 					} catch (error) {
 						new Notice(error);
 					} finally {
