@@ -1,4 +1,4 @@
-import { debounce, Editor, MarkdownView, Plugin } from "obsidian";
+import { debounce, Editor, MarkdownView, Notice, Plugin } from "obsidian";
 import serialize from "serialize-javascript";
 import { deserialize } from "common";
 import {
@@ -23,6 +23,7 @@ import {
 } from "document";
 import { buildCommands } from "view/commands";
 import { LIST_VIEW_TYPE, TapestryLoomListView } from "view/list";
+import AwaitLock from "await-lock";
 
 // @ts-expect-error
 import elk from "cytoscape-elk";
@@ -38,6 +39,7 @@ export default class TapestryLoom extends Plugin {
 	editorPlugin: EditorPlugin;
 	editor?: Editor = this.app.workspace.activeEditor?.editor;
 	document?: WeaveDocument;
+	lock = new AwaitLock();
 	sessionSettings = DEFAULT_SESSION_SETTINGS;
 	statusBar: HTMLElement = this.addStatusBarItem().createEl("span", {});
 	async onload() {
@@ -63,9 +65,22 @@ export default class TapestryLoom extends Plugin {
 
 		cytoscape.use(elk);
 
+		this.editorPlugin = buildEditorPlugin(this.settings, this.document);
+		this.registerEditorExtension([this.editorPlugin]);
+
 		if (this.editor) {
-			this.document = await loadDocument(this.editor, true);
-			workspace.trigger(DOCUMENT_LOAD_EVENT);
+			try {
+				this.document = await loadDocument(this.editor, true);
+				workspace.trigger(DOCUMENT_LOAD_EVENT);
+				updateEditorPluginState(
+					this.editorPlugin,
+					this.editor,
+					this.settings,
+					this.document
+				);
+			} catch (error) {
+				new Notice(error);
+			}
 		}
 
 		let debounceTime = DEFAULT_DOCUMENT_SETTINGS.debounce;
@@ -73,27 +88,31 @@ export default class TapestryLoom extends Plugin {
 			debounceTime = this.settings.document.debounce;
 		}
 
-		this.editorPlugin = buildEditorPlugin(this.settings, this.document);
-		this.registerEditorExtension([this.editorPlugin]);
-
 		this.registerEvent(
 			workspace.on("active-leaf-change", async (leaf) => {
 				if (leaf && leaf.view instanceof MarkdownView) {
-					this.editor = leaf.view.editor;
-					const oldIdentifier = this.document?.identifier;
-					this.document = await loadDocument(this.editor, true);
+					await this.lock.acquireAsync();
+					try {
+						this.editor = leaf.view.editor;
+						const oldIdentifier = this.document?.identifier;
+						this.document = await loadDocument(this.editor, true);
 
-					if (this.document.identifier == oldIdentifier) {
-						workspace.trigger(DOCUMENT_UPDATE_EVENT);
-					} else {
-						workspace.trigger(DOCUMENT_LOAD_EVENT);
+						if (this.document.identifier == oldIdentifier) {
+							workspace.trigger(DOCUMENT_UPDATE_EVENT);
+						} else {
+							workspace.trigger(DOCUMENT_LOAD_EVENT);
+						}
+						updateEditorPluginState(
+							this.editorPlugin,
+							this.editor,
+							this.settings,
+							this.document
+						);
+					} catch (error) {
+						new Notice(error);
+					} finally {
+						this.lock.release();
 					}
-					updateEditorPluginState(
-						this.editorPlugin,
-						this.editor,
-						this.settings,
-						this.document
-					);
 				}
 			})
 		);
@@ -105,33 +124,47 @@ export default class TapestryLoom extends Plugin {
 						this.editor = editor;
 
 						if (this.document) {
-							if (
-								await updateDocument(
+							await this.lock.acquireAsync();
+							try {
+								if (
+									await updateDocument(
+										this.editor,
+										this.document,
+										true
+									)
+								) {
+									workspace.trigger(DOCUMENT_UPDATE_EVENT);
+									updateEditorPluginState(
+										this.editorPlugin,
+										this.editor,
+										this.settings,
+										this.document
+									);
+								}
+							} catch (error) {
+								new Notice(error);
+							} finally {
+								this.lock.release();
+							}
+						} else {
+							await this.lock.acquireAsync();
+							try {
+								this.document = await loadDocument(
 									this.editor,
-									this.document,
 									true
-								)
-							) {
-								workspace.trigger(DOCUMENT_UPDATE_EVENT);
+								);
+								workspace.trigger(DOCUMENT_LOAD_EVENT);
 								updateEditorPluginState(
 									this.editorPlugin,
 									this.editor,
 									this.settings,
 									this.document
 								);
+							} catch (error) {
+								new Notice(error);
+							} finally {
+								this.lock.release();
 							}
-						} else {
-							this.document = await loadDocument(
-								this.editor,
-								true
-							);
-							workspace.trigger(DOCUMENT_LOAD_EVENT);
-							updateEditorPluginState(
-								this.editorPlugin,
-								this.editor,
-								this.settings,
-								this.document
-							);
 						}
 					},
 					debounceTime,
@@ -140,15 +173,22 @@ export default class TapestryLoom extends Plugin {
 			)
 		);
 		this.registerEvent(
-			workspace.on("editor-drop", (_evt, editor) => {
-				this.editor = undefined;
-				this.document = undefined;
-				workspace.trigger(DOCUMENT_DROP_EVENT);
-				updateEditorPluginState(
-					this.editorPlugin,
-					editor,
-					this.settings
-				);
+			workspace.on("editor-drop", async (_evt, editor) => {
+				await this.lock.acquireAsync();
+				try {
+					this.editor = undefined;
+					this.document = undefined;
+					workspace.trigger(DOCUMENT_DROP_EVENT);
+					updateEditorPluginState(
+						this.editorPlugin,
+						editor,
+						this.settings
+					);
+				} catch (error) {
+					new Notice(error);
+				} finally {
+					this.lock.release();
+				}
 			})
 		);
 		this.registerEvent(
@@ -158,18 +198,25 @@ export default class TapestryLoom extends Plugin {
 				DOCUMENT_TRIGGER_UPDATE_EVENT,
 				async () => {
 					if (this.editor && this.document) {
-						await overrideEditorContent(
-							this.editor,
-							this.document,
-							true
-						);
-						workspace.trigger(DOCUMENT_UPDATE_EVENT);
-						updateEditorPluginState(
-							this.editorPlugin,
-							this.editor,
-							this.settings,
-							this.document
-						);
+						await this.lock.acquireAsync();
+						try {
+							await overrideEditorContent(
+								this.editor,
+								this.document,
+								true
+							);
+							workspace.trigger(DOCUMENT_UPDATE_EVENT);
+							updateEditorPluginState(
+								this.editorPlugin,
+								this.editor,
+								this.settings,
+								this.document
+							);
+						} catch (error) {
+							new Notice(error);
+						} finally {
+							this.lock.release();
+						}
 					}
 				}
 			)
@@ -219,18 +266,25 @@ export default class TapestryLoom extends Plugin {
 			name: "Debug: Save weave in plaintext representation",
 			callback: async () => {
 				if (this.editor && this.document) {
-					await overrideEditorContent(
-						this.editor,
-						this.document,
-						false
-					);
-					workspace.trigger(DOCUMENT_UPDATE_EVENT);
-					updateEditorPluginState(
-						this.editorPlugin,
-						this.editor,
-						this.settings,
-						this.document
-					);
+					await this.lock.acquireAsync();
+					try {
+						await overrideEditorContent(
+							this.editor,
+							this.document,
+							false
+						);
+						workspace.trigger(DOCUMENT_UPDATE_EVENT);
+						updateEditorPluginState(
+							this.editorPlugin,
+							this.editor,
+							this.settings,
+							this.document
+						);
+					} catch (error) {
+						new Notice(error);
+					} finally {
+						this.lock.release();
+					}
 				}
 			},
 		});
@@ -261,24 +315,38 @@ export default class TapestryLoom extends Plugin {
 		}
 	}
 	async loadSettings() {
-		const data = await this.loadData();
+		await this.lock.acquireAsync();
+		try {
+			const data = await this.loadData();
 
-		if (data && "settings" in data) {
-			this.settings = deserialize(data.settings);
-		} else {
-			this.settings = {};
+			if (data && "settings" in data) {
+				this.settings = deserialize(data.settings);
+			} else {
+				this.settings = {};
+			}
+		} catch (error) {
+			new Notice(error);
+		} finally {
+			this.lock.release();
 		}
 	}
 	async saveSettings() {
-		await this.saveData({ settings: serialize(this.settings) });
-		this.app.workspace.trigger(SETTINGS_UPDATE_EVENT);
-		if (this.editor) {
-			updateEditorPluginState(
-				this.editorPlugin,
-				this.editor,
-				this.settings,
-				this.document
-			);
+		await this.lock.acquireAsync();
+		try {
+			await this.saveData({ settings: serialize(this.settings) });
+			this.app.workspace.trigger(SETTINGS_UPDATE_EVENT);
+			if (this.editor) {
+				updateEditorPluginState(
+					this.editorPlugin,
+					this.editor,
+					this.settings,
+					this.document
+				);
+			}
+		} catch (error) {
+			new Notice(error);
+		} finally {
+			this.lock.release();
 		}
 	}
 }
