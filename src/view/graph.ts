@@ -340,7 +340,7 @@ export class TapestryLoomGraphView extends ItemView {
 
 		this.plugin.addCommand({
 			id: "fit-tapestry-loom-graph-automatic",
-			name: "Reset node graph position",
+			name: "Fit node graph automatically",
 			callback: () => {
 				if (this.graph && this.plugin.document) {
 					const renderDepth =
