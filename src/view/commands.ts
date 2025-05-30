@@ -165,12 +165,12 @@ export function buildCommands(plugin: TapestryLoom): Array<Command> {
 			},
 		},
 		{
-			id: "setting-tapestry-loom-toggle-document-showOverlay",
-			name: "Toggle the editor overlay",
+			id: "setting-tapestry-loom-toggle-document-showOverlayColors",
+			name: "Toggle editor overlay colors",
 			callback: async () => {
 				if (plugin.settings.document) {
-					plugin.settings.document.renderOverlay =
-						!plugin.settings.document.renderOverlay;
+					plugin.settings.document.renderOverlayColors =
+						!plugin.settings.document.renderOverlayColors;
 					await plugin.saveSettings();
 				}
 			},

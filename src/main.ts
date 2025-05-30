@@ -52,6 +52,13 @@ export default class TapestryLoom extends Plugin {
 			if (!this.sessionSettings.depth) {
 				this.sessionSettings.depth = DEFAULT_SESSION_SETTINGS.depth;
 			}
+			if (
+				this.settings.document &&
+				this.settings.document.renderOverlayColors == undefined
+			) {
+				this.settings.document.renderOverlayColors = true;
+				await this.saveSettings();
+			}
 		}
 
 		cytoscape.use(elk);

@@ -34,7 +34,7 @@ class TapestryLoomPlugin implements PluginValue {
 		}
 	}
 	buildDecorations(view: EditorView): DecorationSet {
-		if (!this.document || !this.settings?.document?.renderOverlay) {
+		if (!this.document) {
 			return Decoration.none;
 		}
 
@@ -66,7 +66,10 @@ class TapestryLoomPlugin implements PluginValue {
 						const model =
 							this.document.models.get(node.model) ||
 							UNKNOWN_MODEL_LABEL;
-						if (model?.color) {
+						if (
+							model?.color &&
+							this.settings?.document?.renderOverlayColors
+						) {
 							attributes["style"] = "color: " + model?.color;
 						}
 						if (model?.label) {

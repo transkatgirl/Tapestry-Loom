@@ -21,7 +21,7 @@ export const DEFAULT_DOCUMENT_SETTINGS: DocumentSettings = {
 	debounce: 500,
 	treeDepth: 3,
 	graphDepth: 3,
-	renderOverlay: true,
+	renderOverlayColors: true,
 };
 export const DEFAULT_SESSION_SETTINGS: SessionSettings = {
 	requests: 6,
@@ -36,7 +36,7 @@ export interface DocumentSettings {
 	debounce: number;
 	treeDepth: number;
 	graphDepth: number;
-	renderOverlay: boolean;
+	renderOverlayColors: boolean;
 }
 
 export class TapestryLoomSettingTab extends PluginSettingTab {
@@ -130,13 +130,13 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Render editor overlay")
-			.setDesc("Render an overlay over the text editor.")
+			.setName("Editor overlay colors")
+			.setDesc("Display model colors in the editor overlay.")
 			.addToggle((toggle) => {
 				toggle
-					.setValue(document.renderOverlay)
+					.setValue(document.renderOverlayColors)
 					.onChange(async (value) => {
-						document.renderOverlay = value;
+						document.renderOverlayColors = value;
 						this.plugin.settings.document = document;
 						await this.plugin.saveSettings();
 					});
