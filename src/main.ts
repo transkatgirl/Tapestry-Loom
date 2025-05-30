@@ -30,6 +30,8 @@ import elk from "cytoscape-elk";
 
 export const DOCUMENT_LOAD_EVENT = "tapestry-document:load";
 export const DOCUMENT_TRIGGER_UPDATE_EVENT = "tapestry-document:override";
+export const DOCUMENT_TRIGGER_UPDATE_DEBOUNCE_EVENT =
+	"tapestry-document:override-debounce";
 export const DOCUMENT_UPDATE_EVENT = "tapestry-document:update";
 export const DOCUMENT_DROP_EVENT = "tapestry-document:drop";
 export const SETTINGS_UPDATE_EVENT = "tapestry-settings:update";
@@ -94,12 +96,32 @@ export default class TapestryLoom extends Plugin {
 					await this.lock.acquireAsync();
 					try {
 						this.editor = leaf.view.editor;
-						const oldIdentifier = this.document?.identifier;
-						this.document = await loadDocument(this.editor, true);
+						const newDocument = await loadDocument(
+							this.editor,
+							true
+						);
 
-						if (this.document.identifier == oldIdentifier) {
-							workspace.trigger(DOCUMENT_UPDATE_EVENT);
+						if (
+							this.document &&
+							this.document.identifier == newDocument.identifier
+						) {
+							if (
+								await updateDocument(
+									this.editor,
+									this.document,
+									true
+								)
+							) {
+								workspace.trigger(DOCUMENT_UPDATE_EVENT);
+								updateEditorPluginState(
+									this.editorPlugin,
+									this.editor,
+									this.settings,
+									this.document
+								);
+							}
 						} else {
+							this.document = newDocument;
 							workspace.trigger(DOCUMENT_LOAD_EVENT);
 						}
 						updateEditorPluginState(
@@ -219,6 +241,20 @@ export default class TapestryLoom extends Plugin {
 						}
 					}
 				}
+			)
+		);
+		this.registerEvent(
+			workspace.on(
+				// ignore ts2769; custom event
+				// @ts-expect-error
+				DOCUMENT_TRIGGER_UPDATE_DEBOUNCE_EVENT,
+				debounce(
+					() => {
+						workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
+					},
+					debounceTime,
+					false
+				)
 			)
 		);
 

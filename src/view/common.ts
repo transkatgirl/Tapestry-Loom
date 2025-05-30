@@ -1,4 +1,7 @@
-import TapestryLoom, { DOCUMENT_TRIGGER_UPDATE_EVENT } from "main";
+import TapestryLoom, {
+	DOCUMENT_TRIGGER_UPDATE_DEBOUNCE_EVENT,
+	DOCUMENT_TRIGGER_UPDATE_EVENT,
+} from "main";
 import {
 	App,
 	Editor,
@@ -96,7 +99,9 @@ export async function generateNodeChildren(
 					}
 				}
 
-				plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
+				plugin.app.workspace.trigger(
+					DOCUMENT_TRIGGER_UPDATE_DEBOUNCE_EVENT
+				);
 			})
 			.catch((error) => {
 				new Notice(error);
@@ -110,7 +115,7 @@ export async function generateNodeChildren(
 	await Promise.all(completionPromises);
 
 	updateStatusBar(plugin);
-	plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
+	plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_DEBOUNCE_EVENT);
 }
 
 export function addNode(plugin: TapestryLoom, parentNode?: ULID) {
