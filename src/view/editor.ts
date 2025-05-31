@@ -108,6 +108,15 @@ class TapestryLoomPlugin implements PluginValue {
 						).toLocaleString();
 					}
 
+					const title = attributes["title"];
+					if (
+						typeof node.content == "object" &&
+						Array.isArray(node.content) &&
+						node.content.length == 1
+					) {
+						delete attributes["title"];
+					}
+
 					const range = Decoration.mark({
 						class: classString,
 						attributes: attributes,
@@ -119,7 +128,6 @@ class TapestryLoomPlugin implements PluginValue {
 						Array.isArray(node.content)
 					) {
 						let innerOffset = from;
-						const title = attributes["title"];
 
 						let i = 0;
 						for (const [prob, token] of node.content) {

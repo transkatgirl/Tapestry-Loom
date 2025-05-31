@@ -302,25 +302,31 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 						text.setPlaceholder("key")
 							.setValue(headerKey)
 							.onChange(
-								debounce(async (value) => {
-									if (value.length > 0) {
-										delete client.models[i].headers[
-											headerKey
-										];
-										client.models[i].headers[value] =
-											headerValue;
-										headerKey = value;
-										this.plugin.settings.client = client;
-										await this.plugin.saveSettings();
-									} else {
-										delete client.models[i].headers[
-											headerKey
-										];
-										this.plugin.settings.client = client;
-										await this.plugin.saveSettings();
-										this.display();
-									}
-								}, document.debounce)
+								debounce(
+									async (value) => {
+										if (value.length > 0) {
+											delete client.models[i].headers[
+												headerKey
+											];
+											client.models[i].headers[value] =
+												headerValue;
+											headerKey = value;
+											this.plugin.settings.client =
+												client;
+											await this.plugin.saveSettings();
+										} else {
+											delete client.models[i].headers[
+												headerKey
+											];
+											this.plugin.settings.client =
+												client;
+											await this.plugin.saveSettings();
+											this.display();
+										}
+									},
+									document.debounce,
+									true
+								)
 							);
 					})
 					.addText((text) => {
@@ -339,15 +345,19 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 				.setName("Request header")
 				.addText((text) => {
 					text.setPlaceholder("key").onChange(
-						debounce(async (value) => {
-							if (value.length > 0) {
-								client.models[i].headers[value] =
-									headerFormValue;
-								this.plugin.settings.client = client;
-								await this.plugin.saveSettings();
-								this.display();
-							}
-						}, document.debounce)
+						debounce(
+							async (value) => {
+								if (value.length > 0) {
+									client.models[i].headers[value] =
+										headerFormValue;
+									this.plugin.settings.client = client;
+									await this.plugin.saveSettings();
+									this.display();
+								}
+							},
+							document.debounce,
+							true
+						)
 					);
 				})
 				.addText((text) => {
@@ -365,25 +375,31 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 						text.setPlaceholder("key")
 							.setValue(parameterKey)
 							.onChange(
-								debounce(async (value) => {
-									if (value.length > 0) {
-										delete client.models[i].parameters[
-											parameterKey
-										];
-										client.models[i].parameters[value] =
-											parameterValue;
-										parameterKey = value;
-										this.plugin.settings.client = client;
-										await this.plugin.saveSettings();
-									} else {
-										delete client.models[i].parameters[
-											parameterKey
-										];
-										this.plugin.settings.client = client;
-										await this.plugin.saveSettings();
-										this.display();
-									}
-								}, document.debounce)
+								debounce(
+									async (value) => {
+										if (value.length > 0) {
+											delete client.models[i].parameters[
+												parameterKey
+											];
+											client.models[i].parameters[value] =
+												parameterValue;
+											parameterKey = value;
+											this.plugin.settings.client =
+												client;
+											await this.plugin.saveSettings();
+										} else {
+											delete client.models[i].parameters[
+												parameterKey
+											];
+											this.plugin.settings.client =
+												client;
+											await this.plugin.saveSettings();
+											this.display();
+										}
+									},
+									document.debounce,
+									true
+								)
 							);
 					})
 					.addText((text) => {
@@ -404,15 +420,19 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 				.setName("Request parameter")
 				.addText((text) => {
 					text.setPlaceholder("key").onChange(
-						debounce(async (value) => {
-							if (value.length > 0) {
-								client.models[i].parameters[value] =
-									parameterFormValue;
-								this.plugin.settings.client = client;
-								await this.plugin.saveSettings();
-								this.display();
-							}
-						}, document.debounce)
+						debounce(
+							async (value) => {
+								if (value.length > 0) {
+									client.models[i].parameters[value] =
+										parameterFormValue;
+									this.plugin.settings.client = client;
+									await this.plugin.saveSettings();
+									this.display();
+								}
+							},
+							document.debounce,
+							true
+						)
 					);
 				})
 				.addText((text) => {

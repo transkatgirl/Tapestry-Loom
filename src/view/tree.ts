@@ -566,20 +566,24 @@ export class TapestryLoomTreeListView extends ItemView {
 					text.setPlaceholder("key")
 						.setValue(parameterKey)
 						.onChange(
-							debounce(async (value) => {
-								if (value.length > 0) {
-									delete this.plugin.sessionSettings
-										.parameters[parameterKey];
-									this.plugin.sessionSettings.parameters[
-										value
-									] = parameterValue;
-									parameterKey = value;
-								} else {
-									delete this.plugin.sessionSettings
-										.parameters[parameterKey];
-									this.renderModels(container);
-								}
-							}, debounceTime)
+							debounce(
+								async (value) => {
+									if (value.length > 0) {
+										delete this.plugin.sessionSettings
+											.parameters[parameterKey];
+										this.plugin.sessionSettings.parameters[
+											value
+										] = parameterValue;
+										parameterKey = value;
+									} else {
+										delete this.plugin.sessionSettings
+											.parameters[parameterKey];
+										this.renderModels(container);
+									}
+								},
+								debounceTime,
+								true
+							)
 						);
 				})
 				.addText((text) => {
@@ -598,13 +602,17 @@ export class TapestryLoomTreeListView extends ItemView {
 		new Setting(container)
 			.addText((text) => {
 				text.setPlaceholder("key").onChange(
-					debounce(async (value) => {
-						if (value.length > 0) {
-							this.plugin.sessionSettings.parameters[value] =
-								parameterFormValue;
-							this.renderModels(container);
-						}
-					}, debounceTime)
+					debounce(
+						async (value) => {
+							if (value.length > 0) {
+								this.plugin.sessionSettings.parameters[value] =
+									parameterFormValue;
+								this.renderModels(container);
+							}
+						},
+						debounceTime,
+						true
+					)
 				);
 			})
 			.addText((text) => {
