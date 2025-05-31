@@ -39,6 +39,7 @@ You can see example screenshots on [this Twitter post](https://x.com/transkatgir
 - Improve weave storage (in next major version):
 	- Store weave in sidecar file by default, only store in document frontmatter if the user explicitly requests to do so
 	- Improve weave format; Implement efficient weave loading and saving
+		- Implement binary nodes to improve handling of invalid unicode
 	- Allow graceful handling of editor undo/redo functionality
 - Generation presets
 - Prompt logprobs support
