@@ -119,6 +119,7 @@ class TapestryLoomPlugin implements PluginValue {
 						Array.isArray(node.content)
 					) {
 						let innerOffset = from;
+						const title = attributes["title"];
 
 						let i = 0;
 						for (const [prob, token] of node.content) {
@@ -131,16 +132,23 @@ class TapestryLoomPlugin implements PluginValue {
 								continue;
 							}
 
+							const attributes: Record<string, string> = {};
+
+							attributes["style"] =
+								"opacity: " +
+								Math.max(
+									1 - Math.log10(1 / prob) / 4,
+									0.25
+								).toString();
+							attributes["title"] =
+								title +
+								"\n" +
+								(prob * 100).toPrecision(3) +
+								"% token probability";
+
 							const range = Decoration.mark({
 								class: "tapestry_editor-token",
-								attributes: {
-									style:
-										"opacity: " +
-										Math.max(
-											1 - Math.log10(1 / prob) / 4,
-											0.25
-										).toString(),
-								},
+								attributes: attributes,
 							}).range(from, to);
 							decorations.push(range);
 
