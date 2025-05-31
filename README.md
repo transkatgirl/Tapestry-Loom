@@ -36,6 +36,10 @@ You can see example screenshots on [this Twitter post](https://x.com/transkatgir
 	- Option 1: Store content diffs inside of nodes rather than raw text using [diff-match-patch](https://github.com/google/diff-match-patch), similar to [minihf's loom](https://github.com/JD-P/minihf)
 	- Option 2: Store nodes in a DAG to allow for middle-of-text completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 		- Despite being more complex to implement, this is the approach I personally prefer.
+- Improve weave storage (in next major version):
+	- Store weave in sidecar file by default, only store in document frontmatter if the user explicitly requests to do so
+	- Improve weave format; Implement efficient weave loading and saving
+	- Allow graceful handling of editor undo/redo functionality
 - Generation presets
 - Prompt logprobs support
 - Implement lazy weave storage updating to improve performance
