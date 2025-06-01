@@ -15,13 +15,10 @@ export class WeaveDocument {
 	bookmarks: Set<ULID> = new Set();
 	constructor(content?: string) {
 		if (content) {
-			const identifier = ulid();
-
-			this.addNode({
-				identifier: identifier,
+			this.currentNode = this.addNode({
+				identifier: ulid(),
 				content: content,
 			});
-			this.currentNode = identifier;
 		}
 	}
 	getActiveContent(identifier?: ULID): string {
@@ -227,10 +224,9 @@ export class WeaveDocument {
 			}
 		}
 
-		this.addNode(node);
-		this.currentNode = node.identifier;
+		this.currentNode = this.addNode(node);
 	}
-	addNode(node: WeaveDocumentNode, model?: ModelLabel) {
+	addNode(node: WeaveDocumentNode, model?: ModelLabel): ULID {
 		if (node.parentNode) {
 			const parentNode = this.nodes.get(node.parentNode);
 
@@ -250,7 +246,7 @@ export class WeaveDocument {
 						JSON.stringify(child.parameters) ==
 							JSON.stringify(node.parameters)
 					) {
-						return;
+						return child.identifier;
 					}
 				}
 
@@ -301,6 +297,7 @@ export class WeaveDocument {
 				this.modelNodes.set(node.model, new Set([node.identifier]));
 			}
 		}
+		return node.identifier;
 	}
 	getNode(identifier: ULID) {
 		return this.nodes.get(identifier);
@@ -315,15 +312,13 @@ export class WeaveDocument {
 					node.content.slice(index),
 				];
 
-				const secondaryIdentifier = ulid(decodeTime(node.identifier));
-
 				const primaryChildren = structuredClone(
 					this.nodeChildren.get(node.identifier)
 				);
 
 				node.content = splitContent[0];
-				this.addNode({
-					identifier: secondaryIdentifier,
+				const secondaryIdentifier = this.addNode({
+					identifier: ulid(decodeTime(node.identifier)),
 					content: splitContent[1],
 					model: node.model,
 					parentNode: node.identifier,
@@ -353,9 +348,8 @@ export class WeaveDocument {
 				];
 				const timestamp = decodeTime(node.identifier);
 
-				const primaryIdentifier = ulid(timestamp);
-				this.addNode({
-					identifier: primaryIdentifier,
+				const primaryIdentifier = this.addNode({
+					identifier: ulid(timestamp),
 					content: splitContent[0],
 					model: node.model,
 					parentNode: node.parentNode,
@@ -486,10 +480,8 @@ export class WeaveDocument {
 				parameters = secondaryNode.parameters;
 			}
 
-			const identifier = ulid(decodeTime(secondaryNode.identifier));
-
-			this.addNode({
-				identifier: identifier,
+			const identifier = this.addNode({
+				identifier: ulid(decodeTime(secondaryNode.identifier)),
 				content: content,
 				model: model,
 				parentNode: primaryNode.parentNode,

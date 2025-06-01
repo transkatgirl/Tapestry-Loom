@@ -57,10 +57,9 @@ export async function generateNodeChildren(
 				for (const completion of completions) {
 					if (completion.topProbs && completion.topProbs.length > 1) {
 						for (const prob of completion.topProbs) {
-							const identifier = ulid();
-							plugin.document.addNode(
+							const identifier = plugin.document.addNode(
 								{
-									identifier: identifier,
+									identifier: ulid(),
 									content: [prob],
 									model: completion.model.ulid,
 									parentNode: parentNode,
@@ -84,10 +83,9 @@ export async function generateNodeChildren(
 						!completion.topProbs ||
 						completion.completion.length > 1
 					) {
-						const identifier = ulid();
-						plugin.document.addNode(
+						const identifier = plugin.document.addNode(
 							{
-								identifier: identifier,
+								identifier: ulid(),
 								content: completion.completion,
 								model: completion.model.ulid,
 								parentNode: parentNode,
@@ -125,13 +123,11 @@ export function addNode(plugin: TapestryLoom, parentNode?: ULID) {
 		return;
 	}
 
-	const identifier = ulid();
-	plugin.document.addNode({
-		identifier: identifier,
+	plugin.document.currentNode = plugin.document.addNode({
+		identifier: ulid(),
 		content: "",
 		parentNode: parentNode,
 	});
-	plugin.document.currentNode = identifier;
 	plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 }
 
@@ -146,13 +142,11 @@ export function addNodeSibling(plugin: TapestryLoom, targetNode?: ULID) {
 		parentNode = node?.parentNode;
 	}
 
-	const identifier = ulid();
-	plugin.document.addNode({
-		identifier: identifier,
+	plugin.document.currentNode = plugin.document.addNode({
+		identifier: ulid(),
 		content: "",
 		parentNode: parentNode,
 	});
-	plugin.document.currentNode = identifier;
 	plugin.app.workspace.trigger(DOCUMENT_TRIGGER_UPDATE_EVENT);
 }
 
