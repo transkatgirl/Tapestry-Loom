@@ -151,8 +151,9 @@ export class TapestryLoomSettingTab extends PluginSettingTab {
 				button
 					.setButtonText("Replace defaults with current values")
 					.onClick(async (_event) => {
-						this.plugin.settings.defaultSession =
-							this.plugin.sessionSettings;
+						this.plugin.settings.defaultSession = structuredClone(
+							this.plugin.sessionSettings
+						);
 						await this.plugin.saveSettings();
 						this.display();
 					});
