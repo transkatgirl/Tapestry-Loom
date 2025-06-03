@@ -39,23 +39,21 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 
 ### Possible future features
 
-- Document revision functionality / diff management
+- Generation presets
+- Prompt logprobs support
 - Templating / importing context from other documents
+- Document analysis tools
+- Interactive sampling parameter visualizations
+- Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
+- Improve weave storage (in next major version):
+	- Improve weave format; Implement efficient weave loading and saving
+		- Implement binary nodes to improve handling of invalid unicode
+	- Store weave in sidecar file by default, only store in document frontmatter if the user explicitly requests to do so
+		- Implement lazy weave storage updating to improve performance
+	- Allow graceful handling of editor undo/redo functionality
 - Improve weave flexibility (in next major version):
 	- Option 1: Store content diffs inside of nodes rather than raw text using [diff-match-patch](https://github.com/google/diff-match-patch), similar to [minihf's loom](https://github.com/JD-P/minihf)
 	- Option 2: Store nodes in a DAG to allow for middle-of-text completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
-		- Despite being more complex to implement, this is the approach I personally prefer.
-- Improve weave storage (in next major version):
-	- Store weave in sidecar file by default, only store in document frontmatter if the user explicitly requests to do so
-	- Improve weave format; Implement efficient weave loading and saving
-		- Implement binary nodes to improve handling of invalid unicode
-	- Allow graceful handling of editor undo/redo functionality
-- Generation presets
-- Prompt logprobs support
-- Implement lazy weave storage updating to improve performance
-- Support for additional endpoint types (especially if they allow implementing additional features)
-- Document analysis tools
-- Interactive sampling parameter visualizations
 - Built in user manual, based on my [notes about loom](https://gist.github.com/transkatgirl/9d04c9d05e041f062bcb31ed5fd915e1) and the [cyborgism wiki](https://cyborgism.wiki)
 
 I'm likely not going to be able to work on these features very soon, but I'm happy to review any pull requests if you would like to try implementing these features yourself.
