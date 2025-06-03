@@ -26,7 +26,15 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 	- Support for completions with multiple different models at a time
 	- Support for custom JSON/headers, similar to [loomsidian](https://github.com/cosmicoptima/loom)
 
-You can see example screenshots on [this Twitter post](https://x.com/transkatgirl/status/1927328228802187329).
+<details>
+<summary>Screenshots</summary>
+
+![](screenshots/Gr8-wRMXoAAiPU-.jpeg)
+![](screenshots/Gr8-AY5XQAA8lX5.jpeg)
+![](screenshots/GsPln98aMAAliMI.jpeg)
+![](screenshots/GsBDwCAbUAAE7yw.jpeg)
+
+</details>
 
 ### Possible future features
 
