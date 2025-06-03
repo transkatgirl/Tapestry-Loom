@@ -643,21 +643,18 @@ export class TapestryLoomTreeListView extends ItemView {
 
 		const { workspace } = this.app;
 
-		const modelMenu = renderCollapsibleMenu(
+		this.modelMenu = renderCollapsibleMenu(
 			container,
 			"Inference parameters"
 		);
-		const bookmarksMenu = renderCollapsibleMenu(
+		this.bookmarksMenu = renderCollapsibleMenu(
 			container,
 			"Bookmarked nodes",
 			["tapestry_tree", "tapestry_bookmarks"]
 		);
-		const treeMenu = renderCollapsibleMenu(container, "Nearby nodes", [
+		this.treeMenu = renderCollapsibleMenu(container, "Nearby nodes", [
 			"tapestry_tree",
 		]);
-		this.modelMenu = modelMenu;
-		this.bookmarksMenu = bookmarksMenu;
-		this.treeMenu = treeMenu;
 
 		this.registerEvent(
 			workspace.on(
@@ -665,13 +662,16 @@ export class TapestryLoomTreeListView extends ItemView {
 				// @ts-expect-error
 				DOCUMENT_LOAD_EVENT,
 				() => {
-					this.renderBookmarks(bookmarksMenu.childrenContainer);
-					this.renderTree(treeMenu.childrenContainer, false);
+					if (!this.bookmarksMenu || !this.treeMenu) {
+						return;
+					}
+					this.renderBookmarks(this.bookmarksMenu.childrenContainer);
+					this.renderTree(this.treeMenu.childrenContainer, false);
 					if (this.plugin.document) {
 						if (this.plugin.document.bookmarks.size > 0) {
-							updateCollapsibleMenu(bookmarksMenu, true);
+							updateCollapsibleMenu(this.bookmarksMenu, true);
 						} else {
-							updateCollapsibleMenu(bookmarksMenu, false);
+							updateCollapsibleMenu(this.bookmarksMenu, false);
 						}
 					}
 				}
@@ -683,8 +683,11 @@ export class TapestryLoomTreeListView extends ItemView {
 				// @ts-expect-error
 				DOCUMENT_UPDATE_EVENT,
 				() => {
-					this.renderBookmarks(bookmarksMenu.childrenContainer);
-					this.renderTree(treeMenu.childrenContainer, true);
+					if (!this.bookmarksMenu || !this.treeMenu) {
+						return;
+					}
+					this.renderBookmarks(this.bookmarksMenu.childrenContainer);
+					this.renderTree(this.treeMenu.childrenContainer, true);
 				}
 			)
 		);
@@ -694,8 +697,11 @@ export class TapestryLoomTreeListView extends ItemView {
 				// @ts-expect-error
 				DOCUMENT_DROP_EVENT,
 				() => {
-					this.renderBookmarks(bookmarksMenu.childrenContainer);
-					this.renderTree(treeMenu.childrenContainer, false);
+					if (!this.bookmarksMenu || !this.treeMenu) {
+						return;
+					}
+					this.renderBookmarks(this.bookmarksMenu.childrenContainer);
+					this.renderTree(this.treeMenu.childrenContainer, false);
 				}
 			)
 		);
@@ -705,14 +711,21 @@ export class TapestryLoomTreeListView extends ItemView {
 				// @ts-expect-error
 				SETTINGS_UPDATE_EVENT,
 				() => {
-					this.renderModels(modelMenu.childrenContainer);
-					this.renderBookmarks(bookmarksMenu.childrenContainer);
-					this.renderTree(treeMenu.childrenContainer, false);
+					if (
+						!this.modelMenu ||
+						!this.bookmarksMenu ||
+						!this.treeMenu
+					) {
+						return;
+					}
+					this.renderModels(this.modelMenu.childrenContainer);
+					this.renderBookmarks(this.bookmarksMenu.childrenContainer);
+					this.renderTree(this.treeMenu.childrenContainer, false);
 					if (this.plugin.document) {
 						if (this.plugin.document.bookmarks.size > 0) {
-							updateCollapsibleMenu(bookmarksMenu, true);
+							updateCollapsibleMenu(this.bookmarksMenu, true);
 						} else {
-							updateCollapsibleMenu(bookmarksMenu, false);
+							updateCollapsibleMenu(this.bookmarksMenu, false);
 						}
 					}
 				}
@@ -723,10 +736,14 @@ export class TapestryLoomTreeListView extends ItemView {
 			id: "reset-tapestry-loom-tree-parameters",
 			name: "Reset inference parameters to defaults",
 			callback: () => {
-				this.plugin.sessionSettings =
+				if (!this.modelMenu) {
+					return;
+				}
+				this.plugin.sessionSettings = structuredClone(
 					this.plugin.settings.defaultSession ||
-					DEFAULT_SESSION_SETTINGS;
-				this.renderModels(modelMenu.childrenContainer);
+						DEFAULT_SESSION_SETTINGS
+				);
+				this.renderModels(this.modelMenu.childrenContainer);
 			},
 		});
 		this.plugin.addCommand({
@@ -776,14 +793,14 @@ export class TapestryLoomTreeListView extends ItemView {
 
 		if (this.plugin.document) {
 			if (this.plugin.document.bookmarks.size > 0) {
-				updateCollapsibleMenu(bookmarksMenu, true);
+				updateCollapsibleMenu(this.bookmarksMenu, true);
 			} else {
-				updateCollapsibleMenu(bookmarksMenu, false);
+				updateCollapsibleMenu(this.bookmarksMenu, false);
 			}
 		}
-		this.renderModels(modelMenu.childrenContainer);
-		this.renderBookmarks(bookmarksMenu.childrenContainer);
-		this.renderTree(treeMenu.childrenContainer, false);
+		this.renderModels(this.modelMenu.childrenContainer);
+		this.renderBookmarks(this.bookmarksMenu.childrenContainer);
+		this.renderTree(this.treeMenu.childrenContainer, false);
 	}
 	async onClose() {
 		this.plugin.removeCommand("reset-tapestry-loom-tree-parameters");

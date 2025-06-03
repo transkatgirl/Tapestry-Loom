@@ -42,7 +42,7 @@ export default class TapestryLoom extends Plugin {
 	editor?: Editor = this.app.workspace.activeEditor?.editor;
 	document?: WeaveDocument;
 	lock = new AwaitLock();
-	sessionSettings = DEFAULT_SESSION_SETTINGS;
+	sessionSettings = structuredClone(DEFAULT_SESSION_SETTINGS);
 	statusBar: HTMLElement = this.addStatusBarItem().createEl("span", {});
 	async onload() {
 		const { workspace } = this.app;
