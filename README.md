@@ -53,6 +53,7 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 	- Allow graceful handling of editor undo/redo functionality
 - Improve weave flexibility (in next major version):
 	- Option 1: Store content diffs inside of nodes rather than raw text using [diff-match-patch](https://github.com/google/diff-match-patch), similar to [minihf's loom](https://github.com/JD-P/minihf)
+		- This is the most likely option at the moment, due to it being both easier to use and implement
 	- Option 2: Store nodes in a DAG to allow for middle-of-text completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 - Built in user manual, based on my [notes about loom](https://gist.github.com/transkatgirl/9d04c9d05e041f062bcb31ed5fd915e1) and the [cyborgism wiki](https://cyborgism.wiki)
 
