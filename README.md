@@ -29,10 +29,11 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 <details>
 <summary>Screenshots</summary>
 
-![](screenshots/Gr8-wRMXoAAiPU-.jpeg)
-![](screenshots/Gr8-AY5XQAA8lX5.jpeg)
-![](screenshots/GsPln98aMAAliMI.jpeg)
-![](screenshots/GsBDwCAbUAAE7yw.jpeg)
+![](screenshots/Screenshot%202025-06-03T03-45-48%20-%20Obsidian.png)
+![](screenshots/Screenshot%202025-06-03T03-46-12%20-%20Obsidian.png)
+![](screenshots/Screenshot%202025-06-03T03-46-33%20-%20Obsidian.png)
+![](screenshots/Screenshot%202025-06-03T03-47-26%20-%20Obsidian.png)
+![](screenshots/Screenshot%202025-06-03T03-51-02%20-%20Obsidian.png)
 
 </details>
 
