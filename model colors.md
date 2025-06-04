@@ -9,4 +9,4 @@
 - qwen = #5945d0
 - deepseek = #4d6bfe
 - huggingface-research (smollm) = #ffd21e
-- 01ai (yi) = #00ff25;
+- 01ai (yi) = #00ff25
