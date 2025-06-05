@@ -57,6 +57,7 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 	- Weave data structure & serialization+deserialization will be rewritten as a Rust library loaded via WASM
 - Prefix multiverse view (in next major version): A global weave containing the first few nodes of all documents in the vault, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
 - Built in user manual, based on the [cyborgism wiki](https://cyborgism.wiki)
+
 I'm likely not going to be able to work on these features very soon, but I'm happy to review any pull requests if you would like to try implementing these features yourself.
 
 ## Usage
