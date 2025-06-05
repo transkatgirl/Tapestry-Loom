@@ -5,7 +5,11 @@ import TapestryLoom, {
 	SETTINGS_UPDATE_EVENT,
 } from "main";
 import { ItemView, WorkspaceLeaf } from "obsidian";
-import { getNodeContent, WeaveDocument, WeaveDocumentNode } from "document";
+import {
+	getNodeContent,
+	WeaveDocument,
+	WeaveDocumentNode,
+} from "weave/format-v0";
 import { ULID } from "ulid";
 import cytoscape, { Core, StylesheetJsonBlock } from "cytoscape";
 import { getGlobalCSSColorVariable } from "common";

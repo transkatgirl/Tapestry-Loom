@@ -11,7 +11,7 @@ import {
 } from "obsidian";
 import { ULID, ulid } from "ulid";
 import { runCompletion } from "client";
-import { getNodeContent, WeaveDocumentNode } from "document";
+import { getNodeContent, WeaveDocumentNode } from "weave/format-v0";
 
 let activeRequests = 0;
 

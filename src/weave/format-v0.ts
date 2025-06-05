@@ -1,6 +1,6 @@
 import { getFrontMatterInfo, parseYaml, Editor, stringifyYaml } from "obsidian";
 import serialize from "serialize-javascript";
-import { compress, decompress, deserialize } from "common";
+import { compress, decompress, deserialize } from "./common";
 import { decodeTime, ulid, ULID } from "ulid";
 import { ModelLabel, UNKNOWN_MODEL_LABEL } from "client";
 

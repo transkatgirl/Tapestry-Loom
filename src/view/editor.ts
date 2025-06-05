@@ -9,7 +9,7 @@ import {
 	PluginValue,
 	WidgetType,
 } from "@codemirror/view";
-import { getNodeContent, WeaveDocument } from "document";
+import { getNodeContent, WeaveDocument } from "weave/format-v0";
 import { TapestryLoomSettings } from "settings";
 import { Editor, getFrontMatterInfo } from "obsidian";
 import { decodeTime } from "ulid";

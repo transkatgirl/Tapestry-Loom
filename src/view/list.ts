@@ -5,7 +5,7 @@ import TapestryLoom, {
 	SETTINGS_UPDATE_EVENT,
 } from "main";
 import { ItemView, Menu, setIcon, WorkspaceLeaf } from "obsidian";
-import { getNodeContent, WeaveDocumentNode } from "document";
+import { getNodeContent, WeaveDocumentNode } from "weave/format-v0";
 import { ULID } from "ulid";
 import {
 	addNode,

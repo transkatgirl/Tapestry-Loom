@@ -1,6 +1,5 @@
 import { debounce, Editor, MarkdownView, Notice, Plugin } from "obsidian";
 import serialize from "serialize-javascript";
-import { deserialize } from "common";
 import {
 	DEFAULT_DOCUMENT_SETTINGS,
 	DEFAULT_SESSION_SETTINGS,
@@ -20,7 +19,8 @@ import {
 	overrideEditorContent,
 	updateDocument,
 	WeaveDocument,
-} from "document";
+} from "weave/format-v0";
+import { deserialize } from "weave/common";
 import { buildCommands } from "view/commands";
 import { LIST_VIEW_TYPE, TapestryLoomListView } from "view/list";
 import AwaitLock from "await-lock";

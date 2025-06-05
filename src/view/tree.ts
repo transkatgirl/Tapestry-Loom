@@ -13,7 +13,7 @@ import {
 	debounce,
 	setIcon,
 } from "obsidian";
-import { getNodeContent, WeaveDocumentNode } from "document";
+import { getNodeContent, WeaveDocumentNode } from "weave/format-v0";
 import { ULID } from "ulid";
 import { DEFAULT_DOCUMENT_SETTINGS, DEFAULT_SESSION_SETTINGS } from "settings";
 import {
