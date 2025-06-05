@@ -64,7 +64,7 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 - Improve weave flexibility:
 	- Option 1: Store content diffs inside of nodes rather than raw text using [diff-match-patch](https://github.com/google/diff-match-patch), similar to [minihf's loom](https://github.com/JD-P/minihf)
 	- Option 2: Store nodes in a DAG to allow for middle-of-text completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
-	- Option 3 (planned): **A hybrid approach**, storing nodes in a DAG while still implementing diff nodes. The user will be able to switch between the two for their own modifications, while FIM completions will be implemented as DAG nodes.
+	- Option 3 (planned): **A hybrid approach**, storing nodes in a DAG while still implementing diff nodes and using a diff engine internally to calculate user modifications. The user will be able to switch between the two for their own modifications, while FIM completions will be implemented as DAG nodes.
 	- Weave data structure & serialization+deserialization will be rewritten as a Rust library loaded via WASM
 - Prefix multiverse view: A global weave containing the first few nodes of all documents in the vault with each unique node having a link to its corresponding document, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
 
