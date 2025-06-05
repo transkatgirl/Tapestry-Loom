@@ -56,6 +56,7 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 	- Option 3 (planned): **A hybrid approach**, storing nodes in a DAG while still implementing diff nodes. The user will be able to switch between the two for their own modifications, while FIM completions will be implemented as DAG nodes.
 	- Weave data structure & serialization+deserialization will be rewritten as a Rust library loaded via WASM
 - Prefix multiverse view (in next major version): A global weave containing the first few nodes of all documents in the vault, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
+- (in next 1-2 major versions) An optional Tapestry Loom LLM server to handle running models locally. This will likely only end up getting implemented if implementing [logprobs in ollama](https://github.com/ollama/ollama/issues/2415) keeps getting delayed.
 - Built in user manual, based on the [cyborgism wiki](https://cyborgism.wiki)
 
 I'm likely not going to be able to work on these features very soon, but I'm happy to review any pull requests if you would like to try implementing these features yourself.
