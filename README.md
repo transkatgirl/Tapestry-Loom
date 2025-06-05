@@ -55,18 +55,15 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 - Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
 	- If this is not ready by v1, support for Standard Completions will be delayed to v2
 - Blind model comparison mode
-- Improve weave storage:
-	- Improve weave format; Implement efficient weave loading and saving
-		- Implement binary nodes to improve handling of invalid unicode
+- Improve weave format to improve flexibility and efficiency:
+	- Store nodes in a DAG to add support for FIM completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
+	- Add support for content diff nodes for user modifications, similar to [minihf's loom](https://github.com/JD-P/minihf)
+	- Implement binary nodes to improve handling of invalid unicode
+	- Stabilize weave format; Implement weave data structure & serialization+deserialization as a Rust library loaded via WASM
 	- Store weave in plugin database by default, only store in document frontmatter if the user explicitly requests to do so
-	- Allow graceful handling of editor undo/redo functionality
-- Improve weave flexibility:
-	- Option 1: Store content diffs inside of nodes rather than raw text using [diff-match-patch](https://github.com/google/diff-match-patch), similar to [minihf's loom](https://github.com/JD-P/minihf)
-	- Option 2: Store nodes in a DAG to allow for middle-of-text completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
-	- Option 3 (planned): **A hybrid approach**, storing nodes in a DAG while still implementing diff nodes and using a diff engine internally to calculate user modifications. The user will be able to switch between the two for their own modifications, while FIM completions will be implemented as DAG nodes.
-	- Weave data structure & serialization+deserialization will be rewritten as a Rust library loaded via WASM
+		- Allow graceful handling of editor undo/redo functionality
 - Prefix multiverse view: A global weave containing the first few nodes of all documents in the vault with each unique node having a link to its corresponding document, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
-- Embedding model support
+- Embedding model support:
 	- Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 
 #### Tapestry Loom v2
