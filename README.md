@@ -1,4 +1,4 @@
-# Tapestry Loom
+# Tapestry Loom (v0)
 
 An Obsidian plugin that aims to turn your editor into an IDE for working with base model LLMs.
 
