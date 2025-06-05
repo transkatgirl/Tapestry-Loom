@@ -37,29 +37,43 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 
 </details>
 
-### Possible future features
+### Planned features
+
+Development on Tapestry Loom is currently paused due to factors outside of my control. When I am able to work on it again (or if I find new maintainers), development will resume.
+
+#### Still in planning phase (may be implemented in any version)
 
 - Generation presets
-- Prompt logprobs support
 - Document analysis tools
 - Blind model comparison mode
 - Interactive sampling parameter visualizations
+- Customizable node ordering
+
+#### Tapestry Loom v1
+
+Tapestry Loom v1 will be the first stable version, and will be listed on the Obsidian community plugin registry.
+
 - Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
-- Improve weave storage (in next major version):
+	- If this is not ready by v1, support for Standard Completions will be delayed to v2
+	- Prompt logprobs support
+- Improve weave storage:
 	- Improve weave format; Implement efficient weave loading and saving
 		- Implement binary nodes to improve handling of invalid unicode
 	- Store weave in plugin database by default, only store in document frontmatter if the user explicitly requests to do so
 	- Allow graceful handling of editor undo/redo functionality
-- Improve weave flexibility (in next major version):
+- Improve weave flexibility:
 	- Option 1: Store content diffs inside of nodes rather than raw text using [diff-match-patch](https://github.com/google/diff-match-patch), similar to [minihf's loom](https://github.com/JD-P/minihf)
 	- Option 2: Store nodes in a DAG to allow for middle-of-text completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- Option 3 (planned): **A hybrid approach**, storing nodes in a DAG while still implementing diff nodes. The user will be able to switch between the two for their own modifications, while FIM completions will be implemented as DAG nodes.
 	- Weave data structure & serialization+deserialization will be rewritten as a Rust library loaded via WASM
-- Prefix multiverse view (in next major version): A global weave containing the first few nodes of all documents in the vault, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
-- (in next 1-2 major versions) An optional Tapestry Loom LLM server to handle running models locally. This will likely only end up getting implemented if implementing [logprobs in ollama](https://github.com/ollama/ollama/issues/2415) keeps getting delayed.
-- Built in user manual, based on the [cyborgism wiki](https://cyborgism.wiki)
+- Prefix multiverse view: A global weave containing the first few nodes of all documents in the vault, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
 
-I'm likely not going to be able to work on these features very soon, but I'm happy to review any pull requests if you would like to try implementing these features yourself.
+#### Tapestry Loom v2
+
+- Integration with local LLM engines:
+	- Option 1: Ollama integration
+	- Option 2: An optional Tapestry Loom LLM server to handle running models locally using llama.cpp. This will likely only end up getting implemented if implementing [logprobs in Ollama](https://github.com/ollama/ollama/issues/2415) keeps getting delayed.
+- Built in user manual, based on the [cyborgism wiki](https://cyborgism.wiki) and any significant subsequent discoveries about base model behavior
 
 ## Usage
 
