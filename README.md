@@ -51,9 +51,9 @@ Development on Tapestry Loom is currently paused due to factors outside of my co
 
 Tapestry Loom v1 will be the first stable version, and will be listed on the Obsidian community plugin registry.
 
+- Support for displaying prompt logprobs if returned by API
 - Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
 	- If this is not ready by v1, support for Standard Completions will be delayed to v2
-	- Prompt logprobs support
 - Blind model comparison mode
 - Improve weave storage:
 	- Improve weave format; Implement efficient weave loading and saving
@@ -66,7 +66,8 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 	- Option 3 (planned): **A hybrid approach**, storing nodes in a DAG while still implementing diff nodes and using a diff engine internally to calculate user modifications. The user will be able to switch between the two for their own modifications, while FIM completions will be implemented as DAG nodes.
 	- Weave data structure & serialization+deserialization will be rewritten as a Rust library loaded via WASM
 - Prefix multiverse view: A global weave containing the first few nodes of all documents in the vault with each unique node having a link to its corresponding document, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
-- Node list [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
+- Embedding model support
+	- Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 
 #### Tapestry Loom v2
 
