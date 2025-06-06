@@ -12,8 +12,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct Weave {
-    version: u128,
-    pub(crate) nodes: HashMap<u128, (Node, Vec<u128>)>,
+    version: u64,
+    pub(crate) nodes: HashMap<u128, Node>,
     pub(crate) models: HashMap<u128, Model>,
 }
 
@@ -24,20 +24,33 @@ pub(crate) struct Model {
 }
 
 #[derive(Serialize, Deserialize)]
-pub(crate) enum Node {
+pub(crate) enum NodeData {
     Text((String, Option<NodeModel>)),
     Token((NodeTokens, Option<NodeModel>)),
     Diff(String),
 }
 
+// (data, children, relative ordering)
+pub(crate) type Node = (NodeData, Vec<u128>, i64);
+// (identifier, parameters)
 pub(crate) type NodeModel = (u128, Vec<(String, String)>);
+// [bytes, probability]
 pub(crate) type NodeTokens = Vec<(Vec<u8>, f32)>;
 
 impl Weave {
+    fn update(&mut self) -> Result<(), String> {
+        if self.version > 0 {
+            return Err("Weave is not supported by current version".to_string());
+        }
+
+        Ok(())
+    }
     fn from_reader<R: Read>(reader: R) -> Result<Self, String> {
         let mut decompressor = FrameDecoder::new(reader);
-        decode::from_read(&mut decompressor)
-            .map_err(|e| ["Parsing failed: ", &e.to_string()].concat())
+        let mut weave: Weave = decode::from_read(&mut decompressor)
+            .map_err(|e| ["Weave parsing failed: ", &e.to_string()].concat())?;
+        weave.update()?;
+        Ok(weave)
     }
     fn to_writer<W: Write>(&self, writer: W) {
         let mut compressor = FrameEncoder::new(writer);
