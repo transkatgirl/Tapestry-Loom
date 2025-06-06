@@ -1,4 +1,5 @@
 mod utils;
+mod weave;
 
 use wasm_bindgen::prelude::*;
 
