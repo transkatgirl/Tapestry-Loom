@@ -47,7 +47,7 @@ Development on Tapestry Loom is currently paused due to factors outside of my co
 - Document analysis tools
 - Interactive sampling parameter visualizations
 
-#### Tapestry Loom v1
+#### **Tapestry Loom v1**
 
 Tapestry Loom v1 will be the first stable version, and will be listed on the Obsidian community plugin registry.
 
