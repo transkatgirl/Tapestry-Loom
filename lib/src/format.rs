@@ -1,19 +1,20 @@
 //! A stable data format for storing Weaves as compactly as possible.
 
 use std::{
-    collections::HashMap,
-    io::{Cursor, Read, Write},
+    collections::{HashMap, HashSet},
+    io::{/*Cursor,*/ Read, Write},
 };
 
-use base64::{engine::general_purpose::STANDARD, read::DecoderReader, write::EncoderStringWriter};
+//use base64::{engine::general_purpose::STANDARD, read::DecoderReader, write::EncoderStringWriter};
 use lz4_flex::frame::{FrameDecoder, FrameEncoder};
 use rmp_serde::{decode, encode};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct Weave {
+pub struct CompactWeave {
     version: u64,
     pub(crate) nodes: HashMap<u128, Node>,
+    pub(crate) active_nodes: HashSet<u128>,
     pub(crate) models: HashMap<u128, Model>,
 }
 
@@ -39,7 +40,7 @@ pub(crate) type NodeTokens = Vec<(Vec<u8>, f32)>;
 // [index, insert/delete, content] processed in specified order
 pub(crate) type NodeDiff = Vec<(u64, bool, String)>;
 
-impl Weave {
+impl CompactWeave {
     fn update(&mut self) -> Result<(), String> {
         if self.version > 0 {
             return Err("Weave is not supported by current version".to_string());
@@ -47,19 +48,19 @@ impl Weave {
 
         Ok(())
     }
-    fn from_reader<R: Read>(reader: R) -> Result<Self, String> {
+    pub fn load<R: Read>(reader: R) -> Result<Self, String> {
         let mut decompressor = FrameDecoder::new(reader);
-        let mut weave: Weave = decode::from_read(&mut decompressor)
+        let mut weave: CompactWeave = decode::from_read(&mut decompressor)
             .map_err(|e| ["Weave parsing failed: ", &e.to_string()].concat())?;
         weave.update()?;
         Ok(weave)
     }
-    fn to_writer<W: Write>(&self, writer: W) {
+    pub fn save<W: Write>(&self, writer: W) {
         let mut compressor = FrameEncoder::new(writer);
         encode::write_named(&mut compressor, self).unwrap();
         compressor.finish().unwrap();
     }
-    pub(crate) fn from_bytes(input: &[u8]) -> Result<Self, String> {
+    /*pub(crate) fn from_bytes(input: &[u8]) -> Result<Self, String> {
         Self::from_reader(input)
     }
     pub(crate) fn to_bytes(&self) -> Vec<u8> {
@@ -76,5 +77,5 @@ impl Weave {
         let mut encoder = EncoderStringWriter::new(&STANDARD);
         self.to_writer(&mut encoder);
         encoder.into_inner()
-    }
+    }*/
 }

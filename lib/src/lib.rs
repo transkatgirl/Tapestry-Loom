@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use serde::{Deserialize, Serialize};
 
@@ -6,18 +6,63 @@ use ulid::Ulid;
 
 mod format;
 
+use crate::format::CompactWeave;
+
 use self::format::NodeTokens;
 
+#[derive(Default)]
 pub struct Weave {
     nodes: HashMap<Ulid, Node>,
     models: HashMap<Ulid, Model>,
+
+    root_nodes: HashSet<Ulid>,
+    model_nodes: HashMap<Ulid, HashSet<Ulid>>,
 }
 
 impl Weave {
-    pub fn new() -> Self {
-        Self {
-            nodes: HashMap::new(),
-            models: HashMap::new(),
+    pub fn add_node(&mut self, node: Node, parent: Option<Ulid>, model: Option<Model>) -> bool {
+        if self.nodes.contains_key(&node.id) {
+            return false;
+        }
+        for identifier in &node.to {
+            if !self.nodes.contains_key(identifier) {
+                return false;
+            }
+        }
+        if let Some(parent) = parent {
+            match self.nodes.entry(parent) {
+                Entry::Occupied(mut entry) => {
+                    entry.get_mut().to.insert(node.id);
+                }
+                Entry::Vacant(_entry) => {
+                    return false;
+                }
+            }
+        } else {
+            self.root_nodes.insert(node.id);
+        }
+        if let Some(node_model) = node.content.model() {
+            if let Some(model) = model {
+                self.models.insert(node_model.id, model);
+            }
+            match self.model_nodes.entry(node_model.id) {
+                Entry::Occupied(mut entry) => {
+                    entry.get_mut().insert(node.id);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(HashSet::from([node.id]));
+                }
+            }
+        }
+
+        true
+    }
+    pub fn remove_node(&mut self, identifier: &Ulid) -> bool {
+        match self.models.remove(identifier) {
+            Some(node) => {
+                todo!()
+            }
+            None => false,
         }
     }
     pub fn get_node(&self, identifier: &Ulid) -> Option<&Node> {
@@ -28,7 +73,7 @@ impl Weave {
 #[derive(Serialize, Deserialize)]
 pub struct Node {
     pub id: Ulid,
-    pub to: Vec<Ulid>,
+    pub to: HashSet<Ulid>,
     pub content: NodeContent,
 }
 
@@ -43,6 +88,22 @@ pub enum NodeContent {
     Text(TextNode),
     Token(TokenNode),
     Diff(DiffNode),
+}
+
+impl NodeContent {
+    pub fn model(&self) -> Option<&NodeModel> {
+        match self {
+            NodeContent::Text(content) => content.model.as_ref(),
+            NodeContent::Token(content) => content.model.as_ref(),
+            NodeContent::Diff(_content) => None,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct NodeModel {
+    pub id: Ulid,
+    pub parameters: HashMap<String, String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -75,21 +136,25 @@ pub enum ModificationType {
     Deletion,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct NodeModel {
-    pub id: Ulid,
-    pub parameters: HashMap<String, String>,
-}
-
 impl Weave {}
 
-impl From<format::Weave> for Weave {
-    fn from(input: format::Weave) -> Self {
+impl From<CompactWeave> for Weave {
+    fn from(input: CompactWeave) -> Self {
+        /*let weave = Self::default();
+
+
+        for (raw_identifier, value) in input.models {
+            weave.models.get()
+        }
+        for (raw_identifier, value) in input.nodes {
+
+        }*/
+
         todo!()
     }
 }
 
-impl From<Weave> for format::Weave {
+impl From<Weave> for CompactWeave {
     fn from(input: Weave) -> Self {
         todo!()
     }

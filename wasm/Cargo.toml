@@ -23,6 +23,10 @@ getrandom = { version = "=0.3.1", features = [
 console_error_panic_hook = { version = "0.1.7" }
 wasm-bindgen = { version = "0.2.84" }
 serde-wasm-bindgen = { version = "0.6.5" }
+base64 = "0.22.1"
+gray_matter = { version = "0.2", default-features = false, features = [
+	"yaml",
+] }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"
