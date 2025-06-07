@@ -86,14 +86,14 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 1. Make sure community plugins are enabled within Obsidian.
 2. Clone this git repository into your vault's `.obsidian/plugins/` folder.
 3. Open a terminal in the plugin folder.
-4. Run `wasm-pack build --release && npm install && npm run build` to fetch dependencies and build the plugin.
+4. Run `wasm-pack build --release wasm && npm install && npm run build` to fetch dependencies and build the plugin.
 5. Open Obsidian's plugin settings and enable the plugin.
 
 #### Updating
 
 1. Open a terminal in the plugin folder.
 2. Pull recent commits to the repository using `git pull`.
-3. Run `wasm-pack build --release && npm install && npm run build` to fetch dependencies and build the plugin.
+3. Run `wasm-pack build --release wasm && npm install && npm run build` to fetch dependencies and build the plugin.
 4. Open Obsidian's plugin settings and disable the plugin, then re-enable it.
 
 ### Post-install

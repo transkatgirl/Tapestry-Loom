@@ -1,5 +1,3 @@
-//! WASM wrappers around the Weave API.
-
 use serde_wasm_bindgen::{from_value, to_value};
 use wasm_bindgen::prelude::*;
 

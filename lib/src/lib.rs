@@ -5,8 +5,6 @@ use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
 mod format;
-#[cfg(target_arch = "wasm32")]
-mod wasm;
 
 use self::format::NodeTokens;
 

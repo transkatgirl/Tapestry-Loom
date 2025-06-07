@@ -1,0 +1,25 @@
+[package]
+name = "tapestry-weave"
+version = "0.1.0"
+authors = [
+	"transkatgirl",
+]
+edition = "2024"
+
+[dependencies]
+serde = { version = "1.0", features = [
+	"derive",
+] }
+rmp-serde = "1.3.0"
+gray_matter = { version = "0.2", default-features = false, features = [
+	"yaml",
+] }
+lz4_flex = { version = "0.11", default-features = false, features = [
+	"std",
+	"frame",
+] }
+base64 = "0.22.1"
+ulid = { version = "=1.2.1", features = [
+	"serde",
+] }
+dissimilar = "1.0"
