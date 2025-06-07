@@ -48,6 +48,7 @@ impl CompactWeave {
 
         Ok(())
     }
+    /// Load a CompactWeave from a reader (without validating the graph structure)
     pub fn load<R: Read>(reader: R) -> Result<Self, String> {
         let mut decompressor = FrameDecoder::new(reader);
         let mut weave: CompactWeave = decode::from_read(&mut decompressor)
@@ -55,6 +56,7 @@ impl CompactWeave {
         weave.update()?;
         Ok(weave)
     }
+    /// Save a CompactWeave to a reader
     pub fn save<W: Write>(&self, writer: W) {
         let mut compressor = FrameEncoder::new(writer);
         encode::write_named(&mut compressor, self).unwrap();
