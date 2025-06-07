@@ -8,7 +8,7 @@ use lz4_flex::frame::{FrameDecoder, FrameEncoder};
 use rmp_serde::{decode, encode};
 use serde::{Deserialize, Serialize};
 
-/// A stable data format for serializing and deserializing Weaves as compactly as possible.
+/// A stable data format for storing Weaves as compactly as possible.
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct Weave {
@@ -27,15 +27,17 @@ pub(crate) struct Model {
 pub(crate) enum NodeData {
     Text((String, Option<NodeModel>)),
     Token((NodeTokens, Option<NodeModel>)),
-    Diff(String),
+    Diff(NodeDiff),
 }
 
 // (data, children, relative ordering)
 pub(crate) type Node = (NodeData, Vec<u128>, i64);
 // (identifier, parameters)
-pub(crate) type NodeModel = (u128, Vec<(String, String)>);
+pub(crate) type NodeModel = (u128, HashMap<String, String>);
 // [bytes, probability]
 pub(crate) type NodeTokens = Vec<(Vec<u8>, f32)>;
+// [index, insert/delete, content] processed in specified order
+pub(crate) type NodeDiff = Vec<(u64, bool, String)>;
 
 impl Weave {
     fn update(&mut self) -> Result<(), String> {
