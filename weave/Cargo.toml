@@ -12,23 +12,11 @@ crate-type = [
 	"rlib",
 ]
 
-[features]
-default = [
-	"console_error_panic_hook",
-]
-
 [dependencies]
-# The `console_error_panic_hook` crate provides better debugging of panics by
-# logging them with `console.error`. This is great for development, but requires
-# all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
-# code size when deploying.
-console_error_panic_hook = { version = "0.1.7", optional = true }
-wasm-bindgen = "0.2.84"
 serde = { version = "1.0", features = [
 	"derive",
 ] }
 rmp-serde = "1.3.0"
-serde-wasm-bindgen = "0.6.5"
 gray_matter = { version = "0.2", default-features = false, features = [
 	"yaml",
 ] }
@@ -37,15 +25,20 @@ lz4_flex = { version = "0.11", default-features = false, features = [
 	"frame",
 ] }
 base64 = "0.22.1"
-ulid = { version = "1.2.1", default-features = false }
-web-time = "1"
-rand = { version = "0.9" }
-getrandom = { version = "0.3.1", features = [
-	"wasm_js",
+ulid = { version = "=1.2.1", features = [
+	"serde",
 ] }
 dissimilar = "1.0"
 
-[dev-dependencies]
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "=0.3.1", features = [
+	"wasm_js",
+] }
+console_error_panic_hook = { version = "0.1.7" }
+wasm-bindgen = { version = "0.2.84" }
+serde-wasm-bindgen = { version = "0.6.5" }
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3.34"
 
 [profile.release]

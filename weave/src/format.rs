@@ -1,3 +1,5 @@
+//! A stable data format for storing Weaves as compactly as possible.
+
 use std::{
     collections::HashMap,
     io::{Cursor, Read, Write},
@@ -7,8 +9,6 @@ use base64::{engine::general_purpose::STANDARD, read::DecoderReader, write::Enco
 use lz4_flex::frame::{FrameDecoder, FrameEncoder};
 use rmp_serde::{decode, encode};
 use serde::{Deserialize, Serialize};
-
-/// A stable data format for storing Weaves as compactly as possible.
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct Weave {

@@ -1,3 +1,3 @@
 # Tapestry Loom Weave
 
-This Rust WASM module implements the weave document format used in Tapestry Loom.
+This Rust library / WASM module provides an API for using Tapestry Loom's weave format.
