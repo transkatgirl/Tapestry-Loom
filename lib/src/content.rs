@@ -11,6 +11,7 @@ pub struct Node {
     pub id: Ulid,
     pub to: HashSet<Ulid>,
     pub from: HashSet<Ulid>,
+    pub moveable: bool,
     pub active: bool,
     pub content: NodeContent,
 }
@@ -37,6 +38,21 @@ impl NodeContent {
             NodeContent::Text(content) => content.model.as_ref(),
             NodeContent::Token(content) => content.model.as_ref(),
             NodeContent::Diff(_content) => None,
+        }
+    }
+    pub fn moveable(&self) -> bool {
+        match self {
+            NodeContent::Text(_content) => true,
+            NodeContent::Token(_content) => true,
+            NodeContent::Diff(content) => {
+                for modification in &content.content {
+                    if !modification.moveable() {
+                        return false;
+                    }
+                }
+
+                true
+            }
         }
     }
 }
@@ -71,7 +87,13 @@ pub struct Modification {
     pub content: String,
 }
 
-#[derive(Serialize, Deserialize)]
+impl Modification {
+    fn moveable(&self) -> bool {
+        self.index == 0 && self.r#type == ModificationType::Insertion
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
 pub enum ModificationType {
     Insertion,
     Deletion,

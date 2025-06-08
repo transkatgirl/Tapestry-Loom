@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet, hash_map::Entry};
+use std::{
+    collections::{HashMap, HashSet, hash_map::Entry},
+    sync::Arc,
+};
 
 use ulid::Ulid;
 
@@ -17,12 +20,15 @@ pub struct Weave {
 }
 
 impl Weave {
-    pub fn add_node(&mut self, node: Node, model: Option<Model>) -> bool {
+    pub fn add_node(&mut self, mut node: Node, model: Option<Model>) -> bool {
         if self.nodes.contains_key(&node.id) {
             return false;
         }
         if node.from.is_empty() {
             self.root_nodes.insert(node.id);
+        }
+        if node.moveable && !node.content.moveable() {
+            node.moveable = false;
         }
         for child in &node.to {
             if let Some(child) = self.nodes.get_mut(child) {
@@ -32,6 +38,9 @@ impl Weave {
         for parent in &node.from {
             if let Some(parent) = self.nodes.get_mut(parent) {
                 parent.to.insert(node.id);
+            }
+            if !node.moveable {
+                self.lock_node_and_parents(parent);
             }
         }
         if let Some(node_model) = node.content.model() {
@@ -51,8 +60,36 @@ impl Weave {
 
         true
     }
+    fn lock_node_and_parents(&mut self, identifier: &Ulid) {
+        if let Some(node) = self.nodes.get_mut(identifier) {
+            if node.moveable {
+                node.moveable = false;
+                for parent in node.from.clone() {
+                    self.lock_node_and_parents(&parent);
+                }
+            }
+        }
+    }
+    fn unlock_node_and_parents(&mut self, identifier: &Ulid) {
+        if let Some(node) = self.nodes.get_mut(identifier) {
+            if node.content.moveable() {
+                node.moveable = true;
+                for parent in node.from.clone() {
+                    self.unlock_node_and_parents(&parent);
+                }
+            }
+        }
+    }
     pub fn update_node_parents(&mut self, identifier: &Ulid, parents: HashSet<Ulid>) {
-        if let Some(old_parents) = self.nodes.get_mut(identifier).map(|node| node.from.clone()) {
+        let moveable = self
+            .nodes
+            .get(identifier)
+            .map(|node| node.moveable)
+            .unwrap_or(false);
+        if !moveable {
+            return;
+        }
+        if let Some(old_parents) = self.nodes.get(identifier).map(|node| node.from.clone()) {
             for parent in &old_parents {
                 if let Some(parent) = self.nodes.get_mut(parent) {
                     parent.to.remove(identifier);
@@ -72,16 +109,27 @@ impl Weave {
             }
         }
     }
-    pub fn update_node_children(&mut self, identifier: &Ulid, children: HashSet<Ulid>) {
-        if let Some(old_children) = self.nodes.get_mut(identifier).map(|node| node.to.clone()) {
+    pub fn update_node_children(&mut self, identifier: &Ulid, mut children: HashSet<Ulid>) {
+        if let Some(old_children) = self.nodes.get(identifier).map(|node| node.to.clone()) {
+            for child in &old_children {
+                if let Some(child) = self.nodes.get(child) {
+                    if !child.moveable {
+                        return;
+                    }
+                }
+            }
             for child in &old_children {
                 if let Some(child) = self.nodes.get_mut(child) {
                     child.from.remove(identifier);
                 }
             }
-            for child in &children {
-                if let Some(child) = self.nodes.get_mut(child) {
-                    child.from.insert(*identifier);
+            for child in children.clone() {
+                if let Some(child) = self.nodes.get_mut(&child) {
+                    if child.moveable {
+                        child.from.insert(*identifier);
+                    } else {
+                        children.remove(&child.id);
+                    }
                 }
             }
             if let Some(node) = self.nodes.get_mut(identifier) {
@@ -89,12 +137,26 @@ impl Weave {
             }
         }
     }
-    pub fn remove_node(&mut self, identifier: &Ulid, remove_children: bool) {
+    pub fn remove_node(&mut self, identifier: &Ulid, remove_children: bool, unlock_parents: bool) {
+        if !remove_children {
+            if let Some(node) = self.nodes.get(identifier) {
+                for child in &node.to {
+                    if let Some(child) = self.nodes.get(child) {
+                        if !child.moveable {
+                            return;
+                        }
+                    }
+                }
+            }
+        }
         if let Some(node) = self.nodes.remove(identifier) {
             self.root_nodes.remove(&node.id);
             for parent in &node.from {
                 if let Some(parent) = self.nodes.get_mut(parent) {
                     parent.to.remove(&node.id);
+                }
+                if !node.moveable && unlock_parents {
+                    self.unlock_node_and_parents(parent);
                 }
             }
             for child in &node.to {
@@ -102,7 +164,7 @@ impl Weave {
                     child.from.remove(&node.id);
                 }
                 if remove_children {
-                    self.remove_node(child, true);
+                    self.remove_node(child, true, false);
                 }
             }
             if let Some(node_model) = node.content.model() {
