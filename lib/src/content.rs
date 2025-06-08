@@ -18,14 +18,14 @@ pub struct Node {
 
 impl Weave {}
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
 pub struct Model {
     pub id: Ulid,
     pub label: String,
     pub style: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq)]
 pub enum NodeContent {
     Text(TextNode),
     Token(TokenNode),
@@ -64,19 +64,19 @@ impl NodeContent {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
 pub struct NodeModel {
     pub id: Ulid,
     pub parameters: HashMap<String, String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
 pub struct TextNode {
     pub content: String,
     pub model: Option<NodeModel>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq)]
 pub struct TokenNode {
     pub content: Vec<NodeToken>,
     pub model: Option<NodeModel>,
@@ -94,18 +94,18 @@ impl TokenNode {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq)]
 pub struct NodeToken {
     pub content: Vec<u8>,
     pub probability: f32,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
 pub struct DiffNode {
     pub content: Vec<Modification>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
 pub struct Modification {
     pub index: usize,
     pub r#type: ModificationType,
