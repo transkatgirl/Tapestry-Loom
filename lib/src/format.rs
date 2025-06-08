@@ -42,8 +42,8 @@ impl NodeData {
     }
 }
 
-// (data, parents, relative ordering, moveable)
-type Node = (NodeData, Vec<u128>, i64, bool);
+// (data, parents, moveable)
+type Node = (NodeData, Vec<u128>, bool);
 // (identifier, parameters)
 type NodeModel = (u128, HashMap<String, String>);
 // [bytes, probability]
