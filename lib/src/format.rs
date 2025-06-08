@@ -41,8 +41,8 @@ impl NodeData {
     }
 }
 
-// (data, children, relative ordering)
-pub(crate) type Node = (NodeData, Vec<u128>, i64);
+// (data, children, relative ordering, moveable)
+pub(crate) type Node = (NodeData, Vec<u128>, i64, bool);
 // (identifier, parameters)
 pub(crate) type NodeModel = (u128, HashMap<String, String>);
 // [bytes, probability]
