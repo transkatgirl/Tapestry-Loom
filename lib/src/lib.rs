@@ -41,7 +41,7 @@ impl Weave {
                 parent.to.insert(node.id);
             }
             if !node.moveable {
-                self.lock_node_and_parents(parent);
+                self.update_node_moveability(parent, false);
             }
         }
         if let Some(node_model) = node.content.model() {
@@ -61,22 +61,24 @@ impl Weave {
 
         true
     }
-    pub fn lock_node_and_parents(&mut self, identifier: &Ulid) {
+    pub fn update_node_moveability(&mut self, identifier: &Ulid, moveable: bool) {
         if let Some(node) = self.nodes.get_mut(identifier) {
-            if node.moveable {
-                node.moveable = false;
-                for parent in node.from.clone() {
-                    self.lock_node_and_parents(&parent);
+            match moveable {
+                true => {
+                    if !node.moveable && node.content.moveable() {
+                        node.moveable = true;
+                        for parent in node.from.clone() {
+                            self.update_node_moveability(&parent, true);
+                        }
+                    }
                 }
-            }
-        }
-    }
-    pub fn unlock_node_and_parents(&mut self, identifier: &Ulid) {
-        if let Some(node) = self.nodes.get_mut(identifier) {
-            if !node.moveable && node.content.moveable() {
-                node.moveable = true;
-                for parent in node.from.clone() {
-                    self.unlock_node_and_parents(&parent);
+                false => {
+                    if node.moveable {
+                        node.moveable = false;
+                        for parent in node.from.clone() {
+                            self.update_node_moveability(&parent, false);
+                        }
+                    }
                 }
             }
         }
@@ -157,7 +159,7 @@ impl Weave {
                     parent.to.remove(&node.id);
                 }
                 if !node.moveable && unlock_parents {
-                    self.unlock_node_and_parents(parent);
+                    self.update_node_moveability(parent, true);
                 }
             }
             for child in &node.to {
