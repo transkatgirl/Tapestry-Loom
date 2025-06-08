@@ -33,6 +33,21 @@ pub enum NodeContent {
 }
 
 impl NodeContent {
+    pub fn text(&self) -> Option<String> {
+        match self {
+            NodeContent::Text(content) => Some(content.content.clone()),
+            NodeContent::Token(content) => {
+                let data: Vec<u8> = content
+                    .content
+                    .iter()
+                    .flat_map(|(token, _probability)| token.clone())
+                    .collect();
+
+                Some(String::from_utf8_lossy(&data).to_string())
+            }
+            NodeContent::Diff(_content) => None,
+        }
+    }
     pub fn model(&self) -> Option<&NodeModel> {
         match self {
             NodeContent::Text(content) => content.model.as_ref(),
