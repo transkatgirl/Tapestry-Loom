@@ -13,19 +13,20 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 pub struct CompactWeave {
     version: u64,
-    pub(crate) nodes: HashMap<u128, Node>,
-    pub(crate) active_nodes: HashSet<u128>,
-    pub(crate) models: HashMap<u128, Model>,
+    // Sorted from lowest depth to highest depth
+    nodes: Vec<(u128, Node)>,
+    active_nodes: HashSet<u128>,
+    models: HashMap<u128, Model>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct Model {
-    pub(crate) label: String,
-    pub(crate) style: Option<String>,
+struct Model {
+    label: String,
+    style: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub(crate) enum NodeData {
+enum NodeData {
     Text((String, Option<NodeModel>)),
     Token((NodeTokens, Option<NodeModel>)),
     Diff(NodeDiff),
@@ -41,14 +42,14 @@ impl NodeData {
     }
 }
 
-// (data, children, relative ordering, moveable)
-pub(crate) type Node = (NodeData, Vec<u128>, i64, bool);
+// (data, parents, relative ordering, moveable)
+type Node = (NodeData, Vec<u128>, i64, bool);
 // (identifier, parameters)
-pub(crate) type NodeModel = (u128, HashMap<String, String>);
+type NodeModel = (u128, HashMap<String, String>);
 // [bytes, probability]
-pub(crate) type NodeTokens = Vec<(Vec<u8>, f32)>;
+type NodeTokens = Vec<(Vec<u8>, f32)>;
 // [index, insert/delete, content] processed in specified order
-pub(crate) type NodeDiff = Vec<(u64, bool, String)>;
+type NodeDiff = Vec<(u64, bool, String)>;
 
 impl CompactWeave {
     fn update(&mut self) -> Result<(), String> {
@@ -72,20 +73,20 @@ impl CompactWeave {
         encode::write_named(&mut compressor, self).unwrap();
         compressor.finish().unwrap();
     }
-    /*pub(crate) fn from_bytes(input: &[u8]) -> Result<Self, String> {
+    /*fn from_bytes(input: &[u8]) -> Result<Self, String> {
         Self::from_reader(input)
     }
-    pub(crate) fn to_bytes(&self) -> Vec<u8> {
+    fn to_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::new();
         self.to_writer(&mut buf);
         buf
     }
-    pub(crate) fn from_base64_string(input: &str) -> Result<Self, String> {
+    fn from_base64_string(input: &str) -> Result<Self, String> {
         let mut cursor = Cursor::new(input);
         let mut decoder = DecoderReader::new(&mut cursor, &STANDARD);
         Self::from_reader(&mut decoder)
     }
-    pub(crate) fn to_base64_string(&self) -> String {
+    fn to_base64_string(&self) -> String {
         let mut encoder = EncoderStringWriter::new(&STANDARD);
         self.to_writer(&mut encoder);
         encoder.into_inner()
