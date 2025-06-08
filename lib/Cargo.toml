@@ -19,3 +19,4 @@ ulid = { version = "=1.2.1", features = [
 	"serde",
 ] }
 dissimilar = "1.0"
+rust_decimal = "1.37.1"

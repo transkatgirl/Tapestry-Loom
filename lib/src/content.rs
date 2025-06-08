@@ -1,12 +1,13 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use ulid::Ulid;
 
 use crate::Weave;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, PartialEq)]
 pub struct Node {
     pub id: Ulid,
     pub to: HashSet<Ulid>,
@@ -18,14 +19,14 @@ pub struct Node {
 
 impl Weave {}
 
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct Model {
     pub id: Ulid,
     pub label: String,
     pub style: String,
 }
 
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum NodeContent {
     Text(TextNode),
     Token(TokenNode),
@@ -64,19 +65,19 @@ impl NodeContent {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct NodeModel {
     pub id: Ulid,
-    pub parameters: HashMap<String, String>,
+    pub parameters: Vec<(String, String)>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct TextNode {
     pub content: String,
     pub model: Option<NodeModel>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct TokenNode {
     pub content: Vec<NodeToken>,
     pub model: Option<NodeModel>,
@@ -94,18 +95,18 @@ impl TokenNode {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct NodeToken {
     pub content: Vec<u8>,
-    pub probability: f32,
+    pub probability: Decimal,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct DiffNode {
     pub content: Vec<Modification>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct Modification {
     pub index: usize,
     pub r#type: ModificationType,
@@ -118,7 +119,7 @@ impl Modification {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum ModificationType {
     Insertion,
     Deletion,
