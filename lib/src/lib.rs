@@ -38,8 +38,9 @@ impl Weave {
             }
         }
         if let Some(node_model) = node.content.model() {
-            if let Some(model) = model {
-                self.models.insert(node_model.id, model);
+            if let Some(mut model) = model {
+                model.id = node_model.id;
+                self.models.insert(model.id, model);
             }
             match self.model_nodes.entry(node_model.id) {
                 Entry::Occupied(mut entry) => {
