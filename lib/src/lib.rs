@@ -27,13 +27,13 @@ impl Weave {
         if node.from.is_empty() {
             self.root_nodes.insert(node.id);
         }
-        for child in node.to {
-            if let Some(child) = self.nodes.get_mut(&child) {
+        for child in &node.to {
+            if let Some(child) = self.nodes.get_mut(child) {
                 child.from.insert(node.id);
             }
         }
-        for parent in node.from {
-            if let Some(parent) = self.nodes.get_mut(&parent) {
+        for parent in &node.from {
+            if let Some(parent) = self.nodes.get_mut(parent) {
                 parent.to.insert(node.id);
             }
         }
@@ -94,17 +94,17 @@ impl Weave {
     pub fn remove_node(&mut self, identifier: &Ulid, remove_children: bool) {
         if let Some(node) = self.nodes.remove(identifier) {
             self.root_nodes.remove(&node.id);
-            for parent in node.from {
-                if let Some(parent) = self.nodes.get_mut(&parent) {
+            for parent in &node.from {
+                if let Some(parent) = self.nodes.get_mut(parent) {
                     parent.to.remove(&node.id);
                 }
             }
-            for child in node.to {
-                if let Some(child) = self.nodes.get_mut(&child) {
+            for child in &node.to {
+                if let Some(child) = self.nodes.get_mut(child) {
                     child.from.remove(&node.id);
                 }
                 if remove_children {
-                    self.remove_node(&child, true);
+                    self.remove_node(child, true);
                 }
             }
             if let Some(node_model) = node.content.model() {
