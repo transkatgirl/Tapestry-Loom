@@ -28,13 +28,13 @@ impl Weave {
             self.root_nodes.insert(node.id);
         }
         for child in node.to {
-            if let Some(entry) = self.nodes.get_mut(&child) {
-                entry.from.insert(node.id);
+            if let Some(child) = self.nodes.get_mut(&child) {
+                child.from.insert(node.id);
             }
         }
         for parent in node.from {
-            if let Some(entry) = self.nodes.get_mut(&parent) {
-                entry.to.insert(node.id);
+            if let Some(parent) = self.nodes.get_mut(&parent) {
+                parent.to.insert(node.id);
             }
         }
         if let Some(node_model) = node.content.model() {
@@ -78,12 +78,12 @@ impl Weave {
         if let Some(old_children) = self.nodes.get_mut(identifier).map(|node| node.to.clone()) {
             for child in &old_children {
                 if let Some(child) = self.nodes.get_mut(child) {
-                    child.to.remove(identifier);
+                    child.from.remove(identifier);
                 }
             }
             for child in &children {
                 if let Some(child) = self.nodes.get_mut(child) {
-                    child.to.insert(*identifier);
+                    child.from.insert(*identifier);
                 }
             }
             if let Some(node) = self.nodes.get_mut(identifier) {
@@ -95,8 +95,8 @@ impl Weave {
         if let Some(node) = self.nodes.remove(identifier) {
             self.root_nodes.remove(&node.id);
             for parent in node.from {
-                if let Some(entry) = self.nodes.get_mut(&parent) {
-                    entry.to.remove(&node.id);
+                if let Some(parent) = self.nodes.get_mut(&parent) {
+                    parent.to.remove(&node.id);
                 }
             }
             match remove_children {
@@ -107,8 +107,8 @@ impl Weave {
                 }
                 false => {
                     for child in node.to {
-                        if let Some(entry) = self.nodes.get_mut(&child) {
-                            entry.from.remove(&node.id);
+                        if let Some(child) = self.nodes.get_mut(&child) {
+                            child.from.remove(&node.id);
                         }
                     }
                 }
@@ -144,6 +144,7 @@ pub struct Node {
 
 #[derive(Serialize, Deserialize)]
 pub struct Model {
+    pub id: Ulid,
     pub label: String,
     pub style: String,
 }
