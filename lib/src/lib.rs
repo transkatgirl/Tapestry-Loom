@@ -57,7 +57,7 @@ impl Weave {
 
         true
     }
-    fn lock_node_and_parents(&mut self, identifier: &Ulid) {
+    pub fn lock_node_and_parents(&mut self, identifier: &Ulid) {
         if let Some(node) = self.nodes.get_mut(identifier) {
             if node.moveable {
                 node.moveable = false;
@@ -67,9 +67,9 @@ impl Weave {
             }
         }
     }
-    fn unlock_node_and_parents(&mut self, identifier: &Ulid) {
+    pub fn unlock_node_and_parents(&mut self, identifier: &Ulid) {
         if let Some(node) = self.nodes.get_mut(identifier) {
-            if node.content.moveable() {
+            if !node.moveable && node.content.moveable() {
                 node.moveable = true;
                 for parent in node.from.clone() {
                     self.unlock_node_and_parents(&parent);
