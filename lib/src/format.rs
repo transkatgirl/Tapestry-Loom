@@ -31,6 +31,16 @@ pub(crate) enum NodeData {
     Diff(NodeDiff),
 }
 
+impl NodeData {
+    fn model(&self) -> Option<&NodeModel> {
+        match self {
+            NodeData::Text(content) => content.1.as_ref(),
+            NodeData::Token(content) => content.1.as_ref(),
+            NodeData::Diff(_content) => None,
+        }
+    }
+}
+
 // (data, children, relative ordering)
 pub(crate) type Node = (NodeData, Vec<u128>, i64);
 // (identifier, parameters)
@@ -80,4 +90,30 @@ impl CompactWeave {
         self.to_writer(&mut encoder);
         encoder.into_inner()
     }*/
+}
+
+impl From<CompactWeave> for super::Weave {
+    fn from(input: CompactWeave) -> Self {
+        for (identifier, node) in input.nodes {
+            let model = node.0.model().and_then(|m| input.models.get(&m.0));
+        }
+
+        /*let weave = Self::default();
+
+
+        for (raw_identifier, value) in input.models {
+            weave.models.get()
+        }
+        for (raw_identifier, value) in input.nodes {
+
+        }*/
+
+        todo!()
+    }
+}
+
+impl From<super::Weave> for CompactWeave {
+    fn from(input: super::Weave) -> Self {
+        todo!()
+    }
 }

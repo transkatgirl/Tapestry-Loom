@@ -1,14 +1,11 @@
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
-use serde::{Deserialize, Serialize};
-
 use ulid::Ulid;
 
+mod content;
 mod format;
 
-use crate::format::CompactWeave;
-
-use self::format::NodeTokens;
+use crate::content::{Model, Node};
 
 #[derive(Default)]
 pub struct Weave {
@@ -126,98 +123,5 @@ impl Weave {
             .and_then(|node_model| self.models.get(&node_model.id));
 
         (node, model)
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Node {
-    pub id: Ulid,
-    pub to: HashSet<Ulid>,
-    pub from: HashSet<Ulid>,
-    pub active: bool,
-    pub content: NodeContent,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Model {
-    pub id: Ulid,
-    pub label: String,
-    pub style: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub enum NodeContent {
-    Text(TextNode),
-    Token(TokenNode),
-    Diff(DiffNode),
-}
-
-impl NodeContent {
-    pub fn model(&self) -> Option<&NodeModel> {
-        match self {
-            NodeContent::Text(content) => content.model.as_ref(),
-            NodeContent::Token(content) => content.model.as_ref(),
-            NodeContent::Diff(_content) => None,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct NodeModel {
-    pub id: Ulid,
-    pub parameters: HashMap<String, String>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct TextNode {
-    pub content: String,
-    pub model: Option<NodeModel>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct TokenNode {
-    pub content: NodeTokens,
-    pub model: Option<NodeModel>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct DiffNode {
-    pub content: Vec<Modification>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Modification {
-    pub index: usize,
-    pub r#type: ModificationType,
-    pub content: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub enum ModificationType {
-    Insertion,
-    Deletion,
-}
-
-impl Weave {}
-
-impl From<CompactWeave> for Weave {
-    fn from(input: CompactWeave) -> Self {
-        /*let weave = Self::default();
-
-
-        for (raw_identifier, value) in input.models {
-            weave.models.get()
-        }
-        for (raw_identifier, value) in input.nodes {
-
-        }*/
-
-        todo!()
-    }
-}
-
-impl From<Weave> for CompactWeave {
-    fn from(input: Weave) -> Self {
-        todo!()
     }
 }
