@@ -99,18 +99,12 @@ impl Weave {
                     parent.to.remove(&node.id);
                 }
             }
-            match remove_children {
-                true => {
-                    for child in node.to {
-                        self.remove_node(&child, true);
-                    }
+            for child in node.to {
+                if let Some(child) = self.nodes.get_mut(&child) {
+                    child.from.remove(&node.id);
                 }
-                false => {
-                    for child in node.to {
-                        if let Some(child) = self.nodes.get_mut(&child) {
-                            child.from.remove(&node.id);
-                        }
-                    }
+                if remove_children {
+                    self.remove_node(&child, true);
                 }
             }
             if let Some(node_model) = node.content.model() {
