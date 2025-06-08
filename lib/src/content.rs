@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use ulid::Ulid;
 
-use crate::{Weave, format::NodeTokens};
+use crate::Weave;
 
 #[derive(Serialize, Deserialize)]
 pub struct Node {
@@ -36,15 +36,7 @@ impl NodeContent {
     pub fn text(&self) -> Option<String> {
         match self {
             NodeContent::Text(content) => Some(content.content.clone()),
-            NodeContent::Token(content) => {
-                let data: Vec<u8> = content
-                    .content
-                    .iter()
-                    .flat_map(|(token, _probability)| token.clone())
-                    .collect();
-
-                Some(String::from_utf8_lossy(&data).to_string())
-            }
+            NodeContent::Token(content) => Some(content.text()),
             NodeContent::Diff(_content) => None,
         }
     }
@@ -86,8 +78,26 @@ pub struct TextNode {
 
 #[derive(Serialize, Deserialize)]
 pub struct TokenNode {
-    pub content: NodeTokens,
+    pub content: Vec<NodeToken>,
     pub model: Option<NodeModel>,
+}
+
+impl TokenNode {
+    pub fn text(&self) -> String {
+        let data: Vec<u8> = self
+            .content
+            .iter()
+            .flat_map(|token| token.content.clone())
+            .collect();
+
+        String::from_utf8_lossy(&data).to_string()
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct NodeToken {
+    pub content: Vec<u8>,
+    pub probability: f32,
 }
 
 #[derive(Serialize, Deserialize)]
