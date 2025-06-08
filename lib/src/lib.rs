@@ -27,9 +27,13 @@ impl Weave {
         if node.moveable && !node.content.moveable() {
             node.moveable = false;
         }
-        for child in &node.to {
-            if let Some(child) = self.nodes.get_mut(child) {
-                child.from.insert(node.id);
+        for child in node.to.clone() {
+            if let Some(child) = self.nodes.get_mut(&child) {
+                if child.moveable {
+                    child.from.insert(node.id);
+                } else {
+                    node.to.remove(&child.id);
+                }
             }
         }
         for parent in &node.from {
