@@ -113,6 +113,7 @@ impl Weave {
                     model_nodes.remove(&node.id);
                     if model_nodes.is_empty() {
                         self.models.remove(&node_model.id);
+                        self.model_nodes.remove(&node_model.id);
                     }
                 }
             }
