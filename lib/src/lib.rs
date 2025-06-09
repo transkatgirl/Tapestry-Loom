@@ -343,7 +343,7 @@ mod tests {
     }
 
     #[test]
-    fn add_node_to_from_propagation() {
+    fn add_node_child_propagation() {
         let mut weave = Weave::default();
 
         let root_node_identifier = Ulid::new();
@@ -399,6 +399,46 @@ mod tests {
             assert!(child_node_1.to == HashSet::from([child_node_2_identifier]));
             assert!(child_node_2.from == HashSet::from([child_node_1_identifier]));
             assert!(child_node_2.to.is_empty());
+        }
+
+        for i in 2..5 {
+            let child_node_2_identifier = Ulid::new();
+            assert!(weave.add_node(
+                blank_moveable_node(child_node_2_identifier, [child_node_1_identifier], []),
+                None,
+                false,
+            ));
+            {
+                assert!(weave.root_nodes == HashSet::from([root_node_identifier]));
+                let child_node_1 = weave.nodes.get(&child_node_1_identifier).unwrap();
+                let child_node_2 = weave.nodes.get(&child_node_2_identifier).unwrap();
+                assert!(child_node_1.from == HashSet::from([root_node_identifier]));
+                assert!(
+                    child_node_1.to.contains(&child_node_2_identifier)
+                        && child_node_1.to.len() == i
+                );
+                assert!(child_node_2.from == HashSet::from([child_node_1_identifier]));
+                assert!(child_node_2.to.is_empty());
+            }
+        }
+
+        let child_node_3_identifier = Ulid::new();
+        assert!(weave.add_node(
+            blank_moveable_node(child_node_3_identifier, [child_node_2_identifier], []),
+            None,
+            false,
+        ));
+        {
+            assert!(weave.root_nodes == HashSet::from([root_node_identifier]));
+            let child_node_1 = weave.nodes.get(&child_node_1_identifier).unwrap();
+            let child_node_2 = weave.nodes.get(&child_node_2_identifier).unwrap();
+            let child_node_3 = weave.nodes.get(&child_node_3_identifier).unwrap();
+            assert!(child_node_1.from == HashSet::from([root_node_identifier]));
+            assert!(child_node_1.to.contains(&child_node_2_identifier));
+            assert!(child_node_2.from == HashSet::from([child_node_1_identifier]));
+            assert!(child_node_2.to == HashSet::from([child_node_3_identifier]));
+            assert!(child_node_3.from == HashSet::from([child_node_2_identifier]));
+            assert!(child_node_3.to.is_empty());
         }
     }
 }
