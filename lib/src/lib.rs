@@ -92,6 +92,7 @@ impl Weave {
                 }
             }
         }
+        self.nodes.insert(node.id, node);
 
         true
     }
@@ -309,5 +310,117 @@ impl Weave {
             .and_then(|node_model| self.models.get(&node_model.id));
 
         (node, model)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use ulid::Ulid;
+
+    use crate::{
+        Weave,
+        content::{Node, NodeContent, TextNode},
+    };
+
+    #[test]
+    fn add_node_to_from_propagation() {
+        let mut weave = Weave::default();
+
+        let root_node_identifier = Ulid::new();
+        assert!(weave.add_node(
+            Node {
+                id: root_node_identifier,
+                to: HashSet::new(),
+                from: HashSet::new(),
+                moveable: true,
+                active: true,
+                content: NodeContent::Text(TextNode {
+                    content: "test".to_string(),
+                    model: None,
+                }),
+            },
+            None,
+            false,
+        ));
+        {
+            assert!(weave.root_nodes.contains(&root_node_identifier));
+            let root_node = weave.nodes.get(&root_node_identifier).unwrap();
+            assert!(root_node.from.is_empty());
+            assert!(root_node.to.is_empty());
+        }
+
+        for _ in 0..3 {
+            let child_node_identifier = Ulid::new();
+            assert!(weave.add_node(
+                Node {
+                    id: child_node_identifier,
+                    to: HashSet::new(),
+                    from: HashSet::from([root_node_identifier]),
+                    moveable: true,
+                    active: true,
+                    content: NodeContent::Text(TextNode {
+                        content: "test".to_string(),
+                        model: None,
+                    }),
+                },
+                None,
+                false,
+            ));
+            assert!(weave.root_nodes == HashSet::from([root_node_identifier]));
+            let child_node = weave.nodes.get(&child_node_identifier).unwrap();
+            assert!(child_node.from == HashSet::from([root_node_identifier]));
+            assert!(child_node.to.is_empty());
+        }
+
+        let child_node_1_identifier = Ulid::new();
+        assert!(weave.add_node(
+            Node {
+                id: child_node_1_identifier,
+                to: HashSet::new(),
+                from: HashSet::from([root_node_identifier]),
+                moveable: true,
+                active: true,
+                content: NodeContent::Text(TextNode {
+                    content: "test".to_string(),
+                    model: None,
+                }),
+            },
+            None,
+            false,
+        ));
+        {
+            assert!(weave.root_nodes == HashSet::from([root_node_identifier]));
+            let child_node_1 = weave.nodes.get(&child_node_1_identifier).unwrap();
+            assert!(child_node_1.from == HashSet::from([root_node_identifier]));
+            assert!(child_node_1.to.is_empty());
+        }
+
+        let child_node_2_identifier = Ulid::new();
+        assert!(weave.add_node(
+            Node {
+                id: child_node_2_identifier,
+                to: HashSet::new(),
+                from: HashSet::from([child_node_1_identifier]),
+                moveable: true,
+                active: true,
+                content: NodeContent::Text(TextNode {
+                    content: "test".to_string(),
+                    model: None,
+                }),
+            },
+            None,
+            false,
+        ));
+        {
+            assert!(weave.root_nodes == HashSet::from([root_node_identifier]));
+            let child_node_1 = weave.nodes.get(&child_node_1_identifier).unwrap();
+            let child_node_2 = weave.nodes.get(&child_node_2_identifier).unwrap();
+            assert!(child_node_1.from == HashSet::from([root_node_identifier]));
+            assert!(child_node_1.to == HashSet::from([child_node_2_identifier]));
+            assert!(child_node_2.from == HashSet::from([child_node_1_identifier]));
+            assert!(child_node_2.to.is_empty());
+        }
     }
 }
