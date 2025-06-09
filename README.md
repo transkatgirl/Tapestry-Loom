@@ -72,13 +72,14 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 
 - UI improvements
 	- Removal of reliance on Obsidian's undocumented styling rules
-- Document analysis tools
+	- Inference parameter suggestions
+	- Generation presets
 - Blind model comparison mode
-- Generation presets
+- Document analysis tools
+- Interactive sampling parameter visualization tool
 
 #### Tapestry Loom v2
 
-- Interactive sampling parameter visualizations
 - Integration with local LLM engines:
 	- Option 1: Ollama integration
 	- Option 2: An optional Tapestry Loom LLM server to handle running models locally using llama.cpp. This will likely only end up getting implemented if implementing [logprobs in Ollama](https://github.com/ollama/ollama/issues/2415) keeps getting delayed.
