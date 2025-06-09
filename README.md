@@ -41,6 +41,8 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 
 Development on Tapestry Loom is currently paused due to factors outside of my control. When I am able to work on it again (or if I find new maintainers), development will resume.
 
+The most up to date roadmap can be found on the [v1 development branch](https://github.com/transkatgirl/Tapestry-Loom/tree/v1).
+
 #### Still in planning phase (may be implemented in any version)
 
 - Generation presets
