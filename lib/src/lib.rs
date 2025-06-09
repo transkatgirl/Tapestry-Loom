@@ -113,7 +113,7 @@ impl Weave {
             false
         }
     }
-    pub fn update_node_moveability(&mut self, identifier: &Ulid, moveable: bool) {
+    pub fn update_node_moveability(&mut self, identifier: &Ulid, moveable: bool) -> bool {
         if let Some(node) = self.nodes.get_mut(identifier) {
             match moveable {
                 true => {
@@ -122,6 +122,10 @@ impl Weave {
                         for parent in node.from.clone() {
                             self.update_node_moveability(&parent, true);
                         }
+
+                        true
+                    } else {
+                        node.moveable
                     }
                 }
                 false => {
@@ -130,9 +134,15 @@ impl Weave {
                         for parent in node.from.clone() {
                             self.update_node_moveability(&parent, false);
                         }
+
+                        true
+                    } else {
+                        !node.moveable
                     }
                 }
             }
+        } else {
+            false
         }
     }
     pub fn update_node_parents(
@@ -140,20 +150,20 @@ impl Weave {
         identifier: &Ulid,
         parents: HashSet<Ulid>,
         skip_loop_check: bool,
-    ) {
+    ) -> bool {
         let moveable = self
             .nodes
             .get(identifier)
             .map(|node| node.moveable)
             .unwrap_or(false);
         if !moveable {
-            return;
+            return false;
         }
         if !skip_loop_check {
             let mut visited = HashSet::from([*identifier]);
             for parent in &parents {
                 if self.has_parent_loop(parent, &mut visited) {
-                    return;
+                    return false;
                 }
             }
         }
@@ -175,6 +185,10 @@ impl Weave {
             if let Some(node) = self.nodes.get_mut(identifier) {
                 node.from = parents;
             }
+
+            true
+        } else {
+            false
         }
     }
     pub fn update_node_children(
@@ -182,12 +196,12 @@ impl Weave {
         identifier: &Ulid,
         mut children: HashSet<Ulid>,
         skip_loop_check: bool,
-    ) {
+    ) -> bool {
         if let Some(old_children) = self.nodes.get(identifier).map(|node| node.to.clone()) {
             for child in &old_children {
                 if let Some(child) = self.nodes.get(child) {
                     if !child.moveable {
-                        return;
+                        return false;
                     }
                 }
             }
@@ -195,7 +209,7 @@ impl Weave {
                 let mut visited = HashSet::from([*identifier]);
                 for child in &children {
                     if self.has_child_loop(child, &mut visited) {
-                        return;
+                        return false;
                     }
                 }
             }
@@ -216,15 +230,24 @@ impl Weave {
             if let Some(node) = self.nodes.get_mut(identifier) {
                 node.to = children;
             }
+
+            true
+        } else {
+            false
         }
     }
-    pub fn remove_node(&mut self, identifier: &Ulid, remove_children: bool, unlock_parents: bool) {
+    pub fn remove_node(
+        &mut self,
+        identifier: &Ulid,
+        remove_children: bool,
+        unlock_parents: bool,
+    ) -> bool {
         if !remove_children {
             if let Some(node) = self.nodes.get(identifier) {
                 for child in &node.to {
                     if let Some(child) = self.nodes.get(child) {
                         if !child.moveable {
-                            return;
+                            return false;
                         }
                     }
                 }
@@ -257,6 +280,10 @@ impl Weave {
                     }
                 }
             }
+
+            true
+        } else {
+            false
         }
     }
     pub fn get_node(&self, identifier: &Ulid) -> (Option<&Node>, Option<&Model>) {
