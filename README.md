@@ -41,33 +41,42 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 
 Development on Tapestry Loom is currently paused due to factors outside of my control. When I am able to work on it again (or if I find new maintainers), development will resume.
 
-#### Still in planning phase (may be implemented in any version)
+Development may be intermittent, with long periods of inactivity between periods of development work.
 
-- Generation presets
-- Document analysis tools
-- Interactive sampling parameter visualizations
+#### Tapestry Loom v1-alpha
 
-#### **Tapestry Loom v1**
-
-Tapestry Loom v1 will be the first stable version, and will be listed on the Obsidian community plugin registry.
-
-- Support for displaying prompt logprobs if returned by API
-- Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
-	- If this is not ready by v1, support for Standard Completions will be delayed to v2
-- Blind model comparison mode
 - Improve weave format to improve flexibility and efficiency:
 	- Store nodes in a DAG to add support for FIM completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- Add support for content diff nodes for user modifications, similar to [minihf's loom](https://github.com/JD-P/minihf)
 	- Implement binary nodes to improve handling of invalid unicode
 	- Stabilize weave format; Implement weave data structure & serialization+deserialization as a Rust library loaded via WASM
+	- Add support for displaying alternate token probabilities on hover
 	- Store weave in plugin database by default, only store in document frontmatter if the user explicitly requests to do so
 		- Allow graceful handling of editor undo/redo functionality
 - Prefix multiverse view: A global weave containing the first few nodes of all documents in the vault with each unique node having a link to its corresponding document, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
+
+#### Tapestry Loom v1-beta
+
+- Weave format unit tests & finalization
+- Support for displaying prompt logprobs if returned by API
+- Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
+	- If the specification is not ready by v1, support for Standard Completions will be delayed to v2
 - Embedding model support:
 	- Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 
+#### Tapestry Loom v1-stable
+
+Tapestry Loom v1 will be the first stable version, and will be listed on the Obsidian community plugin registry.
+
+- UI improvements
+	- Removal of reliance on Obsidian's undocumented styling rules
+- Document analysis tools
+- Blind model comparison mode
+- Generation presets
+
 #### Tapestry Loom v2
 
+- Interactive sampling parameter visualizations
 - Integration with local LLM engines:
 	- Option 1: Ollama integration
 	- Option 2: An optional Tapestry Loom LLM server to handle running models locally using llama.cpp. This will likely only end up getting implemented if implementing [logprobs in Ollama](https://github.com/ollama/ollama/issues/2415) keeps getting delayed.
