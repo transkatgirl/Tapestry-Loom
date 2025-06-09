@@ -1,3 +1,3 @@
-# Tapestry Loom Weave
+# Tapestry Weave WASM Glue
 
-This Rust library / WASM module provides an API for using Tapestry Loom's weave format.
+This WASM module allows Tapestry Loom to interface with the Tapestry Weave library.

@@ -58,6 +58,8 @@ Development may be intermittent, with long periods of inactivity between periods
 #### Tapestry Loom v1-beta
 
 - Weave format unit tests & finalization
+- Implementing weave v0 -> v1 conversion
+	- Merging of v1-beta to main branch
 - Support for displaying prompt logprobs if returned by API
 - Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
 	- If the specification is not ready by v1, support for Standard Completions will be delayed to v2
