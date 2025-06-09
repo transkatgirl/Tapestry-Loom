@@ -2,18 +2,18 @@
 
 use std::{
     collections::{HashMap, HashSet},
-    io::{/*Cursor,*/ Read, Write},
+    io::{Cursor, Read, Write},
 };
 
 /* TODO:
-- Better error handling
-- Multiple format types (inline or sidecar)
 - Unit tests */
 
-//use base64::{engine::general_purpose::STANDARD, read::DecoderReader, write::EncoderStringWriter};
+use base64::{engine::general_purpose::STANDARD, read::DecoderReader, write::EncoderStringWriter};
 use lz4_flex::frame::{FrameDecoder, FrameEncoder};
 use rmp_serde::{decode, encode};
 use serde::{Deserialize, Serialize};
+use serde_bytes::ByteBuf;
+use thiserror::Error;
 
 #[derive(Serialize, Deserialize)]
 pub struct CompactWeave {
@@ -52,50 +52,59 @@ type Node = (NodeData, Vec<u128>, bool);
 // (identifier, parameters)
 type NodeModel = (u128, Vec<(String, String)>);
 // [bytes, probability]
-type NodeTokens = Vec<(Vec<u8>, f32)>;
+type NodeTokens = Vec<(ByteBuf, f32)>;
 // [index, insert/delete, content] processed in specified order
 type NodeDiff = Vec<(u64, bool, String)>;
 
+#[derive(Error, Debug)]
+pub enum WeaveError {
+    #[error(transparent)]
+    Load(#[from] rmp_serde::decode::Error),
+    #[error(transparent)]
+    Serialize(#[from] rmp_serde::encode::Error),
+    #[error(transparent)]
+    Save(#[from] lz4_flex::frame::Error),
+    #[error("invalid weave structure: {0}")]
+    Structure(String),
+}
+
 impl CompactWeave {
-    fn update(&mut self) -> Result<(), String> {
+    fn update(&mut self) -> Result<(), WeaveError> {
         if self.version > 0 {
-            return Err("Weave is not supported by current version".to_string());
+            return Err(WeaveError::Structure(
+                "version is greater than largest supported version (0)".to_string(),
+            ));
         }
 
         Ok(())
     }
     /// Load a CompactWeave from a reader (without validating the graph structure)
-    pub fn load<R: Read>(reader: R) -> Result<Self, String> {
+    pub fn load<R: Read>(reader: R) -> Result<Self, WeaveError> {
         let mut decompressor = FrameDecoder::new(reader);
-        let mut weave: CompactWeave = decode::from_read(&mut decompressor)
-            .map_err(|e| ["Weave parsing failed: ", &e.to_string()].concat())?;
+        let mut weave: CompactWeave = decode::from_read(&mut decompressor)?;
         weave.update()?;
         Ok(weave)
     }
-    /// Save a CompactWeave to a reader
-    pub fn save<W: Write>(&self, writer: W) {
-        let mut compressor = FrameEncoder::new(writer);
-        encode::write_named(&mut compressor, self).unwrap();
-        compressor.finish().unwrap();
-    }
-    /*fn from_bytes(input: &[u8]) -> Result<Self, String> {
-        Self::from_reader(input)
-    }
-    fn to_bytes(&self) -> Vec<u8> {
-        let mut buf = Vec::new();
-        self.to_writer(&mut buf);
-        buf
-    }
-    fn from_base64_string(input: &str) -> Result<Self, String> {
+    /// Load a CompactWeave from a base64 string (without validating the graph structure)
+    pub fn load_base64(input: &str) -> Result<Self, WeaveError> {
         let mut cursor = Cursor::new(input);
         let mut decoder = DecoderReader::new(&mut cursor, &STANDARD);
-        Self::from_reader(&mut decoder)
+        Self::load(&mut decoder)
     }
-    fn to_base64_string(&self) -> String {
+    /// Save a CompactWeave to a writer
+    pub fn save<W: Write>(&self, writer: W) -> Result<(), WeaveError> {
+        let mut compressor = FrameEncoder::new(writer);
+        encode::write_named(&mut compressor, self)?;
+        compressor.finish()?;
+
+        Ok(())
+    }
+    /// Save a CompactWeave to a base64 string
+    pub fn save_base64(&self) -> Result<String, WeaveError> {
         let mut encoder = EncoderStringWriter::new(&STANDARD);
-        self.to_writer(&mut encoder);
-        encoder.into_inner()
-    }*/
+        self.save(&mut encoder)?;
+        Ok(encoder.into_inner())
+    }
 }
 
 impl From<CompactWeave> for super::Weave {
