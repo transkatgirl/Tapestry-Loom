@@ -7,6 +7,10 @@ mod format;
 
 use crate::content::{Model, Node};
 
+/* TODO:
+- Node activation/deactivation
+- Unit tests */
+
 #[derive(Default)]
 pub struct Weave {
     nodes: HashMap<Ulid, Node>,

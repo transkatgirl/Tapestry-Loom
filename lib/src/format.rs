@@ -5,6 +5,11 @@ use std::{
     io::{/*Cursor,*/ Read, Write},
 };
 
+/* TODO:
+- Better error handling
+- Multiple format types (inline or sidecar)
+- Unit tests */
+
 //use base64::{engine::general_purpose::STANDARD, read::DecoderReader, write::EncoderStringWriter};
 use lz4_flex::frame::{FrameDecoder, FrameEncoder};
 use rmp_serde::{decode, encode};

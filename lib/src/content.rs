@@ -7,6 +7,12 @@ use ulid::Ulid;
 
 use crate::Weave;
 
+/* TODO:
+- Node deduplication
+- Node sorting interface
+- Weave content building/updating
+- Unit tests */
+
 #[derive(Serialize, Deserialize, PartialEq)]
 pub struct Node {
     pub id: Ulid,
@@ -17,7 +23,69 @@ pub struct Node {
     pub content: NodeContent,
 }
 
-impl Weave {}
+impl Weave {
+    /*pub fn add_node_deduplicated(
+        &mut self,
+        node: Node,
+        model: Option<Model>,
+        skip_loop_check: bool,
+    ) -> Option<Ulid> {
+        for parent in &node.from {
+            if let Some(parent) = self.nodes.get(parent) {
+                for child in parent.to.clone() {
+                    if let Some(child) = self.nodes.get_mut(&child) {
+                        if child.content == node.content {
+                            if node.active {
+                                child.active = node.active;
+                            }
+                            let identifier = child.id;
+                            if !node.moveable {
+                                self.update_node_moveability(&identifier, false);
+                            }
+                            return Some(identifier);
+                        }
+                    }
+                }
+            }
+        }
+        for child in &node.to {
+            if let Some(child) = self.nodes.get(child) {
+                for parent in child.from.clone() {
+                    if let Some(parent) = self.nodes.get_mut(&parent) {
+                        if parent.content == node.content {
+                            if node.active {
+                                parent.active = node.active;
+                            }
+                            let identifier = parent.id;
+                            if !node.moveable {
+                                self.update_node_moveability(&identifier, false);
+                            }
+                            return Some(identifier);
+                        }
+                    }
+                    if node.active {
+                        self.update_node_activity(&parent, true);
+                    }
+                }
+            }
+        }
+        let identifier = node.id;
+        match self.add_node(node, model, skip_loop_check) {
+            true => Some(identifier),
+            false => None,
+        }
+    }
+    pub fn update_node_activity(&mut self, identifier: &Ulid, active: bool) {
+        if let Some(node) = self.nodes.get_mut(identifier) {
+            if node.moveable {
+                node.active = active;
+                for parent in node.from.clone() {
+                    self.update_node_activity(&parent, active);
+                }
+            }
+        }
+    }*/
+}
 
 #[derive(Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct Model {

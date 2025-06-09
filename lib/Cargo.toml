@@ -20,3 +20,4 @@ ulid = { version = "=1.2.1", features = [
 ] }
 dissimilar = "1.0"
 rust_decimal = "1.37.1"
+thiserror = "2.0.12"
