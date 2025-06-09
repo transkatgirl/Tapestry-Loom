@@ -10,6 +10,7 @@ use crate::Weave;
 /* TODO:
 - Node sorting API
 - Weave content building/updating
+- Node splitting/merging
 - Unit tests */
 
 #[derive(Serialize, Deserialize, PartialEq)]

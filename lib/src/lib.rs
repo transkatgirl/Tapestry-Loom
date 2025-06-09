@@ -8,11 +8,12 @@ mod format;
 use crate::content::{Model, Node};
 
 /* TODO:
-- Node activation/deactivation
+- Node activation/deactivation + retrieval of active nodes
     - Only adjustable on unlocked nodes; Locked nodes *must* either be activated or have activated siblings
     - Activation/deactivation is recursive, similar to node locking
         - Unlike node locking, it will only apply to one parent node per-layer rather than all parent nodes
 - Node content deduplication
+- Retrieval of root nodes, retrieval of all nodes
 - Unit tests
     - Node management & update propagation (propagating changes into node children & parents, root_nodes updating)
     - Model management & update propagation (model addition/removal, model_nodes updating)
