@@ -7,6 +7,8 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 
 ## Included features
 
+### Tapestry Loom v0
+
 - Tree-based completion management
 	- Nodes include metadata about the model and inference parameters used, along with a timestamp
 	- Nodes include token probabilities when available
@@ -37,7 +39,7 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 
 </details>
 
-### Planned features
+### Development roadmap
 
 Development on Tapestry Loom is currently paused due to factors outside of my control. When I am able to work on it again (or if I find new maintainers), development will resume.
 
@@ -74,6 +76,7 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 	- Removal of reliance on Obsidian's undocumented styling rules
 	- Inference parameter suggestions
 	- Generation presets
+	- Allow quickly moving to node under cursor, similar to [exoloom](https://exoloom.io)
 - Blind model comparison mode
 - Document analysis tools
 - Interactive sampling parameter visualization tool
@@ -83,6 +86,12 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 - Integration with local LLM engines:
 	- Option 1: Ollama integration
 	- Option 2: An optional Tapestry Loom LLM server to handle running models locally using llama.cpp. This will likely only end up getting implemented if implementing [logprobs in Ollama](https://github.com/ollama/ollama/issues/2415) keeps getting delayed.
+- Integration with external inference providers?
+	- Easy setup + built-in payment UI
+	- May allow for monetization through provider profit sharing agreements without degrading user experience
+		- Tapestry Loom will always stay FOSS
+- Work towards making the UI more accessible for less technical users *without degrading the experience for technical users*
+	- Tapestry Loom will always stay, first and foremost, a tool for power users
 - Built in user manual, based on the [cyborgism wiki](https://cyborgism.wiki) and any significant subsequent discoveries about base model behavior
 
 ## Usage
