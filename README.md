@@ -68,18 +68,17 @@ Development may be intermittent, with long periods of inactivity between periods
 - Embedding model support:
 	- Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 
-#### Tapestry Loom v1-stable
+#### Tapestry Loom v1-rc
 
 Tapestry Loom v1 will be the first stable version, and will be listed on the Obsidian community plugin registry.
 
 - UI improvements
 	- Removal of reliance on Obsidian's undocumented styling rules
-	- Inference parameter suggestions
+		- Rewrite UI using svelte?
 	- Generation presets
 	- Allow quickly moving to node under cursor, similar to [exoloom](https://exoloom.io)
 - Blind model comparison mode
 - Document analysis tools
-- Interactive sampling parameter visualization tool
 
 #### Tapestry Loom v2
 
@@ -91,7 +90,10 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 	- May allow for monetization through provider profit sharing agreements without degrading user experience
 		- Tapestry Loom will always stay FOSS
 - Work towards making the UI more accessible for less technical users *without degrading the experience for technical users*
-	- Tapestry Loom will always stay, first and foremost, a tool for power users
+	- Inference parameter suggestions and explanations
+	- Interactive sampling parameter visualization tool
+	- UI hints for new users
+	- UI streamlining *without reducing functionality*
 - Built in user manual, based on the [cyborgism wiki](https://cyborgism.wiki) and any significant subsequent discoveries about base model behavior
 
 ## Usage
