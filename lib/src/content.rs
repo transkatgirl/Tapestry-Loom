@@ -8,8 +8,7 @@ use ulid::Ulid;
 use crate::Weave;
 
 /* TODO:
-- Node deduplication
-- Node sorting interface
+- Node sorting API
 - Weave content building/updating
 - Unit tests */
 
