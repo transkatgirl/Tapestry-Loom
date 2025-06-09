@@ -25,3 +25,4 @@ data.json
 /target
 **/*.rs.bk
 Cargo.lock
+*.profraw

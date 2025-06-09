@@ -440,5 +440,23 @@ mod tests {
             assert!(child_node_3.from == HashSet::from([child_node_2_identifier]));
             assert!(child_node_3.to.is_empty());
         }
+
+        let root_node_2_identifier = Ulid::new();
+        assert!(weave.add_node(
+            blank_moveable_node(root_node_2_identifier, [], []),
+            None,
+            false,
+        ));
+        {
+            assert!(weave.root_nodes.contains(&root_node_2_identifier));
+            let root_node = weave.nodes.get(&root_node_2_identifier).unwrap();
+            assert!(root_node.from.is_empty());
+            assert!(root_node.to.is_empty());
+        }
+    }
+
+    #[test]
+    fn add_node_parent_propagation() {
+        //todo!()
     }
 }
