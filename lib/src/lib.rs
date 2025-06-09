@@ -9,6 +9,10 @@ use crate::content::{Model, Node};
 
 /* TODO:
 - Node activation/deactivation
+    - Dependent on locked/unlocked status
+    - Locked nodes *must* be activated
+    - Activation/deactivation is recursive, similar to node locking
+        - Unlike node locking, it will only apply to one parent node per-layer rather than all parent nodes
 - Unit tests */
 
 #[derive(Default)]
