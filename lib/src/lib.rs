@@ -324,23 +324,31 @@ mod tests {
         content::{Node, NodeContent, TextNode},
     };
 
+    fn blank_moveable_node<X, Y>(id: Ulid, from: X, to: Y) -> Node
+    where
+        X: IntoIterator<Item = Ulid>,
+        Y: IntoIterator<Item = Ulid>,
+    {
+        Node {
+            id,
+            to: HashSet::from_iter(to),
+            from: HashSet::from_iter(from),
+            moveable: true,
+            active: false,
+            content: NodeContent::Text(TextNode {
+                content: String::default(),
+                model: None,
+            }),
+        }
+    }
+
     #[test]
     fn add_node_to_from_propagation() {
         let mut weave = Weave::default();
 
         let root_node_identifier = Ulid::new();
         assert!(weave.add_node(
-            Node {
-                id: root_node_identifier,
-                to: HashSet::new(),
-                from: HashSet::new(),
-                moveable: true,
-                active: true,
-                content: NodeContent::Text(TextNode {
-                    content: "test".to_string(),
-                    model: None,
-                }),
-            },
+            blank_moveable_node(root_node_identifier, [], []),
             None,
             false,
         ));
@@ -354,17 +362,7 @@ mod tests {
         for _ in 0..3 {
             let child_node_identifier = Ulid::new();
             assert!(weave.add_node(
-                Node {
-                    id: child_node_identifier,
-                    to: HashSet::new(),
-                    from: HashSet::from([root_node_identifier]),
-                    moveable: true,
-                    active: true,
-                    content: NodeContent::Text(TextNode {
-                        content: "test".to_string(),
-                        model: None,
-                    }),
-                },
+                blank_moveable_node(child_node_identifier, [root_node_identifier], []),
                 None,
                 false,
             ));
@@ -376,17 +374,7 @@ mod tests {
 
         let child_node_1_identifier = Ulid::new();
         assert!(weave.add_node(
-            Node {
-                id: child_node_1_identifier,
-                to: HashSet::new(),
-                from: HashSet::from([root_node_identifier]),
-                moveable: true,
-                active: true,
-                content: NodeContent::Text(TextNode {
-                    content: "test".to_string(),
-                    model: None,
-                }),
-            },
+            blank_moveable_node(child_node_1_identifier, [root_node_identifier], []),
             None,
             false,
         ));
@@ -399,17 +387,7 @@ mod tests {
 
         let child_node_2_identifier = Ulid::new();
         assert!(weave.add_node(
-            Node {
-                id: child_node_2_identifier,
-                to: HashSet::new(),
-                from: HashSet::from([child_node_1_identifier]),
-                moveable: true,
-                active: true,
-                content: NodeContent::Text(TextNode {
-                    content: "test".to_string(),
-                    model: None,
-                }),
-            },
+            blank_moveable_node(child_node_2_identifier, [child_node_1_identifier], []),
             None,
             false,
         ));
