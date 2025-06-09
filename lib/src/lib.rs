@@ -14,6 +14,7 @@ use crate::content::{Model, Node};
         - Unlike node locking, it will only apply to one parent node per-layer rather than all parent nodes
 - Node content deduplication
 - Retrieval of root nodes, retrieval of all nodes
+- Update API terminology to borrow more terms from actual tapestry making
 - Unit tests
     - Node management & update propagation (propagating changes into node children & parents, root_nodes updating)
     - Model management & update propagation (model addition/removal, model_nodes updating)
