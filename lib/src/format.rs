@@ -6,6 +6,7 @@ use std::{
 };
 
 /* TODO:
+- Conversion to/from Weave
 - Unit tests */
 
 use base64::{engine::general_purpose::URL_SAFE, read::DecoderReader, write::EncoderStringWriter};
