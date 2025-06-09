@@ -50,7 +50,7 @@ Development may be intermittent, with long periods of inactivity between periods
 		- [ ] Implement binary nodes to improve handling of invalid unicode
 	- [ ] Add support for FIM completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- [ ] Add support for content diff nodes for user modifications, similar to [minihf's loom](https://github.com/JD-P/minihf)
-	- [ ] Add support for displaying alternate token probabilities on hover
+	- [ ] Add support for displaying alternate token probabilities on hover, similar to [loom](https://github.com/socketteer/loom)
 	- [ ] Store weave in plugin database by default, only store in document frontmatter if the user explicitly requests to do so
 		- [ ] Allow graceful handling of editor undo/redo functionality
 	- [ ] Implement weave format v0 -> v1 conversion
