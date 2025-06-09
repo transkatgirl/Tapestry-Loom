@@ -17,9 +17,27 @@ pub struct Weave {
 }
 
 impl Weave {
-    pub fn add_node(&mut self, mut node: Node, model: Option<Model>) -> bool {
+    pub fn add_node(
+        &mut self,
+        mut node: Node,
+        model: Option<Model>,
+        skip_loop_check: bool,
+    ) -> bool {
         if self.nodes.contains_key(&node.id) {
             return false;
+        }
+        if !skip_loop_check {
+            let mut visited = HashSet::from([node.id]);
+            for parent in &node.from {
+                if self.has_parent_loop(parent, &mut visited) {
+                    return false;
+                }
+            }
+            for child in &node.to {
+                if self.has_child_loop(child, &mut visited) {
+                    return false;
+                }
+            }
         }
         if node.from.is_empty() {
             self.root_nodes.insert(node.id);
@@ -61,6 +79,40 @@ impl Weave {
 
         true
     }
+    fn has_parent_loop(&self, identifier: &Ulid, visited: &mut HashSet<Ulid>) -> bool {
+        if visited.contains(identifier) {
+            return true;
+        }
+        visited.insert(*identifier);
+        if let Some(node) = self.nodes.get(identifier) {
+            for parent in &node.from {
+                if self.has_parent_loop(parent, visited) {
+                    return true;
+                }
+            }
+
+            false
+        } else {
+            false
+        }
+    }
+    fn has_child_loop(&self, identifier: &Ulid, visited: &mut HashSet<Ulid>) -> bool {
+        if visited.contains(identifier) {
+            return true;
+        }
+        visited.insert(*identifier);
+        if let Some(node) = self.nodes.get(identifier) {
+            for child in &node.to {
+                if self.has_child_loop(child, visited) {
+                    return true;
+                }
+            }
+
+            false
+        } else {
+            false
+        }
+    }
     pub fn update_node_moveability(&mut self, identifier: &Ulid, moveable: bool) {
         if let Some(node) = self.nodes.get_mut(identifier) {
             match moveable {
@@ -83,7 +135,12 @@ impl Weave {
             }
         }
     }
-    pub fn update_node_parents(&mut self, identifier: &Ulid, parents: HashSet<Ulid>) {
+    pub fn update_node_parents(
+        &mut self,
+        identifier: &Ulid,
+        parents: HashSet<Ulid>,
+        skip_loop_check: bool,
+    ) {
         let moveable = self
             .nodes
             .get(identifier)
@@ -91,6 +148,14 @@ impl Weave {
             .unwrap_or(false);
         if !moveable {
             return;
+        }
+        if !skip_loop_check {
+            let mut visited = HashSet::from([*identifier]);
+            for parent in &parents {
+                if self.has_parent_loop(parent, &mut visited) {
+                    return;
+                }
+            }
         }
         if let Some(old_parents) = self.nodes.get(identifier).map(|node| node.from.clone()) {
             for parent in &old_parents {
@@ -112,11 +177,24 @@ impl Weave {
             }
         }
     }
-    pub fn update_node_children(&mut self, identifier: &Ulid, mut children: HashSet<Ulid>) {
+    pub fn update_node_children(
+        &mut self,
+        identifier: &Ulid,
+        mut children: HashSet<Ulid>,
+        skip_loop_check: bool,
+    ) {
         if let Some(old_children) = self.nodes.get(identifier).map(|node| node.to.clone()) {
             for child in &old_children {
                 if let Some(child) = self.nodes.get(child) {
                     if !child.moveable {
+                        return;
+                    }
+                }
+            }
+            if !skip_loop_check {
+                let mut visited = HashSet::from([*identifier]);
+                for child in &children {
+                    if self.has_child_loop(child, &mut visited) {
                         return;
                     }
                 }
