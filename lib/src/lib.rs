@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet, hash_map::Entry};
+use std::collections::{BTreeSet, HashMap, HashSet, hash_map::Entry};
 
 use ulid::Ulid;
 
@@ -13,7 +13,6 @@ use crate::content::{Model, Node};
     - Activation/deactivation is recursive, similar to node locking
         - Unlike node locking, it will only apply to one parent node per-layer rather than all parent nodes
 - Node content deduplication
-- Retrieval of root nodes, retrieval of all nodes
 - Update API terminology to borrow more terms from actual tapestry making
 - Unit tests
     - Node management & update propagation (propagating changes into node children & parents, root_nodes updating)
@@ -23,12 +22,12 @@ use crate::content::{Model, Node};
     - Node activation
     - Node content deduplication */
 
-#[derive(Default)]
+#[derive(Default, Debug, PartialEq)]
 pub struct Weave {
     nodes: HashMap<Ulid, Node>,
     models: HashMap<Ulid, Model>,
 
-    root_nodes: HashSet<Ulid>,
+    root_nodes: BTreeSet<Ulid>,
     model_nodes: HashMap<Ulid, HashSet<Ulid>>,
 }
 
@@ -302,11 +301,41 @@ impl Weave {
 
         (node, model)
     }
+    pub fn get_root_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)> {
+        self.root_nodes
+            .iter()
+            .flat_map(|identifier| self.nodes.get(identifier))
+            .map(|node| {
+                (
+                    node,
+                    node.content
+                        .model()
+                        .and_then(|node_model| self.models.get(&node_model.id)),
+                )
+            })
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct WeaveContents<'w> {
+    pub nodes: &'w HashMap<Ulid, Node>,
+    pub models: &'w HashMap<Ulid, Model>,
+    pub root_nodes: &'w BTreeSet<Ulid>,
+}
+
+impl<'w> From<&'w Weave> for WeaveContents<'w> {
+    fn from(input: &'w Weave) -> WeaveContents<'w> {
+        Self {
+            nodes: &input.nodes,
+            models: &input.models,
+            root_nodes: &input.root_nodes,
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
+    use std::collections::{BTreeSet, HashSet};
 
     use ulid::Ulid;
 
@@ -351,7 +380,7 @@ mod tests {
             false,
         ));
         {
-            assert!(weave.root_nodes == HashSet::from([root_node_identifier]));
+            assert!(weave.root_nodes == BTreeSet::from([root_node_identifier]));
             let root_node_1 = weave.nodes.get(&root_node_identifier).unwrap();
             assert!(root_node_1.from.is_empty());
             assert!(root_node_1.to.is_empty());
@@ -398,7 +427,7 @@ mod tests {
         ));
         {
             assert!(
-                weave.root_nodes == HashSet::from([root_node_identifier, root_node_2_identifier])
+                weave.root_nodes == BTreeSet::from([root_node_identifier, root_node_2_identifier])
             );
             let root_node_1 = weave.nodes.get(&root_node_identifier).unwrap();
             let root_node_2 = weave.nodes.get(&root_node_2_identifier).unwrap();
