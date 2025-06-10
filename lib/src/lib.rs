@@ -150,6 +150,14 @@ impl Weave {
         active: bool,
         update_parents: bool,
     ) -> bool {
+        self.update_node_parent_activity(identifier, active, update_parents)
+    }
+    fn update_node_parent_activity(
+        &mut self,
+        identifier: &Ulid,
+        active: bool,
+        update_parents: bool,
+    ) -> bool {
         if let Some(node) = self.nodes.get(identifier) {
             if node.active == active {
                 return true;
@@ -174,108 +182,19 @@ impl Weave {
                     let mut parents: Vec<Ulid> = node.from.iter().copied().collect();
                     parents.sort();
                     if let Some(parent) = parents.first() {
-                        if !self.update_node_activity(parent, true, true) {
+                        if !self.update_node_parent_activity(parent, true, true) {
                             return false;
                         }
                     }
                 } else {
                     for parent in node.from.clone() {
-                        self.update_node_activity(&parent, false, true);
+                        self.update_node_parent_activity(&parent, false, true);
                     }
                 }
             }
         }
         if let Some(node) = self.nodes.get_mut(identifier) {
             node.active = active;
-            true
-        } else {
-            false
-        }
-    }
-    pub fn update_node_parents(
-        &mut self,
-        identifier: &Ulid,
-        parents: HashSet<Ulid>,
-        skip_loop_check: bool,
-    ) -> bool {
-        let moveable = self
-            .nodes
-            .get(identifier)
-            .map(|node| node.moveable)
-            .unwrap_or(false);
-        if !moveable {
-            return false;
-        }
-        if !skip_loop_check {
-            for parent in &parents {
-                if self.has_parent_loop(parent, None) {
-                    return false;
-                }
-            }
-        }
-        if let Some(old_parents) = self.nodes.get(identifier).map(|node| node.from.clone()) {
-            for parent in &old_parents {
-                if let Some(parent) = self.nodes.get_mut(parent) {
-                    parent.to.remove(identifier);
-                }
-            }
-            for parent in &parents {
-                if let Some(parent) = self.nodes.get_mut(parent) {
-                    parent.to.insert(*identifier);
-                }
-            }
-            match parents.is_empty() {
-                true => self.root_nodes.insert(*identifier),
-                false => self.root_nodes.remove(identifier),
-            };
-            if let Some(node) = self.nodes.get_mut(identifier) {
-                node.from = parents;
-            }
-
-            true
-        } else {
-            false
-        }
-    }
-    pub fn update_node_children(
-        &mut self,
-        identifier: &Ulid,
-        mut children: HashSet<Ulid>,
-        skip_loop_check: bool,
-    ) -> bool {
-        if let Some(old_children) = self.nodes.get(identifier).map(|node| node.to.clone()) {
-            for child in &old_children {
-                if let Some(child) = self.nodes.get(child) {
-                    if !child.moveable {
-                        return false;
-                    }
-                }
-            }
-            if !skip_loop_check {
-                for child in &children {
-                    if self.has_child_loop(child, None) {
-                        return false;
-                    }
-                }
-            }
-            for child in &old_children {
-                if let Some(child) = self.nodes.get_mut(child) {
-                    child.from.remove(identifier);
-                }
-            }
-            for child in children.clone() {
-                if let Some(child) = self.nodes.get_mut(&child) {
-                    if child.moveable {
-                        child.from.insert(*identifier);
-                    } else {
-                        children.remove(&child.id);
-                    }
-                }
-            }
-            if let Some(node) = self.nodes.get_mut(identifier) {
-                node.to = children;
-            }
-
             true
         } else {
             false
@@ -483,12 +402,6 @@ mod tests {
     }
 
     /*#[test]
-    fn update_node_parents_propagation() {}
-
-    #[test]
-    fn update_node_children_propagation() {}
-
-    #[test]
     fn remove_node_propagation() {}
 
     #[test]
@@ -507,12 +420,6 @@ mod tests {
     fn add_node_check_loop() {}
 
     #[test]
-    fn update_node_parents_check_loop() {}
-
-    #[test]
-    fn update_node_children_check_loop() {}
-
-    #[test]
     fn remove_node_check_loop() {}
 
     #[test]
@@ -523,12 +430,6 @@ mod tests {
 
     #[test]
     fn add_node_lock_propagation() {}
-
-    #[test]
-    fn update_node_parents_lock_propagation() {}
-
-    #[test]
-    fn update_node_children_lock_propagation() {}
 
     #[test]
     fn remove_node_lock_propagation() {}
@@ -543,20 +444,8 @@ mod tests {
     fn add_node_activation_propagation() {}
 
     #[test]
-    fn update_node_parents_activation_propagation() {}
-
-    #[test]
-    fn update_node_children_activation_propagation() {}
-
-    #[test]
     fn remove_node_activation_propagation() {}
 
     #[test]
-    fn add_node_deduplication() {}
-
-    #[test]
-    fn update_node_parents_deduplication() {}
-
-    #[test]
-    fn update_node_children_deduplication() {}*/
+    fn add_node_deduplication() {}*/
 }
