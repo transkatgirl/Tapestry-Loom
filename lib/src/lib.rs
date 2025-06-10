@@ -119,6 +119,7 @@ impl Weave {
         }
     }
     pub fn update_node_moveability(&mut self, identifier: &Ulid, moveable: bool) -> bool {
+        // ! FIXME: Need to handle propagation to children
         if let Some(node) = self.nodes.get(identifier) {
             if node.moveable == moveable {
                 return true;
