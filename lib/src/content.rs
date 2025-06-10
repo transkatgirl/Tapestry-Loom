@@ -174,15 +174,7 @@ impl NodeContent {
             NodeContent::Text(_content) => true,
             NodeContent::Token(_content) => true,
             NodeContent::TextToken(_content) => true,
-            NodeContent::Diff(content) => {
-                for modification in &content.content {
-                    if !modification.moveable() {
-                        return false;
-                    }
-                }
-
-                true
-            }
+            NodeContent::Diff(content) => content.moveable(),
         }
     }
 }
@@ -257,6 +249,24 @@ pub struct DiffNode {
     pub content: Vec<Modification>,
 }
 
+impl DiffNode {
+    fn moveable(&self) -> bool {
+        for modification in &self.content {
+            if !modification.moveable() {
+                return false;
+            }
+        }
+
+        true
+    }
+    pub fn apply(&self, before: &str) -> String {
+        todo!()
+    }
+    fn apply_annotated(&self, content: &mut Vec<AnnotatedSnippet>) {
+        todo!()
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct Modification {
     pub index: usize,
@@ -268,7 +278,7 @@ impl Modification {
     fn moveable(&self) -> bool {
         self.index == 0 && self.r#type == ModificationType::Insertion
     }
-    pub fn apply(&self, before: &str) -> String {
+    fn apply_text(&self, text: &mut str) {
         todo!()
     }
     fn apply_annotated(&self, content: &mut Vec<AnnotatedSnippet>) {
