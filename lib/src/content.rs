@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{cmp::Ordering, collections::HashSet};
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -8,9 +8,11 @@ use ulid::Ulid;
 use crate::Weave;
 
 /* TODO:
-- Node sorting API
+- Weave node sorting API
+    - Implement Ord/PartialOrd on all types in the module
 - Weave content building/updating
 - Node splitting/merging
+- Implement Clone on all types in the module
 - Unit tests */
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -21,6 +23,12 @@ pub struct Node {
     pub moveable: bool,
     pub active: bool,
     pub content: NodeContent,
+}
+
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.id.cmp(&other.id))
+    }
 }
 
 impl Weave {
@@ -169,12 +177,12 @@ pub struct NodeToken {
     pub probability: Decimal,
 }
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct DiffNode {
     pub content: Vec<Modification>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct Modification {
     pub index: usize,
     pub r#type: ModificationType,
@@ -187,7 +195,7 @@ impl Modification {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub enum ModificationType {
     Insertion,
     Deletion,
