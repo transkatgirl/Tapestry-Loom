@@ -334,120 +334,7 @@ mod tests {
     }
 
     #[test]
-    fn add_node_child_propagation() {
-        let mut weave = Weave::default();
-
-        let root_node_identifier = Ulid::new();
-        assert!(weave.add_node(
-            blank_moveable_node(root_node_identifier, [], []),
-            None,
-            false,
-        ));
-        {
-            assert!(weave.root_nodes.contains(&root_node_identifier));
-            let root_node = weave.nodes.get(&root_node_identifier).unwrap();
-            assert!(root_node.from.is_empty());
-            assert!(root_node.to.is_empty());
-        }
-
-        for _ in 0..3 {
-            let child_node_identifier = Ulid::new();
-            assert!(weave.add_node(
-                blank_moveable_node(child_node_identifier, [root_node_identifier], []),
-                None,
-                false,
-            ));
-            assert!(weave.root_nodes == HashSet::from([root_node_identifier]));
-            let child_node = weave.nodes.get(&child_node_identifier).unwrap();
-            assert!(child_node.from == HashSet::from([root_node_identifier]));
-            assert!(child_node.to.is_empty());
-        }
-
-        let child_node_1_identifier = Ulid::new();
-        assert!(weave.add_node(
-            blank_moveable_node(child_node_1_identifier, [root_node_identifier], []),
-            None,
-            false,
-        ));
-        {
-            assert!(weave.root_nodes == HashSet::from([root_node_identifier]));
-            let child_node_1 = weave.nodes.get(&child_node_1_identifier).unwrap();
-            assert!(child_node_1.from == HashSet::from([root_node_identifier]));
-            assert!(child_node_1.to.is_empty());
-        }
-
-        let child_node_2_identifier = Ulid::new();
-        assert!(weave.add_node(
-            blank_moveable_node(child_node_2_identifier, [child_node_1_identifier], []),
-            None,
-            false,
-        ));
-        {
-            assert!(weave.root_nodes == HashSet::from([root_node_identifier]));
-            let child_node_1 = weave.nodes.get(&child_node_1_identifier).unwrap();
-            let child_node_2 = weave.nodes.get(&child_node_2_identifier).unwrap();
-            assert!(child_node_1.from == HashSet::from([root_node_identifier]));
-            assert!(child_node_1.to == HashSet::from([child_node_2_identifier]));
-            assert!(child_node_2.from == HashSet::from([child_node_1_identifier]));
-            assert!(child_node_2.to.is_empty());
-        }
-
-        for i in 2..5 {
-            let child_node_2_identifier = Ulid::new();
-            assert!(weave.add_node(
-                blank_moveable_node(child_node_2_identifier, [child_node_1_identifier], []),
-                None,
-                false,
-            ));
-            {
-                assert!(weave.root_nodes == HashSet::from([root_node_identifier]));
-                let child_node_1 = weave.nodes.get(&child_node_1_identifier).unwrap();
-                let child_node_2 = weave.nodes.get(&child_node_2_identifier).unwrap();
-                assert!(child_node_1.from == HashSet::from([root_node_identifier]));
-                assert!(
-                    child_node_1.to.contains(&child_node_2_identifier)
-                        && child_node_1.to.len() == i
-                );
-                assert!(child_node_2.from == HashSet::from([child_node_1_identifier]));
-                assert!(child_node_2.to.is_empty());
-            }
-        }
-
-        let child_node_3_identifier = Ulid::new();
-        assert!(weave.add_node(
-            blank_moveable_node(child_node_3_identifier, [child_node_2_identifier], []),
-            None,
-            false,
-        ));
-        {
-            assert!(weave.root_nodes == HashSet::from([root_node_identifier]));
-            let child_node_1 = weave.nodes.get(&child_node_1_identifier).unwrap();
-            let child_node_2 = weave.nodes.get(&child_node_2_identifier).unwrap();
-            let child_node_3 = weave.nodes.get(&child_node_3_identifier).unwrap();
-            assert!(child_node_1.from == HashSet::from([root_node_identifier]));
-            assert!(child_node_1.to.contains(&child_node_2_identifier));
-            assert!(child_node_2.from == HashSet::from([child_node_1_identifier]));
-            assert!(child_node_2.to == HashSet::from([child_node_3_identifier]));
-            assert!(child_node_3.from == HashSet::from([child_node_2_identifier]));
-            assert!(child_node_3.to.is_empty());
-        }
-
-        let root_node_2_identifier = Ulid::new();
-        assert!(weave.add_node(
-            blank_moveable_node(root_node_2_identifier, [], []),
-            None,
-            false,
-        ));
-        {
-            assert!(weave.root_nodes.contains(&root_node_2_identifier));
-            let root_node = weave.nodes.get(&root_node_2_identifier).unwrap();
-            assert!(root_node.from.is_empty());
-            assert!(root_node.to.is_empty());
-        }
-    }
-
-    /*#[test]
-    fn add_node_parent_propagation() {
+    fn add_node_propagation() {
         let mut weave = Weave::default();
 
         let root_node_identifier = Ulid::new();
@@ -457,16 +344,24 @@ mod tests {
         let child_node_3_identifier = Ulid::new();
         let child_node_4_identifier = Ulid::new();
         let child_node_5_identifier = Ulid::new();
+        let child_node_6_identifier = Ulid::new();
         assert!(weave.add_node(
             blank_moveable_node(root_node_identifier, [], []),
             None,
             false,
         ));
+        {
+            assert!(weave.root_nodes == HashSet::from([root_node_identifier]));
+            let root_node_1 = weave.nodes.get(&root_node_identifier).unwrap();
+            assert!(root_node_1.from.is_empty());
+            assert!(root_node_1.to.is_empty());
+        }
         assert!(weave.add_node(
             blank_moveable_node(root_node_2_identifier, [], []),
             None,
             false,
         ));
+
         assert!(weave.add_node(
             blank_moveable_node(child_node_1_identifier, [root_node_identifier], []),
             None,
@@ -496,6 +391,11 @@ mod tests {
             None,
             false,
         ));
+        assert!(weave.add_node(
+            blank_moveable_node(child_node_6_identifier, [child_node_5_identifier], []),
+            None,
+            false,
+        ));
         {
             assert!(
                 weave.root_nodes == HashSet::from([root_node_identifier, root_node_2_identifier])
@@ -507,6 +407,7 @@ mod tests {
             let child_node_3 = weave.nodes.get(&child_node_3_identifier).unwrap();
             let child_node_4 = weave.nodes.get(&child_node_4_identifier).unwrap();
             let child_node_5 = weave.nodes.get(&child_node_5_identifier).unwrap();
+            let child_node_6 = weave.nodes.get(&child_node_6_identifier).unwrap();
             assert!(root_node_1.from.is_empty());
             assert!(
                 root_node_1.to == HashSet::from([child_node_1_identifier, child_node_2_identifier])
@@ -522,8 +423,86 @@ mod tests {
             assert!(child_node_2.to == HashSet::from([child_node_3_identifier]));
             assert!(child_node_3.from == HashSet::from([child_node_2_identifier]));
             assert!(child_node_3.to.is_empty());*/
-        }
 
-        //todo!()
-    }*/
+            todo!();
+        }
+    }
+
+    /*#[test]
+    fn update_node_parents_propagation() {}
+
+    #[test]
+    fn update_node_children_propagation() {}
+
+    #[test]
+    fn remove_node_propagation() {}
+
+    #[test]
+    fn add_node_model_propagation() {}
+
+    #[test]
+    fn remove_node_model_propagation() {}
+
+    #[test]
+    fn check_has_parent_loop() {}
+
+    #[test]
+    fn check_has_child_loop() {}
+
+    #[test]
+    fn add_node_check_loop() {}
+
+    #[test]
+    fn update_node_parents_check_loop() {}
+
+    #[test]
+    fn update_node_children_check_loop() {}
+
+    #[test]
+    fn remove_node_check_loop() {}
+
+    #[test]
+    fn update_node_lock_propagation() {}
+
+    #[test]
+    fn update_node_lock_controlled_propagation() {}
+
+    #[test]
+    fn add_node_lock_propagation() {}
+
+    #[test]
+    fn update_node_parents_lock_propagation() {}
+
+    #[test]
+    fn update_node_children_lock_propagation() {}
+
+    #[test]
+    fn remove_node_lock_propagation() {}
+
+    #[test]
+    fn update_node_activation_propagation() {}
+
+    #[test]
+    fn update_node_activation_controlled_propagation() {}
+
+    #[test]
+    fn add_node_activation_propagation() {}
+
+    #[test]
+    fn update_node_parents_activation_propagation() {}
+
+    #[test]
+    fn update_node_children_activation_propagation() {}
+
+    #[test]
+    fn remove_node_activation_propagation() {}
+
+    #[test]
+    fn add_node_deduplication() {}
+
+    #[test]
+    fn update_node_parents_deduplication() {}
+
+    #[test]
+    fn update_node_children_deduplication() {}*/
 }
