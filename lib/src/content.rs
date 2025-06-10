@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::HashSet};
+use std::collections::HashSet;
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -9,7 +9,6 @@ use crate::Weave;
 
 /* TODO:
 - Weave node sorting API
-    - Implement Ord/PartialOrd on all types in the module
 - Weave content building/updating
 - Node splitting/merging
 - Implement Clone on all types in the module
@@ -23,12 +22,6 @@ pub struct Node {
     pub moveable: bool,
     pub active: bool,
     pub content: NodeContent,
-}
-
-impl PartialOrd for Node {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.id.cmp(&other.id))
-    }
 }
 
 impl Weave {
@@ -171,10 +164,10 @@ impl TokenNode {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct NodeToken {
-    pub content: Vec<u8>,
     pub probability: Decimal,
+    pub content: Vec<u8>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
