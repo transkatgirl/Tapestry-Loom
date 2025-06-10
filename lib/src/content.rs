@@ -268,6 +268,12 @@ impl Modification {
     fn moveable(&self) -> bool {
         self.index == 0 && self.r#type == ModificationType::Insertion
     }
+    pub fn apply(&self, before: &str) -> String {
+        todo!()
+    }
+    fn apply_annotated(&self, content: &mut Vec<AnnotatedSnippet>) {
+        todo!()
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
