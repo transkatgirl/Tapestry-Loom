@@ -27,6 +27,7 @@ pub struct Weave {
     model_nodes: HashMap<Ulid, HashSet<Ulid>>,
 }
 
+// ! FIXME: Need to better handle propagation of node active status
 impl Weave {
     pub fn add_node(
         &mut self,
