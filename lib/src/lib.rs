@@ -43,14 +43,13 @@ impl Weave {
             return false;
         }
         if !skip_loop_check {
-            let mut visited = HashSet::from([node.id]);
             for parent in &node.from {
-                if self.has_parent_loop(parent, &mut visited) {
+                if self.has_parent_loop(parent, None) {
                     return false;
                 }
             }
             for child in &node.to {
-                if self.has_child_loop(child, &mut visited) {
+                if self.has_child_loop(child, None) {
                     return false;
                 }
             }
@@ -96,14 +95,11 @@ impl Weave {
 
         true
     }
-    fn has_parent_loop(&self, identifier: &Ulid, visited: &mut HashSet<Ulid>) -> bool {
-        if visited.contains(identifier) {
-            return true;
-        }
-        visited.insert(*identifier);
+    fn has_parent_loop(&self, identifier: &Ulid, start: Option<&Ulid>) -> bool {
+        let start = start.unwrap_or(identifier);
         if let Some(node) = self.nodes.get(identifier) {
             for parent in &node.from {
-                if self.has_parent_loop(parent, visited) {
+                if parent == start || self.has_parent_loop(parent, Some(start)) {
                     return true;
                 }
             }
@@ -113,14 +109,11 @@ impl Weave {
             false
         }
     }
-    fn has_child_loop(&self, identifier: &Ulid, visited: &mut HashSet<Ulid>) -> bool {
-        if visited.contains(identifier) {
-            return true;
-        }
-        visited.insert(*identifier);
+    fn has_child_loop(&self, identifier: &Ulid, start: Option<&Ulid>) -> bool {
+        let start = start.unwrap_or(identifier);
         if let Some(node) = self.nodes.get(identifier) {
             for child in &node.to {
-                if self.has_child_loop(child, visited) {
+                if child == start || self.has_child_loop(child, Some(start)) {
                     return true;
                 }
             }
@@ -177,9 +170,8 @@ impl Weave {
             return false;
         }
         if !skip_loop_check {
-            let mut visited = HashSet::from([*identifier]);
             for parent in &parents {
-                if self.has_parent_loop(parent, &mut visited) {
+                if self.has_parent_loop(parent, None) {
                     return false;
                 }
             }
@@ -223,9 +215,8 @@ impl Weave {
                 }
             }
             if !skip_loop_check {
-                let mut visited = HashSet::from([*identifier]);
                 for child in &children {
-                    if self.has_child_loop(child, &mut visited) {
+                    if self.has_child_loop(child, None) {
                         return false;
                     }
                 }
@@ -455,8 +446,84 @@ mod tests {
         }
     }
 
-    #[test]
+    /*#[test]
     fn add_node_parent_propagation() {
+        let mut weave = Weave::default();
+
+        let root_node_identifier = Ulid::new();
+        let root_node_2_identifier = Ulid::new();
+        let child_node_1_identifier = Ulid::new();
+        let child_node_2_identifier = Ulid::new();
+        let child_node_3_identifier = Ulid::new();
+        let child_node_4_identifier = Ulid::new();
+        let child_node_5_identifier = Ulid::new();
+        assert!(weave.add_node(
+            blank_moveable_node(root_node_identifier, [], []),
+            None,
+            false,
+        ));
+        assert!(weave.add_node(
+            blank_moveable_node(root_node_2_identifier, [], []),
+            None,
+            false,
+        ));
+        assert!(weave.add_node(
+            blank_moveable_node(child_node_1_identifier, [root_node_identifier], []),
+            None,
+            false,
+        ));
+        assert!(weave.add_node(
+            blank_moveable_node(child_node_2_identifier, [root_node_identifier], []),
+            None,
+            false,
+        ));
+        assert!(weave.add_node(
+            blank_moveable_node(child_node_3_identifier, [child_node_2_identifier], []),
+            None,
+            false,
+        ));
+        assert!(weave.add_node(
+            blank_moveable_node(child_node_4_identifier, [child_node_3_identifier], []),
+            None,
+            false,
+        ));
+        assert!(weave.add_node(
+            blank_moveable_node(
+                child_node_5_identifier,
+                [child_node_3_identifier, child_node_4_identifier],
+                []
+            ),
+            None,
+            false,
+        ));
+        {
+            assert!(
+                weave.root_nodes == HashSet::from([root_node_identifier, root_node_2_identifier])
+            );
+            let root_node_1 = weave.nodes.get(&root_node_identifier).unwrap();
+            let root_node_2 = weave.nodes.get(&root_node_2_identifier).unwrap();
+            let child_node_1 = weave.nodes.get(&child_node_1_identifier).unwrap();
+            let child_node_2 = weave.nodes.get(&child_node_2_identifier).unwrap();
+            let child_node_3 = weave.nodes.get(&child_node_3_identifier).unwrap();
+            let child_node_4 = weave.nodes.get(&child_node_4_identifier).unwrap();
+            let child_node_5 = weave.nodes.get(&child_node_5_identifier).unwrap();
+            assert!(root_node_1.from.is_empty());
+            assert!(
+                root_node_1.to == HashSet::from([child_node_1_identifier, child_node_2_identifier])
+            );
+            assert!(root_node_2.from.is_empty());
+            assert!(root_node_2.to.is_empty());
+            assert!(child_node_1.from == HashSet::from([root_node_identifier]));
+            assert!(child_node_1.to.is_empty());
+
+            /*assert!(child_node_1.from == HashSet::from([root_node_identifier]));
+            assert!(child_node_1.to.contains(&child_node_2_identifier));
+            assert!(child_node_2.from == HashSet::from([child_node_1_identifier]));
+            assert!(child_node_2.to == HashSet::from([child_node_3_identifier]));
+            assert!(child_node_3.from == HashSet::from([child_node_2_identifier]));
+            assert!(child_node_3.to.is_empty());*/
+        }
+
         //todo!()
-    }
+    }*/
 }
