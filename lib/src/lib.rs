@@ -8,10 +8,6 @@ mod format;
 use crate::content::{Model, Node, WeaveTimeline};
 
 /* TODO:
-- Node activation/deactivation + retrieval of active nodes
-    - Only adjustable on unlocked nodes; Locked nodes *must* either be activated or have activated siblings
-    - Activation/deactivation is recursive, similar to node locking
-        - Unlike node locking, it will only apply to one parent node per-layer rather than all parent nodes
 - Node content deduplication
 - Update API terminology to borrow more terms from actual tapestry making
 - Unit tests
@@ -123,39 +119,75 @@ impl Weave {
         }
     }
     pub fn update_node_moveability(&mut self, identifier: &Ulid, moveable: bool) -> bool {
-        if let Some(node) = self.nodes.get_mut(identifier) {
-            match moveable {
-                true => {
-                    if !node.moveable && node.content.moveable() {
-                        node.moveable = true;
-                        for parent in node.from.clone() {
-                            self.update_node_moveability(&parent, true);
-                        }
+        if let Some(node) = self.nodes.get(identifier) {
+            if node.moveable == moveable {
+                return true;
+            }
 
-                        true
-                    } else {
-                        node.moveable
-                    }
-                }
-                false => {
-                    if node.moveable {
-                        node.moveable = false;
-                        for parent in node.from.clone() {
-                            self.update_node_moveability(&parent, false);
-                        }
+            if moveable && !node.content.moveable() {
+                return false;
+            }
 
-                        true
-                    } else {
-                        !node.moveable
-                    }
+            for parent in node.from.clone() {
+                if !self.update_node_moveability(&parent, moveable) {
+                    return false;
                 }
             }
+        }
+        if let Some(node) = self.nodes.get_mut(identifier) {
+            node.moveable = moveable;
+            true
         } else {
             false
         }
     }
-    pub fn update_node_activity(&mut self, identifier: &Ulid, active: bool) -> bool {
-        todo!()
+    pub fn update_node_activity(
+        &mut self,
+        identifier: &Ulid,
+        active: bool,
+        update_parents: bool,
+    ) -> bool {
+        if let Some(node) = self.nodes.get(identifier) {
+            if node.active == active {
+                return true;
+            }
+
+            if !node.moveable {
+                return false;
+            }
+
+            let mut is_parent_active = false;
+
+            for parent in &node.from {
+                if let Some(parent) = self.nodes.get(parent) {
+                    if parent.active {
+                        is_parent_active = true;
+                        break;
+                    }
+                }
+            }
+            if is_parent_active != active && update_parents {
+                if active {
+                    let mut parents: Vec<Ulid> = node.from.iter().copied().collect();
+                    parents.sort();
+                    if let Some(parent) = parents.first() {
+                        if !self.update_node_activity(parent, true, true) {
+                            return false;
+                        }
+                    }
+                } else {
+                    for parent in node.from.clone() {
+                        self.update_node_activity(&parent, false, true);
+                    }
+                }
+            }
+        }
+        if let Some(node) = self.nodes.get_mut(identifier) {
+            node.active = active;
+            true
+        } else {
+            false
+        }
     }
     pub fn update_node_parents(
         &mut self,
