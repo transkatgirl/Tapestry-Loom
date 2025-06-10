@@ -5,7 +5,7 @@ use ulid::Ulid;
 mod content;
 mod format;
 
-use crate::content::{Model, Node};
+use crate::content::{Model, Node, WeaveTimeline};
 
 /* TODO:
 - Node activation/deactivation + retrieval of active nodes
@@ -153,6 +153,9 @@ impl Weave {
         } else {
             false
         }
+    }
+    pub fn update_node_activity(&mut self, identifier: &Ulid, active: bool) -> bool {
+        todo!()
     }
     pub fn update_node_parents(
         &mut self,
@@ -314,22 +317,8 @@ impl Weave {
                 )
             })
     }
-}
-
-#[derive(Debug, PartialEq)]
-pub struct WeaveContents<'w> {
-    pub nodes: &'w HashMap<Ulid, Node>,
-    pub models: &'w HashMap<Ulid, Model>,
-    pub root_nodes: &'w BTreeSet<Ulid>,
-}
-
-impl<'w> From<&'w Weave> for WeaveContents<'w> {
-    fn from(input: &'w Weave) -> WeaveContents<'w> {
-        Self {
-            nodes: &input.nodes,
-            models: &input.models,
-            root_nodes: &input.root_nodes,
-        }
+    pub fn get_active_timelines(&self) -> Vec<WeaveTimeline> {
+        todo!()
     }
 }
 

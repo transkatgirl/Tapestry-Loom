@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -14,6 +14,23 @@ use crate::Weave;
 - Implement Clone on all types in the module
 - Unit tests */
 
+#[derive(Serialize, Debug, PartialEq)]
+pub struct WeaveContents<'w> {
+    pub nodes: &'w HashMap<Ulid, Node>,
+    pub models: &'w HashMap<Ulid, Model>,
+    pub root_nodes: &'w BTreeSet<Ulid>,
+}
+
+impl<'w> From<&'w Weave> for WeaveContents<'w> {
+    fn from(input: &'w Weave) -> WeaveContents<'w> {
+        Self {
+            nodes: &input.nodes,
+            models: &input.models,
+            root_nodes: &input.root_nodes,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Node {
     pub id: Ulid,
@@ -24,7 +41,39 @@ pub struct Node {
     pub content: NodeContent,
 }
 
+#[derive(Serialize, Debug, PartialEq)]
+pub struct WeaveTimeline<'w> {
+    pub timeline: Vec<(&'w Node, &'w Model)>,
+}
+
+#[derive(Serialize, Debug, PartialEq)]
+pub struct AnnotatedSnippet<'w> {
+    pub node: &'w Node,
+    pub content: String,
+    pub probability: Option<Decimal>,
+    pub model: Option<&'w NodeModel>,
+}
+
+impl<'w> WeaveTimeline<'w> {
+    pub fn get_text(&self, index: Option<usize>) -> String {
+        todo!()
+    }
+    pub fn get_annotated_text(&self) -> Vec<AnnotatedSnippet> {
+        todo!()
+    }
+}
+
 impl Weave {
+    pub fn split_node(&mut self, identifier: &Ulid, index: usize) -> Option<Ulid> {
+        todo!()
+    }
+    pub fn merge_nodes(&mut self, identifiers: &[Ulid]) -> Option<Ulid> {
+        todo!()
+    }
+    pub fn update_content(&mut self, content: String) {
+        todo!()
+    }
+
     /*pub fn add_node_deduplicated(
         &mut self,
         node: Node,
@@ -95,18 +144,20 @@ pub struct Model {
     pub style: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum NodeContent {
     Text(TextNode),
     Token(TokenNode),
+    TextToken(TextTokenNode),
     Diff(DiffNode),
 }
 
 impl NodeContent {
-    pub fn text(&self) -> Option<String> {
+    pub fn text(self) -> Option<String> {
         match self {
-            NodeContent::Text(content) => Some(content.content.clone()),
+            NodeContent::Text(content) => Some(content.content),
             NodeContent::Token(content) => Some(content.text()),
+            NodeContent::TextToken(content) => Some(content.text()),
             NodeContent::Diff(_content) => None,
         }
     }
@@ -114,6 +165,7 @@ impl NodeContent {
         match self {
             NodeContent::Text(content) => content.model.as_ref(),
             NodeContent::Token(content) => content.model.as_ref(),
+            NodeContent::TextToken(content) => content.model.as_ref(),
             NodeContent::Diff(_content) => None,
         }
     }
@@ -121,6 +173,7 @@ impl NodeContent {
         match self {
             NodeContent::Text(_content) => true,
             NodeContent::Token(_content) => true,
+            NodeContent::TextToken(_content) => true,
             NodeContent::Diff(content) => {
                 for modification in &content.content {
                     if !modification.moveable() {
@@ -134,48 +187,77 @@ impl NodeContent {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct NodeModel {
     pub id: Ulid,
     pub parameters: Vec<(String, String)>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct TextNode {
     pub content: String,
     pub model: Option<NodeModel>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct TokenNode {
     pub content: Vec<NodeToken>,
     pub model: Option<NodeModel>,
 }
 
 impl TokenNode {
-    pub fn text(&self) -> String {
+    pub fn text(self) -> String {
         let data: Vec<u8> = self
             .content
-            .iter()
-            .flat_map(|token| token.content.clone())
+            .into_iter()
+            .flat_map(|token| token.content)
             .collect();
 
         String::from_utf8_lossy(&data).to_string()
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct NodeToken {
     pub probability: Decimal,
     pub content: Vec<u8>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
+pub struct TextTokenNode {
+    pub content: Vec<TextOrToken>,
+    pub model: Option<NodeModel>,
+}
+
+impl TextTokenNode {
+    pub fn text(self) -> String {
+        let mut data = Vec::new();
+
+        for content in self.content {
+            data.append(&mut match content {
+                TextOrToken::Text(text) => text.into_bytes(),
+                TextOrToken::Token(token) => {
+                    token.into_iter().flat_map(|token| token.content).collect()
+                }
+            });
+        }
+
+        String::from_utf8_lossy(&data).to_string()
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
+pub enum TextOrToken {
+    Text(String),
+    Token(Vec<NodeToken>),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct DiffNode {
     pub content: Vec<Modification>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct Modification {
     pub index: usize,
     pub r#type: ModificationType,
