@@ -142,6 +142,7 @@ impl Weave {
         }
     }
     pub fn update_node_activity(
+        // ! FIXME: Need to propagate deactivation to children
         &mut self,
         identifier: &Ulid,
         active: bool,
@@ -279,6 +280,7 @@ impl Weave {
         }
     }
     pub fn remove_node(
+        // ! FIXME: Need to handle removal of active nodes
         &mut self,
         identifier: &Ulid,
         remove_children: bool,
