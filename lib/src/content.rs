@@ -262,7 +262,7 @@ impl DiffNode {
     pub fn apply(&self, before: &str) -> String {
         todo!()
     }
-    fn apply_annotated(&self, content: &mut Vec<AnnotatedSnippet>) {
+    fn apply_annotated(&self, content: &mut [AnnotatedSnippet]) {
         todo!()
     }
 }
@@ -281,7 +281,7 @@ impl Modification {
     fn apply_text(&self, text: &mut str) {
         todo!()
     }
-    fn apply_annotated(&self, content: &mut Vec<AnnotatedSnippet>) {
+    fn apply_annotated(&self, content: &mut [AnnotatedSnippet]) {
         todo!()
     }
 }
