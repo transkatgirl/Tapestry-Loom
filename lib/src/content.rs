@@ -14,7 +14,7 @@ use crate::Weave;
 - Implement Clone on all types in the module
 - Unit tests */
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct WeaveSnapshot<'w> {
     pub nodes: &'w HashMap<Ulid, Node>,
     pub models: &'w HashMap<Ulid, Model>,
@@ -31,7 +31,7 @@ impl<'w> From<&'w Weave> for WeaveSnapshot<'w> {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Node {
     pub id: Ulid,
     pub to: HashSet<Ulid>,
@@ -40,12 +40,12 @@ pub struct Node {
     pub content: NodeContent,
 }
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct WeaveTimeline<'w> {
     pub timeline: Vec<(&'w Node, &'w Model)>,
 }
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct AnnotatedSnippet<'w> {
     pub node: &'w Node,
     pub content: String,
@@ -136,7 +136,7 @@ impl Weave {
     }*/
 }
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Model {
     pub id: Ulid,
     pub label: String,
