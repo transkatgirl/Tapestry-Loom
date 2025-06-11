@@ -330,16 +330,49 @@ impl TextTokenNode {
 }
 
 fn into_snippets(data: Vec<u8>, ranges: Vec<(Range<usize>, Option<Decimal>)>) -> Vec<Snippet> {
-    /*let mut snippets = Vec::with_capacity(ranges.len());
+    let mut snippets: Vec<Snippet> = Vec::with_capacity(ranges.len());
+    let mut last_range: Range<usize> = Range::default();
 
-    for (range, probability) in ranges.iter() {
-        if let Ok(text) = String::from_utf8(data[range.start..range.end].to_vec()) {
-            //snippets.join()
-        } else {
+    for (mut range, probability) in ranges.into_iter() {
+        if last_range.end >= range.end {
+            if let Some(snippet) = snippets.last_mut() {
+                if let (Some(last_probability), Some(current_probability)) =
+                    (snippet.probability, probability)
+                {
+                    snippet.probability = Some(last_probability * current_probability);
+                }
+            }
+            continue;
+        } else if last_range.end >= range.start {
+            range.start = last_range.end;
         }
-    }*/
 
-    todo!()
+        let original_range = range.clone();
+
+        loop {
+            if let Ok(text) = str::from_utf8(&data[range.start..range.end]) {
+                snippets.push(Snippet {
+                    probability,
+                    content: text.to_string(),
+                });
+                break;
+            } else {
+                range.end += 1;
+                if range.end >= data.len() {
+                    range = original_range;
+                    snippets.push(Snippet {
+                        probability,
+                        content: String::from_utf8_lossy(&data[range.start..range.end]).to_string(),
+                    });
+                    break;
+                }
+            }
+        }
+
+        last_range = range;
+    }
+
+    snippets
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
