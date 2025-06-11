@@ -239,7 +239,22 @@ impl TokenNode {
             .collect()
     }
     pub fn snippets(self) -> Vec<Snippet> {
-        todo!()
+        let mut index = 0;
+        let mut ranges = Vec::with_capacity(self.content.len());
+
+        for token in &self.content {
+            let range = Range {
+                start: index,
+                end: index + token.content.len(),
+            };
+            index = range.end;
+
+            ranges.push((range, Some(token.probability)));
+        }
+
+        let data = self.bytes();
+
+        into_snippets(data, ranges)
     }
 }
 
@@ -280,32 +295,52 @@ impl TextTokenNode {
         data
     }
     pub fn snippets(self) -> Vec<Snippet> {
-        todo!()
+        let mut index = 0;
+        let mut ranges = Vec::with_capacity(self.content.len());
+
+        for segment in &self.content {
+            match segment {
+                TextOrToken::Text(text) => {
+                    let range = Range {
+                        start: index,
+                        end: index + text.len(),
+                    };
+                    index = range.end;
+
+                    ranges.push((range, None));
+                }
+                TextOrToken::Token(tokens) => {
+                    for token in tokens {
+                        let range = Range {
+                            start: index,
+                            end: index + token.content.len(),
+                        };
+                        index = range.end;
+
+                        ranges.push((range, Some(token.probability)));
+                    }
+                }
+            }
+        }
+
+        let data = self.bytes();
+
+        into_snippets(data, ranges)
     }
 }
 
-/*fn into_snippets(tokens: Vec<NodeToken>) -> Vec<Snippet> {
-    let mut data = Vec::new();
-    let mut ranges = Vec::with_capacity(tokens.len());
+fn into_snippets(data: Vec<u8>, ranges: Vec<(Range<usize>, Option<Decimal>)>) -> Vec<Snippet> {
+    /*let mut snippets = Vec::with_capacity(ranges.len());
 
-    for mut content in tokens {
-        ranges.push((
-            Range {
-                start: data.len(),
-                end: data.len() + content.content.len(),
-            },
-            content.probability,
-        ));
-        data.append(&mut content.content);
-    }
-
-    /*let mut tokens = Vec::with_capacity(ranges.len());
-    for range in ranges {
-
+    for (range, probability) in ranges.iter() {
+        if let Ok(text) = String::from_utf8(data[range.start..range.end].to_vec()) {
+            //snippets.join()
+        } else {
+        }
     }*/
 
     todo!()
-}*/
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum TextOrToken {
