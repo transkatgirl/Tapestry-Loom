@@ -29,6 +29,7 @@ pub struct Weave {
 
 // ! FIXME: Need to better handle propagation of node active status
 impl Weave {
+    // TODO: Add private function add_node_unchecked
     pub fn add_node(
         &mut self,
         mut node: Node,
@@ -148,9 +149,8 @@ impl Weave {
         &mut self,
         identifier: &Ulid,
         active: bool,
-        update_parents: bool,
     ) -> bool {
-        self.update_node_parent_activity(identifier, active, update_parents)
+        self.update_node_parent_activity(identifier, active, true)
     }
     fn update_node_parent_activity(
         &mut self,
@@ -202,6 +202,7 @@ impl Weave {
     }
     pub fn remove_node(
         // ! FIXME: Need to handle removal of active nodes
+        // TODO: Determine remove_children and unlock_parents automatically
         &mut self,
         identifier: &Ulid,
         remove_children: bool,
