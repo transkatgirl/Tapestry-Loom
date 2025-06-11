@@ -158,21 +158,15 @@ impl Weave {
                     }
                 }
             }
-
+        }
+        if let Some(node) = self.nodes.get_mut(identifier) {
+            node.active = false;
             for child in node.to.clone() {
                 self.update_removed_child_activity(&child);
             }
         }
-        if let Some(node) = self.nodes.get_mut(identifier) {
-            node.active = false;
-        }
     }
-    pub fn remove_node(
-        // TODO: Determine remove_children automatically
-        &mut self,
-        identifier: &Ulid,
-        remove_children: bool,
-    ) -> bool {
+    pub fn remove_node(&mut self, identifier: &Ulid) -> bool {
         if let Some(node) = self.nodes.remove(identifier) {
             self.root_nodes.remove(&node.id);
             for parent in &node.from {
@@ -184,8 +178,8 @@ impl Weave {
                 if let Some(child) = self.nodes.get_mut(child) {
                     child.from.remove(&node.id);
                 }
-                if remove_children {
-                    self.remove_node(child, true);
+                if node.from.len() <= 1 {
+                    self.remove_node(child);
                 } else if node.active {
                     self.update_removed_child_activity(child);
                 }
