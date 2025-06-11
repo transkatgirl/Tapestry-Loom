@@ -302,7 +302,7 @@ mod tests {
 
     use crate::{
         Weave,
-        content::{Node, NodeContent, TextNode},
+        content::{Node, NodeContent},
     };
 
     fn blank_moveable_node<X, Y>(id: Ulid, from: X, to: Y) -> Node
@@ -315,10 +315,7 @@ mod tests {
             to: HashSet::from_iter(to),
             from: HashSet::from_iter(from),
             active: false,
-            content: NodeContent::Text(TextNode {
-                content: String::default(),
-                model: None,
-            }),
+            content: NodeContent::Blank,
         }
     }
 

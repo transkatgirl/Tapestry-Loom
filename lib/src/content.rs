@@ -100,6 +100,13 @@ impl<'w> WeaveTimeline<'w> {
                         model: *model,
                     })
                     .collect::<Vec<_>>(),
+                NodeContent::Blank => iter::once(AnnotatedSnippet {
+                    node,
+                    content: "".to_string(),
+                    probability: None,
+                    model: None,
+                })
+                .collect::<Vec<_>>(),
             })
             .collect()
     }
@@ -191,21 +198,24 @@ pub enum NodeContent {
     Text(TextNode),
     Token(TokenNode),
     TextToken(TextTokenNode),
+    Blank,
 }
 
 impl NodeContent {
     pub fn text(self) -> Option<String> {
         match self {
-            NodeContent::Text(content) => Some(content.content),
-            NodeContent::Token(content) => Some(content.text()),
-            NodeContent::TextToken(content) => Some(content.text()),
+            Self::Text(content) => Some(content.content),
+            Self::Token(content) => Some(content.text()),
+            Self::TextToken(content) => Some(content.text()),
+            Self::Blank => None,
         }
     }
     pub fn model(&self) -> Option<&NodeModel> {
         match self {
-            NodeContent::Text(content) => content.model.as_ref(),
-            NodeContent::Token(content) => content.model.as_ref(),
-            NodeContent::TextToken(content) => content.model.as_ref(),
+            Self::Text(content) => content.model.as_ref(),
+            Self::Token(content) => content.model.as_ref(),
+            Self::TextToken(content) => content.model.as_ref(),
+            Self::Blank => None,
         }
     }
 }

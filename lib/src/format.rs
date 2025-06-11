@@ -15,6 +15,7 @@ use rmp_serde::{decode, encode};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use thiserror::Error;
+use ulid::Ulid;
 
 /// A compact serializable format intended for storing `Weave` documents.
 ///
@@ -41,6 +42,7 @@ enum NodeData {
     Token((NodeTokens, Option<NodeModel>)),
     TextToken((Vec<TextToken>, Option<NodeModel>)),
     Diff(NodeDiff),
+    Blank,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -57,6 +59,7 @@ impl NodeData {
             NodeData::Token(content) => content.1.as_ref(),
             NodeData::TextToken(content) => content.1.as_ref(),
             NodeData::Diff(_content) => None,
+            NodeData::Blank => None,
         }
     }
 }
@@ -132,8 +135,30 @@ impl TryFrom<CompactWeave> for super::Weave {
     type Error = WeaveError;
 
     fn try_from(input: CompactWeave) -> Result<Self, Self::Error> {
+        let mut weave = super::Weave::default();
+
+        let models: HashMap<u128, super::Model> = input
+            .models
+            .into_iter()
+            .map(|(id, model)| {
+                (
+                    id,
+                    super::Model {
+                        id: Ulid(id),
+                        label: model.label,
+                        style: model.style,
+                    },
+                )
+            })
+            .collect();
+
         for (identifier, node) in input.nodes {
-            let model = node.0.model().and_then(|m| input.models.get(&m.0));
+            let model = node.0.model().and_then(|m| models.get(&m.0));
+            /*let node_content = match node.0 {
+                NodeData::Text(content) => {}
+            };*/
+
+            //weave.add_node(node, model, skip_loop_check)
         }
 
         /*let weave = Self::default();
