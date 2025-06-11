@@ -35,7 +35,14 @@ struct Model {
 enum NodeData {
     Text((String, Option<NodeModel>)),
     Token((NodeTokens, Option<NodeModel>)),
+    TextToken((Vec<TextToken>, Option<NodeModel>)),
     Diff(NodeDiff),
+}
+
+#[derive(Serialize, Deserialize)]
+enum TextToken {
+    Text(String),
+    Token(NodeTokens),
 }
 
 impl NodeData {
@@ -43,13 +50,14 @@ impl NodeData {
         match self {
             NodeData::Text(content) => content.1.as_ref(),
             NodeData::Token(content) => content.1.as_ref(),
+            NodeData::TextToken(content) => content.1.as_ref(),
             NodeData::Diff(_content) => None,
         }
     }
 }
 
-// (data, parents, moveable)
-type Node = (NodeData, Vec<u128>, bool);
+// (data, parents)
+type Node = (NodeData, Vec<u128>);
 // (identifier, parameters)
 type NodeModel = (u128, Vec<(String, String)>);
 // [bytes, probability]

@@ -15,14 +15,14 @@ use crate::Weave;
 - Unit tests */
 
 #[derive(Serialize, Debug, PartialEq)]
-pub struct WeaveContents<'w> {
+pub struct WeaveSnapshot<'w> {
     pub nodes: &'w HashMap<Ulid, Node>,
     pub models: &'w HashMap<Ulid, Model>,
     pub root_nodes: &'w BTreeSet<Ulid>,
 }
 
-impl<'w> From<&'w Weave> for WeaveContents<'w> {
-    fn from(input: &'w Weave) -> WeaveContents<'w> {
+impl<'w> From<&'w Weave> for WeaveSnapshot<'w> {
+    fn from(input: &'w Weave) -> WeaveSnapshot<'w> {
         Self {
             nodes: &input.nodes,
             models: &input.models,
@@ -36,7 +36,6 @@ pub struct Node {
     pub id: Ulid,
     pub to: HashSet<Ulid>,
     pub from: HashSet<Ulid>,
-    pub moveable: bool,
     pub active: bool,
     pub content: NodeContent,
 }
@@ -149,7 +148,6 @@ pub enum NodeContent {
     Text(TextNode),
     Token(TokenNode),
     TextToken(TextTokenNode),
-    Diff(DiffNode),
 }
 
 impl NodeContent {
@@ -158,7 +156,6 @@ impl NodeContent {
             NodeContent::Text(content) => Some(content.content),
             NodeContent::Token(content) => Some(content.text()),
             NodeContent::TextToken(content) => Some(content.text()),
-            NodeContent::Diff(_content) => None,
         }
     }
     pub fn model(&self) -> Option<&NodeModel> {
@@ -166,15 +163,6 @@ impl NodeContent {
             NodeContent::Text(content) => content.model.as_ref(),
             NodeContent::Token(content) => content.model.as_ref(),
             NodeContent::TextToken(content) => content.model.as_ref(),
-            NodeContent::Diff(_content) => None,
-        }
-    }
-    pub fn moveable(&self) -> bool {
-        match self {
-            NodeContent::Text(_content) => true,
-            NodeContent::Token(_content) => true,
-            NodeContent::TextToken(_content) => true,
-            NodeContent::Diff(content) => content.moveable(),
         }
     }
 }
@@ -244,21 +232,12 @@ pub enum TextOrToken {
     Token(Vec<NodeToken>),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
-pub struct DiffNode {
+/*#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
+pub struct Diff {
     pub content: Vec<Modification>,
 }
 
-impl DiffNode {
-    fn moveable(&self) -> bool {
-        for modification in &self.content {
-            if !modification.moveable() {
-                return false;
-            }
-        }
-
-        true
-    }
+impl Diff {
     pub fn apply(&self, before: &str) -> String {
         todo!()
     }
@@ -275,9 +254,6 @@ pub struct Modification {
 }
 
 impl Modification {
-    fn moveable(&self) -> bool {
-        self.index == 0 && self.r#type == ModificationType::Insertion
-    }
     fn apply_text(&self, text: &mut str) {
         todo!()
     }
@@ -291,3 +267,4 @@ pub enum ModificationType {
     Insertion,
     Deletion,
 }
+*/

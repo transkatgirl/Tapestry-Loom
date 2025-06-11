@@ -14,7 +14,6 @@ use crate::content::{Model, Node, WeaveTimeline};
     - Node management & update propagation (propagating changes into node children & parents, root_nodes updating)
     - Model management & update propagation (model addition/removal, model_nodes updating)
     - Node loop checking
-    - Node locking
     - Node activation
     - Node content deduplication */
 
@@ -30,12 +29,7 @@ pub struct Weave {
 // ! FIXME: Need to better handle propagation of node active status
 impl Weave {
     // TODO: Add private function add_node_unchecked
-    pub fn add_node(
-        &mut self,
-        mut node: Node,
-        model: Option<Model>,
-        skip_loop_check: bool,
-    ) -> bool {
+    pub fn add_node(&mut self, node: Node, model: Option<Model>, skip_loop_check: bool) -> bool {
         if self.nodes.contains_key(&node.id) {
             return false;
         }
@@ -54,24 +48,14 @@ impl Weave {
         if node.from.is_empty() {
             self.root_nodes.insert(node.id);
         }
-        if node.moveable && !node.content.moveable() {
-            node.moveable = false;
-        }
         for child in node.to.clone() {
             if let Some(child) = self.nodes.get_mut(&child) {
-                if child.moveable {
-                    child.from.insert(node.id);
-                } else {
-                    node.to.remove(&child.id);
-                }
+                child.from.insert(node.id);
             }
         }
         for parent in &node.from {
             if let Some(parent) = self.nodes.get_mut(parent) {
                 parent.to.insert(node.id);
-            }
-            if !node.moveable {
-                self.update_node_moveability(parent, false);
             }
         }
         if let Some(node_model) = node.content.model() {
@@ -120,39 +104,6 @@ impl Weave {
             false
         }
     }
-    pub fn update_node_moveability(&mut self, identifier: &Ulid, moveable: bool) -> bool {
-        if let Some(node) = self.nodes.get(identifier) {
-            if node.moveable == moveable {
-                return true;
-            }
-
-            if moveable && !node.content.moveable() {
-                return false;
-            }
-
-            if moveable {
-                for child in &node.to {
-                    if let Some(child) = self.nodes.get(child) {
-                        if child.moveable {
-                            return false;
-                        }
-                    }
-                }
-            }
-
-            for parent in node.from.clone() {
-                if !self.update_node_moveability(&parent, moveable) {
-                    return false;
-                }
-            }
-        }
-        if let Some(node) = self.nodes.get_mut(identifier) {
-            node.moveable = moveable;
-            true
-        } else {
-            false
-        }
-    }
     pub fn update_node_activity(
         // ! FIXME: Need to propagate deactivation to children
         &mut self,
@@ -170,10 +121,6 @@ impl Weave {
         if let Some(node) = self.nodes.get(identifier) {
             if node.active == active {
                 return true;
-            }
-
-            if !node.moveable {
-                return false;
             }
 
             let mut is_parent_active = false;
@@ -211,31 +158,16 @@ impl Weave {
     }
     pub fn remove_node(
         // ! FIXME: Need to handle removal of active nodes
-        // TODO: Determine remove_children and unlock_parents automatically
+        // TODO: Determine remove_children automatically
         &mut self,
         identifier: &Ulid,
         remove_children: bool,
-        unlock_parents: bool,
     ) -> bool {
-        if !remove_children {
-            if let Some(node) = self.nodes.get(identifier) {
-                for child in &node.to {
-                    if let Some(child) = self.nodes.get(child) {
-                        if !child.moveable {
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
         if let Some(node) = self.nodes.remove(identifier) {
             self.root_nodes.remove(&node.id);
             for parent in &node.from {
                 if let Some(parent) = self.nodes.get_mut(parent) {
                     parent.to.remove(&node.id);
-                }
-                if !node.moveable && unlock_parents {
-                    self.update_node_moveability(parent, true);
                 }
             }
             for child in &node.to {
@@ -243,7 +175,7 @@ impl Weave {
                     child.from.remove(&node.id);
                 }
                 if remove_children {
-                    self.remove_node(child, true, false);
+                    self.remove_node(child, true);
                 }
             }
             if let Some(node_model) = node.content.model() {
@@ -307,7 +239,6 @@ mod tests {
             id,
             to: HashSet::from_iter(to),
             from: HashSet::from_iter(from),
-            moveable: true,
             active: false,
             content: NodeContent::Text(TextNode {
                 content: String::default(),
@@ -431,18 +362,6 @@ mod tests {
 
     #[test]
     fn remove_node_check_loop() {}
-
-    #[test]
-    fn update_node_lock_propagation() {}
-
-    #[test]
-    fn update_node_lock_controlled_propagation() {}
-
-    #[test]
-    fn add_node_lock_propagation() {}
-
-    #[test]
-    fn remove_node_lock_propagation() {}
 
     #[test]
     fn update_node_activation_propagation() {}
