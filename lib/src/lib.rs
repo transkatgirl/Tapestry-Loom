@@ -166,7 +166,7 @@ impl Weave {
             }
         }
     }
-    pub fn remove_node(&mut self, identifier: &Ulid) -> bool {
+    pub fn remove_node(&mut self, identifier: &Ulid) {
         if let Some(node) = self.nodes.remove(identifier) {
             self.root_nodes.remove(&node.id);
             for parent in &node.from {
@@ -193,10 +193,6 @@ impl Weave {
                     }
                 }
             }
-
-            true
-        } else {
-            false
         }
     }
     pub fn get_node(&self, identifier: &Ulid) -> (Option<&Node>, Option<&Model>) {
