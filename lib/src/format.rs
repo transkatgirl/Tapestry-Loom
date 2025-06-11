@@ -7,6 +7,7 @@ use std::{
 
 /* TODO:
 - Conversion to/from Weave
+- Documentation
 - Unit tests */
 
 use base64::{engine::general_purpose::URL_SAFE, read::DecoderReader, write::EncoderStringWriter};
@@ -88,14 +89,14 @@ impl CompactWeave {
 
         Ok(())
     }
-    /// Load a CompactWeave from a reader (without validating the graph structure)
+    /// Load a CompactWeave from a reader
     pub fn load<R: Read>(reader: R) -> Result<Self, WeaveError> {
         let mut decompressor = FrameDecoder::new(reader);
         let mut weave: CompactWeave = decode::from_read(&mut decompressor)?;
         weave.update()?;
         Ok(weave)
     }
-    /// Load a CompactWeave from a url-safe base64 string (without validating the graph structure)
+    /// Load a CompactWeave from a url-safe base64 string
     pub fn load_base64(input: &str) -> Result<Self, WeaveError> {
         let mut cursor = Cursor::new(input);
         let mut decoder = DecoderReader::new(&mut cursor, &URL_SAFE);

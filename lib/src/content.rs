@@ -12,6 +12,7 @@ use crate::Weave;
 - Weave content building/updating
 - Node splitting/merging
 - Implement Clone on all types in the module
+- Documentation
 - Unit tests */
 
 #[derive(Serialize, Clone, Debug, PartialEq)]
