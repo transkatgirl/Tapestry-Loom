@@ -1,4 +1,4 @@
-//! A stable data format for storing Weaves as compactly as possible.
+//! Data formats for storing Weaves.
 
 use std::{
     collections::{HashMap, HashSet},
@@ -7,7 +7,6 @@ use std::{
 
 /* TODO:
 - Conversion to/from Weave
-- Documentation
 - Unit tests */
 
 use base64::{engine::general_purpose::URL_SAFE, read::DecoderReader, write::EncoderStringWriter};
@@ -16,6 +15,10 @@ use rmp_serde::{decode, encode};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use thiserror::Error;
+
+/// A compact serializable format intended for storing `Weave` documents.
+///
+/// The `CompactWeave` format maintains backwards compatibility but not forwards compatibility. It is serialized as MessagePack compressed with LZ4.
 
 #[derive(Serialize, Deserialize)]
 pub struct CompactWeave {
@@ -69,14 +72,21 @@ type NodeDiff = Vec<(u64, bool, String)>;
 
 #[derive(Error, Debug)]
 pub enum WeaveError {
+    /// An error encountered when loading a `CompactWeave`.
     #[error(transparent)]
     Load(#[from] rmp_serde::decode::Error),
+    /// An error encountered when saving a `CompactWeave`.
     #[error(transparent)]
     Serialize(#[from] rmp_serde::encode::Error),
+    /// An error encountered when saving a `CompactWeave`.
     #[error(transparent)]
     Save(#[from] lz4_flex::frame::Error),
+    /// An error encountered when loading a malformed but parseable `CompactWeave`.
     #[error("invalid weave structure: {0}")]
     Structure(String),
+    /// An error encountered when converting a `CompactWeave` into a `Weave` document.
+    #[error("unsupported weave structure: {0}")]
+    Unsupported(String),
 }
 
 impl CompactWeave {
@@ -89,20 +99,20 @@ impl CompactWeave {
 
         Ok(())
     }
-    /// Load a CompactWeave from a reader
+    /// Load a `CompactWeave` from a reader.
     pub fn load<R: Read>(reader: R) -> Result<Self, WeaveError> {
         let mut decompressor = FrameDecoder::new(reader);
         let mut weave: CompactWeave = decode::from_read(&mut decompressor)?;
         weave.update()?;
         Ok(weave)
     }
-    /// Load a CompactWeave from a url-safe base64 string
+    /// Load a `CompactWeave` from a url-safe base64 string.
     pub fn load_base64(input: &str) -> Result<Self, WeaveError> {
         let mut cursor = Cursor::new(input);
         let mut decoder = DecoderReader::new(&mut cursor, &URL_SAFE);
         Self::load(&mut decoder)
     }
-    /// Save a CompactWeave to a writer
+    /// Save a `CompactWeave` to a writer.
     pub fn save<W: Write>(&self, writer: W) -> Result<(), WeaveError> {
         let mut compressor = FrameEncoder::new(writer);
         encode::write_named(&mut compressor, self)?;
@@ -110,7 +120,7 @@ impl CompactWeave {
 
         Ok(())
     }
-    /// Save a CompactWeave to a url-safe base64 string
+    /// Save a `CompactWeave` to a url-safe base64 string.
     pub fn save_base64(&self) -> Result<String, WeaveError> {
         let mut encoder = EncoderStringWriter::new(&URL_SAFE);
         self.save(&mut encoder)?;
@@ -118,8 +128,10 @@ impl CompactWeave {
     }
 }
 
-impl From<CompactWeave> for super::Weave {
-    fn from(input: CompactWeave) -> Self {
+impl TryFrom<CompactWeave> for super::Weave {
+    type Error = WeaveError;
+
+    fn try_from(input: CompactWeave) -> Result<Self, Self::Error> {
         for (identifier, node) in input.nodes {
             let model = node.0.model().and_then(|m| input.models.get(&m.0));
         }
