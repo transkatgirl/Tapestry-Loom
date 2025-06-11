@@ -48,9 +48,6 @@ impl Weave {
                 }
             }
         }
-        if node.from.is_empty() {
-            self.root_nodes.insert(node.id);
-        }
         for child in node.to.clone() {
             if let Some(child) = self.nodes.get_mut(&child) {
                 child.from.insert(node.id);
@@ -67,6 +64,9 @@ impl Weave {
             } else {
                 node.from.remove(&parent);
             }
+        }
+        if node.from.is_empty() {
+            self.root_nodes.insert(node.id);
         }
         if let Some(node_model) = node.content.model() {
             if let Some(mut model) = model {
