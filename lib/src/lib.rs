@@ -264,7 +264,12 @@ impl Weave {
             if let Some(node) = timeline.last() {
                 let mut added_node = false;
 
-                for child in node.to.iter().filter_map(|id| self.nodes.get(id)) {
+                for child in node
+                    .to
+                    .iter()
+                    .filter_map(|id| self.nodes.get(id))
+                    .filter(|node| node.active)
+                {
                     if !added_node {
                         timeline.push(child);
                         added_node = true;
