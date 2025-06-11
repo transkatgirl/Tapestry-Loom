@@ -226,7 +226,65 @@ impl Weave {
             })
     }
     pub fn get_active_timelines(&self) -> Vec<WeaveTimeline> {
-        todo!()
+        let mut timelines: Vec<Vec<&Node>> = self
+            .root_nodes
+            .iter()
+            .flat_map(|identifier| self.nodes.get(identifier))
+            .filter(|node| node.active)
+            .map(|node| Vec::from([node]))
+            .collect();
+        self.build_timelines(&mut timelines);
+
+        let mut hydrated_timelines: Vec<WeaveTimeline<'_>> = timelines
+            .iter()
+            .map(|timeline| WeaveTimeline {
+                timeline: timeline
+                    .iter()
+                    .map(|node| {
+                        (
+                            *node,
+                            node.content
+                                .model()
+                                .and_then(|node_model| self.models.get(&node_model.id)),
+                        )
+                    })
+                    .collect(),
+            })
+            .collect();
+
+        hydrated_timelines.sort_by_key(|timeline| timeline.timeline.len());
+
+        hydrated_timelines
+    }
+    fn build_timelines<'a>(&'a self, timelines: &mut Vec<Vec<&'a Node>>) {
+        let mut new_timelines = Vec::new();
+        let mut modified = false;
+
+        for timeline in timelines.iter_mut() {
+            if let Some(node) = timeline.last() {
+                let mut added_node = false;
+
+                for child in node.to.iter().filter_map(|id| self.nodes.get(id)) {
+                    if !added_node {
+                        timeline.push(child);
+                        added_node = true;
+                    } else {
+                        let mut new_timeline = timeline.clone();
+                        new_timeline.pop();
+                        new_timeline.push(child);
+                        new_timelines.push(new_timeline);
+                    }
+
+                    modified = true;
+                }
+            }
+        }
+        for timeline in new_timelines.into_iter() {
+            timelines.push(timeline);
+        }
+        if modified {
+            self.build_timelines(timelines);
+        }
     }
 }
 

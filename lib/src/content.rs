@@ -42,7 +42,7 @@ pub struct Node {
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct WeaveTimeline<'w> {
-    pub timeline: Vec<(&'w Node, &'w Model)>,
+    pub timeline: Vec<(&'w Node, Option<&'w Model>)>,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
