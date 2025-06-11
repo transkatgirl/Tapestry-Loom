@@ -27,7 +27,12 @@ pub struct Weave {
 }
 
 impl Weave {
-    pub fn add_node(&mut self, node: Node, model: Option<Model>, skip_loop_check: bool) -> bool {
+    pub fn add_node(
+        &mut self,
+        mut node: Node,
+        model: Option<Model>,
+        skip_loop_check: bool,
+    ) -> bool {
         if self.nodes.contains_key(&node.id) {
             return false;
         }
@@ -49,14 +54,18 @@ impl Weave {
         for child in node.to.clone() {
             if let Some(child) = self.nodes.get_mut(&child) {
                 child.from.insert(node.id);
+            } else {
+                node.to.remove(&child);
             }
         }
-        for parent in &node.from {
+        for parent in node.from.clone() {
             if node.active {
-                self.update_node_activity(parent, true);
+                self.update_node_activity(&parent, true);
             }
-            if let Some(parent) = self.nodes.get_mut(parent) {
+            if let Some(parent) = self.nodes.get_mut(&parent) {
                 parent.to.insert(node.id);
+            } else {
+                node.from.remove(&parent);
             }
         }
         if let Some(node_model) = node.content.model() {
