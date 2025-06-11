@@ -1,4 +1,8 @@
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::{
+    collections::{BTreeSet, HashMap, HashSet},
+    iter,
+    ops::Range,
+};
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -48,18 +52,56 @@ pub struct WeaveTimeline<'w> {
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct AnnotatedSnippet<'w> {
-    pub node: &'w Node,
     pub content: String,
     pub probability: Option<Decimal>,
-    pub model: Option<&'w NodeModel>,
+
+    pub node: &'w Node,
+    pub model: Option<&'w Model>,
 }
 
 impl<'w> WeaveTimeline<'w> {
-    pub fn get_text(&self, index: Option<usize>) -> String {
-        todo!()
+    pub fn text(&self) -> String {
+        self.timeline
+            .iter()
+            .filter_map(|(node, _model)| node.content.clone().text())
+            .collect::<Vec<String>>()
+            .concat()
     }
-    pub fn get_annotated_text(&self) -> Vec<AnnotatedSnippet> {
-        todo!()
+    pub fn annotated(&self) -> Vec<AnnotatedSnippet> {
+        self.timeline
+            .iter()
+            .flat_map(|(node, model)| match &node.content {
+                NodeContent::Text(content) => iter::once(AnnotatedSnippet {
+                    node,
+                    content: content.content.clone(),
+                    probability: None,
+                    model: *model,
+                })
+                .collect::<Vec<_>>(),
+                NodeContent::Token(content) => content
+                    .clone()
+                    .snippets()
+                    .into_iter()
+                    .map(|snippet| AnnotatedSnippet {
+                        node,
+                        content: snippet.content,
+                        probability: snippet.probability,
+                        model: *model,
+                    })
+                    .collect::<Vec<_>>(),
+                NodeContent::TextToken(content) => content
+                    .clone()
+                    .snippets()
+                    .into_iter()
+                    .map(|snippet| AnnotatedSnippet {
+                        node,
+                        content: snippet.content,
+                        probability: snippet.probability,
+                        model: *model,
+                    })
+                    .collect::<Vec<_>>(),
+            })
+            .collect()
     }
 }
 
@@ -188,13 +230,16 @@ pub struct TokenNode {
 
 impl TokenNode {
     pub fn text(self) -> String {
-        let data: Vec<u8> = self
-            .content
+        String::from_utf8_lossy(&self.bytes()).to_string()
+    }
+    pub fn bytes(self) -> Vec<u8> {
+        self.content
             .into_iter()
             .flat_map(|token| token.content)
-            .collect();
-
-        String::from_utf8_lossy(&data).to_string()
+            .collect()
+    }
+    pub fn snippets(self) -> Vec<Snippet> {
+        todo!()
     }
 }
 
@@ -202,6 +247,12 @@ impl TokenNode {
 pub struct NodeToken {
     pub probability: Decimal,
     pub content: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
+pub struct Snippet {
+    pub probability: Option<Decimal>,
+    pub content: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
@@ -212,6 +263,9 @@ pub struct TextTokenNode {
 
 impl TextTokenNode {
     pub fn text(self) -> String {
+        String::from_utf8_lossy(&self.bytes()).to_string()
+    }
+    pub fn bytes(self) -> Vec<u8> {
         let mut data = Vec::new();
 
         for content in self.content {
@@ -223,9 +277,35 @@ impl TextTokenNode {
             });
         }
 
-        String::from_utf8_lossy(&data).to_string()
+        data
+    }
+    pub fn snippets(self) -> Vec<Snippet> {
+        todo!()
     }
 }
+
+/*fn into_snippets(tokens: Vec<NodeToken>) -> Vec<Snippet> {
+    let mut data = Vec::new();
+    let mut ranges = Vec::with_capacity(tokens.len());
+
+    for mut content in tokens {
+        ranges.push((
+            Range {
+                start: data.len(),
+                end: data.len() + content.content.len(),
+            },
+            content.probability,
+        ));
+        data.append(&mut content.content);
+    }
+
+    /*let mut tokens = Vec::with_capacity(ranges.len());
+    for range in ranges {
+
+    }*/
+
+    todo!()
+}*/
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum TextOrToken {
