@@ -40,6 +40,7 @@ enum NodeData {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(untagged)]
 enum TextToken {
     Text(String),
     Token(NodeTokens),
