@@ -26,9 +26,7 @@ pub struct Weave {
     model_nodes: HashMap<Ulid, HashSet<Ulid>>,
 }
 
-// ! FIXME: Need to better handle propagation of node active status
 impl Weave {
-    // TODO: Add private function add_node_unchecked
     pub fn add_node(&mut self, node: Node, model: Option<Model>, skip_loop_check: bool) -> bool {
         if self.nodes.contains_key(&node.id) {
             return false;
@@ -54,6 +52,9 @@ impl Weave {
             }
         }
         for parent in &node.from {
+            if node.active {
+                self.update_node_activity(parent, true);
+            }
             if let Some(parent) = self.nodes.get_mut(parent) {
                 parent.to.insert(node.id);
             }
@@ -104,23 +105,10 @@ impl Weave {
             false
         }
     }
-    pub fn update_node_activity(
-        // ! FIXME: Need to propagate deactivation to children
-        &mut self,
-        identifier: &Ulid,
-        active: bool,
-    ) -> bool {
-        self.update_node_parent_activity(identifier, active, true)
-    }
-    fn update_node_parent_activity(
-        &mut self,
-        identifier: &Ulid,
-        active: bool,
-        update_parents: bool,
-    ) -> bool {
+    pub fn update_node_activity(&mut self, identifier: &Ulid, active: bool) {
         if let Some(node) = self.nodes.get(identifier) {
             if node.active == active {
-                return true;
+                return;
             }
 
             let mut is_parent_active = false;
@@ -133,31 +121,53 @@ impl Weave {
                     }
                 }
             }
-            if is_parent_active != active && update_parents {
+
+            if is_parent_active != active {
                 if active {
                     let mut parents: Vec<Ulid> = node.from.iter().copied().collect();
                     parents.sort();
                     if let Some(parent) = parents.first() {
-                        if !self.update_node_parent_activity(parent, true, true) {
-                            return false;
-                        }
+                        self.update_node_activity(parent, true);
                     }
                 } else {
-                    for parent in node.from.clone() {
-                        self.update_node_parent_activity(&parent, false, true);
+                    let children = node.to.clone();
+                    let parents = node.from.clone();
+                    for child in children {
+                        self.update_node_activity(&child, false);
+                    }
+                    for parent in parents {
+                        self.update_node_activity(&parent, false);
                     }
                 }
             }
         }
         if let Some(node) = self.nodes.get_mut(identifier) {
             node.active = active;
-            true
-        } else {
-            false
+        }
+    }
+    fn update_removed_child_activity(&mut self, identifier: &Ulid) {
+        if let Some(node) = self.nodes.get(identifier) {
+            if !node.active {
+                return;
+            }
+
+            for parent in &node.from {
+                if let Some(parent) = self.nodes.get(parent) {
+                    if parent.active {
+                        return;
+                    }
+                }
+            }
+
+            for child in node.to.clone() {
+                self.update_removed_child_activity(&child);
+            }
+        }
+        if let Some(node) = self.nodes.get_mut(identifier) {
+            node.active = false;
         }
     }
     pub fn remove_node(
-        // ! FIXME: Need to handle removal of active nodes
         // TODO: Determine remove_children automatically
         &mut self,
         identifier: &Ulid,
@@ -176,6 +186,8 @@ impl Weave {
                 }
                 if remove_children {
                     self.remove_node(child, true);
+                } else if node.active {
+                    self.update_removed_child_activity(child);
                 }
             }
             if let Some(node_model) = node.content.model() {
