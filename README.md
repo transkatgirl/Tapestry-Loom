@@ -28,6 +28,35 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 	- Support for completions with multiple different models at a time
 	- Support for custom JSON/headers, similar to [loomsidian](https://github.com/cosmicoptima/loom)
 
+<!--
+
+### Tapestry Loom v1
+
+- DAG-based completion management
+	- Nodes are immutable to prevent accidentally deleting completion history
+		- Nodes can be bookmarked, split, and merged
+	- Node metadata: Model + inference parameters used, time generated, and token probabilities (if available)
+	- Nodes can be inserted at any point of the graph, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
+	- Completion graph can be stored within document for easy sharing
+	- Proofreading Mode: Freezes the completion graph and stores further modifications as diffs, inspired by [minihf's loom](https://github.com/JD-P/minihf)
+- Tree-based graph view, similar to [loomsidian](https://github.com/cosmicoptima/loom)
+- Graph view, similar to [exoloom](https://exoloom.io)
+- Node list view, similar to [loomsidian](https://github.com/cosmicoptima/loom) and [exoloom](https://exoloom.io)
+- Editor overlay view, similar to [loomsidian](https://github.com/cosmicoptima/loom)
+	- Token probability display in editor, similar to [loom](https://github.com/socketteer/loom)
+	- Prompt token probability display in editor
+- Global "prefix multiverse" tree view, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
+- Automatic creation of single-token probability nodes, similar to [logitloom](https://github.com/vgel/logitloom)
+- Support for embedding-based node sorting & grouping (inspired by this [blog post](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it))
+- Recursive completion generation, similar to [loom](https://github.com/socketteer/loom) and [logitloom](https://github.com/vgel/logitloom)
+- Color coding by model used (requires a model color to be configured)
+- Node metadata display on hover (currently only in list and editor), similar to [exoloom](https://exoloom.io)
+- Flexible LLM API client
+	- Support for completions with multiple different models at a time
+	- Support for custom JSON/headers, similar to [loomsidian](https://github.com/cosmicoptima/loom)
+
+-->
+
 <details>
 <summary>Screenshots</summary>
 
@@ -60,13 +89,13 @@ Development may be intermittent, with long periods of inactivity between periods
 
 #### Tapestry Loom v1-beta
 
-- Weave format unit tests & finalization
-	- Merging of v1-beta to main branch
-- Support for displaying prompt logprobs if returned by API
-- Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
-	- If the specification is not ready by v1, support for Standard Completions will be delayed to v2
-- Embedding model support:
-	- Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
+- [ ] Weave format unit tests & finalization
+	- [ ] Merging of v1-beta to main branch
+- [ ] Support for displaying prompt logprobs if returned by API
+- [ ] Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
+	- [ ] If the specification is not ready by v1, support for Standard Completions will be delayed to v2
+- [ ] Embedding model support:
+	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 
 #### Tapestry Loom v1-rc
 

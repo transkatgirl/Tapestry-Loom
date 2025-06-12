@@ -23,16 +23,19 @@ use ulid::Ulid;
 #[derive(Serialize, Deserialize)]
 pub struct CompactWeave {
     version: u64,
+
     // Sorted from lowest depth to highest depth
     nodes: Vec<(u128, Node)>,
-    active_nodes: HashSet<u128>,
+    active: HashSet<u128>,
+    bookmarked: HashSet<u128>,
+
     models: HashMap<u128, Model>,
 }
 
 #[derive(Serialize, Deserialize)]
 struct Model {
     label: String,
-    style: Option<String>,
+    color: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -150,7 +153,7 @@ impl TryFrom<CompactWeave> for InteractiveWeave {
                     super::Model {
                         id: Ulid(id),
                         label: model.label,
-                        style: model.style,
+                        color: model.color,
                     },
                 )
             })

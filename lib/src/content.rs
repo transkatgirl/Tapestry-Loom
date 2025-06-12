@@ -176,6 +176,7 @@ pub struct Node {
     pub to: HashSet<Ulid>,
     pub from: HashSet<Ulid>,
     pub active: bool,
+    pub bookmarked: bool,
     pub content: NodeContent,
 }
 
@@ -258,11 +259,11 @@ impl Weave {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Model {
     pub id: Ulid,
     pub label: String,
-    pub style: Option<String>,
+    pub color: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]

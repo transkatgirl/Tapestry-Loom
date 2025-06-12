@@ -174,6 +174,11 @@ impl Weave {
             node.active = active;
         }
     }
+    pub fn update_node_bookmarked_status(&mut self, identifier: &Ulid, bookmarked: bool) {
+        if let Some(node) = self.nodes.get_mut(identifier) {
+            node.bookmarked = bookmarked;
+        }
+    }
     fn update_removed_child_activity(&mut self, identifier: &Ulid) {
         if let Some(node) = self.nodes.get(identifier) {
             if !node.active {
@@ -335,6 +340,7 @@ mod tests {
             to: HashSet::from_iter(to),
             from: HashSet::from_iter(from),
             active: false,
+            bookmarked: false,
             content: NodeContent::Blank,
         }
     }
