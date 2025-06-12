@@ -186,7 +186,7 @@ pub struct AnnotatedSnippet<'w> {
     pub content: String,
     pub probability: Option<Decimal>,
 
-    pub node: &'w Node,
+    pub node: Option<&'w Node>,
     pub model: Option<&'w Model>,
 }
 
@@ -203,7 +203,7 @@ impl<'w> WeaveTimeline<'w> {
             .iter()
             .flat_map(|(node, model)| match &node.content {
                 NodeContent::Text(content) => iter::once(AnnotatedSnippet {
-                    node,
+                    node: Some(node),
                     content: content.content.clone(),
                     probability: None,
                     model: *model,
@@ -214,7 +214,7 @@ impl<'w> WeaveTimeline<'w> {
                     .snippets()
                     .into_iter()
                     .map(|snippet| AnnotatedSnippet {
-                        node,
+                        node: Some(node),
                         content: snippet.content,
                         probability: snippet.probability,
                         model: *model,
@@ -225,14 +225,14 @@ impl<'w> WeaveTimeline<'w> {
                     .snippets()
                     .into_iter()
                     .map(|snippet| AnnotatedSnippet {
-                        node,
+                        node: Some(node),
                         content: snippet.content,
                         probability: snippet.probability,
                         model: *model,
                     })
                     .collect::<Vec<_>>(),
                 NodeContent::Blank => iter::once(AnnotatedSnippet {
-                    node,
+                    node: Some(node),
                     content: "".to_string(),
                     probability: None,
                     model: None,
@@ -550,7 +550,7 @@ impl Modification {
     fn apply_text(&self, text: &mut str) {
         todo!()
     }
-    fn apply_annotated(&self, content: &mut [AnnotatedSnippet]) {
+    fn apply_annotated(&self, content: &mut Vec<AnnotatedSnippet>) {
         todo!()
     }
 }
