@@ -151,8 +151,9 @@ impl FrozenWeave {
         WeaveSnapshot::from(&self.weave)
     }
     pub fn text(&self) -> String {
-        let text = self.weave.get_active_timelines()[self.timeline].text();
-        self.changes.apply(&text)
+        let mut text = self.weave.get_active_timelines()[self.timeline].text();
+        self.changes.apply(&mut text);
+        text
     }
     pub fn content(&self) -> Vec<AnnotatedSnippet> {
         let mut annotations = self
@@ -471,11 +472,15 @@ impl Diff {
     pub fn new(before: &str, after: &str) -> Self {
         todo!()
     }
-    pub fn apply(&self, before: &str) -> String {
-        todo!()
+    pub fn apply(&self, text: &mut str) {
+        for modification in &self.content {
+            modification.apply_text(text);
+        }
     }
-    fn apply_annotated(&self, content: &mut [AnnotatedSnippet]) {
-        todo!()
+    pub fn apply_annotated(&self, content: &mut Vec<AnnotatedSnippet>) {
+        for modification in &self.content {
+            modification.apply_annotated(content);
+        }
     }
 }
 
