@@ -9,7 +9,6 @@ pub mod prefix;
 use crate::content::{Model, Node, WeaveTimeline};
 
 /* TODO:
-- Node content deduplication
 - Update API terminology to borrow more terms from actual tapestry making
 - Documentation
 - Unit tests
@@ -40,19 +39,33 @@ impl Weave {
         mut node: Node,
         model: Option<Model>,
         skip_loop_check: bool,
-    ) -> bool {
+        deduplicate: bool,
+    ) -> Option<Ulid> {
         if self.nodes.contains_key(&node.id) {
-            return false;
+            return None;
         }
         if !skip_loop_check {
             for parent in &node.from {
                 if self.has_parent_loop(parent, None) {
-                    return false;
+                    return None;
                 }
             }
             for child in &node.to {
                 if self.has_child_loop(child, None) {
-                    return false;
+                    return None;
+                }
+            }
+        }
+        if deduplicate {
+            for parent in node.from.iter().filter_map(|id| self.nodes.get(id)) {
+                for parent_child in parent.to.iter().filter_map(|id| self.nodes.get(id)) {
+                    if parent_child.content == node.content {
+                        let identifier = parent_child.id;
+                        if parent_child.active != node.active {
+                            self.update_node_activity(&identifier, node.active);
+                        }
+                        return Some(identifier);
+                    }
                 }
             }
         }
@@ -90,9 +103,10 @@ impl Weave {
                 }
             }
         }
-        self.nodes.insert(node.id, node);
+        let identifier = node.id;
+        self.nodes.insert(identifier, node);
 
-        true
+        Some(identifier)
     }
     fn has_parent_loop(&self, identifier: &Ulid, start: Option<&Ulid>) -> bool {
         let start = start.unwrap_or(identifier);
@@ -130,12 +144,10 @@ impl Weave {
 
             let mut is_parent_active = false;
 
-            for parent in &node.from {
-                if let Some(parent) = self.nodes.get(parent) {
-                    if parent.active {
-                        is_parent_active = true;
-                        break;
-                    }
+            for parent in node.from.iter().filter_map(|id| self.nodes.get(id)) {
+                if parent.active {
+                    is_parent_active = true;
+                    break;
                 }
             }
 
@@ -168,11 +180,9 @@ impl Weave {
                 return;
             }
 
-            for parent in &node.from {
-                if let Some(parent) = self.nodes.get(parent) {
-                    if parent.active {
-                        return;
-                    }
+            for parent in node.from.iter().filter_map(|id| self.nodes.get(id)) {
+                if parent.active {
+                    return;
                 }
             }
         }
@@ -341,57 +351,97 @@ mod tests {
         let child_node_4_identifier = Ulid::new();
         let child_node_5_identifier = Ulid::new();
         let child_node_6_identifier = Ulid::new();
-        assert!(weave.add_node(
-            blank_moveable_node(root_node_identifier, [], []),
-            None,
-            false,
-        ));
+        assert!(
+            weave
+                .add_node(
+                    blank_moveable_node(root_node_identifier, [], []),
+                    None,
+                    false,
+                    false
+                )
+                .is_some()
+        );
         {
             assert!(weave.root_nodes == BTreeSet::from([root_node_identifier]));
             let root_node_1 = weave.nodes.get(&root_node_identifier).unwrap();
             assert!(root_node_1.from.is_empty());
             assert!(root_node_1.to.is_empty());
         }
-        assert!(weave.add_node(
-            blank_moveable_node(root_node_2_identifier, [], []),
-            None,
-            false,
-        ));
+        assert!(
+            weave
+                .add_node(
+                    blank_moveable_node(root_node_2_identifier, [], []),
+                    None,
+                    false,
+                    false
+                )
+                .is_some()
+        );
 
-        assert!(weave.add_node(
-            blank_moveable_node(child_node_1_identifier, [root_node_identifier], []),
-            None,
-            false,
-        ));
-        assert!(weave.add_node(
-            blank_moveable_node(child_node_2_identifier, [root_node_identifier], []),
-            None,
-            false,
-        ));
-        assert!(weave.add_node(
-            blank_moveable_node(child_node_3_identifier, [child_node_2_identifier], []),
-            None,
-            false,
-        ));
-        assert!(weave.add_node(
-            blank_moveable_node(child_node_4_identifier, [child_node_3_identifier], []),
-            None,
-            false,
-        ));
-        assert!(weave.add_node(
-            blank_moveable_node(
-                child_node_5_identifier,
-                [child_node_3_identifier, child_node_4_identifier],
-                []
-            ),
-            None,
-            false,
-        ));
-        assert!(weave.add_node(
-            blank_moveable_node(child_node_6_identifier, [child_node_5_identifier], []),
-            None,
-            false,
-        ));
+        assert!(
+            weave
+                .add_node(
+                    blank_moveable_node(child_node_1_identifier, [root_node_identifier], []),
+                    None,
+                    false,
+                    false
+                )
+                .is_some()
+        );
+        assert!(
+            weave
+                .add_node(
+                    blank_moveable_node(child_node_2_identifier, [root_node_identifier], []),
+                    None,
+                    false,
+                    false
+                )
+                .is_some()
+        );
+        assert!(
+            weave
+                .add_node(
+                    blank_moveable_node(child_node_3_identifier, [child_node_2_identifier], []),
+                    None,
+                    false,
+                    false
+                )
+                .is_some()
+        );
+        assert!(
+            weave
+                .add_node(
+                    blank_moveable_node(child_node_4_identifier, [child_node_3_identifier], []),
+                    None,
+                    false,
+                    false
+                )
+                .is_some()
+        );
+        assert!(
+            weave
+                .add_node(
+                    blank_moveable_node(
+                        child_node_5_identifier,
+                        [child_node_3_identifier, child_node_4_identifier],
+                        []
+                    ),
+                    None,
+                    false,
+                    false
+                )
+                .is_some()
+        );
+        assert!(
+            weave
+                .add_node(
+                    blank_moveable_node(child_node_6_identifier, [child_node_5_identifier], []),
+                    None,
+                    false,
+                    false
+                )
+                .is_some()
+        );
         {
             assert!(
                 weave.root_nodes == BTreeSet::from([root_node_identifier, root_node_2_identifier])
