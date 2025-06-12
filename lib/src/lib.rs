@@ -4,6 +4,7 @@ use ulid::Ulid;
 
 pub mod content;
 pub mod format;
+pub mod prefix;
 
 use crate::content::{Model, Node, WeaveTimeline};
 
@@ -17,6 +18,12 @@ use crate::content::{Model, Node, WeaveTimeline};
     - Node loop checking
     - Node activation
     - Node content deduplication */
+
+pub trait WeaveView {
+    fn get_node(&self, identifier: &Ulid) -> (Option<&Node>, Option<&Model>);
+    fn get_root_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)>;
+    fn get_active_timelines(&self) -> Vec<WeaveTimeline>;
+}
 
 #[derive(Default, Debug, PartialEq)]
 pub struct Weave {
@@ -205,58 +212,6 @@ impl Weave {
             }
         }
     }
-    pub fn get_node(&self, identifier: &Ulid) -> (Option<&Node>, Option<&Model>) {
-        let node = self.nodes.get(identifier);
-        let model = node
-            .and_then(|node| node.content.model())
-            .and_then(|node_model| self.models.get(&node_model.id));
-
-        (node, model)
-    }
-    pub fn get_root_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)> {
-        self.root_nodes
-            .iter()
-            .flat_map(|identifier| self.nodes.get(identifier))
-            .map(|node| {
-                (
-                    node,
-                    node.content
-                        .model()
-                        .and_then(|node_model| self.models.get(&node_model.id)),
-                )
-            })
-    }
-    pub fn get_active_timelines(&self) -> Vec<WeaveTimeline> {
-        let mut timelines: Vec<Vec<&Node>> = self
-            .root_nodes
-            .iter()
-            .flat_map(|identifier| self.nodes.get(identifier))
-            .filter(|node| node.active)
-            .map(|node| Vec::from([node]))
-            .collect();
-        self.build_timelines(&mut timelines);
-
-        let mut hydrated_timelines: Vec<WeaveTimeline<'_>> = timelines
-            .iter()
-            .map(|timeline| WeaveTimeline {
-                timeline: timeline
-                    .iter()
-                    .map(|node| {
-                        (
-                            *node,
-                            node.content
-                                .model()
-                                .and_then(|node_model| self.models.get(&node_model.id)),
-                        )
-                    })
-                    .collect(),
-            })
-            .collect();
-
-        hydrated_timelines.sort_by_key(|timeline| timeline.timeline.len());
-
-        hydrated_timelines
-    }
     fn build_timelines<'a>(&'a self, timelines: &mut Vec<Vec<&'a Node>>) {
         let mut new_timelines = Vec::new();
         let mut modified = false;
@@ -291,6 +246,61 @@ impl Weave {
         if modified {
             self.build_timelines(timelines);
         }
+    }
+}
+
+impl WeaveView for Weave {
+    fn get_node(&self, identifier: &Ulid) -> (Option<&Node>, Option<&Model>) {
+        let node = self.nodes.get(identifier);
+        let model = node
+            .and_then(|node| node.content.model())
+            .and_then(|node_model| self.models.get(&node_model.id));
+
+        (node, model)
+    }
+    fn get_root_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)> {
+        self.root_nodes
+            .iter()
+            .flat_map(|identifier| self.nodes.get(identifier))
+            .map(|node| {
+                (
+                    node,
+                    node.content
+                        .model()
+                        .and_then(|node_model| self.models.get(&node_model.id)),
+                )
+            })
+    }
+    fn get_active_timelines(&self) -> Vec<WeaveTimeline> {
+        let mut timelines: Vec<Vec<&Node>> = self
+            .root_nodes
+            .iter()
+            .flat_map(|identifier| self.nodes.get(identifier))
+            .filter(|node| node.active)
+            .map(|node| Vec::from([node]))
+            .collect();
+        self.build_timelines(&mut timelines);
+
+        let mut hydrated_timelines: Vec<WeaveTimeline<'_>> = timelines
+            .iter()
+            .map(|timeline| WeaveTimeline {
+                timeline: timeline
+                    .iter()
+                    .map(|node| {
+                        (
+                            *node,
+                            node.content
+                                .model()
+                                .and_then(|node_model| self.models.get(&node_model.id)),
+                        )
+                    })
+                    .collect(),
+            })
+            .collect();
+
+        hydrated_timelines.sort_by_key(|timeline| timeline.timeline.len());
+
+        hydrated_timelines
     }
 }
 

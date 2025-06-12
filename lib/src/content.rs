@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use ulid::Ulid;
 
-use crate::Weave;
+use crate::{Weave, WeaveView};
 
 /* TODO:
 - Weave node sorting API
@@ -26,6 +26,101 @@ pub struct WeaveSnapshot<'w> {
     pub root_nodes: &'w BTreeSet<Ulid>,
 }
 
+// Copied from Weave's implementation of build_timelines(); shouldn't require additional unit tests
+impl<'w> WeaveSnapshot<'w> {
+    fn build_timelines<'a>(&'a self, timelines: &mut Vec<Vec<&'a Node>>) {
+        let mut new_timelines = Vec::new();
+        let mut modified = false;
+
+        for timeline in timelines.iter_mut() {
+            if let Some(node) = timeline.last() {
+                let mut added_node = false;
+
+                for child in node
+                    .to
+                    .iter()
+                    .filter_map(|id| self.nodes.get(id))
+                    .filter(|node| node.active)
+                {
+                    if !added_node {
+                        timeline.push(child);
+                        added_node = true;
+                    } else {
+                        let mut new_timeline = timeline.clone();
+                        new_timeline.pop();
+                        new_timeline.push(child);
+                        new_timelines.push(new_timeline);
+                    }
+
+                    modified = true;
+                }
+            }
+        }
+        for timeline in new_timelines.into_iter() {
+            timelines.push(timeline);
+        }
+        if modified {
+            self.build_timelines(timelines);
+        }
+    }
+}
+
+// Copied from Weave's implementation of WeaveView; shouldn't require additional unit tests
+impl<'w> WeaveView for WeaveSnapshot<'w> {
+    fn get_node(&self, identifier: &Ulid) -> (Option<&Node>, Option<&Model>) {
+        let node = self.nodes.get(identifier);
+        let model = node
+            .and_then(|node| node.content.model())
+            .and_then(|node_model| self.models.get(&node_model.id));
+
+        (node, model)
+    }
+    fn get_root_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)> {
+        self.root_nodes
+            .iter()
+            .flat_map(|identifier| self.nodes.get(identifier))
+            .map(|node| {
+                (
+                    node,
+                    node.content
+                        .model()
+                        .and_then(|node_model| self.models.get(&node_model.id)),
+                )
+            })
+    }
+    fn get_active_timelines(&self) -> Vec<WeaveTimeline> {
+        let mut timelines: Vec<Vec<&Node>> = self
+            .root_nodes
+            .iter()
+            .flat_map(|identifier| self.nodes.get(identifier))
+            .filter(|node| node.active)
+            .map(|node| Vec::from([node]))
+            .collect();
+        self.build_timelines(&mut timelines);
+
+        let mut hydrated_timelines: Vec<WeaveTimeline<'_>> = timelines
+            .iter()
+            .map(|timeline| WeaveTimeline {
+                timeline: timeline
+                    .iter()
+                    .map(|node| {
+                        (
+                            *node,
+                            node.content
+                                .model()
+                                .and_then(|node_model| self.models.get(&node_model.id)),
+                        )
+                    })
+                    .collect(),
+            })
+            .collect();
+
+        hydrated_timelines.sort_by_key(|timeline| timeline.timeline.len());
+
+        hydrated_timelines
+    }
+}
+
 impl<'w> From<&'w Weave> for WeaveSnapshot<'w> {
     fn from(input: &'w Weave) -> WeaveSnapshot<'w> {
         Self {
@@ -33,6 +128,32 @@ impl<'w> From<&'w Weave> for WeaveSnapshot<'w> {
             models: &input.models,
             root_nodes: &input.root_nodes,
         }
+    }
+}
+
+pub struct FrozenWeave {
+    weave: Weave,
+    timeline: usize,
+    changes: Diff,
+}
+
+impl FrozenWeave {
+    pub fn weave(&self) -> WeaveSnapshot {
+        WeaveSnapshot::from(&self.weave)
+    }
+    pub fn text(&self) -> String {
+        let text = self.weave.get_active_timelines()[self.timeline].text();
+        self.changes.apply(&text)
+    }
+    pub fn content(&self) -> (WeaveTimeline, &Diff) {
+        (
+            self.weave.get_active_timelines()[self.timeline].clone(),
+            &self.changes,
+        )
+    }
+    pub fn update(&mut self, content: &str) {
+        let before = self.text();
+        self.changes = Diff::new(&before, content);
     }
 }
 
@@ -391,12 +512,15 @@ pub enum TextOrToken {
     Token(Vec<NodeToken>),
 }
 
-/*#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct Diff {
     pub content: Vec<Modification>,
 }
 
 impl Diff {
+    pub fn new(before: &str, after: &str) -> Self {
+        todo!()
+    }
     pub fn apply(&self, before: &str) -> String {
         todo!()
     }
@@ -426,4 +550,3 @@ pub enum ModificationType {
     Insertion,
     Deletion,
 }
-*/
