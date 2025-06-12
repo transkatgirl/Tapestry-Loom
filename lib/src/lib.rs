@@ -6,7 +6,7 @@ pub mod content;
 pub mod format;
 pub mod prefix;
 
-use crate::content::{Model, Node, WeaveTimeline};
+use crate::content::{Model, Node, NodeContents, WeaveTimeline};
 
 /* TODO:
 - Update API terminology to borrow more terms from actual tapestry making

@@ -202,6 +202,13 @@ impl<'w> WeaveTimeline<'w> {
             .collect::<Vec<String>>()
             .concat()
     }
+    pub fn bytes(&self) -> Vec<u8> {
+        self.timeline
+            .iter()
+            .filter_map(|(node, _model)| node.content.clone().bytes())
+            .flatten()
+            .collect()
+    }
     pub fn annotated(&self) -> Vec<AnnotatedSnippet<'w>> {
         self.timeline
             .iter()
@@ -274,20 +281,41 @@ pub enum NodeContent {
     Blank,
 }
 
+pub trait NodeContents {
+    fn model(&self) -> Option<&NodeModel>;
+}
+
+pub trait TextualNodeContents: NodeContents {
+    fn text(self) -> String;
+    fn bytes(self) -> Vec<u8>;
+    fn snippets(self) -> Vec<Snippet>;
+}
+
+impl NodeContents for NodeContent {
+    fn model(&self) -> Option<&NodeModel> {
+        match self {
+            Self::Text(content) => content.model(),
+            Self::Token(content) => content.model(),
+            Self::TextToken(content) => content.model(),
+            Self::Blank => None,
+        }
+    }
+}
+
 impl NodeContent {
     pub fn text(self) -> Option<String> {
         match self {
-            Self::Text(content) => Some(content.content),
+            Self::Text(content) => Some(content.text()),
             Self::Token(content) => Some(content.text()),
             Self::TextToken(content) => Some(content.text()),
             Self::Blank => None,
         }
     }
-    pub fn model(&self) -> Option<&NodeModel> {
+    pub fn bytes(self) -> Option<Vec<u8>> {
         match self {
-            Self::Text(content) => content.model.as_ref(),
-            Self::Token(content) => content.model.as_ref(),
-            Self::TextToken(content) => content.model.as_ref(),
+            Self::Text(content) => Some(content.bytes()),
+            Self::Token(content) => Some(content.bytes()),
+            Self::TextToken(content) => Some(content.bytes()),
             Self::Blank => None,
         }
     }
@@ -305,23 +333,50 @@ pub struct TextNode {
     pub model: Option<NodeModel>,
 }
 
+impl NodeContents for TextNode {
+    fn model(&self) -> Option<&NodeModel> {
+        self.model.as_ref()
+    }
+}
+
+impl TextualNodeContents for TextNode {
+    fn text(self) -> String {
+        self.content
+    }
+    fn bytes(self) -> Vec<u8> {
+        self.content.into_bytes()
+    }
+    fn snippets(self) -> Vec<Snippet> {
+        vec![Snippet {
+            probability: None,
+            content: self.content,
+        }]
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct TokenNode {
     pub content: Vec<NodeToken>,
     pub model: Option<NodeModel>,
 }
 
-impl TokenNode {
-    pub fn text(self) -> String {
+impl NodeContents for TokenNode {
+    fn model(&self) -> Option<&NodeModel> {
+        self.model.as_ref()
+    }
+}
+
+impl TextualNodeContents for TokenNode {
+    fn text(self) -> String {
         String::from_utf8_lossy(&self.bytes()).to_string()
     }
-    pub fn bytes(self) -> Vec<u8> {
+    fn bytes(self) -> Vec<u8> {
         self.content
             .into_iter()
             .flat_map(|token| token.content)
             .collect()
     }
-    pub fn snippets(self) -> Vec<Snippet> {
+    fn snippets(self) -> Vec<Snippet> {
         let mut index = 0;
         let mut ranges = Vec::with_capacity(self.content.len());
 
@@ -359,11 +414,17 @@ pub struct TextTokenNode {
     pub model: Option<NodeModel>,
 }
 
-impl TextTokenNode {
-    pub fn text(self) -> String {
+impl NodeContents for TextTokenNode {
+    fn model(&self) -> Option<&NodeModel> {
+        self.model.as_ref()
+    }
+}
+
+impl TextualNodeContents for TextTokenNode {
+    fn text(self) -> String {
         String::from_utf8_lossy(&self.bytes()).to_string()
     }
-    pub fn bytes(self) -> Vec<u8> {
+    fn bytes(self) -> Vec<u8> {
         let mut data = Vec::new();
 
         for content in self.content {
@@ -377,7 +438,7 @@ impl TextTokenNode {
 
         data
     }
-    pub fn snippets(self) -> Vec<Snippet> {
+    fn snippets(self) -> Vec<Snippet> {
         let mut index = 0;
         let mut ranges = Vec::with_capacity(self.content.len());
 

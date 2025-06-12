@@ -7,8 +7,6 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 
 ## Included features
 
-### Tapestry Loom v0
-
 - Tree-based completion management
 	- Nodes include metadata about the model and inference parameters used, along with a timestamp
 	- Nodes include token probabilities when available
@@ -28,12 +26,10 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 	- Support for completions with multiple different models at a time
 	- Support for custom JSON/headers, similar to [loomsidian](https://github.com/cosmicoptima/loom)
 
-<!--
-
-### Tapestry Loom v1
+<!-- use below feature list for v1-rc
 
 - DAG-based completion management
-	- Nodes are immutable to prevent accidentally deleting completion history
+	- Nodes are immutable to prevent accidentally modifying completion history
 		- Nodes can be bookmarked, split, and merged
 	- Node metadata: Model + inference parameters used, time generated, and token probabilities (if available)
 	- Nodes can be inserted at any point of the graph, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
@@ -77,8 +73,9 @@ Development may be intermittent, with long periods of inactivity between periods
 #### Tapestry Loom v1-alpha
 
 - [ ] Improve weave format to improve flexibility and efficiency:
-	- [ ] Stabilize weave format; Implement weave data structure & serialization+deserialization as a Rust library loaded via WASM
-		- [ ] Implement binary nodes to improve handling of invalid unicode
+	- [ ] Implement weave data structure & serialization+deserialization as a Rust library loaded via WASM
+		- [x] Implement binary nodes to improve handling of invalid unicode
+		- [ ] Implement unit testing for the Rust library
 	- [ ] Add support for FIM completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- [ ] Add support for content diff nodes for user modifications, similar to [minihf's loom](https://github.com/JD-P/minihf)
 	- [ ] Add support for displaying alternate token probabilities on hover, similar to [loom](https://github.com/socketteer/loom)
@@ -86,16 +83,16 @@ Development may be intermittent, with long periods of inactivity between periods
 		- [ ] Allow graceful handling of editor undo/redo functionality
 	- [ ] Implement weave format v0 -> v1 conversion
 - [ ] Prefix multiverse view: A global weave containing the first few nodes of all documents in the vault with each unique node having a link to its corresponding document, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
+- [ ] Weave format stabilization & finalization
 
 #### Tapestry Loom v1-beta
 
-- [ ] Weave format unit tests & finalization
-	- [ ] Merging of v1-beta to main branch
 - [ ] Support for displaying prompt logprobs if returned by API
 - [ ] Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
 	- [ ] If the specification is not ready by v1, support for Standard Completions will be delayed to v2
 - [ ] Embedding model support:
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
+- [ ] Merging of v1 to main branch
 
 #### Tapestry Loom v1-rc
 
