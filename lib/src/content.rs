@@ -27,7 +27,7 @@ pub struct WeaveSnapshot<'w> {
 }
 
 // Copied from Weave's implementation of build_timelines(); shouldn't require additional unit tests
-impl<'w> WeaveSnapshot<'w> {
+impl WeaveSnapshot<'_> {
     fn build_timelines<'a>(&'a self, timelines: &mut Vec<Vec<&'a Node>>) {
         let mut new_timelines = Vec::new();
         let mut modified = false;
@@ -42,21 +42,21 @@ impl<'w> WeaveSnapshot<'w> {
                     .filter_map(|id| self.nodes.get(id))
                     .filter(|node| node.active)
                 {
-                    if !added_node {
-                        timeline.push(child);
-                        added_node = true;
-                    } else {
+                    if added_node {
                         let mut new_timeline = timeline.clone();
                         new_timeline.pop();
                         new_timeline.push(child);
                         new_timelines.push(new_timeline);
+                    } else {
+                        timeline.push(child);
+                        added_node = true;
                     }
 
                     modified = true;
                 }
             }
         }
-        for timeline in new_timelines.into_iter() {
+        for timeline in new_timelines {
             timelines.push(timeline);
         }
         if modified {
@@ -66,7 +66,7 @@ impl<'w> WeaveSnapshot<'w> {
 }
 
 // Copied from Weave's implementation of WeaveView; shouldn't require additional unit tests
-impl<'w> WeaveView for WeaveSnapshot<'w> {
+impl WeaveView for WeaveSnapshot<'_> {
     fn get_node(&self, identifier: &Ulid) -> (Option<&Node>, Option<&Model>) {
         let node = self.nodes.get(identifier);
         let model = node
@@ -78,7 +78,7 @@ impl<'w> WeaveView for WeaveSnapshot<'w> {
     fn get_root_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)> {
         self.root_nodes
             .iter()
-            .flat_map(|identifier| self.nodes.get(identifier))
+            .filter_map(|identifier| self.nodes.get(identifier))
             .map(|node| {
                 (
                     node,
@@ -92,7 +92,7 @@ impl<'w> WeaveView for WeaveSnapshot<'w> {
         let mut timelines: Vec<Vec<&Node>> = self
             .root_nodes
             .iter()
-            .flat_map(|identifier| self.nodes.get(identifier))
+            .filter_map(|identifier| self.nodes.get(identifier))
             .filter(|node| node.active)
             .map(|node| Vec::from([node]))
             .collect();
@@ -244,7 +244,7 @@ impl<'w> WeaveTimeline<'w> {
                     .collect::<Vec<_>>(),
                 NodeContent::Blank => iter::once(AnnotatedSnippet {
                     node: Some(node),
-                    content: "".to_string(),
+                    content: String::new(),
                     probability: None,
                     model: None,
                 })
@@ -392,7 +392,7 @@ impl TextualNodeContents for TokenNode {
 
         let data = self.bytes();
 
-        into_snippets(data, ranges)
+        into_snippets(&data, ranges)
     }
 }
 
@@ -469,15 +469,15 @@ impl TextualNodeContents for TextTokenNode {
 
         let data = self.bytes();
 
-        into_snippets(data, ranges)
+        into_snippets(&data, ranges)
     }
 }
 
-fn into_snippets(data: Vec<u8>, ranges: Vec<(Range<usize>, Option<Decimal>)>) -> Vec<Snippet> {
+fn into_snippets(data: &[u8], ranges: Vec<(Range<usize>, Option<Decimal>)>) -> Vec<Snippet> {
     let mut snippets: Vec<Snippet> = Vec::with_capacity(ranges.len());
     let mut last_range: Range<usize> = Range::default();
 
-    for (mut range, probability) in ranges.into_iter() {
+    for (mut range, probability) in ranges {
         if last_range.end >= range.end {
             if let Some(snippet) = snippets.last_mut() {
                 if let (Some(last_probability), Some(current_probability)) =
@@ -500,16 +500,16 @@ fn into_snippets(data: Vec<u8>, ranges: Vec<(Range<usize>, Option<Decimal>)>) ->
                     content: text.to_string(),
                 });
                 break;
-            } else {
-                range.end += 1;
-                if range.end >= data.len() {
-                    range = original_range;
-                    snippets.push(Snippet {
-                        probability,
-                        content: String::from_utf8_lossy(&data[range.start..range.end]).to_string(),
-                    });
-                    break;
-                }
+            }
+
+            range.end += 1;
+            if range.end >= data.len() {
+                range = original_range;
+                snippets.push(Snippet {
+                    probability,
+                    content: String::from_utf8_lossy(&data[range.start..range.end]).to_string(),
+                });
+                break;
             }
         }
 

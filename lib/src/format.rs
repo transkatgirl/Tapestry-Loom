@@ -239,7 +239,7 @@ impl TryFrom<CompactWeave> for InteractiveWeave {
             .collect();
 
         let mut tail_diff = None;
-        for (identifier, (content, parents)) in input.nodes.into_iter() {
+        for (identifier, (content, parents)) in input.nodes {
             if let NodeData::Diff(raw_diff) = &content {
                 if tail_diff.is_some() {
                     return Err(WeaveError::FailedInteractive(
@@ -257,9 +257,10 @@ impl TryFrom<CompactWeave> for InteractiveWeave {
                                         "Unable to parse Diff index".to_string(),
                                     )
                                 })?,
-                                r#type: match insertion {
-                                    true => super::content::ModificationType::Insertion,
-                                    false => super::content::ModificationType::Deletion,
+                                r#type: if insertion {
+                                    super::content::ModificationType::Insertion
+                                } else {
+                                    super::content::ModificationType::Deletion
                                 },
                                 content,
                             })
@@ -269,33 +270,33 @@ impl TryFrom<CompactWeave> for InteractiveWeave {
 
                 tail_diff = Some(diff);
                 continue;
-            } else {
-                let model = content.model().and_then(|m| models.get(&m.0));
-                let node = super::content::Node {
-                    id: Ulid(identifier),
-                    from: parents.into_iter().map(Ulid).collect(),
-                    to: HashSet::new(),
-                    active: input.active.contains(&identifier),
-                    bookmarked: input.bookmarked.contains(&identifier),
-                    content: super::content::NodeContent::try_from(content)?,
-                };
-
-                weave.add_node(node, model.cloned(), true, false);
             }
+
+            let model = content.model().and_then(|m| models.get(&m.0));
+            let node = super::content::Node {
+                id: Ulid(identifier),
+                from: parents.into_iter().map(Ulid).collect(),
+                to: HashSet::new(),
+                active: input.active.contains(&identifier),
+                bookmarked: input.bookmarked.contains(&identifier),
+                content: super::content::NodeContent::try_from(content)?,
+            };
+
+            weave.add_node(node, model.cloned(), true, false);
         }
 
         match tail_diff {
             Some(changes) => {
-                if weave.get_active_timelines().len() != 1 {
-                    Err(WeaveError::FailedInteractive(
-                        "Unable to find activated timeline".to_string(),
-                    ))
-                } else {
+                if weave.get_active_timelines().len() == 1 {
                     FrozenWeave::new(weave, 0, changes)
                         .map(InteractiveWeave::Frozen)
                         .ok_or(WeaveError::FailedInteractive(
                             "Unable to find activated timeline".to_string(),
                         ))
+                } else {
+                    Err(WeaveError::FailedInteractive(
+                        "Unable to find activated timeline".to_string(),
+                    ))
                 }
             }
             None => Ok(InteractiveWeave::Plain(weave)),

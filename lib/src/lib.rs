@@ -1,3 +1,8 @@
+#![warn(clippy::pedantic)]
+#![allow(clippy::must_use_candidate)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::doc_markdown)]
+
 use std::collections::{BTreeSet, HashMap, HashSet, hash_map::Entry};
 
 use ulid::Ulid;
@@ -240,21 +245,21 @@ impl Weave {
                     .filter_map(|id| self.nodes.get(id))
                     .filter(|node| node.active)
                 {
-                    if !added_node {
-                        timeline.push(child);
-                        added_node = true;
-                    } else {
+                    if added_node {
                         let mut new_timeline = timeline.clone();
                         new_timeline.pop();
                         new_timeline.push(child);
                         new_timelines.push(new_timeline);
+                    } else {
+                        timeline.push(child);
+                        added_node = true;
                     }
 
                     modified = true;
                 }
             }
         }
-        for timeline in new_timelines.into_iter() {
+        for timeline in new_timelines {
             timelines.push(timeline);
         }
         if modified {
@@ -275,7 +280,7 @@ impl WeaveView for Weave {
     fn get_root_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)> {
         self.root_nodes
             .iter()
-            .flat_map(|identifier| self.nodes.get(identifier))
+            .filter_map(|identifier| self.nodes.get(identifier))
             .map(|node| {
                 (
                     node,
@@ -289,7 +294,7 @@ impl WeaveView for Weave {
         let mut timelines: Vec<Vec<&Node>> = self
             .root_nodes
             .iter()
-            .flat_map(|identifier| self.nodes.get(identifier))
+            .filter_map(|identifier| self.nodes.get(identifier))
             .filter(|node| node.active)
             .map(|node| Vec::from([node]))
             .collect();
