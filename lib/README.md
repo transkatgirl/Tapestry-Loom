@@ -1,3 +1,3 @@
 # Tapestry Weave
 
-This Rust library provides an API for using Tapestry Loom's weave format.
+This Rust library implements Tapestry Loom's "weave" document format.

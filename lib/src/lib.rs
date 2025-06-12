@@ -3,6 +3,8 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::doc_markdown)]
 
+//! An implementation of Tapestry Loom's "weave" document format.
+
 use std::collections::{BTreeSet, HashMap, HashSet, hash_map::Entry};
 
 use ulid::Ulid;
