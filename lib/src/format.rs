@@ -20,7 +20,6 @@ use ulid::Ulid;
 /// A compact serializable format intended for storing `Weave` documents.
 ///
 /// The `CompactWeave` format maintains backwards compatibility but not forwards compatibility. It is serialized as MessagePack compressed with LZ4.
-
 #[derive(Serialize, Deserialize)]
 pub struct CompactWeave {
     version: u64,
@@ -131,7 +130,12 @@ impl CompactWeave {
     }
 }
 
-impl TryFrom<CompactWeave> for super::Weave {
+pub enum InteractiveWeave {
+    Plain(super::Weave),
+    Frozen(super::content::FrozenWeave),
+}
+
+impl TryFrom<CompactWeave> for InteractiveWeave {
     type Error = WeaveError;
 
     fn try_from(input: CompactWeave) -> Result<Self, Self::Error> {
@@ -175,8 +179,8 @@ impl TryFrom<CompactWeave> for super::Weave {
     }
 }
 
-impl From<super::Weave> for CompactWeave {
-    fn from(input: super::Weave) -> Self {
+impl From<InteractiveWeave> for CompactWeave {
+    fn from(input: InteractiveWeave) -> Self {
         todo!()
     }
 }

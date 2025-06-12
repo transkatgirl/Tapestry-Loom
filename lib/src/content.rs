@@ -138,12 +138,14 @@ pub struct FrozenWeave {
 }
 
 impl FrozenWeave {
-    pub fn new(weave: Weave, timeline: usize, changes: Diff) -> Self {
-        Self {
+    pub fn new(weave: Weave, timeline: usize, changes: Diff) -> Option<Self> {
+        weave.get_active_timelines().get(timeline)?;
+
+        Some(Self {
             weave,
             timeline,
             changes,
-        }
+        })
     }
     pub fn weave(&self) -> WeaveSnapshot {
         WeaveSnapshot::from(&self.weave)
