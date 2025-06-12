@@ -9,7 +9,6 @@ pub mod prefix;
 use crate::content::{Model, Node, NodeContents, WeaveTimeline};
 
 /* TODO:
-- Update API terminology to borrow more terms from actual tapestry making
 - Documentation
 - Unit tests
     - Node management & update propagation (propagating changes into node children & parents, root_nodes updating)

@@ -76,30 +76,32 @@ type NodeTokens = Vec<(ByteBuf, f32)>;
 type NodeDiff = Vec<(u64, bool, String)>;
 
 #[derive(Error, Debug)]
+/// An error encountered when working with a `CompactWeave`.
 pub enum WeaveError {
-    /// An error encountered when loading a `CompactWeave`.
+    /// The `CompactWeave` could not be loaded from a reader.
     #[error(transparent)]
     Load(#[from] rmp_serde::decode::Error),
-    /// An error encountered when saving a `CompactWeave`.
+    /// The `CompactWeave` could not be saved.
     #[error(transparent)]
     Serialize(#[from] rmp_serde::encode::Error),
-    /// An error encountered when saving a `CompactWeave`.
+    /// The `CompactWeave` could not be saved to a writer.
     #[error(transparent)]
     Save(#[from] lz4_flex::frame::Error),
-    /// An error encountered when loading a malformed but parseable `CompactWeave`.
+    /// The `CompactWeave` could be parsed but it's structure is malformed.
     #[error("invalid weave structure: {0}")]
     Structure(String),
-    /// An error encountered when converting a `CompactWeave` into a `Weave` document.
+    /// The `CompactWeave` has an unsupported version number.
+    #[error("unsupported version number: {0}")]
+    UnsupportedVersion(u64),
+    /// The `CompactWeave` could not be converted into an `InteractiveWeave` document.
     #[error("unsupported weave structure: {0}")]
-    Unsupported(String),
+    FailedInteractive(String),
 }
 
 impl CompactWeave {
     fn update(&mut self) -> Result<(), WeaveError> {
         if self.version > 0 {
-            return Err(WeaveError::Structure(
-                "version is greater than largest supported version (0)".to_string(),
-            ));
+            return Err(WeaveError::UnsupportedVersion(self.version));
         }
 
         Ok(())
@@ -133,6 +135,7 @@ impl CompactWeave {
     }
 }
 
+/// A wrapper around interactive representations of Weave documents.
 pub enum InteractiveWeave {
     Plain(super::Weave),
     Frozen(super::content::FrozenWeave),
