@@ -12,10 +12,13 @@ use std::{
 use base64::{engine::general_purpose::URL_SAFE, read::DecoderReader, write::EncoderStringWriter};
 use lz4_flex::frame::{FrameDecoder, FrameEncoder};
 use rmp_serde::{decode, encode};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use thiserror::Error;
 use ulid::Ulid;
+
+use crate::{Weave, WeaveView, content::FrozenWeave};
 
 /// A compact serializable format intended for storing `Weave` documents.
 ///
@@ -141,11 +144,84 @@ pub enum InteractiveWeave {
     Frozen(super::content::FrozenWeave),
 }
 
+impl TryFrom<NodeData> for super::content::NodeContent {
+    type Error = WeaveError;
+    fn try_from(input: NodeData) -> Result<Self, Self::Error> {
+        match input {
+            NodeData::Text((content, model)) => Ok(super::content::NodeContent::Text(
+                super::content::TextNode {
+                    content,
+                    model: model.map(|(identifier, parameters)| super::content::NodeModel {
+                        id: Ulid(identifier),
+                        parameters,
+                    }),
+                },
+            )),
+            NodeData::Token((content, model)) => Ok(super::content::NodeContent::Token(
+                super::content::TokenNode {
+                    content: content
+                        .into_iter()
+                        .map(|(bytes, probability)| {
+                            Ok(super::content::NodeToken {
+                                probability: Decimal::try_from(probability).map_err(|_| {
+                                    WeaveError::FailedInteractive(
+                                        "Unable to parse probability value".to_string(),
+                                    )
+                                })?,
+                                content: bytes.into_vec(),
+                            })
+                        })
+                        .collect::<Result<Vec<_>, WeaveError>>()?,
+                    model: model.map(|(identifier, parameters)| super::content::NodeModel {
+                        id: Ulid(identifier),
+                        parameters,
+                    }),
+                },
+            )),
+            NodeData::TextToken((content, model)) => Ok(super::content::NodeContent::TextToken(
+                super::content::TextTokenNode {
+                    content: content
+                        .into_iter()
+                        .map(|text_token| match text_token {
+                            TextToken::Text(text) => Ok(super::content::TextOrToken::Text(text)),
+                            TextToken::Token(tokens) => Ok(super::content::TextOrToken::Token(
+                                tokens
+                                    .into_iter()
+                                    .map(|(bytes, probability)| {
+                                        Ok(super::content::NodeToken {
+                                            probability: Decimal::try_from(probability).map_err(
+                                                |_| {
+                                                    WeaveError::FailedInteractive(
+                                                        "Unable to parse probability value"
+                                                            .to_string(),
+                                                    )
+                                                },
+                                            )?,
+                                            content: bytes.into_vec(),
+                                        })
+                                    })
+                                    .collect::<Result<Vec<_>, WeaveError>>()?,
+                            )),
+                        })
+                        .collect::<Result<Vec<_>, WeaveError>>()?,
+                    model: model.map(|(identifier, parameters)| super::content::NodeModel {
+                        id: Ulid(identifier),
+                        parameters,
+                    }),
+                },
+            )),
+            NodeData::Diff(_diff) => Err(WeaveError::FailedInteractive(
+                "Unsupported Node Content type".to_string(),
+            )),
+            NodeData::Blank => Ok(super::content::NodeContent::Blank),
+        }
+    }
+}
+
 impl TryFrom<CompactWeave> for InteractiveWeave {
     type Error = WeaveError;
-
     fn try_from(input: CompactWeave) -> Result<Self, Self::Error> {
-        let mut weave = super::Weave::default();
+        let mut weave = Weave::default();
 
         let models: HashMap<u128, super::Model> = input
             .models
@@ -162,26 +238,68 @@ impl TryFrom<CompactWeave> for InteractiveWeave {
             })
             .collect();
 
-        for (identifier, node) in input.nodes {
-            let model = node.0.model().and_then(|m| models.get(&m.0));
-            /*let node_content = match node.0 {
-                NodeData::Text(content) => {}
-            };*/
+        let mut tail_diff = None;
+        for (identifier, (content, parents)) in input.nodes.into_iter() {
+            if let NodeData::Diff(raw_diff) = &content {
+                if tail_diff.is_some() {
+                    return Err(WeaveError::FailedInteractive(
+                        "Unsupported Node Content type".to_string(),
+                    ));
+                }
+                let diff = super::content::Diff {
+                    content: raw_diff
+                        .clone()
+                        .into_iter()
+                        .map(|(index, insertion, content)| {
+                            Ok(super::content::Modification {
+                                index: index.try_into().map_err(|_| {
+                                    WeaveError::FailedInteractive(
+                                        "Unable to parse Diff index".to_string(),
+                                    )
+                                })?,
+                                r#type: match insertion {
+                                    true => super::content::ModificationType::Insertion,
+                                    false => super::content::ModificationType::Deletion,
+                                },
+                                content,
+                            })
+                        })
+                        .collect::<Result<Vec<_>, WeaveError>>()?,
+                };
 
-            //weave.add_node(node, model, skip_loop_check)
+                tail_diff = Some(diff);
+                continue;
+            } else {
+                let model = content.model().and_then(|m| models.get(&m.0));
+                let node = super::content::Node {
+                    id: Ulid(identifier),
+                    from: parents.into_iter().map(Ulid).collect(),
+                    to: HashSet::new(),
+                    active: input.active.contains(&identifier),
+                    bookmarked: input.bookmarked.contains(&identifier),
+                    content: super::content::NodeContent::try_from(content)?,
+                };
+
+                weave.add_node(node, model.cloned(), true, false);
+            }
         }
 
-        /*let weave = Self::default();
-
-
-        for (raw_identifier, value) in input.models {
-            weave.models.get()
+        match tail_diff {
+            Some(changes) => {
+                if weave.get_active_timelines().len() != 1 {
+                    Err(WeaveError::FailedInteractive(
+                        "Unable to find activated timeline".to_string(),
+                    ))
+                } else {
+                    FrozenWeave::new(weave, 0, changes)
+                        .map(InteractiveWeave::Frozen)
+                        .ok_or(WeaveError::FailedInteractive(
+                            "Unable to find activated timeline".to_string(),
+                        ))
+                }
+            }
+            None => Ok(InteractiveWeave::Plain(weave)),
         }
-        for (raw_identifier, value) in input.nodes {
-
-        }*/
-
-        todo!()
     }
 }
 

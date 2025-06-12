@@ -173,8 +173,8 @@ impl FrozenWeave {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Node {
     pub id: Ulid,
-    pub to: HashSet<Ulid>,
     pub from: HashSet<Ulid>,
+    pub to: HashSet<Ulid>,
     pub active: bool,
     pub bookmarked: bool,
     pub content: NodeContent,
