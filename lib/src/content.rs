@@ -1,15 +1,11 @@
-use std::{
-    collections::{BTreeSet, HashMap, HashSet},
-    iter,
-    ops::Range,
-};
+use std::{collections::HashSet, iter, ops::Range};
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 use ulid::Ulid;
 
-use crate::{Weave, WeaveView};
+use crate::document::{Weave, WeaveSnapshot, WeaveView};
 
 /* TODO:
 - Diff creation & application
@@ -18,118 +14,6 @@ use crate::{Weave, WeaveView};
 - Implement Clone on all types in the module
 - Documentation
 - Unit tests */
-
-#[derive(Serialize, Clone, Debug, PartialEq)]
-pub struct WeaveSnapshot<'w> {
-    pub nodes: &'w HashMap<Ulid, Node>,
-    pub models: &'w HashMap<Ulid, Model>,
-    pub root_nodes: &'w BTreeSet<Ulid>,
-}
-
-// Copied from Weave's implementation of build_timelines(); shouldn't require additional unit tests
-impl WeaveSnapshot<'_> {
-    fn build_timelines<'a>(&'a self, timelines: &mut Vec<Vec<&'a Node>>) {
-        let mut new_timelines = Vec::new();
-        let mut modified = false;
-
-        for timeline in timelines.iter_mut() {
-            if let Some(node) = timeline.last() {
-                let mut added_node = false;
-
-                for child in node
-                    .to
-                    .iter()
-                    .filter_map(|id| self.nodes.get(id))
-                    .filter(|node| node.active)
-                {
-                    if added_node {
-                        let mut new_timeline = timeline.clone();
-                        new_timeline.pop();
-                        new_timeline.push(child);
-                        new_timelines.push(new_timeline);
-                    } else {
-                        timeline.push(child);
-                        added_node = true;
-                    }
-
-                    modified = true;
-                }
-            }
-        }
-        for timeline in new_timelines {
-            timelines.push(timeline);
-        }
-        if modified {
-            self.build_timelines(timelines);
-        }
-    }
-}
-
-// Copied from Weave's implementation of WeaveView; shouldn't require additional unit tests
-impl WeaveView for WeaveSnapshot<'_> {
-    fn get_node(&self, identifier: &Ulid) -> (Option<&Node>, Option<&Model>) {
-        let node = self.nodes.get(identifier);
-        let model = node
-            .and_then(|node| node.content.model())
-            .and_then(|node_model| self.models.get(&node_model.id));
-
-        (node, model)
-    }
-    fn get_root_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)> {
-        self.root_nodes
-            .iter()
-            .filter_map(|identifier| self.nodes.get(identifier))
-            .map(|node| {
-                (
-                    node,
-                    node.content
-                        .model()
-                        .and_then(|node_model| self.models.get(&node_model.id)),
-                )
-            })
-    }
-    fn get_active_timelines(&self) -> Vec<WeaveTimeline> {
-        let mut timelines: Vec<Vec<&Node>> = self
-            .root_nodes
-            .iter()
-            .filter_map(|identifier| self.nodes.get(identifier))
-            .filter(|node| node.active)
-            .map(|node| Vec::from([node]))
-            .collect();
-        self.build_timelines(&mut timelines);
-
-        let mut hydrated_timelines: Vec<WeaveTimeline<'_>> = timelines
-            .iter()
-            .map(|timeline| WeaveTimeline {
-                timeline: timeline
-                    .iter()
-                    .map(|node| {
-                        (
-                            *node,
-                            node.content
-                                .model()
-                                .and_then(|node_model| self.models.get(&node_model.id)),
-                        )
-                    })
-                    .collect(),
-            })
-            .collect();
-
-        hydrated_timelines.sort_by_key(|timeline| timeline.timeline.len());
-
-        hydrated_timelines
-    }
-}
-
-impl<'w> From<&'w Weave> for WeaveSnapshot<'w> {
-    fn from(input: &'w Weave) -> WeaveSnapshot<'w> {
-        Self {
-            nodes: &input.nodes,
-            models: &input.models,
-            root_nodes: &input.root_nodes,
-        }
-    }
-}
 
 pub struct FrozenWeave {
     weave: Weave,
