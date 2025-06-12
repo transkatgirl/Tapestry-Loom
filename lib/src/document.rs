@@ -2,13 +2,7 @@ use std::collections::{BTreeSet, HashMap, HashSet, hash_map::Entry};
 
 /* TODO:
 - Implement prefix tree
-- Documentation
-- Unit tests
-    - Node management & update propagation (propagating changes into node children & parents, root_nodes updating)
-    - Model management & update propagation (model addition/removal, model_nodes updating)
-    - Node loop checking
-    - Node activation
-    - Node content deduplication */
+- Documentation */
 
 use serde::Serialize;
 use ulid::Ulid;

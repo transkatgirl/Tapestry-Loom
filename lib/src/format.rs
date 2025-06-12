@@ -6,8 +6,7 @@ use std::{
 };
 
 /* TODO:
-- Conversion to/from Weave
-- Unit tests */
+- Conversion to/from Weave */
 
 use base64::{engine::general_purpose::URL_SAFE, read::DecoderReader, write::EncoderStringWriter};
 use lz4_flex::frame::{FrameDecoder, FrameEncoder};

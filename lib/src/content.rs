@@ -12,8 +12,7 @@ use crate::document::{Weave, WeaveSnapshot, WeaveView};
 - Weave content building/updating
 - Node splitting/merging
 - Implement Clone on all types in the module
-- Documentation
-- Unit tests */
+- Documentation */
 
 pub struct FrozenWeave {
     weave: Weave,

@@ -7,6 +7,13 @@ use tapestry_weave::{
     document::{Weave, WeaveView},
 };
 
+/* TODO:
+- Node management & update propagation (propagating changes into node children & parents, root_nodes updating)
+- Model management & update propagation (model addition/removal, model_nodes updating)
+- Node loop checking
+- Node activation
+- Node content deduplication */
+
 fn add_blank_node(weave: &mut Weave, id: Ulid, from: &[Ulid], to: &[Ulid]) {
     assert!(
         weave.add_node(
