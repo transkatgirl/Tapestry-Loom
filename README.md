@@ -40,6 +40,7 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 - Node list view, similar to [loomsidian](https://github.com/cosmicoptima/loom) and [exoloom](https://exoloom.io)
 - Editor overlay view, similar to [loomsidian](https://github.com/cosmicoptima/loom)
 	- Token probability display in editor, similar to [loom](https://github.com/socketteer/loom)
+	- Sibling node list on hover in editor, similar to [loom](https://github.com/socketteer/loom)
 	- Prompt token probability display in editor
 - Global "prefix multiverse" tree view, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
 - Automatic creation of single-token probability nodes, similar to [logitloom](https://github.com/vgel/logitloom)
@@ -79,7 +80,7 @@ Development may be intermittent, with long periods of inactivity between periods
 		- [ ] Add support for binary nodes to improve handling of invalid unicode
 		- [ ] Add support for FIM completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 		- [ ] Add support for content diff nodes for user modifications, similar to [minihf's loom](https://github.com/JD-P/minihf)
-		- [ ] Add support for displaying alternate token probabilities on hover, similar to [loom](https://github.com/socketteer/loom)
+		- [ ] Add support for displaying alternate node options on hover, similar to [loom](https://github.com/socketteer/loom)
 	- [ ] Store weave in plugin database by default, only store in document frontmatter if the user explicitly requests to do so
 		- [ ] Allow graceful handling of editor undo/redo functionality
 	- [ ] Implement weave format v0 -> v1 conversion

@@ -11,7 +11,6 @@ use crate::document::{Weave, WeaveSnapshot, WeaveView};
 - Diff creation & application
 - Weave content building/updating
 - Node splitting/merging
-- Implement Clone on all types in the module
 - Documentation */
 
 pub struct FrozenWeave {
