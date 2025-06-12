@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = [
 	"transkatgirl",
 ]
+license = "GPL-3.0-only"
+description = "An implementation of Tapestry Loom's \"weave\" document format."
+repository = "https://github.com/transkatgirl/Tapestry-Loom"
 edition = "2024"
 
 [dependencies]

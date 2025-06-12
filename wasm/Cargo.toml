@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = [
 	"transkatgirl",
 ]
+license = "GPL-3.0-only"
 edition = "2024"
 
 [lib]
