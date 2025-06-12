@@ -138,6 +138,13 @@ pub struct FrozenWeave {
 }
 
 impl FrozenWeave {
+    pub fn new(weave: Weave, timeline: usize, changes: Diff) -> Self {
+        Self {
+            weave,
+            timeline,
+            changes,
+        }
+    }
     pub fn weave(&self) -> WeaveSnapshot {
         WeaveSnapshot::from(&self.weave)
     }
@@ -145,11 +152,14 @@ impl FrozenWeave {
         let text = self.weave.get_active_timelines()[self.timeline].text();
         self.changes.apply(&text)
     }
-    pub fn content(&self) -> (WeaveTimeline, &Diff) {
-        (
-            self.weave.get_active_timelines()[self.timeline].clone(),
-            &self.changes,
-        )
+    pub fn content(&self) -> Vec<AnnotatedSnippet> {
+        let mut annotations = self
+            .weave
+            .get_active_timelines()
+            .remove(self.timeline)
+            .annotated();
+        self.changes.apply_annotated(&mut annotations);
+        annotations
     }
     pub fn update(&mut self, content: &str) {
         let before = self.text();
@@ -188,7 +198,7 @@ impl<'w> WeaveTimeline<'w> {
             .collect::<Vec<String>>()
             .concat()
     }
-    pub fn annotated(&self) -> Vec<AnnotatedSnippet> {
+    pub fn annotated(&self) -> Vec<AnnotatedSnippet<'w>> {
         self.timeline
             .iter()
             .flat_map(|(node, model)| match &node.content {
