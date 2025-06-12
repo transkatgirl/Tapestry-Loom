@@ -12,7 +12,7 @@ use ulid::Ulid;
 use crate::{Weave, WeaveView};
 
 /* TODO:
-- Weave node sorting API
+- Diff creation & application
 - Weave content building/updating
 - Node splitting/merging
 - Implement Clone on all types in the module
