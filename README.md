@@ -110,6 +110,7 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 	- Allow quickly moving to node under cursor, similar to [exoloom](https://exoloom.io)
 	- Allow showing sibling nodes on hover, similar to [loom](https://github.com/socketteer/loom)
 	- Implement hover handling in graph view
+	- Implement right click menu in graph view, similar to [loom](https://generative.ink/posts/loom-interface-to-the-multiverse/)
 - Blind model comparison mode
 - Document analysis tools
 
