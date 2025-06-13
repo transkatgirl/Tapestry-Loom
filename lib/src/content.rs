@@ -32,6 +32,9 @@ impl FrozenWeave {
     pub fn weave(&self) -> WeaveSnapshot {
         WeaveSnapshot::from(&self.weave)
     }
+    pub fn diff(&self) -> &Diff {
+        &self.changes
+    }
     pub fn text(&self) -> String {
         let mut text = self.weave.get_active_timelines()[self.timeline].text();
         self.changes.apply(&mut text);

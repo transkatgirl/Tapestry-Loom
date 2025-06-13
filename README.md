@@ -31,7 +31,7 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 - DAG-based completion management
 	- Nodes are immutable to prevent accidentally modifying completion history
 		- Nodes can be bookmarked, split, and merged
-		- Node contents are losslessly deduplicated and prefix-matched, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
+		- Node contents are deduplicated and user nodes are prefix-matched, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
 	- Node metadata: Model + inference parameters used, time generated, and token probabilities (if available)
 	- Nodes can be inserted at any point of the graph, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- Completion graph can be stored within document for easy sharing
