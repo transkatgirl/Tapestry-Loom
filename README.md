@@ -31,7 +31,7 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 - DAG-based completion management
 	- Nodes are immutable to prevent accidentally modifying completion history
 		- Nodes can be bookmarked, split, and merged
-		- Node contents are deduplicated and user nodes are prefix-matched, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
+		- Node contents are deduplicated and prefix-matching is automatically applied, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
 	- Node metadata: Model + inference parameters used, time generated, and token probabilities (if available)
 	- Nodes can be inserted at any point of the graph, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- Completion graph can be stored within document for easy sharing
@@ -43,12 +43,11 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 	- Token probability display in editor, similar to [loom](https://github.com/socketteer/loom)
 	- Sibling node list on hover in editor, similar to [loom](https://github.com/socketteer/loom)
 	- Prompt token probability display in editor
-- Global "prefix multiverse" tree view, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
 - Automatic creation of single-token probability nodes, similar to [logitloom](https://github.com/vgel/logitloom)
-- Support for embedding-based node sorting & grouping (inspired by this [blog post](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it))
+- Support for embedding-based node sorting (inspired by this [blog post](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it))
 - Recursive completion generation, similar to [loom](https://github.com/socketteer/loom) and [logitloom](https://github.com/vgel/logitloom)
 - Color coding by model used (requires a model color to be configured)
-- Node metadata display on hover (currently only in list and editor), similar to [exoloom](https://exoloom.io)
+- Node metadata display on hover, similar to [exoloom](https://exoloom.io)
 - Flexible LLM API client
 	- Support for completions with multiple different models at a time
 	- Support for custom JSON/headers, similar to [loomsidian](https://github.com/cosmicoptima/loom)
@@ -109,6 +108,8 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 		- Rewrite UI using svelte?
 	- Generation presets
 	- Allow quickly moving to node under cursor, similar to [exoloom](https://exoloom.io)
+	- Allow showing sibling nodes on hover, similar to [loom](https://github.com/socketteer/loom)
+	- Implement hover handling in graph view
 - Blind model comparison mode
 - Document analysis tools
 
