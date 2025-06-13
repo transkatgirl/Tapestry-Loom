@@ -1,7 +1,6 @@
 use std::collections::{BTreeSet, HashMap, HashSet, hash_map::Entry};
 
 /* TODO:
-- Implement prefix tree
 - Documentation */
 
 use serde::Serialize;

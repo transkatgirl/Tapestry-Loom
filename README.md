@@ -31,10 +31,11 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 - DAG-based completion management
 	- Nodes are immutable to prevent accidentally modifying completion history
 		- Nodes can be bookmarked, split, and merged
+		- Node contents are losslessly deduplicated and prefix-matched, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
 	- Node metadata: Model + inference parameters used, time generated, and token probabilities (if available)
 	- Nodes can be inserted at any point of the graph, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- Completion graph can be stored within document for easy sharing
-	- Proofreading Mode: Freezes the completion graph and stores further modifications as diffs, inspired by [minihf's loom](https://github.com/JD-P/minihf)
+	- Proofreading Mode: Freezes the completion graph and stores further modifications as a diff
 - Tree-based graph view, similar to [loomsidian](https://github.com/cosmicoptima/loom)
 - Graph view, similar to [exoloom](https://exoloom.io)
 - Node list view, similar to [loomsidian](https://github.com/cosmicoptima/loom) and [exoloom](https://exoloom.io)
@@ -51,6 +52,8 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 - Flexible LLM API client
 	- Support for completions with multiple different models at a time
 	- Support for custom JSON/headers, similar to [loomsidian](https://github.com/cosmicoptima/loom)
+
+Note: In order to create a good interface, deciding what not to include is just as important as deciding what to include. Some approaches to interacting with base models (such as [minihf](https://github.com/JD-P/minihf) and [Loom Engine](https://github.com/arcreflex/loom-engine)) are fundamentally incompatible with the paradigm that Tapestry Loom adopts; Tapestry Loom is opinionated because it *has to be* in order to deliver a cohesive user experience.
 
 -->
 
@@ -86,7 +89,6 @@ Development may be intermittent, with long periods of inactivity between periods
 	- [ ] Store weave in plugin database by default, only store in document frontmatter if the user explicitly requests to do so
 		- [ ] Allow graceful handling of editor undo/redo functionality
 	- [ ] Implement weave format v0 -> v1 conversion
-- [ ] Prefix multiverse view: A global weave containing the first few nodes of all documents in the vault with each unique node having a link to its corresponding document, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
 - [ ] Weave format stabilization & finalization
 
 #### Tapestry Loom v1-beta
