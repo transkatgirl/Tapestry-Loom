@@ -104,6 +104,7 @@ Development may be intermittent, with long periods of inactivity between periods
 Tapestry Loom v1 will be the first stable version, and will be listed on the Obsidian community plugin registry.
 
 - [ ] UI improvements
+	- [ ] Add hover buttons to list view
 	- [ ] Allow quickly moving to node under cursor, similar to [exoloom](https://exoloom.io)
 	- [ ] Allow showing sibling nodes on hover, similar to [loom](https://github.com/socketteer/loom)
 	- [ ] Improve interactability of graph view to match [loom](https://generative.ink/posts/loom-interface-to-the-multiverse/)
