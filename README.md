@@ -26,7 +26,7 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 	- Support for completions with multiple different models at a time
 	- Support for custom JSON/headers, similar to [loomsidian](https://github.com/cosmicoptima/loom)
 
-<!-- use below feature list for v1-rc
+<!-- use below feature list for v1-rc checklist
 
 - DAG-based completion management
 	- Nodes are immutable to prevent accidentally modifying completion history
@@ -73,7 +73,7 @@ Development on Tapestry Loom is currently paused due to factors outside of my co
 
 Development may be intermittent, with long periods of inactivity between periods of development work.
 
-#### Tapestry Loom v1-alpha
+#### Tapestry Loom v1-alpha checklist
 
 - [ ] Improve weave format to improve flexibility and efficiency:
 	- [ ] Create Rust library implementing new weave data structure & serialization+deserialization
@@ -90,7 +90,7 @@ Development may be intermittent, with long periods of inactivity between periods
 	- [ ] Implement weave format v0 -> v1 conversion
 - [ ] Weave format stabilization & finalization
 
-#### Tapestry Loom v1-beta
+#### Tapestry Loom v1-beta checklist
 
 - [ ] Support for displaying prompt logprobs if returned by API
 - [ ] Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
@@ -99,22 +99,24 @@ Development may be intermittent, with long periods of inactivity between periods
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Merging of v1 to main branch
 
-#### Tapestry Loom v1-rc
+#### Tapestry Loom v1-rc checklist
 
 Tapestry Loom v1 will be the first stable version, and will be listed on the Obsidian community plugin registry.
 
-- UI improvements
-	- Removal of reliance on Obsidian's undocumented styling rules
-		- Rewrite UI using svelte?
-	- Generation presets
-	- Allow quickly moving to node under cursor, similar to [exoloom](https://exoloom.io)
-	- Allow showing sibling nodes on hover, similar to [loom](https://github.com/socketteer/loom)
-	- Implement hover handling in graph view
-	- Implement right click menu in graph view, similar to [loom](https://generative.ink/posts/loom-interface-to-the-multiverse/)
-- Blind model comparison mode
-- Document analysis tools
+- [ ] UI improvements
+	- [ ] Allow quickly moving to node under cursor, similar to [exoloom](https://exoloom.io)
+	- [ ] Allow showing sibling nodes on hover, similar to [loom](https://github.com/socketteer/loom)
+	- [ ] Improve interactability of graph view to match [loom](https://generative.ink/posts/loom-interface-to-the-multiverse/)
+		- [ ] Implement right click menu in graph view
+		- [ ] Implement hover handling in graph view
+		- [ ] Implement folding in graph view
+	- [ ] Add Generation presets
+	- [ ] Remove reliance on Obsidian's undocumented styling rules
+		- [ ] Rewrite UI using svelte?
+- [ ] Blind model comparison mode
+- [ ] Document analysis tools
 
-#### Tapestry Loom v2
+#### Tapestry Loom v2 plans
 
 - Allow adding roles to nodes when using chat-style LLM endpoints
 	- Allow a chat weave session to reference another weave using LLM tool use (based on this [twitter thread](https://x.com/arcreflex_/status/1930671693707591767))
