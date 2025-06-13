@@ -36,8 +36,8 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 	- Nodes can be inserted at any point of the graph, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- Completion graph can be stored within document for easy sharing
 	- Proofreading Mode: Freezes the completion graph and stores further modifications as a diff
-- Tree-based graph view, similar to [loomsidian](https://github.com/cosmicoptima/loom)
-- Graph view, similar to [exoloom](https://exoloom.io)
+- Tree-based graph view, similar to [loom](https://github.com/socketteer/loom) and [loomsidian](https://github.com/cosmicoptima/loom)
+- Graph view, similar to [loom](https://github.com/socketteer/loom) and [exoloom](https://exoloom.io)
 - Node list view, similar to [loomsidian](https://github.com/cosmicoptima/loom) and [exoloom](https://exoloom.io)
 - Editor overlay view, similar to [loomsidian](https://github.com/cosmicoptima/loom)
 	- Token probability display in editor, similar to [loom](https://github.com/socketteer/loom)
