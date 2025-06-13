@@ -200,11 +200,12 @@ impl Weave {
             for child in &node.to {
                 if let Some(child) = self.nodes.get_mut(child) {
                     child.from.remove(&node.id);
-                }
-                if node.from.len() <= 1 {
-                    self.remove_node(child);
-                } else if node.active {
-                    self.update_removed_child_activity(child);
+                    let identifier = child.id;
+                    if child.from.is_empty() {
+                        self.remove_node(&identifier);
+                    } else if node.active {
+                        self.update_removed_child_activity(&identifier);
+                    }
                 }
             }
             if let Some(node_model) = node.content.model() {
