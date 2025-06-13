@@ -11,7 +11,7 @@ use std::{
 use base64::{engine::general_purpose::URL_SAFE, read::DecoderReader, write::EncoderStringWriter};
 use lz4_flex::frame::{FrameDecoder, FrameEncoder};
 use rmp_serde::{decode, encode};
-use rust_decimal::Decimal;
+use rust_decimal::{Decimal, prelude::FromPrimitive};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use thiserror::Error;
@@ -222,7 +222,59 @@ impl TryFrom<NodeData> for super::content::NodeContent {
 
 impl From<super::content::NodeContent> for NodeData {
     fn from(input: super::content::NodeContent) -> Self {
-        todo!()
+        match input {
+            super::content::NodeContent::Text(content) => NodeData::Text((
+                content.content,
+                content.model.map(|model| (model.id.0, model.parameters)),
+            )),
+            super::content::NodeContent::Token(content) => NodeData::Token((
+                content
+                    .content
+                    .into_iter()
+                    .map(|token| {
+                        (
+                            ByteBuf::from(token.content),
+                            f32::try_from(
+                                token
+                                    .probability
+                                    .max(Decimal::from_f32(f32::MIN).unwrap())
+                                    .min(Decimal::from_f32(f32::MAX).unwrap()),
+                            )
+                            .unwrap(),
+                        )
+                    })
+                    .collect(),
+                content.model.map(|model| (model.id.0, model.parameters)),
+            )),
+            super::content::NodeContent::TextToken(content) => NodeData::TextToken((
+                content
+                    .content
+                    .into_iter()
+                    .map(|token| match token {
+                        super::content::TextOrToken::Text(text) => TextToken::Text(text),
+                        super::content::TextOrToken::Token(token) => TextToken::Token(
+                            token
+                                .into_iter()
+                                .map(|token| {
+                                    (
+                                        ByteBuf::from(token.content),
+                                        f32::try_from(
+                                            token
+                                                .probability
+                                                .max(Decimal::from_f32(f32::MIN).unwrap())
+                                                .min(Decimal::from_f32(f32::MAX).unwrap()),
+                                        )
+                                        .unwrap(),
+                                    )
+                                })
+                                .collect(),
+                        ),
+                    })
+                    .collect(),
+                content.model.map(|model| (model.id.0, model.parameters)),
+            )),
+            super::content::NodeContent::Blank => NodeData::Blank,
+        }
     }
 }
 
