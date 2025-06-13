@@ -99,7 +99,7 @@ pub enum WeaveError {
     #[error("unsupported version number: {0}")]
     UnsupportedVersion(u64),
     /// The `CompactWeave` could not be converted into an `InteractiveWeave` document.
-    #[error("unsupported weave structure: {0}")]
+    #[error("unable to create InteractiveWeave: {0}")]
     FailedInteractive(String),
 }
 
@@ -217,6 +217,12 @@ impl TryFrom<NodeData> for super::content::NodeContent {
             )),
             NodeData::Blank => Ok(super::content::NodeContent::Blank),
         }
+    }
+}
+
+impl From<super::content::NodeContent> for NodeData {
+    fn from(input: super::content::NodeContent) -> Self {
+        todo!()
     }
 }
 
