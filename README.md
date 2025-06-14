@@ -114,6 +114,7 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 	- [ ] Improve interactability of graph view to match [loom](https://generative.ink/posts/loom-interface-to-the-multiverse/)
 		- [ ] Implement right click menu in graph view
 		- [ ] Implement hover handling in graph view
+			- [ ] Implement setting to only show node contents on hover, similar to [exoloom](https://exoloom.io)
 		- [ ] Implement folding in graph view
 	- [ ] Add Generation presets
 - [ ] Document & selection analysis tools
