@@ -103,7 +103,11 @@ Development may be intermittent, with long periods of inactivity between periods
 
 Tapestry Loom v1 will be the first stable version, and will be listed on the Obsidian community plugin registry.
 
+- [ ] Rewrite async code to fix document switching race conditions
 - [ ] UI improvements
+	- [ ] Code cleanup
+		- [ ] Remove reliance on Obsidian's undocumented styling rules
+		- [ ] Rewrite UI using svelte?
 	- [ ] Add hover buttons to list view
 	- [ ] Allow quickly moving to node under cursor, similar to [exoloom](https://exoloom.io)
 	- [ ] Allow showing sibling nodes on hover, similar to [loom](https://github.com/socketteer/loom)
@@ -112,8 +116,6 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 		- [ ] Implement hover handling in graph view
 		- [ ] Implement folding in graph view
 	- [ ] Add Generation presets
-	- [ ] Remove reliance on Obsidian's undocumented styling rules
-		- [ ] Rewrite UI using svelte?
 - [ ] Document & selection analysis tools
 	- [ ] Predictability analysis using logprobs
 	- [ ] Statistical analysis of various metrics (model usage, text length, logprobs, number of branches, etc)
