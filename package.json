@@ -30,6 +30,6 @@
 		"cytoscape-elk": "^2.3.0",
 		"es-arraybuffer-base64": "^1.1.2",
 		"serialize-javascript": "^6.0.2",
-		"ulid": "^3.0.0"
+		"ulid": "^3.0.1"
 	}
 }

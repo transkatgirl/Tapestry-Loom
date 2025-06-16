@@ -1,10 +1,12 @@
 [package]
-name = "tapestry-weave-wasm"
+name = "tapestry-weave-wasm-glue"
 version = "0.1.0"
 authors = [
 	"transkatgirl",
 ]
 license = "GPL-3.0-only"
+description = "A WASM interface for the tapestry-weave library + additional convenience functions for Loom implementations."
+repository = "https://github.com/transkatgirl/Tapestry-Loom"
 edition = "2024"
 
 [lib]

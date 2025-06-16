@@ -1,3 +1,3 @@
 # Tapestry Weave WASM Glue
 
-This WASM module allows Tapestry Loom to interface with the Tapestry Weave library.
+A WASM interface for the `tapestry-weave` library + additional convenience functions for Loom implementations.
