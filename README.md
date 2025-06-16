@@ -75,7 +75,7 @@ Development may be intermittent, with long periods of inactivity between periods
 
 #### Tapestry Loom v1-alpha checklist
 
-- [ ] Improve weave format to improve flexibility and efficiency:
+- [ ] Improve Weave format to improve flexibility and efficiency:
 	- [ ] Create Rust library implementing new weave data structure & serialization+deserialization
 		- [ ] Implement unit testing for the Rust library
 	- [ ] Implement new data structure into Tapestry Loom via WASM
@@ -92,9 +92,11 @@ Development may be intermittent, with long periods of inactivity between periods
 
 #### Tapestry Loom v1-beta checklist
 
-- [ ] Support for displaying prompt logprobs if returned by API
 - [ ] Rewrite async code to fix document switching race conditions
-- [ ] Embedding model support:
+- [ ] Implement embedding model requests
+- [ ] Add data structure for non-persistent Weave data:
+	- [ ] Improve handling of node activation/deactivation when node has multiple parents
+	- [ ] Support for displaying prompt logprobs if returned by API
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Merging of v1 to main branch
 
