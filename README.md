@@ -93,8 +93,7 @@ Development may be intermittent, with long periods of inactivity between periods
 #### Tapestry Loom v1-beta checklist
 
 - [ ] Support for displaying prompt logprobs if returned by API
-- [ ] Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
-	- [ ] If the specification is not ready by v1, support for Standard Completions will be delayed to v2
+- [ ] Rewrite async code to fix document switching race conditions
 - [ ] Embedding model support:
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Merging of v1 to main branch
@@ -103,7 +102,6 @@ Development may be intermittent, with long periods of inactivity between periods
 
 Tapestry Loom v1 will be the first stable version, and will be listed on the Obsidian community plugin registry.
 
-- [ ] Rewrite async code to fix document switching race conditions
 - [ ] UI improvements
 	- [ ] Code cleanup
 		- [ ] Remove reliance on Obsidian's undocumented styling rules
@@ -121,6 +119,8 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 	- [ ] Predictability analysis using logprobs
 	- [ ] Statistical analysis of various metrics (model usage, text length, logprobs, number of branches, etc)
 	- [ ] Weave metadata
+- [ ] Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
+	- [ ] If the specification is not ready by v1, support for Standard Completions will be delayed to v2
 - [ ] Blind model comparison mode
 
 #### Tapestry Loom v2 plans
