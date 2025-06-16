@@ -11,7 +11,7 @@ use std::{
 use base64::{engine::general_purpose::URL_SAFE, read::DecoderReader, write::EncoderStringWriter};
 use lz4_flex::frame::{FrameDecoder, FrameEncoder};
 use rmp_serde::{decode, encode};
-use rust_decimal::{Decimal, prelude::FromPrimitive};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use thiserror::Error;
@@ -19,7 +19,7 @@ use ulid::Ulid;
 
 use crate::{
     content::FrozenWeave,
-    document::{Weave, WeaveView},
+    document::{Weave, WeaveSnapshot, WeaveView},
 };
 
 /// A compact serializable format intended for storing `Weave` documents.
@@ -101,6 +101,9 @@ pub enum WeaveError {
     /// The `CompactWeave` could not be converted into an `InteractiveWeave` document.
     #[error("unable to create InteractiveWeave: {0}")]
     FailedInteractive(String),
+    /// The `InteractiveWeave` document could not be converted into a `CompactWeave`.
+    #[error("unable to create CompactWeave: {0}")]
+    FailedCompact(String),
 }
 
 impl CompactWeave {
@@ -220,9 +223,10 @@ impl TryFrom<NodeData> for super::content::NodeContent {
     }
 }
 
-impl From<super::content::NodeContent> for NodeData {
-    fn from(input: super::content::NodeContent) -> Self {
-        match input {
+impl TryFrom<super::content::NodeContent> for NodeData {
+    type Error = WeaveError;
+    fn try_from(input: super::content::NodeContent) -> Result<Self, Self::Error> {
+        Ok(match input {
             super::content::NodeContent::Text(content) => NodeData::Text((
                 content.content,
                 content.model.map(|model| (model.id.0, model.parameters)),
@@ -231,19 +235,17 @@ impl From<super::content::NodeContent> for NodeData {
                 content
                     .content
                     .into_iter()
-                    .map(|token| {
-                        (
+                    .map(|token| -> Result<(ByteBuf, f32), WeaveError> {
+                        Ok((
                             ByteBuf::from(token.content),
-                            f32::try_from(
-                                token
-                                    .probability
-                                    .max(Decimal::from_f32(f32::MIN).unwrap())
-                                    .min(Decimal::from_f32(f32::MAX).unwrap()),
-                            )
-                            .unwrap(),
-                        )
+                            f32::try_from(token.probability).map_err(|_| {
+                                WeaveError::FailedCompact(
+                                    "Unable to convert probability value to f32".to_string(),
+                                )
+                            })?,
+                        ))
                     })
-                    .collect(),
+                    .collect::<Result<Vec<_>, _>>()?,
                 content.model.map(|model| (model.id.0, model.parameters)),
             )),
             super::content::NodeContent::TextToken(content) => NodeData::TextToken((
@@ -251,30 +253,31 @@ impl From<super::content::NodeContent> for NodeData {
                     .content
                     .into_iter()
                     .map(|token| match token {
-                        super::content::TextOrToken::Text(text) => TextToken::Text(text),
-                        super::content::TextOrToken::Token(token) => TextToken::Token(
+                        super::content::TextOrToken::Text(text) => {
+                            Ok::<TextToken, WeaveError>(TextToken::Text(text))
+                        }
+                        super::content::TextOrToken::Token(token) => Ok(TextToken::Token(
                             token
                                 .into_iter()
-                                .map(|token| {
-                                    (
+                                .map(|token| -> Result<(ByteBuf, f32), WeaveError> {
+                                    Ok((
                                         ByteBuf::from(token.content),
-                                        f32::try_from(
-                                            token
-                                                .probability
-                                                .max(Decimal::from_f32(f32::MIN).unwrap())
-                                                .min(Decimal::from_f32(f32::MAX).unwrap()),
-                                        )
-                                        .unwrap(),
-                                    )
+                                        f32::try_from(token.probability).map_err(|_| {
+                                            WeaveError::FailedCompact(
+                                                "Unable to convert probability value to f32"
+                                                    .to_string(),
+                                            )
+                                        })?,
+                                    ))
                                 })
-                                .collect(),
-                        ),
+                                .collect::<Result<Vec<_>, _>>()?,
+                        )),
                     })
-                    .collect(),
+                    .collect::<Result<Vec<_>, _>>()?,
                 content.model.map(|model| (model.id.0, model.parameters)),
             )),
             super::content::NodeContent::Blank => NodeData::Blank,
-        }
+        })
     }
 }
 
@@ -364,8 +367,20 @@ impl TryFrom<CompactWeave> for InteractiveWeave {
     }
 }
 
-impl From<InteractiveWeave> for CompactWeave {
-    fn from(input: InteractiveWeave) -> Self {
+impl TryFrom<InteractiveWeave> for CompactWeave {
+    type Error = WeaveError;
+    fn try_from(input: InteractiveWeave) -> Result<Self, Self::Error> {
+        let weave = match &input {
+            InteractiveWeave::Plain(weave) => WeaveSnapshot::from(weave),
+            InteractiveWeave::Frozen(weave) => weave.weave(),
+        };
+
+        let nodes: Vec<(u128, Node)> = Vec::with_capacity(weave.nodes.len());
+
+        if let InteractiveWeave::Frozen(weave) = &input {
+            todo!()
+        }
+
         todo!()
     }
 }
