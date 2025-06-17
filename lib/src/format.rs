@@ -5,9 +5,6 @@ use std::{
     io::{Cursor, Read, Write},
 };
 
-/* TODO:
-- Conversion to/from Weave */
-
 use base64::{engine::general_purpose::URL_SAFE, read::DecoderReader, write::EncoderStringWriter};
 use lz4_flex::frame::{FrameDecoder, FrameEncoder};
 use rmp_serde::{decode, encode};
@@ -379,7 +376,8 @@ impl TryFrom<&InteractiveWeave> for CompactWeave {
         let mut bookmarked = HashSet::with_capacity(weave.nodes.len());
 
         let mut nodes: Vec<(u128, Node)> = flatten_nodes(&weave)
-            .iter()
+            .into_iter()
+            .cloned()
             .inspect(|node| {
                 if node.active {
                     active.insert(node.id.0);
@@ -392,7 +390,7 @@ impl TryFrom<&InteractiveWeave> for CompactWeave {
                 Ok((
                     node.id.0,
                     (
-                        NodeData::try_from(node.content.clone())?,
+                        NodeData::try_from(node.content)?,
                         node.from.iter().map(|id| id.0).collect(),
                     ),
                 ))
