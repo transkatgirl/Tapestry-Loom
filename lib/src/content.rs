@@ -421,7 +421,7 @@ impl Diff {
     pub fn new(before: &str, after: &str) -> Self {
         todo!()
     }
-    pub fn apply(&self, text: &mut str) {
+    pub fn apply(&self, text: &mut String) {
         for modification in &self.content {
             modification.apply_text(text);
         }
@@ -441,8 +441,11 @@ pub struct Modification {
 }
 
 impl Modification {
-    fn apply_text(&self, text: &mut str) {
-        todo!()
+    fn apply_text(&self, text: &mut String) {
+        match self.r#type {
+            ModificationType::Insertion => text.insert_str(self.index, &self.content),
+            ModificationType::Deletion => text.replace_range(self.index..self.content.len(), ""),
+        }
     }
     fn apply_annotated(&self, content: &mut Vec<AnnotatedSnippet>) {
         todo!()
