@@ -1,19 +1,25 @@
-use std::collections::{BTreeSet, HashMap, HashSet, hash_map::Entry};
+//! Interactive representations of Weave documents.
 
-/* TODO:
-- Documentation */
+use std::collections::{BTreeSet, HashMap, HashSet, hash_map::Entry};
 
 use serde::Serialize;
 use ulid::Ulid;
 
+// TODO: Fix weave.update_node_activity()
+
 use crate::content::{Model, Node, NodeContents, WeaveTimeline};
 
+/// Functions implemented by all Weave documents.
 pub trait WeaveView {
+    /// Retrieve an [`Node`] by its [`Ulid`].
     fn get_node(&self, identifier: &Ulid) -> (Option<&Node>, Option<&Model>);
+    /// Retrieve all [`Node`] objects which do not have any parents.
     fn get_root_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)>;
+    /// Retrieve all active nodes as [`WeaveTimeline`] objects.
     fn get_active_timelines(&self) -> Vec<WeaveTimeline>;
 }
 
+/// A mutable Weave representation.
 #[derive(Default, Debug, PartialEq)]
 pub struct Weave {
     nodes: HashMap<Ulid, Node>,
@@ -24,6 +30,11 @@ pub struct Weave {
 }
 
 impl Weave {
+    /// Add a [`Node`] (along with it's corresponding [`Model`]).
+    ///
+    /// Performs content deduplication if `deduplicate` is true, and performs loop checking (slow, requires recursively checking of all parents & children) if `skip_loop_check` is true.
+    ///
+    /// Returns the [`Ulid`] of the input node if the node was successfully added. If the node was deduplicated, the returned Ulid will correspond to a node which was already in the document. Returns [`None`] if the node could not be added due to having a duplicate identifier.
     pub fn add_node(
         &mut self,
         mut node: Node,
@@ -126,6 +137,7 @@ impl Weave {
             false
         }
     }
+    // ! FIXME
     pub fn update_node_activity(&mut self, identifier: &Ulid, active: bool) {
         if let Some(node) = self.nodes.get(identifier) {
             if node.active == active {
@@ -164,6 +176,7 @@ impl Weave {
             node.active = active;
         }
     }
+    /// Update the bookmarked status of a [`Node`] by it's [`Ulid`].
     pub fn update_node_bookmarked_status(&mut self, identifier: &Ulid, bookmarked: bool) {
         if let Some(node) = self.nodes.get_mut(identifier) {
             node.bookmarked = bookmarked;
@@ -188,6 +201,11 @@ impl Weave {
             }
         }
     }
+    /// Remove a [`Node`] by it's [`Ulid`].
+    ///
+    /// All child nodes orphaned by removing the node will be removed. Non-orphaned child nodes will have their active status updated based on if they have other active parents.
+    ///
+    /// All [`Model`] objects orphaned by removing the node will be removed.
     pub fn remove_node(&mut self, identifier: &Ulid) {
         if let Some(node) = self.nodes.remove(identifier) {
             self.root_nodes.remove(&node.id);
@@ -310,10 +328,14 @@ impl WeaveView for Weave {
     }
 }
 
+/// A immutable view of a [`Weave`] object.
 #[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct WeaveSnapshot<'w> {
+    /// A map of [`Node`] objects in the Weave retrievable by their [`Ulid`].
     pub nodes: &'w HashMap<Ulid, Node>,
+    /// A map of [`Model`] objects in the Weave retrievable by their [`Ulid`].
     pub models: &'w HashMap<Ulid, Model>,
+    /// An ordered set of [`Ulid`] objects which correspond to [`Node`] objects with no parents.
     pub root_nodes: &'w BTreeSet<Ulid>,
 }
 

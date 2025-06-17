@@ -19,9 +19,9 @@ use crate::{
     document::{Weave, WeaveSnapshot, WeaveView},
 };
 
-/// A compact serializable format intended for storing `Weave` documents.
+/// A compact serializable format intended for storing Weave documents.
 ///
-/// The `CompactWeave` format maintains backwards compatibility but not forwards compatibility. It is serialized as MessagePack compressed with LZ4.
+/// The [`CompactWeave`] binary format maintains backwards compatibility but not forwards compatibility. It is serialized as MessagePack compressed with LZ4.
 #[derive(Serialize, Deserialize)]
 pub struct CompactWeave {
     version: u64,
@@ -78,27 +78,27 @@ type NodeTokens = Vec<(ByteBuf, f32)>;
 type NodeDiff = Vec<(u64, bool, String)>;
 
 #[derive(Error, Debug)]
-/// An error encountered when working with a `CompactWeave`.
+/// An error encountered when working with a [`CompactWeave`].
 pub enum WeaveError {
-    /// The `CompactWeave` could not be loaded from a reader.
+    /// The [`CompactWeave`] could not be loaded from a reader.
     #[error(transparent)]
     Load(#[from] rmp_serde::decode::Error),
-    /// The `CompactWeave` could not be saved.
+    /// The [`CompactWeave`] could not be saved.
     #[error(transparent)]
     Serialize(#[from] rmp_serde::encode::Error),
-    /// The `CompactWeave` could not be saved to a writer.
+    /// The [`CompactWeave`] could not be saved to a writer.
     #[error(transparent)]
     Save(#[from] lz4_flex::frame::Error),
-    /// The `CompactWeave` could be parsed but it's structure is malformed.
+    /// The [`CompactWeave`] could be parsed but it's structure is malformed.
     #[error("invalid weave structure: {0}")]
     Structure(String),
-    /// The `CompactWeave` has an unsupported version number.
+    /// The [`CompactWeave`] has an unsupported version number.
     #[error("unsupported version number: {0}")]
     UnsupportedVersion(u64),
-    /// The `CompactWeave` could not be converted into an `InteractiveWeave` document.
+    /// The [`CompactWeave`] could not be converted into an [`InteractiveWeave`] document.
     #[error("unable to create InteractiveWeave: {0}")]
     FailedInteractive(String),
-    /// The `InteractiveWeave` document could not be converted into a `CompactWeave`.
+    /// The [`InteractiveWeave`] document could not be converted into a [`CompactWeave`].
     #[error("unable to create CompactWeave: {0}")]
     FailedCompact(String),
 }
@@ -111,20 +111,20 @@ impl CompactWeave {
 
         Ok(())
     }
-    /// Load a `CompactWeave` from a reader.
+    /// Load from a reader.
     pub fn load<R: Read>(reader: R) -> Result<Self, WeaveError> {
         let mut decompressor = FrameDecoder::new(reader);
         let mut weave: CompactWeave = decode::from_read(&mut decompressor)?;
         weave.update()?;
         Ok(weave)
     }
-    /// Load a `CompactWeave` from a url-safe base64 string.
+    /// Load from a url-safe base64 string.
     pub fn load_base64(input: &str) -> Result<Self, WeaveError> {
         let mut cursor = Cursor::new(input);
         let mut decoder = DecoderReader::new(&mut cursor, &URL_SAFE);
         Self::load(&mut decoder)
     }
-    /// Save a `CompactWeave` to a writer.
+    /// Save to a writer.
     pub fn save<W: Write>(&self, writer: W) -> Result<(), WeaveError> {
         let mut compressor = FrameEncoder::new(writer);
         encode::write_named(&mut compressor, self)?;
@@ -132,7 +132,7 @@ impl CompactWeave {
 
         Ok(())
     }
-    /// Save a `CompactWeave` to a url-safe base64 string.
+    /// Save to a url-safe base64 string.
     pub fn save_base64(&self) -> Result<String, WeaveError> {
         let mut encoder = EncoderStringWriter::new(&URL_SAFE);
         self.save(&mut encoder)?;
@@ -140,6 +140,7 @@ impl CompactWeave {
     }
 }
 
+#[allow(missing_docs)]
 /// A wrapper around interactive representations of Weave documents.
 pub enum InteractiveWeave {
     Plain(Weave),
