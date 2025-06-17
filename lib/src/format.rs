@@ -367,20 +367,125 @@ impl TryFrom<CompactWeave> for InteractiveWeave {
     }
 }
 
-impl TryFrom<InteractiveWeave> for CompactWeave {
+impl TryFrom<&InteractiveWeave> for CompactWeave {
     type Error = WeaveError;
-    fn try_from(input: InteractiveWeave) -> Result<Self, Self::Error> {
-        let weave = match &input {
+    fn try_from(input: &InteractiveWeave) -> Result<Self, Self::Error> {
+        let weave = match input {
             InteractiveWeave::Plain(weave) => WeaveSnapshot::from(weave),
             InteractiveWeave::Frozen(weave) => weave.weave(),
         };
 
-        let nodes: Vec<(u128, Node)> = Vec::with_capacity(weave.nodes.len());
+        let mut active = HashSet::with_capacity(weave.nodes.len());
+        let mut bookmarked = HashSet::with_capacity(weave.nodes.len());
 
-        if let InteractiveWeave::Frozen(weave) = &input {
-            todo!()
+        let mut nodes: Vec<(u128, Node)> = flatten_nodes(&weave)
+            .iter()
+            .inspect(|node| {
+                if node.active {
+                    active.insert(node.id.0);
+                }
+                if node.bookmarked {
+                    bookmarked.insert(node.id.0);
+                }
+            })
+            .map(|node| {
+                Ok((
+                    node.id.0,
+                    (
+                        NodeData::try_from(node.content.clone())?,
+                        node.from.iter().map(|id| id.0).collect(),
+                    ),
+                ))
+            })
+            .collect::<Result<Vec<_>, WeaveError>>()?;
+
+        let models: HashMap<u128, Model> = weave
+            .models
+            .clone()
+            .into_values()
+            .map(|model| {
+                (
+                    model.id.0,
+                    (Model {
+                        label: model.label,
+                        color: model.color,
+                    }),
+                )
+            })
+            .collect();
+
+        if let InteractiveWeave::Frozen(weave) = input {
+            nodes.push((
+                Ulid::new().0,
+                (
+                    NodeData::Diff(
+                        weave
+                            .diff()
+                            .content
+                            .clone()
+                            .into_iter()
+                            .map(|modification| {
+                                Ok((
+                                    u64::try_from(modification.index).map_err(|_| {
+                                        WeaveError::FailedInteractive(
+                                            "Unable to convert modification index to u64"
+                                                .to_string(),
+                                        )
+                                    })?,
+                                    modification.r#type
+                                        == super::content::ModificationType::Insertion,
+                                    modification.content,
+                                ))
+                            })
+                            .collect::<Result<Vec<_>, WeaveError>>()?,
+                    ),
+                    Vec::new(),
+                ),
+            ));
         }
 
-        todo!()
+        Ok(CompactWeave {
+            version: 0,
+            nodes,
+            active,
+            bookmarked,
+            models,
+        })
+    }
+}
+
+fn flatten_nodes<'a>(weave: &'a WeaveSnapshot) -> Vec<&'a super::content::Node> {
+    let mut node_list = Vec::with_capacity(weave.nodes.len());
+    let mut node_set = HashSet::with_capacity(weave.nodes.len());
+
+    for node in weave.root_nodes {
+        if let Some(node) = weave.nodes.get(node) {
+            get_flattened_nodes(weave, node, &mut node_list, &mut node_set);
+        }
+    }
+
+    node_list
+}
+
+fn get_flattened_nodes<'a>(
+    weave: &'a WeaveSnapshot,
+    node: &'a super::content::Node,
+    list: &mut Vec<&'a super::content::Node>,
+    identifiers: &mut HashSet<Ulid>,
+) {
+    if identifiers.insert(node.id) {
+        for parent in &node.from {
+            if let Some(parent) = weave.nodes.get(parent) {
+                if !identifiers.contains(&parent.id) {
+                    get_flattened_nodes(weave, parent, list, identifiers);
+                }
+            }
+        }
+        list.push(node);
+        for child in &node.to {
+            if let Some(child) = weave.nodes.get(child) {
+                get_flattened_nodes(weave, child, list, identifiers);
+            }
+        }
     }
 }
