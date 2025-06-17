@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use std::{collections::HashSet, iter, ops::Range};
 
 use rust_decimal::Decimal;
