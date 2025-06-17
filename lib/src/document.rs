@@ -5,8 +5,6 @@ use std::collections::{BTreeSet, HashMap, HashSet, hash_map::Entry};
 use serde::Serialize;
 use ulid::Ulid;
 
-// TODO: Fix weave.update_node_activity()
-
 use crate::content::{Model, Node, NodeContents, WeaveTimeline};
 
 /// Functions implemented by all Weave documents.
@@ -65,7 +63,7 @@ impl Weave {
                         let sibling_active = parent_child.active;
                         let sibling_bookmarked = parent_child.bookmarked;
                         if sibling_active != node.active {
-                            self.update_node_activity(&identifier, node.active);
+                            self.update_node_activity(&identifier, node.active, node.active);
                         }
                         if sibling_bookmarked != node.bookmarked {
                             self.update_node_bookmarked_status(&identifier, node.bookmarked);
@@ -84,7 +82,7 @@ impl Weave {
         }
         for parent in node.from.clone() {
             if node.active {
-                self.update_node_activity(&parent, true);
+                self.update_node_activity(&parent, true, true);
             }
             if let Some(parent) = self.nodes.get_mut(&parent) {
                 parent.to.insert(node.id);
@@ -143,7 +141,7 @@ impl Weave {
         }
     }
     // ! FIXME
-    pub fn update_node_activity(&mut self, identifier: &Ulid, active: bool) {
+    pub fn update_node_activity(&mut self, identifier: &Ulid, active: bool, propagate: bool) {
         if let Some(node) = self.nodes.get(identifier) {
             if node.active == active {
                 return;
@@ -163,22 +161,27 @@ impl Weave {
                     let mut parents: Vec<Ulid> = node.from.iter().copied().collect();
                     parents.sort();
                     if let Some(parent) = parents.first() {
-                        self.update_node_activity(parent, true);
+                        self.update_node_activity(parent, true, propagate);
                     }
-                } else {
+                } else if propagate {
                     let children = node.to.clone();
                     let parents = node.from.clone();
                     for child in children {
-                        self.update_node_activity(&child, false);
+                        self.update_node_activity(&child, false, true);
                     }
                     for parent in parents {
-                        self.update_node_activity(&parent, false);
+                        self.update_node_activity(&parent, false, true);
                     }
                 }
             }
         }
         if let Some(node) = self.nodes.get_mut(identifier) {
             node.active = active;
+            if !active && !propagate {
+                for child in node.to.clone() {
+                    self.update_removed_child_activity(&child);
+                }
+            }
         }
     }
     /// Update the bookmarked status of a [`Node`] by it's [`Ulid`].
