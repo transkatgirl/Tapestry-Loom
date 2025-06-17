@@ -32,9 +32,9 @@ pub struct Weave {
 impl Weave {
     /// Add a [`Node`] (along with it's corresponding [`Model`]).
     ///
-    /// Performs content deduplication if `deduplicate` is true, and performs loop checking (slow, requires recursively checking of all parents & children) if `skip_loop_check` is true.
+    /// Performs deduplication if `deduplicate` is true, and performs loop checking (slow, requires recursively checking of all parents & children) if `skip_loop_check` is true.
     ///
-    /// Returns the [`Ulid`] of the input node if the node was successfully added. If the node was deduplicated, the returned Ulid will correspond to a node which was already in the document. Returns [`None`] if the node could not be added due to having a duplicate identifier.
+    /// Returns the [`Ulid`] of the input node if the node was successfully added. If the node was deduplicated, the returned Ulid will correspond to a node which was already in the document (the node's active & bookmarked statuses will be updated to match the input). Returns [`None`] if the node could not be added due to having a duplicate identifier.
     pub fn add_node(
         &mut self,
         mut node: Node,
@@ -62,8 +62,13 @@ impl Weave {
                 for parent_child in parent.to.iter().filter_map(|id| self.nodes.get(id)) {
                     if parent_child.content == node.content {
                         let identifier = parent_child.id;
-                        if parent_child.active != node.active {
+                        let sibling_active = parent_child.active;
+                        let sibling_bookmarked = parent_child.bookmarked;
+                        if sibling_active != node.active {
                             self.update_node_activity(&identifier, node.active);
+                        }
+                        if sibling_bookmarked != node.bookmarked {
+                            self.update_node_bookmarked_status(&identifier, node.bookmarked);
                         }
                         return Some(identifier);
                     }
