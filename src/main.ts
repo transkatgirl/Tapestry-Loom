@@ -6,7 +6,7 @@ import {
 	TapestryLoomSettings,
 	TapestryLoomSettingTab,
 } from "settings";
-import { TapestryLoomTreeListView, TREE_LIST_VIEW_TYPE } from "view/tree";
+import { TapestryLoomMainTreeView, TREE_LIST_VIEW_TYPE } from "view/tree";
 import { TapestryLoomGraphView, GRAPH_VIEW_TYPE } from "view/graph";
 import {
 	buildEditorPlugin,
@@ -263,7 +263,7 @@ export default class TapestryLoom extends Plugin {
 
 		this.registerView(
 			TREE_LIST_VIEW_TYPE,
-			(leaf) => new TapestryLoomTreeListView(leaf, this)
+			(leaf) => new TapestryLoomMainTreeView(leaf, this)
 		);
 		this.registerView(
 			GRAPH_VIEW_TYPE,
@@ -281,21 +281,21 @@ export default class TapestryLoom extends Plugin {
 
 		this.addCommand({
 			id: "show-tapestry-loom-tree-list-view",
-			name: "Show node tree list view",
+			name: "Show tree view",
 			callback: async () => {
 				await this.showView(TREE_LIST_VIEW_TYPE);
 			},
 		});
 		this.addCommand({
 			id: "show-tapestry-loom-graph-view",
-			name: "Show node graph view",
+			name: "Show graph view",
 			callback: async () => {
 				await this.showView(GRAPH_VIEW_TYPE, true);
 			},
 		});
 		this.addCommand({
 			id: "show-tapestry-loom-sibling-list-view",
-			name: "Show node sibling list view",
+			name: "Show list view",
 			callback: async () => {
 				await this.showView(LIST_VIEW_TYPE);
 			},

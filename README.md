@@ -146,7 +146,7 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 ## Usage
 
 > [!WARNING]
-> This plugin relies on Obsidian's internal styling rules, and will likely have a broken interface on earlier or later versions than what it was built for. At the moment, this plugin is targeting Obsidian **1.8.x**, and was last tested on Obsidian **1.8.10**.
+> This plugin relies on Obsidian's internal styling rules, and will likely have a broken interface on earlier or later versions than what it was built for. At the moment, this plugin is targeting Obsidian **1.8.x**.
 
 ### Installation
 

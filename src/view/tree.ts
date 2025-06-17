@@ -28,7 +28,7 @@ import {
 } from "./common";
 import { ModelConfiguration, UNKNOWN_MODEL_LABEL } from "client";
 
-export const TREE_LIST_VIEW_TYPE = "tapestry-loom-main-list-view";
+export const TREE_LIST_VIEW_TYPE = "tapestry-loom-main-tree-view";
 
 export interface SessionSettings {
 	requests: number;
@@ -37,7 +37,7 @@ export interface SessionSettings {
 	parameters: Record<string, string>;
 }
 
-export class TapestryLoomTreeListView extends ItemView {
+export class TapestryLoomMainTreeView extends ItemView {
 	plugin: TapestryLoom;
 	private collapsedNodes: Set<ULID> = new Set();
 	private modelMenu?: CollapsibleMenuElement;
@@ -51,7 +51,7 @@ export class TapestryLoomTreeListView extends ItemView {
 		return TREE_LIST_VIEW_TYPE;
 	}
 	getDisplayText() {
-		return "Tapestry Loom Tree List";
+		return "Tapestry Loom Tree";
 	}
 	getIcon(): string {
 		return "list-tree";

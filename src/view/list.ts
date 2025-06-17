@@ -37,7 +37,7 @@ export class TapestryLoomListView extends ItemView {
 		return LIST_VIEW_TYPE;
 	}
 	getDisplayText() {
-		return "Tapestry Loom Node List";
+		return "Tapestry Loom List";
 	}
 	getIcon(): string {
 		return "layout-list";
