@@ -146,7 +146,34 @@ impl Weave {
             false
         }
     }
-
+    /// Recursively update the active status of a [`Node`] by it's [`Ulid`].
+    ///
+    /// If the node already has the desired active status, no update propagation is performed.
+    ///
+    /// This function can propagate the active status in two different ways:
+    /// ```rust
+    /// if in_place {
+    ///     if active {
+    ///         /* Recursively activates the node and its first parent node (sorted by Ulid)
+    ///            if it does not any have active parent nodes.
+    ///            If the parent node is active and has other active siblings besides the
+    ///            selected node, they are deactivated using in-place deactivation. */
+    ///     } else {
+    ///         /* Deactivates the node, and recursively updates the active status of the child
+    ///            nodes based on if they have other active parents. */
+    ///     }
+    /// } else {
+    ///     if active {
+    ///         /* Recursively activates the node and its first parent node (sorted by Ulid)
+    ///            if it does not any have active parent nodes.
+    ///            If the node has at least one active parent node, no further propagation is
+    ///            performed (parent nodes can have multiple active siblings). */
+    ///     } else {
+    ///         /* Recursively deactivates the node along with all of its parent nodes.
+    ///            Child nodes are recursively updated based on if they have other active parents. */
+    ///     }
+    /// }
+    /// ```
     pub fn update_node_activity(&mut self, identifier: &Ulid, active: bool, in_place: bool) {
         if let Some(node) = self.nodes.get(identifier) {
             if node.active == active {
@@ -170,12 +197,7 @@ impl Weave {
                         self.update_node_activity(parent, true, in_place);
                     }
                 } else if !in_place {
-                    let children = node.to.clone();
-                    let parents = node.from.clone();
-                    for child in children {
-                        self.update_node_activity(&child, false, false);
-                    }
-                    for parent in parents {
+                    for parent in node.from.clone() {
                         self.update_node_activity(&parent, false, false);
                     }
                 }
@@ -188,17 +210,13 @@ impl Weave {
                     .collect();
 
                 for sibling in siblings {
-                    if let Some(sibling) = self.nodes.get_mut(&sibling) {
-                        if sibling.active {
-                            sibling.active = false;
-                        }
-                    }
+                    self.update_node_activity(&sibling, false, true);
                 }
             }
         }
         if let Some(node) = self.nodes.get_mut(identifier) {
             node.active = active;
-            if in_place && !active {
+            if !active {
                 for child in node.to.clone() {
                     self.update_removed_child_activity(&child);
                 }
