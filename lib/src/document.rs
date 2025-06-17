@@ -56,20 +56,26 @@ impl Weave {
             }
         }
         if deduplicate {
-            for parent in node.from.iter().filter_map(|id| self.nodes.get(id)) {
-                for parent_child in parent.to.iter().filter_map(|id| self.nodes.get(id)) {
-                    if parent_child.content == node.content {
-                        let identifier = parent_child.id;
-                        let sibling_active = parent_child.active;
-                        let sibling_bookmarked = parent_child.bookmarked;
-                        if sibling_active != node.active {
-                            self.update_node_activity(&identifier, node.active, node.active);
-                        }
-                        if sibling_bookmarked != node.bookmarked {
-                            self.update_node_bookmarked_status(&identifier, node.bookmarked);
-                        }
-                        return Some(identifier);
+            let siblings: Vec<&Node> = node
+                .from
+                .iter()
+                .filter_map(|id| self.nodes.get(id))
+                .flat_map(|parent| &parent.to)
+                .filter_map(|id| self.nodes.get(id))
+                .collect();
+
+            for sibling in siblings {
+                if sibling.content == node.content {
+                    let identifier = sibling.id;
+                    let sibling_active = sibling.active;
+                    let sibling_bookmarked = sibling.bookmarked;
+                    if sibling_active != node.active {
+                        self.update_node_activity(&identifier, node.active, true);
                     }
+                    if sibling_bookmarked != node.bookmarked {
+                        self.update_node_bookmarked_status(&identifier, node.bookmarked);
+                    }
+                    return Some(identifier);
                 }
             }
         }
@@ -140,8 +146,8 @@ impl Weave {
             false
         }
     }
-    // ! FIXME
-    pub fn update_node_activity(&mut self, identifier: &Ulid, active: bool, propagate: bool) {
+
+    pub fn update_node_activity(&mut self, identifier: &Ulid, active: bool, in_place: bool) {
         if let Some(node) = self.nodes.get(identifier) {
             if node.active == active {
                 return;
@@ -161,23 +167,38 @@ impl Weave {
                     let mut parents: Vec<Ulid> = node.from.iter().copied().collect();
                     parents.sort();
                     if let Some(parent) = parents.first() {
-                        self.update_node_activity(parent, true, propagate);
+                        self.update_node_activity(parent, true, in_place);
                     }
-                } else if propagate {
+                } else if !in_place {
                     let children = node.to.clone();
                     let parents = node.from.clone();
                     for child in children {
-                        self.update_node_activity(&child, false, true);
+                        self.update_node_activity(&child, false, false);
                     }
                     for parent in parents {
-                        self.update_node_activity(&parent, false, true);
+                        self.update_node_activity(&parent, false, false);
+                    }
+                }
+            } else if in_place && active {
+                let siblings: Vec<Ulid> = node
+                    .from
+                    .iter()
+                    .filter_map(|id| self.nodes.get(id))
+                    .flat_map(|parent| parent.to.clone())
+                    .collect();
+
+                for sibling in siblings {
+                    if let Some(sibling) = self.nodes.get_mut(&sibling) {
+                        if sibling.active {
+                            sibling.active = false;
+                        }
                     }
                 }
             }
         }
         if let Some(node) = self.nodes.get_mut(identifier) {
             node.active = active;
-            if !active && !propagate {
+            if in_place && !active {
                 for child in node.to.clone() {
                     self.update_removed_child_activity(&child);
                 }
