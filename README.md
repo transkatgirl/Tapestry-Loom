@@ -85,7 +85,6 @@ Development may be intermittent, with long periods of inactivity between periods
 		- [ ] Add support for displaying alternate node options on hover, similar to [loom](https://github.com/socketteer/loom)
 			- [ ] Update Node list to display sibings of node at cursor rather than last active node
 			- [ ] Update graph to focus node at cursor rather than last active node
-
 	- [ ] Store weave in plugin database by default, only store in document frontmatter if the user explicitly requests to do so
 		- [ ] Allow graceful handling of editor undo/redo functionality
 	- [ ] Implement weave format v0 -> v1 conversion
