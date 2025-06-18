@@ -85,9 +85,11 @@ Development may be intermittent, with long periods of inactivity between periods
 		- [ ] Add support for displaying alternate node options on hover, similar to [loom](https://github.com/socketteer/loom)
 			- [ ] Update Node list to display sibings of node at cursor rather than last active node
 			- [ ] Update graph to focus node at cursor rather than last active node
+
 	- [ ] Store weave in plugin database by default, only store in document frontmatter if the user explicitly requests to do so
 		- [ ] Allow graceful handling of editor undo/redo functionality
 	- [ ] Implement weave format v0 -> v1 conversion
+- [ ] Rewrite async code to fix document switching race conditions
 - [ ] Add data structure for non-persistent Weave data
 	- [ ] Improve handling of node activation/deactivation when node has multiple parents
 - [ ] Weave format stabilization & finalization
@@ -95,7 +97,6 @@ Development may be intermittent, with long periods of inactivity between periods
 
 #### Tapestry Loom v1-beta checklist
 
-- [ ] Rewrite async code to fix document switching race conditions
 - [ ] Implement embedding model requests
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Add support for displaying prompt logprobs if returned by API
