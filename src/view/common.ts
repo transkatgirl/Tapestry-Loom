@@ -63,8 +63,9 @@ export async function generateNodeChildren(
 									content: [prob],
 									model: completion.model.ulid,
 									parentNode: parentNode,
-									parameters:
-										plugin.sessionSettings.parameters,
+									parameters: structuredClone(
+										plugin.sessionSettings.parameters
+									),
 								},
 								completion.model.label
 							);
@@ -89,7 +90,9 @@ export async function generateNodeChildren(
 								content: completion.completion,
 								model: completion.model.ulid,
 								parentNode: parentNode,
-								parameters: plugin.sessionSettings.parameters,
+								parameters: structuredClone(
+									plugin.sessionSettings.parameters
+								),
 							},
 							completion.model.label
 						);

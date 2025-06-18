@@ -321,8 +321,8 @@ export class WeaveDocument {
 					identifier: ulid(decodeTime(node.identifier)),
 					content: splitContent[1],
 					model: node.model,
-					parentNode: node.identifier,
-					parameters: node.parameters,
+					parentNode: structuredClone(node.identifier),
+					parameters: structuredClone(node.parameters),
 				});
 
 				if (primaryChildren) {
@@ -353,14 +353,14 @@ export class WeaveDocument {
 					content: splitContent[0],
 					model: node.model,
 					parentNode: node.parentNode,
-					parameters: node.parameters,
+					parameters: structuredClone(node.parameters),
 				});
 				this.addNode({
 					identifier: ulid(timestamp),
 					content: splitContent[1],
 					model: node.model,
 					parentNode: primaryIdentifier,
-					parameters: node.parameters,
+					parameters: structuredClone(node.parameters),
 				});
 
 				if (this.currentNode == node.identifier) {
@@ -477,7 +477,7 @@ export class WeaveDocument {
 				JSON.stringify(primaryNode.parameters) ==
 				JSON.stringify(secondaryNode.parameters || {})
 			) {
-				parameters = secondaryNode.parameters;
+				parameters = structuredClone(secondaryNode.parameters);
 			}
 
 			const identifier = this.addNode({
