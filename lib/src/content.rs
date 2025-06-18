@@ -431,16 +431,14 @@ impl Diff {
                 Chunk::Insert(content) => {
                     modifications.push(Modification {
                         index,
-                        r#type: ModificationType::Insertion,
-                        content: content.to_string(),
+                        content: ModificationContent::Insertion(content.to_string()),
                     });
                     index += content.len();
                 }
                 Chunk::Delete(content) => {
                     modifications.push(Modification {
                         index,
-                        r#type: ModificationType::Deletion,
-                        content: content.to_string(),
+                        content: ModificationContent::Deletion(content.len()),
                     });
                     index += content.len();
                 }
@@ -466,15 +464,14 @@ impl Diff {
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct Modification {
     pub index: usize,
-    pub r#type: ModificationType,
-    pub content: String,
+    pub content: ModificationContent,
 }
 
 impl Modification {
     fn apply_text(&self, text: &mut String) {
-        match self.r#type {
-            ModificationType::Insertion => text.insert_str(self.index, &self.content),
-            ModificationType::Deletion => text.replace_range(self.index..self.content.len(), ""),
+        match &self.content {
+            ModificationContent::Insertion(content) => text.insert_str(self.index, content),
+            ModificationContent::Deletion(length) => text.replace_range(self.index..*length, ""),
         }
     }
     fn apply_annotated(&self, content: &mut Vec<AnnotatedSnippet>) {
@@ -482,8 +479,8 @@ impl Modification {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
-pub enum ModificationType {
-    Insertion,
-    Deletion,
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
+pub enum ModificationContent {
+    Insertion(String),
+    Deletion(usize),
 }

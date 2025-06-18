@@ -74,8 +74,15 @@ type Node = (NodeData, Vec<u128>);
 type NodeModel = (u128, Vec<(String, String)>);
 // [bytes, probability]
 type NodeTokens = Vec<(ByteBuf, f32)>;
-// [index, insert/delete, content] processed in specified order
-type NodeDiff = Vec<(u64, bool, String)>;
+// [index, modification] processed in specified order
+type NodeDiff = Vec<(u64, DiffModification)>;
+
+#[derive(Serialize, Deserialize)]
+#[serde(untagged)]
+enum DiffModification {
+    Insert(String),
+    Delete(u64),
+}
 
 #[derive(Error, Debug)]
 /// An error encountered when working with a [`CompactWeave`].
@@ -145,6 +152,38 @@ impl CompactWeave {
 pub enum InteractiveWeave {
     Plain(Weave),
     Frozen(FrozenWeave),
+}
+
+impl TryFrom<DiffModification> for super::content::ModificationContent {
+    type Error = WeaveError;
+    fn try_from(input: DiffModification) -> Result<Self, Self::Error> {
+        Ok(match input {
+            DiffModification::Insert(content) => Self::Insertion(content),
+            DiffModification::Delete(length) => {
+                Self::Deletion(usize::try_from(length).map_err(|_| {
+                    WeaveError::FailedInteractive(
+                        "Unable to convert modification length to usize".to_string(),
+                    )
+                })?)
+            }
+        })
+    }
+}
+
+impl TryFrom<super::content::ModificationContent> for DiffModification {
+    type Error = WeaveError;
+    fn try_from(input: super::content::ModificationContent) -> Result<Self, Self::Error> {
+        Ok(match input {
+            super::content::ModificationContent::Insertion(content) => Self::Insert(content),
+            super::content::ModificationContent::Deletion(length) => {
+                Self::Delete(u64::try_from(length).map_err(|_| {
+                    WeaveError::FailedCompact(
+                        "Unable to convert modification length to u64".to_string(),
+                    )
+                })?)
+            }
+        })
+    }
 }
 
 impl TryFrom<NodeData> for super::content::NodeContent {
@@ -301,7 +340,7 @@ impl TryFrom<CompactWeave> for InteractiveWeave {
 
         let mut tail_diff = None;
         for (identifier, (content, parents)) in input.nodes {
-            if let NodeData::Diff(raw_diff) = &content {
+            if let NodeData::Diff(raw_diff) = content {
                 if tail_diff.is_some() {
                     return Err(WeaveError::FailedInteractive(
                         "Unsupported Node Content type".to_string(),
@@ -309,21 +348,15 @@ impl TryFrom<CompactWeave> for InteractiveWeave {
                 }
                 let diff = super::content::Diff {
                     content: raw_diff
-                        .clone()
                         .into_iter()
-                        .map(|(index, insertion, content)| {
+                        .map(|(index, content)| {
                             Ok(super::content::Modification {
-                                index: index.try_into().map_err(|_| {
+                                index: usize::try_from(index).map_err(|_| {
                                     WeaveError::FailedInteractive(
-                                        "Unable to parse Diff index".to_string(),
+                                        "Unable to convert modification index to usize".to_string(),
                                     )
                                 })?,
-                                r#type: if insertion {
-                                    super::content::ModificationType::Insertion
-                                } else {
-                                    super::content::ModificationType::Deletion
-                                },
-                                content,
+                                content: super::content::ModificationContent::try_from(content)?,
                             })
                         })
                         .collect::<Result<Vec<_>, WeaveError>>()?,
@@ -426,14 +459,12 @@ impl TryFrom<&InteractiveWeave> for CompactWeave {
                             .map(|modification| {
                                 Ok((
                                     u64::try_from(modification.index).map_err(|_| {
-                                        WeaveError::FailedInteractive(
+                                        WeaveError::FailedCompact(
                                             "Unable to convert modification index to u64"
                                                 .to_string(),
                                         )
                                     })?,
-                                    modification.r#type
-                                        == super::content::ModificationType::Insertion,
-                                    modification.content,
+                                    DiffModification::try_from(modification.content)?,
                                 ))
                             })
                             .collect::<Result<Vec<_>, WeaveError>>()?,
