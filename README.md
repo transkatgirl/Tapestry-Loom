@@ -88,22 +88,17 @@ Development may be intermittent, with long periods of inactivity between periods
 	- [ ] Store weave in plugin database by default, only store in document frontmatter if the user explicitly requests to do so
 		- [ ] Allow graceful handling of editor undo/redo functionality
 	- [ ] Implement weave format v0 -> v1 conversion
+- [ ] Add data structure for non-persistent Weave data
+	- [ ] Improve handling of node activation/deactivation when node has multiple parents
 - [ ] Weave format stabilization & finalization
+	- [ ] Merging of v1 to main branch
 
 #### Tapestry Loom v1-beta checklist
 
 - [ ] Rewrite async code to fix document switching race conditions
 - [ ] Implement embedding model requests
-- [ ] Add data structure for non-persistent Weave data:
-	- [ ] Improve handling of node activation/deactivation when node has multiple parents
-	- [ ] Support for displaying prompt logprobs if returned by API
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
-- [ ] Merging of v1 to main branch
-
-#### Tapestry Loom v1-rc checklist
-
-Tapestry Loom v1 will be the first stable version, and will be listed on the Obsidian community plugin registry.
-
+- [ ] Add support for displaying prompt logprobs if returned by API
 - [ ] UI improvements
 	- [ ] Code cleanup
 		- [ ] Remove reliance on Obsidian's undocumented styling rules
@@ -117,6 +112,11 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 			- [ ] Implement setting to only show node contents on hover, similar to [exoloom](https://exoloom.io)
 		- [ ] Implement folding in graph view
 	- [ ] Add Generation presets
+
+#### Tapestry Loom v1-rc checklist
+
+Tapestry Loom v1 will be the first stable version, and will be listed on the Obsidian community plugin registry.
+
 - [ ] Document & selection analysis tools
 	- [ ] Predictability analysis using logprobs
 	- [ ] Statistical analysis of various metrics (model usage, text length, logprobs, number of branches, etc)
