@@ -2,6 +2,7 @@
 
 use std::{collections::HashSet, iter, ops::Range};
 
+use dissimilar::Chunk;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
@@ -419,7 +420,36 @@ pub struct Diff {
 
 impl Diff {
     pub fn new(before: &str, after: &str) -> Self {
-        todo!()
+        let chunks = dissimilar::diff(before, after);
+
+        let mut index = 0;
+        let mut modifications = Vec::with_capacity(chunks.len());
+
+        for chunk in chunks {
+            match chunk {
+                Chunk::Equal(content) => index += content.len(),
+                Chunk::Insert(content) => {
+                    modifications.push(Modification {
+                        index,
+                        r#type: ModificationType::Insertion,
+                        content: content.to_string(),
+                    });
+                    index += content.len();
+                }
+                Chunk::Delete(content) => {
+                    modifications.push(Modification {
+                        index,
+                        r#type: ModificationType::Deletion,
+                        content: content.to_string(),
+                    });
+                    index += content.len();
+                }
+            }
+        }
+
+        Self {
+            content: modifications,
+        }
     }
     pub fn apply(&self, text: &mut String) {
         for modification in &self.content {
