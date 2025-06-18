@@ -489,3 +489,19 @@ impl<'w> From<&'w Weave> for WeaveSnapshot<'w> {
         }
     }
 }
+
+pub(super) struct OwnedWeaveSnapshot {
+    pub(super) nodes: HashMap<Ulid, Node>,
+    pub(super) models: HashMap<Ulid, Model>,
+    pub(super) root_nodes: BTreeSet<Ulid>,
+}
+
+impl From<Weave> for OwnedWeaveSnapshot {
+    fn from(input: Weave) -> Self {
+        Self {
+            nodes: input.nodes,
+            models: input.models,
+            root_nodes: input.root_nodes,
+        }
+    }
+}

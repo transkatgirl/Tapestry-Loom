@@ -8,55 +8,12 @@ use serde::{Deserialize, Serialize};
 
 use ulid::Ulid;
 
-use crate::document::{Weave, WeaveSnapshot, WeaveView};
+use crate::document::Weave;
 
 /* TODO:
-- Diff creation & application
 - Weave content building/updating
 - Node splitting/merging
 - Documentation */
-
-pub struct FrozenWeave {
-    weave: Weave,
-    timeline: usize,
-    changes: Diff,
-}
-
-impl FrozenWeave {
-    pub fn new(weave: Weave, timeline: usize, changes: Diff) -> Option<Self> {
-        weave.get_active_timelines().get(timeline)?;
-
-        Some(Self {
-            weave,
-            timeline,
-            changes,
-        })
-    }
-    pub fn weave(&self) -> WeaveSnapshot {
-        WeaveSnapshot::from(&self.weave)
-    }
-    pub fn diff(&self) -> &Diff {
-        &self.changes
-    }
-    pub fn text(&self) -> String {
-        let mut text = self.weave.get_active_timelines()[self.timeline].text();
-        self.changes.apply(&mut text);
-        text
-    }
-    pub fn content(&self) -> Vec<AnnotatedSnippet> {
-        let mut annotations = self
-            .weave
-            .get_active_timelines()
-            .remove(self.timeline)
-            .annotated();
-        self.changes.apply_annotated(&mut annotations);
-        annotations
-    }
-    pub fn update(&mut self, content: &str) {
-        let before = self.text();
-        self.changes = Diff::new(&before, content);
-    }
-}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Node {
@@ -451,12 +408,7 @@ impl Diff {
     }
     pub fn apply(&self, text: &mut String) {
         for modification in &self.content {
-            modification.apply_text(text);
-        }
-    }
-    pub fn apply_annotated(&self, content: &mut Vec<AnnotatedSnippet>) {
-        for modification in &self.content {
-            modification.apply_annotated(content);
+            modification.apply(text);
         }
     }
 }
@@ -468,14 +420,11 @@ pub struct Modification {
 }
 
 impl Modification {
-    fn apply_text(&self, text: &mut String) {
+    pub fn apply(&self, text: &mut String) {
         match &self.content {
             ModificationContent::Insertion(content) => text.insert_str(self.index, content),
             ModificationContent::Deletion(length) => text.replace_range(self.index..*length, ""),
         }
-    }
-    fn apply_annotated(&self, content: &mut Vec<AnnotatedSnippet>) {
-        todo!()
     }
 }
 
@@ -483,4 +432,19 @@ impl Modification {
 pub enum ModificationContent {
     Insertion(String),
     Deletion(usize),
+}
+
+impl ModificationContent {
+    pub fn len(&self) -> usize {
+        match self {
+            ModificationContent::Insertion(content) => content.len(),
+            ModificationContent::Deletion(length) => *length,
+        }
+    }
+    pub fn is_empty(&self) -> bool {
+        match self {
+            ModificationContent::Insertion(content) => content.is_empty(),
+            ModificationContent::Deletion(length) => *length == 0,
+        }
+    }
 }

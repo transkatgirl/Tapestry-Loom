@@ -35,7 +35,6 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 	- Node metadata: Model + inference parameters used, time generated, and token probabilities (if available)
 	- Nodes can be inserted at any point of the graph, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- Completion graph can be stored within document for easy sharing
-	- Proofreading Mode: Freezes the completion graph and stores further modifications as a diff
 - Tree-based graph view, similar to [loom](https://github.com/socketteer/loom) and [loomsidian](https://github.com/cosmicoptima/loom)
 - Graph view, similar to [loom](https://github.com/socketteer/loom) and [exoloom](https://exoloom.io)
 - Node list view, similar to [loomsidian](https://github.com/cosmicoptima/loom) and [exoloom](https://exoloom.io)
@@ -81,7 +80,6 @@ Development may be intermittent, with long periods of inactivity between periods
 	- [ ] Implement new data structure into Tapestry Loom via WASM
 		- [ ] Add support for binary nodes to improve handling of invalid unicode
 		- [ ] Add support for FIM completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
-		- [ ] Add support for content diff nodes for user modifications, similar to [minihf's loom](https://github.com/JD-P/minihf)
 		- [ ] Add support for displaying alternate node options on hover, similar to [loom](https://github.com/socketteer/loom)
 			- [ ] Update Node list to display sibings of node at cursor rather than last active node
 			- [ ] Update graph to focus node at cursor rather than last active node
@@ -129,6 +127,7 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 
 - Allow adding roles to nodes when using chat-style LLM endpoints
 	- Allow a chat weave session to reference another weave using LLM tool use (based on this [twitter thread](https://x.com/arcreflex_/status/1930671693707591767))
+- Add a proofreading Mode which freezes the completion graph and stores further modifications as a diff
 - Integration with local LLM engines:
 	- Option 1: Ollama integration
 	- Option 2: An optional Tapestry Loom LLM server to handle running models locally using llama.cpp. This will likely only end up getting implemented if implementing [logprobs in Ollama](https://github.com/ollama/ollama/issues/2415) keeps getting delayed.
