@@ -323,7 +323,7 @@ impl TryFrom<CompactWeave> for InteractiveWeave {
     fn try_from(input: CompactWeave) -> Result<Self, Self::Error> {
         let mut weave = Weave::default();
 
-        let models: HashMap<u128, super::content::Model> = input
+        let mut models: HashMap<u128, super::content::Model> = input
             .models
             .into_iter()
             .map(|(id, model)| {
@@ -366,7 +366,7 @@ impl TryFrom<CompactWeave> for InteractiveWeave {
                 continue;
             }
 
-            let model = content.model().and_then(|m| models.get(&m.0));
+            let model = content.model().and_then(|m| models.remove(&m.0));
             let node = super::content::Node {
                 id: Ulid(identifier),
                 from: parents.into_iter().map(Ulid).collect(),
@@ -376,7 +376,7 @@ impl TryFrom<CompactWeave> for InteractiveWeave {
                 content: super::content::NodeContent::try_from(content)?,
             };
 
-            weave.add_node(node, model.cloned(), true, false);
+            weave.add_node(node, model, true, false);
         }
 
         match tail_diff {
