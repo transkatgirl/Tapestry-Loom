@@ -56,13 +56,12 @@ impl Weave {
             }
         }
         if deduplicate {
-            let siblings: Vec<&Node> = node
+            let siblings = node
                 .from
                 .iter()
                 .filter_map(|id| self.nodes.get(id))
                 .flat_map(|parent| &parent.to)
-                .filter_map(|id| self.nodes.get(id))
-                .collect();
+                .filter_map(|id| self.nodes.get(id));
 
             for sibling in siblings {
                 if sibling.content == node.content {
