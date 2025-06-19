@@ -191,6 +191,9 @@ impl NodeContent {
             None
         }
     }
+    pub fn split(self, index: usize) -> [Self; 2] {
+        todo!()
+    }
 }
 
 pub trait NodeContents {
