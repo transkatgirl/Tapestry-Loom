@@ -194,7 +194,7 @@ impl TryFrom<NodeData> for super::content::NodeContent {
             )),
             NodeData::Bytes((content, model)) => Ok(super::content::NodeContent::Bytes(
                 super::content::ByteNode {
-                    content: content.to_vec(),
+                    content: content.into_vec(),
                     model: model.map(|(identifier, parameters)| super::content::NodeModel {
                         id: Ulid(identifier),
                         parameters,
