@@ -43,15 +43,14 @@ impl<'w> WeaveTimeline<'w> {
     pub fn text(&self) -> String {
         self.timeline
             .iter()
-            .filter_map(|(node, _model)| node.content.clone().text())
+            .map(|(node, _model)| node.content.clone().text())
             .collect::<Vec<String>>()
             .concat()
     }
     pub fn bytes(&self) -> Vec<u8> {
         self.timeline
             .iter()
-            .filter_map(|(node, _model)| node.content.clone().bytes())
-            .flatten()
+            .flat_map(|(node, _model)| node.content.clone().bytes())
             .collect()
     }
     pub fn annotated(&self) -> Vec<AnnotatedSnippet<'w>> {
@@ -218,26 +217,26 @@ impl NodeContents for NodeContent {
     }
 }
 
-impl NodeContent {
-    pub fn text(self) -> Option<String> {
+impl TextualNodeContents for NodeContent {
+    fn text(self) -> String {
         match self {
-            Self::Text(content) => Some(content.text()),
-            Self::Bytes(content) => Some(content.text()),
-            Self::Token(content) => Some(content.text()),
-            Self::TextToken(content) => Some(content.text()),
-            Self::Blank => None,
+            Self::Text(content) => content.text(),
+            Self::Bytes(content) => content.text(),
+            Self::Token(content) => content.text(),
+            Self::TextToken(content) => content.text(),
+            Self::Blank => String::new(),
         }
     }
-    pub fn bytes(self) -> Option<Vec<u8>> {
+    fn bytes(self) -> Vec<u8> {
         match self {
-            Self::Text(content) => Some(content.bytes()),
-            Self::Bytes(content) => Some(content.bytes()),
-            Self::Token(content) => Some(content.bytes()),
-            Self::TextToken(content) => Some(content.bytes()),
-            Self::Blank => None,
+            Self::Text(content) => content.bytes(),
+            Self::Bytes(content) => content.bytes(),
+            Self::Token(content) => content.bytes(),
+            Self::TextToken(content) => content.bytes(),
+            Self::Blank => Vec::new(),
         }
     }
-    pub fn snippets(self) -> Vec<Snippet> {
+    fn snippets(self) -> Vec<Snippet> {
         match self {
             Self::Text(content) => content.snippets(),
             Self::Bytes(content) => content.snippets(),
