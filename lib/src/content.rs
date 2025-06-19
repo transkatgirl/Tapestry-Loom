@@ -145,31 +145,83 @@ pub enum NodeContent {
 }
 
 impl NodeContent {
-    pub fn merge(left: Self, right: Self) -> Self {
-        /*if left.model() == right.model() {
-            todo!()
-        } else {
-            let mut bytes = left.bytes().unwrap_or_default();
-            bytes.append(&mut right.bytes().unwrap_or_default());
+    pub fn merge(left: Self, right: Self) -> Option<Self> {
+        if left.model() == right.model() {
+            Some(match left {
+                Self::Text(left) => match right {
+                    Self::Text(right) => Self::Text(TextNode {
+                        content: [left.content, right.content].concat(),
+                        model: left.model,
+                    }),
+                    Self::Bytes(mut right) => {
+                        let mut content = left.content.into_bytes();
+                        content.append(&mut right.content);
 
-            if bytes.is_empty() {
-                return Self::Blank;
-            }
+                        Self::Bytes(ByteNode {
+                            content,
+                            model: left.model,
+                        })
+                    }
+                    Self::Token(right) => {
+                        //let left_token = TextOrToken()
 
-            if let Ok(text) = str::from_utf8(&bytes) {
-                return Self::Text(TextNode {
-                    content: text.to_string(),
-                    model: None,
-                });
-            }
-
-            Self::Bytes(ByteNode {
-                content: bytes,
-                model: None,
+                        todo!()
+                    }
+                    Self::TextToken(right) => {
+                        todo!()
+                    }
+                    Self::Blank => Self::Text(left),
+                },
+                Self::Bytes(left) => match right {
+                    Self::Text(right) => {
+                        todo!()
+                    }
+                    Self::Bytes(right) => {
+                        todo!()
+                    }
+                    Self::Token(right) => {
+                        todo!()
+                    }
+                    Self::TextToken(right) => {
+                        todo!()
+                    }
+                    Self::Blank => Self::Bytes(left),
+                },
+                Self::Token(left) => match right {
+                    Self::Text(right) => {
+                        todo!()
+                    }
+                    Self::Bytes(right) => {
+                        todo!()
+                    }
+                    Self::Token(right) => {
+                        todo!()
+                    }
+                    Self::TextToken(right) => {
+                        todo!()
+                    }
+                    Self::Blank => Self::Token(left),
+                },
+                Self::TextToken(left) => match right {
+                    Self::Text(right) => {
+                        todo!()
+                    }
+                    Self::Bytes(right) => {
+                        todo!()
+                    }
+                    Self::Token(right) => {
+                        todo!()
+                    }
+                    Self::TextToken(right) => {
+                        todo!()
+                    }
+                    Self::Blank => Self::TextToken(left),
+                },
+                Self::Blank => right,
             })
-        }*/
-
-        todo!()
+        } else {
+            None
+        }
     }
 }
 
@@ -352,6 +404,7 @@ impl TextualNodeContents for TextTokenNode {
         for content in self.content {
             data.append(&mut match content {
                 TextOrToken::Text(text) => text.into_bytes(),
+                TextOrToken::Bytes(bytes) => bytes,
                 TextOrToken::Token(token) => {
                     token.into_iter().flat_map(|token| token.content).collect()
                 }
@@ -370,6 +423,15 @@ impl TextualNodeContents for TextTokenNode {
                     let range = Range {
                         start: index,
                         end: index + text.len(),
+                    };
+                    index = range.end;
+
+                    ranges.push((range, None));
+                }
+                TextOrToken::Bytes(bytes) => {
+                    let range = Range {
+                        start: index,
+                        end: index + bytes.len(),
                     };
                     index = range.end;
 
@@ -444,6 +506,7 @@ fn into_snippets(data: &[u8], ranges: Vec<(Range<usize>, Option<Decimal>)>) -> V
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum TextOrToken {
     Text(String),
+    Bytes(Vec<u8>),
     Token(Vec<NodeToken>),
 }
 

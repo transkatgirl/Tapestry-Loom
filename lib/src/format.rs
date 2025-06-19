@@ -51,6 +51,7 @@ enum NodeData {
 #[serde(untagged)]
 enum TextToken {
     Text(String),
+    Bytes(ByteBuf),
     Token(NodeTokens),
 }
 
@@ -227,6 +228,9 @@ impl TryFrom<NodeData> for super::content::NodeContent {
                         .into_iter()
                         .map(|text_token| match text_token {
                             TextToken::Text(text) => Ok(super::content::TextOrToken::Text(text)),
+                            TextToken::Bytes(bytes) => {
+                                Ok(super::content::TextOrToken::Bytes(bytes.into_vec()))
+                            }
                             TextToken::Token(tokens) => Ok(super::content::TextOrToken::Token(
                                 tokens
                                     .into_iter()
@@ -297,6 +301,9 @@ impl TryFrom<super::content::NodeContent> for NodeData {
                     .map(|token| match token {
                         super::content::TextOrToken::Text(text) => {
                             Ok::<TextToken, WeaveError>(TextToken::Text(text))
+                        }
+                        super::content::TextOrToken::Bytes(bytes) => {
+                            Ok(TextToken::Bytes(ByteBuf::from(bytes)))
                         }
                         super::content::TextOrToken::Token(token) => Ok(TextToken::Token(
                             token
