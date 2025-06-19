@@ -17,7 +17,7 @@ pub trait WeaveView {
     fn get_active_timelines(&self) -> Vec<WeaveTimeline>;
 }
 
-/// A mutable Weave representation.
+/// An owned Weave document.
 #[derive(Default, Debug, PartialEq)]
 pub struct Weave {
     nodes: HashMap<Ulid, Node>,
@@ -374,7 +374,7 @@ impl WeaveView for Weave {
     }
 }
 
-/// A immutable view of a [`Weave`] object.
+/// A immutable reference to a [`Weave`] object.
 #[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct WeaveSnapshot<'w> {
     /// A map of [`Node`] objects in the Weave retrievable by their [`Ulid`].
