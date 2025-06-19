@@ -40,6 +40,7 @@ struct Model {
 #[derive(Serialize, Deserialize)]
 enum NodeData {
     Text((String, Option<NodeModel>)),
+    Bytes((ByteBuf, Option<NodeModel>)),
     Token((NodeTokens, Option<NodeModel>)),
     TextToken((Vec<TextToken>, Option<NodeModel>)),
     Diff(NodeDiff),
@@ -57,6 +58,7 @@ impl NodeData {
     fn model(&self) -> Option<&NodeModel> {
         match self {
             NodeData::Text(content) => content.1.as_ref(),
+            NodeData::Bytes(content) => content.1.as_ref(),
             NodeData::Token(content) => content.1.as_ref(),
             NodeData::TextToken(content) => content.1.as_ref(),
             NodeData::Diff(_content) => None,
@@ -189,6 +191,15 @@ impl TryFrom<NodeData> for super::content::NodeContent {
                     }),
                 },
             )),
+            NodeData::Bytes((content, model)) => Ok(super::content::NodeContent::Bytes(
+                super::content::ByteNode {
+                    content: content.to_vec(),
+                    model: model.map(|(identifier, parameters)| super::content::NodeModel {
+                        id: Ulid(identifier),
+                        parameters,
+                    }),
+                },
+            )),
             NodeData::Token((content, model)) => Ok(super::content::NodeContent::Token(
                 super::content::TokenNode {
                     content: content
@@ -256,6 +267,10 @@ impl TryFrom<super::content::NodeContent> for NodeData {
         Ok(match input {
             super::content::NodeContent::Text(content) => NodeData::Text((
                 content.content,
+                content.model.map(|model| (model.id.0, model.parameters)),
+            )),
+            super::content::NodeContent::Bytes(content) => NodeData::Bytes((
+                ByteBuf::from(content.content),
                 content.model.map(|model| (model.id.0, model.parameters)),
             )),
             super::content::NodeContent::Token(content) => NodeData::Token((

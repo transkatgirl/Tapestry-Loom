@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use ulid::Ulid;
 
-use crate::document::Weave;
+use crate::document::{Weave, WeaveView};
 
 /* TODO:
 - Weave content building/updating
@@ -65,6 +65,13 @@ impl<'w> WeaveTimeline<'w> {
                     model: *model,
                 })
                 .collect::<Vec<_>>(),
+                NodeContent::Bytes(content) => iter::once(AnnotatedSnippet {
+                    node: Some(node),
+                    content: content.clone().text(),
+                    probability: None,
+                    model: *model,
+                })
+                .collect::<Vec<_>>(),
                 NodeContent::Token(content) => content
                     .clone()
                     .snippets()
@@ -103,7 +110,17 @@ impl Weave {
     pub fn split_node(&mut self, identifier: &Ulid, index: usize) -> Option<Ulid> {
         todo!()
     }
-    pub fn merge_nodes(&mut self, identifiers: &[Ulid]) -> Option<Ulid> {
+    pub fn merge_nodes(&mut self, left: &Ulid, right: &Ulid) -> Option<Ulid> {
+        let (Some(left), _) = self.get_node(left) else {
+            return None;
+        };
+        let (Some(right), _) = self.get_node(right) else {
+            return None;
+        };
+        if !(left.to.contains(&right.id) && right.from.contains(&left.id)) {
+            return None;
+        }
+
         todo!()
     }
     pub fn update_content(&mut self, content: String) {
@@ -121,9 +138,39 @@ pub struct Model {
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum NodeContent {
     Text(TextNode),
+    Bytes(ByteNode),
     Token(TokenNode),
     TextToken(TextTokenNode),
     Blank,
+}
+
+impl NodeContent {
+    pub fn merge(left: Self, right: Self) -> Self {
+        /*if left.model() == right.model() {
+            todo!()
+        } else {
+            let mut bytes = left.bytes().unwrap_or_default();
+            bytes.append(&mut right.bytes().unwrap_or_default());
+
+            if bytes.is_empty() {
+                return Self::Blank;
+            }
+
+            if let Ok(text) = str::from_utf8(&bytes) {
+                return Self::Text(TextNode {
+                    content: text.to_string(),
+                    model: None,
+                });
+            }
+
+            Self::Bytes(ByteNode {
+                content: bytes,
+                model: None,
+            })
+        }*/
+
+        todo!()
+    }
 }
 
 pub trait NodeContents {
@@ -140,6 +187,7 @@ impl NodeContents for NodeContent {
     fn model(&self) -> Option<&NodeModel> {
         match self {
             Self::Text(content) => content.model(),
+            Self::Bytes(content) => content.model(),
             Self::Token(content) => content.model(),
             Self::TextToken(content) => content.model(),
             Self::Blank => None,
@@ -151,6 +199,7 @@ impl NodeContent {
     pub fn text(self) -> Option<String> {
         match self {
             Self::Text(content) => Some(content.text()),
+            Self::Bytes(content) => Some(content.text()),
             Self::Token(content) => Some(content.text()),
             Self::TextToken(content) => Some(content.text()),
             Self::Blank => None,
@@ -159,6 +208,7 @@ impl NodeContent {
     pub fn bytes(self) -> Option<Vec<u8>> {
         match self {
             Self::Text(content) => Some(content.bytes()),
+            Self::Bytes(content) => Some(content.bytes()),
             Self::Token(content) => Some(content.bytes()),
             Self::TextToken(content) => Some(content.bytes()),
             Self::Blank => None,
@@ -195,6 +245,33 @@ impl TextualNodeContents for TextNode {
         vec![Snippet {
             probability: None,
             content: self.content,
+        }]
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
+pub struct ByteNode {
+    pub content: Vec<u8>,
+    pub model: Option<NodeModel>,
+}
+
+impl NodeContents for ByteNode {
+    fn model(&self) -> Option<&NodeModel> {
+        self.model.as_ref()
+    }
+}
+
+impl TextualNodeContents for ByteNode {
+    fn text(self) -> String {
+        String::from_utf8_lossy(&self.bytes()).to_string()
+    }
+    fn bytes(self) -> Vec<u8> {
+        self.content
+    }
+    fn snippets(self) -> Vec<Snippet> {
+        vec![Snippet {
+            probability: None,
+            content: self.text(),
         }]
     }
 }
