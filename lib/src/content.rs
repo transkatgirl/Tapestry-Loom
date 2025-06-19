@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 
-use std::{collections::HashSet, iter, ops::Range};
+use std::{collections::HashSet, ops::Range};
 
 use dissimilar::Chunk;
 use rust_decimal::Decimal;
@@ -298,6 +298,13 @@ impl TextualNodeContents for ByteNode {
         self.content
     }
     fn snippets(self) -> Vec<Snippet> {
+        if let Ok(text) = str::from_utf8(&self.content) {
+            return vec![Snippet {
+                probability: None,
+                content: TextOrBytes::Text(text.to_string()),
+            }];
+        }
+
         vec![Snippet {
             probability: None,
             content: TextOrBytes::Bytes(self.content),
