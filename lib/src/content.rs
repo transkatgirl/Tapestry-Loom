@@ -32,7 +32,7 @@ pub struct WeaveTimeline<'w> {
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct AnnotatedSnippet<'w> {
-    pub content: String,
+    pub content: TextOrBytes,
     pub probability: Option<Decimal>,
 
     pub node: Option<&'w Node>,
@@ -57,22 +57,8 @@ impl<'w> WeaveTimeline<'w> {
     pub fn annotated(&self) -> Vec<AnnotatedSnippet<'w>> {
         self.timeline
             .iter()
-            .flat_map(|(node, model)| match &node.content {
-                NodeContent::Text(content) => iter::once(AnnotatedSnippet {
-                    node: Some(node),
-                    content: content.content.clone(),
-                    probability: None,
-                    model: *model,
-                })
-                .collect::<Vec<_>>(),
-                NodeContent::Bytes(content) => iter::once(AnnotatedSnippet {
-                    node: Some(node),
-                    content: content.clone().text(),
-                    probability: None,
-                    model: *model,
-                })
-                .collect::<Vec<_>>(),
-                NodeContent::Token(content) => content
+            .flat_map(|(node, model)| {
+                node.content
                     .clone()
                     .snippets()
                     .into_iter()
@@ -82,25 +68,7 @@ impl<'w> WeaveTimeline<'w> {
                         probability: snippet.probability,
                         model: *model,
                     })
-                    .collect::<Vec<_>>(),
-                NodeContent::TextToken(content) => content
-                    .clone()
-                    .snippets()
-                    .into_iter()
-                    .map(|snippet| AnnotatedSnippet {
-                        node: Some(node),
-                        content: snippet.content,
-                        probability: snippet.probability,
-                        model: *model,
-                    })
-                    .collect::<Vec<_>>(),
-                NodeContent::Blank => iter::once(AnnotatedSnippet {
-                    node: Some(node),
-                    content: String::new(),
-                    probability: None,
-                    model: None,
-                })
-                .collect::<Vec<_>>(),
+                    .collect::<Vec<_>>()
             })
             .collect()
     }
@@ -266,6 +234,15 @@ impl NodeContent {
             Self::Blank => None,
         }
     }
+    pub fn snippets(self) -> Vec<Snippet> {
+        match self {
+            Self::Text(content) => content.snippets(),
+            Self::Bytes(content) => content.snippets(),
+            Self::Token(content) => content.snippets(),
+            Self::TextToken(content) => content.snippets(),
+            Self::Blank => Vec::new(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
@@ -296,7 +273,7 @@ impl TextualNodeContents for TextNode {
     fn snippets(self) -> Vec<Snippet> {
         vec![Snippet {
             probability: None,
-            content: self.content,
+            content: TextOrBytes::Text(self.content),
         }]
     }
 }
@@ -323,7 +300,7 @@ impl TextualNodeContents for ByteNode {
     fn snippets(self) -> Vec<Snippet> {
         vec![Snippet {
             probability: None,
-            content: self.text(),
+            content: TextOrBytes::Bytes(self.content),
         }]
     }
 }
@@ -379,7 +356,13 @@ pub struct NodeToken {
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct Snippet {
     pub probability: Option<Decimal>,
-    pub content: String,
+    pub content: TextOrBytes,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
+pub enum TextOrBytes {
+    Text(String),
+    Bytes(Vec<u8>),
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
@@ -481,7 +464,7 @@ fn into_snippets(data: &[u8], ranges: Vec<(Range<usize>, Option<Decimal>)>) -> V
             if let Ok(text) = str::from_utf8(&data[range.start..range.end]) {
                 snippets.push(Snippet {
                     probability,
-                    content: text.to_string(),
+                    content: TextOrBytes::Text(text.to_string()),
                 });
                 break;
             }
@@ -491,7 +474,7 @@ fn into_snippets(data: &[u8], ranges: Vec<(Range<usize>, Option<Decimal>)>) -> V
                 range = original_range;
                 snippets.push(Snippet {
                     probability,
-                    content: String::from_utf8_lossy(&data[range.start..range.end]).to_string(),
+                    content: TextOrBytes::Bytes(data[range.start..range.end].to_vec()),
                 });
                 break;
             }
