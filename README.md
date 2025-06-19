@@ -77,13 +77,15 @@ Development may be intermittent, with long periods of inactivity between periods
 - [ ] Improve Weave format to improve flexibility and efficiency:
 	- [ ] Create Rust library implementing new weave data structure & serialization+deserialization
 		- [ ] Implement unit testing for the Rust library
+		- [ ] Benchmark handling of different weave sizes and node sizes
 	- [ ] Implement new data structure into Tapestry Loom via WASM
 		- [ ] Add support for binary nodes to improve handling of invalid unicode
 		- [ ] Add support for FIM completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 		- [ ] Add support for displaying alternate node options on hover, similar to [loom](https://github.com/socketteer/loom)
 			- [ ] Update Node list to display sibings of node at cursor rather than last active node
 			- [ ] Update graph to focus node at cursor rather than last active node
-	- [ ] Store weave in plugin database by default, only store in document frontmatter if the user explicitly requests to do so
+	- [ ] Store weave in dedicated files by default, only store in document frontmatter if the user explicitly requests to do so
+		- [ ] Add graceful handling of large weaves, similar to [loom](https://github.com/socketteer/loom)
 		- [ ] Allow graceful handling of editor undo/redo functionality
 	- [ ] Implement weave format v0 -> v1 conversion
 - [ ] Rewrite async code to fix document switching race conditions
