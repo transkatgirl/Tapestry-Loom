@@ -85,9 +85,9 @@ Development may be intermittent, with long periods of inactivity between periods
 			- [ ] Update Node list to display sibings of node at cursor rather than last active node
 			- [ ] Update graph to focus node at cursor rather than last active node
 	- [ ] Store weave in dedicated files by default, only store in document frontmatter if the user explicitly requests to do so
-		- [ ] Add graceful handling of large weaves, similar to [loom](https://github.com/socketteer/loom)
 		- [ ] Allow graceful handling of editor undo/redo functionality
 	- [ ] Implement weave format v0 -> v1 conversion
+	- [ ] Implement multi-document weaves, similar to [loom](https://github.com/socketteer/loom)
 - [ ] Rewrite async code to fix document switching race conditions
 - [ ] Add data structure for non-persistent Weave data
 	- [ ] Improve handling of node activation/deactivation when node has multiple parents
