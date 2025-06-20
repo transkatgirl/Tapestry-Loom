@@ -34,6 +34,7 @@ An Obsidian plugin that aims to turn your editor into an IDE for working with ba
 		- Node contents are deduplicated and prefix-matching is automatically applied, similar to [Loom Engine](https://github.com/arcreflex/loom-engine)
 	- Node metadata: Model + inference parameters used, time generated, and token probabilities (if available)
 	- Nodes can be inserted at any point of the graph, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
+	- Diff mode: Changes to the weave are stored as a tree of diffs rather than a DAG, similar to [minihf's loom](https://github.com/JD-P/minihf)
 	- Completion graph can be stored within document for easy sharing
 - Tree-based graph view, similar to [loom](https://github.com/socketteer/loom) and [loomsidian](https://github.com/cosmicoptima/loom)
 - Graph view, similar to [loom](https://github.com/socketteer/loom) and [exoloom](https://exoloom.io)
@@ -81,6 +82,7 @@ Development may be intermittent, with long periods of inactivity between periods
 	- [ ] Implement new data structure into Tapestry Loom via WASM
 		- [ ] Add support for binary nodes to improve handling of invalid unicode
 		- [ ] Add support for FIM completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
+		- [ ] Add support for diff weaves, similar to [minihf's loom](https://github.com/JD-P/minihf)
 		- [ ] Add support for displaying alternate node options on hover, similar to [loom](https://github.com/socketteer/loom)
 			- [ ] Update Node list to display sibings of node at cursor rather than last active node
 			- [ ] Update graph to focus node at cursor rather than last active node
