@@ -32,7 +32,7 @@ pub struct Weave {
 impl Weave {
     /// Add a [`Node`] (along with it's corresponding [`Model`]).
     ///
-    /// Performs deduplication if `deduplicate` is true, and performs loop checking (slow, requires recursively checking all parents & children) if `skip_loop_check` is true. If a loop between nodes is added to the [`Weave`], it may cause unintended behavior (such as functions panicking or getting stuck in infinite loops).
+    /// Performs deduplication if `deduplicate` is true, and performs loop checking (slow, requires recursively checking all parents & children) if `skip_loop_check` is false. If a loop between nodes is added to the [`Weave`], it may cause unintended behavior (such as functions panicking or getting stuck in infinite loops).
     ///
     /// Returns the [`Ulid`] of the input node if the node was successfully added. If the node was deduplicated, the returned Ulid will correspond to a node which was already in the document (the node's active & bookmarked statuses will be updated to match the input). Returns [`None`] if the node could not be added.
     ///
