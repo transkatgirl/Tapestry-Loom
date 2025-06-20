@@ -350,34 +350,7 @@ impl TryFrom<CompactWeave> for Weave {
             })
             .collect();
 
-        let mut tail_diff = None;
         for (identifier, (content, parents)) in input.nodes {
-            if let NodeData::Diff(raw_diff) = content {
-                if tail_diff.is_some() {
-                    return Err(WeaveError::FailedInteractive(
-                        "Unsupported Node Content type".to_string(),
-                    ));
-                }
-                let diff = super::content::Diff {
-                    content: raw_diff
-                        .into_iter()
-                        .map(|(index, content)| {
-                            Ok(super::content::Modification {
-                                index: usize::try_from(index).map_err(|_| {
-                                    WeaveError::FailedInteractive(
-                                        "Unable to convert modification index to usize".to_string(),
-                                    )
-                                })?,
-                                content: super::content::ModificationContent::try_from(content)?,
-                            })
-                        })
-                        .collect::<Result<Vec<_>, WeaveError>>()?,
-                };
-
-                tail_diff = Some(diff);
-                continue;
-            }
-
             let model = content.model().and_then(|m| models.remove(&m.0));
             let node = super::content::Node {
                 id: Ulid(identifier),
@@ -388,7 +361,11 @@ impl TryFrom<CompactWeave> for Weave {
                 content: super::content::NodeContent::try_from(content)?,
             };
 
-            weave.add_node(node, model, true, false);
+            if weave.add_node(node, model, true, false).is_none() {
+                return Err(WeaveError::FailedInteractive(
+                    "Unable to add Node to Weave".to_string(),
+                ));
+            }
         }
 
         Ok(weave)
