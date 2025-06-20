@@ -225,6 +225,39 @@ pub struct ContentAnnotation {
     pub probability: Option<Decimal>,
 }
 
+impl ContentAnnotation {
+    pub fn offset_forwards(&mut self, offset: usize) {
+        self.range.start += offset;
+        self.range.end += offset;
+    }
+    pub fn offset_backwards(&mut self, offset: usize) {
+        self.range.start -= offset;
+        self.range.end -= offset;
+    }
+    pub fn split(&self, index: usize) -> Option<[ContentAnnotation; 2]> {
+        if index == 0 || index >= self.range.end {
+            return None;
+        }
+
+        let mut left = self.range.clone();
+        let mut right = self.range.clone();
+
+        left.end -= index;
+        right.start += index;
+
+        Some([
+            ContentAnnotation {
+                range: left,
+                probability: self.probability,
+            },
+            ContentAnnotation {
+                range: right,
+                probability: self.probability,
+            },
+        ])
+    }
+}
+
 pub trait NodeContents: Display {
     fn model(&self) -> Option<&NodeModel>;
 }
