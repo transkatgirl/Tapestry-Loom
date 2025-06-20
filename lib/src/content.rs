@@ -41,11 +41,7 @@ pub struct AnnotatedSnippet<'w> {
 
 impl<'w> WeaveTimeline<'w> {
     pub fn text(&self) -> String {
-        self.timeline
-            .iter()
-            .map(|(node, _model)| node.content.clone().text())
-            .collect::<Vec<String>>()
-            .concat()
+        String::from_utf8_lossy(&self.bytes()).to_string()
     }
     pub fn bytes(&self) -> Vec<u8> {
         self.timeline
@@ -213,8 +209,7 @@ pub trait NodeContents: Display {
     fn model(&self) -> Option<&NodeModel>;
 }
 
-pub trait TextualNodeContents: NodeContents {
-    fn text(self) -> String;
+pub trait LinearNodeContents: NodeContents {
     fn bytes(self) -> Vec<u8>;
     fn snippets(self) -> Vec<Snippet>;
 }
@@ -243,16 +238,7 @@ impl Display for NodeContent {
     }
 }
 
-impl TextualNodeContents for NodeContent {
-    fn text(self) -> String {
-        match self {
-            Self::Text(content) => content.text(),
-            Self::Bytes(content) => content.text(),
-            Self::Token(content) => content.text(),
-            Self::TextToken(content) => content.text(),
-            Self::Blank => String::new(),
-        }
-    }
+impl LinearNodeContents for NodeContent {
     fn bytes(self) -> Vec<u8> {
         match self {
             Self::Text(content) => content.bytes(),
@@ -293,20 +279,15 @@ impl NodeContents for TextNode {
 
 impl Display for TextNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let text = self.clone().text();
-
-        if text.is_empty() {
+        if self.content.is_empty() {
             return write!(f, "No Content");
         }
 
-        write!(f, "{text}")
+        write!(f, "{}", self.content)
     }
 }
 
-impl TextualNodeContents for TextNode {
-    fn text(self) -> String {
-        self.content
-    }
+impl LinearNodeContents for TextNode {
     fn bytes(self) -> Vec<u8> {
         self.content.into_bytes()
     }
@@ -332,7 +313,7 @@ impl NodeContents for ByteNode {
 
 impl Display for ByteNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let text = self.clone().text();
+        let text = String::from_utf8_lossy(&self.content);
 
         if text.is_empty() {
             return write!(f, "No Content");
@@ -342,10 +323,7 @@ impl Display for ByteNode {
     }
 }
 
-impl TextualNodeContents for ByteNode {
-    fn text(self) -> String {
-        String::from_utf8_lossy(&self.bytes()).to_string()
-    }
+impl LinearNodeContents for ByteNode {
     fn bytes(self) -> Vec<u8> {
         self.content
     }
@@ -378,7 +356,8 @@ impl NodeContents for TokenNode {
 
 impl Display for TokenNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let text = self.clone().text();
+        let bytes = self.clone().bytes();
+        let text = String::from_utf8_lossy(&bytes);
 
         if text.is_empty() {
             return write!(f, "No Content");
@@ -388,10 +367,7 @@ impl Display for TokenNode {
     }
 }
 
-impl TextualNodeContents for TokenNode {
-    fn text(self) -> String {
-        String::from_utf8_lossy(&self.bytes()).to_string()
-    }
+impl LinearNodeContents for TokenNode {
     fn bytes(self) -> Vec<u8> {
         self.content
             .into_iter()
@@ -450,7 +426,8 @@ impl NodeContents for TextTokenNode {
 
 impl Display for TextTokenNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let text = self.clone().text();
+        let bytes = self.clone().bytes();
+        let text = String::from_utf8_lossy(&bytes);
 
         if text.is_empty() {
             return write!(f, "No Content");
@@ -460,10 +437,7 @@ impl Display for TextTokenNode {
     }
 }
 
-impl TextualNodeContents for TextTokenNode {
-    fn text(self) -> String {
-        String::from_utf8_lossy(&self.bytes()).to_string()
-    }
+impl LinearNodeContents for TextTokenNode {
     fn bytes(self) -> Vec<u8> {
         let mut data = Vec::new();
 
