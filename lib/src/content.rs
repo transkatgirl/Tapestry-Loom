@@ -209,7 +209,7 @@ impl NodeContent {
     }
 }
 
-pub trait NodeContents {
+pub trait NodeContents: Display {
     fn model(&self) -> Option<&NodeModel>;
 }
 
@@ -227,6 +227,18 @@ impl NodeContents for NodeContent {
             Self::Token(content) => content.model(),
             Self::TextToken(content) => content.model(),
             Self::Blank => None,
+        }
+    }
+}
+
+impl Display for NodeContent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Text(content) => write!(f, "{content}"),
+            Self::Bytes(content) => write!(f, "{content}"),
+            Self::Token(content) => write!(f, "{content}"),
+            Self::TextToken(content) => write!(f, "{content}"),
+            Self::Blank => write!(f, "No Content"),
         }
     }
 }
@@ -279,6 +291,18 @@ impl NodeContents for TextNode {
     }
 }
 
+impl Display for TextNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let text = self.clone().text();
+
+        if text.is_empty() {
+            return write!(f, "No Content");
+        }
+
+        write!(f, "{text}")
+    }
+}
+
 impl TextualNodeContents for TextNode {
     fn text(self) -> String {
         self.content
@@ -303,6 +327,18 @@ pub struct ByteNode {
 impl NodeContents for ByteNode {
     fn model(&self) -> Option<&NodeModel> {
         self.model.as_ref()
+    }
+}
+
+impl Display for ByteNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let text = self.clone().text();
+
+        if text.is_empty() {
+            return write!(f, "No Content");
+        }
+
+        write!(f, "{text}")
     }
 }
 
@@ -337,6 +373,18 @@ pub struct TokenNode {
 impl NodeContents for TokenNode {
     fn model(&self) -> Option<&NodeModel> {
         self.model.as_ref()
+    }
+}
+
+impl Display for TokenNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let text = self.clone().text();
+
+        if text.is_empty() {
+            return write!(f, "No Content");
+        }
+
+        write!(f, "{text}")
     }
 }
 
@@ -397,6 +445,18 @@ pub struct TextTokenNode {
 impl NodeContents for TextTokenNode {
     fn model(&self) -> Option<&NodeModel> {
         self.model.as_ref()
+    }
+}
+
+impl Display for TextTokenNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let text = self.clone().text();
+
+        if text.is_empty() {
+            return write!(f, "No Content");
+        }
+
+        write!(f, "{text}")
     }
 }
 
@@ -522,25 +582,25 @@ pub struct DiffNode {
     pub model: Option<NodeModel>,
 }
 
-impl DiffNode {
-    pub fn label(&self) -> String {
+impl NodeContents for DiffNode {
+    fn model(&self) -> Option<&NodeModel> {
+        self.model.as_ref()
+    }
+}
+
+impl Display for DiffNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let count = self.content.count();
 
         if count.insertions == 1 && count.deletions < 2 {
             for modification in &self.content.content {
                 if let ModificationContent::Insertion(text) = &modification.content {
-                    return text.to_string();
+                    return write!(f, "{text}");
                 }
             }
         }
 
-        format!("{count}")
-    }
-}
-
-impl NodeContents for DiffNode {
-    fn model(&self) -> Option<&NodeModel> {
-        self.model.as_ref()
+        write!(f, "{count}")
     }
 }
 
