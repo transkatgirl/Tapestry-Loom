@@ -400,6 +400,10 @@ pub struct WeaveSnapshot<'w> {
     pub models: &'w HashMap<Ulid, Model>,
     /// An ordered set of [`Ulid`] objects which correspond to [`Node`] objects with no parents.
     pub root_nodes: &'w BTreeSet<Ulid>,
+    /// If the [`Weave`] contains any nodes with multiple parents. If this is the case, non-linear nodes cannot be added.
+    pub dag_mode: bool,
+    /// If the [`Weave`] contains any non-linear nodes. If this is the case, nodes with multiple parents cannot be added.
+    pub nonlinear_mode: bool,
 }
 
 // Copied from Weave's implementation of build_timelines(); shouldn't require additional unit tests
@@ -503,6 +507,8 @@ impl<'w> From<&'w Weave> for WeaveSnapshot<'w> {
             nodes: &input.nodes,
             models: &input.models,
             root_nodes: &input.root_nodes,
+            dag_mode: !input.dag_nodes.is_empty(),
+            nonlinear_mode: !input.nonlinear_nodes.is_empty(),
         }
     }
 }
