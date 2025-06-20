@@ -33,8 +33,8 @@ pub struct WeaveTimeline<'w> {
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
-pub struct AnnotatedSnippet<'w> {
-    pub content: TextOrBytes,
+pub struct Annotation<'w> {
+    pub range: Range<usize>,
     pub probability: Option<Decimal>,
 
     pub node: Option<&'w Node>,
@@ -219,13 +219,19 @@ impl NodeContent {
     }*/
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
+pub struct ContentAnnotation {
+    pub range: Range<usize>,
+    pub probability: Option<Decimal>,
+}
+
 pub trait NodeContents: Display {
     fn model(&self) -> Option<&NodeModel>;
 }
 
 pub trait LinearNodeContents: NodeContents {
     fn bytes(self) -> Vec<u8>;
-    fn snippets(self) -> Vec<Snippet>;
+    fn annotations(&self) -> Vec<ContentAnnotation>;
 }
 
 impl NodeContents for NodeContent {
@@ -286,10 +292,13 @@ impl LinearNodeContents for TextNode {
     fn bytes(self) -> Vec<u8> {
         self.content.into_bytes()
     }
-    fn snippets(self) -> Vec<Snippet> {
-        vec![Snippet {
+    fn annotations(&self) -> Vec<ContentAnnotation> {
+        vec![ContentAnnotation {
             probability: None,
-            content: TextOrBytes::Text(self.content),
+            range: Range {
+                start: 0,
+                end: self.content.len(),
+            },
         }]
     }
 }
@@ -322,17 +331,13 @@ impl LinearNodeContents for ByteNode {
     fn bytes(self) -> Vec<u8> {
         self.content
     }
-    fn snippets(self) -> Vec<Snippet> {
-        if let Ok(text) = str::from_utf8(&self.content) {
-            return vec![Snippet {
-                probability: None,
-                content: TextOrBytes::Text(text.to_string()),
-            }];
-        }
-
-        vec![Snippet {
+    fn annotations(&self) -> Vec<ContentAnnotation> {
+        vec![ContentAnnotation {
             probability: None,
-            content: TextOrBytes::Bytes(self.content),
+            range: Range {
+                start: 0,
+                end: self.content.len(),
+            },
         }]
     }
 }
@@ -369,9 +374,9 @@ impl LinearNodeContents for TokenNode {
             .flat_map(|token| token.content)
             .collect()
     }
-    fn snippets(self) -> Vec<Snippet> {
+    fn annotations(&self) -> Vec<ContentAnnotation> {
         let mut index = 0;
-        let mut ranges = Vec::with_capacity(self.content.len());
+        let mut annotations = Vec::with_capacity(self.content.len());
 
         for token in &self.content {
             let range = Range {
@@ -380,12 +385,13 @@ impl LinearNodeContents for TokenNode {
             };
             index = range.end;
 
-            ranges.push((range, Some(token.probability)));
+            annotations.push(ContentAnnotation {
+                range,
+                probability: Some(token.probability),
+            });
         }
 
-        let data = self.bytes();
-
-        into_snippets(&data, ranges)
+        annotations
     }
 }
 
@@ -393,12 +399,6 @@ impl LinearNodeContents for TokenNode {
 pub struct NodeToken {
     pub probability: Decimal,
     pub content: Vec<u8>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
-pub struct Snippet {
-    pub probability: Option<Decimal>,
-    pub content: TextOrBytes,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
@@ -448,9 +448,9 @@ impl LinearNodeContents for TextTokenNode {
 
         data
     }
-    fn snippets(self) -> Vec<Snippet> {
+    fn annotations(&self) -> Vec<ContentAnnotation> {
         let mut index = 0;
-        let mut ranges = Vec::with_capacity(self.content.len());
+        let mut annotations = Vec::with_capacity(self.content.len());
 
         for segment in &self.content {
             match segment {
@@ -461,7 +461,10 @@ impl LinearNodeContents for TextTokenNode {
                     };
                     index = range.end;
 
-                    ranges.push((range, None));
+                    annotations.push(ContentAnnotation {
+                        range,
+                        probability: None,
+                    });
                 }
                 TextOrToken::Bytes(bytes) => {
                     let range = Range {
@@ -470,7 +473,10 @@ impl LinearNodeContents for TextTokenNode {
                     };
                     index = range.end;
 
-                    ranges.push((range, None));
+                    annotations.push(ContentAnnotation {
+                        range,
+                        probability: None,
+                    });
                 }
                 TextOrToken::Token(tokens) => {
                     for token in tokens {
@@ -480,62 +486,17 @@ impl LinearNodeContents for TextTokenNode {
                         };
                         index = range.end;
 
-                        ranges.push((range, Some(token.probability)));
+                        annotations.push(ContentAnnotation {
+                            range,
+                            probability: Some(token.probability),
+                        });
                     }
                 }
             }
         }
 
-        let data = self.bytes();
-
-        into_snippets(&data, ranges)
+        annotations
     }
-}
-
-fn into_snippets(data: &[u8], ranges: Vec<(Range<usize>, Option<Decimal>)>) -> Vec<Snippet> {
-    let mut snippets: Vec<Snippet> = Vec::with_capacity(ranges.len());
-    let mut last_range: Range<usize> = Range::default();
-
-    for (mut range, probability) in ranges {
-        if last_range.end >= range.end {
-            if let Some(snippet) = snippets.last_mut() {
-                if let (Some(last_probability), Some(current_probability)) =
-                    (snippet.probability, probability)
-                {
-                    snippet.probability = Some(last_probability * current_probability);
-                }
-            }
-            continue;
-        } else if last_range.end >= range.start {
-            range.start = last_range.end;
-        }
-
-        let original_range = range.clone();
-
-        loop {
-            if let Ok(text) = str::from_utf8(&data[range.start..range.end]) {
-                snippets.push(Snippet {
-                    probability,
-                    content: TextOrBytes::Text(text.to_string()),
-                });
-                break;
-            }
-
-            range.end += 1;
-            if range.end >= data.len() {
-                range = original_range;
-                snippets.push(Snippet {
-                    probability,
-                    content: TextOrBytes::Bytes(data[range.start..range.end].to_vec()),
-                });
-                break;
-            }
-        }
-
-        last_range = range;
-    }
-
-    snippets
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
