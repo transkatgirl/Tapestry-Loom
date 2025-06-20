@@ -40,7 +40,7 @@ pub struct AnnotatedSnippet<'w> {
 }
 
 impl<'w> WeaveTimeline<'w> {
-    pub fn text(&self) -> String {
+    /*pub fn text(&self) -> String {
         String::from_utf8_lossy(&self.bytes()).to_string()
     }
     pub fn bytes(&self) -> Vec<u8> {
@@ -66,7 +66,7 @@ impl<'w> WeaveTimeline<'w> {
                     .collect::<Vec<_>>()
             })
             .collect()
-    }
+    }*/
 }
 
 impl Weave {
@@ -104,11 +104,23 @@ pub enum NodeContent {
     Bytes(ByteNode),
     Token(TokenNode),
     TextToken(TextTokenNode),
+    Diff(DiffNode),
     Blank,
 }
 
 impl NodeContent {
-    pub fn merge(left: Self, right: Self) -> Option<Self> {
+    #[allow(clippy::match_same_arms)]
+    pub fn linear(&self) -> bool {
+        match self {
+            Self::Text(_) => true,
+            Self::Bytes(_) => true,
+            Self::Token(_) => true,
+            Self::TextToken(_) => true,
+            Self::Diff(_) => false,
+            Self::Blank => true,
+        }
+    }
+    /*pub fn merge(left: Self, right: Self) -> Option<Self> {
         if left.model() == right.model() {
             Some(match left {
                 Self::Text(left) => match right {
@@ -202,7 +214,7 @@ impl NodeContent {
             }
             Self::Blank => [Self::Blank, Self::Blank],
         }
-    }
+    }*/
 }
 
 pub trait NodeContents: Display {
@@ -221,6 +233,7 @@ impl NodeContents for NodeContent {
             Self::Bytes(content) => content.model(),
             Self::Token(content) => content.model(),
             Self::TextToken(content) => content.model(),
+            Self::Diff(content) => content.model(),
             Self::Blank => None,
         }
     }
@@ -233,12 +246,13 @@ impl Display for NodeContent {
             Self::Bytes(content) => write!(f, "{content}"),
             Self::Token(content) => write!(f, "{content}"),
             Self::TextToken(content) => write!(f, "{content}"),
+            Self::Diff(content) => write!(f, "{content}"),
             Self::Blank => write!(f, "No Content"),
         }
     }
 }
 
-impl LinearNodeContents for NodeContent {
+/*impl LinearNodeContents for NodeContent {
     fn bytes(self) -> Vec<u8> {
         match self {
             Self::Text(content) => content.bytes(),
@@ -257,7 +271,7 @@ impl LinearNodeContents for NodeContent {
             Self::Blank => Vec::new(),
         }
     }
-}
+}*/
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct NodeModel {

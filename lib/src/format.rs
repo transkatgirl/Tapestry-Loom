@@ -43,7 +43,7 @@ enum NodeData {
     Bytes((ByteBuf, Option<NodeModel>)),
     Token((NodeTokens, Option<NodeModel>)),
     TextToken((Vec<TextToken>, Option<NodeModel>)),
-    Diff(NodeDiff),
+    Diff((NodeDiff, Option<NodeModel>)),
     Blank,
 }
 
@@ -179,30 +179,31 @@ impl TryFrom<super::content::ModificationContent> for DiffModification {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 impl TryFrom<NodeData> for super::content::NodeContent {
     type Error = WeaveError;
     fn try_from(input: NodeData) -> Result<Self, Self::Error> {
-        match input {
-            NodeData::Text((content, model)) => Ok(super::content::NodeContent::Text(
-                super::content::TextNode {
+        Ok(match input {
+            NodeData::Text((content, model)) => {
+                super::content::NodeContent::Text(super::content::TextNode {
                     content,
                     model: model.map(|(identifier, parameters)| super::content::NodeModel {
                         id: Ulid(identifier),
                         parameters,
                     }),
-                },
-            )),
-            NodeData::Bytes((content, model)) => Ok(super::content::NodeContent::Bytes(
-                super::content::ByteNode {
+                })
+            }
+            NodeData::Bytes((content, model)) => {
+                super::content::NodeContent::Bytes(super::content::ByteNode {
                     content: content.into_vec(),
                     model: model.map(|(identifier, parameters)| super::content::NodeModel {
                         id: Ulid(identifier),
                         parameters,
                     }),
-                },
-            )),
-            NodeData::Token((content, model)) => Ok(super::content::NodeContent::Token(
-                super::content::TokenNode {
+                })
+            }
+            NodeData::Token((content, model)) => {
+                super::content::NodeContent::Token(super::content::TokenNode {
                     content: content
                         .into_iter()
                         .map(|(bytes, probability)| {
@@ -220,10 +221,10 @@ impl TryFrom<NodeData> for super::content::NodeContent {
                         id: Ulid(identifier),
                         parameters,
                     }),
-                },
-            )),
-            NodeData::TextToken((content, model)) => Ok(super::content::NodeContent::TextToken(
-                super::content::TextTokenNode {
+                })
+            }
+            NodeData::TextToken((content, model)) => {
+                super::content::NodeContent::TextToken(super::content::TextTokenNode {
                     content: content
                         .into_iter()
                         .map(|text_token| match text_token {
@@ -255,13 +256,36 @@ impl TryFrom<NodeData> for super::content::NodeContent {
                         id: Ulid(identifier),
                         parameters,
                     }),
-                },
-            )),
-            NodeData::Diff(_diff) => Err(WeaveError::FailedInteractive(
-                "Unsupported Node Content type".to_string(),
-            )),
-            NodeData::Blank => Ok(super::content::NodeContent::Blank),
-        }
+                })
+            }
+            NodeData::Diff((diff, model)) => {
+                super::content::NodeContent::Diff(super::content::DiffNode {
+                    content: super::content::Diff {
+                        content: diff
+                            .into_iter()
+                            .map(|(index, content)| {
+                                Ok(super::content::Modification {
+                                    index: usize::try_from(index).map_err(|_| {
+                                        WeaveError::FailedInteractive(
+                                            "Unable to convert modification index to usize"
+                                                .to_string(),
+                                        )
+                                    })?,
+                                    content: super::content::ModificationContent::try_from(
+                                        content,
+                                    )?,
+                                })
+                            })
+                            .collect::<Result<Vec<_>, WeaveError>>()?,
+                    },
+                    model: model.map(|(identifier, parameters)| super::content::NodeModel {
+                        id: Ulid(identifier),
+                        parameters,
+                    }),
+                })
+            }
+            NodeData::Blank => super::content::NodeContent::Blank,
+        })
     }
 }
 
@@ -323,6 +347,24 @@ impl TryFrom<super::content::NodeContent> for NodeData {
                         )),
                     })
                     .collect::<Result<Vec<_>, _>>()?,
+                content.model.map(|model| (model.id.0, model.parameters)),
+            )),
+            super::content::NodeContent::Diff(content) => NodeData::Diff((
+                content
+                    .content
+                    .content
+                    .into_iter()
+                    .map(|modification| {
+                        Ok((
+                            u64::try_from(modification.index).map_err(|_| {
+                                WeaveError::FailedCompact(
+                                    "Unable to convert modification index to u64".to_string(),
+                                )
+                            })?,
+                            DiffModification::try_from(modification.content)?,
+                        ))
+                    })
+                    .collect::<Result<Vec<_>, WeaveError>>()?,
                 content.model.map(|model| (model.id.0, model.parameters)),
             )),
             super::content::NodeContent::Blank => NodeData::Blank,

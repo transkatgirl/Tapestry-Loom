@@ -25,6 +25,8 @@ pub struct Weave {
 
     root_nodes: BTreeSet<Ulid>,
     model_nodes: HashMap<Ulid, HashSet<Ulid>>,
+    dag_nodes: HashSet<Ulid>,
+    nonlinear_nodes: HashSet<Ulid>,
 }
 
 impl Weave {
@@ -32,7 +34,9 @@ impl Weave {
     ///
     /// Performs deduplication if `deduplicate` is true, and performs loop checking (slow, requires recursively checking of all parents & children) if `skip_loop_check` is true.
     ///
-    /// Returns the [`Ulid`] of the input node if the node was successfully added. If the node was deduplicated, the returned Ulid will correspond to a node which was already in the document (the node's active & bookmarked statuses will be updated to match the input). Returns [`None`] if the node could not be added due to having a duplicate identifier.
+    /// Returns the [`Ulid`] of the input node if the node was successfully added. If the node was deduplicated, the returned Ulid will correspond to a node which was already in the document (the node's active & bookmarked statuses will be updated to match the input). Returns [`None`] if the node could not be added.
+    ///
+    /// Nodes which have the same identifier as a node already in the [`Weave`] cannot be added. If the Weave contains any nodes with multiple parents, non-linear nodes cannot be added. If the Weave contains any non-linear nodes, nodes with multiple parents cannot be added.
     pub fn add_node(
         &mut self,
         mut node: Node,
@@ -41,6 +45,11 @@ impl Weave {
         deduplicate: bool,
     ) -> Option<Ulid> {
         if self.nodes.contains_key(&node.id) {
+            return None;
+        }
+        if (!self.nonlinear_nodes.is_empty() || !node.content.linear())
+            && (!self.dag_nodes.is_empty() || node.from.len() > 1)
+        {
             return None;
         }
         if !skip_loop_check {
@@ -97,6 +106,12 @@ impl Weave {
         }
         if node.from.is_empty() {
             self.root_nodes.insert(node.id);
+        }
+        if node.from.len() > 1 {
+            self.dag_nodes.insert(node.id);
+        }
+        if !node.content.linear() {
+            self.nonlinear_nodes.insert(node.id);
         }
         if let Some(node_model) = node.content.model() {
             if let Some(mut model) = model {
@@ -255,6 +270,8 @@ impl Weave {
     pub fn remove_node(&mut self, identifier: &Ulid) {
         if let Some(node) = self.nodes.remove(identifier) {
             self.root_nodes.remove(&node.id);
+            self.dag_nodes.remove(&node.id);
+            self.nonlinear_nodes.remove(&node.id);
             for parent in &node.from {
                 if let Some(parent) = self.nodes.get_mut(parent) {
                     parent.to.remove(&node.id);
