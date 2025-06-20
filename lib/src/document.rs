@@ -165,7 +165,7 @@ impl Weave {
     /// If the node already has the desired active status, no update propagation is performed.
     ///
     /// This function can propagate the active status in two different ways:
-    /// ```rust
+    /// ```ignore
     /// if in_place {
     ///     if active {
     ///         /* Recursively activates the node and its first parent node (sorted by Ulid)
