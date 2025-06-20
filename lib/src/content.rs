@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 
-use std::{collections::HashSet, ops::Range};
+use std::{collections::HashSet, fmt::Display, ops::Range};
 
 use dissimilar::Chunk;
 use rust_decimal::Decimal;
@@ -191,7 +191,21 @@ impl NodeContent {
         }
     }
     pub fn split(self, index: usize) -> [Self; 2] {
-        todo!()
+        match self {
+            Self::Text(content) => {
+                todo!()
+            }
+            Self::Bytes(content) => {
+                todo!()
+            }
+            Self::Token(content) => {
+                todo!()
+            }
+            Self::TextToken(content) => {
+                todo!()
+            }
+            Self::Blank => [Self::Blank, Self::Blank],
+        }
     }
 }
 
@@ -502,6 +516,34 @@ pub enum TextOrToken {
     Token(Vec<NodeToken>),
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
+pub struct DiffNode {
+    pub content: Diff,
+    pub model: Option<NodeModel>,
+}
+
+impl DiffNode {
+    pub fn label(&self) -> String {
+        let count = self.content.count();
+
+        if count.insertions == 1 && count.deletions < 2 {
+            for modification in &self.content.content {
+                if let ModificationContent::Insertion(text) = &modification.content {
+                    return text.to_string();
+                }
+            }
+        }
+
+        format!("{count}")
+    }
+}
+
+impl NodeContents for DiffNode {
+    fn model(&self) -> Option<&NodeModel> {
+        self.model.as_ref()
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct Diff {
     pub content: Vec<Modification>,
@@ -543,6 +585,23 @@ impl Diff {
             modification.apply(text);
         }
     }
+    pub fn count(&self) -> ModificationCount {
+        let mut insertions: usize = 0;
+        let mut deletions: usize = 0;
+
+        for modification in &self.content {
+            match modification.content {
+                ModificationContent::Insertion(_) => insertions += 1,
+                ModificationContent::Deletion(_) => deletions += 1,
+            }
+        }
+
+        ModificationCount {
+            total: insertions + deletions,
+            insertions,
+            deletions,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
@@ -577,6 +636,33 @@ impl ModificationContent {
         match self {
             ModificationContent::Insertion(content) => content.is_empty(),
             ModificationContent::Deletion(length) => *length == 0,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
+pub struct ModificationCount {
+    pub total: usize,
+    pub insertions: usize,
+    pub deletions: usize,
+}
+
+impl Display for ModificationCount {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.deletions > 0 {
+            if self.insertions > 0 {
+                write!(
+                    f,
+                    "{} Insertions, {} Deletions",
+                    self.insertions, self.deletions
+                )
+            } else {
+                write!(f, "{} Deletions", self.deletions)
+            }
+        } else if self.insertions > 0 {
+            write!(f, "{} Insertions", self.insertions)
+        } else {
+            write!(f, "No Changes")
         }
     }
 }
