@@ -11,8 +11,10 @@ use ulid::Ulid;
 use crate::document::{Weave, WeaveView};
 
 /* TODO:
-- Weave content building/updating
 - Node splitting/merging
+- Rewrite timeline code
+    - Rewrite annotations to use content position references
+- Weave content building/updating
 - Documentation */
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -251,27 +253,6 @@ impl Display for NodeContent {
         }
     }
 }
-
-/*impl LinearNodeContents for NodeContent {
-    fn bytes(self) -> Vec<u8> {
-        match self {
-            Self::Text(content) => content.bytes(),
-            Self::Bytes(content) => content.bytes(),
-            Self::Token(content) => content.bytes(),
-            Self::TextToken(content) => content.bytes(),
-            Self::Blank => Vec::new(),
-        }
-    }
-    fn snippets(self) -> Vec<Snippet> {
-        match self {
-            Self::Text(content) => content.snippets(),
-            Self::Bytes(content) => content.snippets(),
-            Self::Token(content) => content.snippets(),
-            Self::TextToken(content) => content.snippets(),
-            Self::Blank => Vec::new(),
-        }
-    }
-}*/
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct NodeModel {
