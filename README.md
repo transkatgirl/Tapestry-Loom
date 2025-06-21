@@ -138,6 +138,7 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 
 - Implement mobile support
 - Implement multi-platform support (Web, Desktop, Obsidian, Vim??, etc..)
+	- Implement integration with some sort of local transcription plugin
 - Allow adding roles to nodes when using chat-style LLM endpoints
 	- Allow a chat weave session to reference another weave using LLM tool use (based on this [twitter thread](https://x.com/arcreflex_/status/1930671693707591767))
 - Tooling for autolooms (looms where node choices are picked by another model)
