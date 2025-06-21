@@ -84,7 +84,7 @@ Development may be intermittent, with long periods of inactivity between periods
 		- [ ] Add support for binary nodes to improve handling of invalid unicode
 		- [ ] Add support for FIM completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 		- [ ] Add support for diff weaves, similar to [minihf's loom](https://github.com/JD-P/minihf)
-		- [ ] Add support for copying / moving nodes to different parents
+		- [ ] Add support for copying / moving nodes (and their children) to different parents
 		- [ ] Add support for displaying alternate node options on hover, similar to [loom](https://github.com/socketteer/loom)
 			- [ ] Update Node list to display sibings of node at cursor rather than last active node
 			- [ ] Update graph to focus node at cursor rather than last active node
