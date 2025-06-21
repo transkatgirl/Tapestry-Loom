@@ -89,7 +89,7 @@ Development may be intermittent, with long periods of inactivity between periods
 	- [ ] Store weave in dedicated files by default, only store in document frontmatter if the user explicitly requests to do so
 		- [ ] Allow graceful handling of editor undo/redo functionality
 	- [ ] Implement weave format v0 -> v1 conversion
-	- [ ] Implement multi-document weaves, similar to [loom](https://github.com/socketteer/loom)
+	- [ ] Implement multi-document weaves / references to other documents, similar to [loom](https://github.com/socketteer/loom)
 - [ ] Rewrite async code to fix document switching race conditions
 - [ ] Add data structure for non-persistent Weave data
 	- [ ] Improve handling of node activation/deactivation when node has multiple parents
@@ -131,6 +131,8 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 
 - Allow adding roles to nodes when using chat-style LLM endpoints
 	- Allow a chat weave session to reference another weave using LLM tool use (based on this [twitter thread](https://x.com/arcreflex_/status/1930671693707591767))
+- Tooling for autolooms (looms where node choices are picked by another model)
+- Add some sort of plugin API for building on top of Tapestry Loom???
 - Add a proofreading Mode which freezes the completion graph and stores further modifications as a diff
 - Integration with local LLM engines:
 	- Option 1: Ollama integration
