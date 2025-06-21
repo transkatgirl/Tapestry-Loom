@@ -80,6 +80,7 @@ Development may be intermittent, with long periods of inactivity between periods
 		- [ ] Implement unit testing for the Rust library
 		- [ ] Benchmark handling of different weave sizes and node sizes
 	- [ ] Implement new data structure into Tapestry Loom via WASM
+		- [ ] Add prefix deduplication
 		- [ ] Add support for binary nodes to improve handling of invalid unicode
 		- [ ] Add support for FIM completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 		- [ ] Add support for diff weaves, similar to [minihf's loom](https://github.com/JD-P/minihf)
@@ -93,7 +94,7 @@ Development may be intermittent, with long periods of inactivity between periods
 - [ ] Rewrite async code to fix document switching race conditions
 - [ ] Add data structure for non-persistent Weave data
 	- [ ] Improve handling of node activation/deactivation when node has multiple parents
-	- [ ] Implement token streaming / display of nodes being generated
+	- [ ] Implement token streaming and display of nodes being generated
 - [ ] Weave format stabilization & finalization
 	- [ ] Merging of v1 to main branch
 
@@ -101,6 +102,7 @@ Development may be intermittent, with long periods of inactivity between periods
 
 - [ ] Implement embedding model requests
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
+	- [ ] Color coding by embeddings
 - [ ] Add support for displaying prompt logprobs if returned by API
 - [ ] UI improvements
 	- [ ] Code cleanup
@@ -135,6 +137,7 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 #### Tapestry Loom v2 plans
 
 - Implement mobile support
+- Implement multi-platform support (Web, Desktop, Obsidian, Vim??, etc..)
 - Allow adding roles to nodes when using chat-style LLM endpoints
 	- Allow a chat weave session to reference another weave using LLM tool use (based on this [twitter thread](https://x.com/arcreflex_/status/1930671693707591767))
 - Tooling for autolooms (looms where node choices are picked by another model)
