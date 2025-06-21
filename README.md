@@ -93,6 +93,7 @@ Development may be intermittent, with long periods of inactivity between periods
 - [ ] Rewrite async code to fix document switching race conditions
 - [ ] Add data structure for non-persistent Weave data
 	- [ ] Improve handling of node activation/deactivation when node has multiple parents
+	- [ ] Implement token streaming / display of nodes being generated
 - [ ] Weave format stabilization & finalization
 	- [ ] Merging of v1 to main branch
 
@@ -113,6 +114,7 @@ Development may be intermittent, with long periods of inactivity between periods
 		- [ ] Implement hover handling in graph view
 			- [ ] Implement setting to only show node contents on hover, similar to [exoloom](https://exoloom.io)
 		- [ ] Implement folding in graph view
+	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [Inkstream](https://inkstream.ai)
 	- [ ] Add Generation presets
 
 #### Tapestry Loom v1-rc checklist
