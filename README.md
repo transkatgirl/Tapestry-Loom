@@ -106,7 +106,8 @@ Development may be intermittent, with long periods of inactivity between periods
 	- [ ] Code cleanup
 		- [ ] Remove reliance on Obsidian's undocumented styling rules
 		- [ ] Rewrite UI using svelte?
-	- [ ] Add hover buttons to list view
+	- [ ] Improve list view to support all of the same functionality as the tree interface
+		- [ ] Add hover buttons to list view
 	- [ ] Allow quickly moving to node under cursor, similar to [exoloom](https://exoloom.io)
 	- [ ] Allow showing sibling nodes on hover, similar to [loom](https://github.com/socketteer/loom)
 	- [ ] Improve interactability of graph view to match [loom](https://generative.ink/posts/loom-interface-to-the-multiverse/)
@@ -114,7 +115,8 @@ Development may be intermittent, with long periods of inactivity between periods
 		- [ ] Implement hover handling in graph view
 			- [ ] Implement setting to only show node contents on hover, similar to [exoloom](https://exoloom.io)
 		- [ ] Implement folding in graph view
-	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [Inkstream](https://inkstream.ai)
+	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
+	- [ ] Implement "select node and generate completions" selection mode, similar to [inkstream](https://inkstream.ai)
 	- [ ] Add Generation presets
 
 #### Tapestry Loom v1-rc checklist
