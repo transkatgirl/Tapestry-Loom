@@ -123,6 +123,7 @@ impl NodeContent {
         }
     }
     #[allow(clippy::too_many_lines)]
+    #[allow(clippy::missing_panics_doc)]
     pub fn merge(left: Self, right: Self) -> Option<Self> {
         if left.model() == right.model() || (left.linear() && right.linear()) {
             match left {
@@ -148,15 +149,27 @@ impl NodeContent {
                     Self::TextToken(right) => {
                         todo!()
                     }
-                    Self::Diff(_) => None,
+                    Self::Diff(_) => panic!(),
                     Self::Blank => Some(Self::Text(left)),
                 },
                 Self::Bytes(left) => match right {
                     Self::Text(right) => {
-                        todo!()
+                        let mut content = left.content;
+                        content.append(&mut right.content.into_bytes());
+
+                        Some(Self::Bytes(ByteNode {
+                            content,
+                            model: left.model,
+                        }))
                     }
-                    Self::Bytes(right) => {
-                        todo!()
+                    Self::Bytes(mut right) => {
+                        let mut content = left.content;
+                        content.append(&mut right.content);
+
+                        Some(Self::Bytes(ByteNode {
+                            content,
+                            model: left.model,
+                        }))
                     }
                     Self::Token(right) => {
                         todo!()
@@ -164,7 +177,7 @@ impl NodeContent {
                     Self::TextToken(right) => {
                         todo!()
                     }
-                    Self::Diff(_) => None,
+                    Self::Diff(_) => panic!(),
                     Self::Blank => Some(Self::Bytes(left)),
                 },
                 Self::Token(left) => match right {
@@ -180,7 +193,7 @@ impl NodeContent {
                     Self::TextToken(right) => {
                         todo!()
                     }
-                    Self::Diff(_) => None,
+                    Self::Diff(_) => panic!(),
                     Self::Blank => Some(Self::Token(left)),
                 },
                 Self::TextToken(left) => match right {
@@ -196,10 +209,10 @@ impl NodeContent {
                     Self::TextToken(right) => {
                         todo!()
                     }
-                    Self::Diff(_) => None,
+                    Self::Diff(_) => panic!(),
                     Self::Blank => Some(Self::TextToken(left)),
                 },
-                Self::Diff(_) => None,
+                Self::Diff(_) => panic!(),
                 Self::Blank => Some(right),
             }
         } else {
