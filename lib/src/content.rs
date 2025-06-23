@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 
-use std::{collections::HashSet, fmt::Display, ops::Range};
+use std::{collections::HashSet, fmt::Display, iter, ops::Range};
 
 use dissimilar::Chunk;
 use rust_decimal::Decimal;
@@ -283,7 +283,7 @@ pub trait NodeContents: Display + Sized {
 
 pub trait LinearNodeContents: NodeContents {
     fn bytes(self) -> Vec<u8>;
-    fn annotations(&self) -> Vec<ContentAnnotation>;
+    fn annotations(&self) -> impl Iterator<Item = ContentAnnotation>;
     fn split(self, index: usize) -> Option<[Self; 2]>;
 }
 
@@ -345,14 +345,14 @@ impl LinearNodeContents for TextNode {
     fn bytes(self) -> Vec<u8> {
         self.content.into_bytes()
     }
-    fn annotations(&self) -> Vec<ContentAnnotation> {
-        vec![ContentAnnotation {
+    fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
+        iter::once(ContentAnnotation {
             probability: None,
             range: Range {
                 start: 0,
                 end: self.content.len(),
             },
-        }]
+        })
     }
     fn split(self, index: usize) -> Option<[Self; 2]> {
         if !self.content.is_char_boundary(index) {
@@ -403,14 +403,14 @@ impl LinearNodeContents for ByteNode {
     fn bytes(self) -> Vec<u8> {
         self.content
     }
-    fn annotations(&self) -> Vec<ContentAnnotation> {
-        vec![ContentAnnotation {
+    fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
+        iter::once(ContentAnnotation {
             probability: None,
             range: Range {
                 start: 0,
                 end: self.content.len(),
             },
-        }]
+        })
     }
     fn split(self, index: usize) -> Option<[Self; 2]> {
         if index > self.content.len() {
@@ -465,31 +465,28 @@ impl LinearNodeContents for TokenNode {
             .flat_map(|token| token.content)
             .collect()
     }
-    fn annotations(&self) -> Vec<ContentAnnotation> {
+    fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
         let mut index = 0;
-        let mut annotations = Vec::with_capacity(self.content.len());
 
-        for token in &self.content {
+        self.content.iter().map(move |token| {
             let range = Range {
                 start: index,
                 end: index + token.content.len(),
             };
             index = range.end;
 
-            annotations.push(ContentAnnotation {
+            ContentAnnotation {
                 range,
                 probability: Some(token.probability),
-            });
-        }
-
-        annotations
+            }
+        })
     }
     fn split(self, index: usize) -> Option<[Self; 2]> {
         let annotations = self.annotations();
 
         let mut split = None;
 
-        for (location, annotation) in annotations.iter().enumerate() {
+        for (location, annotation) in annotations.enumerate() {
             if annotation.range.contains(&index) {
                 split = Some((location, annotation));
                 break;
@@ -558,54 +555,51 @@ impl LinearNodeContents for TextTokenNode {
 
         data
     }
-    fn annotations(&self) -> Vec<ContentAnnotation> {
+    fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
         let mut index = 0;
-        let mut annotations = Vec::with_capacity(self.content.len());
 
-        for segment in &self.content {
-            match segment {
-                TextOrToken::Text(text) => {
-                    let range = Range {
-                        start: index,
-                        end: index + text.len(),
-                    };
-                    index = range.end;
+        self.content.iter().flat_map(
+            move |segment| -> Box<dyn Iterator<Item = ContentAnnotation>> {
+                match segment {
+                    TextOrToken::Text(text) => {
+                        let range = Range {
+                            start: index,
+                            end: index + text.len(),
+                        };
+                        index = range.end;
 
-                    annotations.push(ContentAnnotation {
-                        range,
-                        probability: None,
-                    });
-                }
-                TextOrToken::Bytes(bytes) => {
-                    let range = Range {
-                        start: index,
-                        end: index + bytes.len(),
-                    };
-                    index = range.end;
+                        Box::new(iter::once(ContentAnnotation {
+                            range,
+                            probability: None,
+                        }))
+                    }
+                    TextOrToken::Bytes(bytes) => {
+                        let range = Range {
+                            start: index,
+                            end: index + bytes.len(),
+                        };
+                        index = range.end;
 
-                    annotations.push(ContentAnnotation {
-                        range,
-                        probability: None,
-                    });
-                }
-                TextOrToken::Token(tokens) => {
-                    for token in tokens {
+                        Box::new(iter::once(ContentAnnotation {
+                            range,
+                            probability: None,
+                        }))
+                    }
+                    TextOrToken::Token(tokens) => Box::new(tokens.iter().map(move |token| {
                         let range = Range {
                             start: index,
                             end: index + token.content.len(),
                         };
                         index = range.end;
 
-                        annotations.push(ContentAnnotation {
+                        ContentAnnotation {
                             range,
                             probability: Some(token.probability),
-                        });
-                    }
+                        }
+                    })),
                 }
-            }
-        }
-
-        annotations
+            },
+        )
     }
     fn split(self, index: usize) -> Option<[Self; 2]> {
         todo!()
