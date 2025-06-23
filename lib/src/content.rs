@@ -122,22 +122,23 @@ impl NodeContent {
             Self::Blank => true,
         }
     }
-    /*pub fn merge(left: Self, right: Self) -> Option<Self> {
-        if left.model() == right.model() {
-            Some(match left {
+    #[allow(clippy::too_many_lines)]
+    pub fn merge(left: Self, right: Self) -> Option<Self> {
+        if left.model() == right.model() || (left.linear() && right.linear()) {
+            match left {
                 Self::Text(left) => match right {
-                    Self::Text(right) => Self::Text(TextNode {
+                    Self::Text(right) => Some(Self::Text(TextNode {
                         content: [left.content, right.content].concat(),
                         model: left.model,
-                    }),
+                    })),
                     Self::Bytes(mut right) => {
                         let mut content = left.content.into_bytes();
                         content.append(&mut right.content);
 
-                        Self::Bytes(ByteNode {
+                        Some(Self::Bytes(ByteNode {
                             content,
                             model: left.model,
-                        })
+                        }))
                     }
                     Self::Token(right) => {
                         //let left_token = TextOrToken()
@@ -147,7 +148,8 @@ impl NodeContent {
                     Self::TextToken(right) => {
                         todo!()
                     }
-                    Self::Blank => Self::Text(left),
+                    Self::Diff(_) => None,
+                    Self::Blank => Some(Self::Text(left)),
                 },
                 Self::Bytes(left) => match right {
                     Self::Text(right) => {
@@ -162,7 +164,8 @@ impl NodeContent {
                     Self::TextToken(right) => {
                         todo!()
                     }
-                    Self::Blank => Self::Bytes(left),
+                    Self::Diff(_) => None,
+                    Self::Blank => Some(Self::Bytes(left)),
                 },
                 Self::Token(left) => match right {
                     Self::Text(right) => {
@@ -177,7 +180,8 @@ impl NodeContent {
                     Self::TextToken(right) => {
                         todo!()
                     }
-                    Self::Blank => Self::Token(left),
+                    Self::Diff(_) => None,
+                    Self::Blank => Some(Self::Token(left)),
                 },
                 Self::TextToken(left) => match right {
                     Self::Text(right) => {
@@ -192,18 +196,33 @@ impl NodeContent {
                     Self::TextToken(right) => {
                         todo!()
                     }
-                    Self::Blank => Self::TextToken(left),
+                    Self::Diff(_) => None,
+                    Self::Blank => Some(Self::TextToken(left)),
                 },
-                Self::Blank => right,
-            })
+                Self::Diff(_) => None,
+                Self::Blank => Some(right),
+            }
         } else {
             None
         }
     }
-    pub fn split(self, index: usize) -> [Self; 2] {
+    pub fn split(&self, index: usize) -> Option<[Self; 2]> {
         match self {
             Self::Text(content) => {
-                todo!()
+                if let Some((left, right)) = content.content.split_at_checked(index) {
+                    Some([
+                        Self::Text(TextNode {
+                            content: left.to_string(),
+                            model: content.model.clone(),
+                        }),
+                        Self::Text(TextNode {
+                            content: right.to_string(),
+                            model: content.model.clone(),
+                        }),
+                    ])
+                } else {
+                    None
+                }
             }
             Self::Bytes(content) => {
                 todo!()
@@ -212,11 +231,16 @@ impl NodeContent {
                 todo!()
             }
             Self::TextToken(content) => {
+                let annotations = content.annotations();
+
+                for annotation in annotations {
+                    if annotation.range.start < index {}
+                }
                 todo!()
             }
-            Self::Blank => [Self::Blank, Self::Blank],
+            Self::Diff(_) | Self::Blank => None,
         }
-    }*/
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
@@ -608,6 +632,11 @@ impl Diff {
             modification.apply(text);
         }
     }
+    pub fn apply_annotations(&self, annotations: &mut Vec<ContentAnnotation>) {
+        for modification in &self.content {
+            modification.apply_annotations(annotations);
+        }
+    }
     pub fn count(&self) -> ModificationCount {
         let mut insertions: usize = 0;
         let mut deletions: usize = 0;
@@ -639,6 +668,9 @@ impl Modification {
             ModificationContent::Insertion(content) => text.insert_str(self.index, content),
             ModificationContent::Deletion(length) => text.replace_range(self.index..*length, ""),
         }
+    }
+    pub fn apply_annotations(&self, annotations: &mut Vec<ContentAnnotation>) {
+        todo!()
     }
 }
 
