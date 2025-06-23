@@ -123,6 +123,8 @@ Development may be intermittent, with long periods of inactivity between periods
 		- [ ] Implement hover handling in graph view
 			- [ ] Implement setting to only show node contents on hover, similar to [exoloom](https://exoloom.io)
 		- [ ] Implement folding in graph view
+	- [ ] Find out if it's possible to add options to text editor right click menu
+		- [ ] Add node splitting to right click menu
 	- [ ] Implement tree "unhoisting", similar to [loomsidian](https://github.com/cosmicoptima/loom)
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
 	- [ ] Implement "select node and generate completions" selection mode, similar to [inkstream](https://inkstream.ai)
