@@ -221,53 +221,18 @@ impl NodeContent {
     }
     pub fn split(self, index: usize) -> Option<[Self; 2]> {
         match self {
-            Self::Text(mut content) => {
-                if !content.content.is_char_boundary(index) {
-                    return None;
-                }
-
-                let right = content.content.split_off(index);
-
-                Some([
-                    Self::Text(TextNode {
-                        content: content.content,
-                        model: content.model.clone(),
-                    }),
-                    Self::Text(TextNode {
-                        content: right,
-                        model: content.model,
-                    }),
-                ])
-            }
-            Self::Bytes(mut content) => {
-                if index > content.content.len() {
-                    return None;
-                }
-
-                let right = content.content.split_off(index);
-
-                Some([
-                    Self::Bytes(ByteNode {
-                        content: content.content,
-                        model: content.model.clone(),
-                    }),
-                    Self::Bytes(ByteNode {
-                        content: right,
-                        model: content.model,
-                    }),
-                ])
-            }
-            Self::Token(content) => {
-                todo!()
-            }
-            Self::TextToken(content) => {
-                let annotations = content.annotations();
-
-                for annotation in annotations {
-                    if annotation.range.start < index {}
-                }
-                todo!()
-            }
+            Self::Text(content) => content
+                .split(index)
+                .map(|[left, right]| [Self::Text(left), Self::Text(right)]),
+            Self::Bytes(content) => content
+                .split(index)
+                .map(|[left, right]| [Self::Bytes(left), Self::Bytes(right)]),
+            Self::Token(content) => content
+                .split(index)
+                .map(|[left, right]| [Self::Token(left), Self::Token(right)]),
+            Self::TextToken(content) => content
+                .split(index)
+                .map(|[left, right]| [Self::TextToken(left), Self::TextToken(right)]),
             Self::Diff(_) | Self::Blank => None,
         }
     }
@@ -312,13 +277,14 @@ impl ContentAnnotation {
     }
 }
 
-pub trait NodeContents: Display {
+pub trait NodeContents: Display + Sized {
     fn model(&self) -> Option<&NodeModel>;
 }
 
 pub trait LinearNodeContents: NodeContents {
     fn bytes(self) -> Vec<u8>;
     fn annotations(&self) -> Vec<ContentAnnotation>;
+    fn split(self, index: usize) -> Option<[Self; 2]>;
 }
 
 impl NodeContents for NodeContent {
@@ -388,6 +354,25 @@ impl LinearNodeContents for TextNode {
             },
         }]
     }
+    fn split(self, index: usize) -> Option<[Self; 2]> {
+        if !self.content.is_char_boundary(index) {
+            return None;
+        }
+
+        let mut left = self.content;
+        let right = left.split_off(index);
+
+        Some([
+            Self {
+                content: left,
+                model: self.model.clone(),
+            },
+            Self {
+                content: right,
+                model: self.model,
+            },
+        ])
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
@@ -426,6 +411,25 @@ impl LinearNodeContents for ByteNode {
                 end: self.content.len(),
             },
         }]
+    }
+    fn split(self, index: usize) -> Option<[Self; 2]> {
+        if index > self.content.len() {
+            return None;
+        }
+
+        let mut left = self.content;
+        let right = left.split_off(index);
+
+        Some([
+            Self {
+                content: left,
+                model: self.model.clone(),
+            },
+            Self {
+                content: right,
+                model: self.model,
+            },
+        ])
     }
 }
 
@@ -479,6 +483,25 @@ impl LinearNodeContents for TokenNode {
         }
 
         annotations
+    }
+    fn split(self, index: usize) -> Option<[Self; 2]> {
+        let annotations = self.annotations();
+
+        let mut split = None;
+
+        for (location, annotation) in annotations.iter().enumerate() {
+            if annotation.range.contains(&index) {
+                split = Some((location, annotation));
+                break;
+            }
+        }
+
+        let split = split?;
+
+        let mut left = self.content;
+        let right = left.split_off(split.0);
+
+        todo!()
     }
 }
 
@@ -583,6 +606,9 @@ impl LinearNodeContents for TextTokenNode {
         }
 
         annotations
+    }
+    fn split(self, index: usize) -> Option<[Self; 2]> {
+        todo!()
     }
 }
 
