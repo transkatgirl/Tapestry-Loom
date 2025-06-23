@@ -222,12 +222,27 @@ impl NodeContent {
                     }),
                     Self::Text(TextNode {
                         content: right,
-                        model: content.model.clone(),
+                        model: content.model,
                     }),
                 ])
             }
-            Self::Bytes(content) => {
-                todo!()
+            Self::Bytes(mut content) => {
+                if index > content.content.len() {
+                    return None;
+                }
+
+                let right = content.content.split_off(index);
+
+                Some([
+                    Self::Bytes(ByteNode {
+                        content: content.content,
+                        model: content.model.clone(),
+                    }),
+                    Self::Bytes(ByteNode {
+                        content: right,
+                        model: content.model,
+                    }),
+                ])
             }
             Self::Token(content) => {
                 todo!()
