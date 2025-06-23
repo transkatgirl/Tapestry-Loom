@@ -110,6 +110,10 @@ Development may be intermittent, with long periods of inactivity between periods
 	- [ ] Code cleanup
 		- [ ] Remove reliance on Obsidian's undocumented styling rules
 		- [ ] Rewrite UI using svelte?
+	- [ ] Add node sorting options
+		- [ ] Time added
+		- [ ] Alphabetical
+		- [ ] Semantic sort
 	- [ ] Improve list view to support all of the same functionality as the tree interface
 		- [ ] Add hover buttons to list view
 	- [ ] Allow quickly moving to node under cursor, similar to [exoloom](https://exoloom.io)
