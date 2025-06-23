@@ -206,23 +206,25 @@ impl NodeContent {
             None
         }
     }
-    pub fn split(&self, index: usize) -> Option<[Self; 2]> {
+    pub fn split(self, index: usize) -> Option<[Self; 2]> {
         match self {
-            Self::Text(content) => {
-                if let Some((left, right)) = content.content.split_at_checked(index) {
-                    Some([
-                        Self::Text(TextNode {
-                            content: left.to_string(),
-                            model: content.model.clone(),
-                        }),
-                        Self::Text(TextNode {
-                            content: right.to_string(),
-                            model: content.model.clone(),
-                        }),
-                    ])
-                } else {
-                    None
+            Self::Text(mut content) => {
+                if !content.content.is_char_boundary(index) {
+                    return None;
                 }
+
+                let right = content.content.split_off(index);
+
+                Some([
+                    Self::Text(TextNode {
+                        content: content.content,
+                        model: content.model.clone(),
+                    }),
+                    Self::Text(TextNode {
+                        content: right,
+                        model: content.model.clone(),
+                    }),
+                ])
             }
             Self::Bytes(content) => {
                 todo!()
