@@ -373,6 +373,7 @@ impl LinearNodeContents for TextNode {
 
         let mut left = self.content;
         let right = left.split_off(index);
+        left.shrink_to_fit();
 
         Some([
             Self {
@@ -440,6 +441,7 @@ impl LinearNodeContents for ByteNode {
 
         let mut left = self.content;
         let right = left.split_off(index);
+        left.shrink_to_fit();
 
         Some([
             Self {
@@ -534,8 +536,25 @@ impl LinearNodeContents for TokenNode {
         let split = split?;
 
         let mut left = self.content;
-        let right = left.split_off(split.0);
+        let mut right = left.split_off(split.0);
+        left.shrink_to_fit();
 
+        let [left_token, right_token] = right[0].clone().split(index - split.1.range.start)?;
+        left.push(left_token);
+        right[0] = right_token;
+
+        Some([
+            Self {
+                content: left,
+                model: self.model.clone(),
+            },
+            Self {
+                content: right,
+                model: self.model,
+            },
+        ])
+    }
+    fn splitable(&self, index: usize) -> bool {
         todo!()
     }
 }
@@ -544,6 +563,32 @@ impl LinearNodeContents for TokenNode {
 pub struct NodeToken {
     pub probability: Decimal,
     pub content: Vec<u8>,
+}
+
+impl NodeToken {
+    pub fn split(self, index: usize) -> Option<[Self; 2]> {
+        if index > self.content.len() {
+            return None;
+        }
+
+        let mut left = self.content;
+        let right = left.split_off(index);
+        left.shrink_to_fit();
+
+        Some([
+            Self {
+                content: left,
+                probability: self.probability,
+            },
+            Self {
+                content: right,
+                probability: self.probability,
+            },
+        ])
+    }
+    pub fn splitable(&self, index: usize) -> bool {
+        index <= self.content.len()
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
