@@ -29,6 +29,8 @@ pub struct CompactWeave {
     bookmarked: HashSet<u128>,
 
     models: HashMap<u128, Model>,
+
+    metadata: HashMap<String, String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -144,6 +146,10 @@ impl CompactWeave {
         let mut encoder = EncoderStringWriter::new(&URL_SAFE);
         self.save(&mut encoder)?;
         Ok(encoder.into_inner())
+    }
+    /// Retrieve the metadata associated with the document.
+    pub fn metadata(&self) -> &HashMap<String, String> {
+        &self.metadata
     }
 }
 
@@ -377,6 +383,8 @@ impl TryFrom<CompactWeave> for Weave {
     fn try_from(input: CompactWeave) -> Result<Self, Self::Error> {
         let mut weave = Weave::default();
 
+        weave.metadata = input.metadata;
+
         let mut models: HashMap<u128, super::content::Model> = input
             .models
             .into_iter()
@@ -463,6 +471,7 @@ impl TryFrom<Weave> for CompactWeave {
             active,
             bookmarked,
             models,
+            metadata: weave.metadata,
         })
     }
 }

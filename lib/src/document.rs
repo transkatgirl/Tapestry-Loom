@@ -23,6 +23,9 @@ pub struct Weave {
     nodes: HashMap<Ulid, Node>,
     models: HashMap<Ulid, Model>,
 
+    /// Metadata associated with the document.
+    pub metadata: HashMap<String, String>,
+
     root_nodes: BTreeSet<Ulid>,
     model_nodes: HashMap<Ulid, HashSet<Ulid>>,
     dag_nodes: HashSet<Ulid>,
@@ -517,6 +520,7 @@ pub(super) struct OwnedWeaveSnapshot {
     pub(super) nodes: HashMap<Ulid, Node>,
     pub(super) models: HashMap<Ulid, Model>,
     pub(super) root_nodes: BTreeSet<Ulid>,
+    pub(super) metadata: HashMap<String, String>,
 }
 
 impl From<Weave> for OwnedWeaveSnapshot {
@@ -525,6 +529,7 @@ impl From<Weave> for OwnedWeaveSnapshot {
             nodes: input.nodes,
             models: input.models,
             root_nodes: input.root_nodes,
+            metadata: input.metadata,
         }
     }
 }
