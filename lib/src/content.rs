@@ -233,7 +233,8 @@ impl NodeContent {
             Self::TextToken(content) => content
                 .split(index)
                 .map(|[left, right]| [Self::TextToken(left), Self::TextToken(right)]),
-            Self::Diff(_) | Self::Blank => None,
+            Self::Diff(_) => None,
+            Self::Blank => Some([Self::Blank, Self::Blank]),
         }
     }
 }
