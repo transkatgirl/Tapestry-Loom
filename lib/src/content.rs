@@ -284,6 +284,8 @@ pub trait NodeContents: Display + Sized {
 
 pub trait LinearNodeContents: NodeContents {
     fn bytes(self) -> Vec<u8>;
+    fn len(&self) -> usize;
+    fn is_empty(&self) -> bool;
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation>;
     fn split(self, index: usize) -> Option<[Self; 2]>;
 }
@@ -346,6 +348,12 @@ impl LinearNodeContents for TextNode {
     fn bytes(self) -> Vec<u8> {
         self.content.into_bytes()
     }
+    fn len(&self) -> usize {
+        self.content.len()
+    }
+    fn is_empty(&self) -> bool {
+        self.content.is_empty()
+    }
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
         iter::once(ContentAnnotation {
             probability: None,
@@ -403,6 +411,12 @@ impl Display for ByteNode {
 impl LinearNodeContents for ByteNode {
     fn bytes(self) -> Vec<u8> {
         self.content
+    }
+    fn len(&self) -> usize {
+        self.content.len()
+    }
+    fn is_empty(&self) -> bool {
+        self.content.is_empty()
     }
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
         iter::once(ContentAnnotation {
@@ -465,6 +479,23 @@ impl LinearNodeContents for TokenNode {
             .into_iter()
             .flat_map(|token| token.content)
             .collect()
+    }
+    fn len(&self) -> usize {
+        let mut len = 0;
+
+        for token in &self.content {
+            len += token.content.len();
+        }
+
+        len
+    }
+    fn is_empty(&self) -> bool {
+        for token in &self.content {
+            if token.content.len() > 0 {
+                return false;
+            }
+        }
+        true
     }
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
         let mut index = 0;
@@ -548,13 +579,54 @@ impl LinearNodeContents for TextTokenNode {
             data.append(&mut match content {
                 TextOrToken::Text(text) => text.into_bytes(),
                 TextOrToken::Bytes(bytes) => bytes,
-                TextOrToken::Token(token) => {
-                    token.into_iter().flat_map(|token| token.content).collect()
+                TextOrToken::Token(tokens) => {
+                    tokens.into_iter().flat_map(|token| token.content).collect()
                 }
             });
         }
 
         data
+    }
+    fn len(&self) -> usize {
+        let mut len = 0;
+
+        for content in &self.content {
+            match content {
+                TextOrToken::Text(text) => len += text.len(),
+                TextOrToken::Bytes(bytes) => len += bytes.len(),
+                TextOrToken::Token(tokens) => {
+                    for token in tokens {
+                        len += token.content.len();
+                    }
+                }
+            }
+        }
+
+        len
+    }
+    fn is_empty(&self) -> bool {
+        for content in &self.content {
+            match content {
+                TextOrToken::Text(text) => {
+                    if text.len() > 0 {
+                        return false;
+                    }
+                }
+                TextOrToken::Bytes(bytes) => {
+                    if bytes.len() > 0 {
+                        return false;
+                    }
+                }
+                TextOrToken::Token(tokens) => {
+                    for token in tokens {
+                        if token.content.len() > 0 {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        true
     }
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
         let mut index = 0;
