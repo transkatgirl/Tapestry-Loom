@@ -85,7 +85,7 @@ Development may be intermittent, with long periods of inactivity between periods
 		- [ ] Add support for FIM completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 		- [ ] Add support for diff weaves, similar to [minihf's loom](https://github.com/JD-P/minihf)
 		- [ ] Add support for copying / moving nodes (and their children) to different parents
-		- [ ] Add support for displaying alternate node options on hover, similar to [loom](https://github.com/socketteer/loom)
+		- [ ] Implement multi-token multi-logprob generations as chains of single token nodes, inspired by [loom](https://github.com/socketteer/loom) and [logitloom](https://github.com/vgel/logitloom)
 			- [ ] Update Node list to display sibings of node at cursor rather than last active node
 			- [ ] Update graph to focus node at cursor rather than last active node
 		- [ ] Add support for saving last-used model & parameter choices in Weave
@@ -114,6 +114,7 @@ Development may be intermittent, with long periods of inactivity between periods
 		- [ ] Time added
 		- [ ] Alphabetical
 		- [ ] Semantic sort
+	- [ ] Add color coding by token variety (number of tokens within 0.95 nucleus)
 	- [ ] Improve list view to support all of the same functionality as the tree interface
 		- [ ] Add hover buttons to list view
 	- [ ] Allow quickly moving to node under cursor, similar to [exoloom](https://exoloom.io)
@@ -127,6 +128,8 @@ Development may be intermittent, with long periods of inactivity between periods
 		- [ ] Add node splitting to right click menu
 	- [ ] Improve node finding
 		- [ ] Add find dialog to graph view
+	- [ ] Add parent nodes to list view
+	- [ ] Scroll to newly generated nodes
 	- [ ] Implement tree "unhoisting", similar to [loomsidian](https://github.com/cosmicoptima/loom)
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
 	- [ ] Implement "select node and generate completions" selection mode, similar to [inkstream](https://inkstream.ai)
@@ -142,6 +145,7 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 	- [ ] Weave metadata
 - [ ] Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
 	- [ ] If the specification is not ready by v1, support for Standard Completions will be delayed to v2
+- [ ] Implement color palette generator for model colors
 - [ ] Blind model comparison mode
 
 #### Tapestry Loom v2 plans
@@ -168,6 +172,7 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 	- Interactive sampling parameter visualization tool
 	- UI hints for new users
 	- UI streamlining *without reducing functionality*
+- Aggressively remove friction points in the UI
 - Built in user manual, based on the [cyborgism wiki](https://cyborgism.wiki) and any significant subsequent discoveries about base model behavior
 
 ## Usage
