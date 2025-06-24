@@ -37,7 +37,7 @@ pub struct CompactWeave {
 #[derive(Serialize, Deserialize)]
 struct Model {
     label: String,
-    color: Option<String>,
+    style: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -395,7 +395,7 @@ impl TryFrom<CompactWeave> for Weave {
                     super::content::Model {
                         id: Ulid(id),
                         label: model.label,
-                        color: model.color,
+                        style: model.style,
                     },
                 )
             })
@@ -439,7 +439,7 @@ impl TryFrom<Weave> for CompactWeave {
                     model.id.0,
                     (Model {
                         label: model.label,
-                        color: model.color,
+                        style: model.style,
                     }),
                 )
             })

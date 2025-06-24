@@ -97,7 +97,7 @@ impl Weave {
 pub struct Model {
     pub id: Ulid,
     pub label: String,
-    pub color: Option<String>,
+    pub style: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
