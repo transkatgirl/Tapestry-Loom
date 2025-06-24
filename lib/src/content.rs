@@ -288,6 +288,9 @@ pub trait LinearNodeContents: NodeContents {
     fn is_empty(&self) -> bool;
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation>;
     fn split(self, index: usize) -> Option<[Self; 2]>;
+    fn splitable(&self, index: usize) -> bool {
+        index <= self.len()
+    }
 }
 
 impl NodeContents for NodeContent {
@@ -381,6 +384,9 @@ impl LinearNodeContents for TextNode {
                 model: self.model,
             },
         ])
+    }
+    fn splitable(&self, index: usize) -> bool {
+        self.content.is_char_boundary(index)
     }
 }
 
