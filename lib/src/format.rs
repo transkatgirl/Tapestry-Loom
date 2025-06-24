@@ -21,6 +21,7 @@ use crate::document::{OwnedWeaveSnapshot, Weave};
 /// The [`CompactWeave`] binary format maintains backwards compatibility but not forwards compatibility. It is serialized as MessagePack compressed with LZ4.
 #[derive(Serialize, Deserialize)]
 pub struct CompactWeave {
+    #[serde(rename = "CompactWeave_version")]
     version: u64,
 
     // Sorted from lowest depth to highest depth
