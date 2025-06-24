@@ -497,7 +497,7 @@ impl LinearNodeContents for TokenNode {
     }
     fn is_empty(&self) -> bool {
         for token in &self.content {
-            if token.content.len() > 0 {
+            if !token.content.is_empty() {
                 return false;
             }
         }
@@ -614,18 +614,18 @@ impl LinearNodeContents for TextTokenNode {
         for content in &self.content {
             match content {
                 TextOrToken::Text(text) => {
-                    if text.len() > 0 {
+                    if !text.is_empty() {
                         return false;
                     }
                 }
                 TextOrToken::Bytes(bytes) => {
-                    if bytes.len() > 0 {
+                    if !bytes.is_empty() {
                         return false;
                     }
                 }
                 TextOrToken::Token(tokens) => {
                     for token in tokens {
-                        if token.content.len() > 0 {
+                        if !token.content.is_empty() {
                             return false;
                         }
                     }
