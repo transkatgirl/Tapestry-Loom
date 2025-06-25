@@ -284,7 +284,7 @@ impl NodeContent {
             Self::Text(content) => content.is_empty(),
             Self::Bytes(content) => content.is_empty(),
             Self::Token(content) => content.is_empty(),
-            Self::Diff(diff) => diff.content.content.is_empty(),
+            Self::Diff(diff) => diff.content.is_empty(),
             Self::Blank => true,
         }
     }
@@ -800,6 +800,14 @@ impl Diff {
             deletions,
         }
     }
+    pub fn is_empty(&self) -> bool {
+        for modification in &self.content {
+            if !modification.content.is_empty() {
+                return false;
+            }
+        }
+        true
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
@@ -816,6 +824,22 @@ impl Modification {
         }
     }
     pub fn apply_annotations(&self, annotations: &mut Vec<ContentAnnotation>) {
+        let selected_annotations: Vec<usize> = annotations
+            .iter()
+            .enumerate()
+            .filter_map(move |(location, annotation)| {
+                if annotation.range.contains(&self.index)
+                    || annotation
+                        .range
+                        .contains(&(self.index + self.content.len()))
+                {
+                    return Some(location);
+                }
+
+                None
+            })
+            .collect();
+
         todo!()
     }
 }
