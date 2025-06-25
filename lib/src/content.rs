@@ -188,6 +188,7 @@ impl NodeContent {
                 Self::Diff(_) => panic!(),
                 Self::Blank => Some(right),
             }
+            .map(Self::simplify)
         } else {
             None
         }
@@ -213,6 +214,40 @@ impl NodeContent {
                 .map(|[left, right]| [Self::Token(left), Self::Token(right)]),
             Self::Diff(_) => None,
             Self::Blank => Some([Self::Blank, Self::Blank]),
+        }
+        .map(|[left, right]| [left.simplify(), right.simplify()])
+    }
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
+    pub fn simplify(self) -> Self {
+        if self.model().is_none() && self.is_empty() {
+            return Self::Blank;
+        }
+
+        match self {
+            Self::Text(text) => Self::Text(text),
+            Self::Bytes(bytes) => Self::Bytes(bytes),
+            Self::Token(mut tokens) => {
+                if tokens.content.len() == 1 && tokens.content[0].probability.is_none() {
+                    Self::Bytes(ByteNode {
+                        content: tokens.content.pop().unwrap().content,
+                        model: tokens.model,
+                    })
+                } else {
+                    Self::Token(tokens)
+                }
+            }
+            Self::Diff(diff) => Self::Diff(diff),
+            Self::Blank => Self::Blank,
+        }
+    }
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Self::Text(content) => content.is_empty(),
+            Self::Bytes(content) => content.is_empty(),
+            Self::Token(content) => content.is_empty(),
+            Self::Diff(diff) => diff.content.content.is_empty(),
+            Self::Blank => true,
         }
     }
 }
