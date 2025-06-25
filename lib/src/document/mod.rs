@@ -60,7 +60,7 @@ impl Weave {
         if self.nodes.contains_key(&node.id) {
             return None;
         }
-        if (!self.nonconcatable_nodes.is_empty() || !node.content.concatable())
+        if (!self.nonconcatable_nodes.is_empty() || !node.content.is_concatable())
             && (!self.multiparent_nodes.is_empty() || node.from.len() > 1)
         {
             return None;
@@ -123,7 +123,7 @@ impl Weave {
         if node.from.len() > 1 {
             self.multiparent_nodes.insert(node.id);
         }
-        if !node.content.concatable() {
+        if !node.content.is_concatable() {
             self.nonconcatable_nodes.insert(node.id);
         }
         if let Some(node_model) = node.content.model() {

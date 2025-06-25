@@ -12,7 +12,6 @@ use ulid::Ulid;
 use super::{Weave, WeaveView};
 
 /* TODO:
-- Simplify data types
 - Node splitting/merging
 - Rewrite timeline code
     - Rewrite annotations to use content position references
@@ -103,7 +102,7 @@ pub enum NodeContent {
 
 impl NodeContent {
     #[allow(clippy::match_same_arms)]
-    pub fn concatable(&self) -> bool {
+    pub fn is_concatable(&self) -> bool {
         match self {
             Self::Snippet(_) => true,
             Self::Tokens(_) => true,
@@ -113,7 +112,7 @@ impl NodeContent {
     }
     #[allow(clippy::missing_panics_doc)]
     pub fn merge(left: Self, right: Self) -> Option<Self> {
-        if left.model() == right.model() || (left.concatable() && right.concatable()) {
+        if left.model() == right.model() || (left.is_concatable() && right.is_concatable()) {
             Some(
                 match left {
                     Self::Snippet(mut left) => match right {
@@ -160,8 +159,8 @@ impl NodeContent {
             None
         }
     }
-    pub fn mergeable(left: &Self, right: &Self) -> bool {
-        left.model() == right.model() || (left.concatable() && right.concatable())
+    pub fn is_mergeable(left: &Self, right: &Self) -> bool {
+        left.model() == right.model() || (left.is_concatable() && right.is_concatable())
     }
     pub fn split(self, index: usize) -> Option<[Self; 2]> {
         match self {
@@ -176,7 +175,7 @@ impl NodeContent {
         }
         .map(|[left, right]| [left.reduce(), right.reduce()])
     }
-    pub fn splitable(&self, index: usize) -> bool {
+    pub fn is_splitable(&self, index: usize) -> bool {
         match self {
             Self::Snippet(content) => index <= content.len(),
             Self::Tokens(content) => index <= content.len(),
