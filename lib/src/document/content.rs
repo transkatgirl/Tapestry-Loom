@@ -824,23 +824,30 @@ impl Modification {
         }
     }
     pub fn apply_annotations(&self, annotations: &mut Vec<ContentAnnotation>) {
-        let selected_annotations: Vec<usize> = annotations
+        let range = Range {
+            start: self.index,
+            end: self.index + self.content.len(),
+        };
+        let selection = annotations
             .iter()
             .enumerate()
             .filter_map(move |(location, annotation)| {
-                if annotation.range.contains(&self.index)
-                    || annotation
-                        .range
-                        .contains(&(self.index + self.content.len()))
+                if range.contains(&annotation.range.start) || range.contains(&annotation.range.end)
                 {
                     return Some(location);
                 }
 
                 None
-            })
-            .collect();
+            });
 
-        todo!()
+        match &self.content {
+            ModificationContent::Insertion(content) => {
+                todo!()
+            }
+            ModificationContent::Deletion(length) => {
+                todo!()
+            }
+        }
     }
 }
 
