@@ -296,32 +296,9 @@ pub struct TimelineAnnotation<'w> {
     pub model: Option<&'w Model>,
 }
 
-pub trait Annotation: Sized {
+pub trait Annotation: Sized + From<Range<usize>> {
     fn range(&self) -> &Range<usize>;
     fn range_mut(&mut self) -> &mut Range<usize>;
-    fn offset_forwards(&mut self, offset: usize) {
-        let range = self.range_mut();
-
-        range.start += offset;
-        range.end += offset;
-    }
-    fn offset_backwards(&mut self, offset: usize) {
-        let range = self.range_mut();
-
-        range.start -= offset;
-        range.end -= offset;
-    }
-    fn shrink(&mut self, new_range: Range<usize>) -> bool {
-        let range = self.range_mut();
-
-        if range.contains(&new_range.start) || range.contains(&new_range.end) {
-            range.start = new_range.start;
-            range.end = new_range.end;
-            true
-        } else {
-            false
-        }
-    }
     fn split(&self, index: usize) -> Option<[Self; 2]>;
 }
 
@@ -388,6 +365,26 @@ impl Annotation for TimelineAnnotation<'_> {
                 model: self.model,
             },
         ])
+    }
+}
+
+impl From<Range<usize>> for ContentAnnotation {
+    fn from(range: Range<usize>) -> Self {
+        Self {
+            range,
+            probability: None,
+        }
+    }
+}
+
+impl From<Range<usize>> for TimelineAnnotation<'_> {
+    fn from(range: Range<usize>) -> Self {
+        Self {
+            range,
+            probability: None,
+            node: None,
+            model: None,
+        }
     }
 }
 
@@ -851,7 +848,7 @@ impl Diff {
             modification.apply(text);
         }
     }
-    pub fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
+    fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
     where
         T: Annotation,
     {
@@ -899,43 +896,68 @@ impl Modification {
             ModificationContent::Deletion(length) => text.replace_range(self.index..*length, ""),
         }
     }
-    pub fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
+    fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
     where
         T: Annotation,
     {
+        let offset = self.content.len();
         let range = Range {
             start: self.index,
-            end: self.index + self.content.len(),
+            end: self.index + offset,
         };
-        let mut selection =
-            annotations
-                .iter()
-                .enumerate()
-                .filter_map(move |(location, annotation)| {
-                    let annotation = annotation.range();
+        let Some(selected) = annotations
+            .iter()
+            .enumerate()
+            .find_map(|(location, annotation)| {
+                let annotation = annotation.range();
 
-                    if range.contains(&annotation.start) || range.contains(&annotation.end) {
-                        return Some(location);
-                    }
+                if range.contains(&annotation.start) || range.contains(&annotation.end) {
+                    return Some(location);
+                }
 
-                    None
-                });
+                None
+            })
+        else {
+            return;
+        };
 
         match &self.content {
-            ModificationContent::Insertion(content) => {
-                if let Some(selected) = selection.next() {
-                    if let Some(split) = annotations[selected].split(self.index) {
-                        todo!()
+            ModificationContent::Insertion(_) => {
+                if let Some([left, mut right]) = annotations[selected].split(self.index) {
+                    let middle = T::from(range);
+                    right.range_mut().start += offset;
+                    right.range_mut().end += offset;
+
+                    annotations.splice(selected..=selected, vec![left, middle, right]);
+                }
+                if annotations.len() > selected {
+                    for annotation in &mut annotations[selected + 1..] {
+                        let annotation = annotation.range_mut();
+                        annotation.start += offset;
+                        annotation.end += offset;
                     }
                 }
             }
-            ModificationContent::Deletion(length) => {
-                let mut offset = 0;
-                let selection: Vec<usize> = selection.collect();
+            ModificationContent::Deletion(_) => {
+                let mut remove = Vec::with_capacity(annotations.len());
 
-                for selected in selection {}
+                for (index, annotation) in &mut annotations[selected..].iter_mut().enumerate() {
+                    let annotation = annotation.range_mut();
 
-                todo!()
+                    if annotation.contains(&range.start) && annotation.contains(&range.end) {
+                        remove.push(index);
+                    } else if annotation.contains(&range.start) {
+                        annotation.start = range.end;
+                    } else if annotation.contains(&range.end) {
+                        annotation.end = range.start;
+                    } else {
+                        annotation.start -= offset;
+                        annotation.end -= offset;
+                    }
+                }
+                if !remove.is_empty() {
+                    annotations.splice(remove[0]..=remove[remove.len() - 1], vec![]);
+                }
             }
         }
     }
