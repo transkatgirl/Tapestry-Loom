@@ -34,18 +34,15 @@ pub struct WeaveTimeline<'w> {
 
 // TODO
 impl<'w> WeaveTimeline<'w> {
-    pub fn text(&self) -> String {
-        String::from_utf8_lossy(&self.bytes()).to_string()
-    }
     pub fn bytes(&self) -> Vec<u8> {
         todo!()
     }
-    pub fn annotations(&self) -> Vec<TimelineAnnotation<'w>> {
+    pub fn annotated_string(&self) -> (String, Vec<TimelineAnnotation<'w>>) {
         todo!()
     }
     pub fn build_update(self, content: String) -> TimelineUpdate {
         TimelineUpdate {
-            old: self.text(),
+            old: String::from_utf8_lossy(&self.bytes()).to_string(),
             new: content,
         }
     }
