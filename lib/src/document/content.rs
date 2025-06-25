@@ -5,10 +5,9 @@ use std::{collections::HashSet, fmt::Display, iter, ops::Range, string::FromUtf8
 use dissimilar::Chunk;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-
 use ulid::Ulid;
 
-use crate::document::{Weave, WeaveView};
+use super::{Weave, WeaveView};
 
 /* TODO:
 - Node splitting/merging

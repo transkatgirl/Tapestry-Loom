@@ -6,6 +6,5 @@
 
 //! An implementation of Tapestry Loom's "Weave" document format.
 
-pub mod content;
 pub mod document;
 pub mod format;

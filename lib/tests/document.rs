@@ -2,9 +2,9 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 
 use ulid::Ulid;
 
-use tapestry_weave::{
+use tapestry_weave::document::{
+    Weave, WeaveView,
     content::{Node, NodeContent},
-    document::{Weave, WeaveView},
 };
 
 /* TODO:

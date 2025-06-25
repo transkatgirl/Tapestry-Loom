@@ -14,7 +14,7 @@ use serde_bytes::ByteBuf;
 use thiserror::Error;
 use ulid::Ulid;
 
-use crate::document::{OwnedWeaveSnapshot, Weave};
+use crate::document::{OwnedWeaveSnapshot, Weave, content};
 
 /// A compact serializable format intended for storing [`Weave`] documents.
 ///
@@ -144,7 +144,7 @@ impl CompactWeave {
     }
 }
 
-impl TryFrom<DiffModification> for super::content::ModificationContent {
+impl TryFrom<DiffModification> for content::ModificationContent {
     type Error = WeaveError;
     fn try_from(input: DiffModification) -> Result<Self, Self::Error> {
         Ok(match input {
@@ -160,12 +160,12 @@ impl TryFrom<DiffModification> for super::content::ModificationContent {
     }
 }
 
-impl TryFrom<super::content::ModificationContent> for DiffModification {
+impl TryFrom<content::ModificationContent> for DiffModification {
     type Error = WeaveError;
-    fn try_from(input: super::content::ModificationContent) -> Result<Self, Self::Error> {
+    fn try_from(input: content::ModificationContent) -> Result<Self, Self::Error> {
         Ok(match input {
-            super::content::ModificationContent::Insertion(content) => Self::Insert(content),
-            super::content::ModificationContent::Deletion(length) => {
+            content::ModificationContent::Insertion(content) => Self::Insert(content),
+            content::ModificationContent::Deletion(length) => {
                 Self::Delete(u64::try_from(length).map_err(|_| {
                     WeaveError::FailedCompact(
                         "Unable to convert modification length to u64".to_string(),
@@ -177,98 +177,87 @@ impl TryFrom<super::content::ModificationContent> for DiffModification {
 }
 
 #[allow(clippy::too_many_lines)]
-impl TryFrom<NodeData> for super::content::NodeContent {
+impl TryFrom<NodeData> for content::NodeContent {
     type Error = WeaveError;
     fn try_from(input: NodeData) -> Result<Self, Self::Error> {
         Ok(match input {
-            NodeData::Text((content, model)) => {
-                super::content::NodeContent::Text(super::content::TextNode {
-                    content,
-                    model: model.map(|(identifier, parameters)| super::content::NodeModel {
-                        id: Ulid(identifier),
-                        parameters,
-                    }),
-                })
-            }
-            NodeData::Bytes((content, model)) => {
-                super::content::NodeContent::Bytes(super::content::ByteNode {
-                    content: content.into_vec(),
-                    model: model.map(|(identifier, parameters)| super::content::NodeModel {
-                        id: Ulid(identifier),
-                        parameters,
-                    }),
-                })
-            }
-            NodeData::Token((content, model)) => {
-                super::content::NodeContent::Token(super::content::TokenNode {
-                    content: content
+            NodeData::Text((content, model)) => content::NodeContent::Text(content::TextNode {
+                content,
+                model: model.map(|(identifier, parameters)| content::NodeModel {
+                    id: Ulid(identifier),
+                    parameters,
+                }),
+            }),
+            NodeData::Bytes((content, model)) => content::NodeContent::Bytes(content::ByteNode {
+                content: content.into_vec(),
+                model: model.map(|(identifier, parameters)| content::NodeModel {
+                    id: Ulid(identifier),
+                    parameters,
+                }),
+            }),
+            NodeData::Token((content, model)) => content::NodeContent::Token(content::TokenNode {
+                content: content
+                    .into_iter()
+                    .map(|(bytes, probability)| {
+                        Ok(content::NodeToken {
+                            probability: match probability {
+                                Some(probability) => {
+                                    Some(Decimal::try_from(probability).map_err(|_| {
+                                        WeaveError::FailedInteractive(
+                                            "Unable to parse probability value".to_string(),
+                                        )
+                                    })?)
+                                }
+                                None => None,
+                            },
+                            content: bytes.into_vec(),
+                        })
+                    })
+                    .collect::<Result<Vec<_>, WeaveError>>()?,
+                model: model.map(|(identifier, parameters)| content::NodeModel {
+                    id: Ulid(identifier),
+                    parameters,
+                }),
+            }),
+            NodeData::Diff((diff, model)) => content::NodeContent::Diff(content::DiffNode {
+                content: content::Diff {
+                    content: diff
                         .into_iter()
-                        .map(|(bytes, probability)| {
-                            Ok(super::content::NodeToken {
-                                probability: match probability {
-                                    Some(probability) => {
-                                        Some(Decimal::try_from(probability).map_err(|_| {
-                                            WeaveError::FailedInteractive(
-                                                "Unable to parse probability value".to_string(),
-                                            )
-                                        })?)
-                                    }
-                                    None => None,
-                                },
-                                content: bytes.into_vec(),
+                        .map(|(index, content)| {
+                            Ok(content::Modification {
+                                index: usize::try_from(index).map_err(|_| {
+                                    WeaveError::FailedInteractive(
+                                        "Unable to convert modification index to usize".to_string(),
+                                    )
+                                })?,
+                                content: content::ModificationContent::try_from(content)?,
                             })
                         })
                         .collect::<Result<Vec<_>, WeaveError>>()?,
-                    model: model.map(|(identifier, parameters)| super::content::NodeModel {
-                        id: Ulid(identifier),
-                        parameters,
-                    }),
-                })
-            }
-            NodeData::Diff((diff, model)) => {
-                super::content::NodeContent::Diff(super::content::DiffNode {
-                    content: super::content::Diff {
-                        content: diff
-                            .into_iter()
-                            .map(|(index, content)| {
-                                Ok(super::content::Modification {
-                                    index: usize::try_from(index).map_err(|_| {
-                                        WeaveError::FailedInteractive(
-                                            "Unable to convert modification index to usize"
-                                                .to_string(),
-                                        )
-                                    })?,
-                                    content: super::content::ModificationContent::try_from(
-                                        content,
-                                    )?,
-                                })
-                            })
-                            .collect::<Result<Vec<_>, WeaveError>>()?,
-                    },
-                    model: model.map(|(identifier, parameters)| super::content::NodeModel {
-                        id: Ulid(identifier),
-                        parameters,
-                    }),
-                })
-            }
-            NodeData::Blank => super::content::NodeContent::Blank,
+                },
+                model: model.map(|(identifier, parameters)| content::NodeModel {
+                    id: Ulid(identifier),
+                    parameters,
+                }),
+            }),
+            NodeData::Blank => content::NodeContent::Blank,
         })
     }
 }
 
-impl TryFrom<super::content::NodeContent> for NodeData {
+impl TryFrom<content::NodeContent> for NodeData {
     type Error = WeaveError;
-    fn try_from(input: super::content::NodeContent) -> Result<Self, Self::Error> {
+    fn try_from(input: content::NodeContent) -> Result<Self, Self::Error> {
         Ok(match input {
-            super::content::NodeContent::Text(content) => NodeData::Text((
+            content::NodeContent::Text(content) => NodeData::Text((
                 content.content,
                 content.model.map(|model| (model.id.0, model.parameters)),
             )),
-            super::content::NodeContent::Bytes(content) => NodeData::Bytes((
+            content::NodeContent::Bytes(content) => NodeData::Bytes((
                 ByteBuf::from(content.content),
                 content.model.map(|model| (model.id.0, model.parameters)),
             )),
-            super::content::NodeContent::Token(content) => NodeData::Token((
+            content::NodeContent::Token(content) => NodeData::Token((
                 content
                     .content
                     .into_iter()
@@ -291,7 +280,7 @@ impl TryFrom<super::content::NodeContent> for NodeData {
                     .collect::<Result<Vec<_>, _>>()?,
                 content.model.map(|model| (model.id.0, model.parameters)),
             )),
-            super::content::NodeContent::Diff(content) => NodeData::Diff((
+            content::NodeContent::Diff(content) => NodeData::Diff((
                 content
                     .content
                     .content
@@ -309,7 +298,7 @@ impl TryFrom<super::content::NodeContent> for NodeData {
                     .collect::<Result<Vec<_>, WeaveError>>()?,
                 content.model.map(|model| (model.id.0, model.parameters)),
             )),
-            super::content::NodeContent::Blank => NodeData::Blank,
+            content::NodeContent::Blank => NodeData::Blank,
         })
     }
 }
@@ -321,13 +310,13 @@ impl TryFrom<CompactWeave> for Weave {
 
         weave.metadata = input.metadata;
 
-        let mut models: HashMap<u128, super::content::Model> = input
+        let mut models: HashMap<u128, content::Model> = input
             .models
             .into_iter()
             .map(|(id, model)| {
                 (
                     id,
-                    super::content::Model {
+                    content::Model {
                         id: Ulid(id),
                         label: model.label,
                         style: model.style,
@@ -338,13 +327,13 @@ impl TryFrom<CompactWeave> for Weave {
 
         for (identifier, (content, parents)) in input.nodes {
             let model = content.model().and_then(|m| models.remove(&m.0));
-            let node = super::content::Node {
+            let node = content::Node {
                 id: Ulid(identifier),
                 from: parents.into_iter().map(Ulid).collect(),
                 to: HashSet::new(),
                 active: input.active.contains(&identifier),
                 bookmarked: input.bookmarked.contains(&identifier),
-                content: super::content::NodeContent::try_from(content)?,
+                content: content::NodeContent::try_from(content)?,
             };
 
             if weave.add_node(node, model, true, false).is_none() {
@@ -414,8 +403,8 @@ impl TryFrom<Weave> for CompactWeave {
 
 fn flatten_nodes(
     root_nodes: BTreeSet<Ulid>,
-    mut nodes: HashMap<Ulid, super::content::Node>,
-) -> Vec<super::content::Node> {
+    mut nodes: HashMap<Ulid, content::Node>,
+) -> Vec<content::Node> {
     let mut node_list = Vec::with_capacity(nodes.len());
 
     for node in root_nodes {
@@ -428,9 +417,9 @@ fn flatten_nodes(
 }
 
 fn get_flattened_nodes(
-    nodes: &mut HashMap<Ulid, super::content::Node>,
-    node: super::content::Node,
-    list: &mut Vec<super::content::Node>,
+    nodes: &mut HashMap<Ulid, content::Node>,
+    node: content::Node,
+    list: &mut Vec<content::Node>,
 ) {
     for parent in &node.from {
         if let Some(parent) = nodes.remove(parent) {

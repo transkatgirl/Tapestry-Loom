@@ -5,7 +5,9 @@ use std::collections::{BTreeSet, HashMap, HashSet, hash_map::Entry};
 use serde::Serialize;
 use ulid::Ulid;
 
-use crate::content::{Model, Node, NodeContents, WeaveTimeline};
+pub mod content;
+
+use content::{Model, Node, NodeContents, WeaveTimeline};
 
 /// Functions implemented by all Weave documents.
 pub trait WeaveView {
@@ -265,12 +267,12 @@ impl Weave {
             }
         }
     }
-    /// Remove a [`Node`] by it's [`Ulid`].
+    /// Remove a [`Node`] by it's [`Ulid`], returning it's value if it was present.
     ///
     /// All child nodes orphaned by removing the node will be removed. Non-orphaned child nodes will have their active status updated based on if they have other active parents.
     ///
     /// All [`Model`] objects orphaned by removing the node will be removed.
-    pub fn remove_node(&mut self, identifier: &Ulid) {
+    pub fn remove_node(&mut self, identifier: &Ulid) -> Option<Node> {
         if let Some(node) = self.nodes.remove(identifier) {
             self.root_nodes.remove(&node.id);
             self.dag_nodes.remove(&node.id);
@@ -300,6 +302,9 @@ impl Weave {
                     }
                 }
             }
+            Some(node)
+        } else {
+            None
         }
     }
     fn build_timelines<'a>(&'a self, timelines: &mut Vec<Vec<&'a Node>>) {
