@@ -184,9 +184,7 @@ impl NodeContent {
             Self::Blank => true,
         }
     }
-    #[must_use]
-    #[allow(clippy::missing_panics_doc)]
-    pub fn simplify(self) -> Self {
+    fn simplify(self) -> Self {
         if self.model().is_none() && self.is_empty() {
             return Self::Blank;
         }
