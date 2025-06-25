@@ -31,15 +31,6 @@ pub struct WeaveTimeline<'w> {
     pub timeline: Vec<(&'w Node, Option<&'w Model>)>,
 }
 
-#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
-pub struct Annotation<'w> {
-    pub range: Range<usize>,
-    pub probability: Option<Decimal>,
-
-    pub node: Option<&'w Node>,
-    pub model: Option<&'w Model>,
-}
-
 impl<'w> WeaveTimeline<'w> {
     /*pub fn text(&self) -> String {
         String::from_utf8_lossy(&self.bytes()).to_string()
@@ -296,16 +287,52 @@ pub struct ContentAnnotation {
     pub probability: Option<Decimal>,
 }
 
-impl ContentAnnotation {
-    pub fn offset_forwards(&mut self, offset: usize) {
-        self.range.start += offset;
-        self.range.end += offset;
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct TimelineAnnotation<'w> {
+    pub range: Range<usize>,
+    pub probability: Option<Decimal>,
+
+    pub node: Option<&'w Node>,
+    pub model: Option<&'w Model>,
+}
+
+pub trait Annotation: Sized {
+    fn range(&self) -> &Range<usize>;
+    fn range_mut(&mut self) -> &mut Range<usize>;
+    fn offset_forwards(&mut self, offset: usize) {
+        let range = self.range_mut();
+
+        range.start += offset;
+        range.end += offset;
     }
-    pub fn offset_backwards(&mut self, offset: usize) {
-        self.range.start -= offset;
-        self.range.end -= offset;
+    fn offset_backwards(&mut self, offset: usize) {
+        let range = self.range_mut();
+
+        range.start -= offset;
+        range.end -= offset;
     }
-    pub fn split(&self, index: usize) -> Option<[ContentAnnotation; 2]> {
+    fn shrink(&mut self, new_range: Range<usize>) -> bool {
+        let range = self.range_mut();
+
+        if range.contains(&new_range.start) || range.contains(&new_range.end) {
+            range.start = new_range.start;
+            range.end = new_range.end;
+            true
+        } else {
+            false
+        }
+    }
+    fn split(&self, index: usize) -> Option<[Self; 2]>;
+}
+
+impl Annotation for ContentAnnotation {
+    fn range(&self) -> &Range<usize> {
+        &self.range
+    }
+    fn range_mut(&mut self) -> &mut Range<usize> {
+        &mut self.range
+    }
+    fn split(&self, index: usize) -> Option<[Self; 2]> {
         if index == 0 || index >= self.range.end {
             return None;
         }
@@ -317,15 +344,61 @@ impl ContentAnnotation {
         right.start += index;
 
         Some([
-            ContentAnnotation {
+            Self {
                 range: left,
                 probability: self.probability,
             },
-            ContentAnnotation {
+            Self {
                 range: right,
                 probability: self.probability,
             },
         ])
+    }
+}
+
+impl Annotation for TimelineAnnotation<'_> {
+    fn range(&self) -> &Range<usize> {
+        &self.range
+    }
+    fn range_mut(&mut self) -> &mut Range<usize> {
+        &mut self.range
+    }
+    fn split(&self, index: usize) -> Option<[Self; 2]> {
+        if index == 0 || index >= self.range.end {
+            return None;
+        }
+
+        let mut left = self.range.clone();
+        let mut right = self.range.clone();
+
+        left.end -= index;
+        right.start += index;
+
+        Some([
+            Self {
+                range: left,
+                probability: self.probability,
+                node: self.node,
+                model: self.model,
+            },
+            Self {
+                range: right,
+                probability: self.probability,
+                node: self.node,
+                model: self.model,
+            },
+        ])
+    }
+}
+
+impl From<ContentAnnotation> for TimelineAnnotation<'_> {
+    fn from(input: ContentAnnotation) -> Self {
+        Self {
+            range: input.range,
+            probability: input.probability,
+            node: None,
+            model: None,
+        }
     }
 }
 
@@ -778,7 +851,10 @@ impl Diff {
             modification.apply(text);
         }
     }
-    pub fn apply_annotations(&self, annotations: &mut Vec<ContentAnnotation>) {
+    pub fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
+    where
+        T: Annotation,
+    {
         for modification in &self.content {
             modification.apply_annotations(annotations);
         }
@@ -823,28 +899,42 @@ impl Modification {
             ModificationContent::Deletion(length) => text.replace_range(self.index..*length, ""),
         }
     }
-    pub fn apply_annotations(&self, annotations: &mut Vec<ContentAnnotation>) {
+    pub fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
+    where
+        T: Annotation,
+    {
         let range = Range {
             start: self.index,
             end: self.index + self.content.len(),
         };
-        let selection = annotations
-            .iter()
-            .enumerate()
-            .filter_map(move |(location, annotation)| {
-                if range.contains(&annotation.range.start) || range.contains(&annotation.range.end)
-                {
-                    return Some(location);
-                }
+        let mut selection =
+            annotations
+                .iter()
+                .enumerate()
+                .filter_map(move |(location, annotation)| {
+                    let annotation = annotation.range();
 
-                None
-            });
+                    if range.contains(&annotation.start) || range.contains(&annotation.end) {
+                        return Some(location);
+                    }
+
+                    None
+                });
 
         match &self.content {
             ModificationContent::Insertion(content) => {
-                todo!()
+                if let Some(selected) = selection.next() {
+                    if let Some(split) = annotations[selected].split(self.index) {
+                        todo!()
+                    }
+                }
             }
             ModificationContent::Deletion(length) => {
+                let mut offset = 0;
+                let selection: Vec<usize> = selection.collect();
+
+                for selected in selection {}
+
                 todo!()
             }
         }
