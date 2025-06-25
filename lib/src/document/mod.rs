@@ -25,7 +25,7 @@ pub trait WeaveView {
 ///
 /// In addition to keeping the Weave internally consistent, this implementation also allows for fast retrieval of objects and useful groups of objects (such has active nodes and root nodes) from the Weave.
 ///
-/// Note: This document is built on top of [`std::collections`] types, as a result, does not automatically shrink its capacity. If you would like to manage the Weave's capacity manually, see the [`Weave::set_capacity`], [`Weave::shrink_to_fit`], and [`Weave::add_model`] functions.
+/// Note: This document is built on top of [`std::collections`] types, as a result, does not automatically shrink its capacity. If you would like to manage the Weave's capacity manually, see the [`Weave::reserve`], [`Weave::shrink_to_fit`], and [`Weave::add_model`] functions.
 #[derive(Default, Debug, PartialEq)]
 pub struct Weave {
     nodes: HashMap<Ulid, Node>,
@@ -157,7 +157,9 @@ impl Weave {
             match self.model_nodes.entry(identifier) {
                 Entry::Occupied(mut entry) => {
                     let len = entry.get().len();
-                    entry.get_mut().reserve(capacity - len);
+                    if capacity > len {
+                        entry.get_mut().reserve(capacity - len);
+                    }
                 }
                 Entry::Vacant(entry) => {
                     entry.insert(HashSet::with_capacity(capacity));
@@ -347,7 +349,7 @@ impl Weave {
     /// This will usually reserve more capacity than strictly necessary, as some data structures within the Weave only contain information regarding certain subsets of objects.
     ///
     /// This will only reserve capacity in private fields of the Weave. Public fields must have their capacity adjusted manually.
-    pub fn set_capacity(&mut self, nodes: usize, models: usize) {
+    pub fn reserve(&mut self, nodes: usize, models: usize) {
         self.nodes.reserve(nodes);
         self.models.reserve(models);
         self.model_nodes.reserve(models);
