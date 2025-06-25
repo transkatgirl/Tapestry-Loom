@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 
-use std::{collections::HashSet, fmt::Display, iter, ops::Range, string::FromUtf8Error};
+use std::{collections::HashSet, fmt::Display, iter, ops::Range, string::FromUtf8Error, vec};
 
 use dissimilar::Chunk;
 use rust_decimal::Decimal;
@@ -550,14 +550,31 @@ impl LinearNodeContents for TokenNode {
 
                 content_index = range.end;
                 None
-            })?;
+            });
+
+        if location.is_none() && index == content_index {
+            return Some([
+                Self {
+                    content: self.content,
+                    model: self.model.clone(),
+                },
+                Self {
+                    content: vec![],
+                    model: self.model,
+                },
+            ]);
+        }
+
+        let location = location?;
 
         let mut left = self.content;
         let mut right = left.split_off(location);
         left.shrink_to_fit();
 
         let [left_token, right_token] = right[0].clone().split(index - content_index)?;
-        left.push(left_token);
+        if !left_token.content.is_empty() {
+            left.push(left_token);
+        }
         right[0] = right_token;
 
         Some([
