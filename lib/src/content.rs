@@ -120,7 +120,6 @@ impl NodeContent {
             Self::Blank => true,
         }
     }
-    #[allow(clippy::too_many_lines)]
     #[allow(clippy::missing_panics_doc)]
     pub fn merge(left: Self, right: Self) -> Option<Self> {
         if left.model() == right.model() || (left.linear() && right.linear()) {
