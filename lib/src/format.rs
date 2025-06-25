@@ -49,18 +49,6 @@ enum NodeData {
     Blank,
 }
 
-impl NodeData {
-    fn model(&self) -> Option<&NodeModel> {
-        match self {
-            NodeData::Text(content) => content.1.as_ref(),
-            NodeData::Bytes(content) => content.1.as_ref(),
-            NodeData::Token(content) => content.1.as_ref(),
-            NodeData::Diff(_content) => None,
-            NodeData::Blank => None,
-        }
-    }
-}
-
 // (data, parents)
 type Node = (NodeData, Vec<u128>);
 // (identifier, parameters)
@@ -310,23 +298,20 @@ impl TryFrom<CompactWeave> for Weave {
 
         weave.metadata = input.metadata;
 
-        let mut models: HashMap<u128, content::Model> = input
-            .models
-            .into_iter()
-            .map(|(id, model)| {
-                (
-                    id,
-                    content::Model {
-                        id: Ulid(id),
-                        label: model.label,
-                        style: model.style,
-                    },
-                )
-            })
-            .collect();
+        weave.reserve(input.nodes.len(), input.models.len());
+
+        for (id, model) in input.models {
+            weave.add_model(
+                content::Model {
+                    id: Ulid(id),
+                    label: model.label,
+                    style: model.style,
+                },
+                Some(input.nodes.len()),
+            );
+        }
 
         for (identifier, (content, parents)) in input.nodes {
-            let model = content.model().and_then(|m| models.remove(&m.0));
             let node = content::Node {
                 id: Ulid(identifier),
                 from: parents.into_iter().map(Ulid).collect(),
@@ -336,12 +321,14 @@ impl TryFrom<CompactWeave> for Weave {
                 content: content::NodeContent::try_from(content)?,
             };
 
-            if weave.add_node(node, model, true, false).is_none() {
+            if weave.add_node(node, None, true, false).is_none() {
                 return Err(WeaveError::FailedInteractive(
                     "Unable to add Node to Weave".to_string(),
                 ));
             }
         }
+
+        weave.shrink_to_fit();
 
         Ok(weave)
     }
