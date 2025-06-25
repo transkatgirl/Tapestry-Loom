@@ -43,7 +43,7 @@ struct Model {
 #[derive(Serialize, Deserialize)]
 enum NodeData {
     Snippet((ByteBuf, Option<NodeModel>)),
-    Token((NodeTokens, Option<NodeModel>)),
+    Tokens((NodeTokens, Option<NodeModel>)),
     Diff((NodeDiff, Option<NodeModel>)),
     Blank,
 }
@@ -177,30 +177,32 @@ impl TryFrom<NodeData> for content::NodeContent {
                     }),
                 })
             }
-            NodeData::Token((content, model)) => content::NodeContent::Token(content::TokenNode {
-                content: content
-                    .into_iter()
-                    .map(|(bytes, probability)| {
-                        Ok(content::NodeToken {
-                            probability: match probability {
-                                Some(probability) => {
-                                    Some(Decimal::try_from(probability).map_err(|_| {
-                                        WeaveError::FailedInteractive(
-                                            "Unable to parse probability value".to_string(),
-                                        )
-                                    })?)
-                                }
-                                None => None,
-                            },
-                            content: bytes.into_vec(),
+            NodeData::Tokens((content, model)) => {
+                content::NodeContent::Tokens(content::TokenNode {
+                    content: content
+                        .into_iter()
+                        .map(|(bytes, probability)| {
+                            Ok(content::NodeToken {
+                                probability: match probability {
+                                    Some(probability) => {
+                                        Some(Decimal::try_from(probability).map_err(|_| {
+                                            WeaveError::FailedInteractive(
+                                                "Unable to parse probability value".to_string(),
+                                            )
+                                        })?)
+                                    }
+                                    None => None,
+                                },
+                                content: bytes.into_vec(),
+                            })
                         })
-                    })
-                    .collect::<Result<Vec<_>, WeaveError>>()?,
-                model: model.map(|(identifier, parameters)| content::NodeModel {
-                    id: Ulid(identifier),
-                    parameters,
-                }),
-            }),
+                        .collect::<Result<Vec<_>, WeaveError>>()?,
+                    model: model.map(|(identifier, parameters)| content::NodeModel {
+                        id: Ulid(identifier),
+                        parameters,
+                    }),
+                })
+            }
             NodeData::Diff((diff, model)) => content::NodeContent::Diff(content::DiffNode {
                 content: content::Diff {
                     content: diff
@@ -235,7 +237,7 @@ impl TryFrom<content::NodeContent> for NodeData {
                 ByteBuf::from(content.content),
                 content.model.map(|model| (model.id.0, model.parameters)),
             )),
-            content::NodeContent::Token(content) => NodeData::Token((
+            content::NodeContent::Tokens(content) => NodeData::Tokens((
                 content
                     .content
                     .into_iter()

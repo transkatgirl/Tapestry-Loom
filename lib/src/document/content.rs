@@ -96,7 +96,7 @@ pub struct Model {
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum NodeContent {
     Snippet(SnippetNode),
-    Token(TokenNode),
+    Tokens(TokenNode),
     Diff(DiffNode),
     Blank,
 }
@@ -106,7 +106,7 @@ impl NodeContent {
     pub fn concatable(&self) -> bool {
         match self {
             Self::Snippet(_) => true,
-            Self::Token(_) => true,
+            Self::Tokens(_) => true,
             Self::Diff(_) => false,
             Self::Blank => true,
         }
@@ -121,14 +121,14 @@ impl NodeContent {
                             left.content.append(&mut right.content);
                             Self::Snippet(left)
                         }
-                        Self::Token(mut right) => {
+                        Self::Tokens(mut right) => {
                             let left_token = NodeToken {
                                 probability: None,
                                 content: left.content,
                             };
                             right.content.splice(..0, iter::once(left_token));
 
-                            Self::Token(TokenNode {
+                            Self::Tokens(TokenNode {
                                 content: right.content,
                                 model: left.model,
                             })
@@ -136,20 +136,20 @@ impl NodeContent {
                         Self::Diff(_) => panic!(),
                         Self::Blank => Self::Snippet(left),
                     },
-                    Self::Token(mut left) => match right {
+                    Self::Tokens(mut left) => match right {
                         Self::Snippet(right) => {
                             left.content.push(NodeToken {
                                 probability: None,
                                 content: right.content,
                             });
-                            Self::Token(left)
+                            Self::Tokens(left)
                         }
-                        Self::Token(mut right) => {
+                        Self::Tokens(mut right) => {
                             left.content.append(&mut right.content);
-                            Self::Token(left)
+                            Self::Tokens(left)
                         }
                         Self::Diff(_) => panic!(),
-                        Self::Blank => Self::Token(left),
+                        Self::Blank => Self::Tokens(left),
                     },
                     Self::Diff(_) => panic!(),
                     Self::Blank => right,
@@ -168,9 +168,9 @@ impl NodeContent {
             Self::Snippet(content) => content
                 .split(index)
                 .map(|[left, right]| [Self::Snippet(left), Self::Snippet(right)]),
-            Self::Token(content) => content
+            Self::Tokens(content) => content
                 .split(index)
-                .map(|[left, right]| [Self::Token(left), Self::Token(right)]),
+                .map(|[left, right]| [Self::Tokens(left), Self::Tokens(right)]),
             Self::Diff(_) => None,
             Self::Blank => Some([Self::Blank, Self::Blank]),
         }
@@ -179,7 +179,7 @@ impl NodeContent {
     pub fn splitable(&self, index: usize) -> bool {
         match self {
             Self::Snippet(content) => index <= content.len(),
-            Self::Token(content) => index <= content.len(),
+            Self::Tokens(content) => index <= content.len(),
             Self::Diff(_) => false,
             Self::Blank => true,
         }
@@ -191,7 +191,7 @@ impl NodeContent {
 
         match self {
             Self::Snippet(bytes) => Self::Snippet(bytes),
-            Self::Token(mut tokens) => {
+            Self::Tokens(mut tokens) => {
                 if tokens.content.is_empty() {
                     Self::Blank
                 } else if tokens.content.len() == 1 && tokens.content[0].probability.is_none() {
@@ -200,7 +200,7 @@ impl NodeContent {
                         model: tokens.model,
                     })
                 } else {
-                    Self::Token(tokens)
+                    Self::Tokens(tokens)
                 }
             }
             Self::Diff(diff) => Self::Diff(diff),
@@ -210,7 +210,7 @@ impl NodeContent {
     pub fn is_empty(&self) -> bool {
         match self {
             Self::Snippet(content) => content.is_empty(),
-            Self::Token(content) => content.is_empty(),
+            Self::Tokens(content) => content.is_empty(),
             Self::Diff(diff) => diff.content.is_empty(),
             Self::Blank => true,
         }
@@ -351,7 +351,7 @@ impl NodeContents for NodeContent {
     fn model(&self) -> Option<&NodeModel> {
         match self {
             Self::Snippet(content) => content.model(),
-            Self::Token(content) => content.model(),
+            Self::Tokens(content) => content.model(),
             Self::Diff(content) => content.model(),
             Self::Blank => None,
         }
@@ -362,7 +362,7 @@ impl Display for NodeContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Snippet(content) => write!(f, "{content}"),
-            Self::Token(content) => write!(f, "{content}"),
+            Self::Tokens(content) => write!(f, "{content}"),
             Self::Diff(content) => write!(f, "{content}"),
             Self::Blank => write!(f, "No Content"),
         }
