@@ -45,17 +45,8 @@ enum NodeData {
     Text((String, Option<NodeModel>)),
     Bytes((ByteBuf, Option<NodeModel>)),
     Token((NodeTokens, Option<NodeModel>)),
-    TextToken((Vec<TextToken>, Option<NodeModel>)),
     Diff((NodeDiff, Option<NodeModel>)),
     Blank,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(untagged)]
-enum TextToken {
-    Text(String),
-    Bytes(ByteBuf),
-    Token(NodeTokens),
 }
 
 impl NodeData {
@@ -64,7 +55,6 @@ impl NodeData {
             NodeData::Text(content) => content.1.as_ref(),
             NodeData::Bytes(content) => content.1.as_ref(),
             NodeData::Token(content) => content.1.as_ref(),
-            NodeData::TextToken(content) => content.1.as_ref(),
             NodeData::Diff(_content) => None,
             NodeData::Blank => None,
         }
@@ -76,7 +66,7 @@ type Node = (NodeData, Vec<u128>);
 // (identifier, parameters)
 type NodeModel = (u128, Vec<(String, String)>);
 // [bytes, probability]
-type NodeTokens = Vec<(ByteBuf, f32)>;
+type NodeTokens = Vec<(ByteBuf, Option<f32>)>;
 // [index, modification] processed in specified order
 type NodeDiff = Vec<(u64, DiffModification)>;
 
@@ -215,48 +205,18 @@ impl TryFrom<NodeData> for super::content::NodeContent {
                         .into_iter()
                         .map(|(bytes, probability)| {
                             Ok(super::content::NodeToken {
-                                probability: Decimal::try_from(probability).map_err(|_| {
-                                    WeaveError::FailedInteractive(
-                                        "Unable to parse probability value".to_string(),
-                                    )
-                                })?,
+                                probability: match probability {
+                                    Some(probability) => {
+                                        Some(Decimal::try_from(probability).map_err(|_| {
+                                            WeaveError::FailedInteractive(
+                                                "Unable to parse probability value".to_string(),
+                                            )
+                                        })?)
+                                    }
+                                    None => None,
+                                },
                                 content: bytes.into_vec(),
                             })
-                        })
-                        .collect::<Result<Vec<_>, WeaveError>>()?,
-                    model: model.map(|(identifier, parameters)| super::content::NodeModel {
-                        id: Ulid(identifier),
-                        parameters,
-                    }),
-                })
-            }
-            NodeData::TextToken((content, model)) => {
-                super::content::NodeContent::TextToken(super::content::TextTokenNode {
-                    content: content
-                        .into_iter()
-                        .map(|text_token| match text_token {
-                            TextToken::Text(text) => Ok(super::content::TextOrToken::Text(text)),
-                            TextToken::Bytes(bytes) => {
-                                Ok(super::content::TextOrToken::Bytes(bytes.into_vec()))
-                            }
-                            TextToken::Token(tokens) => Ok(super::content::TextOrToken::Token(
-                                tokens
-                                    .into_iter()
-                                    .map(|(bytes, probability)| {
-                                        Ok(super::content::NodeToken {
-                                            probability: Decimal::try_from(probability).map_err(
-                                                |_| {
-                                                    WeaveError::FailedInteractive(
-                                                        "Unable to parse probability value"
-                                                            .to_string(),
-                                                    )
-                                                },
-                                            )?,
-                                            content: bytes.into_vec(),
-                                        })
-                                    })
-                                    .collect::<Result<Vec<_>, WeaveError>>()?,
-                            )),
                         })
                         .collect::<Result<Vec<_>, WeaveError>>()?,
                     model: model.map(|(identifier, parameters)| super::content::NodeModel {
@@ -312,46 +272,21 @@ impl TryFrom<super::content::NodeContent> for NodeData {
                 content
                     .content
                     .into_iter()
-                    .map(|token| -> Result<(ByteBuf, f32), WeaveError> {
+                    .map(|token| -> Result<(ByteBuf, Option<f32>), WeaveError> {
                         Ok((
                             ByteBuf::from(token.content),
-                            f32::try_from(token.probability).map_err(|_| {
-                                WeaveError::FailedCompact(
-                                    "Unable to convert probability value to f32".to_string(),
-                                )
-                            })?,
+                            match token.probability {
+                                Some(probability) => {
+                                    Some(f32::try_from(probability).map_err(|_| {
+                                        WeaveError::FailedCompact(
+                                            "Unable to convert probability value to f32"
+                                                .to_string(),
+                                        )
+                                    })?)
+                                }
+                                None => None,
+                            },
                         ))
-                    })
-                    .collect::<Result<Vec<_>, _>>()?,
-                content.model.map(|model| (model.id.0, model.parameters)),
-            )),
-            super::content::NodeContent::TextToken(content) => NodeData::TextToken((
-                content
-                    .content
-                    .into_iter()
-                    .map(|token| match token {
-                        super::content::TextOrToken::Text(text) => {
-                            Ok::<TextToken, WeaveError>(TextToken::Text(text))
-                        }
-                        super::content::TextOrToken::Bytes(bytes) => {
-                            Ok(TextToken::Bytes(ByteBuf::from(bytes)))
-                        }
-                        super::content::TextOrToken::Token(token) => Ok(TextToken::Token(
-                            token
-                                .into_iter()
-                                .map(|token| -> Result<(ByteBuf, f32), WeaveError> {
-                                    Ok((
-                                        ByteBuf::from(token.content),
-                                        f32::try_from(token.probability).map_err(|_| {
-                                            WeaveError::FailedCompact(
-                                                "Unable to convert probability value to f32"
-                                                    .to_string(),
-                                            )
-                                        })?,
-                                    ))
-                                })
-                                .collect::<Result<Vec<_>, _>>()?,
-                        )),
                     })
                     .collect::<Result<Vec<_>, _>>()?,
                 content.model.map(|model| (model.id.0, model.parameters)),

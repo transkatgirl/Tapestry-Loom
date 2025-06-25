@@ -105,7 +105,6 @@ pub enum NodeContent {
     Text(TextNode),
     Bytes(ByteNode),
     Token(TokenNode),
-    TextToken(TextTokenNode),
     Diff(DiffNode),
     Blank,
 }
@@ -117,7 +116,6 @@ impl NodeContent {
             Self::Text(_) => true,
             Self::Bytes(_) => true,
             Self::Token(_) => true,
-            Self::TextToken(_) => true,
             Self::Diff(_) => false,
             Self::Blank => true,
         }
@@ -146,9 +144,6 @@ impl NodeContent {
 
                         todo!()
                     }
-                    Self::TextToken(right) => {
-                        todo!()
-                    }
                     Self::Diff(_) => panic!(),
                     Self::Blank => Some(Self::Text(left)),
                 },
@@ -174,9 +169,6 @@ impl NodeContent {
                     Self::Token(right) => {
                         todo!()
                     }
-                    Self::TextToken(right) => {
-                        todo!()
-                    }
                     Self::Diff(_) => panic!(),
                     Self::Blank => Some(Self::Bytes(left)),
                 },
@@ -190,27 +182,8 @@ impl NodeContent {
                     Self::Token(right) => {
                         todo!()
                     }
-                    Self::TextToken(right) => {
-                        todo!()
-                    }
                     Self::Diff(_) => panic!(),
                     Self::Blank => Some(Self::Token(left)),
-                },
-                Self::TextToken(left) => match right {
-                    Self::Text(right) => {
-                        todo!()
-                    }
-                    Self::Bytes(right) => {
-                        todo!()
-                    }
-                    Self::Token(right) => {
-                        todo!()
-                    }
-                    Self::TextToken(right) => {
-                        todo!()
-                    }
-                    Self::Diff(_) => panic!(),
-                    Self::Blank => Some(Self::TextToken(left)),
                 },
                 Self::Diff(_) => panic!(),
                 Self::Blank => Some(right),
@@ -238,9 +211,6 @@ impl NodeContent {
             Self::Token(content) => content
                 .split(index)
                 .map(|[left, right]| [Self::Token(left), Self::Token(right)]),
-            Self::TextToken(content) => content
-                .split(index)
-                .map(|[left, right]| [Self::TextToken(left), Self::TextToken(right)]),
             Self::Diff(_) => None,
             Self::Blank => Some([Self::Blank, Self::Blank]),
         }
@@ -307,7 +277,6 @@ impl NodeContents for NodeContent {
             Self::Text(content) => content.model(),
             Self::Bytes(content) => content.model(),
             Self::Token(content) => content.model(),
-            Self::TextToken(content) => content.model(),
             Self::Diff(content) => content.model(),
             Self::Blank => None,
         }
@@ -320,7 +289,6 @@ impl Display for NodeContent {
             Self::Text(content) => write!(f, "{content}"),
             Self::Bytes(content) => write!(f, "{content}"),
             Self::Token(content) => write!(f, "{content}"),
-            Self::TextToken(content) => write!(f, "{content}"),
             Self::Diff(content) => write!(f, "{content}"),
             Self::Blank => write!(f, "No Content"),
         }
@@ -525,7 +493,7 @@ impl LinearNodeContents for TokenNode {
 
             ContentAnnotation {
                 range,
-                probability: Some(token.probability),
+                probability: token.probability,
             }
         })
     }
@@ -572,7 +540,7 @@ impl LinearNodeContents for TokenNode {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct NodeToken {
-    pub probability: Decimal,
+    pub probability: Option<Decimal>,
     pub content: Vec<u8>,
 }
 
@@ -606,146 +574,6 @@ impl NodeToken {
 pub enum TextOrBytes {
     Text(String),
     Bytes(Vec<u8>),
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
-pub struct TextTokenNode {
-    pub content: Vec<TextOrToken>,
-    pub model: Option<NodeModel>,
-}
-
-impl NodeContents for TextTokenNode {
-    fn model(&self) -> Option<&NodeModel> {
-        self.model.as_ref()
-    }
-}
-
-impl Display for TextTokenNode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let bytes = self.clone().bytes();
-        let text = String::from_utf8_lossy(&bytes);
-
-        if text.is_empty() {
-            return write!(f, "No Content");
-        }
-
-        write!(f, "{text}")
-    }
-}
-
-impl LinearNodeContents for TextTokenNode {
-    fn bytes(self) -> Vec<u8> {
-        let mut data = Vec::new();
-
-        for content in self.content {
-            data.append(&mut match content {
-                TextOrToken::Text(text) => text.into_bytes(),
-                TextOrToken::Bytes(bytes) => bytes,
-                TextOrToken::Token(tokens) => {
-                    tokens.into_iter().flat_map(|token| token.content).collect()
-                }
-            });
-        }
-
-        data
-    }
-    fn len(&self) -> usize {
-        let mut len = 0;
-
-        for content in &self.content {
-            match content {
-                TextOrToken::Text(text) => len += text.len(),
-                TextOrToken::Bytes(bytes) => len += bytes.len(),
-                TextOrToken::Token(tokens) => {
-                    for token in tokens {
-                        len += token.content.len();
-                    }
-                }
-            }
-        }
-
-        len
-    }
-    fn is_empty(&self) -> bool {
-        for content in &self.content {
-            match content {
-                TextOrToken::Text(text) => {
-                    if !text.is_empty() {
-                        return false;
-                    }
-                }
-                TextOrToken::Bytes(bytes) => {
-                    if !bytes.is_empty() {
-                        return false;
-                    }
-                }
-                TextOrToken::Token(tokens) => {
-                    for token in tokens {
-                        if !token.content.is_empty() {
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
-        true
-    }
-    fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
-        let mut index = 0;
-
-        self.content.iter().flat_map(
-            move |segment| -> Box<dyn Iterator<Item = ContentAnnotation>> {
-                match segment {
-                    TextOrToken::Text(text) => {
-                        let range = Range {
-                            start: index,
-                            end: index + text.len(),
-                        };
-                        index = range.end;
-
-                        Box::new(iter::once(ContentAnnotation {
-                            range,
-                            probability: None,
-                        }))
-                    }
-                    TextOrToken::Bytes(bytes) => {
-                        let range = Range {
-                            start: index,
-                            end: index + bytes.len(),
-                        };
-                        index = range.end;
-
-                        Box::new(iter::once(ContentAnnotation {
-                            range,
-                            probability: None,
-                        }))
-                    }
-                    TextOrToken::Token(tokens) => Box::new(tokens.iter().map(move |token| {
-                        let range = Range {
-                            start: index,
-                            end: index + token.content.len(),
-                        };
-                        index = range.end;
-
-                        ContentAnnotation {
-                            range,
-                            probability: Some(token.probability),
-                        }
-                    })),
-                }
-            },
-        )
-    }
-    fn split(self, index: usize) -> Option<[Self; 2]> {
-        todo!()
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
-pub enum TextOrToken {
-    Text(String),
-    Bytes(Vec<u8>),
-    Token(Vec<NodeToken>),
 }
 
 impl From<TextNode> for ByteNode {
