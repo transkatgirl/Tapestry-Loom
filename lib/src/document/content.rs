@@ -12,6 +12,7 @@ use ulid::Ulid;
 use super::{Weave, WeaveView};
 
 /* TODO:
+- Simplify data types
 - Node splitting/merging
 - Rewrite timeline code
     - Rewrite annotations to use content position references
