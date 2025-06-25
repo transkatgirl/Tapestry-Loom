@@ -578,8 +578,20 @@ pub enum TextOrBytes {
 
 impl From<TextNode> for ByteNode {
     fn from(input: TextNode) -> Self {
-        ByteNode {
+        Self {
             content: input.content.into_bytes(),
+            model: input.model,
+        }
+    }
+}
+
+impl From<TextNode> for TokenNode {
+    fn from(input: TextNode) -> Self {
+        Self {
+            content: vec![NodeToken {
+                content: input.content.into_bytes(),
+                probability: None,
+            }],
             model: input.model,
         }
     }
@@ -588,10 +600,22 @@ impl From<TextNode> for ByteNode {
 impl TryFrom<ByteNode> for TextNode {
     type Error = FromUtf8Error;
     fn try_from(input: ByteNode) -> Result<Self, Self::Error> {
-        Ok(TextNode {
+        Ok(Self {
             content: String::from_utf8(input.content)?,
             model: input.model,
         })
+    }
+}
+
+impl From<ByteNode> for TokenNode {
+    fn from(input: ByteNode) -> Self {
+        Self {
+            content: vec![NodeToken {
+                content: input.content,
+                probability: None,
+            }],
+            model: input.model,
+        }
     }
 }
 
