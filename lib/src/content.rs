@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 
-use std::{collections::HashSet, fmt::Display, iter, ops::Range};
+use std::{collections::HashSet, fmt::Display, iter, ops::Range, string::FromUtf8Error};
 
 use dissimilar::Chunk;
 use rust_decimal::Decimal;
@@ -221,9 +221,17 @@ impl NodeContent {
     }
     pub fn split(self, index: usize) -> Option<[Self; 2]> {
         match self {
-            Self::Text(content) => content
-                .split(index)
-                .map(|[left, right]| [Self::Text(left), Self::Text(right)]),
+            Self::Text(content) => {
+                if content.content.is_char_boundary(index) {
+                    content
+                        .split(index)
+                        .map(|[left, right]| [Self::Text(left), Self::Text(right)])
+                } else {
+                    ByteNode::from(content)
+                        .split(index)
+                        .map(|[left, right]| [Self::Bytes(left), Self::Bytes(right)])
+                }
+            }
             Self::Bytes(content) => content
                 .split(index)
                 .map(|[left, right]| [Self::Bytes(left), Self::Bytes(right)]),
@@ -560,9 +568,6 @@ impl LinearNodeContents for TokenNode {
             },
         ])
     }
-    fn splitable(&self, index: usize) -> bool {
-        todo!()
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
@@ -741,6 +746,25 @@ pub enum TextOrToken {
     Text(String),
     Bytes(Vec<u8>),
     Token(Vec<NodeToken>),
+}
+
+impl From<TextNode> for ByteNode {
+    fn from(input: TextNode) -> Self {
+        ByteNode {
+            content: input.content.into_bytes(),
+            model: input.model,
+        }
+    }
+}
+
+impl TryFrom<ByteNode> for TextNode {
+    type Error = FromUtf8Error;
+    fn try_from(input: ByteNode) -> Result<Self, Self::Error> {
+        Ok(TextNode {
+            content: String::from_utf8(input.content)?,
+            model: input.model,
+        })
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
