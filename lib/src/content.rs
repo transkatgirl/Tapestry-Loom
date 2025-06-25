@@ -522,24 +522,30 @@ impl LinearNodeContents for TokenNode {
         })
     }
     fn split(self, index: usize) -> Option<[Self; 2]> {
-        let annotations = self.annotations();
+        let mut content_index = 0;
 
-        let mut split = None;
+        let location = self
+            .content
+            .iter()
+            .enumerate()
+            .find_map(move |(location, token)| {
+                let range = Range {
+                    start: content_index,
+                    end: content_index + token.content.len(),
+                };
+                if range.contains(&index) {
+                    return Some(location);
+                }
 
-        for (location, annotation) in annotations.enumerate() {
-            if annotation.range.contains(&index) {
-                split = Some((location, annotation));
-                break;
-            }
-        }
-
-        let split = split?;
+                content_index = range.end;
+                None
+            })?;
 
         let mut left = self.content;
-        let mut right = left.split_off(split.0);
+        let mut right = left.split_off(location);
         left.shrink_to_fit();
 
-        let [left_token, right_token] = right[0].clone().split(index - split.1.range.start)?;
+        let [left_token, right_token] = right[0].clone().split(index - content_index)?;
         left.push(left_token);
         right[0] = right_token;
 
