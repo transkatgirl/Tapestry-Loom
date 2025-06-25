@@ -377,6 +377,9 @@ impl TryFrom<Weave> for CompactWeave {
             })
             .collect::<Result<Vec<_>, WeaveError>>()?;
 
+        active.shrink_to_fit();
+        bookmarked.shrink_to_fit();
+
         Ok(CompactWeave {
             version: 0,
             nodes,
