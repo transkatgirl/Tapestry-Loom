@@ -9,7 +9,7 @@ pub mod content;
 
 use content::{Model, Node, NodeContents, WeaveTimeline};
 
-/// Functions implemented by all Weave documents.
+/// Functions implemented by all interactive Weave representations.
 pub trait WeaveView {
     /// Retrieve an [`Node`] by its [`Ulid`].
     fn get_node(&self, identifier: &Ulid) -> (Option<&Node>, Option<&Model>);

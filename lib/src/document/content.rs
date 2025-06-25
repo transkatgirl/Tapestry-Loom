@@ -1,3 +1,5 @@
+//! Interactive representations of Weave contents.
+
 #![allow(missing_docs)]
 
 use std::{collections::HashSet, fmt::Display, iter, ops::Range, string::FromUtf8Error, vec};
