@@ -154,7 +154,7 @@ impl NodeContent {
                     Self::Diff(_) => panic!(),
                     Self::Blank => right,
                 }
-                .simplify(),
+                .reduce(),
             )
         } else {
             None
@@ -174,7 +174,7 @@ impl NodeContent {
             Self::Diff(_) => None,
             Self::Blank => Some([Self::Blank, Self::Blank]),
         }
-        .map(|[left, right]| [left.simplify(), right.simplify()])
+        .map(|[left, right]| [left.reduce(), right.reduce()])
     }
     pub fn splitable(&self, index: usize) -> bool {
         match self {
@@ -184,7 +184,7 @@ impl NodeContent {
             Self::Blank => true,
         }
     }
-    fn simplify(self) -> Self {
+    fn reduce(self) -> Self {
         if self.model().is_none() && self.is_empty() {
             return Self::Blank;
         }
