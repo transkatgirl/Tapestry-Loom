@@ -42,8 +42,7 @@ struct Model {
 
 #[derive(Serialize, Deserialize)]
 enum NodeData {
-    Text((String, Option<NodeModel>)),
-    Bytes((ByteBuf, Option<NodeModel>)),
+    Snippet((ByteBuf, Option<NodeModel>)),
     Token((NodeTokens, Option<NodeModel>)),
     Diff((NodeDiff, Option<NodeModel>)),
     Blank,
@@ -169,20 +168,15 @@ impl TryFrom<NodeData> for content::NodeContent {
     type Error = WeaveError;
     fn try_from(input: NodeData) -> Result<Self, Self::Error> {
         Ok(match input {
-            NodeData::Text((content, model)) => content::NodeContent::Text(content::TextNode {
-                content,
-                model: model.map(|(identifier, parameters)| content::NodeModel {
-                    id: Ulid(identifier),
-                    parameters,
-                }),
-            }),
-            NodeData::Bytes((content, model)) => content::NodeContent::Bytes(content::ByteNode {
-                content: content.into_vec(),
-                model: model.map(|(identifier, parameters)| content::NodeModel {
-                    id: Ulid(identifier),
-                    parameters,
-                }),
-            }),
+            NodeData::Snippet((content, model)) => {
+                content::NodeContent::Snippet(content::SnippetNode {
+                    content: content.into_vec(),
+                    model: model.map(|(identifier, parameters)| content::NodeModel {
+                        id: Ulid(identifier),
+                        parameters,
+                    }),
+                })
+            }
             NodeData::Token((content, model)) => content::NodeContent::Token(content::TokenNode {
                 content: content
                     .into_iter()
@@ -237,11 +231,7 @@ impl TryFrom<content::NodeContent> for NodeData {
     type Error = WeaveError;
     fn try_from(input: content::NodeContent) -> Result<Self, Self::Error> {
         Ok(match input {
-            content::NodeContent::Text(content) => NodeData::Text((
-                content.content,
-                content.model.map(|model| (model.id.0, model.parameters)),
-            )),
-            content::NodeContent::Bytes(content) => NodeData::Bytes((
+            content::NodeContent::Snippet(content) => NodeData::Snippet((
                 ByteBuf::from(content.content),
                 content.model.map(|model| (model.id.0, model.parameters)),
             )),

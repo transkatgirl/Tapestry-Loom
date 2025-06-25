@@ -2,7 +2,7 @@
 
 #![allow(missing_docs)]
 
-use std::{collections::HashSet, fmt::Display, iter, ops::Range, string::FromUtf8Error, vec};
+use std::{collections::HashSet, fmt::Display, iter, ops::Range, vec};
 
 use dissimilar::Chunk;
 use rust_decimal::Decimal;
@@ -95,8 +95,7 @@ pub struct Model {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum NodeContent {
-    Text(TextNode),
-    Bytes(ByteNode),
+    Snippet(SnippetNode),
     Token(TokenNode),
     Diff(DiffNode),
     Blank,
@@ -106,8 +105,7 @@ impl NodeContent {
     #[allow(clippy::match_same_arms)]
     pub fn concatable(&self) -> bool {
         match self {
-            Self::Text(_) => true,
-            Self::Bytes(_) => true,
+            Self::Snippet(_) => true,
             Self::Token(_) => true,
             Self::Diff(_) => false,
             Self::Blank => true,
@@ -118,43 +116,10 @@ impl NodeContent {
         if left.model() == right.model() || (left.concatable() && right.concatable()) {
             Some(
                 match left {
-                    Self::Text(left) => match right {
-                        Self::Text(right) => Self::Text(TextNode {
-                            content: [left.content, right.content].concat(),
-                            model: left.model,
-                        }),
-                        Self::Bytes(mut right) => {
-                            let mut content = left.content.into_bytes();
-                            content.append(&mut right.content);
-
-                            Self::Bytes(ByteNode {
-                                content,
-                                model: left.model,
-                            })
-                        }
-                        Self::Token(mut right) => {
-                            let left_token = NodeToken {
-                                probability: None,
-                                content: left.content.into_bytes(),
-                            };
-                            right.content.splice(..0, iter::once(left_token));
-
-                            Self::Token(TokenNode {
-                                content: right.content,
-                                model: left.model,
-                            })
-                        }
-                        Self::Diff(_) => panic!(),
-                        Self::Blank => Self::Text(left),
-                    },
-                    Self::Bytes(mut left) => match right {
-                        Self::Text(right) => {
-                            left.content.append(&mut right.content.into_bytes());
-                            Self::Bytes(left)
-                        }
-                        Self::Bytes(mut right) => {
+                    Self::Snippet(mut left) => match right {
+                        Self::Snippet(mut right) => {
                             left.content.append(&mut right.content);
-                            Self::Bytes(left)
+                            Self::Snippet(left)
                         }
                         Self::Token(mut right) => {
                             let left_token = NodeToken {
@@ -169,17 +134,10 @@ impl NodeContent {
                             })
                         }
                         Self::Diff(_) => panic!(),
-                        Self::Blank => Self::Bytes(left),
+                        Self::Blank => Self::Snippet(left),
                     },
                     Self::Token(mut left) => match right {
-                        Self::Text(right) => {
-                            left.content.push(NodeToken {
-                                probability: None,
-                                content: right.content.into_bytes(),
-                            });
-                            Self::Token(left)
-                        }
-                        Self::Bytes(right) => {
+                        Self::Snippet(right) => {
                             left.content.push(NodeToken {
                                 probability: None,
                                 content: right.content,
@@ -207,20 +165,9 @@ impl NodeContent {
     }
     pub fn split(self, index: usize) -> Option<[Self; 2]> {
         match self {
-            Self::Text(content) => {
-                if content.content.is_char_boundary(index) {
-                    content
-                        .split(index)
-                        .map(|[left, right]| [Self::Text(left), Self::Text(right)])
-                } else {
-                    ByteNode::from(content)
-                        .split(index)
-                        .map(|[left, right]| [Self::Bytes(left), Self::Bytes(right)])
-                }
-            }
-            Self::Bytes(content) => content
+            Self::Snippet(content) => content
                 .split(index)
-                .map(|[left, right]| [Self::Bytes(left), Self::Bytes(right)]),
+                .map(|[left, right]| [Self::Snippet(left), Self::Snippet(right)]),
             Self::Token(content) => content
                 .split(index)
                 .map(|[left, right]| [Self::Token(left), Self::Token(right)]),
@@ -231,8 +178,7 @@ impl NodeContent {
     }
     pub fn splitable(&self, index: usize) -> bool {
         match self {
-            Self::Text(content) => index <= content.len(),
-            Self::Bytes(content) => index <= content.len(),
+            Self::Snippet(content) => index <= content.len(),
             Self::Token(content) => index <= content.len(),
             Self::Diff(_) => false,
             Self::Blank => true,
@@ -246,22 +192,12 @@ impl NodeContent {
         }
 
         match self {
-            Self::Text(text) => Self::Text(text),
-            Self::Bytes(bytes) => {
-                if bytes.content.is_empty() {
-                    Self::Text(TextNode {
-                        content: String::new(),
-                        model: bytes.model,
-                    })
-                } else {
-                    Self::Bytes(bytes)
-                }
-            }
+            Self::Snippet(bytes) => Self::Snippet(bytes),
             Self::Token(mut tokens) => {
                 if tokens.content.is_empty() {
                     Self::Blank
                 } else if tokens.content.len() == 1 && tokens.content[0].probability.is_none() {
-                    Self::Bytes(ByteNode {
+                    Self::Snippet(SnippetNode {
                         content: tokens.content.pop().unwrap().content,
                         model: tokens.model,
                     })
@@ -275,8 +211,7 @@ impl NodeContent {
     }
     pub fn is_empty(&self) -> bool {
         match self {
-            Self::Text(content) => content.is_empty(),
-            Self::Bytes(content) => content.is_empty(),
+            Self::Snippet(content) => content.is_empty(),
             Self::Token(content) => content.is_empty(),
             Self::Diff(diff) => diff.content.is_empty(),
             Self::Blank => true,
@@ -412,16 +347,12 @@ pub trait ConcatableNodeContents: NodeContents {
     fn is_empty(&self) -> bool;
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation>;
     fn split(self, index: usize) -> Option<[Self; 2]>;
-    fn splitable(&self, index: usize) -> bool {
-        index <= self.len()
-    }
 }
 
 impl NodeContents for NodeContent {
     fn model(&self) -> Option<&NodeModel> {
         match self {
-            Self::Text(content) => content.model(),
-            Self::Bytes(content) => content.model(),
+            Self::Snippet(content) => content.model(),
             Self::Token(content) => content.model(),
             Self::Diff(content) => content.model(),
             Self::Blank => None,
@@ -432,8 +363,7 @@ impl NodeContents for NodeContent {
 impl Display for NodeContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Text(content) => write!(f, "{content}"),
-            Self::Bytes(content) => write!(f, "{content}"),
+            Self::Snippet(content) => write!(f, "{content}"),
             Self::Token(content) => write!(f, "{content}"),
             Self::Diff(content) => write!(f, "{content}"),
             Self::Blank => write!(f, "No Content"),
@@ -448,84 +378,18 @@ pub struct NodeModel {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
-pub struct TextNode {
-    pub content: String,
-    pub model: Option<NodeModel>,
-}
-
-impl NodeContents for TextNode {
-    fn model(&self) -> Option<&NodeModel> {
-        self.model.as_ref()
-    }
-}
-
-impl Display for TextNode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.content.is_empty() {
-            return write!(f, "No Content");
-        }
-
-        write!(f, "{}", self.content)
-    }
-}
-
-impl ConcatableNodeContents for TextNode {
-    fn bytes(self) -> Vec<u8> {
-        self.content.into_bytes()
-    }
-    fn len(&self) -> usize {
-        self.content.len()
-    }
-    fn is_empty(&self) -> bool {
-        self.content.is_empty()
-    }
-    fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
-        iter::once(ContentAnnotation {
-            probability: None,
-            range: Range {
-                start: 0,
-                end: self.content.len(),
-            },
-        })
-    }
-    fn split(self, index: usize) -> Option<[Self; 2]> {
-        if !self.content.is_char_boundary(index) {
-            return None;
-        }
-
-        let mut left = self.content;
-        let right = left.split_off(index);
-        left.shrink_to_fit();
-
-        Some([
-            Self {
-                content: left,
-                model: self.model.clone(),
-            },
-            Self {
-                content: right,
-                model: self.model,
-            },
-        ])
-    }
-    fn splitable(&self, index: usize) -> bool {
-        self.content.is_char_boundary(index)
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
-pub struct ByteNode {
+pub struct SnippetNode {
     pub content: Vec<u8>,
     pub model: Option<NodeModel>,
 }
 
-impl NodeContents for ByteNode {
+impl NodeContents for SnippetNode {
     fn model(&self) -> Option<&NodeModel> {
         self.model.as_ref()
     }
 }
 
-impl Display for ByteNode {
+impl Display for SnippetNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let text = String::from_utf8_lossy(&self.content);
 
@@ -537,7 +401,7 @@ impl Display for ByteNode {
     }
 }
 
-impl ConcatableNodeContents for ByteNode {
+impl ConcatableNodeContents for SnippetNode {
     fn bytes(self) -> Vec<u8> {
         self.content
     }
@@ -728,9 +592,6 @@ impl NodeToken {
             },
         ])
     }
-    pub fn splitable(&self, index: usize) -> bool {
-        index <= self.content.len()
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
@@ -739,45 +600,23 @@ pub enum TextOrBytes {
     Bytes(Vec<u8>),
 }
 
-impl From<TextNode> for ByteNode {
-    fn from(input: TextNode) -> Self {
-        Self {
-            content: input.content.into_bytes(),
-            model: input.model,
-        }
-    }
-}
-
-impl From<TextNode> for TokenNode {
-    fn from(input: TextNode) -> Self {
-        Self {
-            content: vec![NodeToken {
-                content: input.content.into_bytes(),
-                probability: None,
-            }],
-            model: input.model,
-        }
-    }
-}
-
-impl TryFrom<ByteNode> for TextNode {
-    type Error = FromUtf8Error;
-    fn try_from(input: ByteNode) -> Result<Self, Self::Error> {
-        Ok(Self {
-            content: String::from_utf8(input.content)?,
-            model: input.model,
-        })
-    }
-}
-
-impl From<ByteNode> for TokenNode {
-    fn from(input: ByteNode) -> Self {
+impl From<SnippetNode> for TokenNode {
+    fn from(input: SnippetNode) -> Self {
         Self {
             content: vec![NodeToken {
                 content: input.content,
                 probability: None,
             }],
             model: input.model,
+        }
+    }
+}
+
+impl From<Vec<u8>> for NodeToken {
+    fn from(input: Vec<u8>) -> Self {
+        Self {
+            content: input,
+            probability: None,
         }
     }
 }
