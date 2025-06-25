@@ -20,6 +20,12 @@ pub trait WeaveView {
 }
 
 /// An owned Weave document.
+///
+/// A Weave is a collection of [`Node`] objects, along with their corresponding [`Model`] objects. This interactive representation of a Weave ensures that connections between objects are valid and prevents objects from becoming orphaned.
+///
+/// In addition to keeping the Weave internally consistent, this implementation also allows for fast retrieval of objects and useful groups of objects (such has active nodes and root nodes) from the Weave.
+///
+/// Note: This document is built on top of [`std::collections`] types, as a result, does not automatically shrink its capacity. If you would like to manage the Weave's capacity manually, see the [`Weave::set_capacity`], [`Weave::shrink_to_fit`], and [`Weave::add_model`] functions.
 #[derive(Default, Debug, PartialEq)]
 pub struct Weave {
     nodes: HashMap<Ulid, Node>,
@@ -36,6 +42,8 @@ pub struct Weave {
 
 impl Weave {
     /// Add a [`Node`] (along with it's corresponding [`Model`]).
+    ///
+    /// If a model corresponding to the node's model identifier is already present in the Weave, the model will be updated.
     ///
     /// Performs deduplication if `deduplicate` is true, and performs loop checking (slow, requires recursively checking all parents & children) if `skip_loop_check` is false. If a loop between nodes is added to the [`Weave`], it may cause unintended behavior (such as functions panicking or getting stuck in infinite loops).
     ///
@@ -136,6 +144,33 @@ impl Weave {
         self.nodes.insert(identifier, node);
 
         Some(identifier)
+    }
+    /// Add a [`Model`] without a corresponding [`Node`]. If it is already present, the model's contents will be updated.
+    ///
+    /// In addition to the model, this function also takes a capacity hint. If this hint is present, capacity will be reserved for at least n nodes associated with the model.
+    pub fn add_model(&mut self, model: Model, model_nodes: Option<usize>) {
+        let identifier = model.id;
+
+        self.models.insert(model.id, model);
+
+        if let Some(capacity) = model_nodes {
+            match self.model_nodes.entry(identifier) {
+                Entry::Occupied(mut entry) => {
+                    let len = entry.get().len();
+                    entry.get_mut().reserve(capacity - len);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(HashSet::with_capacity(capacity));
+                }
+            }
+        } else {
+            match self.model_nodes.entry(identifier) {
+                Entry::Occupied(_) => {}
+                Entry::Vacant(entry) => {
+                    entry.insert(HashSet::new());
+                }
+            }
+        }
     }
     fn has_parent_loop(&self, identifier: &Ulid, start: Option<&Ulid>) -> bool {
         let start = start.unwrap_or(identifier);
@@ -306,6 +341,34 @@ impl Weave {
         } else {
             None
         }
+    }
+    /// Reserves capacity in the Weave for (at least) the given number of additional elements.
+    ///
+    /// This will usually reserve more capacity than strictly necessary, as some data structures within the Weave only contain information regarding certain subsets of objects.
+    ///
+    /// This will only reserve capacity in private fields of the Weave. Public fields must have their capacity adjusted manually.
+    pub fn set_capacity(&mut self, nodes: usize, models: usize) {
+        self.nodes.reserve(nodes);
+        self.models.reserve(models);
+        self.model_nodes.reserve(models);
+        for model_nodes in self.model_nodes.values_mut() {
+            model_nodes.reserve(nodes);
+        }
+        self.dag_nodes.reserve(nodes);
+        self.nonlinear_nodes.reserve(nodes);
+    }
+    /// Shrinks the allocated capacity of the Weave as much as possible.
+    ///
+    /// This will only shrink private fields of the Weave. Public fields must be shrunk manually.
+    pub fn shrink_to_fit(&mut self) {
+        self.nodes.shrink_to_fit();
+        self.models.shrink_to_fit();
+        self.model_nodes.shrink_to_fit();
+        for model_nodes in self.model_nodes.values_mut() {
+            model_nodes.shrink_to_fit();
+        }
+        self.dag_nodes.shrink_to_fit();
+        self.nonlinear_nodes.shrink_to_fit();
     }
     fn build_timelines<'a>(&'a self, timelines: &mut Vec<Vec<&'a Node>>) {
         let mut new_timelines = Vec::new();
