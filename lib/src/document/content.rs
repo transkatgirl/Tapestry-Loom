@@ -594,12 +594,6 @@ impl NodeToken {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
-pub enum TextOrBytes {
-    Text(String),
-    Bytes(Vec<u8>),
-}
-
 impl From<SnippetNode> for TokenNode {
     fn from(input: SnippetNode) -> Self {
         Self {
