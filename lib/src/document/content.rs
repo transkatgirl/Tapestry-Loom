@@ -13,9 +13,8 @@ use super::{Weave, WeaveView};
 
 /* TODO:
 - Node splitting/merging
-- Rewrite timeline code
-    - Rewrite annotations to use content position references
-- Weave content building/updating
+- Timeline content building
+- Weave content updating
 - Documentation */
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -33,36 +32,31 @@ pub struct WeaveTimeline<'w> {
     pub timeline: Vec<(&'w Node, Option<&'w Model>)>,
 }
 
+// TODO
 impl<'w> WeaveTimeline<'w> {
-    /*pub fn text(&self) -> String {
+    pub fn text(&self) -> String {
         String::from_utf8_lossy(&self.bytes()).to_string()
     }
     pub fn bytes(&self) -> Vec<u8> {
-        self.timeline
-            .iter()
-            .flat_map(|(node, _model)| node.content.clone().bytes())
-            .collect()
+        todo!()
     }
-    pub fn annotated(&self) -> Vec<AnnotatedSnippet<'w>> {
-        self.timeline
-            .iter()
-            .flat_map(|(node, model)| {
-                node.content
-                    .clone()
-                    .snippets()
-                    .into_iter()
-                    .map(|snippet| AnnotatedSnippet {
-                        node: Some(node),
-                        content: snippet.content,
-                        probability: snippet.probability,
-                        model: *model,
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .collect()
-    }*/
+    pub fn annotations(&self) -> Vec<TimelineAnnotation<'w>> {
+        todo!()
+    }
+    pub fn build_update(self, content: String) -> TimelineUpdate {
+        TimelineUpdate {
+            old: self.text(),
+            new: content,
+        }
+    }
 }
 
+pub struct TimelineUpdate {
+    old: String,
+    new: String,
+}
+
+// TODO
 impl Weave {
     pub fn split_node(&mut self, identifier: &Ulid, index: usize) -> Option<[Ulid; 2]> {
         todo!()
@@ -80,7 +74,7 @@ impl Weave {
 
         todo!()
     }
-    pub fn update_content(&mut self, content: String) {
+    pub fn update_content(&mut self, update: TimelineUpdate) {
         todo!()
     }
 }
