@@ -226,7 +226,16 @@ impl NodeContent {
 
         match self {
             Self::Text(text) => Self::Text(text),
-            Self::Bytes(bytes) => Self::Bytes(bytes),
+            Self::Bytes(bytes) => {
+                if bytes.content.is_empty() {
+                    Self::Text(TextNode {
+                        content: String::new(),
+                        model: bytes.model,
+                    })
+                } else {
+                    Self::Bytes(bytes)
+                }
+            }
             Self::Token(mut tokens) => {
                 if tokens.content.is_empty() {
                     Self::Blank
