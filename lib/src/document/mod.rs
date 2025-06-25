@@ -36,8 +36,8 @@ pub struct Weave {
 
     root_nodes: BTreeSet<Ulid>,
     model_nodes: HashMap<Ulid, HashSet<Ulid>>,
-    dag_nodes: HashSet<Ulid>,
-    nonlinear_nodes: HashSet<Ulid>,
+    multiparent_nodes: HashSet<Ulid>,
+    nonconcatable_nodes: HashSet<Ulid>,
 }
 
 impl Weave {
@@ -49,7 +49,7 @@ impl Weave {
     ///
     /// Returns the [`Ulid`] of the input node if the node was successfully added. If the node was deduplicated, the returned Ulid will correspond to a node which was already in the document (the node's active & bookmarked statuses will be updated to match the input). Returns [`None`] if the node could not be added.
     ///
-    /// Nodes which have the same identifier as a node already in the [`Weave`] cannot be added. If the Weave contains any nodes with multiple parents, non-linear nodes cannot be added. If the Weave contains any non-linear nodes, nodes with multiple parents cannot be added.
+    /// Nodes which have the same identifier as a node already in the [`Weave`] cannot be added. If the Weave contains any nodes with multiple parents, non-concatable nodes cannot be added. If the Weave contains any non-concatable nodes, nodes with multiple parents cannot be added.
     pub fn add_node(
         &mut self,
         mut node: Node,
@@ -60,8 +60,8 @@ impl Weave {
         if self.nodes.contains_key(&node.id) {
             return None;
         }
-        if (!self.nonlinear_nodes.is_empty() || !node.content.linear())
-            && (!self.dag_nodes.is_empty() || node.from.len() > 1)
+        if (!self.nonconcatable_nodes.is_empty() || !node.content.concatable())
+            && (!self.multiparent_nodes.is_empty() || node.from.len() > 1)
         {
             return None;
         }
@@ -121,10 +121,10 @@ impl Weave {
             self.root_nodes.insert(node.id);
         }
         if node.from.len() > 1 {
-            self.dag_nodes.insert(node.id);
+            self.multiparent_nodes.insert(node.id);
         }
-        if !node.content.linear() {
-            self.nonlinear_nodes.insert(node.id);
+        if !node.content.concatable() {
+            self.nonconcatable_nodes.insert(node.id);
         }
         if let Some(node_model) = node.content.model() {
             if let Some(mut model) = model {
@@ -312,8 +312,8 @@ impl Weave {
     pub fn remove_node(&mut self, identifier: &Ulid) -> Option<Node> {
         if let Some(node) = self.nodes.remove(identifier) {
             self.root_nodes.remove(&node.id);
-            self.dag_nodes.remove(&node.id);
-            self.nonlinear_nodes.remove(&node.id);
+            self.multiparent_nodes.remove(&node.id);
+            self.nonconcatable_nodes.remove(&node.id);
             for parent in &node.from {
                 if let Some(parent) = self.nodes.get_mut(parent) {
                     parent.to.remove(&node.id);
@@ -356,8 +356,8 @@ impl Weave {
         for model_nodes in self.model_nodes.values_mut() {
             model_nodes.reserve(nodes);
         }
-        self.dag_nodes.reserve(nodes);
-        self.nonlinear_nodes.reserve(nodes);
+        self.multiparent_nodes.reserve(nodes);
+        self.nonconcatable_nodes.reserve(nodes);
     }
     /// Shrinks the allocated capacity of the Weave as much as possible.
     ///
@@ -369,8 +369,8 @@ impl Weave {
         for model_nodes in self.model_nodes.values_mut() {
             model_nodes.shrink_to_fit();
         }
-        self.dag_nodes.shrink_to_fit();
-        self.nonlinear_nodes.shrink_to_fit();
+        self.multiparent_nodes.shrink_to_fit();
+        self.nonconcatable_nodes.shrink_to_fit();
     }
     fn build_timelines<'a>(&'a self, timelines: &mut Vec<Vec<&'a Node>>) {
         let mut new_timelines = Vec::new();
@@ -473,10 +473,10 @@ pub struct WeaveSnapshot<'w> {
     pub models: &'w HashMap<Ulid, Model>,
     /// An ordered set of [`Ulid`] objects which correspond to [`Node`] objects with no parents.
     pub root_nodes: &'w BTreeSet<Ulid>,
-    /// If the [`Weave`] contains any nodes with multiple parents. If this is the case, non-linear nodes cannot be added.
-    pub dag_mode: bool,
-    /// If the [`Weave`] contains any non-linear nodes. If this is the case, nodes with multiple parents cannot be added.
-    pub nonlinear_mode: bool,
+    /// If the [`Weave`] contains any nodes with multiple parents. If this is the case, non-concatable nodes cannot be added.
+    pub multiparent_mode: bool,
+    /// If the [`Weave`] contains any non-concatable nodes. If this is the case, nodes with multiple parents cannot be added.
+    pub nonconcatable_mode: bool,
 }
 
 // Copied from Weave's implementation of build_timelines(); shouldn't require additional unit tests
@@ -580,8 +580,8 @@ impl<'w> From<&'w Weave> for WeaveSnapshot<'w> {
             nodes: &input.nodes,
             models: &input.models,
             root_nodes: &input.root_nodes,
-            dag_mode: !input.dag_nodes.is_empty(),
-            nonlinear_mode: !input.nonlinear_nodes.is_empty(),
+            multiparent_mode: !input.multiparent_nodes.is_empty(),
+            nonconcatable_mode: !input.nonconcatable_nodes.is_empty(),
         }
     }
 }

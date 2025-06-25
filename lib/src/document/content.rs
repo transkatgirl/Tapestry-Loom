@@ -103,7 +103,7 @@ pub enum NodeContent {
 
 impl NodeContent {
     #[allow(clippy::match_same_arms)]
-    pub fn linear(&self) -> bool {
+    pub fn concatable(&self) -> bool {
         match self {
             Self::Text(_) => true,
             Self::Bytes(_) => true,
@@ -114,7 +114,7 @@ impl NodeContent {
     }
     #[allow(clippy::missing_panics_doc)]
     pub fn merge(left: Self, right: Self) -> Option<Self> {
-        if left.model() == right.model() || (left.linear() && right.linear()) {
+        if left.model() == right.model() || (left.concatable() && right.concatable()) {
             Some(
                 match left {
                     Self::Text(left) => match right {
@@ -202,7 +202,7 @@ impl NodeContent {
         }
     }
     pub fn mergeable(left: &Self, right: &Self) -> bool {
-        left.model() == right.model() || (left.linear() && right.linear())
+        left.model() == right.model() || (left.concatable() && right.concatable())
     }
     pub fn split(self, index: usize) -> Option<[Self; 2]> {
         match self {
@@ -405,7 +405,7 @@ pub trait NodeContents: Display + Sized {
     fn model(&self) -> Option<&NodeModel>;
 }
 
-pub trait LinearNodeContents: NodeContents {
+pub trait ConcatableNodeContents: NodeContents {
     fn bytes(self) -> Vec<u8>;
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
@@ -468,7 +468,7 @@ impl Display for TextNode {
     }
 }
 
-impl LinearNodeContents for TextNode {
+impl ConcatableNodeContents for TextNode {
     fn bytes(self) -> Vec<u8> {
         self.content.into_bytes()
     }
@@ -536,7 +536,7 @@ impl Display for ByteNode {
     }
 }
 
-impl LinearNodeContents for ByteNode {
+impl ConcatableNodeContents for ByteNode {
     fn bytes(self) -> Vec<u8> {
         self.content
     }
@@ -602,7 +602,7 @@ impl Display for TokenNode {
     }
 }
 
-impl LinearNodeContents for TokenNode {
+impl ConcatableNodeContents for TokenNode {
     fn bytes(self) -> Vec<u8> {
         self.content
             .into_iter()
