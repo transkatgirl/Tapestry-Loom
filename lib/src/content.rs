@@ -154,24 +154,14 @@ impl NodeContent {
                     Self::Diff(_) => panic!(),
                     Self::Blank => Self::Text(left),
                 }),
-                Self::Bytes(left) => Some(match right {
+                Self::Bytes(mut left) => Some(match right {
                     Self::Text(right) => {
-                        let mut content = left.content;
-                        content.append(&mut right.content.into_bytes());
-
-                        Self::Bytes(ByteNode {
-                            content,
-                            model: left.model,
-                        })
+                        left.content.append(&mut right.content.into_bytes());
+                        Self::Bytes(left)
                     }
                     Self::Bytes(mut right) => {
-                        let mut content = left.content;
-                        content.append(&mut right.content);
-
-                        Self::Bytes(ByteNode {
-                            content,
-                            model: left.model,
-                        })
+                        left.content.append(&mut right.content);
+                        Self::Bytes(left)
                     }
                     Self::Token(mut right) => {
                         let left_token = NodeToken {
@@ -194,7 +184,6 @@ impl NodeContent {
                             probability: None,
                             content: right.content.into_bytes(),
                         });
-
                         Self::Token(left)
                     }
                     Self::Bytes(right) => {
@@ -202,7 +191,6 @@ impl NodeContent {
                             probability: None,
                             content: right.content,
                         });
-
                         Self::Token(left)
                     }
                     Self::Token(mut right) => {
