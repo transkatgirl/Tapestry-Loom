@@ -123,89 +123,94 @@ impl NodeContent {
     #[allow(clippy::missing_panics_doc)]
     pub fn merge(left: Self, right: Self) -> Option<Self> {
         if left.model() == right.model() || (left.linear() && right.linear()) {
-            match left {
-                Self::Text(left) => Some(match right {
-                    Self::Text(right) => Self::Text(TextNode {
-                        content: [left.content, right.content].concat(),
-                        model: left.model,
-                    }),
-                    Self::Bytes(mut right) => {
-                        let mut content = left.content.into_bytes();
-                        content.append(&mut right.content);
-
-                        Self::Bytes(ByteNode {
-                            content,
+            Some(
+                match left {
+                    Self::Text(left) => match right {
+                        Self::Text(right) => Self::Text(TextNode {
+                            content: [left.content, right.content].concat(),
                             model: left.model,
-                        })
-                    }
-                    Self::Token(mut right) => {
-                        let left_token = NodeToken {
-                            probability: None,
-                            content: left.content.into_bytes(),
-                        };
-                        right.content.splice(..0, iter::once(left_token));
+                        }),
+                        Self::Bytes(mut right) => {
+                            let mut content = left.content.into_bytes();
+                            content.append(&mut right.content);
 
-                        Self::Token(TokenNode {
-                            content: right.content,
-                            model: left.model,
-                        })
-                    }
-                    Self::Diff(_) => panic!(),
-                    Self::Blank => Self::Text(left),
-                }),
-                Self::Bytes(mut left) => Some(match right {
-                    Self::Text(right) => {
-                        left.content.append(&mut right.content.into_bytes());
-                        Self::Bytes(left)
-                    }
-                    Self::Bytes(mut right) => {
-                        left.content.append(&mut right.content);
-                        Self::Bytes(left)
-                    }
-                    Self::Token(mut right) => {
-                        let left_token = NodeToken {
-                            probability: None,
-                            content: left.content,
-                        };
-                        right.content.splice(..0, iter::once(left_token));
+                            Self::Bytes(ByteNode {
+                                content,
+                                model: left.model,
+                            })
+                        }
+                        Self::Token(mut right) => {
+                            let left_token = NodeToken {
+                                probability: None,
+                                content: left.content.into_bytes(),
+                            };
+                            right.content.splice(..0, iter::once(left_token));
 
-                        Self::Token(TokenNode {
-                            content: right.content,
-                            model: left.model,
-                        })
-                    }
+                            Self::Token(TokenNode {
+                                content: right.content,
+                                model: left.model,
+                            })
+                        }
+                        Self::Diff(_) => panic!(),
+                        Self::Blank => Self::Text(left),
+                    },
+                    Self::Bytes(mut left) => match right {
+                        Self::Text(right) => {
+                            left.content.append(&mut right.content.into_bytes());
+                            Self::Bytes(left)
+                        }
+                        Self::Bytes(mut right) => {
+                            left.content.append(&mut right.content);
+                            Self::Bytes(left)
+                        }
+                        Self::Token(mut right) => {
+                            let left_token = NodeToken {
+                                probability: None,
+                                content: left.content,
+                            };
+                            right.content.splice(..0, iter::once(left_token));
+
+                            Self::Token(TokenNode {
+                                content: right.content,
+                                model: left.model,
+                            })
+                        }
+                        Self::Diff(_) => panic!(),
+                        Self::Blank => Self::Bytes(left),
+                    },
+                    Self::Token(mut left) => match right {
+                        Self::Text(right) => {
+                            left.content.push(NodeToken {
+                                probability: None,
+                                content: right.content.into_bytes(),
+                            });
+                            Self::Token(left)
+                        }
+                        Self::Bytes(right) => {
+                            left.content.push(NodeToken {
+                                probability: None,
+                                content: right.content,
+                            });
+                            Self::Token(left)
+                        }
+                        Self::Token(mut right) => {
+                            left.content.append(&mut right.content);
+                            Self::Token(left)
+                        }
+                        Self::Diff(_) => panic!(),
+                        Self::Blank => Self::Token(left),
+                    },
                     Self::Diff(_) => panic!(),
-                    Self::Blank => Self::Bytes(left),
-                }),
-                Self::Token(mut left) => Some(match right {
-                    Self::Text(right) => {
-                        left.content.push(NodeToken {
-                            probability: None,
-                            content: right.content.into_bytes(),
-                        });
-                        Self::Token(left)
-                    }
-                    Self::Bytes(right) => {
-                        left.content.push(NodeToken {
-                            probability: None,
-                            content: right.content,
-                        });
-                        Self::Token(left)
-                    }
-                    Self::Token(mut right) => {
-                        left.content.append(&mut right.content);
-                        Self::Token(left)
-                    }
-                    Self::Diff(_) => panic!(),
-                    Self::Blank => Self::Token(left),
-                }),
-                Self::Diff(_) => panic!(),
-                Self::Blank => Some(right),
-            }
-            .map(Self::simplify)
+                    Self::Blank => right,
+                }
+                .simplify(),
+            )
         } else {
             None
         }
+    }
+    pub fn mergeable(left: &Self, right: &Self) -> bool {
+        left.model() == right.model() || (left.linear() && right.linear())
     }
     pub fn split(self, index: usize) -> Option<[Self; 2]> {
         match self {
@@ -230,6 +235,15 @@ impl NodeContent {
             Self::Blank => Some([Self::Blank, Self::Blank]),
         }
         .map(|[left, right]| [left.simplify(), right.simplify()])
+    }
+    pub fn splitable(&self, index: usize) -> bool {
+        match self {
+            Self::Text(content) => index <= content.len(),
+            Self::Bytes(content) => index <= content.len(),
+            Self::Token(content) => index <= content.len(),
+            Self::Diff(_) => false,
+            Self::Blank => true,
+        }
     }
     #[must_use]
     #[allow(clippy::missing_panics_doc)]
