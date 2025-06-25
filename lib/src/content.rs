@@ -188,15 +188,26 @@ impl NodeContent {
                     Self::Diff(_) => panic!(),
                     Self::Blank => Self::Bytes(left),
                 }),
-                Self::Token(left) => Some(match right {
+                Self::Token(mut left) => Some(match right {
                     Self::Text(right) => {
-                        todo!()
+                        left.content.push(NodeToken {
+                            probability: None,
+                            content: right.content.into_bytes(),
+                        });
+
+                        Self::Token(left)
                     }
                     Self::Bytes(right) => {
-                        todo!()
+                        left.content.push(NodeToken {
+                            probability: None,
+                            content: right.content,
+                        });
+
+                        Self::Token(left)
                     }
-                    Self::Token(right) => {
-                        todo!()
+                    Self::Token(mut right) => {
+                        left.content.append(&mut right.content);
+                        Self::Token(left)
                     }
                     Self::Diff(_) => panic!(),
                     Self::Blank => Self::Token(left),
