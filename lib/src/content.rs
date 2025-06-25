@@ -72,7 +72,7 @@ impl<'w> WeaveTimeline<'w> {
 }
 
 impl Weave {
-    pub fn split_node(&mut self, identifier: &Ulid, index: usize) -> Option<Ulid> {
+    pub fn split_node(&mut self, identifier: &Ulid, index: usize) -> Option<[Ulid; 2]> {
         todo!()
     }
     pub fn merge_nodes(&mut self, left: &Ulid, right: &Ulid) -> Option<Ulid> {
@@ -139,10 +139,17 @@ impl NodeContent {
                             model: left.model,
                         })
                     }
-                    Self::Token(right) => {
-                        //let left_token = TextOrToken()
+                    Self::Token(mut right) => {
+                        let left_token = NodeToken {
+                            probability: None,
+                            content: left.content.into_bytes(),
+                        };
+                        right.content.splice(..0, iter::once(left_token));
 
-                        todo!()
+                        Self::Token(TokenNode {
+                            content: right.content,
+                            model: left.model,
+                        })
                     }
                     Self::Diff(_) => panic!(),
                     Self::Blank => Self::Text(left),
@@ -166,8 +173,17 @@ impl NodeContent {
                             model: left.model,
                         })
                     }
-                    Self::Token(right) => {
-                        todo!()
+                    Self::Token(mut right) => {
+                        let left_token = NodeToken {
+                            probability: None,
+                            content: left.content,
+                        };
+                        right.content.splice(..0, iter::once(left_token));
+
+                        Self::Token(TokenNode {
+                            content: right.content,
+                            model: left.model,
+                        })
                     }
                     Self::Diff(_) => panic!(),
                     Self::Blank => Self::Bytes(left),
