@@ -125,19 +125,19 @@ impl NodeContent {
     pub fn merge(left: Self, right: Self) -> Option<Self> {
         if left.model() == right.model() || (left.linear() && right.linear()) {
             match left {
-                Self::Text(left) => match right {
-                    Self::Text(right) => Some(Self::Text(TextNode {
+                Self::Text(left) => Some(match right {
+                    Self::Text(right) => Self::Text(TextNode {
                         content: [left.content, right.content].concat(),
                         model: left.model,
-                    })),
+                    }),
                     Self::Bytes(mut right) => {
                         let mut content = left.content.into_bytes();
                         content.append(&mut right.content);
 
-                        Some(Self::Bytes(ByteNode {
+                        Self::Bytes(ByteNode {
                             content,
                             model: left.model,
-                        }))
+                        })
                     }
                     Self::Token(right) => {
                         //let left_token = TextOrToken()
@@ -145,34 +145,34 @@ impl NodeContent {
                         todo!()
                     }
                     Self::Diff(_) => panic!(),
-                    Self::Blank => Some(Self::Text(left)),
-                },
-                Self::Bytes(left) => match right {
+                    Self::Blank => Self::Text(left),
+                }),
+                Self::Bytes(left) => Some(match right {
                     Self::Text(right) => {
                         let mut content = left.content;
                         content.append(&mut right.content.into_bytes());
 
-                        Some(Self::Bytes(ByteNode {
+                        Self::Bytes(ByteNode {
                             content,
                             model: left.model,
-                        }))
+                        })
                     }
                     Self::Bytes(mut right) => {
                         let mut content = left.content;
                         content.append(&mut right.content);
 
-                        Some(Self::Bytes(ByteNode {
+                        Self::Bytes(ByteNode {
                             content,
                             model: left.model,
-                        }))
+                        })
                     }
                     Self::Token(right) => {
                         todo!()
                     }
                     Self::Diff(_) => panic!(),
-                    Self::Blank => Some(Self::Bytes(left)),
-                },
-                Self::Token(left) => match right {
+                    Self::Blank => Self::Bytes(left),
+                }),
+                Self::Token(left) => Some(match right {
                     Self::Text(right) => {
                         todo!()
                     }
@@ -183,8 +183,8 @@ impl NodeContent {
                         todo!()
                     }
                     Self::Diff(_) => panic!(),
-                    Self::Blank => Some(Self::Token(left)),
-                },
+                    Self::Blank => Self::Token(left),
+                }),
                 Self::Diff(_) => panic!(),
                 Self::Blank => Some(right),
             }
