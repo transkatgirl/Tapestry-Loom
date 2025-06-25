@@ -228,7 +228,9 @@ impl NodeContent {
             Self::Text(text) => Self::Text(text),
             Self::Bytes(bytes) => Self::Bytes(bytes),
             Self::Token(mut tokens) => {
-                if tokens.content.len() == 1 && tokens.content[0].probability.is_none() {
+                if tokens.content.is_empty() {
+                    Self::Blank
+                } else if tokens.content.len() == 1 && tokens.content[0].probability.is_none() {
                     Self::Bytes(ByteNode {
                         content: tokens.content.pop().unwrap().content,
                         model: tokens.model,
