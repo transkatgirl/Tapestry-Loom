@@ -38,15 +38,15 @@ impl<'w> WeaveTimeline<'w> {
         let mut bytes = Vec::new();
 
         for (node, _model) in &self.timeline {
-            match &node.content {
+            match node.content.clone() {
                 NodeContent::Snippet(snippet) => {
-                    bytes.append(&mut snippet.clone().bytes());
+                    bytes.append(&mut snippet.bytes());
                 }
                 NodeContent::Tokens(tokens) => {
-                    bytes.append(&mut tokens.clone().bytes());
+                    bytes.append(&mut tokens.bytes());
                 }
                 NodeContent::Diff(diff) => {
-                    diff.clone().content.apply(&mut bytes);
+                    diff.content.apply(&mut bytes);
                 }
                 NodeContent::Blank => {}
             }
@@ -58,16 +58,18 @@ impl<'w> WeaveTimeline<'w> {
         todo!()
     }
     pub fn build_update(self, content: String) -> TimelineUpdate {
-        TimelineUpdate {
-            old: self.annotated_string().0,
-            new: content,
-        }
+        todo!()
     }
 }
 
 pub struct TimelineUpdate {
-    old: String,
+    old: Vec<UpdateTimelineContent>,
     new: String,
+}
+
+pub struct UpdateTimelineContent {
+    content: String,
+    node: Ulid,
 }
 
 // TODO
