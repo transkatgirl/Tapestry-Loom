@@ -2,11 +2,14 @@
 
 #![allow(missing_docs)]
 
-use std::{collections::HashSet, fmt::Display, iter, ops::Range, vec};
+use std::{
+    char::REPLACEMENT_CHARACTER, collections::HashSet, fmt::Display, iter, ops::Range,
+    time::Instant, vec,
+};
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use similar::{DiffTag, capture_diff_slices};
+use similar::{Algorithm, DiffTag, capture_diff_slices_deadline};
 use ulid::Ulid;
 
 use super::{Weave, WeaveView};
@@ -55,6 +58,70 @@ impl<'w> WeaveTimeline<'w> {
         bytes
     }
     pub fn annotated_string(&self) -> (String, Vec<TimelineAnnotation<'w>>) {
+        let mut bytes = Vec::new();
+        let mut annotations = Vec::with_capacity(self.timeline.len());
+
+        for (node, model) in &self.timeline {
+            match node.content.clone() {
+                NodeContent::Snippet(snippet) => {
+                    annotations.append(
+                        &mut snippet
+                            .annotations()
+                            .map(|annotation| TimelineAnnotation {
+                                range: Range {
+                                    start: annotation.range.start + bytes.len(),
+                                    end: annotation.range.end + bytes.len(),
+                                },
+                                probability: annotation.probability,
+                                node: Some(node),
+                                model: *model,
+                            })
+                            .collect(),
+                    );
+                    bytes.append(&mut snippet.bytes());
+                }
+                NodeContent::Tokens(tokens) => {
+                    annotations.append(
+                        &mut tokens
+                            .annotations()
+                            .map(|annotation| TimelineAnnotation {
+                                range: Range {
+                                    start: annotation.range.start + bytes.len(),
+                                    end: annotation.range.end + bytes.len(),
+                                },
+                                probability: annotation.probability,
+                                node: Some(node),
+                                model: *model,
+                            })
+                            .collect(),
+                    );
+                    bytes.append(&mut tokens.bytes());
+                }
+                NodeContent::Diff(diff) => {
+                    diff.content
+                        .apply_timeline_annotations(node, *model, &mut annotations);
+                    diff.content.apply(&mut bytes);
+                }
+                NodeContent::Blank => {}
+            }
+        }
+
+        let mut string = String::with_capacity(bytes.len());
+
+        for chunk in bytes.utf8_chunks() {
+            string.push_str(chunk.valid());
+
+            let invalid = chunk.invalid();
+
+            if !invalid.is_empty() {
+                string.push(REPLACEMENT_CHARACTER);
+
+                if invalid.len() < 3 {
+                    // TODO: Handle annotations correctly
+                }
+            }
+        }
+
         todo!()
     }
     pub fn build_update(self, content: String) -> TimelineUpdate {
@@ -675,8 +742,8 @@ pub struct Diff {
 }
 
 impl Diff {
-    pub fn new(before: &[u8], after: &[u8]) -> Self {
-        let chunks = capture_diff_slices(similar::Algorithm::Patience, before, after);
+    pub fn new(before: &[u8], after: &[u8], deadline: Instant) -> Self {
+        let chunks = capture_diff_slices_deadline(Algorithm::Myers, before, after, Some(deadline));
 
         let mut modifications = Vec::with_capacity(chunks.len());
 
@@ -721,12 +788,17 @@ impl Diff {
             modification.apply(data);
         }
     }
-    fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
-    where
-        T: Annotation,
-    {
+    fn apply_timeline_annotations<'w>(
+        &self,
+        node: &'w Node,
+        model: Option<&'w Model>,
+        annotations: &mut Vec<TimelineAnnotation<'w>>,
+    ) {
         for modification in &self.content {
-            modification.apply_annotations(annotations);
+            if let Some(index) = modification.apply_annotations(annotations) {
+                annotations[index].node = Some(node);
+                annotations[index].model = model;
+            }
         }
     }
     pub fn count(&self) -> ModificationCount {
@@ -769,7 +841,7 @@ impl Modification {
             ModificationContent::Deletion(length) => data.splice(self.index..length, vec![]),
         };
     }
-    fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
+    fn apply_annotations<T>(&self, annotations: &mut Vec<T>) -> Option<usize>
     where
         T: Annotation,
     {
@@ -778,7 +850,7 @@ impl Modification {
             start: self.index,
             end: self.index + offset,
         };
-        let Some(selected) = annotations
+        let selected = annotations
             .iter()
             .enumerate()
             .find_map(|(location, annotation)| {
@@ -789,10 +861,7 @@ impl Modification {
                 }
 
                 None
-            })
-        else {
-            return;
-        };
+            })?;
 
         match &self.content {
             ModificationContent::Insertion(_) => {
@@ -804,12 +873,14 @@ impl Modification {
                     annotations.splice(selected..=selected, vec![left, middle, right]);
                 }
                 if annotations.len() > selected {
-                    for annotation in &mut annotations[selected + 1..] {
+                    for annotation in &mut annotations[selected + 2..] {
                         let annotation = annotation.range_mut();
                         annotation.start += offset;
                         annotation.end += offset;
                     }
                 }
+
+                Some(selected + 1)
             }
             ModificationContent::Deletion(_) => {
                 let mut remove = Vec::with_capacity(annotations.len());
@@ -831,6 +902,8 @@ impl Modification {
                 if !remove.is_empty() {
                     annotations.splice(remove[0]..=remove[remove.len() - 1], vec![]);
                 }
+
+                None
             }
         }
     }
