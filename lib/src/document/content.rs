@@ -234,7 +234,40 @@ impl Weave {
                 .unwrap_or_default();
 
             if update.diff.content.len() == 1 && update.diff.content[0].index == end {
-                todo!()
+                let modification = update.diff.content.remove(0);
+
+                let content = match modification.content {
+                    ModificationContent::Insertion(content) => NodeContent::Snippet(SnippetNode {
+                        content,
+                        model: None,
+                    }),
+                    ModificationContent::Deletion(length) => NodeContent::Diff(DiffNode {
+                        content: Diff {
+                            content: vec![Modification {
+                                index: modification.index,
+                                content: ModificationContent::Deletion(length),
+                            }],
+                        },
+                        model: None,
+                    }),
+                };
+
+                self.add_node(
+                    Node {
+                        id: Ulid::new(),
+                        from: last_node
+                            .map(|node| HashSet::from([node]))
+                            .unwrap_or_default(),
+                        to: HashSet::new(),
+                        active: true,
+                        bookmarked: false,
+                        content,
+                    },
+                    None,
+                    false,
+                    true,
+                );
+                return;
             }
 
             self.add_node(
