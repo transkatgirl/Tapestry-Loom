@@ -114,7 +114,7 @@ impl<'w> WeaveTimeline<'w> {
 
         (string, annotations)
     }
-    pub fn build_update(self, content: String, deadline: Instant) -> TimelineUpdate {
+    fn build_update(self, content: String, deadline: Instant) -> TimelineUpdate {
         let (before, annotations) = self.annotated_string();
 
         TimelineUpdate {
@@ -132,12 +132,12 @@ impl<'w> WeaveTimeline<'w> {
     }
 }
 
-pub struct TimelineUpdate {
+struct TimelineUpdate {
     ranges: Vec<TimelineContentRange>,
     diff: Diff,
 }
 
-pub struct TimelineContentRange {
+struct TimelineContentRange {
     range: Range<usize>,
     node: Ulid,
 }
@@ -160,7 +160,25 @@ impl Weave {
 
         todo!()
     }
-    pub fn apply_update(&mut self, update: TimelineUpdate) {
+    pub fn update(&mut self, timeline: usize, content: String, deadline: Instant) {
+        let mut timelines = self.get_active_timelines();
+
+        let update = if timelines.len() > timeline {
+            timelines
+                .swap_remove(timeline)
+                .build_update(content, deadline)
+        } else {
+            TimelineUpdate {
+                ranges: vec![],
+                diff: Diff {
+                    content: vec![Modification {
+                        index: 0,
+                        content: ModificationContent::Insertion(content.into_bytes()),
+                    }],
+                },
+            }
+        };
+
         todo!()
     }
 }
