@@ -78,7 +78,8 @@ Development may be intermittent, with long periods of inactivity between periods
 - [ ] Improve Weave format to improve flexibility and efficiency:
 	- [ ] Create Rust library implementing new weave data structure & serialization+deserialization
 		- [ ] Implement unit testing for the Rust library
-		- [ ] Benchmark handling of different weave sizes and node sizes
+		- [ ] Implement integration testing for the Rust library
+		- [ ] Implement benchmark tests for the Rust library
 	- [ ] Implement new data structure into Tapestry Loom via WASM
 		- [ ] Add prefix deduplication
 		- [ ] Add support for binary nodes to improve handling of invalid unicode

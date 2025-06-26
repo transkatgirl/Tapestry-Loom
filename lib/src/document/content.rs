@@ -141,24 +141,25 @@ struct TimelineNodeRange {
     node: Ulid,
 }
 
-// TODO
 impl Weave {
+    // TODO
     pub fn split_node(&mut self, identifier: &Ulid, index: usize) -> Option<[Ulid; 2]> {
+        let original = self.nodes.get(identifier)?;
+        let [left_content, right_content] = original.content.clone().split(index)?;
+
         todo!()
     }
+    // TODO
     pub fn merge_nodes(&mut self, left: &Ulid, right: &Ulid) -> Option<Ulid> {
-        let (Some(left), _) = self.get_node(left) else {
-            return None;
-        };
-        let (Some(right), _) = self.get_node(right) else {
-            return None;
-        };
+        let left = self.nodes.get(left)?;
+        let right = self.nodes.get(right)?;
         if !(left.to.contains(&right.id) && right.from.contains(&left.id)) {
             return None;
         }
 
         todo!()
     }
+    // TODO
     pub fn update(&mut self, timeline: usize, content: String, deadline: Instant) {
         let mut timelines = self.get_active_timelines();
 
