@@ -2,11 +2,11 @@
 
 #![allow(missing_docs)]
 
-use std::{collections::HashSet, fmt::Display, fmt::Write, iter, ops::Range, vec};
+use std::{collections::HashSet, fmt::Display, iter, ops::Range, vec};
 
-use dissimilar::Chunk;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use similar::{DiffTag, capture_diff_slices};
 use ulid::Ulid;
 
 use super::{Weave, WeaveView};
@@ -46,18 +46,7 @@ impl<'w> WeaveTimeline<'w> {
                     bytes.append(&mut tokens.clone().bytes());
                 }
                 NodeContent::Diff(diff) => {
-                    let mut string = String::with_capacity(bytes.len());
-
-                    for chunk in bytes.utf8_chunks() {
-                        string.push_str(chunk.valid());
-
-                        for &b in chunk.invalid() {
-                            write!(string, "\\x{b:02X}").unwrap();
-                        }
-                    }
-
-                    diff.content.apply(&mut string);
-                    bytes = string.into_bytes();
+                    diff.clone().content.apply(&mut bytes);
                 }
                 NodeContent::Blank => {}
             }
@@ -663,7 +652,13 @@ impl Display for DiffNode {
         if count.insertions == 1 && count.deletions < 2 {
             for modification in &self.content.content {
                 if let ModificationContent::Insertion(text) = &modification.content {
-                    return write!(f, "{text}");
+                    for chunk in text.utf8_chunks() {
+                        write!(f, "{}", chunk.valid())?;
+
+                        for &b in chunk.invalid() {
+                            write!(f, "\\x{b:02X}")?;
+                        }
+                    }
                 }
             }
         }
@@ -678,28 +673,39 @@ pub struct Diff {
 }
 
 impl Diff {
-    pub fn new(before: &str, after: &str) -> Self {
-        let chunks = dissimilar::diff(before, after);
+    pub fn new(before: &[u8], after: &[u8]) -> Self {
+        let chunks = capture_diff_slices(similar::Algorithm::Patience, before, after);
 
-        let mut index = 0;
         let mut modifications = Vec::with_capacity(chunks.len());
 
-        for chunk in chunks {
-            match chunk {
-                Chunk::Equal(content) => index += content.len(),
-                Chunk::Insert(content) => {
+        for (tag, before_range, after_range) in chunks.iter().map(similar::DiffOp::as_tag_tuple) {
+            match tag {
+                DiffTag::Equal => {}
+                DiffTag::Insert => {
                     modifications.push(Modification {
-                        index,
-                        content: ModificationContent::Insertion(content.to_string()),
+                        index: before_range.start,
+                        content: ModificationContent::Insertion(
+                            after[after_range.start..after_range.end].to_vec(),
+                        ),
                     });
-                    index += content.len();
                 }
-                Chunk::Delete(content) => {
+                DiffTag::Delete => {
                     modifications.push(Modification {
-                        index,
-                        content: ModificationContent::Deletion(content.len()),
+                        index: before_range.start,
+                        content: ModificationContent::Deletion(before_range.end),
                     });
-                    index += content.len();
+                }
+                DiffTag::Replace => {
+                    modifications.push(Modification {
+                        index: before_range.start,
+                        content: ModificationContent::Deletion(before_range.end),
+                    });
+                    modifications.push(Modification {
+                        index: before_range.start,
+                        content: ModificationContent::Insertion(
+                            after[after_range.start..after_range.end].to_vec(),
+                        ),
+                    });
                 }
             }
         }
@@ -708,9 +714,9 @@ impl Diff {
             content: modifications,
         }
     }
-    pub fn apply(&self, text: &mut String) {
-        for modification in &self.content {
-            modification.apply(text);
+    pub fn apply(self, data: &mut Vec<u8>) {
+        for modification in self.content {
+            modification.apply(data);
         }
     }
     fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
@@ -755,11 +761,11 @@ pub struct Modification {
 }
 
 impl Modification {
-    pub fn apply(&self, text: &mut String) {
-        match &self.content {
-            ModificationContent::Insertion(content) => text.insert_str(self.index, content),
-            ModificationContent::Deletion(length) => text.replace_range(self.index..*length, ""),
-        }
+    pub fn apply(self, data: &mut Vec<u8>) {
+        match self.content {
+            ModificationContent::Insertion(content) => data.splice(self.index..self.index, content),
+            ModificationContent::Deletion(length) => data.splice(self.index..length, vec![]),
+        };
     }
     fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
     where
@@ -830,7 +836,7 @@ impl Modification {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub enum ModificationContent {
-    Insertion(String),
+    Insertion(Vec<u8>),
     Deletion(usize),
 }
 

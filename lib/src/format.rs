@@ -60,7 +60,7 @@ type NodeDiff = Vec<(u64, DiffModification)>;
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)]
 enum DiffModification {
-    Insert(String),
+    Insert(ByteBuf),
     Delete(u64),
 }
 
@@ -135,7 +135,7 @@ impl TryFrom<DiffModification> for content::ModificationContent {
     type Error = WeaveError;
     fn try_from(input: DiffModification) -> Result<Self, Self::Error> {
         Ok(match input {
-            DiffModification::Insert(content) => Self::Insertion(content),
+            DiffModification::Insert(content) => Self::Insertion(content.into_vec()),
             DiffModification::Delete(length) => {
                 Self::Deletion(usize::try_from(length).map_err(|_| {
                     WeaveError::FailedInteractive(
@@ -151,7 +151,9 @@ impl TryFrom<content::ModificationContent> for DiffModification {
     type Error = WeaveError;
     fn try_from(input: content::ModificationContent) -> Result<Self, Self::Error> {
         Ok(match input {
-            content::ModificationContent::Insertion(content) => Self::Insert(content),
+            content::ModificationContent::Insertion(content) => {
+                Self::Insert(ByteBuf::from(content))
+            }
             content::ModificationContent::Deletion(length) => {
                 Self::Delete(u64::try_from(length).map_err(|_| {
                     WeaveError::FailedCompact(

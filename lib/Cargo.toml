@@ -22,12 +22,15 @@ base64 = "0.22.1"
 ulid = { version = "=1.2.1", features = [
 	"serde",
 ] }
-dissimilar = "1.0"
+similar = "2.7.0"
 rust_decimal = "1.37.1"
 thiserror = "2.0.12"
 serde_bytes = "0.11.17"
 
 [target.wasm32-unknown-unknown.dependencies]
+similar = { version = "2.7.0", features = [
+	"wasm32_web_time",
+] }
 getrandom = { version = "=0.3.1", features = [
 	"wasm_js",
 ] }
