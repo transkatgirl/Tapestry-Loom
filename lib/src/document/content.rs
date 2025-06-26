@@ -112,6 +112,17 @@ impl<'w> WeaveTimeline<'w> {
 
         (string, annotations)
     }
+    pub fn preview_update(
+        &self,
+        (string, mut annotations): (&str, Vec<TimelineAnnotation<'w>>),
+        new_content: &str,
+        deadline: Instant,
+    ) -> Vec<TimelineAnnotation<'w>> {
+        Diff::new(string.as_bytes(), new_content.as_bytes(), deadline)
+            .apply_annotations(&mut annotations);
+
+        annotations
+    }
     fn build_update(self, content: String, deadline: Instant) -> TimelineUpdate {
         let (before, annotations) = self.annotated_string();
 
@@ -170,12 +181,32 @@ impl Weave {
             });
 
             match modification.content {
-                ModificationContent::Insertion(content) => {}
-                ModificationContent::Deletion(length) => {}
+                ModificationContent::Insertion(content) => {
+                    todo!()
+                }
+                ModificationContent::Deletion(_length) => {
+                    for timeline_range in ranges {
+                        if modification_range.contains(&timeline_range.range.start)
+                            && modification_range.contains(&timeline_range.range.end)
+                        {
+                            self.update_node_activity(&timeline_range.node, false, true);
+                        } else if modification_range.contains(&timeline_range.range.start) {
+                            if let Some([_left, right]) = self.split_node(
+                                &timeline_range.node,
+                                timeline_range.range.start - modification_range.end,
+                            ) {
+                                self.update_node_activity(&right, false, true);
+                            }
+                        } else if let Some([left, _right]) = self.split_node(
+                            &timeline_range.node,
+                            timeline_range.range.end - modification_range.start,
+                        ) {
+                            self.update_node_activity(&left, false, true);
+                        }
+                    }
+                }
             }
         }
-
-        todo!()
     }
 }
 
@@ -803,6 +834,14 @@ impl Diff {
     pub fn apply(self, data: &mut Vec<u8>) {
         for modification in self.content {
             modification.apply(data);
+        }
+    }
+    fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
+    where
+        T: Annotation,
+    {
+        for modification in &self.content {
+            modification.apply_annotations(annotations);
         }
     }
     fn apply_timeline_annotations<'w>(
