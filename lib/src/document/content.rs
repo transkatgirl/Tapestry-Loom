@@ -303,10 +303,29 @@ impl Weave {
                     .map(|range| (range.node, range.range.end))
                     .unwrap_or_default();
 
-                match modification.content {
+                let mut new_node = None;
+
+                match &modification.content {
                     ModificationContent::Insertion(content) => {
                         if modification_range.start >= end {
-                            todo!()
+                            new_node = self.add_node(
+                                Node {
+                                    id: Ulid::new(),
+                                    from: last_node
+                                        .map(|node| HashSet::from([node]))
+                                        .unwrap_or_default(),
+                                    to: HashSet::new(),
+                                    active: true,
+                                    bookmarked: false,
+                                    content: NodeContent::Snippet(SnippetNode {
+                                        content: content.clone(),
+                                        model: None,
+                                    }),
+                                },
+                                None,
+                                false,
+                                true,
+                            );
                         } else {
                             todo!()
                         }
@@ -343,7 +362,9 @@ impl Weave {
                 }
 
                 if let Some(mod_index) = modification.apply_annotations(&mut update.ranges) {
-                    //update.ranges[mod_index].node
+                    if new_node.is_some() {
+                        update.ranges[mod_index].node = new_node;
+                    }
                 }
             }
         }
