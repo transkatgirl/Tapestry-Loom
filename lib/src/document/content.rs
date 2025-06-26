@@ -143,12 +143,27 @@ struct TimelineNodeRange {
 }
 
 impl Weave {
-    // TODO
     pub fn split_node(&mut self, identifier: &Ulid, index: usize) -> Option<[Ulid; 2]> {
         let original = self.nodes.get(identifier)?;
         let [left_content, right_content] = original.content.clone().split(index)?;
 
-        todo!()
+        let node = Node {
+            id: Ulid::from_datetime(identifier.datetime()),
+            from: original.from.clone(),
+            to: HashSet::from([*identifier]),
+            active: original.active,
+            bookmarked: original.bookmarked,
+            content: left_content,
+        };
+
+        let left_identifier = self.add_node(node, None, true, false)?;
+
+        let right = self.nodes.get_mut(identifier)?;
+        right.content = right_content;
+        right.bookmarked = false;
+        right.from = HashSet::from([left_identifier]);
+
+        Some([left_identifier, right.id])
     }
     pub fn merge_nodes(&mut self, left: &Ulid, right: &Ulid) -> Option<Ulid> {
         let left = self.nodes.get(left)?;
@@ -163,10 +178,14 @@ impl Weave {
             let right_identifier = right.id;
 
             let from = right.from.clone();
+            let bookmarked = right.bookmarked;
             self.update_node_activity(&left_identifier, right.active, !right.active);
 
             let node = self.nodes.get_mut(&left_identifier)?;
             node.content = content;
+            if !node.bookmarked {
+                node.bookmarked = bookmarked;
+            }
             node.from.clone_from(&from);
             for parent in from {
                 if let Some(parent) = self.nodes.get_mut(&parent) {
