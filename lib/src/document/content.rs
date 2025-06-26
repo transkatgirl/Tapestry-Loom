@@ -172,6 +172,12 @@ impl Weave {
             }
         };
 
+        let mut end = update
+            .ranges
+            .last()
+            .map(|range| range.range.end)
+            .unwrap_or_default();
+
         for modification in update.diff.content {
             let modification_range = modification.range();
 
@@ -182,27 +188,36 @@ impl Weave {
 
             match modification.content {
                 ModificationContent::Insertion(content) => {
-                    todo!()
+                    if modification_range.end >= end {
+                        todo!()
+                    } else {
+                        todo!()
+                    }
                 }
                 ModificationContent::Deletion(_length) => {
-                    for timeline_range in ranges {
-                        if modification_range.contains(&timeline_range.range.start)
-                            && modification_range.contains(&timeline_range.range.end)
-                        {
-                            self.update_node_activity(&timeline_range.node, false, true);
-                        } else if modification_range.contains(&timeline_range.range.start) {
-                            if let Some([_left, right]) = self.split_node(
+                    if modification_range.end >= end {
+                        for timeline_range in ranges {
+                            if modification_range.contains(&timeline_range.range.start)
+                                && modification_range.contains(&timeline_range.range.end)
+                            {
+                                self.update_node_activity(&timeline_range.node, false, true);
+                            } else if modification_range.contains(&timeline_range.range.start) {
+                                if let Some([_left, right]) = self.split_node(
+                                    &timeline_range.node,
+                                    timeline_range.range.start - modification_range.end,
+                                ) {
+                                    self.update_node_activity(&right, false, true);
+                                }
+                            } else if let Some([left, _right]) = self.split_node(
                                 &timeline_range.node,
-                                timeline_range.range.start - modification_range.end,
+                                timeline_range.range.end - modification_range.start,
                             ) {
-                                self.update_node_activity(&right, false, true);
+                                self.update_node_activity(&left, false, true);
                             }
-                        } else if let Some([left, _right]) = self.split_node(
-                            &timeline_range.node,
-                            timeline_range.range.end - modification_range.start,
-                        ) {
-                            self.update_node_activity(&left, false, true);
                         }
+                        end = modification_range.start;
+                    } else {
+                        todo!()
                     }
                 }
             }
