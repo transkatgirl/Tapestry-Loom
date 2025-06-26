@@ -132,7 +132,7 @@ impl<'w> WeaveTimeline<'w> {
                 .filter_map(|annotation| {
                     annotation.node.map(|node| TimelineNodeRange {
                         range: annotation.range,
-                        node: node.id,
+                        node: Some(node.id),
                     })
                 })
                 .collect(),
@@ -148,7 +148,47 @@ struct TimelineUpdate {
 
 struct TimelineNodeRange {
     range: Range<usize>,
-    node: Ulid,
+    node: Option<Ulid>,
+}
+
+impl From<Range<usize>> for TimelineNodeRange {
+    fn from(input: Range<usize>) -> Self {
+        Self {
+            range: input,
+            node: None,
+        }
+    }
+}
+
+impl Annotation for TimelineNodeRange {
+    fn range(&self) -> &Range<usize> {
+        &self.range
+    }
+    fn range_mut(&mut self) -> &mut Range<usize> {
+        &mut self.range
+    }
+    fn split(&self, index: usize) -> Option<[Self; 2]> {
+        if index == 0 || index >= self.range.end {
+            return None;
+        }
+
+        let mut left = self.range.clone();
+        let mut right = self.range.clone();
+
+        left.end -= index;
+        right.start += index;
+
+        Some([
+            Self {
+                range: left,
+                node: self.node,
+            },
+            Self {
+                range: right,
+                node: self.node,
+            },
+        ])
+    }
 }
 
 impl Weave {
@@ -156,7 +196,7 @@ impl Weave {
     pub fn update(&mut self, timeline: usize, content: String, deadline: Instant) {
         let mut timelines = self.get_active_timelines();
 
-        let update = if timelines.len() > timeline {
+        let mut update = if timelines.len() > timeline {
             timelines
                 .swap_remove(timeline)
                 .build_update(content, deadline)
@@ -172,23 +212,23 @@ impl Weave {
             }
         };
 
-        let mut end = update
-            .ranges
-            .last()
-            .map(|range| range.range.end)
-            .unwrap_or_default();
-
         for modification in update.diff.content {
             let modification_range = modification.range();
 
-            let ranges = update.ranges.iter().filter(|node_range| {
+            let selected_ranges = update.ranges.iter().filter(|node_range| {
                 modification_range.contains(&node_range.range.start)
                     || modification_range.contains(&node_range.range.end)
             });
 
+            let end = update
+                .ranges
+                .last()
+                .map(|range| range.range.end)
+                .unwrap_or_default();
+
             match modification.content {
                 ModificationContent::Insertion(content) => {
-                    if modification_range.end >= end {
+                    if modification_range.start >= end {
                         todo!()
                     } else {
                         todo!()
@@ -196,31 +236,34 @@ impl Weave {
                 }
                 ModificationContent::Deletion(_length) => {
                     if modification_range.end >= end {
-                        for timeline_range in ranges {
-                            if modification_range.contains(&timeline_range.range.start)
-                                && modification_range.contains(&timeline_range.range.end)
-                            {
-                                self.update_node_activity(&timeline_range.node, false, true);
-                            } else if modification_range.contains(&timeline_range.range.start) {
-                                if let Some([_left, right]) = self.split_node(
-                                    &timeline_range.node,
-                                    timeline_range.range.start - modification_range.end,
+                        for timeline_range in selected_ranges {
+                            if let Some(identifier) = timeline_range.node {
+                                if modification_range.contains(&timeline_range.range.start)
+                                    && modification_range.contains(&timeline_range.range.end)
+                                {
+                                    self.update_node_activity(&identifier, false, true);
+                                } else if modification_range.contains(&timeline_range.range.start) {
+                                    if let Some([_left, right]) = self.split_node(
+                                        &identifier,
+                                        timeline_range.range.start - modification_range.end,
+                                    ) {
+                                        self.update_node_activity(&right, false, true);
+                                    }
+                                } else if let Some([left, _right]) = self.split_node(
+                                    &identifier,
+                                    timeline_range.range.end - modification_range.start,
                                 ) {
-                                    self.update_node_activity(&right, false, true);
+                                    self.update_node_activity(&left, false, true);
                                 }
-                            } else if let Some([left, _right]) = self.split_node(
-                                &timeline_range.node,
-                                timeline_range.range.end - modification_range.start,
-                            ) {
-                                self.update_node_activity(&left, false, true);
                             }
                         }
-                        end = modification_range.start;
                     } else {
                         todo!()
                     }
                 }
             }
+
+            modification.apply_annotations(&mut update.ranges);
         }
     }
 }
