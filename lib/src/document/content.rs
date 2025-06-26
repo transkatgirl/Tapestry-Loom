@@ -163,6 +163,7 @@ impl Weave {
             let right_identifier = right.id;
 
             let from = right.from.clone();
+            self.update_node_activity(&left_identifier, right.active, !right.active);
 
             let node = self.nodes.get_mut(&left_identifier)?;
             node.content = content;
