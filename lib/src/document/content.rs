@@ -118,18 +118,31 @@ impl<'w> WeaveTimeline<'w> {
 
         (string, annotations)
     }
-    pub fn build_update(self, content: String) -> TimelineUpdate {
-        todo!()
+    pub fn build_update(self, content: String, deadline: Instant) -> TimelineUpdate {
+        let (before, annotations) = self.annotated_string();
+
+        TimelineUpdate {
+            ranges: annotations
+                .into_iter()
+                .filter_map(|annotation| {
+                    annotation.node.map(|node| TimelineContentRange {
+                        range: annotation.range,
+                        node: node.id,
+                    })
+                })
+                .collect(),
+            diff: Diff::new(&before.into_bytes(), &content.into_bytes(), deadline),
+        }
     }
 }
 
 pub struct TimelineUpdate {
-    old: Vec<UpdateTimelineContent>,
-    new: String,
+    ranges: Vec<TimelineContentRange>,
+    diff: Diff,
 }
 
-pub struct UpdateTimelineContent {
-    content: String,
+pub struct TimelineContentRange {
+    range: Range<usize>,
     node: Ulid,
 }
 
