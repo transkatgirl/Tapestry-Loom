@@ -304,7 +304,7 @@ impl Weave {
             }
         }
     }
-    /// Splits one [`Node`] into two nodes.
+    /// Split one [`Node`] into two nodes.
     ///
     /// This uses [`NodeContent::split`] to split the [`NodeContent`] object, then updates the Weave as necessary to split the existing node into two nodes. The identifiers of the split node (from left to right) are returned, with no guarantees regarding if they are new identifiers or reused ones (along with no guarantees that the input identifiers are still valid). Returns [`None`] if the node could not be split.
     ///
@@ -331,9 +331,9 @@ impl Weave {
 
         Some([left_identifier, right.id])
     }
-    /// Merge two [`Node`] objects into one.
+    /// Merge two [`Node`]s into one.
     ///
-    /// The `right` node must be a child of the `left` node for merging to succeed.
+    /// The `right` node must be a child of the `left` node for merging to succeed. Children of the `left` node will be removed from the Weave if they have no other parents.
     ///
     /// This uses [`NodeContent::merge`] to merge both [`NodeContent`] objects, then updates the Weave as necessary to merge the two nodes into one node. The identifier of the merged node is returned, with no guarantee regarding if the identifier is new or reused (along with no guarantees that the input identifiers are still valid). Returns [`None`] if the nodes could not be merged.
     ///
@@ -361,7 +361,7 @@ impl Weave {
         node.from.clone_from(&from);
         for parent in from {
             if let Some(parent) = self.nodes.get_mut(&parent) {
-                parent.to.insert(left_identifier);
+                parent.to.insert(right_identifier);
             }
         }
 
