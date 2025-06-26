@@ -111,18 +111,12 @@ impl<'w> WeaveTimeline<'w> {
         for chunk in bytes.utf8_chunks() {
             string.push_str(chunk.valid());
 
-            let invalid = chunk.invalid();
-
-            if !invalid.is_empty() {
-                string.push(REPLACEMENT_CHARACTER);
-
-                if invalid.len() < 3 {
-                    // TODO: Handle annotations correctly
-                }
+            for &_b in chunk.invalid() {
+                string.push('');
             }
         }
 
-        todo!()
+        (string, annotations)
     }
     pub fn build_update(self, content: String) -> TimelineUpdate {
         todo!()
