@@ -306,7 +306,7 @@ impl Weave {
     }
     /// Split one [`Node`] into two nodes.
     ///
-    /// This uses [`NodeContent::split`] to split the [`NodeContent`] object, then updates the Weave as necessary to split the existing node into two nodes. The identifiers of the split node (from left to right) are returned, with no guarantees regarding if they are new identifiers or reused ones (along with no guarantees that the input identifiers are still valid). Returns [`None`] if the node could not be split.
+    /// This uses [`NodeContent::split`] to split the [`NodeContent`] object, then updates the Weave as necessary to split the existing node into two nodes. The identifiers of the split node (from left to right) are returned, with no guarantees regarding if they are new identifiers or reused ones (along with no guarantee that the input identifier is still valid). Returns [`None`] if the node could not be split.
     ///
     /// If the node being split is bookmarked, only the left side of the split will be bookmarked. Otherwise, the split nodes retains all other properties of the original node.
     pub fn split_node(&mut self, identifier: &Ulid, index: usize) -> Option<[Ulid; 2]> {
