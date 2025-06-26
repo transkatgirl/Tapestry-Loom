@@ -2,10 +2,7 @@
 
 #![allow(missing_docs)]
 
-use std::{
-    char::REPLACEMENT_CHARACTER, collections::HashSet, fmt::Display, iter, ops::Range,
-    time::Instant, vec,
-};
+use std::{collections::HashSet, fmt::Display, iter, ops::Range, time::Instant, vec};
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -35,7 +32,6 @@ pub struct WeaveTimeline<'w> {
     pub timeline: Vec<(&'w Node, Option<&'w Model>)>,
 }
 
-// TODO
 impl<'w> WeaveTimeline<'w> {
     pub fn bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
@@ -112,7 +108,7 @@ impl<'w> WeaveTimeline<'w> {
             string.push_str(chunk.valid());
 
             for &_b in chunk.invalid() {
-                string.push('');
+                string.push(''); // Legacy substitution character is used due to it being a single byte in length.
             }
         }
 
@@ -164,7 +160,7 @@ impl Weave {
 
         todo!()
     }
-    pub fn update_content(&mut self, update: TimelineUpdate) {
+    pub fn apply_update(&mut self, update: TimelineUpdate) {
         todo!()
     }
 }
