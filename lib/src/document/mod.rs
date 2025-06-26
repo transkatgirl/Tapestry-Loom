@@ -61,7 +61,7 @@ impl Weave {
             return None;
         }
         if (!self.nonconcatable_nodes.is_empty() || !node.content.is_concatable())
-            && (!self.multiparent_nodes.is_empty() || node.from.len() > 1)
+            && (!self.multiparent_nodes.is_empty() || node.from.len() > 1 || !node.to.is_empty())
         {
             return None;
         }
@@ -120,7 +120,7 @@ impl Weave {
         if node.from.is_empty() {
             self.root_nodes.insert(node.id);
         }
-        if node.from.len() > 1 {
+        if node.from.len() > 1 || !node.to.is_empty() {
             self.multiparent_nodes.insert(node.id);
         }
         if !node.content.is_concatable() {
