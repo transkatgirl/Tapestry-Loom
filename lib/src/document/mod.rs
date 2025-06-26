@@ -25,7 +25,7 @@ pub trait WeaveView {
 ///
 /// In addition to keeping the Weave internally consistent, this implementation also allows for fast retrieval of objects and useful groups of objects (such has active nodes and root nodes) from the Weave.
 ///
-/// Note: This document is built on top of [`std::collections`] types, as a result, does not automatically shrink its capacity. If you would like to manage the Weave's capacity manually, see the [`Weave::reserve`], [`Weave::shrink_to_fit`], and [`Weave::add_model`] functions.
+/// Note: This document is built on top of [`std::collections`] types, and as a result, does not automatically shrink its capacity. If you would like to manage the Weave's capacity manually, see the [`Weave::reserve`], [`Weave::shrink_to_fit`], and [`Weave::add_model`] functions.
 #[derive(Default, Debug, PartialEq)]
 pub struct Weave {
     nodes: HashMap<Ulid, Node>,
