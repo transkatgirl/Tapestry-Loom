@@ -13,7 +13,6 @@ use super::{Weave, WeaveView};
 
 /* TODO:
 - Node splitting/merging
-- Timeline content building
 - Weave content updating
 - Documentation */
 
@@ -121,7 +120,7 @@ impl<'w> WeaveTimeline<'w> {
             ranges: annotations
                 .into_iter()
                 .filter_map(|annotation| {
-                    annotation.node.map(|node| TimelineContentRange {
+                    annotation.node.map(|node| TimelineNodeRange {
                         range: annotation.range,
                         node: node.id,
                     })
@@ -133,11 +132,11 @@ impl<'w> WeaveTimeline<'w> {
 }
 
 struct TimelineUpdate {
-    ranges: Vec<TimelineContentRange>,
+    ranges: Vec<TimelineNodeRange>,
     diff: Diff,
 }
 
-struct TimelineContentRange {
+struct TimelineNodeRange {
     range: Range<usize>,
     node: Ulid,
 }
@@ -178,6 +177,20 @@ impl Weave {
                 },
             }
         };
+
+        for modification in update.diff.content {
+            let modification_range = modification.range();
+
+            let ranges = update.ranges.iter().filter(|node_range| {
+                modification_range.contains(&node_range.range.start)
+                    || modification_range.contains(&node_range.range.end)
+            });
+
+            match modification.content {
+                ModificationContent::Insertion(content) => {}
+                ModificationContent::Deletion(length) => {}
+            }
+        }
 
         todo!()
     }
@@ -861,6 +874,12 @@ impl Modification {
             ModificationContent::Insertion(content) => data.splice(self.index..self.index, content),
             ModificationContent::Deletion(length) => data.splice(self.index..length, vec![]),
         };
+    }
+    pub fn range(&self) -> Range<usize> {
+        Range {
+            start: self.index,
+            end: self.index + self.content.len(),
+        }
     }
     fn apply_annotations<T>(&self, annotations: &mut Vec<T>) -> Option<usize>
     where
