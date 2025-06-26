@@ -13,6 +13,7 @@ use super::{Weave, WeaveView};
 
 /* TODO:
 - Node splitting/merging
+    - Move finalized functions to document module
 - Weave content updating
 - Documentation */
 
@@ -149,15 +150,69 @@ impl Weave {
 
         todo!()
     }
-    // TODO
     pub fn merge_nodes(&mut self, left: &Ulid, right: &Ulid) -> Option<Ulid> {
         let left = self.nodes.get(left)?;
         let right = self.nodes.get(right)?;
         if !(left.to.contains(&right.id) && right.from.contains(&left.id)) {
             return None;
         }
+        if NodeContent::is_mergeable(&left.content, &right.content) {
+            let content = NodeContent::merge(left.content.clone(), right.content.clone())?;
 
-        todo!()
+            let left_identifier = left.id;
+            let right_identifier = right.id;
+
+            let from = right.from.clone();
+
+            let node = self.nodes.get_mut(&left_identifier)?;
+            node.content = content;
+            node.from.clone_from(&from);
+            for parent in from {
+                if let Some(parent) = self.nodes.get_mut(&parent) {
+                    parent.to.insert(left_identifier);
+                }
+            }
+
+            self.remove_node(&right_identifier);
+
+            Some(left_identifier)
+        } else {
+            let mut left_content = left.content.clone();
+            let mut right_content = right.content.clone();
+
+            left_content.clear_model();
+            right_content.clear_model();
+
+            let node = if self.nonconcatable_nodes.is_empty() {
+                Node {
+                    id: Ulid::from_datetime(right.id.datetime()),
+                    from: left.from.clone(),
+                    to: right.to.clone(),
+                    active: right.active,
+                    bookmarked: false,
+                    content: NodeContent::merge(left_content, right_content)?,
+                }
+            } else {
+                Node {
+                    id: Ulid::from_datetime(right.id.datetime()),
+                    from: left.from.clone(),
+                    to: HashSet::new(),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::merge(left_content, right_content)?,
+                }
+            };
+
+            let left_identifier = left.id;
+
+            let added_node = self.add_node(node, None, true, false);
+
+            if added_node.is_some() && self.nonconcatable_nodes.is_empty() {
+                self.update_node_activity(&left_identifier, false, true);
+            }
+
+            added_node
+        }
     }
     // TODO
     pub fn update(&mut self, timeline: usize, content: String, deadline: Instant) {
@@ -273,6 +328,13 @@ impl NodeContent {
     }
     pub fn is_mergeable(left: &Self, right: &Self) -> bool {
         left.model() == right.model() || (left.is_concatable() && right.is_concatable())
+    }
+    fn clear_model(&mut self) {
+        match self {
+            NodeContent::Snippet(content) => content.model = None,
+            NodeContent::Tokens(content) => content.model = None,
+            NodeContent::Diff(_) | NodeContent::Blank => {}
+        }
     }
     pub fn split(self, index: usize) -> Option<[Self; 2]> {
         match self {
