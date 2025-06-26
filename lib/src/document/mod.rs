@@ -7,7 +7,7 @@ use ulid::Ulid;
 
 pub mod content;
 
-use content::{Model, Node, NodeContents, WeaveTimeline};
+use content::{Model, Node, NodeContent, NodeContents, WeaveTimeline};
 
 /// Functions implemented by all interactive Weave representations.
 pub trait WeaveView {
@@ -303,6 +303,71 @@ impl Weave {
                 self.update_removed_child_activity(&child);
             }
         }
+    }
+    /// Splits one [`Node`] into two nodes.
+    ///
+    /// This uses [`NodeContent::split`] to split the [`NodeContent`] object, then updates the Weave as necessary to split the existing node into two nodes. The identifiers of the split node (from left to right) are returned, with no guarantees regarding if they are new identifiers or reused ones (along with no guarantees that the input identifiers are still valid). Returns [`None`] if the node could not be split.
+    ///
+    /// If the node being split is bookmarked, only the left side of the split will be bookmarked. Otherwise, the split nodes retains all other properties of the original node.
+    pub fn split_node(&mut self, identifier: &Ulid, index: usize) -> Option<[Ulid; 2]> {
+        let original = self.nodes.get(identifier)?;
+        let [left_content, right_content] = original.content.clone().split(index)?;
+
+        let node = Node {
+            id: Ulid::from_datetime(identifier.datetime()),
+            from: original.from.clone(),
+            to: HashSet::from([*identifier]),
+            active: original.active,
+            bookmarked: original.bookmarked,
+            content: left_content,
+        };
+
+        let left_identifier = self.add_node(node, None, true, false)?;
+
+        let right = self.nodes.get_mut(identifier)?;
+        right.content = right_content;
+        right.bookmarked = false;
+        right.from = HashSet::from([left_identifier]);
+
+        Some([left_identifier, right.id])
+    }
+    /// Merge two [`Node`] objects into one.
+    ///
+    /// The `right` node must be a child of the `left` node for merging to succeed.
+    ///
+    /// This uses [`NodeContent::merge`] to merge both [`NodeContent`] objects, then updates the Weave as necessary to merge the two nodes into one node. The identifier of the merged node is returned, with no guarantee regarding if the identifier is new or reused (along with no guarantees that the input identifiers are still valid). Returns [`None`] if the nodes could not be merged.
+    ///
+    /// The merged node inherits the active status of the `right` node. Otherwise, the merged node retains all other properties of the original nodes.
+    pub fn merge_nodes(&mut self, left: &Ulid, right: &Ulid) -> Option<Ulid> {
+        let left = self.nodes.get(left)?;
+        let right = self.nodes.get(right)?;
+        if !(left.to.contains(&right.id) && right.from.contains(&left.id)) {
+            return None;
+        }
+
+        let content = NodeContent::merge(left.content.clone(), right.content.clone())?;
+
+        let left_identifier = left.id;
+        let right_identifier = right.id;
+
+        let from = left.from.clone();
+        let bookmarked = left.bookmarked;
+
+        let node = self.nodes.get_mut(&right_identifier)?;
+        node.content = content;
+        if !node.bookmarked {
+            node.bookmarked = bookmarked;
+        }
+        node.from.clone_from(&from);
+        for parent in from {
+            if let Some(parent) = self.nodes.get_mut(&parent) {
+                parent.to.insert(left_identifier);
+            }
+        }
+
+        self.remove_node(&left_identifier);
+
+        Some(left_identifier)
     }
     /// Remove a [`Node`] by it's [`Ulid`], returning it's value if it was present.
     ///
