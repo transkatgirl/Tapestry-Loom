@@ -2,7 +2,7 @@
 
 #![allow(missing_docs)]
 
-use std::{collections::HashSet, fmt::Display, iter, ops::Range, vec};
+use std::{collections::HashSet, fmt::Display, fmt::Write, iter, ops::Range, vec};
 
 use dissimilar::Chunk;
 use rust_decimal::Decimal;
@@ -35,14 +35,42 @@ pub struct WeaveTimeline<'w> {
 // TODO
 impl<'w> WeaveTimeline<'w> {
     pub fn bytes(&self) -> Vec<u8> {
-        todo!()
+        let mut bytes = Vec::new();
+
+        for (node, _model) in &self.timeline {
+            match &node.content {
+                NodeContent::Snippet(snippet) => {
+                    bytes.append(&mut snippet.clone().bytes());
+                }
+                NodeContent::Tokens(tokens) => {
+                    bytes.append(&mut tokens.clone().bytes());
+                }
+                NodeContent::Diff(diff) => {
+                    let mut string = String::with_capacity(bytes.len());
+
+                    for chunk in bytes.utf8_chunks() {
+                        string.push_str(chunk.valid());
+
+                        for &b in chunk.invalid() {
+                            write!(string, "\\x{b:02X}").unwrap();
+                        }
+                    }
+
+                    diff.content.apply(&mut string);
+                    bytes = string.into_bytes();
+                }
+                NodeContent::Blank => {}
+            }
+        }
+
+        bytes
     }
     pub fn annotated_string(&self) -> (String, Vec<TimelineAnnotation<'w>>) {
         todo!()
     }
     pub fn build_update(self, content: String) -> TimelineUpdate {
         TimelineUpdate {
-            old: String::from_utf8_lossy(&self.bytes()).to_string(),
+            old: self.annotated_string().0,
             new: content,
         }
     }
@@ -379,13 +407,19 @@ impl NodeContents for SnippetNode {
 
 impl Display for SnippetNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let text = String::from_utf8_lossy(&self.content);
-
-        if text.is_empty() {
+        if self.content.is_empty() {
             return write!(f, "No Content");
         }
 
-        write!(f, "{text}")
+        for chunk in self.content.utf8_chunks() {
+            write!(f, "{}", chunk.valid())?;
+
+            for &b in chunk.invalid() {
+                write!(f, "\\x{b:02X}")?;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -445,13 +479,20 @@ impl NodeContents for TokenNode {
 impl Display for TokenNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let bytes = self.clone().bytes();
-        let text = String::from_utf8_lossy(&bytes);
 
-        if text.is_empty() {
+        if bytes.is_empty() {
             return write!(f, "No Content");
         }
 
-        write!(f, "{text}")
+        for chunk in bytes.utf8_chunks() {
+            write!(f, "{}", chunk.valid())?;
+
+            for &b in chunk.invalid() {
+                write!(f, "\\x{b:02X}")?;
+            }
+        }
+
+        Ok(())
     }
 }
 
