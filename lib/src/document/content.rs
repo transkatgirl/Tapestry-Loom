@@ -334,8 +334,6 @@ impl Weave {
                                     ) {
                                         self.update_node_activity(&left, false, true);
                                     }
-                                } else {
-                                    todo!()
                                 }
                             }
                         } else {
@@ -344,7 +342,9 @@ impl Weave {
                     }
                 }
 
-                modification.apply_annotations(&mut update.ranges);
+                if let Some(mod_index) = modification.apply_annotations(&mut update.ranges) {
+                    //update.ranges[mod_index].node
+                }
             }
         }
     }
