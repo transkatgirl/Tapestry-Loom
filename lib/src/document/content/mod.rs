@@ -604,6 +604,8 @@ impl Display for NodeContent {
 }
 
 /// Metadata about the algorithmic process which generated a section of content.
+///
+/// This should only be used if the algorithmic process generated the content itself, not just the metadata associated with the content.
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct ContentModel {
     /// The identifier of the [`Model`] that generated the content.
