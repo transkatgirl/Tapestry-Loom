@@ -13,7 +13,7 @@ mod tests;
 
 use content::{Model, Node, NodeContent, NodeContents, WeaveTimeline};
 
-/// Functions implemented by all interactive Weave representations.
+/// A trait for interactive Weave representations.
 pub trait WeaveView {
     /// Retrieve an [`Node`] by its [`Ulid`].
     fn get_node(&self, identifier: &Ulid) -> (Option<&Node>, Option<&Model>);

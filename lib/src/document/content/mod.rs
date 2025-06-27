@@ -57,10 +57,10 @@ impl<'w> WeaveTimeline<'w> {
         for (node, _model) in &self.timeline {
             match node.content.clone() {
                 NodeContent::Snippet(snippet) => {
-                    bytes.append(&mut snippet.bytes());
+                    bytes.append(&mut snippet.into_bytes());
                 }
                 NodeContent::Tokens(tokens) => {
-                    bytes.append(&mut tokens.bytes());
+                    bytes.append(&mut tokens.into_bytes());
                 }
                 NodeContent::Diff(diff) => {
                     diff.content.apply(&mut bytes);
@@ -93,7 +93,7 @@ impl<'w> WeaveTimeline<'w> {
                             })
                             .collect(),
                     );
-                    bytes.append(&mut snippet.bytes());
+                    bytes.append(&mut snippet.into_bytes());
                 }
                 NodeContent::Tokens(tokens) => {
                     annotations.append(
@@ -111,7 +111,7 @@ impl<'w> WeaveTimeline<'w> {
                             })
                             .collect(),
                     );
-                    bytes.append(&mut tokens.bytes());
+                    bytes.append(&mut tokens.into_bytes());
                 }
                 NodeContent::Diff(diff) => {
                     diff.content.apply_timeline_annotations(
@@ -428,9 +428,13 @@ pub struct TimelineAnnotation<'w> {
     pub metadata: Option<&'w HashMap<String, String>>,
 }
 
+/// Types which act as content annotations for sets of bytes.
 pub trait Annotation: Sized + From<Range<usize>> {
+    /// Returns the range of content bytes that the annotation applies to.
     fn range(&self) -> &Range<usize>;
+    /// Returns a mutable reference to the annotation's byte range.
     fn range_mut(&mut self) -> &mut Range<usize>;
+    /// Splits the annotation in half, retaining all associated metadata.
     fn split(&self, index: usize) -> Option<(Self, Self)>;
 }
 
@@ -535,16 +539,27 @@ impl From<ContentAnnotation> for TimelineAnnotation<'_> {
     }
 }
 
+/// Types which are intended to be used as content for a [`Node`] object.
 pub trait NodeContents: Display + Sized {
+    /// Returns metadata about the algorithmic process which generated the content, if any.
     fn model(&self) -> Option<&NodeModel>;
+    /// Returns metadata associated with the content.
     fn metadata(&self) -> Option<&HashMap<String, String>>;
 }
 
+/// Concatable types which are intended to be used as content for a [`Node`] object.
 pub trait ConcatableNodeContents: NodeContents {
-    fn bytes(self) -> Vec<u8>;
+    /// Converts the content into a set of bytes.
+    fn into_bytes(self) -> Vec<u8>;
+    /// Returns the length from the content in bytes.
     fn len(&self) -> usize;
+    /// Returns `true` if the content has a length of zero bytes (excluding metadata).
     fn is_empty(&self) -> bool;
+    /// Returns annotations for the content.
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation>;
+    /// Splits the content in half at the specified index.
+    ///
+    /// If the content has metadata, both sides of the split retain that metadata.
     fn split(self, index: usize) -> Option<(Self, Self)>;
 }
 
@@ -630,7 +645,7 @@ impl Display for SnippetContent {
 }
 
 impl ConcatableNodeContents for SnippetContent {
-    fn bytes(self) -> Vec<u8> {
+    fn into_bytes(self) -> Vec<u8> {
         self.content
     }
     fn len(&self) -> usize {
@@ -698,7 +713,7 @@ impl NodeContents for TokenContent {
 
 impl Display for TokenContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let bytes = self.clone().bytes();
+        let bytes = self.clone().into_bytes();
 
         if bytes.is_empty() {
             return write!(f, "No Content");
@@ -717,7 +732,7 @@ impl Display for TokenContent {
 }
 
 impl ConcatableNodeContents for TokenContent {
-    fn bytes(self) -> Vec<u8> {
+    fn into_bytes(self) -> Vec<u8> {
         self.content
             .into_iter()
             .flat_map(|token| token.content)
@@ -830,6 +845,9 @@ pub struct ContentToken {
 }
 
 impl ContentToken {
+    /// Splits the token in half at the specified index.
+    ///
+    /// If the token has an assigned probability value, both halves retain the same value.
     pub fn split(self, index: usize) -> Option<(Self, Self)> {
         if index > self.content.len() {
             return None;
