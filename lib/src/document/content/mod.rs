@@ -142,9 +142,9 @@ impl<'w> WeaveTimeline<'w> {
         &self,
         (string, mut annotations): (&str, Vec<TimelineAnnotation<'w>>),
         new_content: &str,
-        deadline: Instant,
+        diff_deadline: Instant,
     ) -> Vec<TimelineAnnotation<'w>> {
-        Diff::new(string.as_bytes(), new_content.as_bytes(), deadline)
+        Diff::new(string.as_bytes(), new_content.as_bytes(), diff_deadline)
             .apply_annotations(&mut annotations);
 
         annotations

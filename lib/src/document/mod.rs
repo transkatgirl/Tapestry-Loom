@@ -568,6 +568,14 @@ impl Weave {
             self.build_timelines(timelines);
         }
     }
+    /// Returns `true` if the Weave contains any nodes with multiple parents. If this is the case, non-concatable nodes cannot be added.
+    pub fn is_multiparent_mode(&self) -> bool {
+        !self.multiparent_nodes.is_empty()
+    }
+    /// Returns `true` if the Weave contains any non-concatable nodes. If this is the case, nodes with multiple parents cannot be added.
+    pub fn is_nonconcatable_mode(&self) -> bool {
+        !self.nonconcatable_nodes.is_empty()
+    }
 }
 
 impl WeaveView for Weave {
