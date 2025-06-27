@@ -172,7 +172,7 @@ impl TryFrom<NodeData> for content::NodeContent {
     fn try_from(input: NodeData) -> Result<Self, Self::Error> {
         Ok(match input {
             NodeData::Snippet((content, model, metadata)) => {
-                content::NodeContent::Snippet(content::SnippetNode {
+                content::NodeContent::Snippet(content::SnippetContent {
                     content: content.into_vec(),
                     model: model.map(|(identifier, parameters)| content::NodeModel {
                         id: Ulid(identifier),
@@ -182,11 +182,11 @@ impl TryFrom<NodeData> for content::NodeContent {
                 })
             }
             NodeData::Tokens((content, model, metadata)) => {
-                content::NodeContent::Tokens(content::TokenNode {
+                content::NodeContent::Tokens(content::TokenContent {
                     content: content
                         .into_iter()
                         .map(|(bytes, probability)| {
-                            Ok(content::NodeToken {
+                            Ok(content::ContentToken {
                                 probability: match probability {
                                     Some(probability) => {
                                         Some(Decimal::try_from(probability).map_err(|_| {
@@ -209,7 +209,7 @@ impl TryFrom<NodeData> for content::NodeContent {
                 })
             }
             NodeData::Diff((diff, model, metadata)) => {
-                content::NodeContent::Diff(content::DiffNode {
+                content::NodeContent::Diff(content::DiffContent {
                     content: content::Diff {
                         content: diff
                             .into_iter()

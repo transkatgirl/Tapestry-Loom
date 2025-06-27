@@ -11,7 +11,7 @@ use ulid::Ulid;
 use super::{
     Weave, WeaveView,
     content::{
-        Diff, DiffNode, Modification, ModificationContent, Node, NodeContent, SnippetNode,
+        Diff, DiffContent, Modification, ModificationContent, Node, NodeContent, SnippetContent,
         TimelineUpdate,
     },
 };
@@ -62,12 +62,14 @@ impl Weave {
                 let modification = update.diff.content.remove(0);
 
                 let content = match modification.content {
-                    ModificationContent::Insertion(content) => NodeContent::Snippet(SnippetNode {
-                        content,
-                        model: None,
-                        metadata: None,
-                    }),
-                    ModificationContent::Deletion(length) => NodeContent::Diff(DiffNode {
+                    ModificationContent::Insertion(content) => {
+                        NodeContent::Snippet(SnippetContent {
+                            content,
+                            model: None,
+                            metadata: None,
+                        })
+                    }
+                    ModificationContent::Deletion(length) => NodeContent::Diff(DiffContent {
                         content: Diff {
                             content: vec![Modification {
                                 index: modification.index,
@@ -106,7 +108,7 @@ impl Weave {
                     to: HashSet::new(),
                     active: true,
                     bookmarked: false,
-                    content: NodeContent::Diff(DiffNode {
+                    content: NodeContent::Diff(DiffContent {
                         content: update.diff,
                         model: None,
                         metadata: None,
@@ -145,7 +147,7 @@ impl Weave {
                                     to: HashSet::new(),
                                     active: true,
                                     bookmarked: false,
-                                    content: NodeContent::Snippet(SnippetNode {
+                                    content: NodeContent::Snippet(SnippetContent {
                                         content: content.clone(),
                                         model: None,
                                         metadata: None,
@@ -192,7 +194,7 @@ impl Weave {
                                                     .unwrap_or_default(),
                                                 active: true,
                                                 bookmarked: false,
-                                                content: NodeContent::Snippet(SnippetNode {
+                                                content: NodeContent::Snippet(SnippetContent {
                                                     content: content.clone(),
                                                     model: None,
                                                     metadata: None,
