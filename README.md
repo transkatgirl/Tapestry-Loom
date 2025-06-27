@@ -75,6 +75,8 @@ Development may be intermittent, with long periods of inactivity between periods
 
 #### Tapestry Loom v1-alpha checklist
 
+The current target is to finish `v1-alpha` before the end of 2025.
+
 - [ ] Improve Weave format to improve flexibility and efficiency:
 	- [ ] Create `tapestry-weave` Rust library
 		- [x] Implement new Weave data structure & serialization+deserialization
