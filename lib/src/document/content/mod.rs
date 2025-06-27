@@ -15,7 +15,7 @@ use similar::{Algorithm, DiffTag, capture_diff_slices_deadline};
 use ulid::Ulid;
 
 #[allow(unused_imports)]
-use super::Weave;
+use super::{Weave, WeaveView};
 
 #[cfg(test)]
 mod tests;
@@ -41,8 +41,12 @@ pub struct Node {
     pub content: NodeContent,
 }
 
+/// A set of active nodes listed in the order they are connected.
+///
+/// WeaveTimeline objects are created by the [`WeaveView::get_active_timelines`] function. Each timeline represents one possible linear progression of nodes (and their associated models), starting at the root of the [`Weave`] and progressing outwards.
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct WeaveTimeline<'w> {
+    #[allow(missing_docs)]
     pub timeline: Vec<(&'w Node, Option<&'w Model>)>,
 }
 
