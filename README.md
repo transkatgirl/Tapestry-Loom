@@ -77,7 +77,8 @@ Development may be intermittent, with long periods of inactivity between periods
 
 - [ ] Improve Weave format to improve flexibility and efficiency:
 	- [ ] Create `tapestry-weave` Rust library
-		- [ ] Implement new weave data structure & serialization+deserialization
+		- [x] Implement new weave data structure & serialization+deserialization
+		- [ ] Implement weave content updating
 		- [ ] Implement unit testing for the Rust library
 		- [ ] Implement integration testing for the Rust library
 		- [ ] Implement benchmark tests for the Rust library
