@@ -76,13 +76,23 @@ Development may be intermittent, with long periods of inactivity between periods
 #### Tapestry Loom v1-alpha checklist
 
 - [ ] Improve Weave format to improve flexibility and efficiency:
-	- [ ] Create Rust library implementing new weave data structure & serialization+deserialization
+	- [ ] Create `tapestry-weave` Rust library
+		- [ ] Implement new weave data structure & serialization+deserialization
 		- [ ] Implement unit testing for the Rust library
 		- [ ] Implement integration testing for the Rust library
 		- [ ] Implement benchmark tests for the Rust library
-	- [ ] Implement new data structure into Tapestry Loom via WASM
-		- [ ] Add prefix deduplication
-		- [ ] Add support for binary nodes to improve handling of invalid unicode
+	- [ ] Create `tapestry-weave-wasm-glue` Rust WASM bindings
+		- [ ] Implement weave data structure & saving+loading
+		- [ ] Implement prefix deduplication overlay
+		- [ ] Implement data structure for non-persistent Weave data
+			- [ ] Improve handling of node activation/deactivation when node has multiple parents
+			- [ ] Implement token streaming and display of nodes being generated
+	- [ ] Implement new data structure into Tapestry Loom
+		- [ ] Implement base data structure
+			- [ ] Implement weave format v0 -> v1 conversion
+			- [ ] Store weave in dedicated files by default, only store in document frontmatter if the user explicitly requests to do so
+			- [ ] Rewrite async code to fix document switching race conditions
+			- [ ] Allow graceful handling of editor undo/redo functionality
 		- [ ] Add support for FIM completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 		- [ ] Add support for diff weaves, similar to [minihf's loom](https://github.com/JD-P/minihf)
 		- [ ] Add support for copying / moving nodes (and their children) to different parents
@@ -90,14 +100,7 @@ Development may be intermittent, with long periods of inactivity between periods
 			- [ ] Update Node list to display sibings of node at cursor rather than last active node
 			- [ ] Update graph to focus node at cursor rather than last active node
 		- [ ] Add support for saving last-used model & parameter choices in Weave
-	- [ ] Store weave in dedicated files by default, only store in document frontmatter if the user explicitly requests to do so
-		- [ ] Allow graceful handling of editor undo/redo functionality
-	- [ ] Implement weave format v0 -> v1 conversion
 	- [ ] Implement multi-document weaves / references to other documents, similar to [loom](https://github.com/socketteer/loom)
-- [ ] Rewrite async code to fix document switching race conditions
-- [ ] Add data structure for non-persistent Weave data
-	- [ ] Improve handling of node activation/deactivation when node has multiple parents
-	- [ ] Implement token streaming and display of nodes being generated
 - [ ] Weave format stabilization & finalization
 	- [ ] Merging of v1 to main branch
 
