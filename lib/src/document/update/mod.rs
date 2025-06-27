@@ -21,11 +21,11 @@ mod tests;
 impl Weave {
     /// Update the Weave's contents based on a UTF-8 string and a timeline index.
     ///
-    /// This calculates a [`Diff`] using the output of the selected [`WeaveTimeline`] and the user input, and then applies the diff to the graph. The specific algorithm used to update the graph is subject to change.
+    /// This calculates a [`Diff`] using the output of the selected [`WeaveTimeline`] and the user input, and then applies the diff as a series of updates to the Weave. The specific algorithm used to update the Weave is subject to change.
     ///
     /// If the selected timeline is not found, an empty timeline is created to build the diff against.
     ///
-    /// If `add_diff_node` is `true`, modifications are added as [`NodeContent::Diff`] items whenever possible. If `add_diff_node` is `false`, modifications are added as graph updates whenever possible.
+    /// If `add_diff_node` is `true`, modifications are added as [`NodeContent::Diff`] items whenever possible. If `add_diff_node` is `false`, modifications are added as updates to [`Node`] objects whenever possible.
     pub fn update(
         &mut self,
         timeline: usize,
