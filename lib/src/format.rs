@@ -37,14 +37,14 @@ pub struct CompactWeave {
 #[derive(Serialize, Deserialize)]
 struct Model {
     label: String,
-    style: Option<String>,
+    metadata: HashMap<String, String>,
 }
 
 #[derive(Serialize, Deserialize)]
 enum NodeData {
-    Snippet((ByteBuf, Option<NodeModel>)),
-    Tokens((NodeTokens, Option<NodeModel>)),
-    Diff((NodeDiff, Option<NodeModel>)),
+    Snippet((ByteBuf, Option<NodeModel>, NodeMetadata)),
+    Tokens((NodeTokens, Option<NodeModel>, NodeMetadata)),
+    Diff((NodeDiff, Option<NodeModel>, NodeMetadata)),
     Blank,
 }
 
@@ -56,6 +56,7 @@ type NodeModel = (u128, Vec<(String, String)>);
 type NodeTokens = Vec<(ByteBuf, Option<f32>)>;
 // [index, modification] processed in specified order
 type NodeDiff = Vec<(u64, DiffModification)>;
+type NodeMetadata = Option<HashMap<String, String>>;
 
 #[derive(Serialize, Deserialize)]
 #[serde(untagged)]
@@ -170,16 +171,17 @@ impl TryFrom<NodeData> for content::NodeContent {
     type Error = WeaveError;
     fn try_from(input: NodeData) -> Result<Self, Self::Error> {
         Ok(match input {
-            NodeData::Snippet((content, model)) => {
+            NodeData::Snippet((content, model, metadata)) => {
                 content::NodeContent::Snippet(content::SnippetNode {
                     content: content.into_vec(),
                     model: model.map(|(identifier, parameters)| content::NodeModel {
                         id: Ulid(identifier),
                         parameters,
                     }),
+                    metadata,
                 })
             }
-            NodeData::Tokens((content, model)) => {
+            NodeData::Tokens((content, model, metadata)) => {
                 content::NodeContent::Tokens(content::TokenNode {
                     content: content
                         .into_iter()
@@ -203,29 +205,34 @@ impl TryFrom<NodeData> for content::NodeContent {
                         id: Ulid(identifier),
                         parameters,
                     }),
+                    metadata,
                 })
             }
-            NodeData::Diff((diff, model)) => content::NodeContent::Diff(content::DiffNode {
-                content: content::Diff {
-                    content: diff
-                        .into_iter()
-                        .map(|(index, content)| {
-                            Ok(content::Modification {
-                                index: usize::try_from(index).map_err(|_| {
-                                    WeaveError::FailedInteractive(
-                                        "Unable to convert modification index to usize".to_string(),
-                                    )
-                                })?,
-                                content: content::ModificationContent::try_from(content)?,
+            NodeData::Diff((diff, model, metadata)) => {
+                content::NodeContent::Diff(content::DiffNode {
+                    content: content::Diff {
+                        content: diff
+                            .into_iter()
+                            .map(|(index, content)| {
+                                Ok(content::Modification {
+                                    index: usize::try_from(index).map_err(|_| {
+                                        WeaveError::FailedInteractive(
+                                            "Unable to convert modification index to usize"
+                                                .to_string(),
+                                        )
+                                    })?,
+                                    content: content::ModificationContent::try_from(content)?,
+                                })
                             })
-                        })
-                        .collect::<Result<Vec<_>, WeaveError>>()?,
-                },
-                model: model.map(|(identifier, parameters)| content::NodeModel {
-                    id: Ulid(identifier),
-                    parameters,
-                }),
-            }),
+                            .collect::<Result<Vec<_>, WeaveError>>()?,
+                    },
+                    model: model.map(|(identifier, parameters)| content::NodeModel {
+                        id: Ulid(identifier),
+                        parameters,
+                    }),
+                    metadata,
+                })
+            }
             NodeData::Blank => content::NodeContent::Blank,
         })
     }
@@ -238,6 +245,7 @@ impl TryFrom<content::NodeContent> for NodeData {
             content::NodeContent::Snippet(content) => NodeData::Snippet((
                 ByteBuf::from(content.content),
                 content.model.map(|model| (model.id.0, model.parameters)),
+                content.metadata,
             )),
             content::NodeContent::Tokens(content) => NodeData::Tokens((
                 content
@@ -261,6 +269,7 @@ impl TryFrom<content::NodeContent> for NodeData {
                     })
                     .collect::<Result<Vec<_>, _>>()?,
                 content.model.map(|model| (model.id.0, model.parameters)),
+                content.metadata,
             )),
             content::NodeContent::Diff(content) => NodeData::Diff((
                 content
@@ -279,6 +288,7 @@ impl TryFrom<content::NodeContent> for NodeData {
                     })
                     .collect::<Result<Vec<_>, WeaveError>>()?,
                 content.model.map(|model| (model.id.0, model.parameters)),
+                content.metadata,
             )),
             content::NodeContent::Blank => NodeData::Blank,
         })
@@ -299,7 +309,7 @@ impl TryFrom<CompactWeave> for Weave {
                 content::Model {
                     id: Ulid(id),
                     label: model.label,
-                    style: model.style,
+                    metadata: model.metadata,
                 },
                 Some(input.nodes.len()),
             );
@@ -344,7 +354,7 @@ impl TryFrom<Weave> for CompactWeave {
                     model.id.0,
                     (Model {
                         label: model.label,
-                        style: model.style,
+                        metadata: model.metadata,
                     }),
                 )
             })

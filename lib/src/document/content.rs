@@ -1,9 +1,12 @@
 //! Interactive representations of Weave contents.
 
-#![allow(missing_docs)]
-
 use std::{
-    cmp::Ordering, collections::HashSet, fmt::Display, iter, ops::Range, time::Instant, vec,
+    collections::{HashMap, HashSet},
+    fmt::Display,
+    iter,
+    ops::Range,
+    time::Instant,
+    vec,
 };
 
 use rust_decimal::Decimal;
@@ -11,19 +14,27 @@ use serde::{Deserialize, Serialize};
 use similar::{Algorithm, DiffTag, capture_diff_slices_deadline};
 use ulid::Ulid;
 
-use super::{Weave, WeaveView};
+#[allow(unused_imports)]
+use super::Weave;
 
-/* TODO:
-- Weave content updating
-- Documentation */
-
+/// A unit of content in a [`Weave`].
+///
+/// Nodes act as containers for [`NodeContent`] objects, allowing them to be connected together.
+///
+/// Nodes have a directional relationship, with nodes further in the chain being later in the timeline. Nodes can be active or inactive, and can be bookmarked by the user for later reference.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Node {
+    /// The unique identifier of the node.
     pub id: Ulid,
+    /// The parents of the node.
     pub from: HashSet<Ulid>,
+    /// The children of the node.
     pub to: HashSet<Ulid>,
+    /// If the node is active or inactive.
     pub active: bool,
+    /// If the node is bookmarked.
     pub bookmarked: bool,
+    /// The content of the node.
     pub content: NodeContent,
 }
 
@@ -125,7 +136,7 @@ impl<'w> WeaveTimeline<'w> {
 
         annotations
     }
-    fn build_update(self, content: String, deadline: Instant) -> TimelineUpdate {
+    pub(super) fn build_update(self, content: String, deadline: Instant) -> TimelineUpdate {
         let (before, annotations) = self.annotated_string();
 
         TimelineUpdate {
@@ -143,14 +154,14 @@ impl<'w> WeaveTimeline<'w> {
     }
 }
 
-struct TimelineUpdate {
-    ranges: Vec<TimelineNodeRange>,
-    diff: Diff,
+pub(super) struct TimelineUpdate {
+    pub(super) ranges: Vec<TimelineNodeRange>,
+    pub(super) diff: Diff,
 }
 
-struct TimelineNodeRange {
-    range: Range<usize>,
-    node: Option<Ulid>,
+pub(super) struct TimelineNodeRange {
+    pub(super) range: Range<usize>,
+    pub(super) node: Option<Ulid>,
 }
 
 impl From<Range<usize>> for TimelineNodeRange {
@@ -193,259 +204,23 @@ impl Annotation for TimelineNodeRange {
     }
 }
 
-impl Weave {
-    // TODO
-    #[allow(clippy::too_many_lines)]
-    pub fn update(
-        &mut self,
-        timeline: usize,
-        content: String,
-        deadline: Instant,
-        mut add_diff_node: bool,
-    ) {
-        let mut timelines = self.get_active_timelines();
-
-        let mut update = if timelines.len() > timeline {
-            timelines
-                .swap_remove(timeline)
-                .build_update(content, deadline)
-        } else {
-            TimelineUpdate {
-                ranges: vec![],
-                diff: Diff {
-                    content: vec![Modification {
-                        index: 0,
-                        content: ModificationContent::Insertion(content.into_bytes()),
-                    }],
-                },
-            }
-        };
-
-        if !self.multiparent_nodes.is_empty() {
-            add_diff_node = false;
-        }
-        if !self.nonconcatable_nodes.is_empty() {
-            add_diff_node = true;
-        }
-
-        if add_diff_node {
-            let (last_node, end) = update
-                .ranges
-                .last()
-                .map(|range| (range.node, range.range.end))
-                .unwrap_or_default();
-
-            if update.diff.content.len() == 1 && update.diff.content[0].index == end {
-                let modification = update.diff.content.remove(0);
-
-                let content = match modification.content {
-                    ModificationContent::Insertion(content) => NodeContent::Snippet(SnippetNode {
-                        content,
-                        model: None,
-                    }),
-                    ModificationContent::Deletion(length) => NodeContent::Diff(DiffNode {
-                        content: Diff {
-                            content: vec![Modification {
-                                index: modification.index,
-                                content: ModificationContent::Deletion(length),
-                            }],
-                        },
-                        model: None,
-                    }),
-                };
-
-                self.add_node(
-                    Node {
-                        id: Ulid::new(),
-                        from: last_node
-                            .map(|node| HashSet::from([node]))
-                            .unwrap_or_default(),
-                        to: HashSet::new(),
-                        active: true,
-                        bookmarked: false,
-                        content,
-                    },
-                    None,
-                    false,
-                    true,
-                );
-                return;
-            }
-
-            self.add_node(
-                Node {
-                    id: Ulid::new(),
-                    from: last_node
-                        .map(|node| HashSet::from([node]))
-                        .unwrap_or_default(),
-                    to: HashSet::new(),
-                    active: true,
-                    bookmarked: false,
-                    content: NodeContent::Diff(DiffNode {
-                        content: update.diff,
-                        model: None,
-                    }),
-                },
-                None,
-                false,
-                true,
-            );
-        } else {
-            for modification in update.diff.content {
-                let modification_range = modification.range();
-
-                let selected_ranges = update.ranges.iter().enumerate().filter(|(_, node_range)| {
-                    modification_range.contains(&node_range.range.start)
-                        || modification_range.contains(&node_range.range.end)
-                });
-
-                let (last_node, end) = update
-                    .ranges
-                    .last()
-                    .map(|range| (range.node, range.range.end))
-                    .unwrap_or_default();
-
-                let mut new_node = None;
-
-                match &modification.content {
-                    ModificationContent::Insertion(content) => {
-                        if modification_range.start >= end {
-                            new_node = self.add_node(
-                                Node {
-                                    id: Ulid::new(),
-                                    from: last_node
-                                        .map(|node| HashSet::from([node]))
-                                        .unwrap_or_default(),
-                                    to: HashSet::new(),
-                                    active: true,
-                                    bookmarked: false,
-                                    content: NodeContent::Snippet(SnippetNode {
-                                        content: content.clone(),
-                                        model: None,
-                                    }),
-                                },
-                                None,
-                                false,
-                                true,
-                            );
-                        } else {
-                            let selected_ranges: Vec<_> = selected_ranges.collect();
-
-                            if let Some((first_selected_index, first_selected_range)) =
-                                selected_ranges.first()
-                            {
-                                match first_selected_range
-                                    .range
-                                    .start
-                                    .cmp(&modification_range.start)
-                                {
-                                    Ordering::Equal => {
-                                        let from_node = first_selected_range.node;
-                                        let to_node =
-                                            &update.ranges.split_at(*first_selected_index).1;
-
-                                        new_node = self.add_node(
-                                            Node {
-                                                id: Ulid::new(),
-                                                from: from_node
-                                                    .map(|node| HashSet::from([node]))
-                                                    .unwrap_or_default(),
-                                                to: HashSet::new(),
-                                                active: true,
-                                                bookmarked: false,
-                                                content: NodeContent::Snippet(SnippetNode {
-                                                    content: content.clone(),
-                                                    model: None,
-                                                }),
-                                            },
-                                            None,
-                                            false,
-                                            true,
-                                        );
-                                    }
-                                    Ordering::Less => {
-                                        todo!()
-                                    }
-                                    Ordering::Greater => {
-                                        todo!()
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    ModificationContent::Deletion(_length) => {
-                        if modification_range.end >= end {
-                            for (_range_index, timeline_range) in selected_ranges {
-                                if let Some(identifier) = timeline_range.node {
-                                    if modification_range.contains(&timeline_range.range.start)
-                                        && modification_range.contains(&timeline_range.range.end)
-                                    {
-                                        self.update_node_activity(&identifier, false, true);
-                                    } else if modification_range
-                                        .contains(&timeline_range.range.start)
-                                    {
-                                        if let Some((_left, right)) = self.split_node(
-                                            &identifier,
-                                            timeline_range.range.start - modification_range.end,
-                                        ) {
-                                            self.update_node_activity(&right, false, true);
-                                        }
-                                    } else if let Some((left, _right)) = self.split_node(
-                                        &identifier,
-                                        timeline_range.range.end - modification_range.start,
-                                    ) {
-                                        self.update_node_activity(&left, false, true);
-                                    }
-                                }
-                            }
-                        } else {
-                            let selected_ranges: Vec<_> = selected_ranges.collect();
-
-                            if let Some((first_selected_index, first_selected_range)) =
-                                selected_ranges.first()
-                            {
-                                match first_selected_range
-                                    .range
-                                    .start
-                                    .cmp(&modification_range.start)
-                                {
-                                    Ordering::Equal => {
-                                        todo!()
-                                    }
-                                    Ordering::Less => {
-                                        todo!()
-                                    }
-                                    Ordering::Greater => {
-                                        todo!()
-                                    }
-                                }
-                            }
-
-                            for (range_index, timeline_range) in selected_ranges {}
-
-                            todo!()
-                        }
-                    }
-                }
-
-                if let Some(mod_index) = modification.apply_annotations(&mut update.ranges) {
-                    if new_node.is_some() {
-                        update.ranges[mod_index].node = new_node;
-                    }
-                }
-            }
-        }
-    }
-}
-
+/// A user-facing label for algorithmic generators of [`NodeContent`] objects.
+///
+/// NodeContent objects should always be associated with the Model that generated them.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Model {
+    /// The unique identifier of the model.
     pub id: Ulid,
+    /// The user facing label for the model.
     pub label: String,
-    pub style: Option<String>,
+    /// Additional metadata associated with the model.
+    pub metadata: HashMap<String, String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
+/// Isolated sections of content within a [`Weave`] document.
+///
+/// These sections typically have little meaning on their own, as they are meant to be assembled into a bigger whole.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum NodeContent {
     Snippet(SnippetNode),
     Tokens(TokenNode),
@@ -466,10 +241,24 @@ impl NodeContent {
     #[allow(clippy::missing_panics_doc)]
     pub fn merge(left: Self, right: Self) -> Option<Self> {
         if left.model() == right.model() || (left.is_concatable() && right.is_concatable()) {
+            let metadata = left
+                .metadata()
+                .cloned()
+                .unwrap_or_default()
+                .into_iter()
+                .chain(right.metadata().cloned().unwrap_or_default())
+                .collect::<HashMap<_, _>>();
+            let metadata = if metadata.is_empty() {
+                None
+            } else {
+                Some(metadata)
+            };
+
             Some(
                 match left {
                     Self::Snippet(mut left) => match right {
                         Self::Snippet(mut right) => {
+                            left.metadata = metadata;
                             left.content.append(&mut right.content);
                             Self::Snippet(left)
                         }
@@ -483,13 +272,18 @@ impl NodeContent {
                             Self::Tokens(TokenNode {
                                 content: right.content,
                                 model: left.model,
+                                metadata,
                             })
                         }
                         Self::Diff(_) => panic!(),
-                        Self::Blank => Self::Snippet(left),
+                        Self::Blank => {
+                            left.metadata = metadata;
+                            Self::Snippet(left)
+                        }
                     },
                     Self::Tokens(mut left) => match right {
                         Self::Snippet(right) => {
+                            left.metadata = metadata;
                             left.content.push(NodeToken {
                                 probability: None,
                                 content: right.content,
@@ -497,14 +291,29 @@ impl NodeContent {
                             Self::Tokens(left)
                         }
                         Self::Tokens(mut right) => {
+                            left.metadata = metadata;
                             left.content.append(&mut right.content);
                             Self::Tokens(left)
                         }
                         Self::Diff(_) => panic!(),
-                        Self::Blank => Self::Tokens(left),
+                        Self::Blank => {
+                            left.metadata = metadata;
+                            Self::Tokens(left)
+                        }
                     },
                     Self::Diff(_) => panic!(),
-                    Self::Blank => right,
+                    Self::Blank => match right {
+                        Self::Snippet(mut right) => {
+                            right.metadata = metadata;
+                            Self::Snippet(right)
+                        }
+                        Self::Tokens(mut right) => {
+                            right.metadata = metadata;
+                            Self::Tokens(right)
+                        }
+                        Self::Diff(_) => panic!(),
+                        Self::Blank => Self::Blank,
+                    },
                 }
                 .reduce(),
             )
@@ -537,7 +346,7 @@ impl NodeContent {
         }
     }
     fn reduce(self) -> Self {
-        if self.model().is_none() && self.is_empty() {
+        if self.model().is_none() && self.metadata().is_none() && self.is_empty() {
             return Self::Blank;
         }
 
@@ -550,6 +359,7 @@ impl NodeContent {
                     Self::Snippet(SnippetNode {
                         content: tokens.content.pop().unwrap().content,
                         model: tokens.model,
+                        metadata: tokens.metadata,
                     })
                 } else {
                     Self::Tokens(tokens)
@@ -689,6 +499,7 @@ impl From<ContentAnnotation> for TimelineAnnotation<'_> {
 
 pub trait NodeContents: Display + Sized {
     fn model(&self) -> Option<&NodeModel>;
+    fn metadata(&self) -> Option<&HashMap<String, String>>;
 }
 
 pub trait ConcatableNodeContents: NodeContents {
@@ -705,6 +516,14 @@ impl NodeContents for NodeContent {
             Self::Snippet(content) => content.model(),
             Self::Tokens(content) => content.model(),
             Self::Diff(content) => content.model(),
+            Self::Blank => None,
+        }
+    }
+    fn metadata(&self) -> Option<&HashMap<String, String>> {
+        match self {
+            Self::Snippet(content) => content.metadata(),
+            Self::Tokens(content) => content.metadata(),
+            Self::Diff(content) => content.metadata(),
             Self::Blank => None,
         }
     }
@@ -727,15 +546,19 @@ pub struct NodeModel {
     pub parameters: Vec<(String, String)>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct SnippetNode {
     pub content: Vec<u8>,
     pub model: Option<NodeModel>,
+    pub metadata: Option<HashMap<String, String>>,
 }
 
 impl NodeContents for SnippetNode {
     fn model(&self) -> Option<&NodeModel> {
         self.model.as_ref()
+    }
+    fn metadata(&self) -> Option<&HashMap<String, String>> {
+        self.metadata.as_ref()
     }
 }
 
@@ -789,24 +612,30 @@ impl ConcatableNodeContents for SnippetNode {
             Self {
                 content: left,
                 model: self.model.clone(),
+                metadata: self.metadata.clone(),
             },
             Self {
                 content: right,
                 model: self.model,
+                metadata: self.metadata,
             },
         ))
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct TokenNode {
     pub content: Vec<NodeToken>,
     pub model: Option<NodeModel>,
+    pub metadata: Option<HashMap<String, String>>,
 }
 
 impl NodeContents for TokenNode {
     fn model(&self) -> Option<&NodeModel> {
         self.model.as_ref()
+    }
+    fn metadata(&self) -> Option<&HashMap<String, String>> {
+        self.metadata.as_ref()
     }
 }
 
@@ -895,10 +724,12 @@ impl ConcatableNodeContents for TokenNode {
                 Self {
                     content: self.content,
                     model: self.model.clone(),
+                    metadata: self.metadata.clone(),
                 },
                 Self {
                     content: vec![],
                     model: self.model,
+                    metadata: self.metadata,
                 },
             ));
         }
@@ -919,10 +750,12 @@ impl ConcatableNodeContents for TokenNode {
             Self {
                 content: left,
                 model: self.model.clone(),
+                metadata: self.metadata.clone(),
             },
             Self {
                 content: right,
                 model: self.model,
+                metadata: self.metadata,
             },
         ))
     }
@@ -965,6 +798,7 @@ impl From<SnippetNode> for TokenNode {
                 probability: None,
             }],
             model: input.model,
+            metadata: input.metadata,
         }
     }
 }
@@ -978,15 +812,19 @@ impl From<Vec<u8>> for NodeToken {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct DiffNode {
     pub content: Diff,
     pub model: Option<NodeModel>,
+    pub metadata: Option<HashMap<String, String>>,
 }
 
 impl NodeContents for DiffNode {
     fn model(&self) -> Option<&NodeModel> {
         self.model.as_ref()
+    }
+    fn metadata(&self) -> Option<&HashMap<String, String>> {
+        self.metadata.as_ref()
     }
 }
 
@@ -1064,7 +902,7 @@ impl Diff {
             modification.apply(data);
         }
     }
-    fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
+    pub(super) fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
     where
         T: Annotation,
     {
@@ -1072,7 +910,7 @@ impl Diff {
             modification.apply_annotations(annotations);
         }
     }
-    fn apply_timeline_annotations<'w>(
+    pub(super) fn apply_timeline_annotations<'w>(
         &self,
         node: &'w Node,
         model: Option<&'w Model>,
@@ -1131,7 +969,7 @@ impl Modification {
             end: self.index + self.content.len(),
         }
     }
-    fn apply_annotations<T>(&self, annotations: &mut Vec<T>) -> Option<usize>
+    pub(super) fn apply_annotations<T>(&self, annotations: &mut Vec<T>) -> Option<usize>
     where
         T: Annotation,
     {

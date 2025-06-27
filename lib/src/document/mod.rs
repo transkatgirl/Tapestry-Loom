@@ -6,6 +6,7 @@ use serde::Serialize;
 use ulid::Ulid;
 
 pub mod content;
+mod update;
 
 use content::{Model, Node, NodeContent, NodeContents, WeaveTimeline};
 
