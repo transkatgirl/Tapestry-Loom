@@ -304,7 +304,78 @@ impl Weave {
             }
         }
     }
-    /// Split one [`Node`] into two nodes.
+    /// Moves a [`Node`] to a new position on the tree (without performing deduplication).
+    ///
+    /// Performs loop checking (slow, requires recursively checking all parents & children) if `skip_loop_check` is false. If a loop between nodes is added to the [`Weave`], it may cause unintended behavior (such as functions panicking or getting stuck in infinite loops).
+    ///
+    /// The modified node retains all of it's other attributes, including its identifier. Returns if the node was moved successfully.
+    pub fn move_node(
+        &mut self,
+        identifier: &Ulid,
+        mut parents: HashSet<Ulid>,
+        skip_loop_check: bool,
+    ) -> bool {
+        if !self.nonconcatable_nodes.is_empty() && parents.len() > 1 {
+            return false;
+        }
+
+        if !skip_loop_check {
+            for parent in &parents {
+                if self.has_parent_loop(parent, None) {
+                    return false;
+                }
+            }
+        }
+
+        let mut old_parents = HashSet::new();
+        #[allow(unused_assignments)]
+        let mut active_status = false;
+
+        if let Some(node) = self.nodes.get(identifier) {
+            old_parents.clone_from(&node.from);
+            active_status = node.active;
+
+            if node.id != *identifier {
+                return false;
+            }
+        } else {
+            return false;
+        }
+
+        for parent in parents.clone() {
+            if active_status {
+                self.update_node_activity(&parent, true, true);
+            }
+            if let Some(parent) = self.nodes.get_mut(&parent) {
+                parent.to.insert(*identifier);
+            } else {
+                parents.remove(&parent);
+            }
+        }
+        if parents.is_empty() {
+            self.root_nodes.insert(*identifier);
+        } else {
+            self.root_nodes.remove(identifier);
+        }
+        if parents.len() > 1 {
+            self.multiparent_nodes.insert(*identifier);
+        }
+
+        if let Some(node) = self.nodes.get_mut(identifier) {
+            node.from.clone_from(&parents);
+        }
+
+        for old_parent in old_parents {
+            if !parents.contains(&old_parent) {
+                if let Some(parent) = self.nodes.get_mut(&old_parent) {
+                    parent.to.remove(identifier);
+                }
+            }
+        }
+
+        true
+    }
+    /// Split one [`Node`] into two nodes (without performing deduplication).
     ///
     /// This uses [`NodeContent::split`] to split the [`NodeContent`] object, then updates the Weave as necessary to split the existing node into two nodes. The identifiers of the split node (from left to right) are returned, with no guarantees regarding if they are new identifiers or reused ones (along with no guarantee that the input identifier is still valid). Returns [`None`] if the node could not be split.
     ///
@@ -331,7 +402,7 @@ impl Weave {
 
         Some([left_identifier, right.id])
     }
-    /// Merge two [`Node`]s into one.
+    /// Merge two [`Node`]s into one (without performing deduplication).
     ///
     /// The `right` node must be a child of the `left` node for merging to succeed. Children of the `left` node will be removed from the Weave if they have no other parents.
     ///
