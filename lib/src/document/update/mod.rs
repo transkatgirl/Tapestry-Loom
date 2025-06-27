@@ -92,35 +92,25 @@ impl Weave {
                     let modification_range = modification.range();
 
                     if modification_range.end >= end {
-                        let selected_ranges =
-                            update.ranges.iter().enumerate().filter(|(_, node_range)| {
+                        if let Some(selected_range) = update
+                            .ranges
+                            .iter()
+                            .enumerate()
+                            .find(|(_, node_range)| {
                                 modification_range.contains(&node_range.range.start)
                                     || modification_range.contains(&node_range.range.end)
-                            });
-
-                        for (_range_index, timeline_range) in selected_ranges {
-                            if let Some(identifier) = timeline_range.node {
-                                if modification_range.contains(&timeline_range.range.start)
-                                    && modification_range.contains(&timeline_range.range.end)
-                                {
+                            })
+                            .map(|(_, range)| range)
+                        {
+                            if modification_range.contains(&selected_range.range.start)
+                                && modification_range.contains(&selected_range.range.end)
+                            {
+                                if let Some(identifier) = selected_range.node {
                                     self.update_node_activity(&identifier, false, true);
-                                } else if modification_range.contains(&timeline_range.range.start) {
-                                    if let Some((_left, right)) = self.split_node(
-                                        &identifier,
-                                        timeline_range.range.start - modification_range.end,
-                                    ) {
-                                        self.update_node_activity(&right, false, true);
-                                    }
-                                } else if let Some((left, _right)) = self.split_node(
-                                    &identifier,
-                                    timeline_range.range.end - modification_range.start,
-                                ) {
-                                    self.update_node_activity(&left, false, true);
+                                    return;
                                 }
                             }
                         }
-
-                        return;
                     }
 
                     NodeContent::Diff(DiffContent {
@@ -150,7 +140,8 @@ impl Weave {
                 None,
                 false,
                 true,
-            );
+            )
+            .unwrap();
             return;
         }
 
@@ -290,13 +281,19 @@ impl Weave {
                                         timeline_range.range.start - modification_range.end,
                                     ) {
                                         self.update_node_activity(&right, false, true);
+                                    } else {
+                                        panic!()
                                     }
                                 } else if let Some((left, _right)) = self.split_node(
                                     &identifier,
                                     timeline_range.range.end - modification_range.start,
                                 ) {
                                     self.update_node_activity(&left, false, true);
+                                } else {
+                                    panic!()
                                 }
+                            } else {
+                                panic!()
                             }
                         }
                     } else {
