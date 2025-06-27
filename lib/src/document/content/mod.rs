@@ -85,6 +85,7 @@ impl<'w> WeaveTimeline<'w> {
                                 probability: annotation.probability,
                                 node: Some(node),
                                 model: *model,
+                                metadata: node.content.metadata(),
                             })
                             .collect(),
                     );
@@ -102,14 +103,19 @@ impl<'w> WeaveTimeline<'w> {
                                 probability: annotation.probability,
                                 node: Some(node),
                                 model: *model,
+                                metadata: node.content.metadata(),
                             })
                             .collect(),
                     );
                     bytes.append(&mut tokens.bytes());
                 }
                 NodeContent::Diff(diff) => {
-                    diff.content
-                        .apply_timeline_annotations(node, *model, &mut annotations);
+                    diff.content.apply_timeline_annotations(
+                        node,
+                        *model,
+                        node.content.metadata(),
+                        &mut annotations,
+                    );
                     diff.content.apply(&mut bytes);
                 }
                 NodeContent::Blank => {}
@@ -399,6 +405,7 @@ pub struct TimelineAnnotation<'w> {
 
     pub node: Option<&'w Node>,
     pub model: Option<&'w Model>,
+    pub metadata: Option<&'w HashMap<String, String>>,
 }
 
 pub trait Annotation: Sized + From<Range<usize>> {
@@ -462,12 +469,14 @@ impl Annotation for TimelineAnnotation<'_> {
                 probability: self.probability,
                 node: self.node,
                 model: self.model,
+                metadata: self.metadata,
             },
             Self {
                 range: right,
                 probability: self.probability,
                 node: self.node,
                 model: self.model,
+                metadata: self.metadata,
             },
         ))
     }
@@ -489,6 +498,7 @@ impl From<Range<usize>> for TimelineAnnotation<'_> {
             probability: None,
             node: None,
             model: None,
+            metadata: None,
         }
     }
 }
@@ -500,6 +510,7 @@ impl From<ContentAnnotation> for TimelineAnnotation<'_> {
             probability: input.probability,
             node: None,
             model: None,
+            metadata: None,
         }
     }
 }
@@ -953,12 +964,14 @@ impl Diff {
         &self,
         node: &'w Node,
         model: Option<&'w Model>,
+        metadata: Option<&'w HashMap<String, String>>,
         annotations: &mut Vec<TimelineAnnotation<'w>>,
     ) {
         for modification in &self.content {
             if let Some(index) = modification.apply_annotations(annotations) {
                 annotations[index].node = Some(node);
                 annotations[index].model = model;
+                annotations[index].metadata = metadata;
             }
         }
     }
