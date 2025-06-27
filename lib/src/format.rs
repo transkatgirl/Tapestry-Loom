@@ -174,7 +174,7 @@ impl TryFrom<NodeData> for content::NodeContent {
             NodeData::Snippet((content, model, metadata)) => {
                 content::NodeContent::Snippet(content::SnippetContent {
                     content: content.into_vec(),
-                    model: model.map(|(identifier, parameters)| content::NodeModel {
+                    model: model.map(|(identifier, parameters)| content::ContentModel {
                         id: Ulid(identifier),
                         parameters,
                     }),
@@ -201,7 +201,7 @@ impl TryFrom<NodeData> for content::NodeContent {
                             })
                         })
                         .collect::<Result<Vec<_>, WeaveError>>()?,
-                    model: model.map(|(identifier, parameters)| content::NodeModel {
+                    model: model.map(|(identifier, parameters)| content::ContentModel {
                         id: Ulid(identifier),
                         parameters,
                     }),
@@ -226,7 +226,7 @@ impl TryFrom<NodeData> for content::NodeContent {
                             })
                             .collect::<Result<Vec<_>, WeaveError>>()?,
                     },
-                    model: model.map(|(identifier, parameters)| content::NodeModel {
+                    model: model.map(|(identifier, parameters)| content::ContentModel {
                         id: Ulid(identifier),
                         parameters,
                     }),
