@@ -51,6 +51,8 @@ impl Weave {
             }
         };
 
+        self.reserve(update.diff.content.len(), 0);
+
         if !self.multiparent_nodes.is_empty() {
             add_diff_node = false;
         }
