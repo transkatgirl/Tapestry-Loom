@@ -306,7 +306,7 @@ impl Weave {
     }
     /// Moves a [`Node`] to a new position on the tree (without performing deduplication).
     ///
-    /// Performs loop checking (slow, requires recursively checking all parents & children) if `skip_loop_check` is false. If a loop between nodes is added to the [`Weave`], it may cause unintended behavior (such as functions panicking or getting stuck in infinite loops).
+    /// Performs loop checking (slow, requires recursively checking all parents) if `skip_loop_check` is false. If a loop between nodes is added to the [`Weave`], it may cause unintended behavior (such as functions panicking or getting stuck in infinite loops).
     ///
     /// The modified node retains all of it's other attributes, including its identifier. Returns if the node was moved successfully.
     pub fn move_node(
