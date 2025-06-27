@@ -58,7 +58,7 @@ impl Weave {
     }
     #[allow(clippy::too_many_lines)]
     fn perform_diff_update(&mut self, mut update: TimelineUpdate) {
-        let (last_node, end) = update
+        let (last_node, mut end) = update
             .ranges
             .last()
             .map(|range| (range.node, range.range.end))
@@ -92,23 +92,63 @@ impl Weave {
                     let modification_range = modification.range();
 
                     if modification_range.end >= end {
-                        if let Some(selected_range) = update
-                            .ranges
-                            .iter()
-                            .enumerate()
-                            .find(|(_, node_range)| {
-                                modification_range.contains(&node_range.range.start)
-                                    || modification_range.contains(&node_range.range.end)
-                            })
-                            .map(|(_, range)| range)
-                        {
-                            if modification_range.contains(&selected_range.range.start)
-                                && modification_range.contains(&selected_range.range.end)
-                            {
-                                if let Some(identifier) = selected_range.node {
+                        let selected_ranges =
+                            update
+                                .ranges
+                                .iter()
+                                .rev()
+                                .enumerate()
+                                .filter(|(_, node_range)| {
+                                    modification_range.contains(&node_range.range.start)
+                                        || modification_range.contains(&node_range.range.end)
+                                });
+
+                        for (_range_index, timeline_range) in selected_ranges {
+                            if let Some(identifier) = timeline_range.node {
+                                if modification_range.contains(&timeline_range.range.start)
+                                    && modification_range.contains(&timeline_range.range.end)
+                                {
                                     self.update_node_activity(&identifier, false, true);
-                                    return;
+                                } else if modification_range.contains(&timeline_range.range.start) {
+                                    if let Some((_left, right)) = self.split_node(
+                                        &identifier,
+                                        timeline_range.range.start - modification_range.end,
+                                    ) {
+                                        self.update_node_activity(&right, false, true);
+                                    } else {
+                                        self.add_node(
+                                            Node {
+                                                id: Ulid::new(),
+                                                from: HashSet::from([identifier]),
+                                                to: HashSet::new(),
+                                                active: true,
+                                                bookmarked: false,
+                                                content: NodeContent::Diff(DiffContent {
+                                                    content: Diff {
+                                                        content: vec![Modification {
+                                                            index: modification_range.start,
+                                                            content: ModificationContent::Deletion(
+                                                                end - modification_range.start,
+                                                            ),
+                                                        }],
+                                                    },
+                                                    model: None,
+                                                    metadata: None,
+                                                }),
+                                            },
+                                            None,
+                                            false,
+                                            true,
+                                        )
+                                        .unwrap();
+                                        return;
+                                    }
+                                } else {
+                                    panic!() // Should never happen
                                 }
+                                end = modification_range.end;
+                            } else {
+                                panic!() // Should never happen
                             }
                         }
                     }
@@ -163,7 +203,8 @@ impl Weave {
             None,
             false,
             true,
-        );
+        )
+        .unwrap();
     }
     // TODO
     #[allow(clippy::too_many_lines)]
@@ -282,7 +323,7 @@ impl Weave {
                                     ) {
                                         self.update_node_activity(&right, false, true);
                                     } else {
-                                        panic!()
+                                        panic!() // Non-diff nodes should always be splitable
                                     }
                                 } else if let Some((left, _right)) = self.split_node(
                                     &identifier,
@@ -290,10 +331,10 @@ impl Weave {
                                 ) {
                                     self.update_node_activity(&left, false, true);
                                 } else {
-                                    panic!()
+                                    panic!() // Non-diff nodes should always be splitable
                                 }
                             } else {
-                                panic!()
+                                panic!() // Should never happen
                             }
                         }
                     } else {
