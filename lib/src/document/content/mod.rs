@@ -17,6 +17,9 @@ use ulid::Ulid;
 #[allow(unused_imports)]
 use super::Weave;
 
+#[cfg(test)]
+mod tests;
+
 /// A unit of content in a [`Weave`].
 ///
 /// Nodes act as containers for [`NodeContent`] objects, allowing them to be connected together.

@@ -8,6 +8,9 @@ use ulid::Ulid;
 pub mod content;
 mod update;
 
+#[cfg(test)]
+mod tests;
+
 use content::{Model, Node, NodeContent, NodeContents, WeaveTimeline};
 
 /// Functions implemented by all interactive Weave representations.

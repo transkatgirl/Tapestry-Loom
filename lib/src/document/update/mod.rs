@@ -16,6 +16,9 @@ use super::{
     },
 };
 
+#[cfg(test)]
+mod tests;
+
 impl Weave {
     // TODO
     #[allow(clippy::too_many_lines)]
