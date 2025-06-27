@@ -1,6 +1,4 @@
-/* TODO:
-- Weave content updating
-- Documentation */
+// ! WIP
 
 #![allow(missing_docs)]
 
@@ -58,6 +56,7 @@ impl Weave {
             self.perform_graph_update(update);
         }
     }
+    #[allow(clippy::too_many_lines)]
     fn perform_diff_update(&mut self, mut update: TimelineUpdate) {
         let (last_node, end) = update
             .ranges
@@ -65,25 +64,76 @@ impl Weave {
             .map(|range| (range.node, range.range.end))
             .unwrap_or_default();
 
-        if update.diff.content.len() == 1 && update.diff.content[0].index == end {
+        if update.diff.content.len() == 1 {
             let modification = update.diff.content.remove(0);
 
             let content = match modification.content {
-                ModificationContent::Insertion(content) => NodeContent::Snippet(SnippetContent {
-                    content,
-                    model: None,
-                    metadata: None,
-                }),
-                ModificationContent::Deletion(length) => NodeContent::Diff(DiffContent {
-                    content: Diff {
-                        content: vec![Modification {
-                            index: modification.index,
-                            content: ModificationContent::Deletion(length),
-                        }],
-                    },
-                    model: None,
-                    metadata: None,
-                }),
+                ModificationContent::Insertion(content) => {
+                    if update.diff.content[0].index >= end {
+                        NodeContent::Snippet(SnippetContent {
+                            content,
+                            model: None,
+                            metadata: None,
+                        })
+                    } else {
+                        NodeContent::Diff(DiffContent {
+                            content: Diff {
+                                content: vec![Modification {
+                                    index: modification.index,
+                                    content: ModificationContent::Insertion(content),
+                                }],
+                            },
+                            model: None,
+                            metadata: None,
+                        })
+                    }
+                }
+                ModificationContent::Deletion(length) => {
+                    let modification_range = modification.range();
+
+                    if modification_range.end >= end {
+                        let selected_ranges =
+                            update.ranges.iter().enumerate().filter(|(_, node_range)| {
+                                modification_range.contains(&node_range.range.start)
+                                    || modification_range.contains(&node_range.range.end)
+                            });
+
+                        for (_range_index, timeline_range) in selected_ranges {
+                            if let Some(identifier) = timeline_range.node {
+                                if modification_range.contains(&timeline_range.range.start)
+                                    && modification_range.contains(&timeline_range.range.end)
+                                {
+                                    self.update_node_activity(&identifier, false, true);
+                                } else if modification_range.contains(&timeline_range.range.start) {
+                                    if let Some((_left, right)) = self.split_node(
+                                        &identifier,
+                                        timeline_range.range.start - modification_range.end,
+                                    ) {
+                                        self.update_node_activity(&right, false, true);
+                                    }
+                                } else if let Some((left, _right)) = self.split_node(
+                                    &identifier,
+                                    timeline_range.range.end - modification_range.start,
+                                ) {
+                                    self.update_node_activity(&left, false, true);
+                                }
+                            }
+                        }
+
+                        return;
+                    }
+
+                    NodeContent::Diff(DiffContent {
+                        content: Diff {
+                            content: vec![Modification {
+                                index: modification.index,
+                                content: ModificationContent::Deletion(length),
+                            }],
+                        },
+                        model: None,
+                        metadata: None,
+                    })
+                }
             };
 
             self.add_node(
