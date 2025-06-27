@@ -20,8 +20,6 @@ use super::{
 mod tests;
 
 impl Weave {
-    // TODO
-    #[allow(clippy::too_many_lines)]
     pub fn update(
         &mut self,
         timeline: usize,
@@ -31,7 +29,7 @@ impl Weave {
     ) {
         let mut timelines = self.get_active_timelines();
 
-        let mut update = if timelines.len() > timeline {
+        let update = if timelines.len() > timeline {
             timelines
                 .swap_remove(timeline)
                 .build_update(content, deadline)
@@ -55,52 +53,38 @@ impl Weave {
         }
 
         if add_diff_node {
-            let (last_node, end) = update
-                .ranges
-                .last()
-                .map(|range| (range.node, range.range.end))
-                .unwrap_or_default();
+            self.perform_diff_update(update);
+        } else {
+            self.perform_graph_update(update);
+        }
+    }
+    fn perform_diff_update(&mut self, mut update: TimelineUpdate) {
+        let (last_node, end) = update
+            .ranges
+            .last()
+            .map(|range| (range.node, range.range.end))
+            .unwrap_or_default();
 
-            if update.diff.content.len() == 1 && update.diff.content[0].index == end {
-                let modification = update.diff.content.remove(0);
+        if update.diff.content.len() == 1 && update.diff.content[0].index == end {
+            let modification = update.diff.content.remove(0);
 
-                let content = match modification.content {
-                    ModificationContent::Insertion(content) => {
-                        NodeContent::Snippet(SnippetContent {
-                            content,
-                            model: None,
-                            metadata: None,
-                        })
-                    }
-                    ModificationContent::Deletion(length) => NodeContent::Diff(DiffContent {
-                        content: Diff {
-                            content: vec![Modification {
-                                index: modification.index,
-                                content: ModificationContent::Deletion(length),
-                            }],
-                        },
-                        model: None,
-                        metadata: None,
-                    }),
-                };
-
-                self.add_node(
-                    Node {
-                        id: Ulid::new(),
-                        from: last_node
-                            .map(|node| HashSet::from([node]))
-                            .unwrap_or_default(),
-                        to: HashSet::new(),
-                        active: true,
-                        bookmarked: false,
-                        content,
+            let content = match modification.content {
+                ModificationContent::Insertion(content) => NodeContent::Snippet(SnippetContent {
+                    content,
+                    model: None,
+                    metadata: None,
+                }),
+                ModificationContent::Deletion(length) => NodeContent::Diff(DiffContent {
+                    content: Diff {
+                        content: vec![Modification {
+                            index: modification.index,
+                            content: ModificationContent::Deletion(length),
+                        }],
                     },
-                    None,
-                    false,
-                    true,
-                );
-                return;
-            }
+                    model: None,
+                    metadata: None,
+                }),
+            };
 
             self.add_node(
                 Node {
@@ -111,172 +95,190 @@ impl Weave {
                     to: HashSet::new(),
                     active: true,
                     bookmarked: false,
-                    content: NodeContent::Diff(DiffContent {
-                        content: update.diff,
-                        model: None,
-                        metadata: None,
-                    }),
+                    content,
                 },
                 None,
                 false,
                 true,
             );
-        } else {
-            for modification in update.diff.content {
-                let modification_range = modification.range();
+            return;
+        }
 
-                let selected_ranges = update.ranges.iter().enumerate().filter(|(_, node_range)| {
-                    modification_range.contains(&node_range.range.start)
-                        || modification_range.contains(&node_range.range.end)
-                });
+        self.add_node(
+            Node {
+                id: Ulid::new(),
+                from: last_node
+                    .map(|node| HashSet::from([node]))
+                    .unwrap_or_default(),
+                to: HashSet::new(),
+                active: true,
+                bookmarked: false,
+                content: NodeContent::Diff(DiffContent {
+                    content: update.diff,
+                    model: None,
+                    metadata: None,
+                }),
+            },
+            None,
+            false,
+            true,
+        );
+    }
+    // TODO
+    #[allow(clippy::too_many_lines)]
+    fn perform_graph_update(&mut self, mut update: TimelineUpdate) {
+        for modification in update.diff.content {
+            let modification_range = modification.range();
 
-                let (last_node, end) = update
-                    .ranges
-                    .last()
-                    .map(|range| (range.node, range.range.end))
-                    .unwrap_or_default();
+            let selected_ranges = update.ranges.iter().enumerate().filter(|(_, node_range)| {
+                modification_range.contains(&node_range.range.start)
+                    || modification_range.contains(&node_range.range.end)
+            });
 
-                let mut new_node = None;
+            let (last_node, end) = update
+                .ranges
+                .last()
+                .map(|range| (range.node, range.range.end))
+                .unwrap_or_default();
 
-                match &modification.content {
-                    ModificationContent::Insertion(content) => {
-                        if modification_range.start >= end {
-                            new_node = self.add_node(
-                                Node {
-                                    id: Ulid::new(),
-                                    from: last_node
-                                        .map(|node| HashSet::from([node]))
-                                        .unwrap_or_default(),
-                                    to: HashSet::new(),
-                                    active: true,
-                                    bookmarked: false,
-                                    content: NodeContent::Snippet(SnippetContent {
-                                        content: content.clone(),
-                                        model: None,
-                                        metadata: None,
-                                    }),
-                                },
-                                None,
-                                false,
-                                true,
-                            );
-                        } else {
-                            let selected_ranges: Vec<_> = selected_ranges.collect();
+            let mut new_node = None;
 
-                            if let Some((first_selected_index, first_selected_range)) =
-                                selected_ranges.first()
+            match &modification.content {
+                ModificationContent::Insertion(content) => {
+                    if modification_range.start >= end {
+                        new_node = self.add_node(
+                            Node {
+                                id: Ulid::new(),
+                                from: last_node
+                                    .map(|node| HashSet::from([node]))
+                                    .unwrap_or_default(),
+                                to: HashSet::new(),
+                                active: true,
+                                bookmarked: false,
+                                content: NodeContent::Snippet(SnippetContent {
+                                    content: content.clone(),
+                                    model: None,
+                                    metadata: None,
+                                }),
+                            },
+                            None,
+                            false,
+                            true,
+                        );
+                    } else {
+                        let selected_ranges: Vec<_> = selected_ranges.collect();
+
+                        if let Some((first_selected_index, first_selected_range)) =
+                            selected_ranges.first()
+                        {
+                            match first_selected_range
+                                .range
+                                .start
+                                .cmp(&modification_range.start)
                             {
-                                match first_selected_range
-                                    .range
-                                    .start
-                                    .cmp(&modification_range.start)
-                                {
-                                    Ordering::Equal => {
-                                        let from_node = first_selected_range.node;
-                                        let to_node = &update
-                                            .ranges
-                                            .split_at(*first_selected_index)
-                                            .1
-                                            .iter()
-                                            .find_map(|range| {
-                                                if range.node == from_node {
-                                                    None
-                                                } else {
-                                                    range.node
-                                                }
-                                            });
+                                Ordering::Equal => {
+                                    let from_node = first_selected_range.node;
+                                    let to_node = &update
+                                        .ranges
+                                        .split_at(*first_selected_index)
+                                        .1
+                                        .iter()
+                                        .find_map(|range| {
+                                            if range.node == from_node {
+                                                None
+                                            } else {
+                                                range.node
+                                            }
+                                        });
 
-                                        new_node = self.add_node(
-                                            Node {
-                                                id: Ulid::new(),
-                                                from: from_node
-                                                    .map(|node| HashSet::from([node]))
-                                                    .unwrap_or_default(),
-                                                to: to_node
-                                                    .map(|node| HashSet::from([node]))
-                                                    .unwrap_or_default(),
-                                                active: true,
-                                                bookmarked: false,
-                                                content: NodeContent::Snippet(SnippetContent {
-                                                    content: content.clone(),
-                                                    model: None,
-                                                    metadata: None,
-                                                }),
-                                            },
-                                            None,
-                                            false,
-                                            true,
-                                        );
-                                    }
-                                    Ordering::Greater => {
-                                        todo!()
-                                    }
-                                    Ordering::Less => {
-                                        todo!()
-                                    }
+                                    new_node = self.add_node(
+                                        Node {
+                                            id: Ulid::new(),
+                                            from: from_node
+                                                .map(|node| HashSet::from([node]))
+                                                .unwrap_or_default(),
+                                            to: to_node
+                                                .map(|node| HashSet::from([node]))
+                                                .unwrap_or_default(),
+                                            active: true,
+                                            bookmarked: false,
+                                            content: NodeContent::Snippet(SnippetContent {
+                                                content: content.clone(),
+                                                model: None,
+                                                metadata: None,
+                                            }),
+                                        },
+                                        None,
+                                        false,
+                                        true,
+                                    );
+                                }
+                                Ordering::Greater => {
+                                    todo!()
+                                }
+                                Ordering::Less => {
+                                    todo!()
                                 }
                             }
-                        }
-                    }
-                    ModificationContent::Deletion(_length) => {
-                        if modification_range.end >= end {
-                            for (_range_index, timeline_range) in selected_ranges {
-                                if let Some(identifier) = timeline_range.node {
-                                    if modification_range.contains(&timeline_range.range.start)
-                                        && modification_range.contains(&timeline_range.range.end)
-                                    {
-                                        self.update_node_activity(&identifier, false, true);
-                                    } else if modification_range
-                                        .contains(&timeline_range.range.start)
-                                    {
-                                        if let Some((_left, right)) = self.split_node(
-                                            &identifier,
-                                            timeline_range.range.start - modification_range.end,
-                                        ) {
-                                            self.update_node_activity(&right, false, true);
-                                        }
-                                    } else if let Some((left, _right)) = self.split_node(
-                                        &identifier,
-                                        timeline_range.range.end - modification_range.start,
-                                    ) {
-                                        self.update_node_activity(&left, false, true);
-                                    }
-                                }
-                            }
-                        } else {
-                            let selected_ranges: Vec<_> = selected_ranges.collect();
-
-                            if let Some((first_selected_index, first_selected_range)) =
-                                selected_ranges.first()
-                            {
-                                match first_selected_range
-                                    .range
-                                    .start
-                                    .cmp(&modification_range.start)
-                                {
-                                    Ordering::Equal => {
-                                        todo!()
-                                    }
-                                    Ordering::Greater => {
-                                        todo!()
-                                    }
-                                    Ordering::Less => {
-                                        todo!()
-                                    }
-                                }
-                            }
-
-                            for (range_index, timeline_range) in selected_ranges {}
-
-                            todo!()
                         }
                     }
                 }
+                ModificationContent::Deletion(_length) => {
+                    if modification_range.end >= end {
+                        for (_range_index, timeline_range) in selected_ranges {
+                            if let Some(identifier) = timeline_range.node {
+                                if modification_range.contains(&timeline_range.range.start)
+                                    && modification_range.contains(&timeline_range.range.end)
+                                {
+                                    self.update_node_activity(&identifier, false, true);
+                                } else if modification_range.contains(&timeline_range.range.start) {
+                                    if let Some((_left, right)) = self.split_node(
+                                        &identifier,
+                                        timeline_range.range.start - modification_range.end,
+                                    ) {
+                                        self.update_node_activity(&right, false, true);
+                                    }
+                                } else if let Some((left, _right)) = self.split_node(
+                                    &identifier,
+                                    timeline_range.range.end - modification_range.start,
+                                ) {
+                                    self.update_node_activity(&left, false, true);
+                                }
+                            }
+                        }
+                    } else {
+                        let selected_ranges: Vec<_> = selected_ranges.collect();
 
-                if let Some(mod_index) = modification.apply_annotations(&mut update.ranges) {
-                    if new_node.is_some() {
-                        update.ranges[mod_index].node = new_node;
+                        if let Some((first_selected_index, first_selected_range)) =
+                            selected_ranges.first()
+                        {
+                            match first_selected_range
+                                .range
+                                .start
+                                .cmp(&modification_range.start)
+                            {
+                                Ordering::Equal => {
+                                    todo!()
+                                }
+                                Ordering::Greater => {
+                                    todo!()
+                                }
+                                Ordering::Less => {
+                                    todo!()
+                                }
+                            }
+                        }
+
+                        for (range_index, timeline_range) in selected_ranges {}
+
+                        todo!()
                     }
+                }
+            }
+
+            if let Some(mod_index) = modification.apply_annotations(&mut update.ranges) {
+                if new_node.is_some() {
+                    update.ranges[mod_index].node = new_node;
                 }
             }
         }
