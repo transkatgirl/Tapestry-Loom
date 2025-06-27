@@ -359,6 +359,8 @@ impl Weave {
         }
         if parents.len() > 1 {
             self.multiparent_nodes.insert(*identifier);
+        } else {
+            self.multiparent_nodes.remove(identifier);
         }
 
         if let Some(node) = self.nodes.get_mut(identifier) {
