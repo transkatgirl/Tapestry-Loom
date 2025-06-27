@@ -262,6 +262,9 @@ impl Weave {
                                         false,
                                         true,
                                     );
+                                    if let (Some(from_node), Some(to_node)) = (from_node, to_node) {
+                                        self.remove_node_parent(to_node, &from_node);
+                                    }
                                 }
                                 Ordering::Greater => {
                                     todo!()
