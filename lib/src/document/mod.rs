@@ -75,6 +75,9 @@ impl Weave {
                 if self.has_child_loop(child, None) {
                     return None;
                 }
+                if node.from.contains(child) {
+                    return None;
+                }
             }
         }
         if deduplicate {
@@ -337,6 +340,11 @@ impl Weave {
 
             if node.id != *identifier {
                 return false;
+            }
+            for child in &node.to {
+                if parents.contains(child) {
+                    return false;
+                }
             }
         } else {
             return false;
