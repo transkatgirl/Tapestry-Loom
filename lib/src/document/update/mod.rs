@@ -1,13 +1,11 @@
 // ! WIP
 
-#![allow(missing_docs)]
-
 use std::{cmp::Ordering, collections::HashSet, time::Instant, vec};
 
 use ulid::Ulid;
 
 use super::{
-    Weave, WeaveView,
+    Weave, WeaveTimeline, WeaveView,
     content::{
         Diff, DiffContent, Modification, ModificationContent, Node, NodeContent, SnippetContent,
         TimelineUpdate,
@@ -18,11 +16,18 @@ use super::{
 mod tests;
 
 impl Weave {
+    /// Update the Weave's contents based on a UTF-8 string and a timeline index.
+    ///
+    /// This calculates a [`Diff`] using the output of the selected [`WeaveTimeline`] and the user input, and then applies the diff to the graph. The specific algorithm used to update the graph is subject to change.
+    ///
+    /// If the selected timeline is not found, an empty timeline is created to build the diff against.
+    ///
+    /// If `add_diff_node` is `true`, modifications are added as [`NodeContent::Diff`] items whenever possible. If `add_diff_node` is `false`, modifications are added as graph updates whenever possible.
     pub fn update(
         &mut self,
         timeline: usize,
         content: String,
-        deadline: Instant,
+        diff_deadline: Instant,
         mut add_diff_node: bool,
     ) {
         let mut timelines = self.get_active_timelines();
@@ -30,7 +35,7 @@ impl Weave {
         let update = if timelines.len() > timeline {
             timelines
                 .swap_remove(timeline)
-                .build_update(content, deadline)
+                .build_update(content, diff_deadline)
         } else {
             TimelineUpdate {
                 ranges: vec![],
