@@ -51,6 +51,7 @@ pub struct WeaveTimeline<'w> {
 }
 
 impl<'w> WeaveTimeline<'w> {
+    /// Returns the output of the timeline as a set of bytes.
     pub fn bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
 
@@ -71,6 +72,9 @@ impl<'w> WeaveTimeline<'w> {
 
         bytes
     }
+    /// Returns the output of the timeline as an annotated string.
+    ///
+    /// Bytes which are invalid UTF-8 will be replaced by the character U+001A, keeping the length the same as the original set of bytes.
     pub fn annotated_string(&self) -> (String, Vec<TimelineAnnotation<'w>>) {
         let mut bytes = Vec::new();
         let mut annotations = Vec::with_capacity(self.timeline.len());
@@ -90,6 +94,7 @@ impl<'w> WeaveTimeline<'w> {
                                 node: Some(node),
                                 model: *model,
                                 metadata: node.content.metadata(),
+                                parameters: node.content.model().map(|model| &model.parameters),
                             })
                             .collect(),
                     );
@@ -108,6 +113,7 @@ impl<'w> WeaveTimeline<'w> {
                                 node: Some(node),
                                 model: *model,
                                 metadata: node.content.metadata(),
+                                parameters: node.content.model().map(|model| &model.parameters),
                             })
                             .collect(),
                     );
@@ -138,6 +144,9 @@ impl<'w> WeaveTimeline<'w> {
 
         (string, annotations)
     }
+    /// Creates a new set of annotations previewing a change to the [`Weave`]'s contents.
+    ///
+    /// This calculates a [`Diff`] between the current contents of the timeline and the user input, and then creates a new set of annotations reflecting the changes made by the user.
     pub fn preview_update(
         &self,
         (string, mut annotations): (&str, Vec<TimelineAnnotation<'w>>),
@@ -273,29 +282,18 @@ impl NodeContent {
         }
     }
     #[allow(clippy::missing_panics_doc)]
-    /// Merges two sections of content together along with their metadata.
+    /// Merges two sections of content together.
     ///
-    /// This requires both sections to be concatable and contain the same [`ContentModel`] (if any).
+    /// This requires both sections to be concatable and contain the same metadata.
     pub fn merge(left: Self, right: Self) -> Option<Self> {
-        if left.model() == right.model() || (left.is_concatable() && right.is_concatable()) {
-            let metadata = left
-                .metadata()
-                .cloned()
-                .unwrap_or_default()
-                .into_iter()
-                .chain(right.metadata().cloned().unwrap_or_default())
-                .collect::<HashMap<_, _>>();
-            let metadata = if metadata.is_empty() {
-                None
-            } else {
-                Some(metadata)
-            };
-
+        if left.model() == right.model()
+            && left.metadata() == right.metadata()
+            && (left.is_concatable() && right.is_concatable())
+        {
             Some(
                 match left {
                     Self::Snippet(mut left) => match right {
                         Self::Snippet(mut right) => {
-                            left.metadata = metadata;
                             left.content.append(&mut right.content);
                             Self::Snippet(left)
                         }
@@ -309,18 +307,14 @@ impl NodeContent {
                             Self::Tokens(TokenContent {
                                 content: right.content,
                                 model: left.model,
-                                metadata,
+                                metadata: left.metadata,
                             })
                         }
                         Self::Diff(_) => panic!(),
-                        Self::Blank => {
-                            left.metadata = metadata;
-                            Self::Snippet(left)
-                        }
+                        Self::Blank => Self::Snippet(left),
                     },
                     Self::Tokens(mut left) => match right {
                         Self::Snippet(right) => {
-                            left.metadata = metadata;
                             left.content.push(ContentToken {
                                 probability: None,
                                 content: right.content,
@@ -328,26 +322,16 @@ impl NodeContent {
                             Self::Tokens(left)
                         }
                         Self::Tokens(mut right) => {
-                            left.metadata = metadata;
                             left.content.append(&mut right.content);
                             Self::Tokens(left)
                         }
                         Self::Diff(_) => panic!(),
-                        Self::Blank => {
-                            left.metadata = metadata;
-                            Self::Tokens(left)
-                        }
+                        Self::Blank => Self::Tokens(left),
                     },
                     Self::Diff(_) => panic!(),
                     Self::Blank => match right {
-                        Self::Snippet(mut right) => {
-                            right.metadata = metadata;
-                            Self::Snippet(right)
-                        }
-                        Self::Tokens(mut right) => {
-                            right.metadata = metadata;
-                            Self::Tokens(right)
-                        }
+                        Self::Snippet(right) => Self::Snippet(right),
+                        Self::Tokens(right) => Self::Tokens(right),
                         Self::Diff(_) => panic!(),
                         Self::Blank => Self::Blank,
                     },
@@ -360,7 +344,9 @@ impl NodeContent {
     }
     /// Returns `true` if the two sections of content can be merged together.
     pub fn is_mergeable(left: &Self, right: &Self) -> bool {
-        left.model() == right.model() || (left.is_concatable() && right.is_concatable())
+        left.model() == right.model()
+            && left.metadata() == right.metadata()
+            && (left.is_concatable() && right.is_concatable())
     }
     /// Splits the content in half at the specified index, retaining all associated metadata.
     ///
@@ -422,19 +408,29 @@ impl NodeContent {
     }
 }
 
+/// An annotation within a section of content.
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct ContentAnnotation {
+    /// The range of content bytes that the annotation applies to.
     pub range: Range<usize>,
+    /// The probability this set of bytes was assigned by the process that generated it, if any.
     pub probability: Option<Decimal>,
 }
 
+/// An annotation within the output of a [`WeaveTimeline`].
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct TimelineAnnotation<'w> {
+    /// The range of content bytes that the annotation applies to.
     pub range: Range<usize>,
+    /// The probability this set of bytes was assigned by the process that generated it, if any.
     pub probability: Option<Decimal>,
-
+    /// The node that this set of bytes originates from.
     pub node: Option<&'w Node>,
+    /// The [`Model`] which generated this set of bytes, if any.
     pub model: Option<&'w Model>,
+    /// The parameters used to algorithmically generate this set of bytes, if any.
+    pub parameters: Option<&'w Vec<(String, String)>>,
+    /// Metadata associated with this set of bytes.
     pub metadata: Option<&'w HashMap<String, String>>,
 }
 
@@ -504,6 +500,7 @@ impl Annotation for TimelineAnnotation<'_> {
                 node: self.node,
                 model: self.model,
                 metadata: self.metadata,
+                parameters: self.parameters,
             },
             Self {
                 range: right,
@@ -511,6 +508,7 @@ impl Annotation for TimelineAnnotation<'_> {
                 node: self.node,
                 model: self.model,
                 metadata: self.metadata,
+                parameters: self.parameters,
             },
         ))
     }
@@ -533,6 +531,7 @@ impl From<Range<usize>> for TimelineAnnotation<'_> {
             node: None,
             model: None,
             metadata: None,
+            parameters: None,
         }
     }
 }
@@ -545,6 +544,7 @@ impl From<ContentAnnotation> for TimelineAnnotation<'_> {
             node: None,
             model: None,
             metadata: None,
+            parameters: None,
         }
     }
 }
