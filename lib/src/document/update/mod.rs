@@ -5,12 +5,15 @@ use std::{cmp::Ordering, collections::HashSet, time::Instant, vec};
 use ulid::Ulid;
 
 use super::{
-    Weave, WeaveTimeline, WeaveView,
+    Weave, WeaveView,
     content::{
         Diff, DiffContent, Modification, ModificationContent, Node, NodeContent, SnippetContent,
         TimelineUpdate,
     },
 };
+
+#[allow(unused_imports)]
+use super::WeaveTimeline;
 
 #[cfg(test)]
 mod tests;
