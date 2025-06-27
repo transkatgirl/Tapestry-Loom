@@ -390,9 +390,9 @@ impl Weave {
     /// This uses [`NodeContent::split`] to split the [`NodeContent`] object, then updates the Weave as necessary to split the existing node into two nodes. The identifiers of the split node (from left to right) are returned, with no guarantees regarding if they are new identifiers or reused ones (along with no guarantee that the input identifier is still valid). Returns [`None`] if the node could not be split.
     ///
     /// If the node being split is bookmarked, only the left side of the split will be bookmarked. Otherwise, the split nodes retains all other properties of the original node.
-    pub fn split_node(&mut self, identifier: &Ulid, index: usize) -> Option<[Ulid; 2]> {
+    pub fn split_node(&mut self, identifier: &Ulid, index: usize) -> Option<(Ulid, Ulid)> {
         let original = self.nodes.get(identifier)?;
-        let [left_content, right_content] = original.content.clone().split(index)?;
+        let (left_content, right_content) = original.content.clone().split(index)?;
 
         let node = Node {
             id: Ulid::from_datetime(identifier.datetime()),
@@ -410,7 +410,7 @@ impl Weave {
         right.bookmarked = false;
         right.from = HashSet::from([left_identifier]);
 
-        Some([left_identifier, right.id])
+        Some((left_identifier, right.id))
     }
     /// Merge two [`Node`]s into one (without performing deduplication).
     ///

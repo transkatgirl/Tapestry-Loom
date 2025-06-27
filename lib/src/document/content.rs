@@ -2,7 +2,9 @@
 
 #![allow(missing_docs)]
 
-use std::{collections::HashSet, fmt::Display, iter, ops::Range, time::Instant, vec};
+use std::{
+    cmp::Ordering, collections::HashSet, fmt::Display, iter, ops::Range, time::Instant, vec,
+};
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -167,7 +169,7 @@ impl Annotation for TimelineNodeRange {
     fn range_mut(&mut self) -> &mut Range<usize> {
         &mut self.range
     }
-    fn split(&self, index: usize) -> Option<[Self; 2]> {
+    fn split(&self, index: usize) -> Option<(Self, Self)> {
         if index == 0 || index >= self.range.end {
             return None;
         }
@@ -178,7 +180,7 @@ impl Annotation for TimelineNodeRange {
         left.end -= index;
         right.start += index;
 
-        Some([
+        Some((
             Self {
                 range: left,
                 node: self.node,
@@ -187,7 +189,7 @@ impl Annotation for TimelineNodeRange {
                 range: right,
                 node: self.node,
             },
-        ])
+        ))
     }
 }
 
@@ -292,7 +294,7 @@ impl Weave {
             for modification in update.diff.content {
                 let modification_range = modification.range();
 
-                let selected_ranges = update.ranges.iter().filter(|node_range| {
+                let selected_ranges = update.ranges.iter().enumerate().filter(|(_, node_range)| {
                     modification_range.contains(&node_range.range.start)
                         || modification_range.contains(&node_range.range.end)
                 });
@@ -327,12 +329,53 @@ impl Weave {
                                 true,
                             );
                         } else {
-                            todo!()
+                            let selected_ranges: Vec<_> = selected_ranges.collect();
+
+                            if let Some((first_selected_index, first_selected_range)) =
+                                selected_ranges.first()
+                            {
+                                match first_selected_range
+                                    .range
+                                    .start
+                                    .cmp(&modification_range.start)
+                                {
+                                    Ordering::Equal => {
+                                        let from_node = first_selected_range.node;
+                                        let to_node =
+                                            &update.ranges.split_at(*first_selected_index).1;
+
+                                        new_node = self.add_node(
+                                            Node {
+                                                id: Ulid::new(),
+                                                from: from_node
+                                                    .map(|node| HashSet::from([node]))
+                                                    .unwrap_or_default(),
+                                                to: HashSet::new(),
+                                                active: true,
+                                                bookmarked: false,
+                                                content: NodeContent::Snippet(SnippetNode {
+                                                    content: content.clone(),
+                                                    model: None,
+                                                }),
+                                            },
+                                            None,
+                                            false,
+                                            true,
+                                        );
+                                    }
+                                    Ordering::Less => {
+                                        todo!()
+                                    }
+                                    Ordering::Greater => {
+                                        todo!()
+                                    }
+                                }
+                            }
                         }
                     }
                     ModificationContent::Deletion(_length) => {
                         if modification_range.end >= end {
-                            for timeline_range in selected_ranges {
+                            for (_range_index, timeline_range) in selected_ranges {
                                 if let Some(identifier) = timeline_range.node {
                                     if modification_range.contains(&timeline_range.range.start)
                                         && modification_range.contains(&timeline_range.range.end)
@@ -341,13 +384,13 @@ impl Weave {
                                     } else if modification_range
                                         .contains(&timeline_range.range.start)
                                     {
-                                        if let Some([_left, right]) = self.split_node(
+                                        if let Some((_left, right)) = self.split_node(
                                             &identifier,
                                             timeline_range.range.start - modification_range.end,
                                         ) {
                                             self.update_node_activity(&right, false, true);
                                         }
-                                    } else if let Some([left, _right]) = self.split_node(
+                                    } else if let Some((left, _right)) = self.split_node(
                                         &identifier,
                                         timeline_range.range.end - modification_range.start,
                                     ) {
@@ -356,6 +399,30 @@ impl Weave {
                                 }
                             }
                         } else {
+                            let selected_ranges: Vec<_> = selected_ranges.collect();
+
+                            if let Some((first_selected_index, first_selected_range)) =
+                                selected_ranges.first()
+                            {
+                                match first_selected_range
+                                    .range
+                                    .start
+                                    .cmp(&modification_range.start)
+                                {
+                                    Ordering::Equal => {
+                                        todo!()
+                                    }
+                                    Ordering::Less => {
+                                        todo!()
+                                    }
+                                    Ordering::Greater => {
+                                        todo!()
+                                    }
+                                }
+                            }
+
+                            for (range_index, timeline_range) in selected_ranges {}
+
                             todo!()
                         }
                     }
@@ -448,18 +515,18 @@ impl NodeContent {
     pub fn is_mergeable(left: &Self, right: &Self) -> bool {
         left.model() == right.model() || (left.is_concatable() && right.is_concatable())
     }
-    pub fn split(self, index: usize) -> Option<[Self; 2]> {
+    pub fn split(self, index: usize) -> Option<(Self, Self)> {
         match self {
             Self::Snippet(content) => content
                 .split(index)
-                .map(|[left, right]| [Self::Snippet(left), Self::Snippet(right)]),
+                .map(|(left, right)| (Self::Snippet(left), Self::Snippet(right))),
             Self::Tokens(content) => content
                 .split(index)
-                .map(|[left, right]| [Self::Tokens(left), Self::Tokens(right)]),
+                .map(|(left, right)| (Self::Tokens(left), Self::Tokens(right))),
             Self::Diff(_) => None,
-            Self::Blank => Some([Self::Blank, Self::Blank]),
+            Self::Blank => Some((Self::Blank, Self::Blank)),
         }
-        .map(|[left, right]| [left.reduce(), right.reduce()])
+        .map(|(left, right)| (left.reduce(), right.reduce()))
     }
     pub fn is_splitable(&self, index: usize) -> bool {
         match self {
@@ -520,7 +587,7 @@ pub struct TimelineAnnotation<'w> {
 pub trait Annotation: Sized + From<Range<usize>> {
     fn range(&self) -> &Range<usize>;
     fn range_mut(&mut self) -> &mut Range<usize>;
-    fn split(&self, index: usize) -> Option<[Self; 2]>;
+    fn split(&self, index: usize) -> Option<(Self, Self)>;
 }
 
 impl Annotation for ContentAnnotation {
@@ -530,7 +597,7 @@ impl Annotation for ContentAnnotation {
     fn range_mut(&mut self) -> &mut Range<usize> {
         &mut self.range
     }
-    fn split(&self, index: usize) -> Option<[Self; 2]> {
+    fn split(&self, index: usize) -> Option<(Self, Self)> {
         if index == 0 || index >= self.range.end {
             return None;
         }
@@ -541,7 +608,7 @@ impl Annotation for ContentAnnotation {
         left.end -= index;
         right.start += index;
 
-        Some([
+        Some((
             Self {
                 range: left,
                 probability: self.probability,
@@ -550,7 +617,7 @@ impl Annotation for ContentAnnotation {
                 range: right,
                 probability: self.probability,
             },
-        ])
+        ))
     }
 }
 
@@ -561,7 +628,7 @@ impl Annotation for TimelineAnnotation<'_> {
     fn range_mut(&mut self) -> &mut Range<usize> {
         &mut self.range
     }
-    fn split(&self, index: usize) -> Option<[Self; 2]> {
+    fn split(&self, index: usize) -> Option<(Self, Self)> {
         if index == 0 || index >= self.range.end {
             return None;
         }
@@ -572,7 +639,7 @@ impl Annotation for TimelineAnnotation<'_> {
         left.end -= index;
         right.start += index;
 
-        Some([
+        Some((
             Self {
                 range: left,
                 probability: self.probability,
@@ -585,7 +652,7 @@ impl Annotation for TimelineAnnotation<'_> {
                 node: self.node,
                 model: self.model,
             },
-        ])
+        ))
     }
 }
 
@@ -629,7 +696,7 @@ pub trait ConcatableNodeContents: NodeContents {
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation>;
-    fn split(self, index: usize) -> Option<[Self; 2]>;
+    fn split(self, index: usize) -> Option<(Self, Self)>;
 }
 
 impl NodeContents for NodeContent {
@@ -709,7 +776,7 @@ impl ConcatableNodeContents for SnippetNode {
             },
         })
     }
-    fn split(self, index: usize) -> Option<[Self; 2]> {
+    fn split(self, index: usize) -> Option<(Self, Self)> {
         if index > self.content.len() {
             return None;
         }
@@ -718,7 +785,7 @@ impl ConcatableNodeContents for SnippetNode {
         let right = left.split_off(index);
         left.shrink_to_fit();
 
-        Some([
+        Some((
             Self {
                 content: left,
                 model: self.model.clone(),
@@ -727,7 +794,7 @@ impl ConcatableNodeContents for SnippetNode {
                 content: right,
                 model: self.model,
             },
-        ])
+        ))
     }
 }
 
@@ -803,7 +870,7 @@ impl ConcatableNodeContents for TokenNode {
             }
         })
     }
-    fn split(self, index: usize) -> Option<[Self; 2]> {
+    fn split(self, index: usize) -> Option<(Self, Self)> {
         let mut content_index = 0;
 
         let location = self
@@ -824,7 +891,7 @@ impl ConcatableNodeContents for TokenNode {
             });
 
         if location.is_none() && index == content_index {
-            return Some([
+            return Some((
                 Self {
                     content: self.content,
                     model: self.model.clone(),
@@ -833,7 +900,7 @@ impl ConcatableNodeContents for TokenNode {
                     content: vec![],
                     model: self.model,
                 },
-            ]);
+            ));
         }
 
         let location = location?;
@@ -842,13 +909,13 @@ impl ConcatableNodeContents for TokenNode {
         let mut right = left.split_off(location);
         left.shrink_to_fit();
 
-        let [left_token, right_token] = right[0].clone().split(index - content_index)?;
+        let (left_token, right_token) = right[0].clone().split(index - content_index)?;
         if !left_token.content.is_empty() {
             left.push(left_token);
         }
         right[0] = right_token;
 
-        Some([
+        Some((
             Self {
                 content: left,
                 model: self.model.clone(),
@@ -857,7 +924,7 @@ impl ConcatableNodeContents for TokenNode {
                 content: right,
                 model: self.model,
             },
-        ])
+        ))
     }
 }
 
@@ -868,7 +935,7 @@ pub struct NodeToken {
 }
 
 impl NodeToken {
-    pub fn split(self, index: usize) -> Option<[Self; 2]> {
+    pub fn split(self, index: usize) -> Option<(Self, Self)> {
         if index > self.content.len() {
             return None;
         }
@@ -877,7 +944,7 @@ impl NodeToken {
         let right = left.split_off(index);
         left.shrink_to_fit();
 
-        Some([
+        Some((
             Self {
                 content: left,
                 probability: self.probability,
@@ -886,7 +953,7 @@ impl NodeToken {
                 content: right,
                 probability: self.probability,
             },
-        ])
+        ))
     }
 }
 
@@ -1088,7 +1155,7 @@ impl Modification {
 
         match &self.content {
             ModificationContent::Insertion(_) => {
-                if let Some([left, mut right]) = annotations[selected].split(self.index) {
+                if let Some((left, mut right)) = annotations[selected].split(self.index) {
                     let middle = T::from(range);
                     right.range_mut().start += offset;
                     right.range_mut().end += offset;
