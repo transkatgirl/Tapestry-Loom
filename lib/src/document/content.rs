@@ -544,9 +544,14 @@ impl Display for NodeContent {
     }
 }
 
+/// Metadata about the algorithmic process which generated a [`NodeContent`] object.
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
 pub struct NodeModel {
+    /// The identifier of the [`Model`] that generated the content.
     pub id: Ulid,
+    /// The parameters used to generate the content.
+    ///
+    /// This should not be used to store general metadata about the [`Model`]; It should only contain the tunable parameters used for generation.
     pub parameters: Vec<(String, String)>,
 }
 
@@ -981,9 +986,14 @@ impl Diff {
     }
 }
 
+/// A modification to perform on a set of bytes.
+///
+/// This has little meaning on its own, as it is meant to be paired with the text being modified.
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct Modification {
+    /// The index where the modification should be applied.
     pub index: usize,
+    /// The content of the modification.
     pub content: ModificationContent,
 }
 
@@ -1068,19 +1078,24 @@ impl Modification {
     }
 }
 
+/// The content of a [`Modification`] object.
 #[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub enum ModificationContent {
+    /// Bytes to be inserted into the set.
     Insertion(Vec<u8>),
+    /// The number of bytes to be removed from the set.
     Deletion(usize),
 }
 
 impl ModificationContent {
+    /// The length in bytes of the modification being performed.
     pub fn len(&self) -> usize {
         match self {
             ModificationContent::Insertion(content) => content.len(),
             ModificationContent::Deletion(length) => *length,
         }
     }
+    /// Returns `true` if the modification has a length of zero bytes.
     pub fn is_empty(&self) -> bool {
         match self {
             ModificationContent::Insertion(content) => content.is_empty(),
@@ -1089,10 +1104,14 @@ impl ModificationContent {
     }
 }
 
+/// The modification count for a [`Diff`] object.
 #[derive(Serialize, Deserialize, Default, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
 pub struct ModificationCount {
+    /// The total number of modifications.
     pub total: usize,
+    /// The number of insertion modifications.
     pub insertions: usize,
+    /// The number of deletion modifications.
     pub deletions: usize,
 }
 
