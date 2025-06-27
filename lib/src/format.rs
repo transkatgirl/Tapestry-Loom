@@ -106,7 +106,7 @@ impl CompactWeave {
         weave.update()?;
         Ok(weave)
     }
-    /// Load from a url-safe base64 string.
+    /// Load from a URL-safe Base64 string.
     pub fn load_base64(input: &str) -> Result<Self, WeaveError> {
         let mut cursor = Cursor::new(input);
         let mut decoder = DecoderReader::new(&mut cursor, &URL_SAFE);
@@ -120,7 +120,7 @@ impl CompactWeave {
 
         Ok(())
     }
-    /// Save to a url-safe base64 string.
+    /// Save to a URL-safe Base64 string.
     pub fn save_base64(&self) -> Result<String, WeaveError> {
         let mut encoder = EncoderStringWriter::new(&URL_SAFE);
         self.save(&mut encoder)?;
