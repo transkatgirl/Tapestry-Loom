@@ -926,6 +926,11 @@ pub struct Diff {
 }
 
 impl Diff {
+    /// Calculates a diff between two sets of bytes.
+    ///
+    /// The `deadline` option sets a constraint on the time spent calculating the diff. If the `deadline` is exceeded, the diff algorithm will aim to finish as soon as possible, returning a suboptimal diff.
+    ///
+    /// The specific algorithm used to calculate the diff is subject to change.
     pub fn new(before: &[u8], after: &[u8], deadline: Instant) -> Self {
         let chunks = capture_diff_slices_deadline(Algorithm::Myers, before, after, Some(deadline));
 
@@ -967,6 +972,7 @@ impl Diff {
             content: modifications,
         }
     }
+    /// Applies the diff to a set of bytes.
     pub fn apply(self, data: &mut Vec<u8>) {
         for modification in self.content {
             modification.apply(data);
@@ -995,6 +1001,7 @@ impl Diff {
             }
         }
     }
+    /// Calculates the total number of modifications in the [`Diff`] by type.
     pub fn count(&self) -> ModificationCount {
         let mut insertions: usize = 0;
         let mut deletions: usize = 0;
@@ -1012,6 +1019,7 @@ impl Diff {
             deletions,
         }
     }
+    /// Returns `true` if the sum of all modification lengths in the diff is equal to zero bytes.
     pub fn is_empty(&self) -> bool {
         for modification in &self.content {
             if !modification.content.is_empty() {
@@ -1034,12 +1042,16 @@ pub struct Modification {
 }
 
 impl Modification {
+    /// Applies the modification to a set of bytes.
     pub fn apply(self, data: &mut Vec<u8>) {
         match self.content {
             ModificationContent::Insertion(content) => data.splice(self.index..self.index, content),
             ModificationContent::Deletion(length) => data.splice(self.index..length, vec![]),
         };
     }
+    /// Returns the range of bytes that the modification will be performed on.
+    ///
+    /// If this is an insertion modification, the end of the range represents the end of the inserted content.
     pub fn range(&self) -> Range<usize> {
         Range {
             start: self.index,
