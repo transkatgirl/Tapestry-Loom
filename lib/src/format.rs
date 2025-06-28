@@ -8,7 +8,6 @@ use std::{
 use base64::{engine::general_purpose::URL_SAFE, read::DecoderReader, write::EncoderStringWriter};
 use lz4_flex::frame::{FrameDecoder, FrameEncoder};
 use rmp_serde::{decode, encode};
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use thiserror::Error;
@@ -52,8 +51,8 @@ enum NodeData {
 type Node = (NodeData, Vec<u128>);
 // (identifier, parameters)
 type NodeModel = (u128, Vec<(String, String)>);
-// [bytes, probability]
-type NodeTokens = Vec<(ByteBuf, Option<f32>)>;
+// [bytes, metadata]
+type NodeTokens = Vec<(ByteBuf, NodeMetadata)>;
 // [index, modification] processed in specified order
 type NodeDiff = Vec<(u64, DiffModification)>;
 type NodeMetadata = Option<HashMap<String, String>>;
@@ -185,19 +184,10 @@ impl TryFrom<NodeData> for content::NodeContent {
                 content::NodeContent::Tokens(content::TokenContent {
                     content: content
                         .into_iter()
-                        .map(|(bytes, probability)| {
+                        .map(|(bytes, metadata)| {
                             Ok(content::ContentToken {
-                                probability: match probability {
-                                    Some(probability) => {
-                                        Some(Decimal::try_from(probability).map_err(|_| {
-                                            WeaveError::FailedInteractive(
-                                                "Unable to parse probability value".to_string(),
-                                            )
-                                        })?)
-                                    }
-                                    None => None,
-                                },
                                 content: bytes.into_vec(),
+                                metadata,
                             })
                         })
                         .collect::<Result<Vec<_>, WeaveError>>()?,
@@ -251,21 +241,8 @@ impl TryFrom<content::NodeContent> for NodeData {
                 content
                     .content
                     .into_iter()
-                    .map(|token| -> Result<(ByteBuf, Option<f32>), WeaveError> {
-                        Ok((
-                            ByteBuf::from(token.content),
-                            match token.probability {
-                                Some(probability) => {
-                                    Some(f32::try_from(probability).map_err(|_| {
-                                        WeaveError::FailedCompact(
-                                            "Unable to convert probability value to f32"
-                                                .to_string(),
-                                        )
-                                    })?)
-                                }
-                                None => None,
-                            },
-                        ))
+                    .map(|token| -> Result<(ByteBuf, NodeMetadata), WeaveError> {
+                        Ok((ByteBuf::from(token.content), token.metadata))
                     })
                     .collect::<Result<Vec<_>, _>>()?,
                 content.model.map(|model| (model.id.0, model.parameters)),

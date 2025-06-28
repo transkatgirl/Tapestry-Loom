@@ -9,7 +9,6 @@ use std::{
     vec,
 };
 
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use similar::{Algorithm, DiffTag, capture_diff_slices_deadline};
 use ulid::Ulid;
@@ -80,7 +79,7 @@ impl<'w> WeaveTimeline<'w> {
         let mut annotations = Vec::with_capacity(self.timeline.len());
 
         for (node, model) in &self.timeline {
-            match node.content.clone() {
+            match &node.content {
                 NodeContent::Snippet(snippet) => {
                     annotations.append(
                         &mut snippet
@@ -90,15 +89,15 @@ impl<'w> WeaveTimeline<'w> {
                                     start: annotation.range.start + bytes.len(),
                                     end: annotation.range.end + bytes.len(),
                                 },
-                                probability: annotation.probability,
                                 node: Some(node),
                                 model: *model,
-                                metadata: node.content.metadata(),
+                                subsection_metadata: annotation.metadata,
+                                content_metadata: node.content.metadata(),
                                 parameters: node.content.model().map(|model| &model.parameters),
                             })
                             .collect(),
                     );
-                    bytes.append(&mut snippet.into_bytes());
+                    bytes.append(&mut snippet.clone().into_bytes());
                 }
                 NodeContent::Tokens(tokens) => {
                     annotations.append(
@@ -109,15 +108,15 @@ impl<'w> WeaveTimeline<'w> {
                                     start: annotation.range.start + bytes.len(),
                                     end: annotation.range.end + bytes.len(),
                                 },
-                                probability: annotation.probability,
                                 node: Some(node),
                                 model: *model,
-                                metadata: node.content.metadata(),
+                                subsection_metadata: annotation.metadata,
+                                content_metadata: node.content.metadata(),
                                 parameters: node.content.model().map(|model| &model.parameters),
                             })
                             .collect(),
                     );
-                    bytes.append(&mut tokens.into_bytes());
+                    bytes.append(&mut tokens.clone().into_bytes());
                 }
                 NodeContent::Diff(diff) => {
                     diff.content.apply_timeline_annotations(
@@ -126,7 +125,7 @@ impl<'w> WeaveTimeline<'w> {
                         node.content.metadata(),
                         &mut annotations,
                     );
-                    diff.content.apply(&mut bytes);
+                    diff.content.clone().apply(&mut bytes);
                 }
                 NodeContent::Blank => {}
             }
@@ -299,7 +298,7 @@ impl NodeContent {
                         }
                         Self::Tokens(mut right) => {
                             let left_token = ContentToken {
-                                probability: None,
+                                metadata: None,
                                 content: left.content,
                             };
                             right.content.splice(..0, iter::once(left_token));
@@ -316,7 +315,7 @@ impl NodeContent {
                     Self::Tokens(mut left) => match right {
                         Self::Snippet(right) => {
                             left.content.push(ContentToken {
-                                probability: None,
+                                metadata: None,
                                 content: right.content,
                             });
                             Self::Tokens(left)
@@ -383,7 +382,12 @@ impl NodeContent {
             Self::Tokens(mut tokens) => {
                 if tokens.content.is_empty() {
                     Self::Blank
-                } else if tokens.content.len() == 1 && tokens.content[0].probability.is_none() {
+                } else if tokens.content.len() == 1
+                    && tokens.content[0]
+                        .metadata
+                        .as_ref()
+                        .is_none_or(HashMap::is_empty)
+                {
                     Self::Snippet(SnippetContent {
                         content: tokens.content.pop().unwrap().content,
                         model: tokens.model,
@@ -409,12 +413,15 @@ impl NodeContent {
 }
 
 /// An annotation within a section of content.
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
-pub struct ContentAnnotation {
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct ContentAnnotation<'w> {
     /// The range of content bytes that the annotation applies to.
     pub range: Range<usize>,
-    /// The probability this set of bytes was assigned by the process that generated it, if any.
-    pub probability: Option<Decimal>,
+
+    /// Metadata associated with this set of bytes.
+    ///
+    /// This field should be used only for metadata associated with a subsection (such as a token), not metadata regarding the entirety of the section.
+    pub metadata: Option<&'w HashMap<String, String>>,
 }
 
 /// An annotation within the output of a [`WeaveTimeline`].
@@ -422,8 +429,7 @@ pub struct ContentAnnotation {
 pub struct TimelineAnnotation<'w> {
     /// The range of content bytes that the annotation applies to.
     pub range: Range<usize>,
-    /// The probability this set of bytes was assigned by the process that generated it, if any.
-    pub probability: Option<Decimal>,
+
     /// The node that this set of bytes originates from.
     pub node: Option<&'w Node>,
     /// The [`Model`] which generated this set of bytes, if any.
@@ -431,7 +437,11 @@ pub struct TimelineAnnotation<'w> {
     /// The parameters used to algorithmically generate this set of bytes, if any.
     pub parameters: Option<&'w Vec<(String, String)>>,
     /// Metadata associated with this set of bytes.
-    pub metadata: Option<&'w HashMap<String, String>>,
+    ///
+    /// This field should be used only for metadata associated with a subsection (such as a token). Metadata regarding the entirety of the section should be in `content_metadata`.
+    pub subsection_metadata: Option<&'w HashMap<String, String>>,
+    /// Metadata associated with the content this set of bytes originated from.
+    pub content_metadata: Option<&'w HashMap<String, String>>,
 }
 
 /// Types which act as content annotations for sets of bytes.
@@ -444,7 +454,7 @@ pub trait Annotation: Sized + From<Range<usize>> {
     fn split(&self, index: usize) -> Option<(Self, Self)>;
 }
 
-impl Annotation for ContentAnnotation {
+impl Annotation for ContentAnnotation<'_> {
     fn range(&self) -> &Range<usize> {
         &self.range
     }
@@ -465,11 +475,11 @@ impl Annotation for ContentAnnotation {
         Some((
             Self {
                 range: left,
-                probability: self.probability,
+                metadata: self.metadata,
             },
             Self {
                 range: right,
-                probability: self.probability,
+                metadata: self.metadata,
             },
         ))
     }
@@ -496,29 +506,29 @@ impl Annotation for TimelineAnnotation<'_> {
         Some((
             Self {
                 range: left,
-                probability: self.probability,
                 node: self.node,
                 model: self.model,
-                metadata: self.metadata,
+                subsection_metadata: self.subsection_metadata,
+                content_metadata: self.content_metadata,
                 parameters: self.parameters,
             },
             Self {
                 range: right,
-                probability: self.probability,
                 node: self.node,
                 model: self.model,
-                metadata: self.metadata,
+                subsection_metadata: self.subsection_metadata,
+                content_metadata: self.content_metadata,
                 parameters: self.parameters,
             },
         ))
     }
 }
 
-impl From<Range<usize>> for ContentAnnotation {
+impl From<Range<usize>> for ContentAnnotation<'_> {
     fn from(range: Range<usize>) -> Self {
         Self {
             range,
-            probability: None,
+            metadata: None,
         }
     }
 }
@@ -527,23 +537,23 @@ impl From<Range<usize>> for TimelineAnnotation<'_> {
     fn from(range: Range<usize>) -> Self {
         Self {
             range,
-            probability: None,
             node: None,
             model: None,
-            metadata: None,
+            subsection_metadata: None,
+            content_metadata: None,
             parameters: None,
         }
     }
 }
 
-impl From<ContentAnnotation> for TimelineAnnotation<'_> {
-    fn from(input: ContentAnnotation) -> Self {
+impl<'w> From<ContentAnnotation<'w>> for TimelineAnnotation<'w> {
+    fn from(input: ContentAnnotation<'w>) -> Self {
         Self {
             range: input.range,
-            probability: input.probability,
             node: None,
             model: None,
-            metadata: None,
+            subsection_metadata: input.metadata,
+            content_metadata: None,
             parameters: None,
         }
     }
@@ -606,7 +616,7 @@ impl Display for NodeContent {
 /// Metadata about the algorithmic process which generated a section of content.
 ///
 /// This should only be used if the algorithmic process generated the content itself, not just the metadata associated with the content.
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ContentModel {
     /// The identifier of the [`Model`] that generated the content.
     pub id: Ulid,
@@ -668,7 +678,7 @@ impl ConcatableNodeContents for SnippetContent {
     }
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
         iter::once(ContentAnnotation {
-            probability: None,
+            metadata: None,
             range: Range {
                 start: 0,
                 end: self.content.len(),
@@ -779,7 +789,7 @@ impl ConcatableNodeContents for TokenContent {
 
             ContentAnnotation {
                 range,
-                probability: token.probability,
+                metadata: token.metadata.as_ref(),
             }
         })
     }
@@ -846,10 +856,10 @@ impl ConcatableNodeContents for TokenContent {
 }
 
 /// A single UTF-8 token from a tokenized piece of text.
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ContentToken {
-    /// The probability this token was assigned by the process that generated it, if any.
-    pub probability: Option<Decimal>,
+    /// Metadata associated with the token.
+    pub metadata: Option<HashMap<String, String>>,
     /// The textual content of the token.
     ///
     /// This may not be valid UTF-8 on it's own, so it is stored as an array of bytes rather than a [`String`].
@@ -857,9 +867,7 @@ pub struct ContentToken {
 }
 
 impl ContentToken {
-    /// Splits the token in half at the specified index.
-    ///
-    /// If the token has an assigned probability value, both halves retain the same value.
+    /// Splits the token in half at the specified index, retaining all associated metadata.
     pub fn split(self, index: usize) -> Option<(Self, Self)> {
         if index > self.content.len() {
             return None;
@@ -872,11 +880,11 @@ impl ContentToken {
         Some((
             Self {
                 content: left,
-                probability: self.probability,
+                metadata: self.metadata.clone(),
             },
             Self {
                 content: right,
-                probability: self.probability,
+                metadata: self.metadata,
             },
         ))
     }
@@ -887,7 +895,7 @@ impl From<SnippetContent> for TokenContent {
         Self {
             content: vec![ContentToken {
                 content: input.content,
-                probability: None,
+                metadata: None,
             }],
             model: input.model,
             metadata: input.metadata,
@@ -899,7 +907,7 @@ impl From<Vec<u8>> for ContentToken {
     fn from(input: Vec<u8>) -> Self {
         Self {
             content: input,
-            probability: None,
+            metadata: None,
         }
     }
 }
@@ -949,7 +957,7 @@ impl Display for DiffContent {
 /// A list of modifications to perform on a set of bytes.
 ///
 /// This has little meaning on its own, as it is meant to be paired with the text being modified.
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, PartialOrd, Ord, Eq)]
 pub struct Diff {
     /// A list of modifications in the order they should be performed.
     pub content: Vec<Modification>,
@@ -1020,14 +1028,14 @@ impl Diff {
         &self,
         node: &'w Node,
         model: Option<&'w Model>,
-        metadata: Option<&'w HashMap<String, String>>,
+        content_metadata: Option<&'w HashMap<String, String>>,
         annotations: &mut Vec<TimelineAnnotation<'w>>,
     ) {
         for modification in &self.content {
             if let Some(index) = modification.apply_annotations(annotations) {
                 annotations[index].node = Some(node);
                 annotations[index].model = model;
-                annotations[index].metadata = metadata;
+                annotations[index].content_metadata = content_metadata;
             }
         }
     }
@@ -1063,7 +1071,7 @@ impl Diff {
 /// A modification to perform on a set of bytes.
 ///
 /// This has little meaning on its own, as it is meant to be paired with the text being modified.
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, PartialOrd, Ord, Eq)]
 pub struct Modification {
     /// The index where the modification should be applied.
     pub index: usize,
@@ -1157,7 +1165,7 @@ impl Modification {
 }
 
 /// The content of a [`Modification`] object.
-#[derive(Serialize, Deserialize, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, PartialOrd, Ord, Eq)]
 pub enum ModificationContent {
     /// Bytes to be inserted into the set.
     Insertion(Vec<u8>),
@@ -1183,7 +1191,7 @@ impl ModificationContent {
 }
 
 /// The modification count for a [`Diff`] object.
-#[derive(Serialize, Deserialize, Default, Clone, Debug, Hash, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, PartialOrd, Ord, Eq)]
 pub struct ModificationCount {
     /// The total number of modifications.
     pub total: usize,
