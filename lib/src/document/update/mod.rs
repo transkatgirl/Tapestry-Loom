@@ -96,9 +96,9 @@ impl Weave {
                 .unwrap_or_default();
 
             if modification.index >= end {
-                handle_graph_modification_tail(self, &mut update.ranges, modification);
+                handle_graph_modification_tail(self, &mut update.ranges, &modification);
             } else {
-                handle_graph_modification_nontail(self, &mut update.ranges, modification);
+                handle_graph_modification_nontail(self, &mut update.ranges, &modification);
             }
         }
     }
@@ -106,13 +106,10 @@ impl Weave {
 
 fn handle_singular_modification_diff_tail(
     weave: &mut Weave,
-    ranges: &mut Vec<TimelineNodeRange>,
+    ranges: &mut [TimelineNodeRange],
     modification: Modification,
 ) {
-    let (last_node, mut end) = ranges
-        .last()
-        .map(|range| (range.node, range.range.end))
-        .unwrap_or_default();
+    let last_node = ranges.last().map(|range| range.node).unwrap_or_default();
 
     match modification.content {
         ModificationContent::Insertion(content) => {
@@ -138,7 +135,7 @@ fn handle_singular_modification_diff_tail(
                 )
                 .unwrap();
         }
-        ModificationContent::Deletion(length) => {
+        ModificationContent::Deletion(_length) => {
             let modification_range = modification.range();
             let selected_ranges = ranges.iter().rev().enumerate().filter(|(_, node_range)| {
                 modification_range.contains(&node_range.range.start)
@@ -151,12 +148,12 @@ fn handle_singular_modification_diff_tail(
                         && modification_range.contains(&timeline_range.range.end)
                     {
                         weave.update_node_activity(&identifier, false, true);
-                    } else if modification_range.contains(&timeline_range.range.start) {
-                        if let Some((_left, right)) = weave.split_node(
+                    } else if modification_range.contains(&timeline_range.range.end) {
+                        if let Some((left, _right)) = weave.split_node(
                             &identifier,
-                            timeline_range.range.start - modification_range.end,
+                            timeline_range.range.end - modification_range.start,
                         ) {
-                            weave.update_node_activity(&right, false, true);
+                            weave.update_node_activity(&left, false, true);
                         } else {
                             weave
                                 .add_node(
@@ -168,12 +165,7 @@ fn handle_singular_modification_diff_tail(
                                         bookmarked: false,
                                         content: NodeContent::Diff(DiffContent {
                                             content: Diff {
-                                                content: vec![Modification {
-                                                    index: modification_range.start,
-                                                    content: ModificationContent::Deletion(
-                                                        end - modification_range.start,
-                                                    ),
-                                                }],
+                                                content: vec![modification],
                                             },
                                             model: None,
                                             metadata: None,
@@ -189,7 +181,6 @@ fn handle_singular_modification_diff_tail(
                     } else {
                         panic!() // Should never happen
                     }
-                    end = modification_range.end;
                 } else {
                     panic!() // Should never happen
                 }
@@ -263,14 +254,11 @@ fn handle_multiple_modification_diff(
 fn handle_graph_modification_tail(
     weave: &mut Weave,
     ranges: &mut Vec<TimelineNodeRange>,
-    modification: Modification,
+    modification: &Modification,
 ) {
     let mut new_node = None;
 
-    let (last_node, end) = ranges
-        .last()
-        .map(|range| (range.node, range.range.end))
-        .unwrap_or_default();
+    let last_node = ranges.last().map(|range| range.node).unwrap_or_default();
 
     match &modification.content {
         ModificationContent::Insertion(content) => {
@@ -294,7 +282,7 @@ fn handle_graph_modification_tail(
                 true,
             );
         }
-        ModificationContent::Deletion(length) => {
+        ModificationContent::Deletion(_length) => {
             let modification_range = modification.range();
 
             let selected_ranges = ranges.iter().enumerate().filter(|(_, node_range)| {
@@ -308,22 +296,17 @@ fn handle_graph_modification_tail(
                         && modification_range.contains(&timeline_range.range.end)
                     {
                         weave.update_node_activity(&identifier, false, true);
-                    } else if modification_range.contains(&timeline_range.range.start) {
-                        if let Some((_left, right)) = weave.split_node(
+                    } else if modification_range.contains(&timeline_range.range.end) {
+                        if let Some((left, _right)) = weave.split_node(
                             &identifier,
-                            timeline_range.range.start - modification_range.end,
+                            timeline_range.range.end - modification_range.start,
                         ) {
-                            weave.update_node_activity(&right, false, true);
+                            weave.update_node_activity(&left, false, true);
                         } else {
                             panic!() // Non-diff nodes should always be splitable
                         }
-                    } else if let Some((left, _right)) = weave.split_node(
-                        &identifier,
-                        timeline_range.range.end - modification_range.start,
-                    ) {
-                        weave.update_node_activity(&left, false, true);
                     } else {
-                        panic!() // Non-diff nodes should always be splitable
+                        panic!() // Should never happen
                     }
                 } else {
                     panic!() // Should never happen
@@ -342,7 +325,7 @@ fn handle_graph_modification_tail(
 fn handle_graph_modification_nontail(
     weave: &mut Weave,
     ranges: &mut Vec<TimelineNodeRange>,
-    modification: Modification,
+    modification: &Modification,
 ) {
     let mut new_node = None;
 
