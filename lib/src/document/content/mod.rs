@@ -858,12 +858,12 @@ impl ConcatableNodeContents for TokenContent {
 /// A single UTF-8 token from a tokenized piece of text.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ContentToken {
-    /// Metadata associated with the token.
-    pub metadata: Option<HashMap<String, String>>,
     /// The textual content of the token.
     ///
     /// This may not be valid UTF-8 on it's own, so it is stored as an array of bytes rather than a [`String`].
     pub content: Vec<u8>,
+    /// Metadata associated with the token.
+    pub metadata: Option<HashMap<String, String>>,
 }
 
 impl ContentToken {
