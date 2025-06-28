@@ -68,7 +68,6 @@ impl Weave {
             self.perform_graph_update(update);
         }
     }
-    #[allow(clippy::too_many_lines)]
     fn perform_diff_update(&mut self, mut update: TimelineUpdate) {
         let end = update
             .ranges
@@ -88,171 +87,18 @@ impl Weave {
 
         handle_multiple_modification_diff(self, &mut update.ranges, update.diff);
     }
-    // TODO
-    #[allow(clippy::too_many_lines)]
     fn perform_graph_update(&mut self, mut update: TimelineUpdate) {
         for modification in update.diff.content {
-            let modification_range = modification.range();
-
-            let selected_ranges = update.ranges.iter().enumerate().filter(|(_, node_range)| {
-                modification_range.contains(&node_range.range.start)
-                    || modification_range.contains(&node_range.range.end)
-            });
-
-            let (last_node, end) = update
+            let end = update
                 .ranges
                 .last()
-                .map(|range| (range.node, range.range.end))
+                .map(|range| range.range.end)
                 .unwrap_or_default();
 
-            let mut new_node = None;
-
-            match &modification.content {
-                ModificationContent::Insertion(content) => {
-                    if modification_range.start >= end {
-                        new_node = self.add_node(
-                            Node {
-                                id: Ulid::new(),
-                                from: last_node
-                                    .map(|node| HashSet::from([node]))
-                                    .unwrap_or_default(),
-                                to: HashSet::new(),
-                                active: true,
-                                bookmarked: false,
-                                content: NodeContent::Snippet(SnippetContent {
-                                    content: content.clone(),
-                                    model: None,
-                                    metadata: None,
-                                }),
-                            },
-                            None,
-                            false,
-                            true,
-                        );
-                    } else {
-                        let selected_ranges: Vec<_> = selected_ranges.collect();
-
-                        if let Some((first_selected_index, first_selected_range)) =
-                            selected_ranges.first()
-                        {
-                            match first_selected_range
-                                .range
-                                .start
-                                .cmp(&modification_range.start)
-                            {
-                                Ordering::Equal => {
-                                    let from_node = first_selected_range.node;
-                                    let to_node = &update
-                                        .ranges
-                                        .split_at(*first_selected_index)
-                                        .1
-                                        .iter()
-                                        .find_map(|range| {
-                                            if range.node == from_node {
-                                                None
-                                            } else {
-                                                range.node
-                                            }
-                                        });
-
-                                    new_node = self.add_node(
-                                        Node {
-                                            id: Ulid::new(),
-                                            from: from_node
-                                                .map(|node| HashSet::from([node]))
-                                                .unwrap_or_default(),
-                                            to: to_node
-                                                .map(|node| HashSet::from([node]))
-                                                .unwrap_or_default(),
-                                            active: true,
-                                            bookmarked: false,
-                                            content: NodeContent::Snippet(SnippetContent {
-                                                content: content.clone(),
-                                                model: None,
-                                                metadata: None,
-                                            }),
-                                        },
-                                        None,
-                                        false,
-                                        true,
-                                    );
-                                    if let (Some(from_node), Some(to_node)) = (from_node, to_node) {
-                                        self.remove_node_parent(to_node, &from_node);
-                                    }
-                                }
-                                Ordering::Greater => {
-                                    todo!()
-                                }
-                                Ordering::Less => {
-                                    todo!()
-                                }
-                            }
-                        }
-                    }
-                }
-                ModificationContent::Deletion(_length) => {
-                    if modification_range.end >= end {
-                        for (_range_index, timeline_range) in selected_ranges {
-                            if let Some(identifier) = timeline_range.node {
-                                if modification_range.contains(&timeline_range.range.start)
-                                    && modification_range.contains(&timeline_range.range.end)
-                                {
-                                    self.update_node_activity(&identifier, false, true);
-                                } else if modification_range.contains(&timeline_range.range.start) {
-                                    if let Some((_left, right)) = self.split_node(
-                                        &identifier,
-                                        timeline_range.range.start - modification_range.end,
-                                    ) {
-                                        self.update_node_activity(&right, false, true);
-                                    } else {
-                                        panic!() // Non-diff nodes should always be splitable
-                                    }
-                                } else if let Some((left, _right)) = self.split_node(
-                                    &identifier,
-                                    timeline_range.range.end - modification_range.start,
-                                ) {
-                                    self.update_node_activity(&left, false, true);
-                                } else {
-                                    panic!() // Non-diff nodes should always be splitable
-                                }
-                            } else {
-                                panic!() // Should never happen
-                            }
-                        }
-                    } else {
-                        let selected_ranges: Vec<_> = selected_ranges.collect();
-
-                        if let Some((first_selected_index, first_selected_range)) =
-                            selected_ranges.first()
-                        {
-                            match first_selected_range
-                                .range
-                                .start
-                                .cmp(&modification_range.start)
-                            {
-                                Ordering::Equal => {
-                                    todo!()
-                                }
-                                Ordering::Greater => {
-                                    todo!()
-                                }
-                                Ordering::Less => {
-                                    todo!()
-                                }
-                            }
-                        }
-
-                        for (range_index, timeline_range) in selected_ranges {}
-
-                        todo!()
-                    }
-                }
-            }
-
-            if let Some(mod_index) = modification.apply_annotations(&mut update.ranges) {
-                if new_node.is_some() {
-                    update.ranges[mod_index].node = new_node;
-                }
+            if modification.index >= end {
+                handle_graph_modification_tail(self, &mut update.ranges, modification);
+            } else {
+                handle_graph_modification_nontail(self, &mut update.ranges, modification);
             }
         }
     }
@@ -414,6 +260,104 @@ fn handle_multiple_modification_diff(
         .unwrap();
 }
 
-fn handle_graph_tail(weave: &mut Weave, selected: impl Iterator<Item = TimelineNodeRange>) {
-    todo!()
+fn handle_graph_modification_tail(
+    weave: &mut Weave,
+    ranges: &mut Vec<TimelineNodeRange>,
+    modification: Modification,
+) {
+    let mut new_node = None;
+
+    let (last_node, end) = ranges
+        .last()
+        .map(|range| (range.node, range.range.end))
+        .unwrap_or_default();
+
+    match &modification.content {
+        ModificationContent::Insertion(content) => {
+            new_node = weave.add_node(
+                Node {
+                    id: Ulid::new(),
+                    from: last_node
+                        .map(|node| HashSet::from([node]))
+                        .unwrap_or_default(),
+                    to: HashSet::new(),
+                    active: true,
+                    bookmarked: false,
+                    content: NodeContent::Snippet(SnippetContent {
+                        content: content.clone(),
+                        model: None,
+                        metadata: None,
+                    }),
+                },
+                None,
+                false,
+                true,
+            );
+        }
+        ModificationContent::Deletion(length) => {
+            let modification_range = modification.range();
+
+            let selected_ranges = ranges.iter().enumerate().filter(|(_, node_range)| {
+                modification_range.contains(&node_range.range.start)
+                    || modification_range.contains(&node_range.range.end)
+            });
+
+            for (_range_index, timeline_range) in selected_ranges {
+                if let Some(identifier) = timeline_range.node {
+                    if modification_range.contains(&timeline_range.range.start)
+                        && modification_range.contains(&timeline_range.range.end)
+                    {
+                        weave.update_node_activity(&identifier, false, true);
+                    } else if modification_range.contains(&timeline_range.range.start) {
+                        if let Some((_left, right)) = weave.split_node(
+                            &identifier,
+                            timeline_range.range.start - modification_range.end,
+                        ) {
+                            weave.update_node_activity(&right, false, true);
+                        } else {
+                            panic!() // Non-diff nodes should always be splitable
+                        }
+                    } else if let Some((left, _right)) = weave.split_node(
+                        &identifier,
+                        timeline_range.range.end - modification_range.start,
+                    ) {
+                        weave.update_node_activity(&left, false, true);
+                    } else {
+                        panic!() // Non-diff nodes should always be splitable
+                    }
+                } else {
+                    panic!() // Should never happen
+                }
+            }
+        }
+    }
+
+    if let Some(mod_index) = modification.apply_annotations(ranges) {
+        if new_node.is_some() {
+            ranges[mod_index].node = new_node;
+        }
+    }
+}
+
+fn handle_graph_modification_nontail(
+    weave: &mut Weave,
+    ranges: &mut Vec<TimelineNodeRange>,
+    modification: Modification,
+) {
+    let mut new_node = None;
+
+    match &modification.content {
+        ModificationContent::Insertion(content) => {
+            todo!()
+        }
+        ModificationContent::Deletion(length) => {
+            todo!()
+        }
+    }
+
+    if let Some(mod_index) = modification.apply_annotations(&mut ranges) {
+        if new_node.is_some() {
+            ranges[mod_index].node = new_node;
+        }
+    }
 }
