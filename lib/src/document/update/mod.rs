@@ -4,6 +4,8 @@ use std::{cmp::Ordering, collections::HashSet, time::Instant, vec};
 
 use ulid::Ulid;
 
+use crate::document::content::TimelineNodeRange;
+
 use super::{
     Weave, WeaveView,
     content::{
@@ -68,153 +70,23 @@ impl Weave {
     }
     #[allow(clippy::too_many_lines)]
     fn perform_diff_update(&mut self, mut update: TimelineUpdate) {
-        let (last_node, mut end) = update
+        let end = update
             .ranges
             .last()
-            .map(|range| (range.node, range.range.end))
+            .map(|range| range.range.end)
             .unwrap_or_default();
 
         if update.diff.content.len() == 1 {
             let modification = update.diff.content.remove(0);
 
-            let content = match modification.content {
-                ModificationContent::Insertion(content) => {
-                    if update.diff.content[0].index >= end {
-                        NodeContent::Snippet(SnippetContent {
-                            content,
-                            model: None,
-                            metadata: None,
-                        })
-                    } else {
-                        NodeContent::Diff(DiffContent {
-                            content: Diff {
-                                content: vec![Modification {
-                                    index: modification.index,
-                                    content: ModificationContent::Insertion(content),
-                                }],
-                            },
-                            model: None,
-                            metadata: None,
-                        })
-                    }
-                }
-                ModificationContent::Deletion(length) => {
-                    let modification_range = modification.range();
-
-                    if modification_range.end >= end {
-                        let selected_ranges =
-                            update
-                                .ranges
-                                .iter()
-                                .rev()
-                                .enumerate()
-                                .filter(|(_, node_range)| {
-                                    modification_range.contains(&node_range.range.start)
-                                        || modification_range.contains(&node_range.range.end)
-                                });
-
-                        for (_range_index, timeline_range) in selected_ranges {
-                            if let Some(identifier) = timeline_range.node {
-                                if modification_range.contains(&timeline_range.range.start)
-                                    && modification_range.contains(&timeline_range.range.end)
-                                {
-                                    self.update_node_activity(&identifier, false, true);
-                                } else if modification_range.contains(&timeline_range.range.start) {
-                                    if let Some((_left, right)) = self.split_node(
-                                        &identifier,
-                                        timeline_range.range.start - modification_range.end,
-                                    ) {
-                                        self.update_node_activity(&right, false, true);
-                                    } else {
-                                        self.add_node(
-                                            Node {
-                                                id: Ulid::new(),
-                                                from: HashSet::from([identifier]),
-                                                to: HashSet::new(),
-                                                active: true,
-                                                bookmarked: false,
-                                                content: NodeContent::Diff(DiffContent {
-                                                    content: Diff {
-                                                        content: vec![Modification {
-                                                            index: modification_range.start,
-                                                            content: ModificationContent::Deletion(
-                                                                end - modification_range.start,
-                                                            ),
-                                                        }],
-                                                    },
-                                                    model: None,
-                                                    metadata: None,
-                                                }),
-                                            },
-                                            None,
-                                            false,
-                                            true,
-                                        )
-                                        .unwrap();
-                                        return;
-                                    }
-                                } else {
-                                    panic!() // Should never happen
-                                }
-                                end = modification_range.end;
-                            } else {
-                                panic!() // Should never happen
-                            }
-                        }
-                    }
-
-                    NodeContent::Diff(DiffContent {
-                        content: Diff {
-                            content: vec![Modification {
-                                index: modification.index,
-                                content: ModificationContent::Deletion(length),
-                            }],
-                        },
-                        model: None,
-                        metadata: None,
-                    })
-                }
-            };
-
-            self.add_node(
-                Node {
-                    id: Ulid::new(),
-                    from: last_node
-                        .map(|node| HashSet::from([node]))
-                        .unwrap_or_default(),
-                    to: HashSet::new(),
-                    active: true,
-                    bookmarked: false,
-                    content,
-                },
-                None,
-                false,
-                true,
-            )
-            .unwrap();
-            return;
+            if modification.index >= end {
+                handle_singular_modification_diff_tail(self, &mut update.ranges, modification);
+            } else {
+                handle_singular_modification_diff_nontail(self, &mut update.ranges, modification);
+            }
         }
 
-        self.add_node(
-            Node {
-                id: Ulid::new(),
-                from: last_node
-                    .map(|node| HashSet::from([node]))
-                    .unwrap_or_default(),
-                to: HashSet::new(),
-                active: true,
-                bookmarked: false,
-                content: NodeContent::Diff(DiffContent {
-                    content: update.diff,
-                    model: None,
-                    metadata: None,
-                }),
-            },
-            None,
-            false,
-            true,
-        )
-        .unwrap();
+        handle_multiple_modification_diff(self, &mut update.ranges, update.diff);
     }
     // TODO
     #[allow(clippy::too_many_lines)]
@@ -384,4 +256,164 @@ impl Weave {
             }
         }
     }
+}
+
+fn handle_singular_modification_diff_tail(
+    weave: &mut Weave,
+    ranges: &mut Vec<TimelineNodeRange>,
+    modification: Modification,
+) {
+    let (last_node, mut end) = ranges
+        .last()
+        .map(|range| (range.node, range.range.end))
+        .unwrap_or_default();
+
+    match modification.content {
+        ModificationContent::Insertion(content) => {
+            weave
+                .add_node(
+                    Node {
+                        id: Ulid::new(),
+                        from: last_node
+                            .map(|node| HashSet::from([node]))
+                            .unwrap_or_default(),
+                        to: HashSet::new(),
+                        active: true,
+                        bookmarked: false,
+                        content: NodeContent::Snippet(SnippetContent {
+                            content,
+                            model: None,
+                            metadata: None,
+                        }),
+                    },
+                    None,
+                    false,
+                    true,
+                )
+                .unwrap();
+        }
+        ModificationContent::Deletion(length) => {
+            let modification_range = modification.range();
+            let selected_ranges = ranges.iter().rev().enumerate().filter(|(_, node_range)| {
+                modification_range.contains(&node_range.range.start)
+                    || modification_range.contains(&node_range.range.end)
+            });
+
+            for (_range_index, timeline_range) in selected_ranges {
+                if let Some(identifier) = timeline_range.node {
+                    if modification_range.contains(&timeline_range.range.start)
+                        && modification_range.contains(&timeline_range.range.end)
+                    {
+                        weave.update_node_activity(&identifier, false, true);
+                    } else if modification_range.contains(&timeline_range.range.start) {
+                        if let Some((_left, right)) = weave.split_node(
+                            &identifier,
+                            timeline_range.range.start - modification_range.end,
+                        ) {
+                            weave.update_node_activity(&right, false, true);
+                        } else {
+                            weave
+                                .add_node(
+                                    Node {
+                                        id: Ulid::new(),
+                                        from: HashSet::from([identifier]),
+                                        to: HashSet::new(),
+                                        active: true,
+                                        bookmarked: false,
+                                        content: NodeContent::Diff(DiffContent {
+                                            content: Diff {
+                                                content: vec![Modification {
+                                                    index: modification_range.start,
+                                                    content: ModificationContent::Deletion(
+                                                        end - modification_range.start,
+                                                    ),
+                                                }],
+                                            },
+                                            model: None,
+                                            metadata: None,
+                                        }),
+                                    },
+                                    None,
+                                    false,
+                                    true,
+                                )
+                                .unwrap();
+                            return;
+                        }
+                    } else {
+                        panic!() // Should never happen
+                    }
+                    end = modification_range.end;
+                } else {
+                    panic!() // Should never happen
+                }
+            }
+        }
+    }
+}
+
+fn handle_singular_modification_diff_nontail(
+    weave: &mut Weave,
+    ranges: &mut [TimelineNodeRange],
+    modification: Modification,
+) {
+    let last_node = ranges.last().map(|range| range.node).unwrap_or_default();
+
+    weave
+        .add_node(
+            Node {
+                id: Ulid::new(),
+                from: last_node
+                    .map(|node| HashSet::from([node]))
+                    .unwrap_or_default(),
+                to: HashSet::new(),
+                active: true,
+                bookmarked: false,
+                content: NodeContent::Diff(DiffContent {
+                    content: Diff {
+                        content: vec![modification],
+                    },
+                    model: None,
+                    metadata: None,
+                }),
+            },
+            None,
+            false,
+            true,
+        )
+        .unwrap();
+}
+
+fn handle_multiple_modification_diff(
+    weave: &mut Weave,
+    ranges: &mut [TimelineNodeRange],
+    diff: Diff,
+) {
+    let last_node = ranges.last().map(|range| range.node).unwrap_or_default();
+
+    weave
+        .add_node(
+            Node {
+                id: Ulid::new(),
+                from: last_node
+                    .map(|node| HashSet::from([node]))
+                    .unwrap_or_default(),
+                to: HashSet::new(),
+                active: true,
+                bookmarked: false,
+                content: NodeContent::Diff(DiffContent {
+                    content: diff,
+                    model: None,
+                    metadata: None,
+                }),
+            },
+            None,
+            false,
+            true,
+        )
+        .unwrap();
+}
+
+fn handle_graph_tail(weave: &mut Weave, selected: impl Iterator<Item = TimelineNodeRange>) {
+    todo!()
 }
