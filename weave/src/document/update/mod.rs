@@ -278,26 +278,38 @@ fn handle_graph_modification_nontail(
 
     let modification_range = modification.range();
 
-    let selected_ranges: Vec<&TimelineNodeRange> = ranges
+    let selected_ranges: Vec<(usize, &TimelineNodeRange)> = ranges
         .iter()
-        .filter(|node_range| {
+        .enumerate()
+        .filter(|(_index, node_range)| {
             modification_range.contains(&node_range.range.start)
                 || modification_range.contains(&node_range.range.end)
         })
         .collect();
 
-    assert!(!selected_ranges.is_empty()); // Should never happen
+    let (first_range_index, first_range) = selected_ranges.first().unwrap();
+    let before_first = if *first_range_index > 0 {
+        Some(&ranges[first_range_index - 1])
+    } else {
+        None
+    };
+    let (last_range_index, last_range) = selected_ranges.last().unwrap();
+    let after_last = if ranges.len() > (last_range_index + 1) {
+        Some(&ranges[last_range_index + 1])
+    } else {
+        None
+    };
 
     match modification.content {
         ModificationContent::Insertion(content) => {
-            todo!()
+            todo!();
         }
         ModificationContent::Deletion(length) => {
-            todo!()
+            todo!();
         }
     }
 
-    if let Some(mod_index) = update_modification.apply_annotations(&mut ranges) {
+    if let Some(mod_index) = update_modification.apply_annotations(ranges) {
         if new_node.is_some() {
             ranges[mod_index].node = new_node;
         }
