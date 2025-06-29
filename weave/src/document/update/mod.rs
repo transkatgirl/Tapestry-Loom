@@ -114,7 +114,7 @@ fn handle_modification_tail(
 
     let last_node = ranges.last().map(|range| range.node).unwrap_or_default();
 
-    let modification_range = ModificationRange::from(&modification);
+    let update_modification = ModificationRange::from(&modification);
 
     match modification.content {
         ModificationContent::Insertion(content) => {
@@ -200,7 +200,7 @@ fn handle_modification_tail(
         }
     }
 
-    if let Some(mod_index) = modification_range.apply_annotations(ranges) {
+    if let Some(mod_index) = update_modification.apply_annotations(ranges) {
         if new_node.is_some() {
             ranges[mod_index].node = new_node;
         }
@@ -274,7 +274,19 @@ fn handle_graph_modification_nontail(
 ) {
     let mut new_node = None;
 
-    let modification_range = ModificationRange::from(&modification);
+    let update_modification = ModificationRange::from(&modification);
+
+    let modification_range = modification.range();
+
+    let selected_ranges: Vec<&TimelineNodeRange> = ranges
+        .iter()
+        .filter(|node_range| {
+            modification_range.contains(&node_range.range.start)
+                || modification_range.contains(&node_range.range.end)
+        })
+        .collect();
+
+    assert!(!selected_ranges.is_empty()); // Should never happen
 
     match modification.content {
         ModificationContent::Insertion(content) => {
@@ -285,7 +297,7 @@ fn handle_graph_modification_nontail(
         }
     }
 
-    if let Some(mod_index) = modification_range.apply_annotations(&mut ranges) {
+    if let Some(mod_index) = update_modification.apply_annotations(&mut ranges) {
         if new_node.is_some() {
             ranges[mod_index].node = new_node;
         }
