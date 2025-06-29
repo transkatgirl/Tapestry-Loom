@@ -8,9 +8,9 @@ use std::{
     vec,
 };
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
 use similar::Instant;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
