@@ -79,7 +79,7 @@ impl Weave {
             let modification = update.diff.content.remove(0);
 
             if modification.index >= end {
-                handle_singular_modification_diff_tail(self, &mut update.ranges, modification);
+                handle_modification_tail(self, &mut update.ranges, modification);
             } else {
                 handle_singular_modification_diff_nontail(self, &mut update.ranges, modification);
             }
@@ -96,7 +96,7 @@ impl Weave {
                 .unwrap_or_default();
 
             if modification.index >= end {
-                handle_graph_modification_tail(self, &mut update.ranges, modification);
+                handle_modification_tail(self, &mut update.ranges, modification);
             } else {
                 handle_graph_modification_nontail(self, &mut update.ranges, modification);
             }
@@ -104,44 +104,52 @@ impl Weave {
     }
 }
 
-fn handle_singular_modification_diff_tail(
+// TODO: Handle insertion merging
+fn handle_modification_tail(
     weave: &mut Weave,
-    ranges: &mut [TimelineNodeRange],
+    ranges: &mut Vec<TimelineNodeRange>,
     modification: Modification,
 ) {
+    let mut new_node = None;
+
     let last_node = ranges.last().map(|range| range.node).unwrap_or_default();
+
+    let modification_range = ModificationRange::from(&modification);
 
     match modification.content {
         ModificationContent::Insertion(content) => {
-            weave
-                .add_node(
-                    Node {
-                        id: Ulid::new(),
-                        from: last_node
-                            .map(|node| HashSet::from([node]))
-                            .unwrap_or_default(),
-                        to: HashSet::new(),
-                        active: true,
-                        bookmarked: false,
-                        content: NodeContent::Snippet(SnippetContent {
-                            content,
-                            model: None,
-                            metadata: None,
-                        }),
-                    },
-                    None,
-                    true,
-                )
-                .unwrap();
+            new_node = Some(
+                weave
+                    .add_node(
+                        Node {
+                            id: Ulid::new(),
+                            from: last_node
+                                .map(|node| HashSet::from([node]))
+                                .unwrap_or_default(),
+                            to: HashSet::new(),
+                            active: true,
+                            bookmarked: false,
+                            content: NodeContent::Snippet(SnippetContent {
+                                content,
+                                model: None,
+                                metadata: None,
+                            }),
+                        },
+                        None,
+                        true,
+                    )
+                    .unwrap(),
+            );
         }
-        ModificationContent::Deletion(_length) => {
+        ModificationContent::Deletion(length) => {
             let modification_range = modification.range();
-            let selected_ranges = ranges.iter().rev().enumerate().filter(|(_, node_range)| {
+
+            let selected_ranges = ranges.iter().rev().filter(|node_range| {
                 modification_range.contains(&node_range.range.start)
                     || modification_range.contains(&node_range.range.end)
             });
 
-            for (_range_index, timeline_range) in selected_ranges {
+            for timeline_range in selected_ranges {
                 if let Some(identifier) = timeline_range.node {
                     if modification_range.contains(&timeline_range.range.start)
                         && modification_range.contains(&timeline_range.range.end)
@@ -154,27 +162,33 @@ fn handle_singular_modification_diff_tail(
                         ) {
                             weave.update_node_activity(&left, false, true);
                         } else {
-                            weave
-                                .add_node(
-                                    Node {
-                                        id: Ulid::new(),
-                                        from: HashSet::from([identifier]),
-                                        to: HashSet::new(),
-                                        active: true,
-                                        bookmarked: false,
-                                        content: NodeContent::Diff(DiffContent {
-                                            content: Diff {
-                                                content: vec![modification],
-                                            },
-                                            model: None,
-                                            metadata: None,
-                                        }),
-                                    },
-                                    None,
-                                    true,
-                                )
-                                .unwrap();
-                            return;
+                            new_node = Some(
+                                weave
+                                    .add_node(
+                                        Node {
+                                            id: Ulid::new(),
+                                            from: HashSet::from([identifier]),
+                                            to: HashSet::new(),
+                                            active: true,
+                                            bookmarked: false,
+                                            content: NodeContent::Diff(DiffContent {
+                                                content: Diff {
+                                                    content: vec![Modification {
+                                                        index: modification.index,
+                                                        content: ModificationContent::Deletion(
+                                                            length,
+                                                        ),
+                                                    }],
+                                                },
+                                                model: None,
+                                                metadata: None,
+                                            }),
+                                        },
+                                        None,
+                                        true,
+                                    )
+                                    .unwrap(),
+                            );
                         }
                     } else {
                         panic!() // Should never happen
@@ -183,6 +197,12 @@ fn handle_singular_modification_diff_tail(
                     panic!() // Should never happen
                 }
             }
+        }
+    }
+
+    if let Some(mod_index) = modification_range.apply_annotations(ranges) {
+        if new_node.is_some() {
+            ranges[mod_index].node = new_node;
         }
     }
 }
@@ -245,78 +265,6 @@ fn handle_multiple_modification_diff(
             true,
         )
         .unwrap();
-}
-
-fn handle_graph_modification_tail(
-    weave: &mut Weave,
-    ranges: &mut Vec<TimelineNodeRange>,
-    modification: Modification,
-) {
-    let mut new_node = None;
-
-    let last_node = ranges.last().map(|range| range.node).unwrap_or_default();
-
-    let modification_range = ModificationRange::from(&modification);
-
-    match modification.content {
-        ModificationContent::Insertion(content) => {
-            new_node = weave.add_node(
-                Node {
-                    id: Ulid::new(),
-                    from: last_node
-                        .map(|node| HashSet::from([node]))
-                        .unwrap_or_default(),
-                    to: HashSet::new(),
-                    active: true,
-                    bookmarked: false,
-                    content: NodeContent::Snippet(SnippetContent {
-                        content,
-                        model: None,
-                        metadata: None,
-                    }),
-                },
-                None,
-                true,
-            );
-        }
-        ModificationContent::Deletion(_length) => {
-            let modification_range = modification.range();
-
-            let selected_ranges = ranges.iter().enumerate().filter(|(_, node_range)| {
-                modification_range.contains(&node_range.range.start)
-                    || modification_range.contains(&node_range.range.end)
-            });
-
-            for (_range_index, timeline_range) in selected_ranges {
-                if let Some(identifier) = timeline_range.node {
-                    if modification_range.contains(&timeline_range.range.start)
-                        && modification_range.contains(&timeline_range.range.end)
-                    {
-                        weave.update_node_activity(&identifier, false, true);
-                    } else if modification_range.contains(&timeline_range.range.end) {
-                        if let Some((left, _right)) = weave.split_node(
-                            &identifier,
-                            timeline_range.range.end - modification_range.start,
-                        ) {
-                            weave.update_node_activity(&left, false, true);
-                        } else {
-                            panic!() // Non-diff nodes should always be splitable
-                        }
-                    } else {
-                        panic!() // Should never happen
-                    }
-                } else {
-                    panic!() // Should never happen
-                }
-            }
-        }
-    }
-
-    if let Some(mod_index) = modification_range.apply_annotations(ranges) {
-        if new_node.is_some() {
-            ranges[mod_index].node = new_node;
-        }
-    }
 }
 
 fn handle_graph_modification_nontail(
