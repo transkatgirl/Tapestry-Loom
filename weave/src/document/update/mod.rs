@@ -349,6 +349,21 @@ fn handle_graph_modification_nontail(
             );
         }
         ModificationContent::Deletion(length) => {
+            let starting_node = if modification_range.start == first_range.range.start {
+                first_range.node.unwrap()
+            } else {
+                todo!()
+            };
+            let ending_node = if modification_range.end == last_range.range.end {
+                after_last.map(|range| range.node.unwrap())
+            } else {
+                todo!()
+            };
+            let before_ending_node =
+                ending_node.map(|ending_node| weave.nodes.get(&ending_node).unwrap().from.clone());
+
+            //weave.move_node(identifier, parents)
+
             todo!();
         }
     }
