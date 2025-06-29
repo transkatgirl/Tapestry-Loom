@@ -110,15 +110,16 @@ fn handle_modification_tail(
     ranges: &mut Vec<TimelineNodeRange>,
     modification: Modification,
 ) {
-    let mut new_node = None;
+    let mut insertion = None;
+    let mut split = (None, None);
 
-    let last_node = ranges.last().map(|range| range.node).unwrap_or_default();
+    let last_node = ranges.last().map(|range| range.node.unwrap());
 
     let update_modification = ModificationRange::from(&modification);
 
     match modification.content {
         ModificationContent::Insertion(content) => {
-            new_node = Some(
+            insertion = Some(
                 weave
                     .add_node(
                         Node {
@@ -150,48 +151,46 @@ fn handle_modification_tail(
             });
 
             for timeline_range in selected_ranges {
-                if let Some(identifier) = timeline_range.node {
-                    if modification_range.contains(&timeline_range.range.start)
-                        && modification_range.contains(&timeline_range.range.end)
-                    {
-                        weave.update_node_activity(&identifier, false, true);
-                    } else if modification_range.contains(&timeline_range.range.end) {
-                        if let Some((left, _right)) = weave.split_node(
-                            &identifier,
-                            timeline_range.range.end - modification_range.start,
-                        ) {
-                            weave.update_node_activity(&left, false, true);
-                        } else {
-                            new_node = Some(
-                                weave
-                                    .add_node(
-                                        Node {
-                                            id: Ulid::new(),
-                                            from: HashSet::from([identifier]),
-                                            to: HashSet::new(),
-                                            active: true,
-                                            bookmarked: false,
-                                            content: NodeContent::Diff(DiffContent {
-                                                content: Diff {
-                                                    content: vec![Modification {
-                                                        index: modification.index,
-                                                        content: ModificationContent::Deletion(
-                                                            length,
-                                                        ),
-                                                    }],
-                                                },
-                                                model: None,
-                                                metadata: None,
-                                            }),
-                                        },
-                                        None,
-                                        true,
-                                    )
-                                    .unwrap(),
-                            );
-                        }
+                let identifier = timeline_range.node.unwrap();
+
+                if modification_range.contains(&timeline_range.range.start)
+                    && modification_range.contains(&timeline_range.range.end)
+                {
+                    weave.update_node_activity(&identifier, false, true);
+                } else if modification_range.contains(&timeline_range.range.end) {
+                    if let Some((left, right)) = weave.split_node(
+                        &identifier,
+                        timeline_range.range.end - modification_range.start,
+                    ) {
+                        split.0 = Some(left);
+                        split.1 = Some(right);
+                        weave.update_node_activity(&left, false, true);
                     } else {
-                        panic!() // Should never happen
+                        insertion = Some(
+                            weave
+                                .add_node(
+                                    Node {
+                                        id: Ulid::new(),
+                                        from: HashSet::from([identifier]),
+                                        to: HashSet::new(),
+                                        active: true,
+                                        bookmarked: false,
+                                        content: NodeContent::Diff(DiffContent {
+                                            content: Diff {
+                                                content: vec![Modification {
+                                                    index: modification.index,
+                                                    content: ModificationContent::Deletion(length),
+                                                }],
+                                            },
+                                            model: None,
+                                            metadata: None,
+                                        }),
+                                    },
+                                    None,
+                                    true,
+                                )
+                                .unwrap(),
+                        );
                     }
                 } else {
                     panic!() // Should never happen
@@ -200,9 +199,21 @@ fn handle_modification_tail(
         }
     }
 
-    if let Some(mod_index) = update_modification.apply_annotations(ranges) {
-        if new_node.is_some() {
-            ranges[mod_index].node = new_node;
+    let updates = update_modification.apply_annotations(ranges);
+
+    if let Some(index) = updates.inserted {
+        if insertion.is_some() {
+            ranges[index].node = insertion;
+        }
+    }
+    if let Some(index) = updates.left_split {
+        if split.0.is_some() {
+            ranges[index].node = split.0;
+        }
+    }
+    if let Some(index) = updates.right_split {
+        if split.1.is_some() {
+            ranges[index].node = split.1;
         }
     }
 }
@@ -212,7 +223,7 @@ fn handle_singular_modification_diff_nontail(
     ranges: &mut [TimelineNodeRange],
     modification: Modification,
 ) {
-    let last_node = ranges.last().map(|range| range.node).unwrap_or_default();
+    let last_node = ranges.last().map(|range| range.node.unwrap());
 
     weave
         .add_node(
@@ -243,7 +254,7 @@ fn handle_multiple_modification_diff(
     ranges: &mut [TimelineNodeRange],
     diff: Diff,
 ) {
-    let last_node = ranges.last().map(|range| range.node).unwrap_or_default();
+    let last_node = ranges.last().map(|range| range.node.unwrap());
 
     weave
         .add_node(
@@ -272,7 +283,8 @@ fn handle_graph_modification_nontail(
     ranges: &mut Vec<TimelineNodeRange>,
     modification: Modification,
 ) {
-    let mut new_node = None;
+    let mut insertion = None;
+    let mut split = (None, None);
 
     let update_modification = ModificationRange::from(&modification);
 
@@ -302,16 +314,59 @@ fn handle_graph_modification_nontail(
 
     match modification.content {
         ModificationContent::Insertion(content) => {
-            todo!();
+            if modification_range.start == first_range.range.start {
+                let ending_node = if modification_range.end == last_range.range.end {
+                    after_last.map(|range| range.node.unwrap())
+                } else {
+                    todo!()
+                };
+
+                insertion = Some(
+                    weave
+                        .add_node(
+                            Node {
+                                id: Ulid::new(),
+                                from: HashSet::from([first_range.node.unwrap()]),
+                                to: ending_node
+                                    .map(|node| HashSet::from([node]))
+                                    .unwrap_or_default(),
+                                active: true,
+                                bookmarked: false,
+                                content: NodeContent::Snippet(SnippetContent {
+                                    content,
+                                    model: None,
+                                    metadata: None,
+                                }),
+                            },
+                            None,
+                            true,
+                        )
+                        .unwrap(),
+                );
+            } else {
+                todo!();
+            }
         }
         ModificationContent::Deletion(length) => {
             todo!();
         }
     }
 
-    if let Some(mod_index) = update_modification.apply_annotations(ranges) {
-        if new_node.is_some() {
-            ranges[mod_index].node = new_node;
+    let updates = update_modification.apply_annotations(ranges);
+
+    if let Some(index) = updates.inserted {
+        if insertion.is_some() {
+            ranges[index].node = insertion;
+        }
+    }
+    if let Some(index) = updates.left_split {
+        if split.0.is_some() {
+            ranges[index].node = split.0;
+        }
+    }
+    if let Some(index) = updates.right_split {
+        if split.1.is_some() {
+            ranges[index].node = split.1;
         }
     }
 }

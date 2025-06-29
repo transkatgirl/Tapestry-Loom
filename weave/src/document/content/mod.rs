@@ -1016,8 +1016,7 @@ impl Diff {
             modification.apply(data);
         }
     }
-    /// Applies the diff to a set of [`Annotation`] objects.
-    pub fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
+    pub(super) fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
     where
         T: Annotation,
     {
@@ -1097,12 +1096,13 @@ impl Modification {
             end: self.index + self.content.len(),
         }
     }
-    /// Applies the modification to a set of [`Annotation`] objects.
-    pub fn apply_annotations<T>(&self, annotations: &mut Vec<T>) -> Option<usize>
+    pub(super) fn apply_annotations<T>(&self, annotations: &mut Vec<T>) -> Option<usize>
     where
         T: Annotation,
     {
-        ModificationRange::from(self).apply_annotations(annotations)
+        ModificationRange::from(self)
+            .apply_annotations(annotations)
+            .inserted
     }
 }
 
@@ -1189,12 +1189,13 @@ impl ModificationRange {
 
         range.end - range.start
     }
-    pub(super) fn apply_annotations<T>(self, annotations: &mut Vec<T>) -> Option<usize>
+    // assumes annotations are sorted!
+    pub(super) fn apply_annotations<T>(self, annotations: &mut Vec<T>) -> ModificationResult
     where
         T: Annotation,
     {
         let offset = self.len();
-        let selected = annotations
+        let Some(selected) = annotations
             .iter()
             .enumerate()
             .find_map(|(location, annotation)| {
@@ -1206,7 +1207,12 @@ impl ModificationRange {
                 }
 
                 None
-            })?;
+            })
+        else {
+            return ModificationResult::default();
+        };
+
+        let mut split = (None, None);
 
         match self {
             Self::Insertion(range) => {
@@ -1220,6 +1226,7 @@ impl ModificationRange {
                     right.range_mut().end += offset;
 
                     annotations.splice(selected..=selected, vec![left, middle, right]);
+                    split = (Some(selected), Some(selected + 2));
                 }
 
                 if annotations.len() > (selected + 2) {
@@ -1230,7 +1237,11 @@ impl ModificationRange {
                     }
                 }
 
-                Some(selected + 1)
+                ModificationResult {
+                    inserted: Some(selected + 1),
+                    left_split: split.0,
+                    right_split: split.1,
+                }
             }
             Self::Deletion(range) => {
                 let mut remove = Vec::with_capacity(annotations.len());
@@ -1242,25 +1253,32 @@ impl ModificationRange {
                         remove.push(index);
                     } else if annotation.contains(&range.start) {
                         annotation.start = range.end;
+                        split.1 = Some(index);
                     } else if annotation.contains(&range.end) {
                         annotation.end = range.start;
+                        split.0 = Some(index);
                     } else {
                         annotation.start -= offset;
                         annotation.end -= offset;
                     }
                 }
                 if !remove.is_empty() {
-                    if remove.is_sorted() {
-                        annotations.splice(remove[0]..=remove[remove.len() - 1], vec![]);
-                    } else {
-                        for index in remove {
-                            annotations.remove(index);
-                        }
-                    }
+                    annotations.splice(remove[0]..=remove[remove.len() - 1], vec![]);
                 }
 
-                None
+                ModificationResult {
+                    inserted: None,
+                    left_split: split.0,
+                    right_split: split.1,
+                }
             }
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, Eq)]
+pub(super) struct ModificationResult {
+    pub(super) inserted: Option<usize>,
+    pub(super) left_split: Option<usize>,
+    pub(super) right_split: Option<usize>,
 }
