@@ -314,38 +314,39 @@ fn handle_graph_modification_nontail(
 
     match modification.content {
         ModificationContent::Insertion(content) => {
-            if modification_range.start == first_range.range.start {
-                let ending_node = if modification_range.end == last_range.range.end {
-                    after_last.map(|range| range.node.unwrap())
-                } else {
-                    todo!()
-                };
-
-                insertion = Some(
-                    weave
-                        .add_node(
-                            Node {
-                                id: Ulid::new(),
-                                from: HashSet::from([first_range.node.unwrap()]),
-                                to: ending_node
-                                    .map(|node| HashSet::from([node]))
-                                    .unwrap_or_default(),
-                                active: true,
-                                bookmarked: false,
-                                content: NodeContent::Snippet(SnippetContent {
-                                    content,
-                                    model: None,
-                                    metadata: None,
-                                }),
-                            },
-                            None,
-                            true,
-                        )
-                        .unwrap(),
-                );
+            let starting_node = if modification_range.start == first_range.range.start {
+                first_range.node.unwrap()
             } else {
-                todo!();
-            }
+                todo!()
+            };
+            let ending_node = if modification_range.end == last_range.range.end {
+                after_last.map(|range| range.node.unwrap())
+            } else {
+                todo!()
+            };
+
+            insertion = Some(
+                weave
+                    .add_node(
+                        Node {
+                            id: Ulid::new(),
+                            from: HashSet::from([starting_node]),
+                            to: ending_node
+                                .map(|node| HashSet::from([node]))
+                                .unwrap_or_default(),
+                            active: true,
+                            bookmarked: false,
+                            content: NodeContent::Snippet(SnippetContent {
+                                content,
+                                model: None,
+                                metadata: None,
+                            }),
+                        },
+                        None,
+                        true,
+                    )
+                    .unwrap(),
+            );
         }
         ModificationContent::Deletion(length) => {
             todo!();
