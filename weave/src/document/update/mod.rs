@@ -1,4 +1,9 @@
-use std::{cmp::Ordering, collections::HashSet, time::Instant, vec};
+use std::{cmp::Ordering, collections::HashSet, vec};
+
+#[cfg(target_arch = "wasm32")]
+use similar::Instant;
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Instant;
 
 use ulid::Ulid;
 

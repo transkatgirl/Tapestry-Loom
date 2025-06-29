@@ -5,9 +5,13 @@ use std::{
     fmt::Display,
     iter,
     ops::Range,
-    time::Instant,
     vec,
 };
+
+#[cfg(target_arch = "wasm32")]
+use similar::Instant;
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 use similar::{Algorithm, DiffTag, capture_diff_slices_deadline};
