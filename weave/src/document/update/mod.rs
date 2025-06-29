@@ -102,7 +102,7 @@ impl Weave {
     }
 }
 
-// TODO: Handle insertion merging
+// TODO: Handle merging/deleting recent tail user nodes
 fn handle_modification_tail(
     weave: &mut Weave,
     ranges: &mut Vec<TimelineNodeRange>,
