@@ -1,11 +1,11 @@
 [package]
-name = "tapestry-weave-wasm-glue"
+name = "tapestry-loomkit"
 version = "0.1.0"
 authors = [
 	"transkatgirl",
 ]
 license = "GPL-3.0-only"
-description = "A WASM interface for the tapestry-weave library + additional convenience functions for Loom implementations."
+description = "A WASM library for building Loom implementations on top of tapestry-weave."
 repository = "https://github.com/transkatgirl/Tapestry-Loom"
 edition = "2024"
 
@@ -19,7 +19,7 @@ crate-type = [
 serde = { version = "1.0", features = [
 	"derive",
 ] }
-tapestry-weave = { path = "../lib" }
+tapestry-weave = { path = "../weave" }
 getrandom = { version = "0.2", features = [
 	"js",
 ] }
