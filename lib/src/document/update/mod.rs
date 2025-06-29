@@ -4,7 +4,7 @@ use std::{cmp::Ordering, collections::HashSet, time::Instant, vec};
 
 use ulid::Ulid;
 
-use crate::document::content::TimelineNodeRange;
+use crate::document::content::{ModificationRange, TimelineNodeRange};
 
 use super::{
     Weave, WeaveView,
@@ -96,9 +96,9 @@ impl Weave {
                 .unwrap_or_default();
 
             if modification.index >= end {
-                handle_graph_modification_tail(self, &mut update.ranges, &modification);
+                handle_graph_modification_tail(self, &mut update.ranges, modification);
             } else {
-                handle_graph_modification_nontail(self, &mut update.ranges, &modification);
+                handle_graph_modification_nontail(self, &mut update.ranges, modification);
             }
         }
     }
@@ -254,13 +254,15 @@ fn handle_multiple_modification_diff(
 fn handle_graph_modification_tail(
     weave: &mut Weave,
     ranges: &mut Vec<TimelineNodeRange>,
-    modification: &Modification,
+    modification: Modification,
 ) {
     let mut new_node = None;
 
     let last_node = ranges.last().map(|range| range.node).unwrap_or_default();
 
-    match &modification.content {
+    let modification_range = ModificationRange::from(&modification);
+
+    match modification.content {
         ModificationContent::Insertion(content) => {
             new_node = weave.add_node(
                 Node {
@@ -272,7 +274,7 @@ fn handle_graph_modification_tail(
                     active: true,
                     bookmarked: false,
                     content: NodeContent::Snippet(SnippetContent {
-                        content: content.clone(),
+                        content,
                         model: None,
                         metadata: None,
                     }),
@@ -315,7 +317,7 @@ fn handle_graph_modification_tail(
         }
     }
 
-    if let Some(mod_index) = modification.apply_annotations(ranges) {
+    if let Some(mod_index) = modification_range.apply_annotations(ranges) {
         if new_node.is_some() {
             ranges[mod_index].node = new_node;
         }
@@ -325,11 +327,13 @@ fn handle_graph_modification_tail(
 fn handle_graph_modification_nontail(
     weave: &mut Weave,
     ranges: &mut Vec<TimelineNodeRange>,
-    modification: &Modification,
+    modification: Modification,
 ) {
     let mut new_node = None;
 
-    match &modification.content {
+    let modification_range = ModificationRange::from(&modification);
+
+    match modification.content {
         ModificationContent::Insertion(content) => {
             todo!()
         }
@@ -338,7 +342,7 @@ fn handle_graph_modification_nontail(
         }
     }
 
-    if let Some(mod_index) = modification.apply_annotations(&mut ranges) {
+    if let Some(mod_index) = modification_range.apply_annotations(&mut ranges) {
         if new_node.is_some() {
             ranges[mod_index].node = new_node;
         }

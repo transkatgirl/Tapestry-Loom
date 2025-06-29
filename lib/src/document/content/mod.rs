@@ -1100,67 +1100,7 @@ impl Modification {
     where
         T: Annotation,
     {
-        let offset = self.content.len();
-        let range = Range {
-            start: self.index,
-            end: self.index + offset,
-        };
-        let selected = annotations
-            .iter()
-            .enumerate()
-            .find_map(|(location, annotation)| {
-                let annotation = annotation.range();
-
-                if range.contains(&annotation.start) || range.contains(&annotation.end) {
-                    return Some(location);
-                }
-
-                None
-            })?;
-
-        match &self.content {
-            ModificationContent::Insertion(_) => {
-                if let Some((left, mut right)) = annotations[selected].split(self.index) {
-                    let middle = T::from(range);
-                    right.range_mut().start += offset;
-                    right.range_mut().end += offset;
-
-                    annotations.splice(selected..=selected, vec![left, middle, right]);
-                }
-                if annotations.len() > selected {
-                    for annotation in &mut annotations[selected + 2..] {
-                        let annotation = annotation.range_mut();
-                        annotation.start += offset;
-                        annotation.end += offset;
-                    }
-                }
-
-                Some(selected + 1)
-            }
-            ModificationContent::Deletion(_) => {
-                let mut remove = Vec::with_capacity(annotations.len());
-
-                for (index, annotation) in &mut annotations[selected..].iter_mut().enumerate() {
-                    let annotation = annotation.range_mut();
-
-                    if annotation.contains(&range.start) && annotation.contains(&range.end) {
-                        remove.push(index);
-                    } else if annotation.contains(&range.start) {
-                        annotation.start = range.end;
-                    } else if annotation.contains(&range.end) {
-                        annotation.end = range.start;
-                    } else {
-                        annotation.start -= offset;
-                        annotation.end -= offset;
-                    }
-                }
-                if !remove.is_empty() {
-                    annotations.splice(remove[0]..=remove[remove.len() - 1], vec![]);
-                }
-
-                None
-            }
-        }
+        ModificationRange::from(self).apply_annotations(annotations)
     }
 }
 
@@ -1217,6 +1157,100 @@ impl Display for ModificationCount {
             write!(f, "{} Insertions", self.insertions)
         } else {
             write!(f, "No Changes")
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub(super) enum ModificationRange {
+    Insertion(Range<usize>),
+    Deletion(Range<usize>),
+}
+
+impl From<&Modification> for ModificationRange {
+    fn from(input: &Modification) -> Self {
+        match &input.content {
+            ModificationContent::Insertion(_) => Self::Insertion(input.range()),
+            ModificationContent::Deletion(_) => Self::Deletion(input.range()),
+        }
+    }
+}
+
+impl ModificationRange {
+    pub(super) fn range(&self) -> &Range<usize> {
+        match self {
+            Self::Deletion(range) | Self::Insertion(range) => range,
+        }
+    }
+    pub(super) fn len(&self) -> usize {
+        let range = self.range();
+
+        range.end - range.start
+    }
+    pub(super) fn apply_annotations<T>(self, annotations: &mut Vec<T>) -> Option<usize>
+    where
+        T: Annotation,
+    {
+        let offset = self.len();
+        let selected = annotations
+            .iter()
+            .enumerate()
+            .find_map(|(location, annotation)| {
+                let annotation = annotation.range();
+                let range = self.range();
+
+                if range.contains(&annotation.start) || range.contains(&annotation.end) {
+                    return Some(location);
+                }
+
+                None
+            })?;
+
+        match self {
+            Self::Insertion(range) => {
+                if let Some((left, mut right)) = annotations[selected].split(range.start) {
+                    let middle = T::from(range);
+                    right.range_mut().start += offset;
+                    right.range_mut().end += offset;
+
+                    annotations.splice(selected..=selected, vec![left, middle, right]);
+                } else {
+                    let middle = T::from(range);
+                    annotations.splice(selected..selected, vec![middle]);
+                }
+                if annotations.len() > selected {
+                    for annotation in &mut annotations[selected + 2..] {
+                        let annotation = annotation.range_mut();
+                        annotation.start += offset;
+                        annotation.end += offset;
+                    }
+                }
+
+                Some(selected + 1)
+            }
+            Self::Deletion(range) => {
+                let mut remove = Vec::with_capacity(annotations.len());
+
+                for (index, annotation) in &mut annotations[selected..].iter_mut().enumerate() {
+                    let annotation = annotation.range_mut();
+
+                    if annotation.contains(&range.start) && annotation.contains(&range.end) {
+                        remove.push(index);
+                    } else if annotation.contains(&range.start) {
+                        annotation.start = range.end;
+                    } else if annotation.contains(&range.end) {
+                        annotation.end = range.start;
+                    } else {
+                        annotation.start -= offset;
+                        annotation.end -= offset;
+                    }
+                }
+                if !remove.is_empty() {
+                    annotations.splice(remove[0]..=remove[remove.len() - 1], vec![]);
+                }
+
+                None
+            }
         }
     }
 }
