@@ -18,7 +18,7 @@ use super::{
 };
 
 #[allow(unused_imports)]
-use super::WeaveTimeline;
+use super::{WeaveTimeline, content::Model};
 
 #[cfg(test)]
 mod tests;
@@ -31,12 +31,15 @@ impl Weave {
     /// If the selected timeline is not found, an empty timeline is created to build the diff against.
     ///
     /// If `add_diff_node` is `true`, modifications are added as [`NodeContent::Diff`] items whenever possible. If `add_diff_node` is `false`, modifications are added as updates to [`Node`] objects whenever possible.
+    ///
+    /// If `merge_tail_nodes` is `true`, modifications at the end of the timeline to nodes which do not contain an associated [`Model`] may be applied destructively. If `merge_tail_nodes` is `false`, modifications are always nondestructive (will not remove content from the Weave).
     pub fn update(
         &mut self,
         timeline: usize,
         content: String,
         diff_deadline: Instant,
         mut add_diff_node: bool,
+        merge_tail_nodes: bool,
     ) {
         let mut timelines = self.get_active_timelines();
 
@@ -66,12 +69,12 @@ impl Weave {
         }
 
         if add_diff_node {
-            self.perform_diff_update(update);
+            self.perform_diff_update(update, merge_tail_nodes);
         } else {
-            self.perform_graph_update(update);
+            self.perform_graph_update(update, merge_tail_nodes);
         }
     }
-    fn perform_diff_update(&mut self, mut update: TimelineUpdate) {
+    fn perform_diff_update(&mut self, mut update: TimelineUpdate, merge_tail_nodes: bool) {
         let end = update
             .ranges
             .last()
@@ -82,7 +85,7 @@ impl Weave {
             let modification = update.diff.content.remove(0);
 
             if modification.index >= end {
-                handle_modification_tail(self, &mut update.ranges, modification);
+                handle_modification_tail(self, &mut update.ranges, modification, merge_tail_nodes);
             } else {
                 handle_singular_modification_diff_nontail(self, &mut update.ranges, modification);
             }
@@ -90,7 +93,7 @@ impl Weave {
 
         handle_multiple_modification_diff(self, &mut update.ranges, update.diff);
     }
-    fn perform_graph_update(&mut self, mut update: TimelineUpdate) {
+    fn perform_graph_update(&mut self, mut update: TimelineUpdate, merge_tail_nodes: bool) {
         for modification in update.diff.content {
             let end = update
                 .ranges
@@ -99,7 +102,7 @@ impl Weave {
                 .unwrap_or_default();
 
             if modification.index >= end {
-                handle_modification_tail(self, &mut update.ranges, modification);
+                handle_modification_tail(self, &mut update.ranges, modification, merge_tail_nodes);
             } else {
                 handle_graph_modification_nontail(self, &mut update.ranges, modification);
             }
@@ -112,6 +115,7 @@ fn handle_modification_tail(
     weave: &mut Weave,
     ranges: &mut Vec<TimelineNodeRange>,
     modification: Modification,
+    merge_tail_nodes: bool,
 ) {
     let mut insertion = None;
     let mut split = (None, None);
