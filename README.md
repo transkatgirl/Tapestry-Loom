@@ -105,6 +105,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 			- [ ] Update graph to focus node at cursor rather than last active node
 		- [ ] Add support for saving last-used model & parameter choices in Weave
 	- [ ] Implement multi-document weaves / references to other documents, similar to [loom](https://github.com/socketteer/loom)
+- [ ] Improve handling of tokenization boundaries
 - [ ] Weave format stabilization & finalization
 	- [ ] Merging of v1 to main branch
 
