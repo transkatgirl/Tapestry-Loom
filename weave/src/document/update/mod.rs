@@ -320,7 +320,7 @@ fn handle_graph_modification_nontail(
                 todo!()
             };
             let ending_node = if modification_range.end == last_range.range.end {
-                after_last.map(|range| range.node.unwrap())
+                after_last.unwrap().node.unwrap()
             } else {
                 todo!()
             };
@@ -331,9 +331,7 @@ fn handle_graph_modification_nontail(
                         Node {
                             id: Ulid::new(),
                             from: HashSet::from([starting_node]),
-                            to: ending_node
-                                .map(|node| HashSet::from([node]))
-                                .unwrap_or_default(),
+                            to: HashSet::from([ending_node]),
                             active: true,
                             bookmarked: false,
                             content: NodeContent::Snippet(SnippetContent {
