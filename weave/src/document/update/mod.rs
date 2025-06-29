@@ -283,6 +283,7 @@ fn handle_graph_modification_nontail(
     modification: Modification,
 ) {
     let mut insertion = None;
+    #[allow(unused_assignments)]
     let mut split = (None, None);
 
     let update_modification = ModificationRange::from(&modification);
@@ -311,14 +312,16 @@ fn handle_graph_modification_nontail(
         None
     };
 
-    let starting_node = match modification_range.start.cmp(&first_range.range.start) {
-        Ordering::Equal => before_first.unwrap().node.unwrap(),
+    let (starting_node, after_node) = match modification_range.start.cmp(&first_range.range.start) {
+        Ordering::Equal => (
+            before_first.unwrap().node.unwrap(),
+            first_range.node.unwrap(),
+        ),
         Ordering::Greater => {
             let (left, right) = weave
                 .split_node(&first_range.node.unwrap(), modification_range.start)
                 .unwrap();
-            split = (Some(left), Some(right));
-            right
+            (left, right)
         }
         Ordering::Less => {
             panic!() // Should never happen
@@ -330,11 +333,10 @@ fn handle_graph_modification_nontail(
             panic!() // Should never happen
         }
         Ordering::Less => {
-            let (left, right) = weave
+            let (_left, right) = weave
                 .split_node(&last_range.node.unwrap(), modification_range.end)
                 .unwrap();
-            split = (Some(left), Some(right));
-            left
+            right
         }
     };
 
@@ -346,7 +348,7 @@ fn handle_graph_modification_nontail(
                         Node {
                             id: Ulid::new(),
                             from: HashSet::from([starting_node]),
-                            to: HashSet::from([ending_node]),
+                            to: HashSet::from([after_node]),
                             active: true,
                             bookmarked: false,
                             content: NodeContent::Snippet(SnippetContent {
@@ -360,6 +362,7 @@ fn handle_graph_modification_nontail(
                     )
                     .unwrap(),
             );
+            split = (Some(starting_node), Some(after_node));
         }
         ModificationContent::Deletion(_length) => {
             let mut ending_node_parents = weave.nodes.get(&ending_node).unwrap().from.clone();
@@ -373,6 +376,7 @@ fn handle_graph_modification_nontail(
             ending_node_parents.insert(starting_node);
 
             weave.move_node(&ending_node, ending_node_parents);
+            split = (Some(starting_node), Some(ending_node));
         }
     }
 
