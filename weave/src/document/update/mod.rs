@@ -1,5 +1,3 @@
-// ! WIP, not ready for use
-
 use std::{cmp::Ordering, collections::HashSet, time::Instant, vec};
 
 use ulid::Ulid;
@@ -316,27 +314,27 @@ fn handle_graph_modification_nontail(
     let starting_node = match modification_range.start.cmp(&first_range.range.start) {
         Ordering::Equal => before_first.unwrap().node.unwrap(),
         Ordering::Greater => {
-            panic!()
-        }
-        Ordering::Less => {
             let (left, right) = weave
                 .split_node(&first_range.node.unwrap(), modification_range.start)
                 .unwrap();
             split = (Some(left), Some(right));
             right
         }
+        Ordering::Less => {
+            panic!() // Should never happen
+        }
     };
-    let ending_node = match modification_range.end.cmp(&first_range.range.end) {
+    let ending_node = match modification_range.end.cmp(&last_range.range.end) {
         Ordering::Equal => after_last.unwrap().node.unwrap(),
         Ordering::Greater => {
+            panic!() // Should never happen
+        }
+        Ordering::Less => {
             let (left, right) = weave
                 .split_node(&last_range.node.unwrap(), modification_range.end)
                 .unwrap();
             split = (Some(left), Some(right));
             left
-        }
-        Ordering::Less => {
-            panic!()
         }
     };
 
