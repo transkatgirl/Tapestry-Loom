@@ -278,6 +278,7 @@ fn handle_multiple_modification_diff(
         .unwrap();
 }
 
+#[allow(clippy::too_many_lines)]
 fn handle_graph_modification_nontail(
     weave: &mut Weave,
     ranges: &mut Vec<TimelineNodeRange>,
@@ -312,19 +313,35 @@ fn handle_graph_modification_nontail(
         None
     };
 
+    let starting_node = match modification_range.start.cmp(&first_range.range.start) {
+        Ordering::Equal => before_first.unwrap().node.unwrap(),
+        Ordering::Greater => {
+            panic!()
+        }
+        Ordering::Less => {
+            let (left, right) = weave
+                .split_node(&first_range.node.unwrap(), modification_range.start)
+                .unwrap();
+            split = (Some(left), Some(right));
+            right
+        }
+    };
+    let ending_node = match modification_range.end.cmp(&first_range.range.end) {
+        Ordering::Equal => after_last.unwrap().node.unwrap(),
+        Ordering::Greater => {
+            let (left, right) = weave
+                .split_node(&last_range.node.unwrap(), modification_range.end)
+                .unwrap();
+            split = (Some(left), Some(right));
+            left
+        }
+        Ordering::Less => {
+            panic!()
+        }
+    };
+
     match modification.content {
         ModificationContent::Insertion(content) => {
-            let starting_node = if modification_range.start == first_range.range.start {
-                first_range.node.unwrap()
-            } else {
-                todo!()
-            };
-            let ending_node = if modification_range.end == last_range.range.end {
-                after_last.unwrap().node.unwrap()
-            } else {
-                todo!()
-            };
-
             insertion = Some(
                 weave
                     .add_node(
@@ -347,16 +364,6 @@ fn handle_graph_modification_nontail(
             );
         }
         ModificationContent::Deletion(_length) => {
-            let starting_node = if modification_range.start == first_range.range.start {
-                first_range.node.unwrap()
-            } else {
-                todo!()
-            };
-            let ending_node = if modification_range.end == last_range.range.end {
-                after_last.unwrap().node.unwrap()
-            } else {
-                todo!()
-            };
             let mut ending_node_parents = weave.nodes.get(&ending_node).unwrap().from.clone();
             let selected_nodes = selected_ranges
                 .iter()
