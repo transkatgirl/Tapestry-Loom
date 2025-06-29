@@ -130,7 +130,6 @@ fn handle_singular_modification_diff_tail(
                         }),
                     },
                     None,
-                    false,
                     true,
                 )
                 .unwrap();
@@ -172,7 +171,6 @@ fn handle_singular_modification_diff_tail(
                                         }),
                                     },
                                     None,
-                                    false,
                                     true,
                                 )
                                 .unwrap();
@@ -215,7 +213,6 @@ fn handle_singular_modification_diff_nontail(
                 }),
             },
             None,
-            false,
             true,
         )
         .unwrap();
@@ -245,7 +242,6 @@ fn handle_multiple_modification_diff(
                 }),
             },
             None,
-            false,
             true,
         )
         .unwrap();
@@ -280,7 +276,6 @@ fn handle_graph_modification_tail(
                     }),
                 },
                 None,
-                false,
                 true,
             );
         }

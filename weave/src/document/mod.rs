@@ -49,7 +49,9 @@ impl Weave {
     ///
     /// If a model corresponding to the node's model identifier is already present in the Weave, the model will be updated.
     ///
-    /// Performs deduplication if `deduplicate` is true, and performs loop checking (slow, requires recursively checking all parents & children) if `skip_loop_check` is false. If a loop between nodes is added to the [`Weave`], it may cause unintended behavior (such as functions panicking or getting stuck in infinite loops).
+    /// Performs content deduplication if `deduplicate` is true.
+    ///
+    /// Care must be taken to prevent loops between nodes, as loop checking is not performed by this function. If a loop between nodes is added to the [`Weave`], it may cause unintended behavior (such as functions panicking or getting stuck in infinite loops).
     ///
     /// Returns the [`Ulid`] of the input node if the node was successfully added. If the node was deduplicated, the returned Ulid will correspond to a node which was already in the document (the node's active & bookmarked statuses will be updated to match the input). Returns [`None`] if the node could not be added.
     ///
@@ -58,7 +60,6 @@ impl Weave {
         &mut self,
         mut node: Node,
         model: Option<Model>,
-        skip_loop_check: bool,
         deduplicate: bool,
     ) -> Option<Ulid> {
         if self.nodes.contains_key(&node.id) {
@@ -68,21 +69,6 @@ impl Weave {
             && (!self.multiparent_nodes.is_empty() || node.from.len() > 1 || !node.to.is_empty())
         {
             return None;
-        }
-        if !skip_loop_check {
-            for parent in &node.from {
-                if self.has_parent_loop(parent, None) {
-                    return None;
-                }
-            }
-            for child in &node.to {
-                if self.has_child_loop(child, None) {
-                    return None;
-                }
-                if node.from.contains(child) {
-                    return None;
-                }
-            }
         }
         if deduplicate {
             let siblings = node
@@ -179,34 +165,6 @@ impl Weave {
                     entry.insert(HashSet::new());
                 }
             }
-        }
-    }
-    fn has_parent_loop(&self, identifier: &Ulid, start: Option<&Ulid>) -> bool {
-        let start = start.unwrap_or(identifier);
-        if let Some(node) = self.nodes.get(identifier) {
-            for parent in &node.from {
-                if parent == start || self.has_parent_loop(parent, Some(start)) {
-                    return true;
-                }
-            }
-
-            false
-        } else {
-            false
-        }
-    }
-    fn has_child_loop(&self, identifier: &Ulid, start: Option<&Ulid>) -> bool {
-        let start = start.unwrap_or(identifier);
-        if let Some(node) = self.nodes.get(identifier) {
-            for child in &node.to {
-                if child == start || self.has_child_loop(child, Some(start)) {
-                    return true;
-                }
-            }
-
-            false
-        } else {
-            false
         }
     }
     /// Recursively update the active status of a [`Node`] by it's [`Ulid`].
@@ -313,25 +271,12 @@ impl Weave {
     }
     /// Moves a [`Node`] to a new position on the tree (without performing deduplication).
     ///
-    /// Performs loop checking (slow, requires recursively checking all parents) if `skip_loop_check` is false. If a loop between nodes is added to the [`Weave`], it may cause unintended behavior (such as functions panicking or getting stuck in infinite loops).
+    /// Care must be taken to prevent loops between nodes, as loop checking is not performed by this function. If a loop between nodes is added to the [`Weave`], it may cause unintended behavior (such as functions panicking or getting stuck in infinite loops).
     ///
     /// The modified node retains all of it's other attributes, including its identifier. Returns if the node was moved successfully.
-    pub fn move_node(
-        &mut self,
-        identifier: &Ulid,
-        mut parents: HashSet<Ulid>,
-        skip_loop_check: bool,
-    ) -> bool {
+    pub fn move_node(&mut self, identifier: &Ulid, mut parents: HashSet<Ulid>) -> bool {
         if !self.nonconcatable_nodes.is_empty() && parents.len() > 1 {
             return false;
-        }
-
-        if !skip_loop_check {
-            for parent in &parents {
-                if self.has_parent_loop(parent, None) {
-                    return false;
-                }
-            }
         }
 
         let mut old_parents = HashSet::new();
@@ -398,7 +343,7 @@ impl Weave {
         }
         parents.remove(parent);
 
-        self.move_node(identifier, parents, true)
+        self.move_node(identifier, parents)
     }
     /// Split one [`Node`] into two nodes (without performing deduplication).
     ///
@@ -418,7 +363,7 @@ impl Weave {
             content: left_content,
         };
 
-        let left_identifier = self.add_node(node, None, true, false)?;
+        let left_identifier = self.add_node(node, None, false)?;
 
         let right = self.nodes.get_mut(identifier)?;
         right.content = right_content;

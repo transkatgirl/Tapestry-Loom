@@ -1016,7 +1016,8 @@ impl Diff {
             modification.apply(data);
         }
     }
-    pub(super) fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
+    /// Applies the diff to a set of [`Annotation`] objects.
+    pub fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
     where
         T: Annotation,
     {
@@ -1096,7 +1097,8 @@ impl Modification {
             end: self.index + self.content.len(),
         }
     }
-    pub(super) fn apply_annotations<T>(&self, annotations: &mut Vec<T>) -> Option<usize>
+    /// Applies the modification to a set of [`Annotation`] objects.
+    pub fn apply_annotations<T>(&self, annotations: &mut Vec<T>) -> Option<usize>
     where
         T: Annotation,
     {
@@ -1208,17 +1210,19 @@ impl ModificationRange {
 
         match self {
             Self::Insertion(range) => {
-                if let Some((left, mut right)) = annotations[selected].split(range.start) {
+                if range.start == 0 {
+                    let middle = T::from(range);
+                    annotations.splice(selected..selected, vec![middle]);
+                } else {
+                    let (left, mut right) = annotations[selected].split(range.start).unwrap();
                     let middle = T::from(range);
                     right.range_mut().start += offset;
                     right.range_mut().end += offset;
 
                     annotations.splice(selected..=selected, vec![left, middle, right]);
-                } else {
-                    let middle = T::from(range);
-                    annotations.splice(selected..selected, vec![middle]);
                 }
-                if annotations.len() > selected {
+
+                if annotations.len() > (selected + 2) {
                     for annotation in &mut annotations[selected + 2..] {
                         let annotation = annotation.range_mut();
                         annotation.start += offset;
@@ -1246,7 +1250,13 @@ impl ModificationRange {
                     }
                 }
                 if !remove.is_empty() {
-                    annotations.splice(remove[0]..=remove[remove.len() - 1], vec![]);
+                    if remove.is_sorted() {
+                        annotations.splice(remove[0]..=remove[remove.len() - 1], vec![]);
+                    } else {
+                        for index in remove {
+                            annotations.remove(index);
+                        }
+                    }
                 }
 
                 None
