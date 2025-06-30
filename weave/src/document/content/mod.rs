@@ -414,6 +414,71 @@ impl NodeContent {
             Self::Blank => true,
         }
     }
+    pub(super) fn into_diff(self, range: Range<usize>) -> Option<NodeContent> {
+        let range_len = range.end - range.start;
+
+        match self {
+            Self::Snippet(content) => {
+                let bytes = content.content;
+
+                let modifications = if range_len == 0 {
+                    vec![Modification {
+                        index: range.start,
+                        content: ModificationContent::Insertion(bytes),
+                    }]
+                } else {
+                    vec![
+                        Modification {
+                            index: range.start,
+                            content: ModificationContent::Deletion(range_len),
+                        },
+                        Modification {
+                            index: range.start,
+                            content: ModificationContent::Insertion(bytes),
+                        },
+                    ]
+                };
+
+                Some(NodeContent::Diff(DiffContent {
+                    content: Diff {
+                        content: modifications,
+                    },
+                    model: content.model,
+                    metadata: content.metadata,
+                }))
+            }
+            Self::Tokens(content) => {
+                let bytes = content.clone().into_bytes();
+
+                let modifications = if range_len == 0 {
+                    vec![Modification {
+                        index: range.start,
+                        content: ModificationContent::Insertion(bytes),
+                    }]
+                } else {
+                    vec![
+                        Modification {
+                            index: range.start,
+                            content: ModificationContent::Deletion(range_len),
+                        },
+                        Modification {
+                            index: range.start,
+                            content: ModificationContent::Insertion(bytes),
+                        },
+                    ]
+                };
+
+                Some(NodeContent::Diff(DiffContent {
+                    content: Diff {
+                        content: modifications,
+                    },
+                    model: content.model,
+                    metadata: content.metadata,
+                }))
+            }
+            Self::Diff(_) | Self::Blank => None,
+        }
+    }
 }
 
 /// An annotation within a section of content.

@@ -7,13 +7,11 @@ use std::time::Instant;
 
 use ulid::Ulid;
 
-use crate::document::content::{ModificationRange, NodeContents, TimelineNodeRange};
-
 use super::{
     Weave, WeaveView,
     content::{
-        Diff, DiffContent, Modification, ModificationContent, Node, NodeContent, SnippetContent,
-        TimelineUpdate,
+        Diff, DiffContent, Modification, ModificationContent, ModificationRange, Node, NodeContent,
+        NodeContents, SnippetContent, TimelineNodeRange, TimelineUpdate,
     },
 };
 
@@ -141,7 +139,9 @@ impl Weave {
     ///
     /// This takes a timeline index and a range of bytes within that timeline's output, and attempts to update the [`Node`] in order to insert it at that specific range. **This function will replace the child and parent nodes specified within the inserted node.**
     ///
-    /// In addition, if the [`Weave`] is in nonconcatable mode, the [`NodeContent`] of the inserted node may be converted into a [`NodeContent::Diff`] and added at the back of the tree, removing any tokenization boundaries and token metadata from the node's content.
+    /// If the node's content is a [`NodeContent::Diff`], this function will always return [`None`].
+    ///
+    /// In addition, if the [`Weave`] is in nonconcatable mode, the [`NodeContent`] of the inserted node may be converted into a [`NodeContent::Diff`] and added at the back of the tree, removing any tokenization boundaries and token metadata from the node's content. If the node's content is a [`NodeContent::Blank`], diff conversion will fail, causing this function to return [`None`].
     ///
     /// Once the Node (and Weave) has been updated, this adds the node at the specified position using [`Weave::add_node`]. If the specified range starts at the end of the timeline, the node's content will not be updated.
     pub fn insert_at_range(
@@ -152,20 +152,38 @@ impl Weave {
         model: Option<Model>,
         deduplicate: bool,
     ) -> Option<Ulid> {
+        if let NodeContent::Diff(_) = &node.content {
+            return None;
+        }
+
+        node.to = HashSet::new();
+        node.from = HashSet::new();
+
         let mut timelines = self.get_active_timelines();
 
         let (timeline_content, annotations) = if timelines.len() > timeline {
             timelines.swap_remove(timeline).annotated_string()
         } else {
-            node.to = HashSet::new();
-            node.from = HashSet::new();
             return self.add_node(node, model, deduplicate);
         };
 
         if timeline_content.len() >= range.start {
-            node.to = HashSet::new();
-            node.from = HashSet::new();
             return self.add_node(node, model, deduplicate);
+        }
+
+        if !self.nonconcatable_nodes.is_empty() {
+            if let Some(content) = node.content.into_diff(range) {
+                node.content = content;
+                node.from = annotations
+                    .last()
+                    .and_then(|annotation| annotation.node)
+                    .map(|node| HashSet::from([node.id]))
+                    .unwrap_or_default();
+
+                return self.add_node(node, model, deduplicate);
+            }
+
+            return None;
         }
 
         todo!()
@@ -191,8 +209,7 @@ fn handle_modification_tail(
             insertion = Some(
                 match last_node
                     .filter(|_| merge_tail_nodes)
-                    .iter()
-                    .find_map(|parent| weave.update_nongenerated_parent(parent, content.clone()))
+                    .and_then(|parent| weave.update_nongenerated_parent(&parent, content.clone()))
                 {
                     Some(updated) => updated,
                     None => weave
