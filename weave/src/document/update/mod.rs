@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::HashSet, vec};
+use std::{cmp::Ordering, collections::HashSet, ops::Range, vec};
 
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
 use similar::Instant;
@@ -136,6 +136,39 @@ impl Weave {
         }
 
         None
+    }
+    /// Add a [`Node`] (along with it's corresponding [`Model`]) to a specific byte range within a timeline.
+    ///
+    /// This takes a timeline index and a range of bytes within that timeline's output, and attempts to update the [`Node`] in order to insert it at that specific range. **This function will replace the child and parent nodes specified within the inserted node.**
+    ///
+    /// In addition, if the nodes before/after the node being inserted are not splitable, the [`NodeContent`] of the inserted node may be converted into a [`NodeContent::Diff`] and added at the back of the tree, removing any tokenization boundaries and token metadata from the node's content.
+    ///
+    /// Once the Node (and Weave) has been updated, this adds the node at the specified position using [`Weave::add_node`]. If the specified range starts at the end of the timeline, the node's content will not be updated.
+    pub fn insert_at_range(
+        &mut self,
+        timeline: usize,
+        range: Range<usize>,
+        mut node: Node,
+        model: Option<Model>,
+        deduplicate: bool,
+    ) -> Option<Ulid> {
+        let mut timelines = self.get_active_timelines();
+
+        let (timeline_content, annotations) = if timelines.len() > timeline {
+            timelines.swap_remove(timeline).annotated_string()
+        } else {
+            node.to = HashSet::new();
+            node.from = HashSet::new();
+            return self.add_node(node, model, deduplicate);
+        };
+
+        if timeline_content.len() >= range.start {
+            node.to = HashSet::new();
+            node.from = HashSet::new();
+            return self.add_node(node, model, deduplicate);
+        }
+
+        todo!()
     }
 }
 
