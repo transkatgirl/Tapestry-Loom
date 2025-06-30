@@ -337,7 +337,7 @@ fn handle_modification_tail(
 
     let updates = update_modification.apply_annotations(ranges);
 
-    if let Some(index) = updates.inserted {
+    if let Some(index) = updates.inserted_bytes {
         if insertion.is_some() {
             ranges[index].node = insertion;
         }
@@ -523,7 +523,7 @@ fn handle_graph_modification_nontail(
 
     let updates = update_modification.apply_annotations(ranges);
 
-    if let Some(index) = updates.inserted {
+    if let Some(index) = updates.inserted_bytes {
         if insertion.is_some() {
             ranges[index].node = insertion;
         }

@@ -1097,17 +1097,32 @@ impl Diff {
         }
     }
     pub(super) fn apply_timeline_annotations<'w>(
-        &self,
+        &'w self,
         node: &'w Node,
         model: Option<&'w Model>,
         content_metadata: Option<&'w HashMap<String, String>>,
         annotations: &mut Vec<TimelineAnnotation<'w>>,
     ) {
         for modification in &self.content {
-            if let Some(index) = modification.apply_annotations(annotations) {
+            let updates = modification.apply_annotations(annotations);
+
+            if let Some(index) = updates.inserted_bytes {
                 annotations[index].node = Some(node);
                 annotations[index].model = model;
                 annotations[index].content_metadata = content_metadata;
+            }
+            if let Some(indices) = updates.inserted_tokens {
+                if let ModificationContent::TokenInsertion(content) = &modification.content {
+                    for (modification_index, annotation_index) in indices.into_iter().enumerate() {
+                        annotations[annotation_index].node = Some(node);
+                        annotations[annotation_index].model = model;
+                        annotations[annotation_index].subsection_metadata =
+                            content[modification_index].metadata.as_ref();
+                        annotations[annotation_index].content_metadata = content_metadata;
+                    }
+                } else {
+                    panic!() // Should never happen
+                }
             }
         }
     }
@@ -1177,13 +1192,11 @@ impl Modification {
             end: self.index + self.content.len(),
         }
     }
-    pub(super) fn apply_annotations<T>(&self, annotations: &mut Vec<T>) -> Option<usize>
+    fn apply_annotations<T>(&self, annotations: &mut Vec<T>) -> ModificationResult
     where
         T: Annotation,
     {
-        ModificationRange::from(self)
-            .apply_annotations(annotations)
-            .inserted
+        ModificationRange::from(self).apply_annotations(annotations)
     }
 }
 
@@ -1263,17 +1276,29 @@ impl Display for ModificationCount {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub(super) enum ModificationRange {
     Insertion(Range<usize>),
+    TokenInsertion(ModificationRangeTokens),
     Deletion(Range<usize>),
+}
+
+pub(super) struct ModificationRangeTokens {
+    range: Range<usize>,
+    tokens: Vec<(usize, Option<HashMap<String, String>>)>,
 }
 
 impl From<&Modification> for ModificationRange {
     fn from(input: &Modification) -> Self {
         match &input.content {
-            ModificationContent::Insertion(_) | ModificationContent::TokenInsertion(_) => {
-                Self::Insertion(input.range())
+            ModificationContent::Insertion(_) => Self::Insertion(input.range()),
+            ModificationContent::TokenInsertion(tokens) => {
+                Self::TokenInsertion(ModificationRangeTokens {
+                    range: input.range(),
+                    tokens: tokens
+                        .iter()
+                        .map(|token| (token.content.len(), token.metadata.clone()))
+                        .collect(),
+                })
             }
             ModificationContent::Deletion(_) => Self::Deletion(input.range()),
         }
@@ -1284,6 +1309,7 @@ impl ModificationRange {
     pub(super) fn range(&self) -> &Range<usize> {
         match self {
             Self::Deletion(range) | Self::Insertion(range) => range,
+            Self::TokenInsertion(token_set) => &token_set.range,
         }
     }
     pub(super) fn len(&self) -> usize {
@@ -1292,6 +1318,7 @@ impl ModificationRange {
         range.end - range.start
     }
     // assumes annotations are sorted!
+    #[allow(clippy::too_many_lines)]
     pub(super) fn apply_annotations<T>(self, annotations: &mut Vec<T>) -> ModificationResult
     where
         T: Annotation,
@@ -1340,7 +1367,55 @@ impl ModificationRange {
                 }
 
                 ModificationResult {
-                    inserted: Some(selected + 1),
+                    inserted_bytes: Some(selected + 1),
+                    inserted_tokens: None,
+                    left_split: split.0,
+                    right_split: split.1,
+                }
+            }
+            Self::TokenInsertion(tokens) => {
+                let mut next_token_start = tokens.range.start;
+                let mut token_annotations: Vec<T> = tokens
+                    .tokens
+                    .into_iter()
+                    .map(|(token_length, _)| {
+                        let range = Range {
+                            start: next_token_start,
+                            end: token_length,
+                        };
+
+                        next_token_start += token_length;
+
+                        T::from(range)
+                    })
+                    .collect();
+                let token_count = token_annotations.len();
+
+                if tokens.range.start == 0 {
+                    annotations.splice(selected..selected, token_annotations);
+                } else {
+                    let (left, mut right) =
+                        annotations[selected].split(tokens.range.start).unwrap();
+                    token_annotations.splice(0..0, vec![left]);
+                    right.range_mut().start += offset;
+                    right.range_mut().end += offset;
+                    token_annotations.push(right);
+
+                    annotations.splice(selected..=selected, token_annotations);
+                    split = (Some(selected), Some(selected + 2 + token_count));
+                }
+
+                if annotations.len() > (selected + 2) {
+                    for annotation in &mut annotations[selected + 2..] {
+                        let annotation = annotation.range_mut();
+                        annotation.start += offset;
+                        annotation.end += offset;
+                    }
+                }
+
+                ModificationResult {
+                    inserted_bytes: None,
+                    inserted_tokens: Some(selected + 1..(selected + 1) + token_count),
                     left_split: split.0,
                     right_split: split.1,
                 }
@@ -1369,7 +1444,8 @@ impl ModificationRange {
                 }
 
                 ModificationResult {
-                    inserted: None,
+                    inserted_bytes: None,
+                    inserted_tokens: None,
                     left_split: split.0,
                     right_split: split.1,
                 }
@@ -1378,9 +1454,10 @@ impl ModificationRange {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, Eq)]
+#[derive(Default)]
 pub(super) struct ModificationResult {
-    pub(super) inserted: Option<usize>,
+    pub(super) inserted_bytes: Option<usize>,
+    pub(super) inserted_tokens: Option<Range<usize>>,
     pub(super) left_split: Option<usize>,
     pub(super) right_split: Option<usize>,
 }
