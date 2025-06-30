@@ -141,7 +141,7 @@ impl Weave {
     ///
     /// This takes a timeline index and a range of bytes within that timeline's output, and attempts to update the [`Node`] in order to insert it at that specific range. **This function will replace the child and parent nodes specified within the inserted node.**
     ///
-    /// In addition, if the nodes before/after the node being inserted are not splitable, the [`NodeContent`] of the inserted node may be converted into a [`NodeContent::Diff`] and added at the back of the tree, removing any tokenization boundaries and token metadata from the node's content.
+    /// In addition, if the [`Weave`] is in nonconcatable mode, the [`NodeContent`] of the inserted node may be converted into a [`NodeContent::Diff`] and added at the back of the tree, removing any tokenization boundaries and token metadata from the node's content.
     ///
     /// Once the Node (and Weave) has been updated, this adds the node at the specified position using [`Weave::add_node`]. If the specified range starts at the end of the timeline, the node's content will not be updated.
     pub fn insert_at_range(
