@@ -161,8 +161,8 @@ impl<'w> WeaveTimeline<'w> {
 
         annotations
     }
-    pub(super) fn build_update(self, content: String, deadline: Instant) -> TimelineUpdate {
-        let (before, annotations) = self.annotated_string();
+    pub(super) fn ranged_string(self) -> (String, Vec<TimelineNodeRange>) {
+        let (content, annotations) = self.annotated_string();
 
         let mut last_node = None;
         let mut ranges: Vec<TimelineNodeRange> = Vec::with_capacity(annotations.len());
@@ -187,6 +187,11 @@ impl<'w> WeaveTimeline<'w> {
 
             last_node = annotation.node.map(|node| node.id);
         }
+
+        (content, ranges)
+    }
+    pub(super) fn build_update(self, content: String, deadline: Instant) -> TimelineUpdate {
+        let (before, ranges) = self.ranged_string();
 
         TimelineUpdate {
             ranges,

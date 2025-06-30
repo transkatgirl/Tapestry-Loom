@@ -144,6 +144,7 @@ impl Weave {
     /// In addition, if the [`Weave`] is in nonconcatable mode, the [`NodeContent`] of the inserted node may be converted into a [`NodeContent::Diff`] and added at the back of the tree, removing any tokenization boundaries and token metadata from the node's content. If the node's content is a [`NodeContent::Blank`], diff conversion will fail, causing this function to return [`None`].
     ///
     /// Once the Node (and Weave) has been updated, this adds the node at the specified position using [`Weave::add_node`]. If the specified range starts at the end of the timeline, the node's content will not be updated.
+    #[allow(clippy::missing_panics_doc)]
     pub fn insert_at_range(
         &mut self,
         timeline: usize,
@@ -161,8 +162,8 @@ impl Weave {
 
         let mut timelines = self.get_active_timelines();
 
-        let (timeline_content, annotations) = if timelines.len() > timeline {
-            timelines.swap_remove(timeline).annotated_string()
+        let (timeline_content, ranges) = if timelines.len() > timeline {
+            timelines.swap_remove(timeline).ranged_string()
         } else {
             return self.add_node(node, model, deduplicate);
         };
@@ -174,10 +175,10 @@ impl Weave {
         if !self.nonconcatable_nodes.is_empty() {
             if let Some(content) = node.content.into_diff(range) {
                 node.content = content;
-                node.from = annotations
+                node.from = ranges
                     .last()
                     .and_then(|annotation| annotation.node)
-                    .map(|node| HashSet::from([node.id]))
+                    .map(|node| HashSet::from([node]))
                     .unwrap_or_default();
 
                 return self.add_node(node, model, deduplicate);
@@ -186,7 +187,41 @@ impl Weave {
             return None;
         }
 
-        todo!()
+        let selected_ranges: Vec<(usize, &TimelineNodeRange)> = ranges
+            .iter()
+            .enumerate()
+            .filter(|(_index, node_range)| {
+                range.contains(&node_range.range.start) || range.contains(&node_range.range.end)
+            })
+            .collect();
+
+        let (first_range_index, first_range) = selected_ranges.first().unwrap();
+        let before_first = if *first_range_index > 0 {
+            Some(&ranges[first_range_index - 1])
+        } else {
+            None
+        };
+
+        let (starting_node, after_node) = match range.start.cmp(&first_range.range.start) {
+            Ordering::Equal => (
+                before_first.unwrap().node.unwrap(),
+                first_range.node.unwrap(),
+            ),
+            Ordering::Greater => {
+                let (left, right) = self
+                    .split_node(&first_range.node.unwrap(), range.start)
+                    .unwrap();
+                (left, right)
+            }
+            Ordering::Less => {
+                panic!() // Should never happen
+            }
+        };
+
+        node.from = HashSet::from([starting_node]);
+        node.to = HashSet::from([after_node]);
+
+        self.add_node(node, model, deduplicate)
     }
 }
 
