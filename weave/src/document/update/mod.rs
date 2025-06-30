@@ -141,7 +141,7 @@ impl Weave {
     ///
     /// If the node's content is a [`NodeContent::Diff`], this function will always return [`None`].
     ///
-    /// In addition, if the [`Weave`] is in nonconcatable mode, the [`NodeContent`] of the inserted node may be converted into a [`NodeContent::Diff`] and added at the back of the tree, removing any tokenization boundaries and token metadata from the node's content. If the node's content is a [`NodeContent::Blank`], diff conversion will fail, causing this function to return [`None`].
+    /// If the [`Weave`] is in nonconcatable mode, the [`NodeContent`] of the inserted node will be converted into a [`NodeContent::Diff`] and added at the end of the timeline. **This conversion will remove any tokenization boundaries and token metadata from the node's content.** If the node's content is a [`NodeContent::Blank`], diff conversion will fail, causing this function to return [`None`].
     ///
     /// Once the Node (and Weave) has been updated, this adds the node at the specified position using [`Weave::add_node`]. If the specified range starts at the end of the timeline, the node's content will not be updated.
     #[allow(clippy::missing_panics_doc)]
