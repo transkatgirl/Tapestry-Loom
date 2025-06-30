@@ -2,6 +2,6 @@ CARGO_INCREMENTAL=0 RUSTFLAGS='-Cinstrument-coverage' LLVM_PROFILE_FILE='cargo-t
 grcov . --binary-path ./target/debug/deps/ -s . -t html --branch --ignore-not-existing --ignore '../*' --ignore "/*" -o target/coverage/html
 grcov . --binary-path ./target/debug/deps/ -s . -t lcov --branch --ignore-not-existing --ignore '../*' --ignore "/*" -o target/coverage/lcov.info
 rm cargo-test-*.profraw
-rm lib/cargo-test-*.profraw
-rm wasm/cargo-test-*.profraw
+rm loomkit/cargo-test-*.profraw
+rm weave/cargo-test-*.profraw
 #open target/coverage/html/index.html
