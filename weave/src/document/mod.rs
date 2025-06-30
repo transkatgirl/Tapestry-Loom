@@ -334,17 +334,6 @@ impl Weave {
 
         true
     }
-    fn remove_node_parent(&mut self, identifier: &Ulid, parent: &Ulid) -> bool {
-        let mut parents = HashSet::new();
-        if let Some(node) = self.nodes.get(identifier) {
-            parents.clone_from(&node.from);
-        } else {
-            return false;
-        }
-        parents.remove(parent);
-
-        self.move_node(identifier, parents)
-    }
     /// Split one [`Node`] into two nodes (without performing deduplication).
     ///
     /// This uses [`NodeContent::split`] to split the [`NodeContent`] object, then updates the Weave as necessary to split the existing node into two nodes. The identifiers of the split node (from left to right) are returned, with no guarantees regarding if they are new identifiers or reused ones (along with no guarantee that the input identifier is still valid). Returns [`None`] if the node could not be split.
