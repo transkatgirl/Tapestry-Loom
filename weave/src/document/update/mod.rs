@@ -7,7 +7,7 @@ use std::time::Instant;
 
 use ulid::Ulid;
 
-use crate::document::content::{ModificationRange, TimelineNodeRange};
+use crate::document::content::{ModificationRange, NodeContents, TimelineNodeRange};
 
 use super::{
     Weave, WeaveView,
@@ -108,9 +108,38 @@ impl Weave {
             }
         }
     }
+    fn remove_node_if_not_generated(&mut self, identifier: &Ulid) -> bool {
+        let node = self.nodes.get(identifier).unwrap();
+
+        if node.content.model().is_none() {
+            self.remove_node(identifier);
+            return true;
+        }
+
+        false
+    }
+    fn update_nongenerated_parent(&mut self, parent: &Ulid, content: Vec<u8>) -> Option<Ulid> {
+        let node = self.nodes.get_mut(parent).unwrap();
+
+        if node.content.model().is_none() {
+            if let Some(content) = NodeContent::merge(
+                node.content.clone(),
+                NodeContent::Snippet(SnippetContent {
+                    content,
+                    model: None,
+                    metadata: node.content.metadata().cloned(),
+                }),
+            ) {
+                node.content = content;
+                return Some(node.id);
+            }
+        }
+
+        None
+    }
 }
 
-// TODO: Handle merging/deleting recent tail user nodes
+#[allow(clippy::too_many_lines)]
 fn handle_modification_tail(
     weave: &mut Weave,
     ranges: &mut Vec<TimelineNodeRange>,
@@ -127,26 +156,33 @@ fn handle_modification_tail(
     match modification.content {
         ModificationContent::Insertion(content) => {
             insertion = Some(
-                weave
-                    .add_node(
-                        Node {
-                            id: Ulid::new(),
-                            from: last_node
-                                .map(|node| HashSet::from([node]))
-                                .unwrap_or_default(),
-                            to: HashSet::new(),
-                            active: true,
-                            bookmarked: false,
-                            content: NodeContent::Snippet(SnippetContent {
-                                content,
-                                model: None,
-                                metadata: None,
-                            }),
-                        },
-                        None,
-                        true,
-                    )
-                    .unwrap(),
+                match last_node
+                    .filter(|_| merge_tail_nodes)
+                    .iter()
+                    .find_map(|parent| weave.update_nongenerated_parent(parent, content.clone()))
+                {
+                    Some(updated) => updated,
+                    None => weave
+                        .add_node(
+                            Node {
+                                id: Ulid::new(),
+                                from: last_node
+                                    .map(|node| HashSet::from([node]))
+                                    .unwrap_or_default(),
+                                to: HashSet::new(),
+                                active: true,
+                                bookmarked: false,
+                                content: NodeContent::Snippet(SnippetContent {
+                                    content,
+                                    model: None,
+                                    metadata: None,
+                                }),
+                            },
+                            None,
+                            true,
+                        )
+                        .unwrap(),
+                },
             );
         }
         ModificationContent::Deletion(length) => {
@@ -164,14 +200,19 @@ fn handle_modification_tail(
                     && modification_range.contains(&timeline_range.range.end)
                 {
                     weave.update_node_activity(&identifier, false, true);
+                    if merge_tail_nodes {
+                        weave.remove_node_if_not_generated(&identifier);
+                    }
                 } else if modification_range.contains(&timeline_range.range.end) {
-                    if let Some((left, right)) = weave.split_node(
-                        &identifier,
-                        timeline_range.range.end - modification_range.start,
-                    ) {
+                    if let Some((left, right)) =
+                        weave.split_node(&identifier, modification_range.start)
+                    {
                         split.0 = Some(left);
                         split.1 = Some(right);
-                        weave.update_node_activity(&left, false, true);
+                        weave.update_node_activity(&right, false, true);
+                        if merge_tail_nodes && weave.remove_node_if_not_generated(&left) {
+                            split.1 = None;
+                        }
                     } else {
                         insertion = Some(
                             weave
