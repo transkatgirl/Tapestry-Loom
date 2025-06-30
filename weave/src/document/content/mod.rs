@@ -453,12 +453,10 @@ impl NodeContent {
                 }))
             }
             Self::Tokens(content) => {
-                let bytes = content.clone().into_bytes();
-
                 let modifications = if range_len == 0 {
                     vec![Modification {
                         index: range.start,
-                        content: ModificationContent::Insertion(bytes),
+                        content: ModificationContent::TokenInsertion(content.content),
                     }]
                 } else {
                     vec![
@@ -468,7 +466,7 @@ impl NodeContent {
                         },
                         Modification {
                             index: range.start,
-                            content: ModificationContent::Insertion(bytes),
+                            content: ModificationContent::TokenInsertion(content.content),
                         },
                     ]
                 };
@@ -1031,7 +1029,7 @@ impl Display for DiffContent {
 /// A list of modifications to perform on a set of bytes.
 ///
 /// This has little meaning on its own, as it is meant to be paired with the text being modified.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Diff {
     /// A list of modifications in the order they should be performed.
     pub content: Vec<Modification>,
@@ -1120,7 +1118,9 @@ impl Diff {
 
         for modification in &self.content {
             match modification.content {
-                ModificationContent::Insertion(_) => insertions += 1,
+                ModificationContent::Insertion(_) | ModificationContent::TokenInsertion(_) => {
+                    insertions += 1;
+                }
                 ModificationContent::Deletion(_) => deletions += 1,
             }
         }
@@ -1145,7 +1145,7 @@ impl Diff {
 /// A modification to perform on a set of bytes.
 ///
 /// This has little meaning on its own, as it is meant to be paired with the text being modified.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Modification {
     /// The index where the modification should be applied.
     pub index: usize,
@@ -1158,6 +1158,13 @@ impl Modification {
     pub fn apply(self, data: &mut Vec<u8>) {
         match self.content {
             ModificationContent::Insertion(content) => data.splice(self.index..self.index, content),
+            ModificationContent::TokenInsertion(content) => {
+                let content: Vec<u8> = content
+                    .into_iter()
+                    .flat_map(|token| token.content)
+                    .collect();
+                data.splice(self.index..self.index, content)
+            }
             ModificationContent::Deletion(length) => data.splice(self.index..length, vec![]),
         };
     }
@@ -1181,10 +1188,12 @@ impl Modification {
 }
 
 /// The content of a [`Modification`] object.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum ModificationContent {
     /// Bytes to be inserted into the set.
     Insertion(Vec<u8>),
+    /// Tokens to be inserted into the set.
+    TokenInsertion(Vec<ContentToken>),
     /// The number of bytes to be removed from the set.
     Deletion(usize),
 }
@@ -1194,6 +1203,15 @@ impl ModificationContent {
     pub fn len(&self) -> usize {
         match self {
             ModificationContent::Insertion(content) => content.len(),
+            ModificationContent::TokenInsertion(content) => {
+                let mut len = 0;
+
+                for token in content {
+                    len += token.content.len();
+                }
+
+                len
+            }
             ModificationContent::Deletion(length) => *length,
         }
     }
@@ -1201,6 +1219,14 @@ impl ModificationContent {
     pub fn is_empty(&self) -> bool {
         match self {
             ModificationContent::Insertion(content) => content.is_empty(),
+            ModificationContent::TokenInsertion(content) => {
+                for token in content {
+                    if !token.content.is_empty() {
+                        return false;
+                    }
+                }
+                true
+            }
             ModificationContent::Deletion(length) => *length == 0,
         }
     }
@@ -1246,7 +1272,9 @@ pub(super) enum ModificationRange {
 impl From<&Modification> for ModificationRange {
     fn from(input: &Modification) -> Self {
         match &input.content {
-            ModificationContent::Insertion(_) => Self::Insertion(input.range()),
+            ModificationContent::Insertion(_) | ModificationContent::TokenInsertion(_) => {
+                Self::Insertion(input.range())
+            }
             ModificationContent::Deletion(_) => Self::Deletion(input.range()),
         }
     }

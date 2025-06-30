@@ -61,6 +61,7 @@ type NodeMetadata = Option<HashMap<String, String>>;
 #[serde(untagged)]
 enum DiffModification {
     Insert(ByteBuf),
+    InsertToken(Vec<(ByteBuf, NodeMetadata)>),
     Delete(u64),
 }
 
@@ -136,6 +137,15 @@ impl TryFrom<DiffModification> for content::ModificationContent {
     fn try_from(input: DiffModification) -> Result<Self, Self::Error> {
         Ok(match input {
             DiffModification::Insert(content) => Self::Insertion(content.into_vec()),
+            DiffModification::InsertToken(content) => Self::TokenInsertion(
+                content
+                    .into_iter()
+                    .map(|(content, metadata)| content::ContentToken {
+                        content: content.into_vec(),
+                        metadata,
+                    })
+                    .collect(),
+            ),
             DiffModification::Delete(length) => {
                 Self::Deletion(usize::try_from(length).map_err(|_| {
                     WeaveError::FailedInteractive(
@@ -154,6 +164,12 @@ impl TryFrom<content::ModificationContent> for DiffModification {
             content::ModificationContent::Insertion(content) => {
                 Self::Insert(ByteBuf::from(content))
             }
+            content::ModificationContent::TokenInsertion(content) => Self::InsertToken(
+                content
+                    .into_iter()
+                    .map(|token| (ByteBuf::from(token.content), token.metadata))
+                    .collect(),
+            ),
             content::ModificationContent::Deletion(length) => {
                 Self::Delete(u64::try_from(length).map_err(|_| {
                     WeaveError::FailedCompact(
