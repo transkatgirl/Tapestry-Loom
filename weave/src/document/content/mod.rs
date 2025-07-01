@@ -282,6 +282,7 @@ pub enum NodeContent {
 
 impl NodeContent {
     /// Returns `true` if the content is concatable.
+    // Trivial; shouldn't require unit tests
     #[allow(clippy::match_same_arms)]
     pub fn is_concatable(&self) -> bool {
         match self {
@@ -296,61 +297,58 @@ impl NodeContent {
     ///
     /// This requires both sections to be concatable and contain the same metadata.
     pub fn merge(left: Self, right: Self) -> Option<Self> {
-        if left.model() == right.model()
-            && left.metadata() == right.metadata()
-            && (left.is_concatable() && right.is_concatable())
-        {
-            Some(
-                match left {
-                    Self::Snippet(mut left) => match right {
-                        Self::Snippet(mut right) => {
-                            left.content.append(&mut right.content);
-                            Self::Snippet(left)
-                        }
-                        Self::Tokens(mut right) => {
-                            let left_token = ContentToken {
-                                metadata: None,
-                                content: left.content,
-                            };
-                            right.content.splice(..0, iter::once(left_token));
-
-                            Self::Tokens(TokenContent {
-                                content: right.content,
-                                model: left.model,
-                                metadata: left.metadata,
-                            })
-                        }
-                        Self::Diff(_) => panic!(),
-                        Self::Blank => Self::Snippet(left),
-                    },
-                    Self::Tokens(mut left) => match right {
-                        Self::Snippet(right) => {
-                            left.content.push(ContentToken {
-                                metadata: None,
-                                content: right.content,
-                            });
-                            Self::Tokens(left)
-                        }
-                        Self::Tokens(mut right) => {
-                            left.content.append(&mut right.content);
-                            Self::Tokens(left)
-                        }
-                        Self::Diff(_) => panic!(),
-                        Self::Blank => Self::Tokens(left),
-                    },
-                    Self::Diff(_) => panic!(),
-                    Self::Blank => match right {
-                        Self::Snippet(right) => Self::Snippet(right),
-                        Self::Tokens(right) => Self::Tokens(right),
-                        Self::Diff(_) => panic!(),
-                        Self::Blank => Self::Blank,
-                    },
-                }
-                .reduce(),
-            )
-        } else {
-            None
+        if !NodeContent::is_mergeable(&left, &right) {
+            return None;
         }
+
+        Some(
+            match left {
+                Self::Snippet(mut left) => match right {
+                    Self::Snippet(mut right) => {
+                        left.content.append(&mut right.content);
+                        Self::Snippet(left)
+                    }
+                    Self::Tokens(mut right) => {
+                        let left_token = ContentToken {
+                            metadata: None,
+                            content: left.content,
+                        };
+                        right.content.splice(..0, iter::once(left_token));
+
+                        Self::Tokens(TokenContent {
+                            content: right.content,
+                            model: left.model,
+                            metadata: left.metadata,
+                        })
+                    }
+                    Self::Diff(_) => panic!(),
+                    Self::Blank => Self::Snippet(left),
+                },
+                Self::Tokens(mut left) => match right {
+                    Self::Snippet(right) => {
+                        left.content.push(ContentToken {
+                            metadata: None,
+                            content: right.content,
+                        });
+                        Self::Tokens(left)
+                    }
+                    Self::Tokens(mut right) => {
+                        left.content.append(&mut right.content);
+                        Self::Tokens(left)
+                    }
+                    Self::Diff(_) => panic!(),
+                    Self::Blank => Self::Tokens(left),
+                },
+                Self::Diff(_) => panic!(),
+                Self::Blank => match right {
+                    Self::Snippet(right) => Self::Snippet(right),
+                    Self::Tokens(right) => Self::Tokens(right),
+                    Self::Diff(_) => panic!(),
+                    Self::Blank => Self::Blank,
+                },
+            }
+            .reduce(),
+        )
     }
     /// Returns `true` if the two sections of content can be merged together.
     pub fn is_mergeable(left: &Self, right: &Self) -> bool {
@@ -362,6 +360,10 @@ impl NodeContent {
     ///
     /// Some types of content cannot be split in half and will always return [`None`] regardless of the index specified.
     pub fn split(self, index: usize) -> Option<(Self, Self)> {
+        if !self.is_splitable(index) {
+            return None;
+        }
+
         match self {
             Self::Snippet(content) => content
                 .split(index)
@@ -413,6 +415,7 @@ impl NodeContent {
         }
     }
     /// Returns `true` if the content is empty (excluding metadata).
+    // Trivial; shouldn't require unit tests
     pub fn is_empty(&self) -> bool {
         match self {
             Self::Snippet(content) => content.is_empty(),
@@ -661,6 +664,7 @@ pub trait ConcatableNodeContents: NodeContents {
     fn split(self, index: usize) -> Option<(Self, Self)>;
 }
 
+// Trivial; shouldn't require unit tests
 impl NodeContents for NodeContent {
     fn model(&self) -> Option<&ContentModel> {
         match self {
@@ -843,22 +847,13 @@ impl ConcatableNodeContents for TokenContent {
             .flat_map(|token| token.content)
             .collect()
     }
+    // Trivial; shouldn't require unit tests
     fn len(&self) -> usize {
-        let mut len = 0;
-
-        for token in &self.content {
-            len += token.content.len();
-        }
-
-        len
+        self.content.iter().map(|token| token.content.len()).sum()
     }
+    // Trivial; shouldn't require unit tests
     fn is_empty(&self) -> bool {
-        for token in &self.content {
-            if !token.content.is_empty() {
-                return false;
-            }
-        }
-        true
+        self.content.iter().all(|token| token.content.is_empty())
     }
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
         let mut index = 0;
@@ -1095,11 +1090,13 @@ impl Diff {
         }
     }
     /// Applies the diff to a set of bytes.
+    // Trivial; shouldn't require unit tests
     pub fn apply(self, data: &mut Vec<u8>) {
         for modification in self.content {
             modification.apply(data);
         }
     }
+    // Trivial; shouldn't require unit tests
     pub(super) fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
     where
         T: Annotation,
@@ -1159,13 +1156,9 @@ impl Diff {
         }
     }
     /// Returns `true` if the sum of all modification lengths in the diff is equal to zero bytes.
+    // Trivial; shouldn't require unit tests
     pub fn is_empty(&self) -> bool {
-        for modification in &self.content {
-            if !modification.content.is_empty() {
-                return false;
-            }
-        }
-        true
+        self.content.iter().all(|token| token.content.is_empty())
     }
 }
 
@@ -1198,6 +1191,7 @@ impl Modification {
     /// Returns the range of bytes that the modification will be performed on.
     ///
     /// If this is an insertion modification, the end of the range represents the end of the inserted content.
+    // Trivial; shouldn't require unit tests
     pub fn range(&self) -> Range<usize> {
         Range {
             start: self.index,
@@ -1224,19 +1218,14 @@ pub enum ModificationContent {
     Deletion(usize),
 }
 
+// Trivial; shouldn't require unit tests
 impl ModificationContent {
     /// The length in bytes of the modification being performed.
     pub fn len(&self) -> usize {
         match self {
             ModificationContent::Insertion(content) => content.len(),
             ModificationContent::TokenInsertion(content) => {
-                let mut len = 0;
-
-                for token in content {
-                    len += token.content.len();
-                }
-
-                len
+                content.iter().map(|token| token.content.len()).sum()
             }
             ModificationContent::Deletion(length) => *length,
         }
@@ -1246,12 +1235,7 @@ impl ModificationContent {
         match self {
             ModificationContent::Insertion(content) => content.is_empty(),
             ModificationContent::TokenInsertion(content) => {
-                for token in content {
-                    if !token.content.is_empty() {
-                        return false;
-                    }
-                }
-                true
+                content.iter().all(|token| token.content.is_empty())
             }
             ModificationContent::Deletion(length) => *length == 0,
         }
