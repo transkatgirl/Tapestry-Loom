@@ -1195,6 +1195,10 @@ pub struct Modification {
 impl Modification {
     /// Applies the modification to a set of bytes.
     pub fn apply(self, data: &mut Vec<u8>) {
+        if self.index > data.len() {
+            return;
+        }
+
         match self.content {
             ModificationContent::Insertion(content) => data.splice(self.index..self.index, content),
             ModificationContent::TokenInsertion(content) => {
@@ -1204,7 +1208,13 @@ impl Modification {
                     .collect();
                 data.splice(self.index..self.index, content)
             }
-            ModificationContent::Deletion(length) => data.splice(self.index..length, vec![]),
+            ModificationContent::Deletion(length) => {
+                if self.index + length > data.len() {
+                    return;
+                }
+
+                data.splice(self.index..(self.index + length), vec![])
+            }
         };
     }
     /// Returns the range of bytes that the modification will be performed on.
