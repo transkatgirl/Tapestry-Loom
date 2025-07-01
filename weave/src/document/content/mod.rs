@@ -892,19 +892,14 @@ impl ConcatableNodeContents for TokenContent {
         let mut content_index = 0;
 
         let location = self
-            .content
-            .iter()
+            .annotations()
             .enumerate()
-            .find_map(move |(location, token)| {
-                let range = Range {
-                    start: content_index,
-                    end: content_index + token.content.len(),
-                };
-                if range.contains(&index) {
+            .find_map(|(location, annotation)| {
+                if annotation.range.contains(&index) {
                     return Some(location);
                 }
+                content_index = annotation.range.end;
 
-                content_index = range.end;
                 None
             });
 
