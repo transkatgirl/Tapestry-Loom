@@ -445,6 +445,7 @@ impl Weave {
     /// This will usually reserve more capacity than strictly necessary, as some data structures within the Weave only contain information regarding certain subsets of objects.
     ///
     /// This will only reserve capacity in private fields of the Weave. Public fields must have their capacity adjusted manually.
+    // Trivial; shouldn't require unit tests
     pub fn reserve(&mut self, nodes: usize, models: usize) {
         self.nodes.reserve(nodes);
         self.models.reserve(models);
@@ -458,6 +459,7 @@ impl Weave {
     /// Shrinks the allocated capacity of the Weave as much as possible.
     ///
     /// This will only shrink private fields of the Weave. Public fields must be shrunk manually.
+    // Trivial; shouldn't require unit tests
     pub fn shrink_to_fit(&mut self) {
         self.nodes.shrink_to_fit();
         self.models.shrink_to_fit();
