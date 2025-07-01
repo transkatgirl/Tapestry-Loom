@@ -761,17 +761,20 @@ impl Display for SnippetContent {
     }
 }
 
-// Trivial; shouldn't require unit tests
 impl ConcatableNodeContents for SnippetContent {
+    // Trivial; shouldn't require unit tests
     fn into_bytes(self) -> Vec<u8> {
         self.content
     }
+    // Trivial; shouldn't require unit tests
     fn len(&self) -> usize {
         self.content.len()
     }
+    // Trivial; shouldn't require unit tests
     fn is_empty(&self) -> bool {
         self.content.is_empty()
     }
+    // Trivial; shouldn't require unit tests
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
         iter::once(ContentAnnotation {
             metadata: None,
@@ -956,7 +959,6 @@ pub struct ContentToken {
     pub metadata: Option<HashMap<String, String>>,
 }
 
-// Trivial; shouldn't require unit tests
 impl ContentToken {
     /// Splits the token in half at the specified index, retaining all associated metadata.
     pub fn split(self, index: usize) -> Option<(Self, Self)> {
@@ -1195,10 +1197,6 @@ pub struct Modification {
 impl Modification {
     /// Applies the modification to a set of bytes.
     pub fn apply(self, data: &mut Vec<u8>) {
-        if self.index > data.len() {
-            return;
-        }
-
         match self.content {
             ModificationContent::Insertion(content) => data.splice(self.index..self.index, content),
             ModificationContent::TokenInsertion(content) => {
@@ -1209,10 +1207,6 @@ impl Modification {
                 data.splice(self.index..self.index, content)
             }
             ModificationContent::Deletion(length) => {
-                if self.index + length > data.len() {
-                    return;
-                }
-
                 data.splice(self.index..(self.index + length), vec![])
             }
         };

@@ -1,3 +1,5 @@
+#![allow(clippy::should_panic_without_expect)]
+
 use std::time::Duration;
 
 use super::*;
@@ -10,7 +12,7 @@ fn empty_inputs_diff() {
 */
 
 #[test]
-fn apply_modification() {
+fn apply_modification_in_bounds() {
     let mut content: Vec<u8> = vec![1, 1, 1, 1, 1, 1, 1, 1];
     Modification {
         index: 0,
@@ -48,18 +50,28 @@ fn apply_modification() {
     }
     .apply(&mut content);
     assert_eq!(content, vec![1, 1, 1, 1, 1, 1, 1, 1]);
+}
+
+#[test]
+#[should_panic]
+fn apply_modification_out_bounds_insertion() {
+    let mut content: Vec<u8> = vec![1, 1, 1, 1, 1, 1, 1, 1];
     Modification {
         index: 9,
         content: ModificationContent::Insertion(vec![5]),
     }
     .apply(&mut content);
-    assert_eq!(content, vec![1, 1, 1, 1, 1, 1, 1, 1]);
+}
+
+#[test]
+#[should_panic]
+fn apply_modification_out_bounds_deletion() {
+    let mut content: Vec<u8> = vec![1, 1, 1, 1, 1, 1, 1, 1];
     Modification {
         index: 9,
         content: ModificationContent::Deletion(1),
     }
     .apply(&mut content);
-    assert_eq!(content, vec![1, 1, 1, 1, 1, 1, 1, 1]);
 }
 
 #[test]
