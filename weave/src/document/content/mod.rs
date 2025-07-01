@@ -961,6 +961,7 @@ pub struct ContentToken {
 
 impl ContentToken {
     /// Splits the token in half at the specified index, retaining all associated metadata.
+    // Copied from SnippetContent's implementation of split(); shouldn't require additional unit tests
     pub fn split(self, index: usize) -> Option<(Self, Self)> {
         if index > self.content.len() {
             return None;

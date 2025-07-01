@@ -4,6 +4,108 @@ use std::time::Duration;
 
 use super::*;
 
+#[test]
+fn snippet_split() {
+    let metadata = Some(HashMap::from([("key".to_string(), "value".to_string())]));
+    let snippet = SnippetContent {
+        content: vec![1, 2, 3, 1, 2],
+        model: None,
+        metadata: metadata.clone(),
+    };
+
+    assert_eq!(
+        snippet.clone().split(0),
+        Some((
+            SnippetContent {
+                content: vec![],
+                model: None,
+                metadata: metadata.clone(),
+            },
+            SnippetContent {
+                content: vec![1, 2, 3, 1, 2],
+                model: None,
+                metadata: metadata.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        snippet.clone().split(1),
+        Some((
+            SnippetContent {
+                content: vec![1],
+                model: None,
+                metadata: metadata.clone(),
+            },
+            SnippetContent {
+                content: vec![2, 3, 1, 2],
+                model: None,
+                metadata: metadata.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        snippet.clone().split(2),
+        Some((
+            SnippetContent {
+                content: vec![1, 2],
+                model: None,
+                metadata: metadata.clone(),
+            },
+            SnippetContent {
+                content: vec![3, 1, 2],
+                model: None,
+                metadata: metadata.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        snippet.clone().split(3),
+        Some((
+            SnippetContent {
+                content: vec![1, 2, 3],
+                model: None,
+                metadata: metadata.clone(),
+            },
+            SnippetContent {
+                content: vec![1, 2],
+                model: None,
+                metadata: metadata.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        snippet.clone().split(4),
+        Some((
+            SnippetContent {
+                content: vec![1, 2, 3, 1],
+                model: None,
+                metadata: metadata.clone(),
+            },
+            SnippetContent {
+                content: vec![2],
+                model: None,
+                metadata: metadata.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        snippet.clone().split(5),
+        Some((
+            SnippetContent {
+                content: vec![1, 2, 3, 1, 2],
+                model: None,
+                metadata: metadata.clone(),
+            },
+            SnippetContent {
+                content: vec![],
+                model: None,
+                metadata,
+            }
+        ))
+    );
+    assert_eq!(snippet.split(6), None);
+}
+
 /*#[test]
 fn empty_inputs_diff() {
     let diff = Diff::new(&[], &[], Instant::now() + Duration::from_secs(60));
