@@ -245,6 +245,7 @@ impl Weave {
         }
     }
     /// Update the bookmarked status of a [`Node`] by it's [`Ulid`].
+    // Trivial; shouldn't require unit tests
     pub fn update_node_bookmarked_status(&mut self, identifier: &Ulid, bookmarked: bool) {
         if let Some(node) = self.nodes.get_mut(identifier) {
             node.bookmarked = bookmarked;
