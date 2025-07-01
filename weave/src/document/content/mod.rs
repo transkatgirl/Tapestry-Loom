@@ -903,45 +903,50 @@ impl ConcatableNodeContents for TokenContent {
                 None
             });
 
-        if location.is_none() && index == content_index {
-            return Some((
-                Self {
-                    content: self.content,
-                    model: self.model.clone(),
-                    metadata: self.metadata.clone(),
-                },
-                Self {
-                    content: vec![],
-                    model: self.model,
-                    metadata: self.metadata,
-                },
-            ));
+        match location {
+            Some(location) => {
+                let mut left = self.content;
+                let mut right = left.split_off(location);
+                left.shrink_to_fit();
+
+                let (left_token, right_token) = right[0].clone().split(index - content_index)?;
+                if !left_token.content.is_empty() {
+                    left.push(left_token);
+                }
+                right[0] = right_token;
+
+                Some((
+                    Self {
+                        content: left,
+                        model: self.model.clone(),
+                        metadata: self.metadata.clone(),
+                    },
+                    Self {
+                        content: right,
+                        model: self.model,
+                        metadata: self.metadata,
+                    },
+                ))
+            }
+            None => {
+                if index == content_index {
+                    Some((
+                        Self {
+                            content: self.content,
+                            model: self.model.clone(),
+                            metadata: self.metadata.clone(),
+                        },
+                        Self {
+                            content: vec![],
+                            model: self.model,
+                            metadata: self.metadata,
+                        },
+                    ))
+                } else {
+                    None
+                }
+            }
         }
-
-        let location = location?;
-
-        let mut left = self.content;
-        let mut right = left.split_off(location);
-        left.shrink_to_fit();
-
-        let (left_token, right_token) = right[0].clone().split(index - content_index)?;
-        if !left_token.content.is_empty() {
-            left.push(left_token);
-        }
-        right[0] = right_token;
-
-        Some((
-            Self {
-                content: left,
-                model: self.model.clone(),
-                metadata: self.metadata.clone(),
-            },
-            Self {
-                content: right,
-                model: self.model,
-                metadata: self.metadata,
-            },
-        ))
     }
 }
 
