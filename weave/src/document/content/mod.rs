@@ -1276,16 +1276,26 @@ impl Display for ModificationCount {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.deletions > 0 {
             if self.insertions > 0 {
-                write!(
-                    f,
-                    "{} Insertions, {} Deletions",
-                    self.insertions, self.deletions
-                )
+                if self.deletions == 1 && self.insertions == 1 {
+                    write!(f, "1 Insertion, 1 Deletion")
+                } else {
+                    write!(
+                        f,
+                        "{} Insertions, {} Deletions",
+                        self.insertions, self.deletions
+                    )
+                }
+            } else if self.deletions == 1 {
+                write!(f, "1 Deletion")
             } else {
                 write!(f, "{} Deletions", self.deletions)
             }
         } else if self.insertions > 0 {
-            write!(f, "{} Insertions", self.insertions)
+            if self.insertions == 1 {
+                write!(f, "1 Insertion")
+            } else {
+                write!(f, "{} Insertions", self.insertions)
+            }
         } else {
             write!(f, "No Changes")
         }
