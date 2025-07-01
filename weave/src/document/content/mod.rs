@@ -215,6 +215,7 @@ pub(super) struct TimelineNodeRange {
     pub(super) node: Option<Ulid>,
 }
 
+// Trivial; shouldn't require unit tests
 impl From<Range<usize>> for TimelineNodeRange {
     fn from(input: Range<usize>) -> Self {
         Self {
@@ -382,6 +383,7 @@ impl NodeContent {
         .map(|(left, right)| (left.reduce(), right.reduce()))
     }
     /// Returns `true` if the content can be split.
+    // Trivial; shouldn't require unit tests
     pub fn is_splitable(&self, index: usize) -> bool {
         match self {
             Self::Snippet(content) => index <= content.len(),
