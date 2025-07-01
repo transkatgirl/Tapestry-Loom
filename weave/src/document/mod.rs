@@ -503,10 +503,12 @@ impl Weave {
         }
     }
     /// Returns `true` if the Weave contains any nodes with multiple parents. If this is the case, non-concatable nodes cannot be added.
+    // Trivial; shouldn't require unit tests
     pub fn is_multiparent_mode(&self) -> bool {
         !self.multiparent_nodes.is_empty()
     }
     /// Returns `true` if the Weave contains any non-concatable nodes. If this is the case, nodes with multiple parents cannot be added.
+    // Trivial; shouldn't require unit tests
     pub fn is_nonconcatable_mode(&self) -> bool {
         !self.nonconcatable_nodes.is_empty()
     }
@@ -678,6 +680,7 @@ impl WeaveView for WeaveSnapshot<'_> {
 }
 
 impl<'w> From<&'w Weave> for WeaveSnapshot<'w> {
+    // Trivial; shouldn't require unit tests
     fn from(input: &'w Weave) -> WeaveSnapshot<'w> {
         Self {
             nodes: &input.nodes,
@@ -697,6 +700,7 @@ pub(super) struct OwnedWeaveSnapshot {
 }
 
 impl From<Weave> for OwnedWeaveSnapshot {
+    // Trivial; shouldn't require unit tests
     fn from(input: Weave) -> Self {
         Self {
             nodes: input.nodes,

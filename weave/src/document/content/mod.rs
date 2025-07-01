@@ -220,9 +220,11 @@ impl From<Range<usize>> for TimelineNodeRange {
 }
 
 impl Annotation for TimelineNodeRange {
+    // Trivial; shouldn't require unit tests
     fn range(&self) -> &Range<usize> {
         &self.range
     }
+    // Trivial; shouldn't require unit tests
     fn range_mut(&mut self) -> &mut Range<usize> {
         &mut self.range
     }
@@ -527,9 +529,11 @@ pub trait Annotation: Sized + From<Range<usize>> {
 }
 
 impl Annotation for ContentAnnotation<'_> {
+    // Trivial; shouldn't require unit tests
     fn range(&self) -> &Range<usize> {
         &self.range
     }
+    // Trivial; shouldn't require unit tests
     fn range_mut(&mut self) -> &mut Range<usize> {
         &mut self.range
     }
@@ -558,9 +562,11 @@ impl Annotation for ContentAnnotation<'_> {
 }
 
 impl Annotation for TimelineAnnotation<'_> {
+    // Trivial; shouldn't require unit tests
     fn range(&self) -> &Range<usize> {
         &self.range
     }
+    // Trivial; shouldn't require unit tests
     fn range_mut(&mut self) -> &mut Range<usize> {
         &mut self.range
     }
@@ -711,6 +717,7 @@ pub struct SnippetContent {
     pub metadata: Option<HashMap<String, String>>,
 }
 
+// Trivial; shouldn't require unit tests
 impl NodeContents for SnippetContent {
     fn model(&self) -> Option<&ContentModel> {
         self.model.as_ref()
@@ -739,12 +746,15 @@ impl Display for SnippetContent {
 }
 
 impl ConcatableNodeContents for SnippetContent {
+    // Trivial; shouldn't require unit tests
     fn into_bytes(self) -> Vec<u8> {
         self.content
     }
+    // Trivial; shouldn't require unit tests
     fn len(&self) -> usize {
         self.content.len()
     }
+    // Trivial; shouldn't require unit tests
     fn is_empty(&self) -> bool {
         self.content.is_empty()
     }
@@ -796,6 +806,7 @@ pub struct TokenContent {
     pub metadata: Option<HashMap<String, String>>,
 }
 
+// Trivial; shouldn't require unit tests
 impl NodeContents for TokenContent {
     fn model(&self) -> Option<&ContentModel> {
         self.model.as_ref()
@@ -995,6 +1006,7 @@ pub struct DiffContent {
     pub metadata: Option<HashMap<String, String>>,
 }
 
+// Trivial; shouldn't require unit tests
 impl NodeContents for DiffContent {
     fn model(&self) -> Option<&ContentModel> {
         self.model.as_ref()
@@ -1192,6 +1204,7 @@ impl Modification {
             end: self.index + self.content.len(),
         }
     }
+    // Trivial; shouldn't require unit tests
     fn apply_annotations<T>(&self, annotations: &mut Vec<T>) -> ModificationResult
     where
         T: Annotation,
@@ -1306,15 +1319,16 @@ impl From<&Modification> for ModificationRange {
 }
 
 impl ModificationRange {
+    // Trivial; shouldn't require unit tests
     pub(super) fn range(&self) -> &Range<usize> {
         match self {
             Self::Deletion(range) | Self::Insertion(range) => range,
             Self::TokenInsertion(token_set) => &token_set.range,
         }
     }
+    // Trivial; shouldn't require unit tests
     pub(super) fn len(&self) -> usize {
         let range = self.range();
-
         range.end - range.start
     }
     // assumes annotations are sorted!
