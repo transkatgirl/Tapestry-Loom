@@ -1,4 +1,5 @@
 #![allow(clippy::should_panic_without_expect)]
+#![allow(clippy::too_many_lines)]
 
 use std::time::Duration;
 
@@ -166,6 +167,120 @@ fn content_annotation_split() {
         ))
     );
     assert_eq!(annotation.clone().split(5), None);
+}
+
+#[test]
+fn tokencontent_annotations() {
+    let metadata_content = Some(HashMap::from([("key".to_string(), "value".to_string())]));
+    let metadata_token_1 = Some(HashMap::from([("token".to_string(), "one".to_string())]));
+    let metadata_token_2 = Some(HashMap::from([("token".to_string(), "two".to_string())]));
+    let metadata_token_3 = Some(HashMap::from([("token".to_string(), "three".to_string())]));
+    assert_eq!(
+        TokenContent {
+            content: vec![],
+            model: None,
+            metadata: metadata_content.clone(),
+        }
+        .annotations()
+        .collect::<Vec<_>>(),
+        vec![]
+    );
+    assert_eq!(
+        TokenContent {
+            content: vec![ContentToken {
+                content: vec![],
+                metadata: metadata_token_1.clone()
+            }],
+            model: None,
+            metadata: metadata_content.clone(),
+        }
+        .annotations()
+        .collect::<Vec<_>>(),
+        vec![ContentAnnotation {
+            range: Range { start: 0, end: 0 },
+            metadata: metadata_token_1.as_ref()
+        }]
+    );
+    assert_eq!(
+        TokenContent {
+            content: vec![ContentToken {
+                content: vec![4, 4, 4, 4, 4, 4],
+                metadata: metadata_token_1.clone()
+            }],
+            model: None,
+            metadata: metadata_content.clone(),
+        }
+        .annotations()
+        .collect::<Vec<_>>(),
+        vec![ContentAnnotation {
+            range: Range { start: 0, end: 6 },
+            metadata: metadata_token_1.as_ref()
+        }]
+    );
+    assert_eq!(
+        TokenContent {
+            content: vec![
+                ContentToken {
+                    content: vec![4, 4, 4, 4, 4, 4],
+                    metadata: metadata_token_1.clone()
+                },
+                ContentToken {
+                    content: vec![5, 5, 5, 5],
+                    metadata: metadata_token_2.clone()
+                }
+            ],
+            model: None,
+            metadata: metadata_content.clone(),
+        }
+        .annotations()
+        .collect::<Vec<_>>(),
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 6 },
+                metadata: metadata_token_1.as_ref()
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 10 },
+                metadata: metadata_token_2.as_ref()
+            }
+        ]
+    );
+    assert_eq!(
+        TokenContent {
+            content: vec![
+                ContentToken {
+                    content: vec![5, 5, 5, 5],
+                    metadata: metadata_token_1.clone()
+                },
+                ContentToken {
+                    content: vec![4, 4, 4, 4, 4, 4],
+                    metadata: metadata_token_2.clone()
+                },
+                ContentToken {
+                    content: vec![6, 6],
+                    metadata: metadata_token_3.clone()
+                },
+            ],
+            model: None,
+            metadata: metadata_content.clone(),
+        }
+        .annotations()
+        .collect::<Vec<_>>(),
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: metadata_token_1.as_ref()
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 10 },
+                metadata: metadata_token_2.as_ref()
+            },
+            ContentAnnotation {
+                range: Range { start: 10, end: 12 },
+                metadata: metadata_token_3.as_ref()
+            }
+        ]
+    );
 }
 
 /*#[test]
