@@ -742,6 +742,7 @@ impl NodeContents for SnippetContent {
     }
 }
 
+// Trivial; shouldn't require unit tests
 impl Display for SnippetContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.content.is_empty() {
@@ -752,7 +753,7 @@ impl Display for SnippetContent {
             write!(f, "{}", chunk.valid())?;
 
             for &b in chunk.invalid() {
-                write!(f, "\\x{b:02X}")?;
+                write!(f, "\\x{b:02x}")?;
             }
         }
 
@@ -760,20 +761,17 @@ impl Display for SnippetContent {
     }
 }
 
+// Trivial; shouldn't require unit tests
 impl ConcatableNodeContents for SnippetContent {
-    // Trivial; shouldn't require unit tests
     fn into_bytes(self) -> Vec<u8> {
         self.content
     }
-    // Trivial; shouldn't require unit tests
     fn len(&self) -> usize {
         self.content.len()
     }
-    // Trivial; shouldn't require unit tests
     fn is_empty(&self) -> bool {
         self.content.is_empty()
     }
-    // Trivial; shouldn't require unit tests
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
         iter::once(ContentAnnotation {
             metadata: None,
@@ -832,6 +830,7 @@ impl NodeContents for TokenContent {
     }
 }
 
+// Trivial; shouldn't require unit tests
 impl Display for TokenContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let bytes = self.clone().into_bytes();
@@ -844,7 +843,7 @@ impl Display for TokenContent {
             write!(f, "{}", chunk.valid())?;
 
             for &b in chunk.invalid() {
-                write!(f, "\\x{b:02X}")?;
+                write!(f, "\\x{b:02x}")?;
             }
         }
 
@@ -957,6 +956,7 @@ pub struct ContentToken {
     pub metadata: Option<HashMap<String, String>>,
 }
 
+// Trivial; shouldn't require unit tests
 impl ContentToken {
     /// Splits the token in half at the specified index, retaining all associated metadata.
     pub fn split(self, index: usize) -> Option<(Self, Self)> {
@@ -1026,6 +1026,7 @@ impl NodeContents for DiffContent {
     }
 }
 
+// Trivial; shouldn't require unit tests
 impl Display for DiffContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let count = self.content.count();
@@ -1037,7 +1038,7 @@ impl Display for DiffContent {
                         write!(f, "{}", chunk.valid())?;
 
                         for &b in chunk.invalid() {
-                            write!(f, "\\x{b:02X}")?;
+                            write!(f, "\\x{b:02x}")?;
                         }
                     }
                 }
@@ -1150,18 +1151,20 @@ impl Diff {
             }
         }
     }
-    /// Calculates the total number of modifications in the [`Diff`] by type.
+    /// Calculates the total number of non-empty modifications in the [`Diff`] by type.
     // Trivial; shouldn't require unit tests
     pub fn count(&self) -> ModificationCount {
         let mut insertions: usize = 0;
         let mut deletions: usize = 0;
 
         for modification in &self.content {
-            match modification.content {
-                ModificationContent::Insertion(_) | ModificationContent::TokenInsertion(_) => {
-                    insertions += 1;
+            if !modification.content.is_empty() {
+                match modification.content {
+                    ModificationContent::Insertion(_) | ModificationContent::TokenInsertion(_) => {
+                        insertions += 1;
+                    }
+                    ModificationContent::Deletion(_) => deletions += 1,
                 }
-                ModificationContent::Deletion(_) => deletions += 1,
             }
         }
 
