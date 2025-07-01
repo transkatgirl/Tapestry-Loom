@@ -23,6 +23,8 @@ use super::{Weave, WeaveView};
 #[cfg(test)]
 mod tests;
 
+const EMPTY_MESSAGE: &str = "No Content";
+
 /// A unit of content in a [`Weave`].
 ///
 /// Nodes act as containers for [`NodeContent`] objects, allowing them to be connected together.
@@ -55,6 +57,7 @@ pub struct WeaveTimeline<'w> {
 
 impl<'w> WeaveTimeline<'w> {
     /// Returns the output of the timeline as a set of bytes.
+    // Trivial; shouldn't require unit tests
     pub fn bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
 
@@ -150,6 +153,7 @@ impl<'w> WeaveTimeline<'w> {
     /// Creates a new set of annotations previewing a change to the [`Weave`]'s contents.
     ///
     /// This calculates a [`Diff`] between the current contents of the timeline and the user input, and then creates a new set of annotations reflecting the changes made by the user.
+    // Trivial; shouldn't require unit tests
     pub fn preview_update(
         &self,
         (string, mut annotations): (&str, Vec<TimelineAnnotation<'w>>),
@@ -190,6 +194,7 @@ impl<'w> WeaveTimeline<'w> {
 
         (content, ranges)
     }
+    // Trivial; shouldn't require unit tests
     pub(super) fn build_update(self, content: String, deadline: Instant) -> TimelineUpdate {
         let (before, ranges) = self.ranged_string();
 
@@ -605,6 +610,7 @@ impl Annotation for TimelineAnnotation<'_> {
     }
 }
 
+// Trivial; shouldn't require unit tests
 impl From<Range<usize>> for ContentAnnotation<'_> {
     fn from(range: Range<usize>) -> Self {
         Self {
@@ -614,6 +620,7 @@ impl From<Range<usize>> for ContentAnnotation<'_> {
     }
 }
 
+// Trivial; shouldn't require unit tests
 impl From<Range<usize>> for TimelineAnnotation<'_> {
     fn from(range: Range<usize>) -> Self {
         Self {
@@ -627,6 +634,7 @@ impl From<Range<usize>> for TimelineAnnotation<'_> {
     }
 }
 
+// Trivial; shouldn't require unit tests
 impl<'w> From<ContentAnnotation<'w>> for TimelineAnnotation<'w> {
     fn from(input: ContentAnnotation<'w>) -> Self {
         Self {
@@ -684,13 +692,14 @@ impl NodeContents for NodeContent {
     }
 }
 
+// Trivial; shouldn't require unit tests
 impl Display for NodeContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Snippet(content) => write!(f, "{content}"),
             Self::Tokens(content) => write!(f, "{content}"),
             Self::Diff(content) => write!(f, "{content}"),
-            Self::Blank => write!(f, "No Content"),
+            Self::Blank => write!(f, "{EMPTY_MESSAGE}"),
         }
     }
 }
@@ -734,7 +743,7 @@ impl NodeContents for SnippetContent {
 impl Display for SnippetContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.content.is_empty() {
-            return write!(f, "No Content");
+            return write!(f, "{EMPTY_MESSAGE}");
         }
 
         for chunk in self.content.utf8_chunks() {
@@ -762,6 +771,7 @@ impl ConcatableNodeContents for SnippetContent {
     fn is_empty(&self) -> bool {
         self.content.is_empty()
     }
+    // Trivial; shouldn't require unit tests
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
         iter::once(ContentAnnotation {
             metadata: None,
@@ -825,7 +835,7 @@ impl Display for TokenContent {
         let bytes = self.clone().into_bytes();
 
         if bytes.is_empty() {
-            return write!(f, "No Content");
+            return write!(f, "{EMPTY_MESSAGE}");
         }
 
         for chunk in bytes.utf8_chunks() {
@@ -841,6 +851,7 @@ impl Display for TokenContent {
 }
 
 impl ConcatableNodeContents for TokenContent {
+    // Trivial; shouldn't require unit tests
     fn into_bytes(self) -> Vec<u8> {
         self.content
             .into_iter()
@@ -968,6 +979,7 @@ impl ContentToken {
     }
 }
 
+// Trivial; shouldn't require unit tests
 impl From<SnippetContent> for TokenContent {
     fn from(input: SnippetContent) -> Self {
         Self {
@@ -981,10 +993,11 @@ impl From<SnippetContent> for TokenContent {
     }
 }
 
+// Trivial; shouldn't require unit tests
 impl From<Vec<u8>> for ContentToken {
-    fn from(input: Vec<u8>) -> Self {
+    fn from(content: Vec<u8>) -> Self {
         Self {
-            content: input,
+            content,
             metadata: None,
         }
     }
@@ -1136,6 +1149,7 @@ impl Diff {
         }
     }
     /// Calculates the total number of modifications in the [`Diff`] by type.
+    // Trivial; shouldn't require unit tests
     pub fn count(&self) -> ModificationCount {
         let mut insertions: usize = 0;
         let mut deletions: usize = 0;
@@ -1284,6 +1298,7 @@ pub(super) struct ModificationRangeTokens {
     tokens: Vec<(usize, Option<HashMap<String, String>>)>,
 }
 
+// Trivial; shouldn't require unit tests
 impl From<&Modification> for ModificationRange {
     fn from(input: &Modification) -> Self {
         match &input.content {

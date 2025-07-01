@@ -518,6 +518,7 @@ impl Weave {
 }
 
 impl WeaveView for Weave {
+    // Trivial; shouldn't require unit tests
     fn get_node(&self, identifier: &Ulid) -> (Option<&Node>, Option<&Model>) {
         let node = self.nodes.get(identifier);
         let model = node
@@ -526,6 +527,7 @@ impl WeaveView for Weave {
 
         (node, model)
     }
+    // Trivial; shouldn't require unit tests
     fn get_root_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)> {
         self.root_nodes
             .iter()
@@ -682,8 +684,8 @@ impl WeaveView for WeaveSnapshot<'_> {
     }
 }
 
+// Trivial; shouldn't require unit tests
 impl<'w> From<&'w Weave> for WeaveSnapshot<'w> {
-    // Trivial; shouldn't require unit tests
     fn from(input: &'w Weave) -> WeaveSnapshot<'w> {
         Self {
             nodes: &input.nodes,
@@ -702,8 +704,8 @@ pub(super) struct OwnedWeaveSnapshot {
     pub(super) metadata: HashMap<String, String>,
 }
 
+// Trivial; shouldn't require unit tests
 impl From<Weave> for OwnedWeaveSnapshot {
-    // Trivial; shouldn't require unit tests
     fn from(input: Weave) -> Self {
         Self {
             nodes: input.nodes,

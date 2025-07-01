@@ -106,6 +106,7 @@ impl Weave {
             }
         }
     }
+    // Trivial; shouldn't require unit tests
     fn remove_node_if_not_generated(&mut self, identifier: &Ulid) -> bool {
         let node = self.nodes.get(identifier).unwrap();
 
