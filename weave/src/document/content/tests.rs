@@ -106,6 +106,68 @@ fn snippet_split() {
     assert_eq!(snippet.split(6), None);
 }
 
+#[test]
+fn content_annotation_split() {
+    let annotation = ContentAnnotation {
+        range: Range { start: 2, end: 7 },
+        metadata: None,
+    };
+    assert_eq!(annotation.clone().split(0), None);
+    assert_eq!(
+        annotation.clone().split(1),
+        Some((
+            ContentAnnotation {
+                range: Range { start: 2, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 7 },
+                metadata: None,
+            }
+        ))
+    );
+    assert_eq!(
+        annotation.clone().split(2),
+        Some((
+            ContentAnnotation {
+                range: Range { start: 2, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 7 },
+                metadata: None,
+            }
+        ))
+    );
+    assert_eq!(
+        annotation.clone().split(3),
+        Some((
+            ContentAnnotation {
+                range: Range { start: 2, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 7 },
+                metadata: None,
+            }
+        ))
+    );
+    assert_eq!(
+        annotation.clone().split(4),
+        Some((
+            ContentAnnotation {
+                range: Range { start: 2, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 7 },
+                metadata: None,
+            }
+        ))
+    );
+    assert_eq!(annotation.clone().split(5), None);
+}
+
 /*#[test]
 fn empty_inputs_diff() {
     let diff = Diff::new(&[], &[], Instant::now() + Duration::from_secs(60));

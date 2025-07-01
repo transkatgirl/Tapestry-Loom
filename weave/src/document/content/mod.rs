@@ -548,14 +548,14 @@ impl Annotation for ContentAnnotation<'_> {
         &mut self.range
     }
     fn split(&self, index: usize) -> Option<(Self, Self)> {
-        if index == 0 || index >= self.range.end {
+        if index == 0 || (self.range.start + index) >= self.range.end {
             return None;
         }
 
         let mut left = self.range.clone();
         let mut right = self.range.clone();
 
-        left.end -= index;
+        left.end = left.start + index;
         right.start += index;
 
         Some((
@@ -580,15 +580,16 @@ impl Annotation for TimelineAnnotation<'_> {
     fn range_mut(&mut self) -> &mut Range<usize> {
         &mut self.range
     }
+    // Copied from ContentAnnotation's implementation of split(); shouldn't require additional unit tests
     fn split(&self, index: usize) -> Option<(Self, Self)> {
-        if index == 0 || index >= self.range.end {
+        if index == 0 || (self.range.start + index) >= self.range.end {
             return None;
         }
 
         let mut left = self.range.clone();
         let mut right = self.range.clone();
 
-        left.end -= index;
+        left.end = left.start + index;
         right.start += index;
 
         Some((
