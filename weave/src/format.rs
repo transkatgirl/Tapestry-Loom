@@ -2,10 +2,9 @@
 
 use std::{
     collections::{BTreeSet, HashMap, HashSet},
-    io::{Cursor, Read, Write},
+    io::{Read, Write},
 };
 
-use base64::{engine::general_purpose::URL_SAFE, read::DecoderReader, write::EncoderStringWriter};
 use lz4_flex::frame::{FrameDecoder, FrameEncoder};
 use rmp_serde::{decode, encode};
 use serde::{Deserialize, Serialize};
@@ -99,32 +98,20 @@ impl CompactWeave {
 
         Ok(())
     }
-    /// Load from a reader.
+    /// Load the document from a reader.
     pub fn load<R: Read>(reader: R) -> Result<Self, WeaveError> {
         let mut decompressor = FrameDecoder::new(reader);
         let mut weave: CompactWeave = decode::from_read(&mut decompressor)?;
         weave.update()?;
         Ok(weave)
     }
-    /// Load from a URL-safe Base64 string.
-    pub fn load_base64(input: &str) -> Result<Self, WeaveError> {
-        let mut cursor = Cursor::new(input);
-        let mut decoder = DecoderReader::new(&mut cursor, &URL_SAFE);
-        Self::load(&mut decoder)
-    }
-    /// Save to a writer.
+    /// Save the document to a writer.
     pub fn save<W: Write>(&self, writer: W) -> Result<(), WeaveError> {
         let mut compressor = FrameEncoder::new(writer);
         encode::write_named(&mut compressor, self)?;
         compressor.finish()?;
 
         Ok(())
-    }
-    /// Save to a URL-safe Base64 string.
-    pub fn save_base64(&self) -> Result<String, WeaveError> {
-        let mut encoder = EncoderStringWriter::new(&URL_SAFE);
-        self.save(&mut encoder)?;
-        Ok(encoder.into_inner())
     }
     /// Retrieve the metadata associated with the document.
     pub fn metadata(&self) -> &HashMap<String, String> {

@@ -358,6 +358,7 @@ impl NodeContent {
         )
     }
     /// Returns `true` if the two sections of content can be merged together.
+    // Trivial; shouldn't require unit tests
     pub fn is_mergeable(left: &Self, right: &Self) -> bool {
         left.model() == right.model()
             && left.metadata() == right.metadata()
