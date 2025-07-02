@@ -743,6 +743,18 @@ fn tokencontent_multiple_tokens_split() {
     assert_eq!(content.clone().split(14), None);
 }
 
+/*#[test]
+fn nodecontent_reduce() {}*/
+
+/*#[test]
+fn nodecontent_into_diff() {}*/
+
+/*#[test]
+fn nodecontent_split() {}*/
+
+/*#[test]
+fn nodecontent_merge() {}*/
+
 #[test]
 fn diff_new() {
     assert_eq!(
@@ -986,3 +998,15 @@ fn format_modification_count() {
         "2 Insertions, 2 Deletions"
     );
 }
+
+/*#[test]
+fn modification_range_apply_annotations() {}*/
+
+/*#[test]
+fn weave_timeline_annotated_string() {}*/
+
+/*#[test]
+fn weave_timeline_ranged_string() {}*/
+
+/*#[test]
+fn diff_apply_timeline_annotations() {}*/
