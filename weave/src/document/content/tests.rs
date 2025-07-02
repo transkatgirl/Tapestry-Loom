@@ -743,12 +743,105 @@ fn tokencontent_multiple_tokens_split() {
     assert_eq!(content.clone().split(14), None);
 }
 
-/*#[test]
-fn empty_inputs_diff() {
-    let diff = Diff::new(&[], &[], Instant::now() + Duration::from_secs(60));
-    assert!(diff.is_empty());
+#[test]
+fn diff_new() {
+    assert_eq!(
+        Diff::new(&[], &[], Instant::now() + Duration::from_secs(60)),
+        Diff { content: vec![] }
+    );
+    assert_eq!(
+        Diff::new(
+            &[1, 5, 2, 2, 3, 1, 4, 1],
+            &[1, 5, 2, 2, 3, 1, 4, 1],
+            Instant::now() + Duration::from_secs(60)
+        ),
+        Diff { content: vec![] }
+    );
+    assert_eq!(
+        Diff::new(
+            &[1, 1, 1, 1, 1, 1, 1, 1],
+            &[1, 1, 1, 1],
+            Instant::now() + Duration::from_secs(60)
+        ),
+        Diff {
+            content: vec![Modification {
+                index: 4,
+                content: ModificationContent::Deletion(4)
+            }],
+        }
+    );
+    assert_eq!(
+        Diff::new(
+            &[1, 1, 1, 1, 1, 1, 1, 1],
+            &[1, 1, 2, 2, 2, 2, 1, 1],
+            Instant::now() + Duration::from_secs(60)
+        ),
+        Diff {
+            content: vec![
+                Modification {
+                    index: 2,
+                    content: ModificationContent::Deletion(4)
+                },
+                Modification {
+                    index: 2,
+                    content: ModificationContent::Insertion(vec![2, 2, 2, 2])
+                }
+            ],
+        }
+    );
+    assert_eq!(
+        Diff::new(
+            &[1, 1, 1, 1, 1, 1, 1, 1],
+            &[1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1],
+            Instant::now() + Duration::from_secs(60)
+        ),
+        Diff {
+            content: vec![Modification {
+                index: 6,
+                content: ModificationContent::Insertion(vec![2, 2, 2, 2])
+            }],
+        }
+    );
 }
-*/
+
+#[test]
+fn diff_apply() {
+    {
+        let mut before = vec![];
+        let after = vec![];
+        let diff = Diff::new(&before, &after, Instant::now() + Duration::from_secs(60));
+        diff.apply(&mut before);
+        assert_eq!(before, after);
+    }
+    {
+        let mut before = vec![1, 5, 2, 2, 3, 1, 4, 1];
+        let after = vec![1, 5, 2, 2, 3, 1, 4, 1];
+        let diff = Diff::new(&before, &after, Instant::now() + Duration::from_secs(60));
+        diff.apply(&mut before);
+        assert_eq!(before, after);
+    }
+    {
+        let mut before = vec![1, 1, 1, 1, 1, 1, 1, 1];
+        let after = vec![1, 1, 1, 1];
+        let diff = Diff::new(&before, &after, Instant::now() + Duration::from_secs(60));
+        diff.apply(&mut before);
+        assert_eq!(before, after);
+    }
+    {
+        let mut before = vec![1, 1, 1, 1, 1, 1, 1, 1];
+        let after = vec![1, 1, 2, 2, 2, 2, 1, 1];
+        let diff = Diff::new(&before, &after, Instant::now() + Duration::from_secs(60));
+        diff.apply(&mut before);
+        assert_eq!(before, after);
+    }
+    {
+        let mut before = vec![1, 1, 1, 1, 1, 1, 1, 1];
+        let after = vec![1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1];
+        let diff = Diff::new(&before, &after, Instant::now() + Duration::from_secs(60));
+        diff.apply(&mut before);
+        assert_eq!(before, after);
+    }
+}
 
 #[test]
 fn apply_modification_in_bounds() {
