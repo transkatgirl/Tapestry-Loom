@@ -80,9 +80,13 @@ The current target is to finish `v1-alpha` before the end of 2025.
 - [ ] Improve Weave format to improve flexibility and efficiency:
 	- [ ] Create `tapestry-weave` Rust library
 		- [x] Implement new Weave data structure & serialization+deserialization
-		- [ ] Implement unit tests for Weave data structure & Weave content
-		- [ ] Implement integration tests for data strutures & content updating & serialization + deserialization
-		- [ ] Implement benchmark tests for the Rust library
+		- [ ] Implement unit and integration tests
+			- [ ] Implement unit tests for `content` module
+			- [ ] Implement unit tests for `document` module
+			- [ ] Implement unit tests for `update` module
+			- [ ] Implement integration tests for `document` + `content` modules
+			- [ ] Implement integration tests for `document` + `update` modules
+			- [ ] Implement integration tests for `document` + `format` modules
 	- [ ] Create `tapestry-loomkit` Rust WASM bindings
 		- [ ] Implement weave data structure & saving+loading
 		- [ ] Implement prefix deduplication overlay
@@ -109,6 +113,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 
 #### Tapestry Loom v1-beta checklist
 
+- [ ] Implement benchmark tests for `tapestry-weave`
 - [ ] Implement embedding model requests
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 	- [ ] Color coding by embeddings
