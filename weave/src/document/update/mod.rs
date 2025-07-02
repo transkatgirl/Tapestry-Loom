@@ -35,7 +35,7 @@ impl Weave {
     ///
     /// If `add_diff_node` is `true`, modifications are added as [`NodeContent::Diff`] items whenever possible. If `add_diff_node` is `false`, modifications are added as updates to [`Node`] objects whenever possible.
     ///
-    /// When inserting new nodes into the weave, metadata can be added to the inserted nodes using `metadata`. If `add_diff_node` is true and a modification to an existing node is being performed, the metadata will be added to the node.
+    /// When inserting new nodes into the weave, `metadata` can be added to the inserted nodes. If `add_diff_node` is `true` and a modification to an existing node is being performed, the metadata will be combined with the node's existing metadata, if any.
     ///
     /// If `merge_tail_nodes` is `true`, modifications at the end of the timeline to nodes which do not contain an associated [`Model`] may be applied destructively. If `merge_tail_nodes` is `false`, modifications are always nondestructive (will not remove content from the Weave).
     pub fn update(
