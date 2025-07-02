@@ -1123,13 +1123,17 @@ impl Diff {
                 DiffTag::Delete => {
                     modifications.push(Modification {
                         index: before_range.start,
-                        content: ModificationContent::Deletion(before_range.end),
+                        content: ModificationContent::Deletion(
+                            before_range.end - before_range.start,
+                        ),
                     });
                 }
                 DiffTag::Replace => {
                     modifications.push(Modification {
                         index: before_range.start,
-                        content: ModificationContent::Deletion(before_range.end),
+                        content: ModificationContent::Deletion(
+                            before_range.end - before_range.start,
+                        ),
                     });
                     modifications.push(Modification {
                         index: before_range.start,
