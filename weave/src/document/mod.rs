@@ -272,6 +272,8 @@ impl Weave {
     }
     /// Moves a [`Node`] to a new position on the tree (without performing deduplication).
     ///
+    /// This function will always return `false` if the Weave contains any non-concatable nodes.
+    ///
     /// Care must be taken to prevent loops between nodes, as loop checking is not performed by this function. If a loop between nodes is added to the [`Weave`], it may cause unintended behavior (such as functions panicking or getting stuck in infinite loops).
     ///
     /// The modified node retains all of it's other attributes, including its identifier. Returns if the node was moved successfully.

@@ -186,7 +186,9 @@ impl Weave {
     ///
     /// If the node's content is a [`NodeContent::Diff`], this function will always return [`None`].
     ///
-    /// If the [`Weave`] is in nonconcatable mode, the [`NodeContent`] of the inserted node will be converted into a [`NodeContent::Diff`] and added at the end of the timeline. If the node's content is a [`NodeContent::Blank`], diff conversion will fail, causing this function to return [`None`].
+    /// If the [`Weave`] is in nonconcatable mode or if `prefer_diff` is `true`, the [`NodeContent`] of the inserted node will be converted into a [`NodeContent::Diff`] and added at the end of the timeline. If the node's content is a [`NodeContent::Blank`], diff conversion will fail, causing this function to return [`None`].
+    ///
+    /// If the Weave is in multiparent mode, `prefer_diff` is ignored and the NodeContent is never converted.
     ///
     /// Once the Node (and Weave) has been updated, this adds the node at the specified position using [`Weave::add_node`]. If the specified range starts at the end of the timeline, the node's content will not be updated.
     #[allow(clippy::missing_panics_doc)]
@@ -194,6 +196,7 @@ impl Weave {
         &mut self,
         timeline: usize,
         range: Range<usize>,
+        prefer_diff: bool,
         mut node: Node,
         model: Option<Model>,
         deduplicate: bool,
@@ -217,7 +220,9 @@ impl Weave {
             return self.add_node(node, model, deduplicate);
         }
 
-        if !self.nonconcatable_nodes.is_empty() {
+        if !self.nonconcatable_nodes.is_empty()
+            || (self.multiparent_nodes.is_empty() && prefer_diff)
+        {
             if let Some(content) = node.content.into_diff(range) {
                 node.content = content;
                 node.from = ranges
