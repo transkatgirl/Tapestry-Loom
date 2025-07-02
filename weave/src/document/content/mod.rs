@@ -1145,6 +1145,8 @@ impl Diff {
             }
         }
 
+        modifications.shrink_to_fit();
+
         Self {
             content: modifications,
         }
