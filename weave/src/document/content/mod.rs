@@ -195,12 +195,18 @@ impl<'w> WeaveTimeline<'w> {
         (content, ranges)
     }
     // Trivial; shouldn't require unit tests
-    pub(super) fn build_update(self, content: String, deadline: Instant) -> TimelineUpdate {
+    pub(super) fn build_update(
+        self,
+        content: String,
+        metadata: Option<HashMap<String, String>>,
+        deadline: Instant,
+    ) -> TimelineUpdate {
         let (before, ranges) = self.ranged_string();
 
         TimelineUpdate {
             ranges,
             diff: Diff::new(&before.into_bytes(), &content.into_bytes(), deadline),
+            metadata,
         }
     }
 }
@@ -208,6 +214,7 @@ impl<'w> WeaveTimeline<'w> {
 pub(super) struct TimelineUpdate {
     pub(super) ranges: Vec<TimelineNodeRange>,
     pub(super) diff: Diff,
+    pub(super) metadata: Option<HashMap<String, String>>,
 }
 
 pub(super) struct TimelineNodeRange {
@@ -494,6 +501,33 @@ impl NodeContent {
                 }))
             }
             Self::Diff(_) | Self::Blank => None,
+        }
+    }
+    // Trivial; shouldn't require unit tests
+    pub(super) fn merge_metadata(&mut self, metadata: HashMap<String, String>) {
+        match self {
+            NodeContent::Snippet(content) => {
+                if let Some(existing) = content.metadata.as_mut() {
+                    existing.extend(metadata);
+                } else {
+                    content.metadata = Some(metadata);
+                }
+            }
+            NodeContent::Tokens(content) => {
+                if let Some(existing) = content.metadata.as_mut() {
+                    existing.extend(metadata);
+                } else {
+                    content.metadata = Some(metadata);
+                }
+            }
+            NodeContent::Diff(content) => {
+                if let Some(existing) = content.metadata.as_mut() {
+                    existing.extend(metadata);
+                } else {
+                    content.metadata = Some(metadata);
+                }
+            }
+            NodeContent::Blank => {}
         }
     }
 }

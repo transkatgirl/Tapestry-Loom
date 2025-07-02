@@ -1,4 +1,9 @@
-use std::{cmp::Ordering, collections::HashSet, ops::Range, vec};
+use std::{
+    cmp::Ordering,
+    collections::{HashMap, HashSet},
+    ops::Range,
+    vec,
+};
 
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
 use similar::Instant;
@@ -30,11 +35,14 @@ impl Weave {
     ///
     /// If `add_diff_node` is `true`, modifications are added as [`NodeContent::Diff`] items whenever possible. If `add_diff_node` is `false`, modifications are added as updates to [`Node`] objects whenever possible.
     ///
+    /// When inserting new nodes into the weave, metadata can be added to the inserted nodes using `metadata`. If `add_diff_node` is true and a modification to an existing node is being performed, the metadata will be added to the node.
+    ///
     /// If `merge_tail_nodes` is `true`, modifications at the end of the timeline to nodes which do not contain an associated [`Model`] may be applied destructively. If `merge_tail_nodes` is `false`, modifications are always nondestructive (will not remove content from the Weave).
     pub fn update(
         &mut self,
         timeline: usize,
         content: String,
+        metadata: Option<HashMap<String, String>>,
         diff_deadline: Instant,
         mut add_diff_node: bool,
         merge_tail_nodes: bool,
@@ -44,7 +52,7 @@ impl Weave {
         let update = if timelines.len() > timeline {
             timelines
                 .swap_remove(timeline)
-                .build_update(content, diff_deadline)
+                .build_update(content, metadata, diff_deadline)
         } else {
             TimelineUpdate {
                 ranges: vec![],
@@ -54,6 +62,7 @@ impl Weave {
                         content: ModificationContent::Insertion(content.into_bytes()),
                     }],
                 },
+                metadata,
             }
         };
 
@@ -83,13 +92,29 @@ impl Weave {
             let modification = update.diff.content.remove(0);
 
             if modification.index >= end {
-                handle_modification_tail(self, &mut update.ranges, modification, merge_tail_nodes);
+                handle_modification_tail(
+                    self,
+                    &mut update.ranges,
+                    modification,
+                    update.metadata,
+                    merge_tail_nodes,
+                );
             } else {
-                handle_singular_modification_diff_nontail(self, &mut update.ranges, modification);
+                handle_singular_modification_diff_nontail(
+                    self,
+                    &mut update.ranges,
+                    modification,
+                    update.metadata,
+                );
             }
+        } else {
+            handle_multiple_modification_diff(
+                self,
+                &mut update.ranges,
+                update.diff,
+                update.metadata,
+            );
         }
-
-        handle_multiple_modification_diff(self, &mut update.ranges, update.diff);
     }
     fn perform_graph_update(&mut self, mut update: TimelineUpdate, merge_tail_nodes: bool) {
         for modification in update.diff.content {
@@ -100,9 +125,20 @@ impl Weave {
                 .unwrap_or_default();
 
             if modification.index >= end {
-                handle_modification_tail(self, &mut update.ranges, modification, merge_tail_nodes);
+                handle_modification_tail(
+                    self,
+                    &mut update.ranges,
+                    modification,
+                    update.metadata.clone(),
+                    merge_tail_nodes,
+                );
             } else {
-                handle_graph_modification_nontail(self, &mut update.ranges, modification);
+                handle_graph_modification_nontail(
+                    self,
+                    &mut update.ranges,
+                    modification,
+                    update.metadata.clone(),
+                );
             }
         }
     }
@@ -117,7 +153,12 @@ impl Weave {
 
         false
     }
-    fn update_nongenerated_parent(&mut self, parent: &Ulid, content: Vec<u8>) -> Option<Ulid> {
+    fn update_nongenerated_parent(
+        &mut self,
+        parent: &Ulid,
+        content: Vec<u8>,
+        metadata: Option<HashMap<String, String>>,
+    ) -> Option<Ulid> {
         let node = self.nodes.get_mut(parent).unwrap();
 
         if node.content.model().is_none() {
@@ -130,6 +171,9 @@ impl Weave {
                 }),
             ) {
                 node.content = content;
+                if let Some(metadata) = metadata {
+                    node.content.merge_metadata(metadata);
+                }
                 return Some(node.id);
             }
         }
@@ -231,6 +275,7 @@ fn handle_modification_tail(
     weave: &mut Weave,
     ranges: &mut Vec<TimelineNodeRange>,
     modification: Modification,
+    metadata: Option<HashMap<String, String>>,
     merge_tail_nodes: bool,
 ) {
     let mut insertion = None;
@@ -243,10 +288,9 @@ fn handle_modification_tail(
     match modification.content {
         ModificationContent::Insertion(content) => {
             insertion = Some(
-                match last_node
-                    .filter(|_| merge_tail_nodes)
-                    .and_then(|parent| weave.update_nongenerated_parent(&parent, content.clone()))
-                {
+                match last_node.filter(|_| merge_tail_nodes).and_then(|parent| {
+                    weave.update_nongenerated_parent(&parent, content.clone(), metadata.clone())
+                }) {
                     Some(updated) => updated,
                     None => weave
                         .add_node(
@@ -261,7 +305,7 @@ fn handle_modification_tail(
                                 content: NodeContent::Snippet(SnippetContent {
                                     content,
                                     model: None,
-                                    metadata: None,
+                                    metadata,
                                 }),
                             },
                             None,
@@ -320,7 +364,7 @@ fn handle_modification_tail(
                                                 }],
                                             },
                                             model: None,
-                                            metadata: None,
+                                            metadata,
                                         }),
                                     },
                                     None,
@@ -328,6 +372,7 @@ fn handle_modification_tail(
                                 )
                                 .unwrap(),
                         );
+                        break;
                     }
                 } else {
                     panic!() // Should never happen
@@ -359,6 +404,7 @@ fn handle_singular_modification_diff_nontail(
     weave: &mut Weave,
     ranges: &mut [TimelineNodeRange],
     modification: Modification,
+    metadata: Option<HashMap<String, String>>,
 ) {
     let last_node = ranges.last().map(|range| range.node.unwrap());
 
@@ -377,7 +423,7 @@ fn handle_singular_modification_diff_nontail(
                         content: vec![modification],
                     },
                     model: None,
-                    metadata: None,
+                    metadata,
                 }),
             },
             None,
@@ -390,6 +436,7 @@ fn handle_multiple_modification_diff(
     weave: &mut Weave,
     ranges: &mut [TimelineNodeRange],
     diff: Diff,
+    metadata: Option<HashMap<String, String>>,
 ) {
     let last_node = ranges.last().map(|range| range.node.unwrap());
 
@@ -406,7 +453,7 @@ fn handle_multiple_modification_diff(
                 content: NodeContent::Diff(DiffContent {
                     content: diff,
                     model: None,
-                    metadata: None,
+                    metadata,
                 }),
             },
             None,
@@ -420,6 +467,7 @@ fn handle_graph_modification_nontail(
     weave: &mut Weave,
     ranges: &mut Vec<TimelineNodeRange>,
     modification: Modification,
+    metadata: Option<HashMap<String, String>>,
 ) {
     let mut insertion = None;
     #[allow(unused_assignments)]
@@ -493,7 +541,7 @@ fn handle_graph_modification_nontail(
                             content: NodeContent::Snippet(SnippetContent {
                                 content,
                                 model: None,
-                                metadata: None,
+                                metadata,
                             }),
                         },
                         None,
