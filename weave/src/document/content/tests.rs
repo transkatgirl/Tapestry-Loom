@@ -283,6 +283,466 @@ fn tokencontent_annotations() {
     );
 }
 
+#[test]
+fn tokencontent_blank_split() {
+    let metadata_content = Some(HashMap::from([("key".to_string(), "value".to_string())]));
+    let metadata_token_1 = Some(HashMap::from([("token".to_string(), "one".to_string())]));
+    let metadata_token_2 = Some(HashMap::from([("token".to_string(), "two".to_string())]));
+    let content_no_tokens = TokenContent {
+        content: vec![],
+        model: None,
+        metadata: metadata_content.clone(),
+    };
+    let content_blank_tokens = TokenContent {
+        content: vec![
+            ContentToken {
+                content: vec![],
+                metadata: metadata_token_1.clone(),
+            },
+            ContentToken {
+                content: vec![],
+                metadata: metadata_token_2.clone(),
+            },
+        ],
+        model: None,
+        metadata: metadata_content.clone(),
+    };
+    assert_eq!(
+        content_no_tokens.clone().split(0),
+        Some((content_no_tokens.clone(), content_no_tokens.clone()))
+    );
+    assert_eq!(content_no_tokens.clone().split(1), None);
+    assert_eq!(
+        content_blank_tokens.clone().split(0),
+        Some((content_blank_tokens.clone(), content_no_tokens.clone()))
+    );
+    assert_eq!(content_blank_tokens.clone().split(1), None);
+    assert_eq!(content_blank_tokens.clone().split(2), None);
+    assert_eq!(content_blank_tokens.clone().split(3), None);
+    assert_eq!(content_blank_tokens.clone().split(4), None);
+}
+
+#[test]
+fn tokencontent_single_token_split() {
+    let metadata_content = Some(HashMap::from([("key".to_string(), "value".to_string())]));
+    let metadata_token = Some(HashMap::from([("token".to_string(), "one".to_string())]));
+    let content = TokenContent {
+        content: vec![ContentToken {
+            content: vec![1, 2, 3, 1, 2],
+            metadata: metadata_token.clone(),
+        }],
+        model: None,
+        metadata: metadata_content.clone(),
+    };
+    assert_eq!(
+        content.clone().split(0),
+        Some((
+            TokenContent {
+                content: vec![],
+                model: None,
+                metadata: metadata_content.clone(),
+            },
+            content.clone()
+        ))
+    );
+    assert_eq!(
+        content.clone().split(1),
+        Some((
+            TokenContent {
+                content: vec![ContentToken {
+                    content: vec![1],
+                    metadata: metadata_token.clone(),
+                }],
+                model: None,
+                metadata: metadata_content.clone(),
+            },
+            TokenContent {
+                content: vec![ContentToken {
+                    content: vec![2, 3, 1, 2],
+                    metadata: metadata_token.clone(),
+                }],
+                model: None,
+                metadata: metadata_content.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        content.clone().split(2),
+        Some((
+            TokenContent {
+                content: vec![ContentToken {
+                    content: vec![1, 2],
+                    metadata: metadata_token.clone(),
+                }],
+                model: None,
+                metadata: metadata_content.clone(),
+            },
+            TokenContent {
+                content: vec![ContentToken {
+                    content: vec![3, 1, 2],
+                    metadata: metadata_token.clone(),
+                }],
+                model: None,
+                metadata: metadata_content.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        content.clone().split(3),
+        Some((
+            TokenContent {
+                content: vec![ContentToken {
+                    content: vec![1, 2, 3],
+                    metadata: metadata_token.clone(),
+                }],
+                model: None,
+                metadata: metadata_content.clone(),
+            },
+            TokenContent {
+                content: vec![ContentToken {
+                    content: vec![1, 2],
+                    metadata: metadata_token.clone(),
+                }],
+                model: None,
+                metadata: metadata_content.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        content.clone().split(4),
+        Some((
+            TokenContent {
+                content: vec![ContentToken {
+                    content: vec![1, 2, 3, 1],
+                    metadata: metadata_token.clone(),
+                }],
+                model: None,
+                metadata: metadata_content.clone(),
+            },
+            TokenContent {
+                content: vec![ContentToken {
+                    content: vec![2],
+                    metadata: metadata_token.clone(),
+                }],
+                model: None,
+                metadata: metadata_content.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        content.clone().split(5),
+        Some((
+            content.clone(),
+            TokenContent {
+                content: vec![],
+                model: None,
+                metadata: metadata_content.clone(),
+            }
+        ))
+    );
+    assert_eq!(content.clone().split(6), None);
+    assert_eq!(content.clone().split(7), None);
+}
+
+#[test]
+fn tokencontent_multiple_tokens_split() {
+    let metadata_content = Some(HashMap::from([("key".to_string(), "value".to_string())]));
+    let metadata_token_1 = Some(HashMap::from([("token".to_string(), "one".to_string())]));
+    let metadata_token_2 = Some(HashMap::from([("token".to_string(), "two".to_string())]));
+    let metadata_token_3 = Some(HashMap::from([("token".to_string(), "three".to_string())]));
+    let content = TokenContent {
+        content: vec![
+            ContentToken {
+                content: vec![5, 5, 5],
+                metadata: metadata_token_1.clone(),
+            },
+            ContentToken {
+                content: vec![4, 4, 4, 4],
+                metadata: metadata_token_2.clone(),
+            },
+            ContentToken {
+                content: vec![6, 6],
+                metadata: metadata_token_3.clone(),
+            },
+        ],
+        model: None,
+        metadata: metadata_content.clone(),
+    };
+    assert_eq!(
+        content.clone().split(0),
+        Some((
+            TokenContent {
+                content: vec![],
+                model: None,
+                metadata: metadata_content.clone(),
+            },
+            content.clone()
+        ))
+    );
+    assert_eq!(
+        content.clone().split(1),
+        Some((
+            TokenContent {
+                content: vec![ContentToken {
+                    content: vec![5],
+                    metadata: metadata_token_1.clone(),
+                },],
+                model: None,
+                metadata: metadata_content.clone(),
+            },
+            TokenContent {
+                content: vec![
+                    ContentToken {
+                        content: vec![5, 5],
+                        metadata: metadata_token_1.clone(),
+                    },
+                    ContentToken {
+                        content: vec![4, 4, 4, 4],
+                        metadata: metadata_token_2.clone(),
+                    },
+                    ContentToken {
+                        content: vec![6, 6],
+                        metadata: metadata_token_3.clone(),
+                    },
+                ],
+                model: None,
+                metadata: metadata_content.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        content.clone().split(2),
+        Some((
+            TokenContent {
+                content: vec![ContentToken {
+                    content: vec![5, 5],
+                    metadata: metadata_token_1.clone(),
+                },],
+                model: None,
+                metadata: metadata_content.clone(),
+            },
+            TokenContent {
+                content: vec![
+                    ContentToken {
+                        content: vec![5],
+                        metadata: metadata_token_1.clone(),
+                    },
+                    ContentToken {
+                        content: vec![4, 4, 4, 4],
+                        metadata: metadata_token_2.clone(),
+                    },
+                    ContentToken {
+                        content: vec![6, 6],
+                        metadata: metadata_token_3.clone(),
+                    },
+                ],
+                model: None,
+                metadata: metadata_content.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        content.clone().split(3),
+        Some((
+            TokenContent {
+                content: vec![ContentToken {
+                    content: vec![5, 5, 5],
+                    metadata: metadata_token_1.clone(),
+                },],
+                model: None,
+                metadata: metadata_content.clone(),
+            },
+            TokenContent {
+                content: vec![
+                    ContentToken {
+                        content: vec![4, 4, 4, 4],
+                        metadata: metadata_token_2.clone(),
+                    },
+                    ContentToken {
+                        content: vec![6, 6],
+                        metadata: metadata_token_3.clone(),
+                    },
+                ],
+                model: None,
+                metadata: metadata_content.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        content.clone().split(4),
+        Some((
+            TokenContent {
+                content: vec![
+                    ContentToken {
+                        content: vec![5, 5, 5],
+                        metadata: metadata_token_1.clone(),
+                    },
+                    ContentToken {
+                        content: vec![4],
+                        metadata: metadata_token_2.clone(),
+                    },
+                ],
+                model: None,
+                metadata: metadata_content.clone(),
+            },
+            TokenContent {
+                content: vec![
+                    ContentToken {
+                        content: vec![4, 4, 4],
+                        metadata: metadata_token_2.clone(),
+                    },
+                    ContentToken {
+                        content: vec![6, 6],
+                        metadata: metadata_token_3.clone(),
+                    },
+                ],
+                model: None,
+                metadata: metadata_content.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        content.clone().split(5),
+        Some((
+            TokenContent {
+                content: vec![
+                    ContentToken {
+                        content: vec![5, 5, 5],
+                        metadata: metadata_token_1.clone(),
+                    },
+                    ContentToken {
+                        content: vec![4, 4],
+                        metadata: metadata_token_2.clone(),
+                    },
+                ],
+                model: None,
+                metadata: metadata_content.clone(),
+            },
+            TokenContent {
+                content: vec![
+                    ContentToken {
+                        content: vec![4, 4],
+                        metadata: metadata_token_2.clone(),
+                    },
+                    ContentToken {
+                        content: vec![6, 6],
+                        metadata: metadata_token_3.clone(),
+                    },
+                ],
+                model: None,
+                metadata: metadata_content.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        content.clone().split(6),
+        Some((
+            TokenContent {
+                content: vec![
+                    ContentToken {
+                        content: vec![5, 5, 5],
+                        metadata: metadata_token_1.clone(),
+                    },
+                    ContentToken {
+                        content: vec![4, 4, 4],
+                        metadata: metadata_token_2.clone(),
+                    },
+                ],
+                model: None,
+                metadata: metadata_content.clone(),
+            },
+            TokenContent {
+                content: vec![
+                    ContentToken {
+                        content: vec![4],
+                        metadata: metadata_token_2.clone(),
+                    },
+                    ContentToken {
+                        content: vec![6, 6],
+                        metadata: metadata_token_3.clone(),
+                    },
+                ],
+                model: None,
+                metadata: metadata_content.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        content.clone().split(7),
+        Some((
+            TokenContent {
+                content: vec![
+                    ContentToken {
+                        content: vec![5, 5, 5],
+                        metadata: metadata_token_1.clone(),
+                    },
+                    ContentToken {
+                        content: vec![4, 4, 4, 4],
+                        metadata: metadata_token_2.clone(),
+                    },
+                ],
+                model: None,
+                metadata: metadata_content.clone(),
+            },
+            TokenContent {
+                content: vec![ContentToken {
+                    content: vec![6, 6],
+                    metadata: metadata_token_3.clone(),
+                }],
+                model: None,
+                metadata: metadata_content.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        content.clone().split(8),
+        Some((
+            TokenContent {
+                content: vec![
+                    ContentToken {
+                        content: vec![5, 5, 5],
+                        metadata: metadata_token_1.clone(),
+                    },
+                    ContentToken {
+                        content: vec![4, 4, 4, 4],
+                        metadata: metadata_token_2.clone(),
+                    },
+                    ContentToken {
+                        content: vec![6],
+                        metadata: metadata_token_3.clone(),
+                    }
+                ],
+                model: None,
+                metadata: metadata_content.clone(),
+            },
+            TokenContent {
+                content: vec![ContentToken {
+                    content: vec![6],
+                    metadata: metadata_token_3.clone(),
+                }],
+                model: None,
+                metadata: metadata_content.clone(),
+            }
+        ))
+    );
+    assert_eq!(
+        content.clone().split(9),
+        Some((
+            content.clone(),
+            TokenContent {
+                content: vec![],
+                model: None,
+                metadata: metadata_content.clone(),
+            }
+        ))
+    );
+    assert_eq!(content.clone().split(10), None);
+    assert_eq!(content.clone().split(11), None);
+    assert_eq!(content.clone().split(12), None);
+    assert_eq!(content.clone().split(13), None);
+    assert_eq!(content.clone().split(14), None);
+}
+
 /*#[test]
 fn empty_inputs_diff() {
     let diff = Diff::new(&[], &[], Instant::now() + Duration::from_secs(60));
