@@ -109,8 +109,9 @@ The current target is to finish `v1-alpha` before the end of 2025.
 	- [ ] Implement multi-document weaves / references to other documents, similar to [loom](https://github.com/socketteer/loom)
 - [ ] Improve handling of tokenization boundaries
 - [ ] Weave format stabilization & finalization
-	- [ ] Merging of v1 to main branch
-	- [ ] Add readme documentation for Rust libraries within repository
+	- [ ] Update feature list
+	- [ ] Update README to mention Rust libraries within repository
+	- [ ] Merge v1 to main branch
 
 #### Tapestry Loom v1-beta checklist
 
