@@ -402,7 +402,7 @@ impl NodeContent {
         }
     }
     fn reduce(self) -> Self {
-        if self.model().is_none() && self.metadata().is_none() && self.is_empty() {
+        if self.model().is_none() && self.has_metadata() && self.is_empty() {
             return Self::Blank;
         }
 
@@ -438,6 +438,16 @@ impl NodeContent {
             Self::Tokens(content) => content.is_empty(),
             Self::Diff(diff) => diff.content.is_empty(),
             Self::Blank => true,
+        }
+    }
+    /// Returns `true` if the content has any metadata.
+    // Trivial; shouldn't require unit tests
+    pub fn has_metadata(&self) -> bool {
+        match self {
+            Self::Snippet(content) => content.has_metadata(),
+            Self::Tokens(content) => content.has_metadata(),
+            Self::Diff(diff) => diff.has_metadata(),
+            Self::Blank => false,
         }
     }
     pub(super) fn into_diff(self, range: Range<usize>) -> Option<NodeContent> {
@@ -693,6 +703,13 @@ pub trait NodeContents: Display + Sized {
     fn model(&self) -> Option<&ContentModel>;
     /// Returns metadata associated with the content.
     fn metadata(&self) -> Option<&HashMap<String, String>>;
+    /// Returns if the content has any metadata.
+    ///
+    /// This may return `true` when the metadata function returns None if the object has metadata associated with part of the content but not all of it.
+    // Trivial; shouldn't require unit tests
+    fn has_metadata(&self) -> bool {
+        !self.metadata().is_none_or(HashMap::is_empty)
+    }
 }
 
 /// Concatable types which are intended to be used as content for a [`Node`] object.
@@ -867,6 +884,16 @@ impl NodeContents for TokenContent {
     }
     fn metadata(&self) -> Option<&HashMap<String, String>> {
         self.metadata.as_ref()
+    }
+    fn has_metadata(&self) -> bool {
+        if !self.metadata().is_none_or(HashMap::is_empty) {
+            return true;
+        }
+
+        !self
+            .content
+            .iter()
+            .all(|token| token.metadata.as_ref().is_none_or(HashMap::is_empty))
     }
 }
 
