@@ -1279,15 +1279,15 @@ impl Modification {
     pub fn apply(self, data: &mut Vec<u8>) {
         match self.content {
             ModificationContent::Insertion(content) => data.splice(self.index..self.index, content),
+            ModificationContent::Deletion(length) => {
+                data.splice(self.index..(self.index + length), vec![])
+            }
             ModificationContent::TokenInsertion(content) => {
                 let content: Vec<u8> = content
                     .into_iter()
                     .flat_map(|token| token.content)
                     .collect();
                 data.splice(self.index..self.index, content)
-            }
-            ModificationContent::Deletion(length) => {
-                data.splice(self.index..(self.index + length), vec![])
             }
         };
     }
