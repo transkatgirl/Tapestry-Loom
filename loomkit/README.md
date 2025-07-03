@@ -10,10 +10,6 @@ Running `wasm-pack build --release` will build the library and output the compil
 
 See [the wasm-bindgen documentation](https://rustwasm.github.io/docs/wasm-bindgen/reference/deployment.html) for more information about using the compiled package.
 
-### Documentation
-
-Run `cargo doc --open` to view documentation for the library.
-
 ## Licensing
 
 Unlike the rest of Tapestry Loom, this library is licensed under the [Mozilla Public License Version 2.0](./LICENSE).
