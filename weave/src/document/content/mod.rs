@@ -408,7 +408,7 @@ impl NodeContent {
             Self::Snippet(content) => index <= content.len(),
             Self::Tokens(content) => index <= content.len(),
             Self::Diff(_) => false,
-            Self::Blank => true,
+            Self::Blank => index == 0,
         }
     }
     /// Converts the content to the simplest variant that can contain it without losing information.
