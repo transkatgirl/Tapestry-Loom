@@ -1250,6 +1250,7 @@ impl Diff {
             modification.apply_annotations(annotations);
         }
     }
+    // Trivial; shouldn't require unit tests
     pub(super) fn apply_timeline_annotations<'w>(
         &'w self,
         node: &'w Node,
@@ -1263,6 +1264,7 @@ impl Diff {
             if let Some(index) = updates.inserted_bytes {
                 annotations[index].node = Some(node);
                 annotations[index].model = model;
+                annotations[index].parameters = node.content.model().map(|model| &model.parameters);
                 annotations[index].content_metadata = content_metadata;
             }
             if let Some(indices) = updates.inserted_tokens {
@@ -1270,6 +1272,8 @@ impl Diff {
                     for (modification_index, annotation_index) in indices.into_iter().enumerate() {
                         annotations[annotation_index].node = Some(node);
                         annotations[annotation_index].model = model;
+                        annotations[annotation_index].parameters =
+                            node.content.model().map(|model| &model.parameters);
                         annotations[annotation_index].subsection_metadata =
                             content[modification_index].metadata.as_ref();
                         annotations[annotation_index].content_metadata = content_metadata;

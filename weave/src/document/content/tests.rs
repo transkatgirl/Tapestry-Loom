@@ -1970,6 +1970,3 @@ fn weave_timeline_annotated_string() {}*/
 
 /*#[test]
 fn weave_timeline_ranged_string() {}*/
-
-/*#[test]
-fn diff_apply_timeline_annotations() {}*/
