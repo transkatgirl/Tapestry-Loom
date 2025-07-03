@@ -49,7 +49,7 @@ pub struct Node {
 /// A set of active nodes listed in the order they are connected.
 ///
 /// WeaveTimeline objects are created by the [`WeaveView::get_active_timelines`] function. Each timeline represents one possible linear progression of nodes (and their associated models), starting at the root of the [`Weave`] and progressing outwards.
-#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Default, Clone, Debug, PartialEq, Eq)]
 pub struct WeaveTimeline<'w> {
     #[allow(missing_docs)]
     pub timeline: Vec<(&'w Node, Option<&'w Model>)>,
@@ -814,7 +814,7 @@ pub struct ContentModel {
 }
 
 /// A wrapper around a snippet of UTF-8 encoded text.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, Eq)]
 pub struct SnippetContent {
     /// The text being stored.
     ///
@@ -910,7 +910,7 @@ impl ConcatableNodeContents for SnippetContent {
 /// A container for tokenized UTF-8 encoded text.
 ///
 /// Tokenization is a popular technique used by text generation algorithms to handle text in larger chunks than individual characters.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, Eq)]
 pub struct TokenContent {
     /// The tokens being stored, listed in the order they should be displayed.
     pub content: Vec<ContentToken>,
@@ -1059,7 +1059,7 @@ impl ConcatableNodeContents for TokenContent {
 }
 
 /// A single UTF-8 token from a tokenized piece of text.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, Eq)]
 pub struct ContentToken {
     /// The textual content of the token.
     ///
@@ -1119,7 +1119,7 @@ impl From<Vec<u8>> for ContentToken {
 }
 
 /// A container for a set of modifications to perform on the current text.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, Eq)]
 pub struct DiffContent {
     /// The modification set being stored.
     pub content: Diff,
@@ -1174,7 +1174,7 @@ impl Display for DiffContent {
 /// A list of modifications to perform on a set of bytes.
 ///
 /// This has little meaning on its own, as it is meant to be paired with the text being modified.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, Eq)]
 pub struct Diff {
     /// A list of modifications in the order they should be performed.
     pub content: Vec<Modification>,
