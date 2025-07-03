@@ -1511,13 +1511,16 @@ impl ModificationRange {
     where
         T: Annotation,
     {
-        let offset = self.len();
+        let range = self.range();
+        let offset = range.end - range.start;
+        if offset == 0 {
+            return ModificationResult::default();
+        }
         let Some(selected) = annotations
             .iter()
             .enumerate()
             .find_map(|(location, annotation)| {
                 let annotation = annotation.range();
-                let range = self.range();
 
                 if range.contains(&annotation.start) || range.contains(&annotation.end) {
                     return Some(location);
@@ -1526,7 +1529,52 @@ impl ModificationRange {
                 None
             })
         else {
-            return ModificationResult::default();
+            return if annotations.len() == range.start {
+                match self {
+                    Self::Insertion(range) => {
+                        let item = T::from(range);
+                        annotations.push(item);
+
+                        ModificationResult {
+                            inserted_bytes: Some(annotations.len() - 1),
+                            inserted_tokens: None,
+                            left_split: None,
+                            right_split: None,
+                        }
+                    }
+                    Self::TokenInsertion(tokens) => {
+                        let start_index = annotations.len() - 1;
+                        let mut next_token_start = tokens.range.start;
+                        let mut token_annotations: Vec<T> = tokens
+                            .tokens
+                            .into_iter()
+                            .map(|(token_length, _)| {
+                                let range = Range {
+                                    start: next_token_start,
+                                    end: token_length,
+                                };
+
+                                next_token_start += token_length;
+
+                                T::from(range)
+                            })
+                            .collect();
+                        let token_count = token_annotations.len();
+
+                        annotations.append(&mut token_annotations);
+
+                        ModificationResult {
+                            inserted_bytes: None,
+                            inserted_tokens: Some(start_index + 1..start_index + token_count),
+                            left_split: None,
+                            right_split: None,
+                        }
+                    }
+                    Self::Deletion(_range) => ModificationResult::default(),
+                }
+            } else {
+                ModificationResult::default()
+            };
         };
 
         let mut split = (None, None);
@@ -1603,7 +1651,7 @@ impl ModificationRange {
 
                 ModificationResult {
                     inserted_bytes: None,
-                    inserted_tokens: Some(selected + 1..(selected + 1) + token_count),
+                    inserted_tokens: Some(selected + 1..selected + token_count),
                     left_split: split.0,
                     right_split: split.1,
                 }
