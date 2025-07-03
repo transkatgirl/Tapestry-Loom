@@ -703,12 +703,12 @@ pub trait NodeContents: Display + Sized {
     fn model(&self) -> Option<&ContentModel>;
     /// Returns metadata associated with the content.
     fn metadata(&self) -> Option<&HashMap<String, String>>;
-    /// Returns if the content has any metadata.
+    /// Returns if the content has any metadata (including an associated [`ContentModel`]).
     ///
-    /// This may return `true` when the metadata function returns None if the object has metadata associated with part of the content but not all of it.
+    /// This will return `true` if the object has metadata associated with part of the content but not all of it.
     // Trivial; shouldn't require unit tests
     fn has_metadata(&self) -> bool {
-        !self.metadata().is_none_or(HashMap::is_empty)
+        self.model().is_some() || !self.metadata().is_none_or(HashMap::is_empty)
     }
 }
 
@@ -886,14 +886,13 @@ impl NodeContents for TokenContent {
         self.metadata.as_ref()
     }
     fn has_metadata(&self) -> bool {
-        if !self.metadata().is_none_or(HashMap::is_empty) {
+        if self.model.is_some() || !self.metadata().is_none_or(HashMap::is_empty) {
             return true;
         }
 
-        !self
-            .content
+        self.content
             .iter()
-            .all(|token| token.metadata.as_ref().is_none_or(HashMap::is_empty))
+            .any(|token| !token.metadata.as_ref().is_none_or(HashMap::is_empty))
     }
 }
 
@@ -1091,6 +1090,13 @@ impl NodeContents for DiffContent {
     fn metadata(&self) -> Option<&HashMap<String, String>> {
         self.metadata.as_ref()
     }
+    fn has_metadata(&self) -> bool {
+        if self.model.is_some() || !self.metadata().is_none_or(HashMap::is_empty) {
+            return true;
+        }
+
+        self.content.has_metadata()
+    }
 }
 
 // Trivial; shouldn't require unit tests
@@ -1247,7 +1253,12 @@ impl Diff {
             deletions,
         }
     }
-    /// Returns `true` if the sum of all modification lengths in the diff is equal to zero bytes.
+    /// Returns `true` if any of the modifications within the [`Diff`] contain metadata.
+    // Trivial; shouldn't require unit tests
+    pub fn has_metadata(&self) -> bool {
+        self.content.iter().any(Modification::has_metadata)
+    }
+    /// Returns `true` if the sum of all modification lengths in the [`Diff`] is equal to zero bytes.
     // Trivial; shouldn't require unit tests
     pub fn is_empty(&self) -> bool {
         self.content.iter().all(|token| token.content.is_empty())
@@ -1290,6 +1301,16 @@ impl Modification {
         Range {
             start: self.index,
             end: self.index + self.content.len(),
+        }
+    }
+    /// Returns if the modification contains any metadata.
+    // Trivial; shouldn't require unit tests
+    pub fn has_metadata(&self) -> bool {
+        match &self.content {
+            ModificationContent::Insertion(_) | ModificationContent::Deletion(_) => false,
+            ModificationContent::TokenInsertion(tokens) => tokens
+                .iter()
+                .any(|token| !token.metadata.as_ref().is_none_or(HashMap::is_empty)),
         }
     }
     // Trivial; shouldn't require unit tests
