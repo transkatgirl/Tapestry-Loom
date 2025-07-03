@@ -1522,62 +1522,30 @@ impl ModificationRange {
 
                 None
             })
-        else {
-            return if annotations.len() == range.start {
-                match self {
-                    Self::Insertion(range) => {
-                        let item = T::from(range);
-                        annotations.push(item);
-
-                        ModificationIndices {
-                            inserted_bytes: Some(annotations.len() - 1),
-                            inserted_tokens: None,
-                            left_split: None,
-                            right_split: None,
-                        }
-                    }
-                    Self::TokenInsertion(tokens) => {
-                        let start_index = annotations.len() - 1;
-                        let mut next_token_start = tokens.range.start;
-                        let mut token_annotations: Vec<T> = tokens
-                            .tokens
-                            .into_iter()
-                            .map(|(token_length, _)| {
-                                let range = Range {
-                                    start: next_token_start,
-                                    end: token_length,
-                                };
-
-                                next_token_start += token_length;
-
-                                T::from(range)
-                            })
-                            .collect();
-                        let token_count = token_annotations.len();
-
-                        annotations.append(&mut token_annotations);
-
-                        ModificationIndices {
-                            inserted_bytes: None,
-                            inserted_tokens: Some(start_index + 1..start_index + token_count),
-                            left_split: None,
-                            right_split: None,
-                        }
-                    }
-                    Self::Deletion(_range) => ModificationIndices::default(),
-                }
+            .or(if annotations.is_empty() && range.start == 0 {
+                Some(0)
             } else {
-                ModificationIndices::default()
-            };
+                None
+            })
+        else {
+            return ModificationIndices::default();
         };
 
         let mut split = (None, None);
 
         match self {
             Self::Insertion(range) => {
-                if range.start == 0 {
+                #[allow(unused_assignments)]
+                let mut insertion = None;
+                if range.start
+                    == annotations
+                        .get(selected)
+                        .map(|annotation| annotation.range().start)
+                        .unwrap_or_default()
+                {
                     let middle = T::from(range);
                     annotations.splice(selected..selected, vec![middle]);
+                    insertion = Some(selected);
                 } else {
                     let (left, mut right) = annotations[selected].split(range.start).unwrap();
                     let middle = T::from(range);
@@ -1586,6 +1554,7 @@ impl ModificationRange {
 
                     annotations.splice(selected..=selected, vec![left, middle, right]);
                     split = (Some(selected), Some(selected + 2));
+                    insertion = Some(selected + 1);
                 }
 
                 if annotations.len() > (selected + 2) {
@@ -1597,7 +1566,7 @@ impl ModificationRange {
                 }
 
                 ModificationIndices {
-                    inserted_bytes: Some(selected + 1),
+                    inserted_bytes: insertion,
                     inserted_tokens: None,
                     left_split: split.0,
                     right_split: split.1,
@@ -1621,7 +1590,12 @@ impl ModificationRange {
                     .collect();
                 let token_count = token_annotations.len();
 
-                if tokens.range.start == 0 {
+                if tokens.range.start
+                    == annotations
+                        .get(selected)
+                        .map(|annotation| annotation.range().start)
+                        .unwrap_or_default()
+                {
                     annotations.splice(selected..selected, token_annotations);
                 } else {
                     let (left, mut right) =
