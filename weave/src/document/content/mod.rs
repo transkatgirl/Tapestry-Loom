@@ -409,9 +409,7 @@ impl NodeContent {
         match self {
             Self::Snippet(bytes) => Self::Snippet(bytes),
             Self::Tokens(mut tokens) => {
-                if tokens.content.is_empty() {
-                    Self::Blank
-                } else if tokens.content.len() == 1
+                if tokens.content.len() == 1
                     && tokens.content[0]
                         .metadata
                         .as_ref()
