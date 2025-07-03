@@ -1374,7 +1374,7 @@ impl Modification {
         }
     }
     // Trivial; shouldn't require unit tests
-    fn apply_annotations<T>(&self, annotations: &mut Vec<T>) -> ModificationResult
+    fn apply_annotations<T>(&self, annotations: &mut Vec<T>) -> ModificationIndices
     where
         T: Annotation,
     {
@@ -1499,22 +1499,16 @@ impl ModificationRange {
             Self::TokenInsertion(token_set) => &token_set.range,
         }
     }
-    // Trivial; shouldn't require unit tests
-    #[inline]
-    pub(super) fn len(&self) -> usize {
-        let range = self.range();
-        range.end - range.start
-    }
     // assumes annotations are sorted!
     #[allow(clippy::too_many_lines)]
-    pub(super) fn apply_annotations<T>(self, annotations: &mut Vec<T>) -> ModificationResult
+    pub(super) fn apply_annotations<T>(self, annotations: &mut Vec<T>) -> ModificationIndices
     where
         T: Annotation,
     {
         let range = self.range();
         let offset = range.end - range.start;
         if offset == 0 {
-            return ModificationResult::default();
+            return ModificationIndices::default();
         }
         let Some(selected) = annotations
             .iter()
@@ -1535,7 +1529,7 @@ impl ModificationRange {
                         let item = T::from(range);
                         annotations.push(item);
 
-                        ModificationResult {
+                        ModificationIndices {
                             inserted_bytes: Some(annotations.len() - 1),
                             inserted_tokens: None,
                             left_split: None,
@@ -1563,17 +1557,17 @@ impl ModificationRange {
 
                         annotations.append(&mut token_annotations);
 
-                        ModificationResult {
+                        ModificationIndices {
                             inserted_bytes: None,
                             inserted_tokens: Some(start_index + 1..start_index + token_count),
                             left_split: None,
                             right_split: None,
                         }
                     }
-                    Self::Deletion(_range) => ModificationResult::default(),
+                    Self::Deletion(_range) => ModificationIndices::default(),
                 }
             } else {
-                ModificationResult::default()
+                ModificationIndices::default()
             };
         };
 
@@ -1602,7 +1596,7 @@ impl ModificationRange {
                     }
                 }
 
-                ModificationResult {
+                ModificationIndices {
                     inserted_bytes: Some(selected + 1),
                     inserted_tokens: None,
                     left_split: split.0,
@@ -1649,7 +1643,7 @@ impl ModificationRange {
                     }
                 }
 
-                ModificationResult {
+                ModificationIndices {
                     inserted_bytes: None,
                     inserted_tokens: Some(selected + 1..selected + token_count),
                     left_split: split.0,
@@ -1679,7 +1673,7 @@ impl ModificationRange {
                     annotations.splice(remove[0]..=remove[remove.len() - 1], vec![]);
                 }
 
-                ModificationResult {
+                ModificationIndices {
                     inserted_bytes: None,
                     inserted_tokens: None,
                     left_split: split.0,
@@ -1690,8 +1684,8 @@ impl ModificationRange {
     }
 }
 
-#[derive(Default)]
-pub(super) struct ModificationResult {
+#[derive(Default, Debug, PartialEq, Eq)]
+pub(super) struct ModificationIndices {
     pub(super) inserted_bytes: Option<usize>,
     pub(super) inserted_tokens: Option<Range<usize>>,
     pub(super) left_split: Option<usize>,
