@@ -743,8 +743,231 @@ fn tokencontent_multiple_tokens_split() {
     assert_eq!(content.clone().split(14), None);
 }
 
-/*#[test]
-fn nodecontent_reduce() {}*/
+#[test]
+fn nodecontent_reduce() {
+    let metadata = Some(HashMap::from([("key".to_string(), "value".to_string())]));
+    assert_eq!(NodeContent::Blank.reduce(), NodeContent::Blank);
+    assert_eq!(
+        NodeContent::Snippet(SnippetContent {
+            content: vec![],
+            model: None,
+            metadata: None
+        })
+        .reduce(),
+        NodeContent::Blank
+    );
+    assert_eq!(
+        NodeContent::Snippet(SnippetContent {
+            content: vec![],
+            model: None,
+            metadata: metadata.clone(),
+        })
+        .reduce(),
+        NodeContent::Snippet(SnippetContent {
+            content: vec![],
+            model: None,
+            metadata: metadata.clone(),
+        })
+    );
+    assert_eq!(
+        NodeContent::Tokens(TokenContent {
+            content: vec![],
+            model: None,
+            metadata: None
+        })
+        .reduce(),
+        NodeContent::Blank
+    );
+    assert_eq!(
+        NodeContent::Tokens(TokenContent {
+            content: vec![
+                ContentToken {
+                    content: vec![],
+                    metadata: None,
+                },
+                ContentToken {
+                    content: vec![],
+                    metadata: None,
+                }
+            ],
+            model: None,
+            metadata: None
+        })
+        .reduce(),
+        NodeContent::Blank
+    );
+    assert_eq!(
+        NodeContent::Tokens(TokenContent {
+            content: vec![],
+            model: None,
+            metadata: None,
+        })
+        .reduce(),
+        NodeContent::Blank
+    );
+    assert_eq!(
+        NodeContent::Tokens(TokenContent {
+            content: vec![],
+            model: None,
+            metadata: metadata.clone(),
+        })
+        .reduce(),
+        NodeContent::Snippet(SnippetContent {
+            content: vec![],
+            model: None,
+            metadata: metadata.clone(),
+        })
+    );
+    assert_eq!(
+        NodeContent::Tokens(TokenContent {
+            content: vec![ContentToken {
+                content: vec![],
+                metadata: None,
+            }],
+            model: None,
+            metadata: metadata.clone(),
+        })
+        .reduce(),
+        NodeContent::Snippet(SnippetContent {
+            content: vec![],
+            model: None,
+            metadata: metadata.clone(),
+        })
+    );
+    assert_eq!(
+        NodeContent::Tokens(TokenContent {
+            content: vec![ContentToken {
+                content: vec![],
+                metadata: metadata.clone(),
+            }],
+            model: None,
+            metadata: metadata.clone(),
+        })
+        .reduce(),
+        NodeContent::Tokens(TokenContent {
+            content: vec![ContentToken {
+                content: vec![],
+                metadata: metadata.clone(),
+            }],
+            model: None,
+            metadata: metadata.clone(),
+        })
+    );
+    assert_eq!(
+        NodeContent::Snippet(SnippetContent {
+            content: vec![],
+            model: None,
+            metadata: None,
+        })
+        .reduce(),
+        NodeContent::Blank
+    );
+    assert_eq!(
+        NodeContent::Diff(DiffContent {
+            content: Diff { content: vec![] },
+            model: None,
+            metadata: None
+        })
+        .reduce(),
+        NodeContent::Blank
+    );
+    assert_eq!(
+        NodeContent::Diff(DiffContent {
+            content: Diff { content: vec![] },
+            model: None,
+            metadata: metadata.clone(),
+        })
+        .reduce(),
+        NodeContent::Diff(DiffContent {
+            content: Diff { content: vec![] },
+            model: None,
+            metadata: metadata.clone(),
+        })
+    );
+    assert_eq!(
+        NodeContent::Snippet(SnippetContent {
+            content: vec![1, 2, 3, 4],
+            model: None,
+            metadata: None,
+        })
+        .reduce(),
+        NodeContent::Snippet(SnippetContent {
+            content: vec![1, 2, 3, 4],
+            model: None,
+            metadata: None,
+        })
+    );
+    assert_eq!(
+        NodeContent::Tokens(TokenContent {
+            content: vec![ContentToken {
+                content: vec![1, 2, 3, 4],
+                metadata: None,
+            }],
+            model: None,
+            metadata: None,
+        })
+        .reduce(),
+        NodeContent::Snippet(SnippetContent {
+            content: vec![1, 2, 3, 4],
+            model: None,
+            metadata: None,
+        })
+    );
+    assert_eq!(
+        NodeContent::Tokens(TokenContent {
+            content: vec![
+                ContentToken {
+                    content: vec![1, 2, 3, 4],
+                    metadata: None,
+                },
+                ContentToken {
+                    content: vec![5, 6],
+                    metadata: None,
+                }
+            ],
+            model: None,
+            metadata: None,
+        })
+        .reduce(),
+        NodeContent::Tokens(TokenContent {
+            content: vec![
+                ContentToken {
+                    content: vec![1, 2, 3, 4],
+                    metadata: None,
+                },
+                ContentToken {
+                    content: vec![5, 6],
+                    metadata: None,
+                }
+            ],
+            model: None,
+            metadata: None,
+        })
+    );
+    assert_eq!(
+        NodeContent::Diff(DiffContent {
+            content: Diff {
+                content: vec![Modification {
+                    index: 2,
+                    content: ModificationContent::Deletion(4),
+                }]
+            },
+            model: None,
+            metadata: None,
+        })
+        .reduce(),
+        NodeContent::Diff(DiffContent {
+            content: Diff {
+                content: vec![Modification {
+                    index: 2,
+                    content: ModificationContent::Deletion(4),
+                }]
+            },
+            model: None,
+            metadata: None,
+        })
+    );
+}
 
 /*#[test]
 fn nodecontent_into_diff() {}*/

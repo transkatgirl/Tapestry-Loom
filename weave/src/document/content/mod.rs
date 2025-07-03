@@ -415,15 +415,11 @@ impl NodeContent {
                 });
 
                 if tokens.content.is_empty() {
-                    if tokens.has_metadata() {
-                        Self::Snippet(SnippetContent {
-                            content: vec![],
-                            model: tokens.model,
-                            metadata: tokens.metadata,
-                        })
-                    } else {
-                        Self::Blank
-                    }
+                    Self::Snippet(SnippetContent {
+                        content: vec![],
+                        model: tokens.model,
+                        metadata: tokens.metadata,
+                    })
                 } else if tokens.content.len() == 1
                     && tokens.content[0]
                         .metadata
