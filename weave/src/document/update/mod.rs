@@ -570,7 +570,7 @@ fn handle_graph_modification_nontail(
             }
             ending_node_parents.insert(starting_node);
 
-            weave.move_node(&ending_node, ending_node_parents);
+            assert!(weave.move_node(&ending_node, ending_node_parents));
             split = (Some(starting_node), Some(ending_node));
         }
     }
