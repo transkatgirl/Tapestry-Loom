@@ -402,7 +402,7 @@ impl NodeContent {
         }
     }
     fn reduce(self) -> Self {
-        if self.model().is_none() && self.has_metadata() && self.is_empty() {
+        if !self.has_metadata() && self.is_empty() {
             return Self::Blank;
         }
 
@@ -438,16 +438,6 @@ impl NodeContent {
             Self::Tokens(content) => content.is_empty(),
             Self::Diff(diff) => diff.content.is_empty(),
             Self::Blank => true,
-        }
-    }
-    /// Returns `true` if the content has any metadata.
-    // Trivial; shouldn't require unit tests
-    pub fn has_metadata(&self) -> bool {
-        match self {
-            Self::Snippet(content) => content.has_metadata(),
-            Self::Tokens(content) => content.has_metadata(),
-            Self::Diff(diff) => diff.has_metadata(),
-            Self::Blank => false,
         }
     }
     pub(super) fn into_diff(self, range: Range<usize>) -> Option<NodeContent> {
@@ -744,6 +734,14 @@ impl NodeContents for NodeContent {
             Self::Tokens(content) => content.metadata(),
             Self::Diff(content) => content.metadata(),
             Self::Blank => None,
+        }
+    }
+    fn has_metadata(&self) -> bool {
+        match self {
+            Self::Snippet(content) => content.has_metadata(),
+            Self::Tokens(content) => content.has_metadata(),
+            Self::Diff(diff) => diff.has_metadata(),
+            Self::Blank => false,
         }
     }
 }
