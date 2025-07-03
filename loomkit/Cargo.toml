@@ -5,7 +5,7 @@ authors = [
 	"transkatgirl",
 ]
 license = "MPL-2.0"
-description = "A WASM library for building Loom implementations on top of tapestry-weave."
+description = "A WebAssembly library for building Loom implementations on top of tapestry-weave."
 repository = "https://github.com/transkatgirl/Tapestry-Loom"
 edition = "2024"
 
