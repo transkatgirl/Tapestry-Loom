@@ -969,8 +969,183 @@ fn nodecontent_reduce() {
     );
 }
 
-/*#[test]
-fn nodecontent_into_diff() {}*/
+#[test]
+fn nodecontent_into_diff() {
+    assert_eq!(
+        NodeContent::Blank.into_diff(Range { start: 2, end: 5 }),
+        None
+    );
+    assert_eq!(
+        NodeContent::Diff(DiffContent {
+            content: Diff {
+                content: vec![Modification {
+                    index: 2,
+                    content: ModificationContent::Deletion(3)
+                }],
+            },
+            model: None,
+            metadata: None
+        })
+        .into_diff(Range { start: 2, end: 5 }),
+        None
+    );
+    assert_eq!(
+        NodeContent::Snippet(SnippetContent {
+            content: vec![],
+            model: None,
+            metadata: None
+        })
+        .into_diff(Range { start: 2, end: 2 }),
+        Some(NodeContent::Diff(DiffContent {
+            content: Diff {
+                content: vec![Modification {
+                    index: 2,
+                    content: ModificationContent::Insertion(vec![])
+                }],
+            },
+            model: None,
+            metadata: None
+        }))
+    );
+    assert_eq!(
+        NodeContent::Snippet(SnippetContent {
+            content: vec![4, 3, 2, 1],
+            model: None,
+            metadata: None
+        })
+        .into_diff(Range { start: 2, end: 2 }),
+        Some(NodeContent::Diff(DiffContent {
+            content: Diff {
+                content: vec![Modification {
+                    index: 2,
+                    content: ModificationContent::Insertion(vec![4, 3, 2, 1])
+                }],
+            },
+            model: None,
+            metadata: None
+        }))
+    );
+    assert_eq!(
+        NodeContent::Snippet(SnippetContent {
+            content: vec![4, 3, 2, 1],
+            model: None,
+            metadata: None
+        })
+        .into_diff(Range { start: 2, end: 5 }),
+        Some(NodeContent::Diff(DiffContent {
+            content: Diff {
+                content: vec![
+                    Modification {
+                        index: 2,
+                        content: ModificationContent::Deletion(3)
+                    },
+                    Modification {
+                        index: 2,
+                        content: ModificationContent::Insertion(vec![4, 3, 2, 1])
+                    }
+                ],
+            },
+            model: None,
+            metadata: None
+        }))
+    );
+    assert_eq!(
+        NodeContent::Tokens(TokenContent {
+            content: vec![],
+            model: None,
+            metadata: None
+        })
+        .into_diff(Range { start: 2, end: 2 }),
+        Some(NodeContent::Diff(DiffContent {
+            content: Diff {
+                content: vec![Modification {
+                    index: 2,
+                    content: ModificationContent::TokenInsertion(vec![])
+                }],
+            },
+            model: None,
+            metadata: None
+        }))
+    );
+    assert_eq!(
+        NodeContent::Tokens(TokenContent {
+            content: vec![
+                ContentToken {
+                    content: vec![4, 1, 2],
+                    metadata: None
+                },
+                ContentToken {
+                    content: vec![6, 3],
+                    metadata: None
+                },
+            ],
+            model: None,
+            metadata: None
+        })
+        .into_diff(Range { start: 2, end: 2 }),
+        Some(NodeContent::Diff(DiffContent {
+            content: Diff {
+                content: vec![Modification {
+                    index: 2,
+                    content: ModificationContent::TokenInsertion(vec![
+                        ContentToken {
+                            content: vec![4, 1, 2],
+                            metadata: None
+                        },
+                        ContentToken {
+                            content: vec![6, 3],
+                            metadata: None
+                        },
+                    ])
+                }],
+            },
+            model: None,
+            metadata: None
+        }))
+    );
+    assert_eq!(
+        NodeContent::Tokens(TokenContent {
+            content: vec![
+                ContentToken {
+                    content: vec![4, 1, 2],
+                    metadata: None
+                },
+                ContentToken {
+                    content: vec![6, 3],
+                    metadata: None
+                },
+            ],
+            model: None,
+            metadata: None
+        })
+        .into_diff(Range { start: 2, end: 5 }),
+        Some(NodeContent::Diff(DiffContent {
+            content: Diff {
+                content: vec![
+                    Modification {
+                        index: 2,
+                        content: ModificationContent::Deletion(3)
+                    },
+                    Modification {
+                        index: 2,
+                        content: ModificationContent::TokenInsertion(vec![
+                            ContentToken {
+                                content: vec![4, 1, 2],
+                                metadata: None
+                            },
+                            ContentToken {
+                                content: vec![6, 3],
+                                metadata: None
+                            },
+                        ])
+                    }
+                ],
+            },
+            model: None,
+            metadata: None
+        }))
+    );
+}
 
 /*#[test]
 fn nodecontent_split() {}*/
