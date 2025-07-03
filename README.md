@@ -110,6 +110,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 - [ ] Improve handling of tokenization boundaries
 - [ ] Weave format stabilization & finalization
 	- [ ] Merging of v1 to main branch
+	- [ ] Add readme documentation for Rust libraries within repository
 
 #### Tapestry Loom v1-beta checklist
 
