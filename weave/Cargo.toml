@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = [
 	"transkatgirl",
 ]
-license = "LGPL-3.0-or-later"
+license = "MPL-2.0"
 description = "An implementation of Tapestry Loom's \"Weave\" document format."
 repository = "https://github.com/transkatgirl/Tapestry-Loom"
 edition = "2024"
