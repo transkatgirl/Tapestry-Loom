@@ -864,7 +864,7 @@ fn nodecontent_reduce() {
     );
     assert_eq!(
         NodeContent::Diff(DiffContent {
-            content: Diff { content: vec![] },
+            content: Diff::default(),
             model: None,
             metadata: None
         })
@@ -873,13 +873,13 @@ fn nodecontent_reduce() {
     );
     assert_eq!(
         NodeContent::Diff(DiffContent {
-            content: Diff { content: vec![] },
+            content: Diff::default(),
             model: None,
             metadata: metadata.clone(),
         })
         .reduce(),
         NodeContent::Diff(DiffContent {
-            content: Diff { content: vec![] },
+            content: Diff::default(),
             model: None,
             metadata: metadata.clone(),
         })
@@ -1418,14 +1418,311 @@ fn nodecontent_split() {
     );
 }
 
-/*#[test]
-fn nodecontent_merge() {}*/
+#[test]
+fn nodecontent_merge() {
+    let model_content = Some(ContentModel {
+        id: Ulid::new(),
+        parameters: vec![],
+    });
+    let metadata_content = Some(HashMap::from([("key".to_string(), "value".to_string())]));
+    let metadata_token_1 = Some(HashMap::from([("token".to_string(), "one".to_string())]));
+    let metadata_token_2 = Some(HashMap::from([("token".to_string(), "two".to_string())]));
+    let metadata_token_3 = Some(HashMap::from([("token".to_string(), "three".to_string())]));
+    assert_eq!(
+        NodeContent::merge(NodeContent::Blank, NodeContent::Blank),
+        Some(NodeContent::Blank)
+    );
+    assert_eq!(
+        NodeContent::merge(
+            NodeContent::Diff(DiffContent {
+                content: Diff::default(),
+                model: None,
+                metadata: None
+            }),
+            NodeContent::Blank
+        ),
+        None
+    );
+    assert_eq!(
+        NodeContent::merge(
+            NodeContent::Blank,
+            NodeContent::Diff(DiffContent {
+                content: Diff::default(),
+                model: None,
+                metadata: None
+            })
+        ),
+        None
+    );
+    assert_eq!(
+        NodeContent::merge(
+            NodeContent::Snippet(SnippetContent {
+                content: vec![],
+                model: None,
+                metadata: None
+            }),
+            NodeContent::Snippet(SnippetContent {
+                content: vec![],
+                model: None,
+                metadata: None
+            }),
+        ),
+        Some(NodeContent::Blank)
+    );
+    assert_eq!(
+        NodeContent::merge(
+            NodeContent::Snippet(SnippetContent {
+                content: vec![],
+                model: model_content.clone(),
+                metadata: None
+            }),
+            NodeContent::Snippet(SnippetContent {
+                content: vec![],
+                model: None,
+                metadata: None
+            }),
+        ),
+        None
+    );
+    assert_eq!(
+        NodeContent::merge(
+            NodeContent::Snippet(SnippetContent {
+                content: vec![],
+                model: None,
+                metadata: None
+            }),
+            NodeContent::Snippet(SnippetContent {
+                content: vec![],
+                model: None,
+                metadata: metadata_content.clone(),
+            }),
+        ),
+        None
+    );
+    assert_eq!(
+        NodeContent::merge(
+            NodeContent::Snippet(SnippetContent {
+                content: vec![1, 2, 3],
+                model: None,
+                metadata: None
+            }),
+            NodeContent::Blank
+        ),
+        Some(NodeContent::Snippet(SnippetContent {
+            content: vec![1, 2, 3],
+            model: None,
+            metadata: None
+        }))
+    );
+    assert_eq!(
+        NodeContent::merge(
+            NodeContent::Tokens(TokenContent {
+                content: vec![ContentToken {
+                    content: vec![1, 2, 3],
+                    metadata: metadata_token_1.clone()
+                }],
+                model: None,
+                metadata: None
+            }),
+            NodeContent::Blank
+        ),
+        Some(NodeContent::Tokens(TokenContent {
+            content: vec![ContentToken {
+                content: vec![1, 2, 3],
+                metadata: metadata_token_1.clone()
+            }],
+            model: None,
+            metadata: None
+        }))
+    );
+    assert_eq!(
+        NodeContent::merge(
+            NodeContent::Blank,
+            NodeContent::Snippet(SnippetContent {
+                content: vec![1, 2, 3],
+                model: None,
+                metadata: None
+            })
+        ),
+        Some(NodeContent::Snippet(SnippetContent {
+            content: vec![1, 2, 3],
+            model: None,
+            metadata: None
+        }))
+    );
+    assert_eq!(
+        NodeContent::merge(
+            NodeContent::Blank,
+            NodeContent::Tokens(TokenContent {
+                content: vec![ContentToken {
+                    content: vec![1, 2, 3],
+                    metadata: metadata_token_1.clone()
+                }],
+                model: None,
+                metadata: None
+            })
+        ),
+        Some(NodeContent::Tokens(TokenContent {
+            content: vec![ContentToken {
+                content: vec![1, 2, 3],
+                metadata: metadata_token_1.clone()
+            }],
+            model: None,
+            metadata: None
+        }))
+    );
+    assert_eq!(
+        NodeContent::merge(
+            NodeContent::Snippet(SnippetContent {
+                content: vec![1, 2, 3],
+                model: model_content.clone(),
+                metadata: metadata_content.clone()
+            }),
+            NodeContent::Snippet(SnippetContent {
+                content: vec![4, 5, 6],
+                model: model_content.clone(),
+                metadata: metadata_content.clone()
+            })
+        ),
+        Some(NodeContent::Snippet(SnippetContent {
+            content: vec![1, 2, 3, 4, 5, 6],
+            model: model_content.clone(),
+            metadata: metadata_content.clone()
+        }))
+    );
+    assert_eq!(
+        NodeContent::merge(
+            NodeContent::Tokens(TokenContent {
+                content: vec![
+                    ContentToken {
+                        content: vec![1, 2, 3],
+                        metadata: metadata_token_1.clone()
+                    },
+                    ContentToken {
+                        content: vec![4, 5],
+                        metadata: metadata_token_2.clone()
+                    }
+                ],
+                model: model_content.clone(),
+                metadata: metadata_content.clone()
+            }),
+            NodeContent::Snippet(SnippetContent {
+                content: vec![6, 7, 8],
+                model: model_content.clone(),
+                metadata: metadata_content.clone()
+            })
+        ),
+        Some(NodeContent::Tokens(TokenContent {
+            content: vec![
+                ContentToken {
+                    content: vec![1, 2, 3],
+                    metadata: metadata_token_1.clone()
+                },
+                ContentToken {
+                    content: vec![4, 5],
+                    metadata: metadata_token_2.clone()
+                },
+                ContentToken {
+                    content: vec![6, 7, 8],
+                    metadata: None
+                }
+            ],
+            model: model_content.clone(),
+            metadata: metadata_content.clone()
+        }))
+    );
+    assert_eq!(
+        NodeContent::merge(
+            NodeContent::Snippet(SnippetContent {
+                content: vec![6, 7, 8],
+                model: model_content.clone(),
+                metadata: metadata_content.clone()
+            }),
+            NodeContent::Tokens(TokenContent {
+                content: vec![
+                    ContentToken {
+                        content: vec![1, 2, 3],
+                        metadata: metadata_token_1.clone()
+                    },
+                    ContentToken {
+                        content: vec![4, 5],
+                        metadata: metadata_token_2.clone()
+                    }
+                ],
+                model: model_content.clone(),
+                metadata: metadata_content.clone()
+            })
+        ),
+        Some(NodeContent::Tokens(TokenContent {
+            content: vec![
+                ContentToken {
+                    content: vec![6, 7, 8],
+                    metadata: None
+                },
+                ContentToken {
+                    content: vec![1, 2, 3],
+                    metadata: metadata_token_1.clone()
+                },
+                ContentToken {
+                    content: vec![4, 5],
+                    metadata: metadata_token_2.clone()
+                }
+            ],
+            model: model_content.clone(),
+            metadata: metadata_content.clone()
+        }))
+    );
+    assert_eq!(
+        NodeContent::merge(
+            NodeContent::Tokens(TokenContent {
+                content: vec![
+                    ContentToken {
+                        content: vec![1, 2, 3],
+                        metadata: metadata_token_1.clone()
+                    },
+                    ContentToken {
+                        content: vec![4, 5],
+                        metadata: metadata_token_2.clone()
+                    }
+                ],
+                model: model_content.clone(),
+                metadata: metadata_content.clone()
+            }),
+            NodeContent::Tokens(TokenContent {
+                content: vec![ContentToken {
+                    content: vec![6, 7, 8],
+                    metadata: metadata_token_3.clone()
+                },],
+                model: model_content.clone(),
+                metadata: metadata_content.clone()
+            })
+        ),
+        Some(NodeContent::Tokens(TokenContent {
+            content: vec![
+                ContentToken {
+                    content: vec![1, 2, 3],
+                    metadata: metadata_token_1.clone()
+                },
+                ContentToken {
+                    content: vec![4, 5],
+                    metadata: metadata_token_2.clone()
+                },
+                ContentToken {
+                    content: vec![6, 7, 8],
+                    metadata: metadata_token_3.clone()
+                },
+            ],
+            model: model_content.clone(),
+            metadata: metadata_content.clone()
+        }))
+    );
+}
 
 #[test]
 fn diff_new() {
     assert_eq!(
         Diff::new(&[], &[], Instant::now() + Duration::from_secs(60)),
-        Diff { content: vec![] }
+        Diff::default()
     );
     assert_eq!(
         Diff::new(
@@ -1433,7 +1730,7 @@ fn diff_new() {
             &[1, 5, 2, 2, 3, 1, 4, 1],
             Instant::now() + Duration::from_secs(60)
         ),
-        Diff { content: vec![] }
+        Diff::default()
     );
     assert_eq!(
         Diff::new(
