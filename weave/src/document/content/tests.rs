@@ -1149,6 +1149,10 @@ fn nodecontent_into_diff() {
 
 #[test]
 fn nodecontent_split() {
+    let model_content = Some(ContentModel {
+        id: Ulid::new(),
+        parameters: vec![],
+    });
     let metadata_content = Some(HashMap::from([("key".to_string(), "value".to_string())]));
     let metadata_token_1 = Some(HashMap::from([("token".to_string(), "one".to_string())]));
     let metadata_token_2 = Some(HashMap::from([("token".to_string(), "two".to_string())]));
@@ -1184,19 +1188,19 @@ fn nodecontent_split() {
     assert_eq!(
         NodeContent::Snippet(SnippetContent {
             content: vec![],
-            model: None,
+            model: model_content.clone(),
             metadata: metadata_content.clone(),
         })
         .split(0),
         Some((
             NodeContent::Snippet(SnippetContent {
                 content: vec![],
-                model: None,
+                model: model_content.clone(),
                 metadata: metadata_content.clone(),
             }),
             NodeContent::Snippet(SnippetContent {
                 content: vec![],
-                model: None,
+                model: model_content.clone(),
                 metadata: metadata_content.clone(),
             })
         ))
@@ -1220,19 +1224,19 @@ fn nodecontent_split() {
     assert_eq!(
         NodeContent::Snippet(SnippetContent {
             content: vec![5, 6, 7, 8],
-            model: None,
+            model: model_content.clone(),
             metadata: metadata_content.clone(),
         })
         .split(2),
         Some((
             NodeContent::Snippet(SnippetContent {
                 content: vec![5, 6],
-                model: None,
+                model: model_content.clone(),
                 metadata: metadata_content.clone(),
             }),
             NodeContent::Snippet(SnippetContent {
                 content: vec![7, 8],
-                model: None,
+                model: model_content.clone(),
                 metadata: metadata_content.clone(),
             })
         ))
@@ -1290,7 +1294,7 @@ fn nodecontent_split() {
                     metadata: metadata_token_3.clone(),
                 }
             ],
-            model: None,
+            model: model_content.clone(),
             metadata: metadata_content.clone(),
         })
         .split(3),
@@ -1306,7 +1310,7 @@ fn nodecontent_split() {
                         metadata: metadata_token_2.clone(),
                     }
                 ],
-                model: None,
+                model: model_content.clone(),
                 metadata: metadata_content.clone(),
             }),
             NodeContent::Tokens(TokenContent {
@@ -1320,7 +1324,7 @@ fn nodecontent_split() {
                         metadata: metadata_token_3.clone(),
                     }
                 ],
-                model: None,
+                model: model_content.clone(),
                 metadata: metadata_content.clone(),
             })
         ))
@@ -1341,7 +1345,7 @@ fn nodecontent_split() {
                     metadata: metadata_token_3.clone(),
                 }
             ],
-            model: None,
+            model: model_content.clone(),
             metadata: metadata_content.clone(),
         })
         .split(2),
@@ -1351,7 +1355,7 @@ fn nodecontent_split() {
                     content: vec![1, 2],
                     metadata: metadata_token_1.clone(),
                 }],
-                model: None,
+                model: model_content.clone(),
                 metadata: metadata_content.clone(),
             }),
             NodeContent::Tokens(TokenContent {
@@ -1365,7 +1369,7 @@ fn nodecontent_split() {
                         metadata: metadata_token_3.clone(),
                     }
                 ],
-                model: None,
+                model: model_content.clone(),
                 metadata: metadata_content.clone(),
             })
         ))
@@ -1386,14 +1390,14 @@ fn nodecontent_split() {
                     metadata: None,
                 }
             ],
-            model: None,
+            model: model_content.clone(),
             metadata: metadata_content.clone(),
         })
         .split(2),
         Some((
             NodeContent::Snippet(SnippetContent {
                 content: vec![1, 2],
-                model: None,
+                model: model_content.clone(),
                 metadata: metadata_content.clone(),
             }),
             NodeContent::Tokens(TokenContent {
@@ -1407,7 +1411,7 @@ fn nodecontent_split() {
                         metadata: None,
                     }
                 ],
-                model: None,
+                model: model_content.clone(),
                 metadata: metadata_content.clone(),
             })
         ))
