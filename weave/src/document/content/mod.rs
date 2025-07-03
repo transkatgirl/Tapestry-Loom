@@ -401,7 +401,12 @@ impl NodeContent {
             Self::Blank => true,
         }
     }
-    fn reduce(self) -> Self {
+    /// Converts the content to the simplest variant that can contain it without losing information.
+    ///
+    /// This function is automatically applied when using [`NodeContent::split`] or [`NodeContent::merge`].
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
+    pub fn reduce(self) -> Self {
         if !self.has_metadata() && self.is_empty() {
             return Self::Blank;
         }
