@@ -16,10 +16,13 @@ use content::{Model, Node, NodeContent, NodeContents, WeaveTimeline};
 /// A trait for interactive Weave representations.
 pub trait WeaveView {
     /// Retrieve an [`Node`] by its [`Ulid`].
+    #[must_use]
     fn get_node(&self, identifier: &Ulid) -> (Option<&Node>, Option<&Model>);
     /// Retrieve all [`Node`] objects which do not have any parents.
+    #[must_use]
     fn get_root_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)>;
     /// Retrieve all active nodes as [`WeaveTimeline`] objects.
+    #[must_use]
     fn get_active_timelines(&self) -> Vec<WeaveTimeline>;
 }
 
@@ -56,6 +59,7 @@ impl Weave {
     /// Returns the [`Ulid`] of the input node if the node was successfully added. If the node was deduplicated, the returned Ulid will correspond to a node which was already in the document (the node's active & bookmarked statuses will be updated to match the input). Returns [`None`] if the node could not be added.
     ///
     /// Nodes which have the same identifier as a node already in the [`Weave`] cannot be added. If the Weave contains any nodes with multiple parents, non-concatable nodes cannot be added. If the Weave contains any non-concatable nodes, nodes with multiple parents cannot be added.
+    #[must_use]
     pub fn add_node(
         &mut self,
         mut node: Node,
@@ -277,6 +281,7 @@ impl Weave {
     /// Care must be taken to prevent loops between nodes, as loop checking is not performed by this function. If a loop between nodes is added to the [`Weave`], it may cause unintended behavior (such as functions panicking or getting stuck in infinite loops).
     ///
     /// The modified node retains all of it's other attributes, including its identifier. Returns if the node was moved successfully.
+    #[must_use]
     pub fn move_node(&mut self, identifier: &Ulid, mut parents: HashSet<Ulid>) -> bool {
         if !self.nonconcatable_nodes.is_empty() && parents.len() > 1 {
             return false;
@@ -342,6 +347,7 @@ impl Weave {
     /// This uses [`NodeContent::split`] to split the [`NodeContent`] object, then updates the Weave as necessary to split the existing node into two nodes. The identifiers of the split node (from left to right) are returned, with no guarantees regarding if they are new identifiers or reused ones (along with no guarantee that the input identifier is still valid). Returns [`None`] if the node could not be split.
     ///
     /// If the node being split is bookmarked, only the left side of the split will be bookmarked. Otherwise, the split nodes retains all other properties of the original node.
+    #[must_use]
     pub fn split_node(&mut self, identifier: &Ulid, index: usize) -> Option<(Ulid, Ulid)> {
         let original = self.nodes.get(identifier)?;
         let (left_content, right_content) = original.content.clone().split(index)?;
@@ -371,6 +377,7 @@ impl Weave {
     /// This uses [`NodeContent::merge`] to merge both [`NodeContent`] objects, then updates the Weave as necessary to merge the two nodes into one node. The identifier of the merged node is returned, with no guarantee regarding if the identifier is new or reused (along with no guarantees that the input identifiers are still valid). Returns [`None`] if the nodes could not be merged.
     ///
     /// The merged node inherits the active status of the `right` node. Otherwise, the merged node retains all other properties of the original nodes.
+    #[must_use]
     pub fn merge_nodes(&mut self, left: &Ulid, right: &Ulid) -> Option<Ulid> {
         let left = self.nodes.get(left)?;
         let right = self.nodes.get(right)?;
@@ -509,11 +516,15 @@ impl Weave {
     }
     /// Returns `true` if the Weave contains any nodes with multiple parents. If this is the case, non-concatable nodes cannot be added.
     // Trivial; shouldn't require unit tests
+    #[must_use]
+    #[inline]
     pub fn is_multiparent_mode(&self) -> bool {
         !self.multiparent_nodes.is_empty()
     }
     /// Returns `true` if the Weave contains any non-concatable nodes. If this is the case, nodes with multiple parents cannot be added.
     // Trivial; shouldn't require unit tests
+    #[must_use]
+    #[inline]
     pub fn is_nonconcatable_mode(&self) -> bool {
         !self.nonconcatable_nodes.is_empty()
     }

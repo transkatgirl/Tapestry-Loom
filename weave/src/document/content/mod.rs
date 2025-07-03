@@ -58,6 +58,7 @@ pub struct WeaveTimeline<'w> {
 impl<'w> WeaveTimeline<'w> {
     /// Returns the output of the timeline as a set of bytes.
     // Trivial; shouldn't require unit tests
+    #[must_use]
     pub fn bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
 
@@ -81,6 +82,7 @@ impl<'w> WeaveTimeline<'w> {
     /// Returns the output of the timeline as an annotated string.
     ///
     /// Bytes which are invalid UTF-8 will be replaced by the character U+001A, keeping the length the same as the original set of bytes.
+    #[must_use]
     pub fn annotated_string(&self) -> (String, Vec<TimelineAnnotation<'w>>) {
         let mut bytes = Vec::new();
         let mut annotations = Vec::with_capacity(self.timeline.len());
@@ -154,6 +156,7 @@ impl<'w> WeaveTimeline<'w> {
     ///
     /// This calculates a [`Diff`] between the current contents of the timeline and the user input, and then creates a new set of annotations reflecting the changes made by the user.
     // Trivial; shouldn't require unit tests
+    #[must_use]
     pub fn preview_update(
         &self,
         (string, mut annotations): (&str, Vec<TimelineAnnotation<'w>>),
@@ -234,10 +237,12 @@ impl From<Range<usize>> for TimelineNodeRange {
 
 impl Annotation for TimelineNodeRange {
     // Trivial; shouldn't require unit tests
+    #[inline]
     fn range(&self) -> &Range<usize> {
         &self.range
     }
     // Trivial; shouldn't require unit tests
+    #[inline]
     fn range_mut(&mut self) -> &mut Range<usize> {
         &mut self.range
     }
@@ -297,6 +302,7 @@ pub enum NodeContent {
 impl NodeContent {
     /// Returns `true` if the content is concatable.
     // Trivial; shouldn't require unit tests
+    #[must_use]
     #[allow(clippy::match_same_arms)]
     pub fn is_concatable(&self) -> bool {
         match self {
@@ -306,10 +312,11 @@ impl NodeContent {
             Self::Blank => true,
         }
     }
-    #[allow(clippy::missing_panics_doc)]
     /// Merges two sections of content together.
     ///
     /// This requires both sections to be concatable and contain the same metadata.
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn merge(left: Self, right: Self) -> Option<Self> {
         if !NodeContent::is_mergeable(&left, &right) {
             return None;
@@ -366,6 +373,7 @@ impl NodeContent {
     }
     /// Returns `true` if the two sections of content can be merged together.
     // Trivial; shouldn't require unit tests
+    #[must_use]
     pub fn is_mergeable(left: &Self, right: &Self) -> bool {
         left.model() == right.model()
             && left.metadata() == right.metadata()
@@ -374,6 +382,7 @@ impl NodeContent {
     /// Splits the content in half at the specified index, retaining all associated metadata.
     ///
     /// Some types of content cannot be split in half and will always return [`None`] regardless of the index specified.
+    #[must_use]
     pub fn split(self, index: usize) -> Option<(Self, Self)> {
         if !self.is_splitable(index) {
             return None;
@@ -393,6 +402,7 @@ impl NodeContent {
     }
     /// Returns `true` if the content can be split.
     // Trivial; shouldn't require unit tests
+    #[must_use]
     pub fn is_splitable(&self, index: usize) -> bool {
         match self {
             Self::Snippet(content) => index <= content.len(),
@@ -446,6 +456,7 @@ impl NodeContent {
     }
     /// Returns `true` if the content is empty (excluding metadata).
     // Trivial; shouldn't require unit tests
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         match self {
             Self::Snippet(content) => content.is_empty(),
@@ -454,7 +465,8 @@ impl NodeContent {
             Self::Blank => true,
         }
     }
-    pub(super) fn into_diff(self, range: Range<usize>) -> Option<NodeContent> {
+    #[must_use]
+    pub(super) fn into_diff(self, range: Range<usize>) -> Option<Self> {
         let range_len = range.end - range.start;
 
         match self {
@@ -581,19 +593,24 @@ pub struct TimelineAnnotation<'w> {
 /// Types which act as content annotations for sets of bytes.
 pub trait Annotation: Sized + From<Range<usize>> {
     /// Returns the range of content bytes that the annotation applies to.
+    #[must_use]
     fn range(&self) -> &Range<usize>;
     /// Returns a mutable reference to the annotation's byte range.
+    #[must_use]
     fn range_mut(&mut self) -> &mut Range<usize>;
     /// Splits the annotation in half at the specified index, retaining all associated metadata.
+    #[must_use]
     fn split(&self, index: usize) -> Option<(Self, Self)>;
 }
 
 impl Annotation for ContentAnnotation<'_> {
     // Trivial; shouldn't require unit tests
+    #[inline]
     fn range(&self) -> &Range<usize> {
         &self.range
     }
     // Trivial; shouldn't require unit tests
+    #[inline]
     fn range_mut(&mut self) -> &mut Range<usize> {
         &mut self.range
     }
@@ -623,10 +640,12 @@ impl Annotation for ContentAnnotation<'_> {
 
 impl Annotation for TimelineAnnotation<'_> {
     // Trivial; shouldn't require unit tests
+    #[inline]
     fn range(&self) -> &Range<usize> {
         &self.range
     }
     // Trivial; shouldn't require unit tests
+    #[inline]
     fn range_mut(&mut self) -> &mut Range<usize> {
         &mut self.range
     }
@@ -704,13 +723,17 @@ impl<'w> From<ContentAnnotation<'w>> for TimelineAnnotation<'w> {
 /// Types which are intended to be used as content for a [`Node`] object.
 pub trait NodeContents: Display + Sized {
     /// Returns metadata about the algorithmic process which generated the content, if any.
+    #[must_use]
     fn model(&self) -> Option<&ContentModel>;
     /// Returns metadata associated with the content.
+    #[must_use]
     fn metadata(&self) -> Option<&HashMap<String, String>>;
     /// Returns if the content has any metadata (including an associated [`ContentModel`]).
     ///
     /// This will return `true` if the object has metadata associated with part of the content but not all of it.
     // Trivial; shouldn't require unit tests
+    #[must_use]
+    #[inline]
     fn has_metadata(&self) -> bool {
         self.model().is_some() || !self.metadata().is_none_or(HashMap::is_empty)
     }
@@ -719,16 +742,21 @@ pub trait NodeContents: Display + Sized {
 /// Concatable types which are intended to be used as content for a [`Node`] object.
 pub trait ConcatableNodeContents: NodeContents {
     /// Converts the content into a set of bytes.
+    #[must_use]
     fn into_bytes(self) -> Vec<u8>;
     /// Returns the length from the content in bytes.
+    #[must_use]
     fn len(&self) -> usize;
     /// Returns `true` if the content has a length of zero bytes (excluding metadata).
+    #[must_use]
     fn is_empty(&self) -> bool;
     /// Returns annotations for the content.
+    #[must_use]
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation>;
     /// Splits the content in half at the specified index.
     ///
     /// If the content has metadata, both sides of the split retain that metadata.
+    #[must_use]
     fn split(self, index: usize) -> Option<(Self, Self)>;
 }
 
@@ -800,9 +828,11 @@ pub struct SnippetContent {
 
 // Trivial; shouldn't require unit tests
 impl NodeContents for SnippetContent {
+    #[inline]
     fn model(&self) -> Option<&ContentModel> {
         self.model.as_ref()
     }
+    #[inline]
     fn metadata(&self) -> Option<&HashMap<String, String>> {
         self.metadata.as_ref()
     }
@@ -829,14 +859,17 @@ impl Display for SnippetContent {
 
 impl ConcatableNodeContents for SnippetContent {
     // Trivial; shouldn't require unit tests
+    #[inline]
     fn into_bytes(self) -> Vec<u8> {
         self.content
     }
     // Trivial; shouldn't require unit tests
+    #[inline]
     fn len(&self) -> usize {
         self.content.len()
     }
     // Trivial; shouldn't require unit tests
+    #[inline]
     fn is_empty(&self) -> bool {
         self.content.is_empty()
     }
@@ -891,9 +924,11 @@ pub struct TokenContent {
 
 // Trivial; shouldn't require unit tests
 impl NodeContents for TokenContent {
+    #[inline]
     fn model(&self) -> Option<&ContentModel> {
         self.model.as_ref()
     }
+    #[inline]
     fn metadata(&self) -> Option<&HashMap<String, String>> {
         self.metadata.as_ref()
     }
@@ -1096,9 +1131,11 @@ pub struct DiffContent {
 
 // Trivial; shouldn't require unit tests
 impl NodeContents for DiffContent {
+    #[inline]
     fn model(&self) -> Option<&ContentModel> {
         self.model.as_ref()
     }
+    #[inline]
     fn metadata(&self) -> Option<&HashMap<String, String>> {
         self.metadata.as_ref()
     }
@@ -1149,6 +1186,7 @@ impl Diff {
     /// The `deadline` option sets a constraint on the time spent calculating the diff. If the `deadline` is exceeded, the diff algorithm will aim to finish as soon as possible, returning a suboptimal diff.
     ///
     /// The specific algorithm used to calculate the diff is subject to change.
+    #[must_use]
     pub fn new(before: &[u8], after: &[u8], deadline: Instant) -> Self {
         let chunks = capture_diff_slices_deadline(Algorithm::Myers, before, after, Some(deadline));
 
@@ -1244,6 +1282,7 @@ impl Diff {
     }
     /// Calculates the total number of non-empty modifications in the [`Diff`] by type.
     // Trivial; shouldn't require unit tests
+    #[must_use]
     pub fn count(&self) -> ModificationCount {
         let mut insertions: usize = 0;
         let mut deletions: usize = 0;
@@ -1267,11 +1306,13 @@ impl Diff {
     }
     /// Returns `true` if any of the modifications within the [`Diff`] contain metadata.
     // Trivial; shouldn't require unit tests
+    #[must_use]
     pub fn has_metadata(&self) -> bool {
         self.content.iter().any(Modification::has_metadata)
     }
     /// Returns `true` if the sum of all modification lengths in the [`Diff`] is equal to zero bytes.
     // Trivial; shouldn't require unit tests
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.content.iter().all(|token| token.content.is_empty())
     }
@@ -1309,6 +1350,8 @@ impl Modification {
     ///
     /// If this is an insertion modification, the end of the range represents the end of the inserted content.
     // Trivial; shouldn't require unit tests
+    #[must_use]
+    #[inline]
     pub fn range(&self) -> Range<usize> {
         Range {
             start: self.index,
@@ -1317,6 +1360,7 @@ impl Modification {
     }
     /// Returns if the modification contains any metadata.
     // Trivial; shouldn't require unit tests
+    #[must_use]
     pub fn has_metadata(&self) -> bool {
         match &self.content {
             ModificationContent::Insertion(_) | ModificationContent::Deletion(_) => false,
@@ -1348,6 +1392,7 @@ pub enum ModificationContent {
 // Trivial; shouldn't require unit tests
 impl ModificationContent {
     /// The length in bytes of the modification being performed.
+    #[must_use]
     pub fn len(&self) -> usize {
         match self {
             ModificationContent::Insertion(content) => content.len(),
@@ -1358,6 +1403,7 @@ impl ModificationContent {
         }
     }
     /// Returns `true` if the modification has a length of zero bytes.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         match self {
             ModificationContent::Insertion(content) => content.is_empty(),
@@ -1442,6 +1488,7 @@ impl From<&Modification> for ModificationRange {
 
 impl ModificationRange {
     // Trivial; shouldn't require unit tests
+    #[inline]
     pub(super) fn range(&self) -> &Range<usize> {
         match self {
             Self::Deletion(range) | Self::Insertion(range) => range,
@@ -1449,6 +1496,7 @@ impl ModificationRange {
         }
     }
     // Trivial; shouldn't require unit tests
+    #[inline]
     pub(super) fn len(&self) -> usize {
         let range = self.range();
         range.end - range.start
