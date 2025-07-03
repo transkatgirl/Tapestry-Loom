@@ -409,7 +409,22 @@ impl NodeContent {
         match self {
             Self::Snippet(bytes) => Self::Snippet(bytes),
             Self::Tokens(mut tokens) => {
-                if tokens.content.len() == 1
+                tokens.content.retain(|token| {
+                    !token.content.is_empty()
+                        || !token.metadata.as_ref().is_none_or(HashMap::is_empty)
+                });
+
+                if tokens.content.is_empty() {
+                    if tokens.has_metadata() {
+                        Self::Snippet(SnippetContent {
+                            content: vec![],
+                            model: tokens.model,
+                            metadata: tokens.metadata,
+                        })
+                    } else {
+                        Self::Blank
+                    }
+                } else if tokens.content.len() == 1
                     && tokens.content[0]
                         .metadata
                         .as_ref()
