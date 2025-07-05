@@ -1153,21 +1153,11 @@ impl Display for DiffContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let count = self.content.count();
 
-        if count.insertions == 1 && count.deletions < 2 {
-            for modification in &self.content.content {
-                if let ModificationContent::Insertion(text) = &modification.content {
-                    for chunk in text.utf8_chunks() {
-                        write!(f, "{}", chunk.valid())?;
-
-                        for &b in chunk.invalid() {
-                            write!(f, "\\x{b:02x}")?;
-                        }
-                    }
-                }
-            }
+        if count.total == 0 {
+            write!(f, "{EMPTY_MESSAGE}")
+        } else {
+            write!(f, "{count}")
         }
-
-        write!(f, "{count}")
     }
 }
 
