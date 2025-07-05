@@ -1550,8 +1550,9 @@ impl ModificationRange {
                     insertion = Some(selected + 1);
                 }
 
-                if annotations.len() > (selected + 2) {
-                    for annotation in &mut annotations[selected + 3..] {
+                let modification_ending = split.1.unwrap_or(insertion.unwrap());
+                if annotations.len() > modification_ending {
+                    for annotation in &mut annotations[modification_ending + 1..] {
                         let annotation = annotation.range_mut();
                         annotation.start += offset;
                         annotation.end += offset;
@@ -1608,8 +1609,9 @@ impl ModificationRange {
                     split = (Some(selected), Some(selected + 2 + token_count));
                 }
 
-                if annotations.len() > insertion.as_ref().unwrap().end {
-                    for annotation in &mut annotations[insertion.as_ref().unwrap().end + 1..] {
+                let modification_ending = insertion.as_ref().unwrap().end;
+                if annotations.len() > modification_ending {
+                    for annotation in &mut annotations[modification_ending + 1..] {
                         let annotation = annotation.range_mut();
                         annotation.start += offset;
                         annotation.end += offset;
