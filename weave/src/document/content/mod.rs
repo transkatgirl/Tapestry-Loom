@@ -1506,7 +1506,7 @@ impl ModificationRange {
             .find_map(|(location, annotation)| {
                 let annotation = annotation.range();
 
-                if range.contains(&annotation.start) || range.contains(&annotation.end) {
+                if annotation.end >= range.start {
                     return Some(location);
                 }
 
@@ -1525,17 +1525,19 @@ impl ModificationRange {
 
         match self {
             Self::Insertion(range) => {
+                let annotation = annotations
+                    .get(selected)
+                    .map_or(&Range { start: 0, end: 0 }, |annotation| annotation.range());
                 #[allow(unused_assignments)]
                 let mut insertion = None;
-                if range.start
-                    == annotations
-                        .get(selected)
-                        .map(|annotation| annotation.range().start)
-                        .unwrap_or_default()
-                {
+                if range.start == annotation.start {
                     let middle = T::from(range);
                     annotations.splice(selected..selected, vec![middle]);
                     insertion = Some(selected);
+                } else if range.start == annotation.end {
+                    let middle = T::from(range);
+                    annotations.splice((selected + 1)..=selected, vec![middle]);
+                    insertion = Some(selected + 1);
                 } else {
                     let (left, mut right) = annotations[selected].split(range.start).unwrap();
                     let middle = T::from(range);
@@ -1563,6 +1565,9 @@ impl ModificationRange {
                 }
             }
             Self::TokenInsertion(tokens) => {
+                let annotation = annotations
+                    .get(selected)
+                    .map_or(&Range { start: 0, end: 0 }, |annotation| annotation.range());
                 let mut next_token_start = tokens.range.start;
                 let mut token_annotations: Vec<T> = tokens
                     .tokens
@@ -1579,14 +1584,15 @@ impl ModificationRange {
                     })
                     .collect();
                 let token_count = token_annotations.len();
+                #[allow(unused_assignments)]
+                let mut insertion = None;
 
-                if tokens.range.start
-                    == annotations
-                        .get(selected)
-                        .map(|annotation| annotation.range().start)
-                        .unwrap_or_default()
-                {
+                if tokens.range.start == annotation.start {
                     annotations.splice(selected..selected, token_annotations);
+                    insertion = Some(selected..selected + token_count);
+                } else if tokens.range.start == annotation.end {
+                    annotations.splice((selected + 1)..=selected, token_annotations);
+                    insertion = Some(selected + 1..selected + token_count);
                 } else {
                     let (left, mut right) =
                         annotations[selected].split(tokens.range.start).unwrap();
@@ -1596,6 +1602,7 @@ impl ModificationRange {
                     token_annotations.push(right);
 
                     annotations.splice(selected..=selected, token_annotations);
+                    insertion = Some(selected + 1..selected + token_count);
                     split = (Some(selected), Some(selected + 2 + token_count));
                 }
 
@@ -1609,7 +1616,7 @@ impl ModificationRange {
 
                 ModificationIndices {
                     inserted_bytes: None,
-                    inserted_tokens: Some(selected + 1..selected + token_count),
+                    inserted_tokens: insertion,
                     left_split: split.0,
                     right_split: split.1,
                 }
@@ -1620,7 +1627,9 @@ impl ModificationRange {
                 for (index, annotation) in &mut annotations[selected..].iter_mut().enumerate() {
                     let annotation = annotation.range_mut();
 
-                    if annotation.start == range.start && annotation.end == range.end {
+                    if annotation.contains(&range.start)
+                        && annotation.contains(&(range.end.min(1) - 1))
+                    {
                         remove.push(index);
                     } else if annotation.contains(&range.start) {
                         annotation.start = range.end;
