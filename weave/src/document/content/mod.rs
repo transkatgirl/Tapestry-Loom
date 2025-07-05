@@ -1620,7 +1620,7 @@ impl ModificationRange {
                 for (index, annotation) in &mut annotations[selected..].iter_mut().enumerate() {
                     let annotation = annotation.range_mut();
 
-                    if annotation.contains(&range.start) && annotation.contains(&range.end) {
+                    if annotation.start == range.start && annotation.end == range.end {
                         remove.push(index);
                     } else if annotation.contains(&range.start) {
                         annotation.start = range.end;
