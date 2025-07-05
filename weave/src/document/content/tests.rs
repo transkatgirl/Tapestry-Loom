@@ -1857,6 +1857,18 @@ fn apply_modification_in_bounds() {
     }
     .apply(&mut content);
     assert_eq!(content, vec![1, 1, 1, 1, 1, 1, 1, 1]);
+    Modification {
+        index: 5,
+        content: ModificationContent::Deletion(0),
+    }
+    .apply(&mut content);
+    assert_eq!(content, vec![1, 1, 1, 1, 1, 1, 1, 1]);
+    Modification {
+        index: 5,
+        content: ModificationContent::Insertion(vec![]),
+    }
+    .apply(&mut content);
+    assert_eq!(content, vec![1, 1, 1, 1, 1, 1, 1, 1]);
 }
 
 #[test]
