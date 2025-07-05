@@ -1539,7 +1539,9 @@ impl ModificationRange {
                     annotations.splice((selected + 1)..=selected, vec![middle]);
                     insertion = Some(selected + 1);
                 } else {
-                    let (left, mut right) = annotations[selected].split(range.start).unwrap();
+                    let (left, mut right) = annotations[selected]
+                        .split(range.start - annotation.start)
+                        .unwrap();
                     let middle = T::from(range);
                     right.range_mut().start += offset;
                     right.range_mut().end += offset;
@@ -1594,8 +1596,9 @@ impl ModificationRange {
                     annotations.splice((selected + 1)..=selected, token_annotations);
                     insertion = Some(selected + 1..selected + token_count);
                 } else {
-                    let (left, mut right) =
-                        annotations[selected].split(tokens.range.start).unwrap();
+                    let (left, mut right) = annotations[selected]
+                        .split(tokens.range.start - annotation.start)
+                        .unwrap();
                     token_annotations.splice(0..0, vec![left]);
                     right.range_mut().start += offset;
                     right.range_mut().end += offset;
