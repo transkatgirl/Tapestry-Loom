@@ -1545,14 +1545,13 @@ impl ModificationRange {
                     let middle = T::from(range);
                     right.range_mut().start += offset;
                     right.range_mut().end += offset;
-
                     annotations.splice(selected..=selected, vec![left, middle, right]);
                     split = (Some(selected), Some(selected + 2));
                     insertion = Some(selected + 1);
                 }
 
                 if annotations.len() > (selected + 2) {
-                    for annotation in &mut annotations[selected + 2..] {
+                    for annotation in &mut annotations[selected + 3..] {
                         let annotation = annotation.range_mut();
                         annotation.start += offset;
                         annotation.end += offset;
@@ -1609,8 +1608,8 @@ impl ModificationRange {
                     split = (Some(selected), Some(selected + 2 + token_count));
                 }
 
-                if annotations.len() > (selected + 2) {
-                    for annotation in &mut annotations[selected + 2..] {
+                if annotations.len() > insertion.as_ref().unwrap().end {
+                    for annotation in &mut annotations[insertion.as_ref().unwrap().end + 1..] {
                         let annotation = annotation.range_mut();
                         annotation.start += offset;
                         annotation.end += offset;
