@@ -1632,8 +1632,6 @@ impl ModificationRange {
                 for (index, annotation) in &mut annotations[selected..].iter_mut().enumerate() {
                     let annotation = annotation.range_mut();
 
-                    println!("{range:?} {annotation:?}");
-
                     if annotation.end == range.start {
                         continue;
                     }
