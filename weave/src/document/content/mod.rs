@@ -4,7 +4,7 @@ use std::{
     collections::{HashMap, HashSet},
     fmt::Display,
     iter,
-    ops::Range,
+    ops::{Range, RangeInclusive},
     vec,
 };
 
@@ -1577,10 +1577,10 @@ impl ModificationRange {
                     .map(|(token_length, _)| {
                         let range = Range {
                             start: next_token_start,
-                            end: token_length,
+                            end: next_token_start + token_length,
                         };
 
-                        next_token_start += token_length;
+                        next_token_start = range.end;
 
                         T::from(range)
                     })
@@ -1591,10 +1591,10 @@ impl ModificationRange {
 
                 if tokens.range.start == annotation.start {
                     annotations.splice(selected..selected, token_annotations);
-                    insertion = Some(selected..selected + token_count);
+                    insertion = Some(selected..=(selected + token_count));
                 } else if tokens.range.start == annotation.end {
                     annotations.splice((selected + 1)..=selected, token_annotations);
-                    insertion = Some(selected + 1..selected + token_count);
+                    insertion = Some(selected + 1..=(selected + token_count));
                 } else {
                     let (left, mut right) = annotations[selected]
                         .split(tokens.range.start - annotation.start)
@@ -1605,11 +1605,11 @@ impl ModificationRange {
                     token_annotations.push(right);
 
                     annotations.splice(selected..=selected, token_annotations);
-                    insertion = Some(selected + 1..selected + token_count);
-                    split = (Some(selected), Some(selected + 2 + token_count));
+                    insertion = Some((selected + 1)..=(selected + token_count));
+                    split = (Some(selected), Some(selected + token_count + 1));
                 }
 
-                let modification_ending = insertion.as_ref().unwrap().end;
+                let modification_ending = split.1.unwrap_or(*insertion.as_ref().unwrap().end());
                 if annotations.len() > modification_ending {
                     for annotation in &mut annotations[modification_ending + 1..] {
                         let annotation = annotation.range_mut();
@@ -1691,7 +1691,7 @@ impl ModificationRange {
 #[derive(Default, Debug, PartialEq, Eq)]
 pub(super) struct ModificationIndices {
     pub(super) inserted_bytes: Option<usize>,
-    pub(super) inserted_tokens: Option<Range<usize>>,
+    pub(super) inserted_tokens: Option<RangeInclusive<usize>>,
     pub(super) left_split: Option<usize>,
     pub(super) right_split: Option<usize>,
 }
