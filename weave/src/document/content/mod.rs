@@ -1506,7 +1506,7 @@ impl ModificationRange {
             .find_map(|(location, annotation)| {
                 let annotation = annotation.range();
 
-                if annotation.end >= range.start {
+                if annotation.end >= range.start && annotation.start < range.end {
                     return Some(location);
                 }
 
@@ -1631,14 +1631,16 @@ impl ModificationRange {
                 for (index, annotation) in &mut annotations[selected..].iter_mut().enumerate() {
                     let annotation = annotation.range_mut();
 
-                    if annotation.contains(&range.start)
-                        && annotation.contains(&(range.end.min(1) - 1))
-                    {
-                        remove.push(index);
-                    } else if annotation.contains(&range.start) {
+                    if annotation.end == range.start {
+                        continue;
+                    }
+
+                    if annotation.start >= range.start && annotation.end <= range.end {
+                        remove.push(index + selected);
+                    } else if annotation.start >= range.start && annotation.start < range.end {
                         annotation.start = range.end;
                         split.1 = Some(index);
-                    } else if annotation.contains(&range.end) {
+                    } else if annotation.end <= range.end {
                         annotation.end = range.start;
                         split.0 = Some(index);
                     } else {
