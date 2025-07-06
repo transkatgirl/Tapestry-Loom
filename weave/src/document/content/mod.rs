@@ -1637,19 +1637,41 @@ impl ModificationRange {
 
                     if annotation.start >= range.start && annotation.end <= range.end {
                         remove.push(index + selected);
+                    } else if range.start > annotation.start && range.end < annotation.end {
+                        let index = index + selected;
+                        let end = annotation.end - offset;
+                        let split_position = range.start - annotation.start;
+                        let (left, mut right) = annotations[index].split(split_position).unwrap();
+
+                        right.range_mut().end = end;
+
+                        annotations.splice(index..=index, vec![left, right]);
+                        split.0 = Some(index);
+                        split.1 = Some(index + 1);
+
+                        if annotations.len() > index + 1 {
+                            for annotation in &mut annotations[index + 2..].iter_mut() {
+                                let annotation = annotation.range_mut();
+
+                                annotation.start -= offset;
+                                annotation.end -= offset;
+                            }
+                        }
+
+                        break;
                     } else if annotation.start >= range.start && annotation.start < range.end {
                         annotation.start = range.end;
-                        split.1 = Some(index);
-                    } else if annotation.end <= range.end {
+                        split.1 = Some(index + selected);
+                    } else if annotation.start < range.end {
                         annotation.end = range.start;
-                        split.0 = Some(index);
+                        split.0 = Some(index + selected);
                     } else {
                         annotation.start -= offset;
                         annotation.end -= offset;
                     }
                 }
                 if !remove.is_empty() {
-                    annotations.splice(remove[0]..=remove[remove.len() - 1], vec![]);
+                    annotations.splice(remove.first().unwrap()..=remove.last().unwrap(), vec![]);
                 }
 
                 ModificationIndices {
