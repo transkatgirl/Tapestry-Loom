@@ -1627,9 +1627,12 @@ impl ModificationRange {
             }
             Self::Deletion(range) => {
                 let mut remove = Vec::with_capacity(annotations.len());
+                let mut index_offset = 0;
 
                 for (index, annotation) in &mut annotations[selected..].iter_mut().enumerate() {
                     let annotation = annotation.range_mut();
+
+                    println!("{range:?} {annotation:?}");
 
                     if annotation.end == range.start {
                         continue;
@@ -1637,6 +1640,7 @@ impl ModificationRange {
 
                     if annotation.start >= range.start && annotation.end <= range.end {
                         remove.push(index + selected);
+                        index_offset += 1;
                     } else if range.start > annotation.start && range.end < annotation.end {
                         let index = index + selected;
                         let end = annotation.end - offset;
@@ -1660,11 +1664,12 @@ impl ModificationRange {
 
                         break;
                     } else if annotation.start >= range.start && annotation.start < range.end {
-                        annotation.start = range.end;
-                        split.1 = Some(index + selected);
+                        annotation.start = range.start;
+                        annotation.end -= offset;
+                        split.1 = Some(index + selected - index_offset);
                     } else if annotation.start < range.end {
                         annotation.end = range.start;
-                        split.0 = Some(index + selected);
+                        split.0 = Some(index + selected - index_offset);
                     } else {
                         annotation.start -= offset;
                         annotation.end -= offset;
