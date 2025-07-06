@@ -1589,9 +1589,10 @@ impl ModificationRange {
                 #[allow(unused_assignments)]
                 let mut insertion = None;
 
+                #[allow(clippy::range_minus_one)]
                 if tokens.range.start == annotation.start {
                     annotations.splice(selected..selected, token_annotations);
-                    insertion = Some(selected..=(selected + token_count));
+                    insertion = Some(selected..=(selected + token_count - 1));
                 } else if tokens.range.start == annotation.end {
                     annotations.splice((selected + 1)..=selected, token_annotations);
                     insertion = Some(selected + 1..=(selected + token_count));
