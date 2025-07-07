@@ -1974,8 +1974,2130 @@ fn format_modification_count() {
     );
 }
 
+// TODO: Add item metadata
+#[test]
+fn modification_range_apply_annotations() {
+    let mut annotations: Vec<ContentAnnotation> = vec![];
+
+    assert_eq!(
+        ModificationRange::Insertion(Range { start: 1, end: 5 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices::default()
+    );
+    assert!(annotations.is_empty());
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 1, end: 6 },
+            tokens: vec![(2, None), (3, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices::default()
+    );
+    assert!(annotations.is_empty());
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 1, end: 5 }).apply_annotations(&mut annotations),
+        ModificationIndices::default()
+    );
+    assert!(annotations.is_empty());
+    assert_eq!(
+        ModificationRange::Insertion(Range { start: 0, end: 4 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: Some(0),
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![ContentAnnotation {
+            range: Range { start: 0, end: 4 },
+            metadata: None
+        }]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 0, end: 4 }).apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert!(annotations.is_empty());
+    assert_eq!(
+        ModificationRange::Insertion(Range { start: 0, end: 4 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: Some(0),
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![ContentAnnotation {
+            range: Range { start: 0, end: 4 },
+            metadata: None
+        }]
+    );
+    assert_eq!(
+        ModificationRange::Insertion(Range { start: 4, end: 7 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: Some(1),
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 7 },
+                metadata: None
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Insertion(Range { start: 4, end: 4 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 7 },
+                metadata: None
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 4, end: 4 },
+            tokens: vec![(0, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 7 },
+                metadata: None
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 4, end: 4 }).apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 7 },
+                metadata: None
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Insertion(Range { start: 7, end: 11 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: Some(2),
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 7 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 11 },
+                metadata: None
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Insertion(Range { start: 12, end: 16 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 7 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 11 },
+                metadata: None
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 12, end: 16 },
+            tokens: vec![(4, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 7 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 11 },
+                metadata: None
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 12, end: 16 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 7 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 11 },
+                metadata: None
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Insertion(Range { start: 5, end: 12 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: Some(2),
+            inserted_tokens: None,
+            left_split: Some(1),
+            right_split: Some(3),
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 5 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 12 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 12, end: 14 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 14, end: 18 },
+                metadata: None
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 12, end: 14 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 5 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 12 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 12, end: 16 },
+                metadata: None
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 6, end: 11 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: Some(2),
+            right_split: Some(3),
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 5 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 6 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 7 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 11 },
+                metadata: None
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 3, end: 8 }).apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: Some(0),
+            right_split: Some(1),
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 3 },
+                metadata: None
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 6 },
+                metadata: None
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 0, end: 6 }).apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert!(annotations.is_empty());
+    annotations = vec![
+        ContentAnnotation {
+            range: Range { start: 0, end: 4 },
+            metadata: None,
+        },
+        ContentAnnotation {
+            range: Range { start: 4, end: 6 },
+            metadata: None,
+        },
+        ContentAnnotation {
+            range: Range { start: 6, end: 11 },
+            metadata: None,
+        },
+        ContentAnnotation {
+            range: Range { start: 11, end: 15 },
+            metadata: None,
+        },
+    ];
+    assert_eq!(
+        ModificationRange::Insertion(Range { start: 0, end: 8 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: Some(0),
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    annotations = vec![
+        ContentAnnotation {
+            range: Range { start: 0, end: 8 },
+            metadata: None,
+        },
+        ContentAnnotation {
+            range: Range { start: 8, end: 12 },
+            metadata: None,
+        },
+        ContentAnnotation {
+            range: Range { start: 12, end: 14 },
+            metadata: None,
+        },
+        ContentAnnotation {
+            range: Range { start: 14, end: 19 },
+            metadata: None,
+        },
+        ContentAnnotation {
+            range: Range { start: 19, end: 23 },
+            metadata: None,
+        },
+    ];
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 0, end: 8 }).apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 11 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 11, end: 15 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Insertion(Range { start: 4, end: 12 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: Some(1),
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 12 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 12, end: 14 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 14, end: 19 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 19, end: 23 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Insertion(Range { start: 14, end: 16 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: Some(3),
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 12 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 12, end: 14 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 14, end: 16 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 16, end: 21 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 21, end: 25 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 4, end: 12 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 8 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 8, end: 13 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 13, end: 17 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Insertion(Range { start: 13, end: 16 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: Some(4),
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 8 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 8, end: 13 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 13, end: 16 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 16, end: 20 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Insertion(Range { start: 20, end: 23 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: Some(6),
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 8 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 8, end: 13 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 13, end: 16 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 16, end: 20 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 20, end: 23 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 8, end: 13 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 8 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 8, end: 11 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 11, end: 15 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 15, end: 18 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 11, end: 15 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 8 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 8, end: 11 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 11, end: 14 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 11, end: 14 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 8 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 8, end: 11 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Insertion(Range { start: 2, end: 4 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: Some(1),
+            inserted_tokens: None,
+            left_split: Some(0),
+            right_split: Some(2),
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 2 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 2, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 8 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 8, end: 10 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 10, end: 13 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 1, end: 4 }).apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: Some(0),
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 1 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 1, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 7 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 10 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 1, end: 4 }).apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: Some(1),
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 1 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 1, end: 2 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 2, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 7 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Insertion(Range { start: 3, end: 4 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: Some(3),
+            inserted_tokens: None,
+            left_split: Some(2),
+            right_split: Some(4),
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 1 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 1, end: 2 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 2, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 8 },
+                metadata: None,
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Insertion(Range { start: 6, end: 9 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: Some(6),
+            inserted_tokens: None,
+            left_split: Some(5),
+            right_split: Some(7),
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 1 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 1, end: 2 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 2, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 9 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 9, end: 11 },
+                metadata: None,
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 0, end: 6 }).apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 5 },
+                metadata: None,
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 1, end: 6 },
+            tokens: vec![(2, None), (3, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: Some(1..=2),
+            left_split: Some(0),
+            right_split: Some(3),
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 1 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 1, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 8 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 8, end: 10 },
+                metadata: None,
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 6, end: 9 }).apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: Some(3),
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 1 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 1, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 7 },
+                metadata: None,
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 7, end: 9 }).apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 1 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 1, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 7 },
+                metadata: None,
+            }
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 5, end: 9 }).apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: Some(2),
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 1 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 1, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 5 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 0, end: 12 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 0, end: 9 },
+            tokens: vec![(4, None), (3, None), (2, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: Some(0..=2),
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 7 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 9 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 7, end: 12 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 7 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 0, end: 6 },
+            tokens: vec![(2, None), (4, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: Some(0..=1),
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 2 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 2, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 10 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 10, end: 13 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 11, end: 13 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: Some(3),
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 2 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 2, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 10 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 10, end: 11 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 7, end: 10 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: Some(2),
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 2 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 2, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 7 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 8 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 6, end: 8 }).apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 2 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 2, end: 6 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 2, end: 8 },
+            tokens: vec![(3, None), (3, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: Some(1..=2),
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 2 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 2, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 8 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 8, end: 12 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 9, end: 11 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: Some(3),
+            right_split: Some(4),
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 2 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 2, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 8 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 8, end: 9 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 9, end: 10 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 0, end: 2 }).apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 7 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 8 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 1, end: 2 }).apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: Some(0),
+            right_split: Some(1),
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 1 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 1, end: 2 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 2, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 7 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 7, end: 12 },
+            tokens: vec![(2, None), (3, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: Some(5..=6),
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 1 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 1, end: 2 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 2, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 7 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 9 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 9, end: 12 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 0, end: 2 }).apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 7 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 10 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 7, end: 12 },
+            tokens: vec![(2, None), (3, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: Some(4..=5),
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 7 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 9 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 9, end: 12 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 12, end: 15 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 6, end: 11 },
+            tokens: vec![(2, None), (3, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: Some(4..=5),
+            left_split: Some(3),
+            right_split: Some(6),
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 8 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 8, end: 11 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 11, end: 12 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 12, end: 14 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 14, end: 17 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 17, end: 20 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 4, end: 12 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 9 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 9, end: 12 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 11, end: 16 },
+            tokens: vec![(2, None), (3, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: Some(5..=6),
+            left_split: Some(4),
+            right_split: Some(7),
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 6 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 6, end: 9 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 9, end: 11 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 11, end: 13 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 13, end: 16 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 16, end: 17 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 3, end: 9 }).apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 7 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 10 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 10, end: 11 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 0, end: 2 },
+            tokens: vec![(2, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: Some(0..=0),
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 2 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 2, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 7 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 9 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 9, end: 12 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 12, end: 13 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 13, end: 15 },
+            tokens: vec![(2, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: Some(6..=6),
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 2 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 2, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 7 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 9 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 9, end: 12 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 12, end: 13 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 13, end: 15 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::Deletion(Range { start: 7, end: 13 })
+            .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: None,
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 2 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 2, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 7 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 9 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 5, end: 7 },
+            tokens: vec![(2, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: Some(2..=2),
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 2 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 2, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 7 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 9 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 9, end: 11 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 1, end: 3 },
+            tokens: vec![(2, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: Some(1..=1),
+            left_split: Some(0),
+            right_split: Some(2),
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 1 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 1, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 7 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 9 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 9, end: 11 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 11, end: 13 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 5, end: 7 },
+            tokens: vec![(2, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: Some(4..=4),
+            left_split: Some(3),
+            right_split: Some(5),
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 1 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 1, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 7 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 9 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 9, end: 11 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 11, end: 13 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 13, end: 15 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 14, end: 16 },
+            tokens: vec![(2, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: Some(9..=9),
+            left_split: Some(8),
+            right_split: Some(10),
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 1 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 1, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 7 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 9 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 9, end: 11 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 11, end: 13 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 13, end: 14 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 14, end: 16 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 16, end: 17 },
+                metadata: None,
+            },
+        ]
+    );
+    assert_eq!(
+        ModificationRange::TokenInsertion(ModificationRangeTokens {
+            range: Range { start: 17, end: 19 },
+            tokens: vec![(2, None)]
+        })
+        .apply_annotations(&mut annotations),
+        ModificationIndices {
+            inserted_bytes: None,
+            inserted_tokens: Some(11..=11),
+            left_split: None,
+            right_split: None,
+        }
+    );
+    assert_eq!(
+        annotations,
+        vec![
+            ContentAnnotation {
+                range: Range { start: 0, end: 1 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 1, end: 3 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 3, end: 4 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 4, end: 5 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 5, end: 7 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 7, end: 9 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 9, end: 11 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 11, end: 13 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 13, end: 14 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 14, end: 16 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 16, end: 17 },
+                metadata: None,
+            },
+            ContentAnnotation {
+                range: Range { start: 17, end: 19 },
+                metadata: None,
+            },
+        ]
+    );
+}
+
 /*#[test]
-fn modification_range_apply_annotations() {}*/
+fn modification_range_invalid_token_insertion() {}*/
 
 /*#[test]
 fn weave_timeline_annotated_string() {}*/
