@@ -1238,6 +1238,9 @@ impl Diff {
         }
     }
     /// Applies the diff to a set of bytes.
+    ///
+    /// # Panics
+    /// Panics if the diff contains any modifications with bounds outside of the byte set.
     // Trivial; shouldn't require unit tests
     pub fn apply(self, data: &mut Vec<u8>) {
         for modification in self.content {
@@ -1338,6 +1341,9 @@ pub struct Modification {
 
 impl Modification {
     /// Applies the modification to a set of bytes.
+    ///
+    /// # Panics
+    /// Panics if the modification's bounds are outside of the byte set.
     pub fn apply(self, data: &mut Vec<u8>) {
         match self.content {
             ModificationContent::Insertion(content) => data.splice(self.index..self.index, content),
@@ -1502,7 +1508,7 @@ impl ModificationRange {
             Self::TokenInsertion(token_set) => &token_set.range,
         }
     }
-    // assumes annotations are sorted!
+    // assumes annotations are sorted and contigious starting at 0
     #[allow(clippy::too_many_lines)]
     pub(super) fn apply_annotations<T>(self, annotations: &mut Vec<T>) -> ModificationIndices
     where
@@ -1513,7 +1519,12 @@ impl ModificationRange {
         if offset == 0 {
             return ModificationIndices::default();
         }
-        let Some(selected) = annotations
+        let end = annotations
+            .last()
+            .map(|annotation| annotation.range().end)
+            .unwrap_or_default();
+        assert!((range.start <= end));
+        let selected = annotations
             .iter()
             .enumerate()
             .find_map(|(location, annotation)| {
@@ -1530,9 +1541,7 @@ impl ModificationRange {
             } else {
                 None
             })
-        else {
-            return ModificationIndices::default();
-        };
+            .unwrap();
 
         let mut split = (None, None);
 
@@ -1641,6 +1650,7 @@ impl ModificationRange {
                 }
             }
             Self::Deletion(range) => {
+                assert!((range.end <= end));
                 let mut remove = Vec::with_capacity(annotations.len());
                 let mut index_offset = 0;
 
