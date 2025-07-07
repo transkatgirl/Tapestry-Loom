@@ -55,6 +55,7 @@ pub struct WeaveTimeline<'w> {
     pub(super) timeline: Vec<(&'w Node, Option<&'w Model>)>,
 }
 
+// Trivial; shouldn't require unit tests
 impl<'w> AsRef<Vec<(&'w Node, Option<&'w Model>)>> for WeaveTimeline<'w> {
     fn as_ref(&self) -> &Vec<(&'w Node, Option<&'w Model>)> {
         &self.timeline
