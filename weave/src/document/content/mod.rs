@@ -46,16 +46,28 @@ pub struct Node {
     pub content: NodeContent,
 }
 
-/// A set of active nodes listed in the order they are connected.
+/// An ordered list of connected active nodes.
 ///
 /// WeaveTimeline objects are created by the [`WeaveView::get_active_timelines`] function. Each timeline represents one possible linear progression of nodes (and their associated models), starting at the root of the [`Weave`] and progressing outwards.
 #[derive(Serialize, Default, Clone, Debug, PartialEq, Eq)]
 pub struct WeaveTimeline<'w> {
     #[allow(missing_docs)]
-    pub timeline: Vec<(&'w Node, Option<&'w Model>)>,
+    pub(super) timeline: Vec<(&'w Node, Option<&'w Model>)>,
+}
+
+impl<'w> AsRef<Vec<(&'w Node, Option<&'w Model>)>> for WeaveTimeline<'w> {
+    fn as_ref(&self) -> &Vec<(&'w Node, Option<&'w Model>)> {
+        &self.timeline
+    }
 }
 
 impl<'w> WeaveTimeline<'w> {
+    /// Converts the timeline into it's inner [`Vec`] object.
+    // Trivial; shouldn't require unit tests
+    #[must_use]
+    pub fn into_vec(self) -> Vec<(&'w Node, Option<&'w Model>)> {
+        self.timeline
+    }
     /// Returns the output of the timeline as a set of bytes.
     // Trivial; shouldn't require unit tests
     #[must_use]
