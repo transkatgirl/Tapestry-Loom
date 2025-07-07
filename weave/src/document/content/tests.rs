@@ -4096,8 +4096,29 @@ fn modification_range_apply_annotations() {
     );
 }
 
-/*#[test]
-fn modification_range_invalid_token_insertion() {}*/
+#[test]
+#[should_panic]
+fn modification_range_invalid_token_insertion_over_length() {
+    let mut annotations: Vec<ContentAnnotation> = vec![];
+
+    ModificationRange::TokenInsertion(ModificationRangeTokens {
+        range: Range { start: 0, end: 6 },
+        tokens: vec![(2, None), (3, None)],
+    })
+    .apply_annotations(&mut annotations);
+}
+
+#[test]
+#[should_panic]
+fn modification_range_invalid_token_insertion_under_length() {
+    let mut annotations: Vec<ContentAnnotation> = vec![];
+
+    ModificationRange::TokenInsertion(ModificationRangeTokens {
+        range: Range { start: 0, end: 4 },
+        tokens: vec![(2, None), (3, None)],
+    })
+    .apply_annotations(&mut annotations);
+}
 
 /*#[test]
 fn weave_timeline_annotated_string() {}*/
