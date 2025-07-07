@@ -1585,6 +1585,7 @@ impl ModificationRange {
                         T::from(range)
                     })
                     .collect();
+                assert!(token_annotations.last().unwrap().range().end == tokens.range.end);
                 let token_count = token_annotations.len();
                 #[allow(unused_assignments)]
                 let mut insertion = None;
