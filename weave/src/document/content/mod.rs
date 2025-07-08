@@ -365,6 +365,7 @@ impl NodeContent {
     ///
     /// Some types of content cannot be split in half and will always return [`None`] regardless of the index specified.
     #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn split(self, index: usize) -> Option<(Self, Self)> {
         if !self.is_splitable(index) {
             return None;
@@ -377,7 +378,7 @@ impl NodeContent {
             Self::Tokens(content) => content
                 .split(index)
                 .map(|(left, right)| (Self::Tokens(left), Self::Tokens(right))),
-            Self::Diff(_) => None,
+            Self::Diff(_) => panic!(),
             Self::Blank => Some((Self::Blank, Self::Blank)),
         }
         .map(|(left, right)| (left.reduce(), right.reduce()))
