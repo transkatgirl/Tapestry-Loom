@@ -165,22 +165,6 @@ impl<'w> WeaveTimeline<'w> {
 
         (string, annotations)
     }
-    /// Creates a new set of annotations previewing a change to the [`Weave`]'s contents.
-    ///
-    /// This calculates a [`Diff`] between the current contents of the timeline and the user input, and then creates a new set of annotations reflecting the changes made by the user.
-    // Trivial; shouldn't require unit tests
-    #[must_use]
-    pub fn preview_update(
-        &self,
-        (string, mut annotations): (&str, Vec<TimelineAnnotation<'w>>),
-        new_content: &str,
-        diff_deadline: Instant,
-    ) -> Vec<TimelineAnnotation<'w>> {
-        Diff::new(string.as_bytes(), new_content.as_bytes(), diff_deadline)
-            .apply_annotations(&mut annotations);
-
-        annotations
-    }
     // Trivial; shouldn't require unit tests
     pub(super) fn ranged_string(self) -> (String, Vec<TimelineNodeRange>) {
         let (content, annotations) = self.annotated_string();
@@ -1230,15 +1214,6 @@ impl Diff {
     pub fn apply(self, data: &mut Vec<u8>) {
         for modification in self.content {
             modification.apply(data);
-        }
-    }
-    // Trivial; shouldn't require unit tests
-    pub(super) fn apply_annotations<T>(&self, annotations: &mut Vec<T>)
-    where
-        T: Annotation,
-    {
-        for modification in &self.content {
-            modification.apply_annotations(annotations);
         }
     }
     // Trivial; shouldn't require unit tests
