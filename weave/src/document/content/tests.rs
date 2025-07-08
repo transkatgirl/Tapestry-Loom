@@ -4344,6 +4344,3 @@ fn weave_timeline_annotated_string_invalid_utf8() {
         ]
     );
 }
-
-/*#[test]
-fn weave_timeline_ranged_string() {}*/

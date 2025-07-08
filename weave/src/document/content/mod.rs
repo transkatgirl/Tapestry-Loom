@@ -181,34 +181,19 @@ impl<'w> WeaveTimeline<'w> {
 
         annotations
     }
+    // Trivial; shouldn't require unit tests
     pub(super) fn ranged_string(self) -> (String, Vec<TimelineNodeRange>) {
         let (content, annotations) = self.annotated_string();
-
-        let mut last_node = None;
-        let mut ranges: Vec<TimelineNodeRange> = Vec::with_capacity(annotations.len());
-
-        for annotation in annotations {
-            if let Some(node) = annotation.node {
-                let node = node.id;
-
-                if let Some(last_node) = last_node {
-                    if node == last_node {
-                        if let Some(last) = ranges.last_mut() {
-                            last.range.end = annotation.range.end;
-                        }
-                    }
-                }
-
-                ranges.push(TimelineNodeRange {
+        (
+            content,
+            annotations
+                .into_iter()
+                .map(|annotation| TimelineNodeRange {
                     range: annotation.range,
-                    node: Some(node),
-                });
-            }
-
-            last_node = annotation.node.map(|node| node.id);
-        }
-
-        (content, ranges)
+                    node: annotation.node.map(|node| node.id),
+                })
+                .collect(),
+        )
     }
     // Trivial; shouldn't require unit tests
     pub(super) fn build_update(
