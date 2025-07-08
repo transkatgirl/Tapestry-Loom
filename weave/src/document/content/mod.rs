@@ -209,11 +209,8 @@ pub(super) struct TimelineNodeRange {
 
 // Trivial; shouldn't require unit tests
 impl From<Range<usize>> for TimelineNodeRange {
-    fn from(input: Range<usize>) -> Self {
-        Self {
-            range: input,
-            node: None,
-        }
+    fn from(range: Range<usize>) -> Self {
+        Self { range, node: None }
     }
 }
 
