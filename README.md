@@ -171,7 +171,6 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 		- Perform all timeline changes in ~constant time
 			- Require the API user to provide a timeline diff, as this can be done in more efficient manners than using a diff algorithm
 		- Stream specific sections of the Weave from disk/network rather than loading the entire Weave into memory
-			- Use [rkyv](https://github.com/rkyv/rkyv) + mmap?
 		- Implement context window wrapping
 	- Implement collaborative editing with an arbitrary number of editors
 	- Implement benchmark tests
