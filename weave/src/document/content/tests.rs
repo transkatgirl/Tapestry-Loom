@@ -4061,7 +4061,7 @@ fn weave_timeline_annotated_string_valid_utf8() {
                 ],
                 model: Some(ContentModel {
                     id: Ulid::from_parts(99, 0),
-                    parameters: vec![],
+                    parameters: vec![("parameter".to_string(), "value".to_string())],
                 }),
                 metadata: Some(HashMap::from([("index".to_string(), "1".to_string())])),
             }),
@@ -4186,10 +4186,164 @@ fn weave_timeline_annotated_string_valid_utf8() {
     );
 }
 
-/*#[test]
+#[test]
 fn weave_timeline_annotated_string_invalid_utf8() {
-    // TODO: Test diff token insertion
-}*/
+    let nodes = [
+        Node {
+            id: Ulid::from_parts(0, 0),
+            from: HashSet::new(),
+            to: HashSet::from([Ulid::from_parts(0, 1)]),
+            active: true,
+            bookmarked: false,
+            content: NodeContent::Snippet(SnippetContent {
+                content: "I love you".as_bytes().to_owned(),
+                model: None,
+                metadata: Some(HashMap::from([("index".to_string(), "0".to_string())])),
+            }),
+        },
+        Node {
+            id: Ulid::from_parts(0, 1),
+            from: HashSet::from([Ulid::from_parts(0, 0)]),
+            to: HashSet::from([Ulid::from_parts(0, 2)]),
+            active: true,
+            bookmarked: false,
+            content: NodeContent::Tokens(TokenContent {
+                content: vec![
+                    ContentToken {
+                        content: " so".as_bytes().to_owned(),
+                        metadata: Some(HashMap::from([(
+                            "token_index".to_string(),
+                            "0".to_string(),
+                        )])),
+                    },
+                    ContentToken {
+                        content: " much!".as_bytes().to_owned(),
+                        metadata: Some(HashMap::from([(
+                            "token_index".to_string(),
+                            "1".to_string(),
+                        )])),
+                    },
+                ],
+                model: Some(ContentModel {
+                    id: Ulid::from_parts(99, 0),
+                    parameters: vec![("content_model_index".to_string(), "0".to_string())],
+                }),
+                metadata: Some(HashMap::from([("index".to_string(), "1".to_string())])),
+            }),
+        },
+        Node {
+            id: Ulid::from_parts(0, 2),
+            from: HashSet::from([Ulid::from_parts(0, 1)]),
+            to: HashSet::from([Ulid::from_parts(0, 3)]),
+            active: true,
+            bookmarked: false,
+            content: NodeContent::Diff(DiffContent {
+                content: Diff {
+                    content: vec![
+                        Modification {
+                            index: 10,
+                            content: ModificationContent::Deletion(9),
+                        },
+                        Modification {
+                            index: 10,
+                            content: ModificationContent::TokenInsertion(vec![
+                                ContentToken {
+                                    content: "~ ".as_bytes().to_owned(),
+                                    metadata: Some(HashMap::from([(
+                                        "token_index".to_string(),
+                                        "3".to_string(),
+                                    )])),
+                                },
+                                ContentToken {
+                                    content: "💖".as_bytes()[..3].to_vec(),
+                                    metadata: Some(HashMap::from([(
+                                        "token_index".to_string(),
+                                        "4".to_string(),
+                                    )])),
+                                },
+                            ]),
+                        },
+                    ],
+                },
+                model: Some(ContentModel {
+                    id: Ulid::from_parts(99, 0),
+                    parameters: vec![("content_model_index".to_string(), "1".to_string())],
+                }),
+                metadata: Some(HashMap::from([("index".to_string(), "2".to_string())])),
+            }),
+        },
+        Node {
+            id: Ulid::from_parts(0, 3),
+            from: HashSet::from([Ulid::from_parts(0, 2)]),
+            to: HashSet::from([Ulid::from_parts(0, 4)]),
+            active: true,
+            bookmarked: false,
+            content: NodeContent::Snippet(SnippetContent {
+                content: "\nMwah! <3".as_bytes().to_owned(),
+                model: None,
+                metadata: Some(HashMap::from([("index".to_string(), "3".to_string())])),
+            }),
+        },
+    ];
+    let models = [Model {
+        id: Ulid::from_parts(99, 0),
+        label: "Test Model".to_string(),
+        metadata: HashMap::new(),
+    }];
+    let timeline = WeaveTimeline {
+        timeline: vec![
+            (&nodes[0], None),
+            (&nodes[1], Some(&models[0])),
+            (&nodes[2], Some(&models[0])),
+            (&nodes[3], None),
+        ],
+    };
+    let (string, annotations) = timeline.annotated_string();
+    assert_eq!(string, "I love you~ \nMwah! <3".to_string());
+    assert_eq!(
+        annotations,
+        vec![
+            TimelineAnnotation {
+                range: 0..10,
+                node: Some(&nodes[0]),
+                model: None,
+                parameters: None,
+                subsection_metadata: None,
+                content_metadata: nodes[0].content.metadata(),
+            },
+            TimelineAnnotation {
+                range: 10..12,
+                node: Some(&nodes[2]),
+                model: Some(&models[0]),
+                parameters: nodes[2].content.model().map(|model| &model.parameters),
+                subsection_metadata: Some(&HashMap::from([(
+                    "token_index".to_string(),
+                    "3".to_string(),
+                )])),
+                content_metadata: nodes[2].content.metadata(),
+            },
+            TimelineAnnotation {
+                range: 12..15,
+                node: Some(&nodes[2]),
+                model: Some(&models[0]),
+                parameters: nodes[2].content.model().map(|model| &model.parameters),
+                subsection_metadata: Some(&HashMap::from([(
+                    "token_index".to_string(),
+                    "4".to_string(),
+                )])),
+                content_metadata: nodes[2].content.metadata(),
+            },
+            TimelineAnnotation {
+                range: 15..24,
+                node: Some(&nodes[3]),
+                model: None,
+                parameters: None,
+                subsection_metadata: None,
+                content_metadata: nodes[3].content.metadata(),
+            },
+        ]
+    );
+}
 
 /*#[test]
 fn weave_timeline_ranged_string() {}*/
