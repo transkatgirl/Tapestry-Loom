@@ -106,7 +106,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 			- [ ] Update Node list to display sibings of node at cursor rather than last active node
 			- [ ] Update graph to focus node at cursor rather than last active node
 		- [ ] Add support for saving last-used model & parameter choices in Weave
-	- [ ] Implement multi-document weaves / references to other documents, similar to [loom](https://github.com/socketteer/loom)
+	- [ ] Implement importing text from other documents, similar to [loom](https://github.com/socketteer/loom)
 - [ ] Improve handling of tokenization boundaries
 - [ ] Weave format stabilization & finalization
 	- [ ] Update feature list
@@ -167,6 +167,8 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 - Implement mobile support
 - Implement multi-platform support (Web, Desktop, Obsidian, Vim??, etc..)
 	- Implement integration with some sort of local transcription plugin
+- Improve Weave format (Weave v2?) to add collaborative editing and better handle huge documents (approx. book-length)
+	- Implement context window wrapping
 - Implement summarization of branches using chat-style LLMs to improve browsablity
 - Alternately, try integrating the tree/graph and the editor more, similar to [loom](https://github.com/socketteer/loom)
 	- Reduces strain on the user's working memory / reduces need for switching attention between UIs
