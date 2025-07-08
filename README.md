@@ -115,7 +115,6 @@ The current target is to finish `v1-alpha` before the end of 2025.
 
 #### Tapestry Loom v1-beta checklist
 
-- [ ] Implement benchmark tests for `tapestry-weave`
 - [ ] Implement embedding model requests
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 	- [ ] Color coding by embeddings
@@ -169,6 +168,7 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 	- Implement integration with some sort of local transcription plugin
 - Improve Weave format (Weave v2?) to add collaborative editing and better handle huge documents (approx. book-length)
 	- Implement context window wrapping
+	- Implement benchmark tests
 - Implement summarization of branches using chat-style LLMs to improve browsablity
 - Alternately, try integrating the tree/graph and the editor more, similar to [loom](https://github.com/socketteer/loom)
 	- Reduces strain on the user's working memory / reduces need for switching attention between UIs
