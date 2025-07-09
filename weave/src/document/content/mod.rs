@@ -1194,28 +1194,28 @@ impl Diff {
         annotations: &mut LinkedList<TimelineAnnotation<'w>>,
     ) {
         for modification in &self.content {
-            let updates = modification.apply_annotations(annotations);
-
-            if let Some(annotation) = updates.inserted_bytes {
-                annotation.node = Some(node);
-                annotation.model = model;
-                annotation.parameters = node.content.model().map(|model| &model.parameters);
-                annotation.content_metadata = content_metadata;
-            }
-            if let Some(annotations) = updates.inserted_tokens {
-                if let ModificationContent::TokenInsertion(content) = &modification.content {
-                    for (modification_index, annotation) in annotations.into_iter().enumerate() {
+            let updates = modification.apply_annotations(
+                annotations,
+                |annotation| {
+                    annotation.node = Some(node);
+                    annotation.model = model;
+                    annotation.parameters = node.content.model().map(|model| &model.parameters);
+                    annotation.content_metadata = content_metadata;
+                },
+                |annotation, index| {
+                    if let ModificationContent::TokenInsertion(content) = &modification.content {
                         annotation.node = Some(node);
                         annotation.model = model;
                         annotation.parameters = node.content.model().map(|model| &model.parameters);
-                        annotation.subsection_metadata =
-                            content[modification_index].metadata.as_ref();
+                        annotation.subsection_metadata = content[index].metadata.as_ref();
                         annotation.content_metadata = content_metadata;
+                    } else {
+                        panic!() // Should never happen
                     }
-                } else {
-                    panic!() // Should never happen
-                }
-            }
+                },
+                |annotation| {},
+                |annotation| {},
+            );
         }
     }
     /// Calculates the total number of non-empty modifications in the [`Diff`] by type.
@@ -1328,14 +1328,24 @@ impl Modification {
         }
     }
     // Trivial; shouldn't require unit tests
-    fn apply_annotations<'a, T>(
+    fn apply_annotations<T>(
         &self,
-        annotations: &'a mut LinkedList<T>,
-    ) -> ModificationItems<'a, T>
+        annotations: &mut LinkedList<T>,
+        insert_snippet_callback: impl Fn(&mut T),
+        insert_token_callback: impl Fn(&mut T, usize),
+        split_left_callback: impl Fn(&mut T),
+        split_right_callback: impl Fn(&mut T),
+    ) -> bool
     where
         T: Annotation,
     {
-        ModificationRange::from(self).apply_annotations(annotations)
+        ModificationRange::from(self).apply_annotations(
+            annotations,
+            insert_snippet_callback,
+            insert_token_callback,
+            split_left_callback,
+            split_right_callback,
+        )
     }
 }
 
@@ -1457,21 +1467,29 @@ impl ModificationRange {
         }
     }
     #[allow(clippy::too_many_lines)]
-    pub(super) fn apply_annotations<'a, T>(
+    pub(super) fn apply_annotations<T>(
         &self,
-        annotations: &'a mut LinkedList<T>,
-    ) -> ModificationItems<'a, T>
+        annotations: &mut LinkedList<T>,
+        insert_snippet_callback: impl Fn(&mut T),
+        insert_token_callback: impl Fn(&mut T, usize),
+        split_left_callback: impl Fn(&mut T),
+        split_right_callback: impl Fn(&mut T),
+    ) -> bool
     where
         T: Annotation,
     {
         let range = self.range();
-        let offset = range.end - range.start;
-        if offset == 0 {
-            return ModificationItems::default();
+        let length = range.end - range.start;
+        if length == 0 {
+            return false;
         }
         let end = annotations.iter().map(Annotation::len).sum();
         assert!((range.start <= end));
 
+        let empty = annotations.is_empty();
+        if empty && range.start != 0 {
+            panic!()
+        }
         let mut cursor = annotations.cursor_front_mut();
 
         let mut location = 0;
@@ -1485,211 +1503,233 @@ impl ModificationRange {
         }
 
         match self {
-            Self::Insertion(range) => {
-                todo!()
-            }
-            Self::TokenInsertion(tokens) => {
-                todo!()
-            }
+            Self::Insertion(range) => match cursor.current() {
+                Some(annotation) => {
+                    todo!()
+                }
+                None => {
+                    if empty {
+                        cursor.push_back(T::from(length));
+                        cursor.move_next();
+                        insert_snippet_callback(cursor.current().unwrap());
+
+                        true
+                    } else {
+                        false
+                    }
+                }
+            },
+            Self::TokenInsertion(tokens) => match cursor.current() {
+                Some(annotation) => {
+                    todo!()
+                }
+                None => {
+                    if empty {
+                        let token_annotations =
+                            tokens.tokens.iter().map(|(length, _)| T::from(*length));
+
+                        for (index, token_annotation) in token_annotations.enumerate() {
+                            cursor.insert_after(token_annotation);
+                            cursor.move_next();
+                            insert_token_callback(cursor.current().unwrap(), index);
+                        }
+
+                        todo!()
+                    } else {
+                        false
+                    }
+                }
+            },
             Self::Deletion(range) => {
                 todo!()
             }
         }
-
-        /*let selected = annotations
-            .iter()
-            .enumerate()
-            .find_map(|(location, annotation)| {
-                let annotation = annotation.range();
-
-                if annotation.end >= range.start && annotation.start < range.end {
-                    return Some(location);
-                }
-
-                None
-            })
-            .or(if annotations.is_empty() && range.start == 0 {
-                Some(0)
-            } else {
-                None
-            })
-            .unwrap();
-
-        let mut split = (None, None);
-
-        match self {
-            Self::Insertion(range) => {
-                let annotation = annotations
-                    .get(selected)
-                    .map_or(&Range { start: 0, end: 0 }, |annotation| annotation.range());
-                #[allow(unused_assignments)]
-                let mut insertion = None;
-                if range.start == annotation.start {
-                    let middle = T::from(range);
-                    annotations.splice(selected..selected, vec![middle]);
-                    insertion = Some(selected);
-                } else if range.start == annotation.end {
-                    let middle = T::from(range);
-                    annotations.splice((selected + 1)..=selected, vec![middle]);
-                    insertion = Some(selected + 1);
-                } else {
-                    let (left, mut right) = annotations[selected]
-                        .split(range.start - annotation.start)
-                        .unwrap();
-                    let middle = T::from(range);
-                    right.range_mut().start += offset;
-                    right.range_mut().end += offset;
-                    annotations.splice(selected..=selected, vec![left, middle, right]);
-                    split = (Some(selected), Some(selected + 2));
-                    insertion = Some(selected + 1);
-                }
-
-                let modification_ending = split.1.unwrap_or(insertion.unwrap());
-                if annotations.len() > modification_ending {
-                    for annotation in &mut annotations[modification_ending + 1..] {
-                        let annotation = annotation.range_mut();
-                        annotation.start += offset;
-                        annotation.end += offset;
-                    }
-                }
-
-                ModificationIndices {
-                    inserted_bytes: insertion,
-                    inserted_tokens: None,
-                    left_split: split.0,
-                    right_split: split.1,
-                }
-            }
-            Self::TokenInsertion(tokens) => {
-                let annotation = annotations
-                    .get(selected)
-                    .map_or(&Range { start: 0, end: 0 }, |annotation| annotation.range());
-                let mut next_token_start = tokens.range.start;
-                let mut token_annotations: Vec<T> = tokens
-                    .tokens
-                    .into_iter()
-                    .map(|(token_length, _)| {
-                        let range = Range {
-                            start: next_token_start,
-                            end: next_token_start + token_length,
-                        };
-
-                        next_token_start = range.end;
-
-                        T::from(range)
-                    })
-                    .collect();
-                assert!(token_annotations.last().unwrap().range().end == tokens.range.end);
-                let token_count = token_annotations.len();
-                #[allow(unused_assignments)]
-                let mut insertion = None;
-
-                #[allow(clippy::range_minus_one)]
-                if tokens.range.start == annotation.start {
-                    annotations.splice(selected..selected, token_annotations);
-                    insertion = Some(selected..=(selected + token_count - 1));
-                } else if tokens.range.start == annotation.end {
-                    annotations.splice((selected + 1)..=selected, token_annotations);
-                    insertion = Some(selected + 1..=(selected + token_count));
-                } else {
-                    let (left, mut right) = annotations[selected]
-                        .split(tokens.range.start - annotation.start)
-                        .unwrap();
-                    token_annotations.splice(0..0, vec![left]);
-                    right.range_mut().start += offset;
-                    right.range_mut().end += offset;
-                    token_annotations.push(right);
-
-                    annotations.splice(selected..=selected, token_annotations);
-                    insertion = Some((selected + 1)..=(selected + token_count));
-                    split = (Some(selected), Some(selected + token_count + 1));
-                }
-
-                let modification_ending = split.1.unwrap_or(*insertion.as_ref().unwrap().end());
-                if annotations.len() > modification_ending {
-                    for annotation in &mut annotations[modification_ending + 1..] {
-                        let annotation = annotation.range_mut();
-                        annotation.start += offset;
-                        annotation.end += offset;
-                    }
-                }
-
-                ModificationIndices {
-                    inserted_bytes: None,
-                    inserted_tokens: insertion,
-                    left_split: split.0,
-                    right_split: split.1,
-                }
-            }
-            Self::Deletion(range) => {
-                assert!((range.end <= end));
-                let mut remove = Vec::with_capacity(annotations.len());
-                let mut index_offset = 0;
-
-                for (index, annotation) in &mut annotations[selected..].iter_mut().enumerate() {
-                    let annotation = annotation.range_mut();
-
-                    if annotation.end == range.start {
-                        continue;
-                    }
-
-                    if annotation.start >= range.start && annotation.end <= range.end {
-                        remove.push(index + selected);
-                        index_offset += 1;
-                    } else if range.start > annotation.start && range.end < annotation.end {
-                        let index = index + selected;
-                        let end = annotation.end - offset;
-                        let split_position = range.start - annotation.start;
-                        let (left, mut right) = annotations[index].split(split_position).unwrap();
-
-                        right.range_mut().end = end;
-
-                        annotations.splice(index..=index, vec![left, right]);
-                        split.0 = Some(index);
-                        split.1 = Some(index + 1);
-
-                        if annotations.len() > index + 1 {
-                            for annotation in &mut annotations[index + 2..].iter_mut() {
-                                let annotation = annotation.range_mut();
-
-                                annotation.start -= offset;
-                                annotation.end -= offset;
-                            }
-                        }
-
-                        break;
-                    } else if annotation.start >= range.start && annotation.start < range.end {
-                        annotation.start = range.start;
-                        annotation.end -= offset;
-                        split.1 = Some(index + selected - index_offset);
-                    } else if annotation.start < range.end {
-                        annotation.end = range.start;
-                        split.0 = Some(index + selected - index_offset);
-                    } else {
-                        annotation.start -= offset;
-                        annotation.end -= offset;
-                    }
-                }
-                if !remove.is_empty() {
-                    annotations.splice(remove.first().unwrap()..=remove.last().unwrap(), vec![]);
-                }
-
-                ModificationIndices {
-                    inserted_bytes: None,
-                    inserted_tokens: None,
-                    left_split: split.0,
-                    right_split: split.1,
-                }
-            }
-        }*/
-        todo!()
     }
-}
 
-#[derive(Default, Debug, PartialEq, Eq)]
-pub(super) struct ModificationItems<'a, T> {
-    pub(super) inserted_bytes: Option<&'a mut T>,
-    pub(super) inserted_tokens: Option<Vec<&'a mut T>>,
-    pub(super) left_split: Option<&'a mut T>,
-    pub(super) right_split: Option<&'a mut T>,
+    /*let selected = annotations
+        .iter()
+        .enumerate()
+        .find_map(|(location, annotation)| {
+            let annotation = annotation.range();
+
+            if annotation.end >= range.start && annotation.start < range.end {
+                return Some(location);
+            }
+
+            None
+        })
+        .or(if annotations.is_empty() && range.start == 0 {
+            Some(0)
+        } else {
+            None
+        })
+        .unwrap();
+
+    let mut split = (None, None);
+
+    match self {
+        Self::Insertion(range) => {
+            let annotation = annotations
+                .get(selected)
+                .map_or(&Range { start: 0, end: 0 }, |annotation| annotation.range());
+            #[allow(unused_assignments)]
+            let mut insertion = None;
+            if range.start == annotation.start {
+                let middle = T::from(range);
+                annotations.splice(selected..selected, vec![middle]);
+                insertion = Some(selected);
+            } else if range.start == annotation.end {
+                let middle = T::from(range);
+                annotations.splice((selected + 1)..=selected, vec![middle]);
+                insertion = Some(selected + 1);
+            } else {
+                let (left, mut right) = annotations[selected]
+                    .split(range.start - annotation.start)
+                    .unwrap();
+                let middle = T::from(range);
+                right.range_mut().start += offset;
+                right.range_mut().end += offset;
+                annotations.splice(selected..=selected, vec![left, middle, right]);
+                split = (Some(selected), Some(selected + 2));
+                insertion = Some(selected + 1);
+            }
+
+            let modification_ending = split.1.unwrap_or(insertion.unwrap());
+            if annotations.len() > modification_ending {
+                for annotation in &mut annotations[modification_ending + 1..] {
+                    let annotation = annotation.range_mut();
+                    annotation.start += offset;
+                    annotation.end += offset;
+                }
+            }
+
+            ModificationIndices {
+                inserted_bytes: insertion,
+                inserted_tokens: None,
+                left_split: split.0,
+                right_split: split.1,
+            }
+        }
+        Self::TokenInsertion(tokens) => {
+            let annotation = annotations
+                .get(selected)
+                .map_or(&Range { start: 0, end: 0 }, |annotation| annotation.range());
+            let mut next_token_start = tokens.range.start;
+            let mut token_annotations: Vec<T> = tokens
+                .tokens
+                .into_iter()
+                .map(|(token_length, _)| {
+                    let range = Range {
+                        start: next_token_start,
+                        end: next_token_start + token_length,
+                    };
+
+                    next_token_start = range.end;
+
+                    T::from(range)
+                })
+                .collect();
+            assert!(token_annotations.last().unwrap().range().end == tokens.range.end);
+            let token_count = token_annotations.len();
+            #[allow(unused_assignments)]
+            let mut insertion = None;
+
+            #[allow(clippy::range_minus_one)]
+            if tokens.range.start == annotation.start {
+                annotations.splice(selected..selected, token_annotations);
+                insertion = Some(selected..=(selected + token_count - 1));
+            } else if tokens.range.start == annotation.end {
+                annotations.splice((selected + 1)..=selected, token_annotations);
+                insertion = Some(selected + 1..=(selected + token_count));
+            } else {
+                let (left, mut right) = annotations[selected]
+                    .split(tokens.range.start - annotation.start)
+                    .unwrap();
+                token_annotations.splice(0..0, vec![left]);
+                right.range_mut().start += offset;
+                right.range_mut().end += offset;
+                token_annotations.push(right);
+
+                annotations.splice(selected..=selected, token_annotations);
+                insertion = Some((selected + 1)..=(selected + token_count));
+                split = (Some(selected), Some(selected + token_count + 1));
+            }
+
+            let modification_ending = split.1.unwrap_or(*insertion.as_ref().unwrap().end());
+            if annotations.len() > modification_ending {
+                for annotation in &mut annotations[modification_ending + 1..] {
+                    let annotation = annotation.range_mut();
+                    annotation.start += offset;
+                    annotation.end += offset;
+                }
+            }
+
+            ModificationIndices {
+                inserted_bytes: None,
+                inserted_tokens: insertion,
+                left_split: split.0,
+                right_split: split.1,
+            }
+        }
+        Self::Deletion(range) => {
+            assert!((range.end <= end));
+            let mut remove = Vec::with_capacity(annotations.len());
+            let mut index_offset = 0;
+
+            for (index, annotation) in &mut annotations[selected..].iter_mut().enumerate() {
+                let annotation = annotation.range_mut();
+
+                if annotation.end == range.start {
+                    continue;
+                }
+
+                if annotation.start >= range.start && annotation.end <= range.end {
+                    remove.push(index + selected);
+                    index_offset += 1;
+                } else if range.start > annotation.start && range.end < annotation.end {
+                    let index = index + selected;
+                    let end = annotation.end - offset;
+                    let split_position = range.start - annotation.start;
+                    let (left, mut right) = annotations[index].split(split_position).unwrap();
+
+                    right.range_mut().end = end;
+
+                    annotations.splice(index..=index, vec![left, right]);
+                    split.0 = Some(index);
+                    split.1 = Some(index + 1);
+
+                    if annotations.len() > index + 1 {
+                        for annotation in &mut annotations[index + 2..].iter_mut() {
+                            let annotation = annotation.range_mut();
+
+                            annotation.start -= offset;
+                            annotation.end -= offset;
+                        }
+                    }
+
+                    break;
+                } else if annotation.start >= range.start && annotation.start < range.end {
+                    annotation.start = range.start;
+                    annotation.end -= offset;
+                    split.1 = Some(index + selected - index_offset);
+                } else if annotation.start < range.end {
+                    annotation.end = range.start;
+                    split.0 = Some(index + selected - index_offset);
+                } else {
+                    annotation.start -= offset;
+                    annotation.end -= offset;
+                }
+            }
+            if !remove.is_empty() {
+                annotations.splice(remove.first().unwrap()..=remove.last().unwrap(), vec![]);
+            }
+
+            ModificationIndices {
+                inserted_bytes: None,
+                inserted_tokens: None,
+                left_split: split.0,
+                right_split: split.1,
+            }
+        }
+    }*/
 }
