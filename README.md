@@ -162,15 +162,23 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 - [ ] Implement color palette generator for model colors
 - [ ] Blind model comparison mode
 
+#### Tapestry Loom Post-v1 plans
+
+- Update `tapestry-weave` Rust library
+	- Implement a zero-copy Weave format for memory mapping (to allow loading documents larger than the available system RAM)
+- Update `tapestry-loomkit` library
+	- Implement a client-server model for collaborative editing
+		- Implement optional edit username tracking
+		- Implement support for memory-mapped Weaves on the *server* side
+- Implement support for the zero-copy Weave format, implement support for memory mapping Weaves on desktop
+- Implement context window wrapping
+- Implement mobile UI support
+
 #### Tapestry Loom v2 plans
 
-- Implement mobile support
 - Implement multi-platform support (Web, Desktop, Obsidian, Vim??, etc..)
 	- Implement integration with some sort of local transcription plugin
-- Implement a memory-mapped Weave format to allow loading documents larger than the available system RAM
-	- Implement collaborative editing with an arbitrary number of editors
-	- Implement benchmark tests for the `tapestry-weave` library
-	- Implement context window wrapping
+- Implement collaborative editing
 - Implement summarization of branches using chat-style LLMs to improve browsablity
 - Alternately, try integrating the tree/graph and the editor more, similar to [loom](https://github.com/socketteer/loom)
 	- Reduces strain on the user's working memory / reduces need for switching attention between UIs
