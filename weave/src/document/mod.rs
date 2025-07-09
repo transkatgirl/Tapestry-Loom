@@ -213,54 +213,9 @@ impl Weave {
     ///     }
     /// }
     /// ```
+    // Trivial; shouldn't require unit tests
     pub fn update_node_activity(&mut self, identifier: &Ulid, active: bool, in_place: bool) {
-        if let Some(node) = self.nodes.get(identifier) {
-            if node.active == active {
-                return;
-            }
-
-            let mut is_parent_active = false;
-
-            for parent in node.from.iter().filter_map(|id| self.nodes.get(id)) {
-                if parent.active {
-                    is_parent_active = true;
-                    break;
-                }
-            }
-
-            if is_parent_active != active {
-                if active {
-                    let mut parents: Vec<Ulid> = node.from.iter().copied().collect();
-                    parents.sort();
-                    if let Some(parent) = parents.first() {
-                        self.update_node_activity(parent, true, in_place);
-                    }
-                } else if !in_place {
-                    for parent in node.from.clone() {
-                        self.update_node_activity(&parent, false, false);
-                    }
-                }
-            } else if in_place && active {
-                let siblings: Vec<Ulid> = node
-                    .from
-                    .iter()
-                    .filter_map(|id| self.nodes.get(id))
-                    .flat_map(|parent| parent.to.clone())
-                    .collect();
-
-                for sibling in siblings {
-                    self.update_node_activity(&sibling, false, true);
-                }
-            }
-        }
-        if let Some(node) = self.nodes.get_mut(identifier) {
-            node.active = active;
-            if !active {
-                for child in node.to.clone() {
-                    self.update_removed_child_activity(&child);
-                }
-            }
-        }
+        update_node_activity(&mut self.nodes, identifier, active, in_place);
     }
     /// Update the bookmarked status of a [`Node`] by it's [`Ulid`].
     // Trivial; shouldn't require unit tests
@@ -271,25 +226,6 @@ impl Weave {
                 self.bookmarked_nodes.insert(*identifier);
             } else {
                 self.bookmarked_nodes.remove(identifier);
-            }
-        }
-    }
-    fn update_removed_child_activity(&mut self, identifier: &Ulid) {
-        if let Some(node) = self.nodes.get(identifier) {
-            if !node.active {
-                return;
-            }
-
-            for parent in node.from.iter().filter_map(|id| self.nodes.get(id)) {
-                if parent.active {
-                    return;
-                }
-            }
-        }
-        if let Some(node) = self.nodes.get_mut(identifier) {
-            node.active = false;
-            for child in node.to.clone() {
-                self.update_removed_child_activity(&child);
             }
         }
     }
@@ -453,7 +389,7 @@ impl Weave {
                     if child.from.is_empty() {
                         self.remove_node(&identifier);
                     } else if node.active {
-                        self.update_removed_child_activity(&identifier);
+                        update_removed_child_activity(&mut self.nodes, &identifier);
                     }
                 }
             }
@@ -549,6 +485,81 @@ impl Weave {
     #[inline]
     pub fn is_nonconcatable_mode(&self) -> bool {
         !self.nonconcatable_nodes.is_empty()
+    }
+}
+
+fn update_node_activity(
+    nodes: &mut HashMap<Ulid, Node>,
+    identifier: &Ulid,
+    active: bool,
+    in_place: bool,
+) {
+    if let Some(node) = nodes.get(identifier) {
+        if node.active == active {
+            return;
+        }
+
+        let mut is_parent_active = false;
+
+        for parent in node.from.iter().filter_map(|id| nodes.get(id)) {
+            if parent.active {
+                is_parent_active = true;
+                break;
+            }
+        }
+
+        if is_parent_active != active {
+            if active {
+                let mut parents: Vec<Ulid> = node.from.iter().copied().collect();
+                parents.sort();
+                if let Some(parent) = parents.first() {
+                    update_node_activity(nodes, parent, true, in_place);
+                }
+            } else if !in_place {
+                for parent in node.from.clone() {
+                    update_node_activity(nodes, &parent, false, false);
+                }
+            }
+        } else if in_place && active {
+            let siblings: Vec<Ulid> = node
+                .from
+                .iter()
+                .filter_map(|id| nodes.get(id))
+                .flat_map(|parent| parent.to.clone())
+                .collect();
+
+            for sibling in siblings {
+                update_node_activity(nodes, &sibling, false, true);
+            }
+        }
+    }
+    if let Some(node) = nodes.get_mut(identifier) {
+        node.active = active;
+        if !active {
+            for child in node.to.clone() {
+                update_removed_child_activity(nodes, &child);
+            }
+        }
+    }
+}
+
+fn update_removed_child_activity(nodes: &mut HashMap<Ulid, Node>, identifier: &Ulid) {
+    if let Some(node) = nodes.get(identifier) {
+        if !node.active {
+            return;
+        }
+
+        for parent in node.from.iter().filter_map(|id| nodes.get(id)) {
+            if parent.active {
+                return;
+            }
+        }
+    }
+    if let Some(node) = nodes.get_mut(identifier) {
+        node.active = false;
+        for child in node.to.clone() {
+            update_removed_child_activity(nodes, &child);
+        }
     }
 }
 
