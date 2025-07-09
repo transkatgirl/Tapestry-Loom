@@ -167,14 +167,10 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 - Implement mobile support
 - Implement multi-platform support (Web, Desktop, Obsidian, Vim??, etc..)
 	- Implement integration with some sort of local transcription plugin
-- Implement Weave format version 2 to improve flexibility and efficiency:
-	- Improve handling of huge documents (approx. book-length and greater):
-		- Perform all timeline changes in ~constant time
-			- Require the API user to provide a timeline diff, as this can be done in more efficient manners than using a diff algorithm
-		- Stream specific sections of the Weave from disk/network rather than loading the entire Weave into memory
-		- Implement context window wrapping
+- Implement a memory-mapped Weave format to allow loading documents larger than the available system RAM
 	- Implement collaborative editing with an arbitrary number of editors
-	- Implement benchmark tests
+	- Implement benchmark tests for the `tapestry-weave` library
+	- Implement context window wrapping
 - Implement summarization of branches using chat-style LLMs to improve browsablity
 - Alternately, try integrating the tree/graph and the editor more, similar to [loom](https://github.com/socketteer/loom)
 	- Reduces strain on the user's working memory / reduces need for switching attention between UIs
