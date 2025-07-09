@@ -110,6 +110,7 @@ impl Weave {
         for child in node.to.clone() {
             if let Some(child) = self.nodes.get_mut(&child) {
                 child.from.insert(node.id);
+                self.root_nodes.remove(&child.id);
             } else {
                 node.to.remove(&child);
             }
