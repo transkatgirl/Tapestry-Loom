@@ -324,7 +324,6 @@ impl TryFrom<Weave> for CompactWeave {
         let weave = OwnedWeaveSnapshot::from(input);
 
         let mut active = HashSet::with_capacity(weave.nodes.len());
-        let mut bookmarked = HashSet::with_capacity(weave.nodes.len());
 
         let models: HashMap<u128, Model> = weave
             .models
@@ -346,9 +345,6 @@ impl TryFrom<Weave> for CompactWeave {
                 if node.active {
                     active.insert(node.id.0);
                 }
-                if node.bookmarked {
-                    bookmarked.insert(node.id.0);
-                }
             })
             .map(|node| {
                 Ok((
@@ -362,13 +358,12 @@ impl TryFrom<Weave> for CompactWeave {
             .collect::<Result<Vec<_>, WeaveError>>()?;
 
         active.shrink_to_fit();
-        bookmarked.shrink_to_fit();
 
         Ok(CompactWeave {
             version: 0,
             nodes,
             active,
-            bookmarked,
+            bookmarked: weave.bookmarked_nodes.into_iter().map(|id| id.0).collect(),
             models,
             metadata: weave.metadata,
         })

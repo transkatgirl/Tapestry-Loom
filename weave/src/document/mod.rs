@@ -21,6 +21,9 @@ pub trait WeaveView {
     /// Retrieve all [`Node`] objects which do not have any parents.
     #[must_use]
     fn get_root_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)>;
+    /// Retrieve all [`Node`] objects which have been marked as bookmarked.
+    #[must_use]
+    fn get_bookmarked_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)>;
     /// Retrieve all active nodes as [`WeaveTimeline`] objects.
     #[must_use]
     fn get_active_timelines(&self) -> Vec<WeaveTimeline>;
@@ -42,6 +45,7 @@ pub struct Weave {
     pub metadata: HashMap<String, String>,
 
     root_nodes: BTreeSet<Ulid>,
+    bookmarked_nodes: HashSet<Ulid>,
     model_nodes: HashMap<Ulid, HashSet<Ulid>>,
     multiparent_nodes: HashSet<Ulid>,
     nonconcatable_nodes: HashSet<Ulid>,
@@ -122,6 +126,9 @@ impl Weave {
         }
         if !node.content.is_concatable() {
             self.nonconcatable_nodes.insert(node.id);
+        }
+        if node.bookmarked {
+            self.bookmarked_nodes.insert(node.id);
         }
         if let Some(node_model) = node.content.model() {
             if let Some(mut model) = model {
@@ -253,6 +260,11 @@ impl Weave {
     pub fn update_node_bookmarked_status(&mut self, identifier: &Ulid, bookmarked: bool) {
         if let Some(node) = self.nodes.get_mut(identifier) {
             node.bookmarked = bookmarked;
+            if bookmarked {
+                self.bookmarked_nodes.insert(*identifier);
+            } else {
+                self.bookmarked_nodes.remove(identifier);
+            }
         }
     }
     fn update_removed_child_activity(&mut self, identifier: &Ulid) {
@@ -366,6 +378,7 @@ impl Weave {
         let right = self.nodes.get_mut(identifier)?;
         right.content = right_content;
         right.bookmarked = false;
+        self.bookmarked_nodes.remove(identifier);
         right.from = HashSet::from([left_identifier]);
 
         Some((left_identifier, right.id))
@@ -395,8 +408,9 @@ impl Weave {
 
         let node = self.nodes.get_mut(&right_identifier)?;
         node.content = content;
-        if !node.bookmarked {
-            node.bookmarked = bookmarked;
+        if !node.bookmarked && bookmarked {
+            node.bookmarked = true;
+            self.bookmarked_nodes.insert(right_identifier);
         }
         node.from.clone_from(&from);
         for parent in from {
@@ -417,6 +431,7 @@ impl Weave {
     pub fn remove_node(&mut self, identifier: &Ulid) -> Option<Node> {
         if let Some(node) = self.nodes.remove(identifier) {
             self.root_nodes.remove(&node.id);
+            self.bookmarked_nodes.remove(&node.id);
             self.multiparent_nodes.remove(&node.id);
             self.nonconcatable_nodes.remove(&node.id);
             for parent in &node.from {
@@ -554,6 +569,20 @@ impl WeaveView for Weave {
                 )
             })
     }
+    // Trivial; shouldn't require unit tests
+    fn get_bookmarked_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)> {
+        self.bookmarked_nodes
+            .iter()
+            .filter_map(|identifier| self.nodes.get(identifier))
+            .map(|node| {
+                (
+                    node,
+                    node.content
+                        .model()
+                        .and_then(|node_model| self.models.get(&node_model.id)),
+                )
+            })
+    }
     fn get_active_timelines(&self) -> Vec<WeaveTimeline> {
         let mut timelines: Vec<Vec<&Node>> = self
             .root_nodes
@@ -596,6 +625,8 @@ pub struct WeaveSnapshot<'w> {
     pub models: &'w HashMap<Ulid, Model>,
     /// An ordered set of [`Ulid`] objects which correspond to [`Node`] objects with no parents.
     pub root_nodes: &'w BTreeSet<Ulid>,
+    /// A set of [`Ulid`] objects which correspond to [`Node`] objects which are bookmarked.
+    pub bookmarked_nodes: &'w HashSet<Ulid>,
     /// If the [`Weave`] contains any nodes with multiple parents. If this is the case, non-concatable nodes cannot be added.
     pub multiparent_mode: bool,
     /// If the [`Weave`] contains any non-concatable nodes. If this is the case, nodes with multiple parents cannot be added.
@@ -664,6 +695,19 @@ impl WeaveView for WeaveSnapshot<'_> {
                 )
             })
     }
+    fn get_bookmarked_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)> {
+        self.bookmarked_nodes
+            .iter()
+            .filter_map(|identifier| self.nodes.get(identifier))
+            .map(|node| {
+                (
+                    node,
+                    node.content
+                        .model()
+                        .and_then(|node_model| self.models.get(&node_model.id)),
+                )
+            })
+    }
     fn get_active_timelines(&self) -> Vec<WeaveTimeline> {
         let mut timelines: Vec<Vec<&Node>> = self
             .root_nodes
@@ -704,6 +748,7 @@ impl<'w> From<&'w Weave> for WeaveSnapshot<'w> {
             nodes: &input.nodes,
             models: &input.models,
             root_nodes: &input.root_nodes,
+            bookmarked_nodes: &input.bookmarked_nodes,
             multiparent_mode: !input.multiparent_nodes.is_empty(),
             nonconcatable_mode: !input.nonconcatable_nodes.is_empty(),
         }
@@ -714,6 +759,7 @@ pub(super) struct OwnedWeaveSnapshot {
     pub(super) nodes: HashMap<Ulid, Node>,
     pub(super) models: HashMap<Ulid, Model>,
     pub(super) root_nodes: BTreeSet<Ulid>,
+    pub(super) bookmarked_nodes: HashSet<Ulid>,
     pub(super) metadata: HashMap<String, String>,
 }
 
@@ -724,6 +770,7 @@ impl From<Weave> for OwnedWeaveSnapshot {
             nodes: input.nodes,
             models: input.models,
             root_nodes: input.root_nodes,
+            bookmarked_nodes: input.bookmarked_nodes,
             metadata: input.metadata,
         }
     }
