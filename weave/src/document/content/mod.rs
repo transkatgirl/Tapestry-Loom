@@ -1,10 +1,10 @@
 //! Interactive representations of Weave contents.
 
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet, LinkedList},
     fmt::Display,
     iter,
-    ops::{Range, RangeInclusive},
+    ops::Range,
     vec,
 };
 
@@ -13,6 +13,7 @@ use similar::Instant;
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 use std::time::Instant;
 
+use bytes::{Bytes, BytesMut};
 use serde::{Deserialize, Serialize};
 use similar::{Algorithm, DiffTag, capture_diff_slices_deadline};
 use ulid::Ulid;
@@ -72,16 +73,16 @@ impl<'w> WeaveTimeline<'w> {
     /// Returns the output of the timeline as a set of bytes.
     // Trivial; shouldn't require unit tests
     #[must_use]
-    pub fn bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
+    pub fn bytes(&self) -> BytesMut {
+        let mut bytes = BytesMut::new();
 
         for (node, _model) in &self.timeline {
-            match node.content.clone() {
+            match &node.content {
                 NodeContent::Snippet(snippet) => {
-                    bytes.append(&mut snippet.into_bytes());
+                    bytes.extend_from_slice(&snippet.as_bytes());
                 }
                 NodeContent::Tokens(tokens) => {
-                    bytes.append(&mut tokens.into_bytes());
+                    bytes.extend_from_slice(&tokens.as_bytes());
                 }
                 NodeContent::Diff(diff) => {
                     diff.content.apply(&mut bytes);
@@ -96,9 +97,9 @@ impl<'w> WeaveTimeline<'w> {
     ///
     /// Bytes which are invalid UTF-8 will be replaced by the character U+001A, keeping the length the same as the original set of bytes.
     #[must_use]
-    pub fn annotated_string(&self) -> (String, Vec<TimelineAnnotation<'w>>) {
-        let mut bytes = Vec::new();
-        let mut annotations = Vec::with_capacity(self.timeline.len());
+    pub fn annotated_string(&self) -> (String, LinkedList<TimelineAnnotation<'w>>) {
+        let mut bytes = BytesMut::new();
+        let mut annotations = LinkedList::new();
 
         for (node, model) in &self.timeline {
             match &node.content {
@@ -107,10 +108,7 @@ impl<'w> WeaveTimeline<'w> {
                         &mut snippet
                             .annotations()
                             .map(|annotation| TimelineAnnotation {
-                                range: Range {
-                                    start: annotation.range.start + bytes.len(),
-                                    end: annotation.range.end + bytes.len(),
-                                },
+                                len: bytes.len(),
                                 node: Some(node),
                                 model: *model,
                                 subsection_metadata: annotation.metadata,
@@ -119,17 +117,14 @@ impl<'w> WeaveTimeline<'w> {
                             })
                             .collect(),
                     );
-                    bytes.append(&mut snippet.clone().into_bytes());
+                    bytes.extend_from_slice(&snippet.as_bytes());
                 }
                 NodeContent::Tokens(tokens) => {
                     annotations.append(
                         &mut tokens
                             .annotations()
                             .map(|annotation| TimelineAnnotation {
-                                range: Range {
-                                    start: annotation.range.start + bytes.len(),
-                                    end: annotation.range.end + bytes.len(),
-                                },
+                                len: bytes.len(),
                                 node: Some(node),
                                 model: *model,
                                 subsection_metadata: annotation.metadata,
@@ -138,7 +133,7 @@ impl<'w> WeaveTimeline<'w> {
                             })
                             .collect(),
                     );
-                    bytes.append(&mut tokens.clone().into_bytes());
+                    bytes.extend_from_slice(&tokens.as_bytes());
                 }
                 NodeContent::Diff(diff) => {
                     diff.content.apply_timeline_annotations(
@@ -147,7 +142,7 @@ impl<'w> WeaveTimeline<'w> {
                         node.content.metadata(),
                         &mut annotations,
                     );
-                    diff.content.clone().apply(&mut bytes);
+                    diff.content.apply(&mut bytes);
                 }
                 NodeContent::Blank => {}
             }
@@ -166,14 +161,14 @@ impl<'w> WeaveTimeline<'w> {
         (string, annotations)
     }
     // Trivial; shouldn't require unit tests
-    pub(super) fn ranged_string(self) -> (String, Vec<TimelineNodeRange>) {
+    pub(super) fn length_annotated_string(self) -> (String, LinkedList<TimelineNodeLength>) {
         let (content, annotations) = self.annotated_string();
         (
             content,
             annotations
                 .into_iter()
-                .map(|annotation| TimelineNodeRange {
-                    range: annotation.range,
+                .map(|annotation| TimelineNodeLength {
+                    len: annotation.len,
                     node: annotation.node.map(|node| node.id),
                 })
                 .collect(),
@@ -186,64 +181,57 @@ impl<'w> WeaveTimeline<'w> {
         metadata: Option<HashMap<String, String>>,
         deadline: Instant,
     ) -> TimelineUpdate {
-        let (before, ranges) = self.ranged_string();
+        let (before, lengths) = self.length_annotated_string();
 
         TimelineUpdate {
-            ranges,
-            diff: Diff::new(&before.into_bytes(), &content.into_bytes(), deadline),
+            lengths,
+            diff: Diff::new(&before.into(), &content.into(), deadline),
             metadata,
         }
     }
 }
 
 pub(super) struct TimelineUpdate {
-    pub(super) ranges: Vec<TimelineNodeRange>,
+    pub(super) lengths: LinkedList<TimelineNodeLength>,
     pub(super) diff: Diff,
     pub(super) metadata: Option<HashMap<String, String>>,
 }
 
-pub(super) struct TimelineNodeRange {
-    pub(super) range: Range<usize>,
+#[derive(Default)]
+pub(super) struct TimelineNodeLength {
+    pub(super) len: usize,
     pub(super) node: Option<Ulid>,
 }
 
 // Trivial; shouldn't require unit tests
-impl From<Range<usize>> for TimelineNodeRange {
-    fn from(range: Range<usize>) -> Self {
-        Self { range, node: None }
+impl From<usize> for TimelineNodeLength {
+    fn from(len: usize) -> Self {
+        Self { len, node: None }
     }
 }
 
-impl Annotation for TimelineNodeRange {
-    // Trivial; shouldn't require unit tests
+// Trivial; shouldn't require unit tests
+impl Annotation for TimelineNodeLength {
     #[inline]
-    fn range(&self) -> &Range<usize> {
-        &self.range
+    fn len(&self) -> usize {
+        self.len
     }
-    // Trivial; shouldn't require unit tests
     #[inline]
-    fn range_mut(&mut self) -> &mut Range<usize> {
-        &mut self.range
+    fn resize(&mut self, len: usize) {
+        self.len = len;
     }
-    // Copied from ContentAnnotation's implementation of split(); shouldn't require additional unit tests
     fn split(&self, index: usize) -> Option<(Self, Self)> {
-        if index == 0 || (self.range.start + index) >= self.range.end {
+        if index == 0 || index >= self.len {
             return None;
         }
 
-        let mut left = self.range.clone();
-        let mut right = self.range.clone();
-
-        left.end = left.start + index;
-        right.start += index;
-
         Some((
             Self {
-                range: left,
+                len: index,
                 node: self.node,
             },
             Self {
-                range: right,
+                len: self.len - index,
                 node: self.node,
             },
         ))
@@ -304,8 +292,11 @@ impl NodeContent {
         Some(
             match left {
                 Self::Snippet(mut left) => match right {
-                    Self::Snippet(mut right) => {
-                        left.content.append(&mut right.content);
+                    Self::Snippet(right) => {
+                        let mut bytes = left.content.try_into_mut().unwrap();
+                        bytes.extend_from_slice(&right.content);
+                        left.content = bytes.freeze();
+
                         Self::Snippet(left)
                     }
                     Self::Tokens(mut right) => {
@@ -411,7 +402,7 @@ impl NodeContent {
 
                 if tokens.content.is_empty() {
                     Self::Snippet(SnippetContent {
-                        content: vec![],
+                        content: Bytes::new(),
                         model: tokens.model,
                         metadata: tokens.metadata,
                     })
@@ -539,10 +530,10 @@ impl NodeContent {
 }
 
 /// An annotation within a section of content.
-#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Default, Clone, Debug, PartialEq, Eq)]
 pub struct ContentAnnotation<'w> {
-    /// The range of content bytes that the annotation applies to.
-    pub range: Range<usize>,
+    /// The number of content bytes that the annotation applies to.
+    pub len: usize,
 
     /// Metadata associated with this set of bytes.
     ///
@@ -551,10 +542,10 @@ pub struct ContentAnnotation<'w> {
 }
 
 /// An annotation within the output of a [`WeaveTimeline`].
-#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Default, Clone, Debug, PartialEq, Eq)]
 pub struct TimelineAnnotation<'w> {
-    /// The range of content bytes that the annotation applies to.
-    pub range: Range<usize>,
+    /// The number of content bytes that the annotation applies to.
+    pub len: usize,
 
     /// The node that this set of bytes originates from.
     pub node: Option<&'w Node>,
@@ -571,79 +562,69 @@ pub struct TimelineAnnotation<'w> {
 }
 
 /// Types which act as content annotations for sets of bytes.
-pub trait Annotation: Sized + From<Range<usize>> {
-    /// Returns the range of content bytes that the annotation applies to.
+pub trait Annotation: Default + Sized + From<usize> {
+    /// Returns the number of content bytes that the annotation applies to.
     #[must_use]
-    fn range(&self) -> &Range<usize>;
-    /// Returns a mutable reference to the annotation's byte range.
+    fn len(&self) -> usize;
+    /// Returns `true` if the annotation has a length of zero.
     #[must_use]
-    fn range_mut(&mut self) -> &mut Range<usize>;
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+    /// Updates the number of content bytes that the annotation applies to.
+    fn resize(&mut self, len: usize);
     /// Splits the annotation in half at the specified index, retaining all associated metadata.
     #[must_use]
     fn split(&self, index: usize) -> Option<(Self, Self)>;
 }
 
+// Trivial; shouldn't require unit tests
 impl Annotation for ContentAnnotation<'_> {
-    // Trivial; shouldn't require unit tests
     #[inline]
-    fn range(&self) -> &Range<usize> {
-        &self.range
+    fn len(&self) -> usize {
+        self.len
     }
-    // Trivial; shouldn't require unit tests
     #[inline]
-    fn range_mut(&mut self) -> &mut Range<usize> {
-        &mut self.range
+    fn resize(&mut self, len: usize) {
+        self.len = len;
     }
     fn split(&self, index: usize) -> Option<(Self, Self)> {
-        if index == 0 || (self.range.start + index) >= self.range.end {
+        if index == 0 || index >= self.len {
             return None;
         }
 
-        let mut left = self.range.clone();
-        let mut right = self.range.clone();
-
-        left.end = left.start + index;
-        right.start += index;
-
         Some((
             Self {
-                range: left,
+                len: index,
                 metadata: self.metadata,
             },
             Self {
-                range: right,
+                len: self.len - index,
                 metadata: self.metadata,
             },
         ))
     }
 }
 
+// Trivial; shouldn't require unit tests
 impl Annotation for TimelineAnnotation<'_> {
-    // Trivial; shouldn't require unit tests
     #[inline]
-    fn range(&self) -> &Range<usize> {
-        &self.range
+    fn len(&self) -> usize {
+        self.len
     }
-    // Trivial; shouldn't require unit tests
     #[inline]
-    fn range_mut(&mut self) -> &mut Range<usize> {
-        &mut self.range
+    fn resize(&mut self, len: usize) {
+        self.len = len;
     }
-    // Copied from ContentAnnotation's implementation of split(); shouldn't require additional unit tests
     fn split(&self, index: usize) -> Option<(Self, Self)> {
-        if index == 0 || (self.range.start + index) >= self.range.end {
+        if index == 0 || index >= self.len {
             return None;
         }
 
-        let mut left = self.range.clone();
-        let mut right = self.range.clone();
-
-        left.end = left.start + index;
-        right.start += index;
-
         Some((
             Self {
-                range: left,
+                len: index,
                 node: self.node,
                 model: self.model,
                 subsection_metadata: self.subsection_metadata,
@@ -651,7 +632,7 @@ impl Annotation for TimelineAnnotation<'_> {
                 parameters: self.parameters,
             },
             Self {
-                range: right,
+                len: self.len - index,
                 node: self.node,
                 model: self.model,
                 subsection_metadata: self.subsection_metadata,
@@ -663,20 +644,20 @@ impl Annotation for TimelineAnnotation<'_> {
 }
 
 // Trivial; shouldn't require unit tests
-impl From<Range<usize>> for ContentAnnotation<'_> {
-    fn from(range: Range<usize>) -> Self {
+impl From<usize> for ContentAnnotation<'_> {
+    fn from(len: usize) -> Self {
         Self {
-            range,
+            len,
             metadata: None,
         }
     }
 }
 
 // Trivial; shouldn't require unit tests
-impl From<Range<usize>> for TimelineAnnotation<'_> {
-    fn from(range: Range<usize>) -> Self {
+impl From<usize> for TimelineAnnotation<'_> {
+    fn from(len: usize) -> Self {
         Self {
-            range,
+            len,
             node: None,
             model: None,
             subsection_metadata: None,
@@ -690,7 +671,7 @@ impl From<Range<usize>> for TimelineAnnotation<'_> {
 impl<'w> From<ContentAnnotation<'w>> for TimelineAnnotation<'w> {
     fn from(input: ContentAnnotation<'w>) -> Self {
         Self {
-            range: input.range,
+            len: input.len,
             node: None,
             model: None,
             subsection_metadata: input.metadata,
@@ -721,9 +702,9 @@ pub trait NodeContents: Display + Sized {
 
 /// Concatable types which are intended to be used as content for a [`Node`] object.
 pub trait ConcatableNodeContents: NodeContents {
-    /// Converts the content into a set of bytes.
+    /// Returns the content as a set of bytes.
     #[must_use]
-    fn into_bytes(self) -> Vec<u8>;
+    fn as_bytes(&self) -> Bytes;
     /// Returns the length from the content in bytes.
     #[must_use]
     fn len(&self) -> usize;
@@ -799,7 +780,7 @@ pub struct SnippetContent {
     /// The text being stored.
     ///
     /// This may not be valid UTF-8 on it's own, so it is stored as an array of bytes rather than a [`String`].
-    pub content: Vec<u8>,
+    pub content: Bytes,
     /// Metadata about the algorithmic process which generated the snippet, if any.
     pub model: Option<ContentModel>,
     /// Metadata associated with the content.
@@ -840,8 +821,8 @@ impl Display for SnippetContent {
 impl ConcatableNodeContents for SnippetContent {
     // Trivial; shouldn't require unit tests
     #[inline]
-    fn into_bytes(self) -> Vec<u8> {
-        self.content
+    fn as_bytes(&self) -> Bytes {
+        self.content.clone()
     }
     // Trivial; shouldn't require unit tests
     #[inline]
@@ -857,10 +838,7 @@ impl ConcatableNodeContents for SnippetContent {
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
         iter::once(ContentAnnotation {
             metadata: None,
-            range: Range {
-                start: 0,
-                end: self.content.len(),
-            },
+            len: self.content.len(),
         })
     }
     fn split(self, index: usize) -> Option<(Self, Self)> {
@@ -870,7 +848,6 @@ impl ConcatableNodeContents for SnippetContent {
 
         let mut left = self.content;
         let right = left.split_off(index);
-        left.shrink_to_fit();
 
         Some((
             Self {
@@ -926,7 +903,7 @@ impl NodeContents for TokenContent {
 // Trivial; shouldn't require unit tests
 impl Display for TokenContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let bytes = self.clone().into_bytes();
+        let bytes = self.as_bytes();
 
         if bytes.is_empty() {
             return write!(f, "{EMPTY_MESSAGE}");
@@ -946,11 +923,15 @@ impl Display for TokenContent {
 
 impl ConcatableNodeContents for TokenContent {
     // Trivial; shouldn't require unit tests
-    fn into_bytes(self) -> Vec<u8> {
-        self.content
-            .into_iter()
-            .flat_map(|token| token.content)
-            .collect()
+    fn as_bytes(&self) -> Bytes {
+        let mut bytes =
+            BytesMut::with_capacity(self.content.iter().map(|token| token.content.len()).sum());
+
+        for token in &self.content {
+            bytes.extend_from_slice(&token.content);
+        }
+
+        bytes.freeze()
     }
     // Trivial; shouldn't require unit tests
     fn len(&self) -> usize {
@@ -960,20 +941,11 @@ impl ConcatableNodeContents for TokenContent {
     fn is_empty(&self) -> bool {
         self.content.iter().all(|token| token.content.is_empty())
     }
+    // Trivial; shouldn't require unit tests
     fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
-        let mut index = 0;
-
-        self.content.iter().map(move |token| {
-            let range = Range {
-                start: index,
-                end: index + token.content.len(),
-            };
-            index = range.end;
-
-            ContentAnnotation {
-                range,
-                metadata: token.metadata.as_ref(),
-            }
+        self.content.iter().map(move |token| ContentAnnotation {
+            len: token.content.len(),
+            metadata: token.metadata.as_ref(),
         })
     }
     fn split(self, index: usize) -> Option<(Self, Self)> {
@@ -983,10 +955,10 @@ impl ConcatableNodeContents for TokenContent {
             .annotations()
             .enumerate()
             .find_map(|(location, annotation)| {
-                if annotation.range.contains(&index) {
+                if content_index + annotation.len >= index {
                     return Some(location);
                 }
-                content_index = annotation.range.end;
+                content_index += annotation.len;
 
                 None
             });
@@ -1044,7 +1016,7 @@ pub struct ContentToken {
     /// The textual content of the token.
     ///
     /// This may not be valid UTF-8 on it's own, so it is stored as an array of bytes rather than a [`String`].
-    pub content: Vec<u8>,
+    pub content: Bytes,
     /// Metadata associated with the token.
     pub metadata: Option<HashMap<String, String>>,
 }
@@ -1059,7 +1031,6 @@ impl ContentToken {
 
         let mut left = self.content;
         let right = left.split_off(index);
-        left.shrink_to_fit();
 
         Some((
             Self {
@@ -1089,8 +1060,8 @@ impl From<SnippetContent> for TokenContent {
 }
 
 // Trivial; shouldn't require unit tests
-impl From<Vec<u8>> for ContentToken {
-    fn from(content: Vec<u8>) -> Self {
+impl From<Bytes> for ContentToken {
+    fn from(content: Bytes) -> Self {
         Self {
             content,
             metadata: None,
@@ -1157,7 +1128,7 @@ impl Diff {
     ///
     /// The specific algorithm used to calculate the diff is subject to change.
     #[must_use]
-    pub fn new(before: &[u8], after: &[u8], deadline: Instant) -> Self {
+    pub fn new(before: &Bytes, after: &Bytes, deadline: Instant) -> Self {
         let chunks = capture_diff_slices_deadline(Algorithm::Myers, before, after, Some(deadline));
 
         let mut modifications = Vec::with_capacity(chunks.len());
@@ -1169,7 +1140,7 @@ impl Diff {
                     modifications.push(Modification {
                         index: before_range.start,
                         content: ModificationContent::Insertion(
-                            after[after_range.start..after_range.end].to_vec(),
+                            after.slice(after_range.start..after_range.end),
                         ),
                     });
                 }
@@ -1191,7 +1162,7 @@ impl Diff {
                     modifications.push(Modification {
                         index: before_range.start,
                         content: ModificationContent::Insertion(
-                            after[after_range.start..after_range.end].to_vec(),
+                            after.slice(after_range.start..after_range.end),
                         ),
                     });
                 }
@@ -1209,8 +1180,8 @@ impl Diff {
     /// # Panics
     /// Panics if the diff contains any modifications with bounds outside of the byte set.
     // Trivial; shouldn't require unit tests
-    pub fn apply(self, data: &mut Vec<u8>) {
-        for modification in self.content {
+    pub fn apply(&self, data: &mut BytesMut) {
+        for modification in &self.content {
             modification.apply(data);
         }
     }
@@ -1220,27 +1191,26 @@ impl Diff {
         node: &'w Node,
         model: Option<&'w Model>,
         content_metadata: Option<&'w HashMap<String, String>>,
-        annotations: &mut Vec<TimelineAnnotation<'w>>,
+        annotations: &mut LinkedList<TimelineAnnotation<'w>>,
     ) {
         for modification in &self.content {
             let updates = modification.apply_annotations(annotations);
 
-            if let Some(index) = updates.inserted_bytes {
-                annotations[index].node = Some(node);
-                annotations[index].model = model;
-                annotations[index].parameters = node.content.model().map(|model| &model.parameters);
-                annotations[index].content_metadata = content_metadata;
+            if let Some(annotation) = updates.inserted_bytes {
+                annotation.node = Some(node);
+                annotation.model = model;
+                annotation.parameters = node.content.model().map(|model| &model.parameters);
+                annotation.content_metadata = content_metadata;
             }
-            if let Some(indices) = updates.inserted_tokens {
+            if let Some(annotations) = updates.inserted_tokens {
                 if let ModificationContent::TokenInsertion(content) = &modification.content {
-                    for (modification_index, annotation_index) in indices.into_iter().enumerate() {
-                        annotations[annotation_index].node = Some(node);
-                        annotations[annotation_index].model = model;
-                        annotations[annotation_index].parameters =
-                            node.content.model().map(|model| &model.parameters);
-                        annotations[annotation_index].subsection_metadata =
+                    for (modification_index, annotation) in annotations.into_iter().enumerate() {
+                        annotation.node = Some(node);
+                        annotation.model = model;
+                        annotation.parameters = node.content.model().map(|model| &model.parameters);
+                        annotation.subsection_metadata =
                             content[modification_index].metadata.as_ref();
-                        annotations[annotation_index].content_metadata = content_metadata;
+                        annotation.content_metadata = content_metadata;
                     }
                 } else {
                     panic!() // Should never happen
@@ -1302,20 +1272,37 @@ impl Modification {
     ///
     /// # Panics
     /// Panics if the modification's bounds are outside of the byte set.
-    pub fn apply(self, data: &mut Vec<u8>) {
-        match self.content {
-            ModificationContent::Insertion(content) => data.splice(self.index..self.index, content),
+    pub fn apply(&self, data: &mut BytesMut) {
+        assert!(self.index <= data.len());
+        match &self.content {
+            ModificationContent::Insertion(content) => {
+                let right = data.split_off(self.index);
+                data.extend_from_slice(content);
+                data.unsplit(right);
+            }
             ModificationContent::Deletion(length) => {
-                data.splice(self.index..(self.index + length), vec![])
+                let right = data.split_off(self.index + length);
+                data.truncate(self.index);
+                data.unsplit(right);
             }
             ModificationContent::TokenInsertion(content) => {
-                let content: Vec<u8> = content
-                    .into_iter()
-                    .flat_map(|token| token.content)
-                    .collect();
-                data.splice(self.index..self.index, content)
+                let bytes = {
+                    let mut bytes = BytesMut::with_capacity(
+                        content.iter().map(|token| token.content.len()).sum(),
+                    );
+
+                    for token in content {
+                        bytes.extend_from_slice(&token.content);
+                    }
+
+                    bytes.freeze()
+                };
+
+                let right = data.split_off(self.index);
+                data.extend_from_slice(&bytes);
+                data.unsplit(right);
             }
-        };
+        }
     }
     /// Returns the range of bytes that the modification will be performed on.
     ///
@@ -1341,7 +1328,10 @@ impl Modification {
         }
     }
     // Trivial; shouldn't require unit tests
-    fn apply_annotations<T>(&self, annotations: &mut Vec<T>) -> ModificationIndices
+    fn apply_annotations<'a, T>(
+        &self,
+        annotations: &'a mut LinkedList<T>,
+    ) -> ModificationItems<'a, T>
     where
         T: Annotation,
     {
@@ -1353,7 +1343,7 @@ impl Modification {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum ModificationContent {
     /// Bytes to be inserted into the set.
-    Insertion(Vec<u8>),
+    Insertion(Bytes),
     /// Tokens to be inserted into the set.
     TokenInsertion(Vec<ContentToken>),
     /// The number of bytes to be removed from the set.
@@ -1466,23 +1456,47 @@ impl ModificationRange {
             Self::TokenInsertion(token_set) => &token_set.range,
         }
     }
-    // assumes annotations are sorted and contigious starting at 0
     #[allow(clippy::too_many_lines)]
-    pub(super) fn apply_annotations<T>(self, annotations: &mut Vec<T>) -> ModificationIndices
+    pub(super) fn apply_annotations<'a, T>(
+        &self,
+        annotations: &'a mut LinkedList<T>,
+    ) -> ModificationItems<'a, T>
     where
         T: Annotation,
     {
         let range = self.range();
         let offset = range.end - range.start;
         if offset == 0 {
-            return ModificationIndices::default();
+            return ModificationItems::default();
         }
-        let end = annotations
-            .last()
-            .map(|annotation| annotation.range().end)
-            .unwrap_or_default();
+        let end = annotations.iter().map(Annotation::len).sum();
         assert!((range.start <= end));
-        let selected = annotations
+
+        let mut cursor = annotations.cursor_front_mut();
+
+        let mut location = 0;
+
+        while let Some(current) = cursor.current() {
+            if location + current.len() > range.start {
+                break;
+            }
+            location += current.len();
+            cursor.move_next();
+        }
+
+        match self {
+            Self::Insertion(range) => {
+                todo!()
+            }
+            Self::TokenInsertion(tokens) => {
+                todo!()
+            }
+            Self::Deletion(range) => {
+                todo!()
+            }
+        }
+
+        /*let selected = annotations
             .iter()
             .enumerate()
             .find_map(|(location, annotation)| {
@@ -1667,14 +1681,15 @@ impl ModificationRange {
                     right_split: split.1,
                 }
             }
-        }
+        }*/
+        todo!()
     }
 }
 
 #[derive(Default, Debug, PartialEq, Eq)]
-pub(super) struct ModificationIndices {
-    pub(super) inserted_bytes: Option<usize>,
-    pub(super) inserted_tokens: Option<RangeInclusive<usize>>,
-    pub(super) left_split: Option<usize>,
-    pub(super) right_split: Option<usize>,
+pub(super) struct ModificationItems<'a, T> {
+    pub(super) inserted_bytes: Option<&'a mut T>,
+    pub(super) inserted_tokens: Option<Vec<&'a mut T>>,
+    pub(super) left_split: Option<&'a mut T>,
+    pub(super) right_split: Option<&'a mut T>,
 }

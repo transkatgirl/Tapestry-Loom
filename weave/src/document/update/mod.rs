@@ -10,6 +10,7 @@ use similar::Instant;
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 use std::time::Instant;
 
+use bytes::Bytes;
 use ulid::Ulid;
 
 use super::{
@@ -59,7 +60,7 @@ impl Weave {
                 diff: Diff {
                     content: vec![Modification {
                         index: 0,
-                        content: ModificationContent::Insertion(content.into_bytes()),
+                        content: ModificationContent::Insertion(content.into()),
                     }],
                 },
                 metadata,
@@ -156,7 +157,7 @@ impl Weave {
     fn update_nongenerated_parent(
         &mut self,
         parent: &Ulid,
-        content: Vec<u8>,
+        content: Bytes,
         metadata: Option<HashMap<String, String>>,
     ) -> Option<Ulid> {
         let node = self.nodes.get_mut(parent).unwrap();

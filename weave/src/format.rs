@@ -123,12 +123,14 @@ impl TryFrom<DiffModification> for content::ModificationContent {
     type Error = WeaveError;
     fn try_from(input: DiffModification) -> Result<Self, Self::Error> {
         Ok(match input {
-            DiffModification::Insert(content) => Self::Insertion(content.into_vec()),
+            DiffModification::Insert(content) => {
+                Self::Insertion(bytes::Bytes::from(content.into_vec()))
+            }
             DiffModification::InsertToken(content) => Self::TokenInsertion(
                 content
                     .into_iter()
                     .map(|(content, metadata)| content::ContentToken {
-                        content: content.into_vec(),
+                        content: bytes::Bytes::from(content.into_vec()),
                         metadata,
                     })
                     .collect(),
@@ -175,7 +177,7 @@ impl TryFrom<NodeData> for content::NodeContent {
         Ok(match input {
             NodeData::Snippet((content, model, metadata)) => {
                 content::NodeContent::Snippet(content::SnippetContent {
-                    content: content.into_vec(),
+                    content: bytes::Bytes::from(content.into_vec()),
                     model: model.map(|(identifier, parameters)| content::ContentModel {
                         id: Ulid(identifier),
                         parameters,
@@ -189,7 +191,7 @@ impl TryFrom<NodeData> for content::NodeContent {
                         .into_iter()
                         .map(|(bytes, metadata)| {
                             Ok(content::ContentToken {
-                                content: bytes.into_vec(),
+                                content: bytes::Bytes::from(bytes.into_vec()),
                                 metadata,
                             })
                         })

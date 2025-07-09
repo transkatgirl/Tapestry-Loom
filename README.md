@@ -80,9 +80,9 @@ The current target is to finish `v1-alpha` before the end of 2025.
 - [ ] Improve Weave format to improve flexibility and efficiency:
 	- [ ] Create `tapestry-weave` Rust library
 		- [x] Write code for new Weave data structure & serialization+deserialization
-			- [ ] Rewrite timeline code to use LinkedList + Bytes
+			- [ ] Rewrite timeline code to use LinkedList + Bytes (WIP)
 		- [ ] Test & fix code
-			- [x] Implement unit tests for `content` module
+			- [ ] Implement unit tests for `content` module
 			- [ ] Implement unit tests for `document` module
 			- [ ] Implement unit tests for `update` module
 			- [ ] Implement integration tests for `document` + `content` modules
