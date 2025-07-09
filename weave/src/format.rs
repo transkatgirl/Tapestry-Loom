@@ -1,7 +1,7 @@
 //! Data formats for storing Weave documents.
 
 use std::{
-    collections::{BTreeSet, HashMap, HashSet},
+    collections::{HashMap, HashSet},
     io::{Read, Write},
 };
 
@@ -371,7 +371,7 @@ impl TryFrom<Weave> for CompactWeave {
 }
 
 fn flatten_nodes(
-    root_nodes: BTreeSet<Ulid>,
+    root_nodes: HashSet<Ulid>,
     mut nodes: HashMap<Ulid, content::Node>,
 ) -> Vec<content::Node> {
     let mut node_list = Vec::with_capacity(nodes.len());

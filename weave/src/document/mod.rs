@@ -1,6 +1,6 @@
 //! Interactive representations of Weave documents.
 
-use std::collections::{BTreeSet, HashMap, HashSet, hash_map::Entry};
+use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use serde::Serialize;
 use ulid::Ulid;
@@ -19,9 +19,13 @@ pub trait WeaveView {
     #[must_use]
     fn get_node(&self, identifier: &Ulid) -> (Option<&Node>, Option<&Model>);
     /// Retrieve all [`Node`] objects which do not have any parents.
+    ///
+    /// The order of returned objects should not be relied upon.
     #[must_use]
     fn get_root_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)>;
     /// Retrieve all [`Node`] objects which have been marked as bookmarked.
+    ///
+    /// The order of returned objects should not be relied upon.
     #[must_use]
     fn get_bookmarked_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)>;
     /// Retrieve all active nodes as [`WeaveTimeline`] objects.
@@ -44,7 +48,7 @@ pub struct Weave {
     /// Metadata associated with the document.
     pub metadata: HashMap<String, String>,
 
-    root_nodes: BTreeSet<Ulid>,
+    root_nodes: HashSet<Ulid>,
     bookmarked_nodes: HashSet<Ulid>,
     model_nodes: HashMap<Ulid, HashSet<Ulid>>,
     multiparent_nodes: HashSet<Ulid>,
@@ -79,12 +83,14 @@ impl Weave {
             return None;
         }
         if deduplicate {
-            let siblings = node
-                .from
-                .iter()
-                .filter_map(|id| self.nodes.get(id))
-                .flat_map(|parent| &parent.to)
-                .filter_map(|id| self.nodes.get(id));
+            let siblings = if node.from.is_empty() {
+                self.root_nodes.iter()
+            } else {
+                node.from.iter()
+            }
+            .filter_map(|id| self.nodes.get(id))
+            .flat_map(|parent| &parent.to)
+            .filter_map(|id| self.nodes.get(id));
 
             for sibling in siblings {
                 if sibling.content == node.content {
@@ -629,8 +635,8 @@ pub struct WeaveSnapshot<'w> {
     pub nodes: &'w HashMap<Ulid, Node>,
     /// A map of [`Model`] objects in the Weave retrievable by their [`Ulid`].
     pub models: &'w HashMap<Ulid, Model>,
-    /// An ordered set of [`Ulid`] objects which correspond to [`Node`] objects with no parents.
-    pub root_nodes: &'w BTreeSet<Ulid>,
+    /// A set of [`Ulid`] objects which correspond to [`Node`] objects with no parents.
+    pub root_nodes: &'w HashSet<Ulid>,
     /// A set of [`Ulid`] objects which correspond to [`Node`] objects which are bookmarked.
     pub bookmarked_nodes: &'w HashSet<Ulid>,
     /// If the [`Weave`] contains any nodes with multiple parents. If this is the case, non-concatable nodes cannot be added.
@@ -770,7 +776,7 @@ impl<'w> From<&'w Weave> for WeaveSnapshot<'w> {
 pub(super) struct OwnedWeaveSnapshot {
     pub(super) nodes: HashMap<Ulid, Node>,
     pub(super) models: HashMap<Ulid, Model>,
-    pub(super) root_nodes: BTreeSet<Ulid>,
+    pub(super) root_nodes: HashSet<Ulid>,
     pub(super) bookmarked_nodes: HashSet<Ulid>,
     pub(super) metadata: HashMap<String, String>,
 }
