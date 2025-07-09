@@ -237,6 +237,7 @@ impl Weave {
     ///
     /// The modified node retains all of it's other attributes, including its identifier. Returns if the node was moved successfully.
     #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn move_node(&mut self, identifier: &Ulid, mut parents: HashSet<Ulid>) -> bool {
         if !self.nonconcatable_nodes.is_empty() && parents.len() > 1 {
             return false;
@@ -247,6 +248,7 @@ impl Weave {
         let mut active_status = false;
 
         if let Some(node) = self.nodes.get(identifier) {
+            assert_eq!(&node.id, identifier);
             old_parents.clone_from(&node.from);
             active_status = node.active;
 
@@ -303,8 +305,10 @@ impl Weave {
     ///
     /// If the node being split is bookmarked, only the left side of the split will be bookmarked. Otherwise, the split nodes retains all other properties of the original node.
     #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn split_node(&mut self, identifier: &Ulid, index: usize) -> Option<(Ulid, Ulid)> {
         let original = self.nodes.get(identifier)?;
+        assert_eq!(&original.id, identifier);
         let (left_content, right_content) = original.content.clone().split(index)?;
 
         let node = Node {
@@ -334,9 +338,17 @@ impl Weave {
     ///
     /// The merged node inherits the active status of the `right` node. Otherwise, the merged node retains all other properties of the original nodes.
     #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn merge_nodes(&mut self, left: &Ulid, right: &Ulid) -> Option<Ulid> {
-        let left = self.nodes.get(left)?;
-        let right = self.nodes.get(right)?;
+        let left = self
+            .nodes
+            .get(left)
+            .inspect(|node| assert_eq!(&node.id, left))?;
+        let right = self
+            .nodes
+            .get(right)
+            .inspect(|node| assert_eq!(&node.id, right))?;
+
         if !(left.to.contains(&right.id) && right.from.contains(&left.id)) {
             return None;
         }
@@ -371,8 +383,10 @@ impl Weave {
     /// All child nodes orphaned by removing the node will be removed. Non-orphaned child nodes will have their active status updated based on if they have other active parents.
     ///
     /// All [`Model`] objects orphaned by removing the node will be removed.
+    #[allow(clippy::missing_panics_doc)]
     pub fn remove_node(&mut self, identifier: &Ulid) -> Option<Node> {
         if let Some(node) = self.nodes.remove(identifier) {
+            assert_eq!(&node.id, identifier);
             self.root_nodes.remove(&node.id);
             self.bookmarked_nodes.remove(&node.id);
             self.multiparent_nodes.remove(&node.id);
@@ -495,6 +509,7 @@ fn update_node_activity(
     in_place: bool,
 ) {
     if let Some(node) = nodes.get(identifier) {
+        assert_eq!(&node.id, identifier);
         if node.active == active {
             return;
         }
@@ -545,6 +560,7 @@ fn update_node_activity(
 
 fn update_removed_child_activity(nodes: &mut HashMap<Ulid, Node>, identifier: &Ulid) {
     if let Some(node) = nodes.get(identifier) {
+        assert_eq!(&node.id, identifier);
         if !node.active {
             return;
         }
