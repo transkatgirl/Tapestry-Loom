@@ -610,7 +610,13 @@ impl WeaveView for Weave {
             })
             .collect();
 
-        hydrated_timelines.sort_by_key(|timeline| timeline.timeline.len());
+        hydrated_timelines.sort_by_cached_key(|timeline| {
+            timeline
+                .timeline
+                .iter()
+                .map(|(node, _)| node.id)
+                .collect::<Vec<_>>()
+        });
 
         hydrated_timelines
     }
@@ -735,7 +741,13 @@ impl WeaveView for WeaveSnapshot<'_> {
             })
             .collect();
 
-        hydrated_timelines.sort_by_key(|timeline| timeline.timeline.len());
+        hydrated_timelines.sort_by_cached_key(|timeline| {
+            timeline
+                .timeline
+                .iter()
+                .map(|(node, _)| node.id)
+                .collect::<Vec<_>>()
+        });
 
         hydrated_timelines
     }
