@@ -124,6 +124,7 @@ impl<'w> WeaveTimeline<'w> {
                     for _ in 0..annotations_len {
                         cursor.move_next();
                     }
+                    location += snippet.len();
                     bytes.extend_from_slice(&snippet.as_bytes());
                 }
                 NodeContent::Tokens(tokens) => {
@@ -144,7 +145,7 @@ impl<'w> WeaveTimeline<'w> {
                     for _ in 0..annotations_len {
                         cursor.move_next();
                     }
-
+                    location += tokens.len();
                     bytes.extend_from_slice(&tokens.as_bytes());
                 }
                 NodeContent::Diff(diff) => {
