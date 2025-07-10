@@ -110,7 +110,7 @@ impl<'w> WeaveTimeline<'w> {
                     let annotations: LinkedList<TimelineAnnotation<'_>> = snippet
                         .annotations()
                         .map(|annotation| TimelineAnnotation {
-                            len: bytes.len(),
+                            len: annotation.len,
                             node: Some(node),
                             model: *model,
                             subsection_metadata: annotation.metadata,
@@ -131,7 +131,7 @@ impl<'w> WeaveTimeline<'w> {
                     let annotations: LinkedList<TimelineAnnotation<'_>> = tokens
                         .annotations()
                         .map(|annotation| TimelineAnnotation {
-                            len: bytes.len(),
+                            len: annotation.len,
                             node: Some(node),
                             model: *model,
                             subsection_metadata: annotation.metadata,
@@ -1503,7 +1503,7 @@ impl ModificationRange {
             return false;
         }
 
-        while *location >= range.start {
+        while *location > range.start {
             let current = cursor.current().unwrap();
             *location -= current.len();
             cursor.move_prev();
