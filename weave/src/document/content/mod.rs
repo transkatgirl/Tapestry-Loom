@@ -1503,28 +1503,31 @@ impl ModificationRange {
             return false;
         }
 
-        while *location > range.start {
-            let current = cursor.current().unwrap();
-            *location -= current.len();
-            cursor.move_prev();
-        }
-
         while let Some(current) = cursor.current() {
-            if *location + current.len() >= range.start {
+            if *location > range.start {
+                *location -= current.len();
+                cursor.move_prev();
+            } else {
                 break;
             }
-            *location += current.len();
+        }
+
+        while let Some(next) = cursor.peek_next() {
+            if *location + next.len() >= range.start {
+                break;
+            }
+            *location += next.len();
             cursor.move_next();
         }
 
         match self {
-            Self::Insertion(range) => match cursor.current() {
+            Self::Insertion(range) => match cursor.peek_next() {
                 Some(annotation) => {
                     if range.start == *location {
                         cursor.insert_after(T::from(length));
                         cursor.move_next();
                         *location += length;
-                        insert_snippet_callback(cursor.current().unwrap());
+                        insert_snippet_callback(cursor.peek_next().unwrap());
 
                         true
                     } else if range.start == *location + annotation.len() {
@@ -1534,7 +1537,7 @@ impl ModificationRange {
                         cursor.insert_after(T::from(length));
                         cursor.move_next();
                         *location += length;
-                        insert_snippet_callback(cursor.current().unwrap());
+                        insert_snippet_callback(cursor.peek_next().unwrap());
 
                         true
                     } else {
@@ -1547,11 +1550,11 @@ impl ModificationRange {
 
                         cursor.splice_after(annotations);
                         cursor.move_next();
-                        split_left_callback(cursor.current().unwrap());
+                        split_left_callback(cursor.peek_next().unwrap());
                         cursor.move_next();
-                        insert_snippet_callback(cursor.current().unwrap());
+                        insert_snippet_callback(cursor.peek_next().unwrap());
                         cursor.move_next();
-                        split_right_callback(cursor.current().unwrap());
+                        split_right_callback(cursor.peek_next().unwrap());
                         *location += length;
 
                         true
@@ -1562,7 +1565,7 @@ impl ModificationRange {
                         cursor.insert_after(T::from(length));
                         cursor.move_next();
                         *location += length;
-                        insert_snippet_callback(cursor.current().unwrap());
+                        insert_snippet_callback(cursor.peek_next().unwrap());
 
                         true
                     } else {
@@ -1570,7 +1573,7 @@ impl ModificationRange {
                     }
                 }
             },
-            Self::TokenInsertion(tokens) => match cursor.current() {
+            Self::TokenInsertion(tokens) => match cursor.peek_next() {
                 Some(annotation) => {
                     let token_annotations =
                         tokens.tokens.iter().map(|(length, _)| T::from(*length));
@@ -1580,7 +1583,7 @@ impl ModificationRange {
                             cursor.insert_after(token_annotation);
                             cursor.move_next();
                             *location += length;
-                            insert_token_callback(cursor.current().unwrap(), index);
+                            insert_token_callback(cursor.peek_next().unwrap(), index);
                         }
 
                         true
@@ -1592,7 +1595,7 @@ impl ModificationRange {
                             cursor.insert_after(token_annotation);
                             cursor.move_next();
                             *location += length;
-                            insert_token_callback(cursor.current().unwrap(), index);
+                            insert_token_callback(cursor.peek_next().unwrap(), index);
                         }
 
                         true
@@ -1604,18 +1607,18 @@ impl ModificationRange {
 
                         cursor.insert_after(left);
                         cursor.move_next();
-                        split_left_callback(cursor.current().unwrap());
+                        split_left_callback(cursor.peek_next().unwrap());
 
                         for (index, token_annotation) in token_annotations.enumerate() {
                             cursor.insert_after(token_annotation);
                             cursor.move_next();
                             *location += length;
-                            insert_token_callback(cursor.current().unwrap(), index);
+                            insert_token_callback(cursor.peek_next().unwrap(), index);
                         }
 
                         cursor.insert_after(right);
                         cursor.move_next();
-                        split_right_callback(cursor.current().unwrap());
+                        split_right_callback(cursor.peek_next().unwrap());
 
                         true
                     }
@@ -1629,7 +1632,7 @@ impl ModificationRange {
                             cursor.insert_after(token_annotation);
                             cursor.move_next();
                             *location += length;
-                            insert_token_callback(cursor.current().unwrap(), index);
+                            insert_token_callback(cursor.peek_next().unwrap(), index);
                         }
 
                         true
@@ -1639,7 +1642,7 @@ impl ModificationRange {
                 }
             },
             Self::Deletion(range) => {
-                while let Some(current) = cursor.current() {
+                while let Some(current) = cursor.peek_next() {
                     let mut annotation_range = Range {
                         start: *location,
                         end: *location + current.len(),
@@ -1651,7 +1654,7 @@ impl ModificationRange {
                         && range.end < annotation_range.end
                     {
                         let (left, mut right) = cursor
-                            .current()
+                            .peek_next()
                             .unwrap()
                             .split(range.start - annotation_range.start)
                             .unwrap();
@@ -1668,9 +1671,9 @@ impl ModificationRange {
 
                         cursor.splice_after(LinkedList::from([left, right]));
                         cursor.move_next();
-                        split_left_callback(cursor.current().unwrap());
+                        split_left_callback(cursor.peek_next().unwrap());
                         cursor.move_next();
-                        split_right_callback(cursor.current().unwrap());
+                        split_right_callback(cursor.peek_next().unwrap());
 
                         *location += (annotation_range.end - annotation_range.start) - length;
 
@@ -1684,7 +1687,7 @@ impl ModificationRange {
                         let new_length = annotation_range.end - annotation_range.start;
                         current.resize(new_length);
 
-                        split_right_callback(cursor.current().unwrap());
+                        split_right_callback(cursor.peek_next().unwrap());
 
                         *location += new_length;
                         cursor.move_next();
@@ -1694,7 +1697,7 @@ impl ModificationRange {
                         let new_length = annotation_range.end - annotation_range.start;
                         current.resize(new_length);
 
-                        split_left_callback(cursor.current().unwrap());
+                        split_left_callback(cursor.peek_next().unwrap());
 
                         *location += new_length;
                         cursor.move_next();
