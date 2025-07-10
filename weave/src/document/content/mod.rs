@@ -1527,7 +1527,7 @@ impl ModificationRange {
                         cursor.insert_after(T::from(length));
                         cursor.move_next();
                         *location += length;
-                        insert_snippet_callback(cursor.peek_next().unwrap());
+                        insert_snippet_callback(cursor.current().unwrap());
 
                         true
                     } else if range.start == *location + annotation.len() {
@@ -1537,7 +1537,7 @@ impl ModificationRange {
                         cursor.insert_after(T::from(length));
                         cursor.move_next();
                         *location += length;
-                        insert_snippet_callback(cursor.peek_next().unwrap());
+                        insert_snippet_callback(cursor.current().unwrap());
 
                         true
                     } else {
@@ -1550,11 +1550,11 @@ impl ModificationRange {
 
                         cursor.splice_after(annotations);
                         cursor.move_next();
-                        split_left_callback(cursor.peek_next().unwrap());
+                        split_left_callback(cursor.current().unwrap());
                         cursor.move_next();
-                        insert_snippet_callback(cursor.peek_next().unwrap());
+                        insert_snippet_callback(cursor.current().unwrap());
                         cursor.move_next();
-                        split_right_callback(cursor.peek_next().unwrap());
+                        split_right_callback(cursor.current().unwrap());
                         *location += length;
 
                         true
@@ -1565,7 +1565,7 @@ impl ModificationRange {
                         cursor.insert_after(T::from(length));
                         cursor.move_next();
                         *location += length;
-                        insert_snippet_callback(cursor.peek_next().unwrap());
+                        insert_snippet_callback(cursor.current().unwrap());
 
                         true
                     } else {
@@ -1583,7 +1583,7 @@ impl ModificationRange {
                             cursor.insert_after(token_annotation);
                             cursor.move_next();
                             *location += length;
-                            insert_token_callback(cursor.peek_next().unwrap(), index);
+                            insert_token_callback(cursor.current().unwrap(), index);
                         }
 
                         true
@@ -1595,7 +1595,7 @@ impl ModificationRange {
                             cursor.insert_after(token_annotation);
                             cursor.move_next();
                             *location += length;
-                            insert_token_callback(cursor.peek_next().unwrap(), index);
+                            insert_token_callback(cursor.current().unwrap(), index);
                         }
 
                         true
@@ -1607,18 +1607,18 @@ impl ModificationRange {
 
                         cursor.insert_after(left);
                         cursor.move_next();
-                        split_left_callback(cursor.peek_next().unwrap());
+                        split_left_callback(cursor.current().unwrap());
 
                         for (index, token_annotation) in token_annotations.enumerate() {
                             cursor.insert_after(token_annotation);
                             cursor.move_next();
                             *location += length;
-                            insert_token_callback(cursor.peek_next().unwrap(), index);
+                            insert_token_callback(cursor.current().unwrap(), index);
                         }
 
                         cursor.insert_after(right);
                         cursor.move_next();
-                        split_right_callback(cursor.peek_next().unwrap());
+                        split_right_callback(cursor.current().unwrap());
 
                         true
                     }
@@ -1632,7 +1632,7 @@ impl ModificationRange {
                             cursor.insert_after(token_annotation);
                             cursor.move_next();
                             *location += length;
-                            insert_token_callback(cursor.peek_next().unwrap(), index);
+                            insert_token_callback(cursor.current().unwrap(), index);
                         }
 
                         true
@@ -1671,9 +1671,9 @@ impl ModificationRange {
 
                         cursor.splice_after(LinkedList::from([left, right]));
                         cursor.move_next();
-                        split_left_callback(cursor.peek_next().unwrap());
+                        split_left_callback(cursor.current().unwrap());
                         cursor.move_next();
-                        split_right_callback(cursor.peek_next().unwrap());
+                        split_right_callback(cursor.current().unwrap());
 
                         *location += (annotation_range.end - annotation_range.start) - length;
 
@@ -1687,7 +1687,7 @@ impl ModificationRange {
                         let new_length = annotation_range.end - annotation_range.start;
                         current.resize(new_length);
 
-                        split_right_callback(cursor.peek_next().unwrap());
+                        split_right_callback(cursor.current().unwrap());
 
                         *location += new_length;
                         cursor.move_next();
@@ -1697,7 +1697,7 @@ impl ModificationRange {
                         let new_length = annotation_range.end - annotation_range.start;
                         current.resize(new_length);
 
-                        split_left_callback(cursor.peek_next().unwrap());
+                        split_left_callback(cursor.current().unwrap());
 
                         *location += new_length;
                         cursor.move_next();
