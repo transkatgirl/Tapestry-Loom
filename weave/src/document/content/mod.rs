@@ -1,7 +1,7 @@
 //! Interactive representations of Weave contents.
 
 use std::{
-    collections::{HashMap, HashSet, LinkedList},
+    collections::{HashMap, HashSet, LinkedList, linked_list::CursorMut},
     fmt::Display,
     iter,
     ops::Range,
@@ -101,46 +101,59 @@ impl<'w> WeaveTimeline<'w> {
         let mut bytes = BytesMut::new();
         let mut annotations = LinkedList::new();
 
+        let mut location = 0;
+        let mut cursor = annotations.cursor_front_mut();
+
         for (node, model) in &self.timeline {
             match &node.content {
                 NodeContent::Snippet(snippet) => {
-                    annotations.append(
-                        &mut snippet
-                            .annotations()
-                            .map(|annotation| TimelineAnnotation {
-                                len: bytes.len(),
-                                node: Some(node),
-                                model: *model,
-                                subsection_metadata: annotation.metadata,
-                                content_metadata: node.content.metadata(),
-                                parameters: node.content.model().map(|model| &model.parameters),
-                            })
-                            .collect(),
-                    );
+                    let annotations: LinkedList<TimelineAnnotation<'_>> = snippet
+                        .annotations()
+                        .map(|annotation| TimelineAnnotation {
+                            len: bytes.len(),
+                            node: Some(node),
+                            model: *model,
+                            subsection_metadata: annotation.metadata,
+                            content_metadata: node.content.metadata(),
+                            parameters: node.content.model().map(|model| &model.parameters),
+                        })
+                        .collect();
+                    let annotations_len = annotations.len();
+
+                    cursor.splice_after(annotations);
+                    for _ in 0..annotations_len {
+                        cursor.move_next();
+                    }
                     bytes.extend_from_slice(&snippet.as_bytes());
                 }
                 NodeContent::Tokens(tokens) => {
-                    annotations.append(
-                        &mut tokens
-                            .annotations()
-                            .map(|annotation| TimelineAnnotation {
-                                len: bytes.len(),
-                                node: Some(node),
-                                model: *model,
-                                subsection_metadata: annotation.metadata,
-                                content_metadata: node.content.metadata(),
-                                parameters: node.content.model().map(|model| &model.parameters),
-                            })
-                            .collect(),
-                    );
+                    let annotations: LinkedList<TimelineAnnotation<'_>> = tokens
+                        .annotations()
+                        .map(|annotation| TimelineAnnotation {
+                            len: bytes.len(),
+                            node: Some(node),
+                            model: *model,
+                            subsection_metadata: annotation.metadata,
+                            content_metadata: node.content.metadata(),
+                            parameters: node.content.model().map(|model| &model.parameters),
+                        })
+                        .collect();
+                    let annotations_len = annotations.len();
+
+                    cursor.splice_after(annotations);
+                    for _ in 0..annotations_len {
+                        cursor.move_next();
+                    }
+
                     bytes.extend_from_slice(&tokens.as_bytes());
                 }
                 NodeContent::Diff(diff) => {
                     diff.content.apply_timeline_annotations(
+                        &mut location,
+                        &mut cursor,
                         node,
                         *model,
                         node.content.metadata(),
-                        &mut annotations,
                     );
                     diff.content.apply(&mut bytes);
                 }
@@ -1188,14 +1201,16 @@ impl Diff {
     // Trivial; shouldn't require unit tests
     pub(super) fn apply_timeline_annotations<'w>(
         &'w self,
+        location: &mut usize,
+        cursor: &mut CursorMut<'_, TimelineAnnotation<'w>>,
         node: &'w Node,
         model: Option<&'w Model>,
         content_metadata: Option<&'w HashMap<String, String>>,
-        annotations: &mut LinkedList<TimelineAnnotation<'w>>,
     ) {
         for modification in &self.content {
-            let updates = modification.apply_annotations(
-                annotations,
+            modification.apply_annotations(
+                location,
+                cursor,
                 |annotation| {
                     annotation.node = Some(node);
                     annotation.model = model;
@@ -1213,8 +1228,8 @@ impl Diff {
                         panic!() // Should never happen
                     }
                 },
-                |annotation| {},
-                |annotation| {},
+                |_annotation| {},
+                |_annotation| {},
             );
         }
     }
@@ -1330,7 +1345,8 @@ impl Modification {
     // Trivial; shouldn't require unit tests
     fn apply_annotations<T>(
         &self,
-        annotations: &mut LinkedList<T>,
+        location: &mut usize,
+        cursor: &mut CursorMut<'_, T>,
         insert_snippet_callback: impl Fn(&mut T),
         insert_token_callback: impl Fn(&mut T, usize),
         split_left_callback: impl Fn(&mut T),
@@ -1340,7 +1356,8 @@ impl Modification {
         T: Annotation,
     {
         ModificationRange::from(self).apply_annotations(
-            annotations,
+            location,
+            cursor,
             insert_snippet_callback,
             insert_token_callback,
             split_left_callback,
@@ -1469,7 +1486,8 @@ impl ModificationRange {
     #[allow(clippy::too_many_lines)]
     pub(super) fn apply_annotations<T>(
         &self,
-        annotations: &mut LinkedList<T>,
+        location: &mut usize,
+        cursor: &mut CursorMut<'_, T>,
         insert_snippet_callback: impl Fn(&mut T),
         insert_token_callback: impl Fn(&mut T, usize),
         split_left_callback: impl Fn(&mut T),
@@ -1483,22 +1501,18 @@ impl ModificationRange {
         if length == 0 {
             return false;
         }
-        let end = annotations.iter().map(Annotation::len).sum();
-        assert!((range.start <= end));
 
-        let empty = annotations.is_empty();
-        if empty && range.start != 0 {
-            panic!()
+        while *location >= range.start {
+            let current = cursor.current().unwrap();
+            *location -= current.len();
+            cursor.move_prev();
         }
-        let mut cursor = annotations.cursor_front_mut();
-
-        let mut location = 0;
 
         while let Some(current) = cursor.current() {
-            if location + current.len() > range.start {
+            if *location + current.len() > range.start {
                 break;
             }
-            location += current.len();
+            *location += current.len();
             cursor.move_next();
         }
 
@@ -1508,14 +1522,14 @@ impl ModificationRange {
                     todo!()
                 }
                 None => {
-                    if empty {
+                    if *location == 0 && range.start == 0 {
                         cursor.push_back(T::from(length));
                         cursor.move_next();
                         insert_snippet_callback(cursor.current().unwrap());
 
                         true
                     } else {
-                        false
+                        panic!()
                     }
                 }
             },
@@ -1524,7 +1538,7 @@ impl ModificationRange {
                     todo!()
                 }
                 None => {
-                    if empty {
+                    if *location == 0 && range.start == 0 {
                         let token_annotations =
                             tokens.tokens.iter().map(|(length, _)| T::from(*length));
 
@@ -1536,7 +1550,7 @@ impl ModificationRange {
 
                         todo!()
                     } else {
-                        false
+                        panic!()
                     }
                 }
             },
