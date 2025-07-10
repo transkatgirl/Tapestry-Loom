@@ -1639,7 +1639,71 @@ impl ModificationRange {
                 }
             },
             Self::Deletion(range) => {
-                todo!()
+                while let Some(current) = cursor.current() {
+                    let mut annotation_range = Range {
+                        start: *location,
+                        end: *location + current.len(),
+                    };
+
+                    if annotation_range.start >= range.start && annotation_range.end <= range.end {
+                        cursor.remove_current().unwrap();
+                    } else if range.start > annotation_range.start
+                        && range.end < annotation_range.end
+                    {
+                        let (left, mut right) = cursor
+                            .current()
+                            .unwrap()
+                            .split(range.start - annotation_range.start)
+                            .unwrap();
+
+                        let right_annotation_range = Range {
+                            start: range.start - annotation_range.start,
+                            end: annotation_range.end - length,
+                        };
+
+                        right.resize(right_annotation_range.end - right_annotation_range.start);
+
+                        cursor.remove_current().unwrap();
+                        cursor.move_prev();
+
+                        cursor.splice_after(LinkedList::from([left, right]));
+                        cursor.move_next();
+                        split_left_callback(cursor.current().unwrap());
+                        cursor.move_next();
+                        split_right_callback(cursor.current().unwrap());
+
+                        *location += (annotation_range.end - annotation_range.start) - length;
+
+                        break;
+                    } else if annotation_range.start >= range.start
+                        && annotation_range.start < range.end
+                    {
+                        annotation_range.start = range.start;
+                        annotation_range.end -= length;
+
+                        let new_length = annotation_range.end - annotation_range.start;
+                        current.resize(new_length);
+
+                        split_right_callback(cursor.current().unwrap());
+
+                        *location += new_length;
+                        cursor.move_next();
+                    } else if annotation_range.start < range.end {
+                        annotation_range.end = range.start;
+
+                        let new_length = annotation_range.end - annotation_range.start;
+                        current.resize(new_length);
+
+                        split_left_callback(cursor.current().unwrap());
+
+                        *location += new_length;
+                        cursor.move_next();
+                    } else {
+                        break;
+                    }
+                }
+
+                true
             }
         }
     }
