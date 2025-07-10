@@ -1510,7 +1510,7 @@ impl ModificationRange {
         }
 
         while let Some(current) = cursor.current() {
-            if *location + current.len() > range.start {
+            if *location + current.len() >= range.start {
                 break;
             }
             *location += current.len();
@@ -1520,11 +1520,44 @@ impl ModificationRange {
         match self {
             Self::Insertion(range) => match cursor.current() {
                 Some(annotation) => {
-                    todo!()
+                    if range.start == *location {
+                        cursor.insert_after(T::from(length));
+                        cursor.move_next();
+                        *location += length;
+                        insert_snippet_callback(cursor.current().unwrap());
+
+                        true
+                    } else if range.start == *location + annotation.len() {
+                        *location += annotation.len();
+                        cursor.move_next();
+
+                        cursor.insert_after(T::from(length));
+                        cursor.move_next();
+                        *location += length;
+                        insert_snippet_callback(cursor.current().unwrap());
+
+                        true
+                    } else {
+                        let (left, right) = annotation.split(range.start - *location).unwrap();
+                        let middle = T::from(length);
+                        let annotations = LinkedList::from([left, middle, right]);
+
+                        cursor.remove_current().unwrap();
+                        cursor.move_prev();
+
+                        cursor.splice_after(annotations);
+                        cursor.move_next();
+                        cursor.move_next();
+                        insert_snippet_callback(cursor.current().unwrap());
+                        cursor.move_next();
+                        *location += length;
+
+                        true
+                    }
                 }
                 None => {
                     if *location == 0 && range.start == 0 {
-                        cursor.push_back(T::from(length));
+                        cursor.insert_after(T::from(length));
                         cursor.move_next();
                         *location += length;
                         insert_snippet_callback(cursor.current().unwrap());
@@ -1537,6 +1570,9 @@ impl ModificationRange {
             },
             Self::TokenInsertion(tokens) => match cursor.current() {
                 Some(annotation) => {
+                    let token_annotations =
+                        tokens.tokens.iter().map(|(length, _)| T::from(*length));
+
                     todo!()
                 }
                 None => {
@@ -1551,7 +1587,7 @@ impl ModificationRange {
                             insert_token_callback(cursor.current().unwrap(), index);
                         }
 
-                        todo!()
+                        true
                     } else {
                         panic!()
                     }
