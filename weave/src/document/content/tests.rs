@@ -1977,6 +1977,8 @@ fn format_modification_count() {
     );
 }
 
+// TODO: Need to add position-change specific tests for apply_annotations
+
 #[test]
 fn modification_range_apply_annotations() {
     let mut annotations: Vec<ContentAnnotation> = vec![];
