@@ -1526,6 +1526,7 @@ impl ModificationRange {
                     if *location == 0 && range.start == 0 {
                         cursor.push_back(T::from(length));
                         cursor.move_next();
+                        *location += length;
                         insert_snippet_callback(cursor.current().unwrap());
 
                         true
@@ -1546,6 +1547,7 @@ impl ModificationRange {
                         for (index, token_annotation) in token_annotations.enumerate() {
                             cursor.insert_after(token_annotation);
                             cursor.move_next();
+                            *location += length;
                             insert_token_callback(cursor.current().unwrap(), index);
                         }
 
