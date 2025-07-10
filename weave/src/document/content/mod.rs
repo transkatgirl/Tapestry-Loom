@@ -1547,9 +1547,11 @@ impl ModificationRange {
 
                         cursor.splice_after(annotations);
                         cursor.move_next();
+                        split_left_callback(cursor.current().unwrap());
                         cursor.move_next();
                         insert_snippet_callback(cursor.current().unwrap());
                         cursor.move_next();
+                        split_right_callback(cursor.current().unwrap());
                         *location += length;
 
                         true
@@ -1573,7 +1575,50 @@ impl ModificationRange {
                     let token_annotations =
                         tokens.tokens.iter().map(|(length, _)| T::from(*length));
 
-                    todo!()
+                    if range.start == *location {
+                        for (index, token_annotation) in token_annotations.enumerate() {
+                            cursor.insert_after(token_annotation);
+                            cursor.move_next();
+                            *location += length;
+                            insert_token_callback(cursor.current().unwrap(), index);
+                        }
+
+                        true
+                    } else if range.start == *location + annotation.len() {
+                        *location += annotation.len();
+                        cursor.move_next();
+
+                        for (index, token_annotation) in token_annotations.enumerate() {
+                            cursor.insert_after(token_annotation);
+                            cursor.move_next();
+                            *location += length;
+                            insert_token_callback(cursor.current().unwrap(), index);
+                        }
+
+                        true
+                    } else {
+                        let (left, right) = annotation.split(range.start - *location).unwrap();
+
+                        cursor.remove_current().unwrap();
+                        cursor.move_prev();
+
+                        cursor.insert_after(left);
+                        cursor.move_next();
+                        split_left_callback(cursor.current().unwrap());
+
+                        for (index, token_annotation) in token_annotations.enumerate() {
+                            cursor.insert_after(token_annotation);
+                            cursor.move_next();
+                            *location += length;
+                            insert_token_callback(cursor.current().unwrap(), index);
+                        }
+
+                        cursor.insert_after(right);
+                        cursor.move_next();
+                        split_right_callback(cursor.current().unwrap());
+
+                        true
+                    }
                 }
                 None => {
                     if *location == 0 && range.start == 0 {
