@@ -6,7 +6,7 @@ use serde::Serialize;
 use ulid::Ulid;
 
 pub mod content;
-mod update;
+//mod update;
 
 #[cfg(test)]
 mod tests;
