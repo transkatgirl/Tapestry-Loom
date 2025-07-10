@@ -969,7 +969,7 @@ impl ConcatableNodeContents for TokenContent {
             .annotations()
             .enumerate()
             .find_map(|(location, annotation)| {
-                if content_index + annotation.len >= index {
+                if content_index + annotation.len > index {
                     return Some(location);
                 }
                 content_index += annotation.len;
