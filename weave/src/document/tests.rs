@@ -4,10 +4,129 @@
 use super::*;
 
 /*#[test]
-fn update_node_activity() {}*/
+#[allow(clippy::bool_assert_comparison)]
+fn update_node_activity_not_in_place() {
+    let mut nodes = HashMap::from([
+        (
+            Ulid::from_parts(0, 0),
+            Node {
+                id: Ulid::from_parts(0, 0),
+                from: HashSet::new(),
+                to: HashSet::from([Ulid::from_parts(0, 1), Ulid::from_parts(0, 2)]),
+                active: false,
+                bookmarked: false,
+                content: NodeContent::Blank,
+            },
+        ),
+        (
+            Ulid::from_parts(0, 1),
+            Node {
+                id: Ulid::from_parts(0, 1),
+                from: HashSet::from([Ulid::from_parts(0, 0)]),
+                to: HashSet::new(),
+                active: false,
+                bookmarked: false,
+                content: NodeContent::Blank,
+            },
+        ),
+        (
+            Ulid::from_parts(0, 2),
+            Node {
+                id: Ulid::from_parts(0, 2),
+                from: HashSet::from([Ulid::from_parts(0, 0)]),
+                to: HashSet::from([Ulid::from_parts(0, 3)]),
+                active: false,
+                bookmarked: false,
+                content: NodeContent::Blank,
+            },
+        ),
+        (
+            Ulid::from_parts(0, 3),
+            Node {
+                id: Ulid::from_parts(0, 3),
+                from: HashSet::from([Ulid::from_parts(0, 2)]),
+                to: HashSet::new(),
+                active: false,
+                bookmarked: false,
+                content: NodeContent::Blank,
+            },
+        ),
+        (
+            Ulid::from_parts(1, 0),
+            Node {
+                id: Ulid::from_parts(1, 0),
+                from: HashSet::new(),
+                to: HashSet::from([Ulid::from_parts(1, 2), Ulid::from_parts(1, 3)]),
+                active: false,
+                bookmarked: false,
+                content: NodeContent::Blank,
+            },
+        ),
+        (
+            Ulid::from_parts(1, 1),
+            Node {
+                id: Ulid::from_parts(1, 1),
+                from: HashSet::new(),
+                to: HashSet::from([Ulid::from_parts(1, 3), Ulid::from_parts(1, 4)]),
+                active: false,
+                bookmarked: false,
+                content: NodeContent::Blank,
+            },
+        ),
+        (
+            Ulid::from_parts(1, 2),
+            Node {
+                id: Ulid::from_parts(1, 2),
+                from: HashSet::from([Ulid::from_parts(1, 0)]),
+                to: HashSet::new(),
+                active: false,
+                bookmarked: false,
+                content: NodeContent::Blank,
+            },
+        ),
+        (
+            Ulid::from_parts(1, 3),
+            Node {
+                id: Ulid::from_parts(1, 3),
+                from: HashSet::from([Ulid::from_parts(1, 0), Ulid::from_parts(1, 1)]),
+                to: HashSet::new(),
+                active: false,
+                bookmarked: false,
+                content: NodeContent::Blank,
+            },
+        ),
+        (
+            Ulid::from_parts(1, 4),
+            Node {
+                id: Ulid::from_parts(1, 4),
+                from: HashSet::from([Ulid::from_parts(1, 1)]),
+                to: HashSet::new(),
+                active: false,
+                bookmarked: false,
+                content: NodeContent::Blank,
+            },
+        ),
+    ]);
+    assert_eq!(nodes.len(), 14);
+    assert_eq!(nodes.get(&Ulid::from_parts(0, 0)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(0, 1)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(0, 2)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(0, 3)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 0)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 1)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 2)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 3)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 4)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 5)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 6)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 7)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 8)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 9)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 10)).unwrap().active, false);
+}*/
 
 /*#[test]
-fn update_removed_child_activity() {}*/
+fn update_node_activity_in_place() {}*/
 
 /*#[test]
 fn get_active_timelines() {}*/

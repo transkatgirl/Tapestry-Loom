@@ -743,8 +743,6 @@ fn tokencontent_multiple_tokens_split() {
     assert_eq!(content.clone().split(14), None);
 }
 
-/*
-
 #[test]
 fn nodecontent_reduce() {
     let metadata = Some(HashMap::from([("key".to_string(), "value".to_string())]));
@@ -773,7 +771,7 @@ fn nodecontent_reduce() {
     );
     assert_eq!(
         NodeContent::Tokens(TokenContent {
-            content: Bytes::new(),
+            content: vec![],
             model: None,
             metadata: None
         })
@@ -800,7 +798,7 @@ fn nodecontent_reduce() {
     );
     assert_eq!(
         NodeContent::Tokens(TokenContent {
-            content: Bytes::new(),
+            content: vec![],
             model: None,
             metadata: None,
         })
@@ -809,7 +807,7 @@ fn nodecontent_reduce() {
     );
     assert_eq!(
         NodeContent::Tokens(TokenContent {
-            content: Bytes::new(),
+            content: vec![],
             model: None,
             metadata: metadata.clone(),
         })
@@ -888,13 +886,13 @@ fn nodecontent_reduce() {
     );
     assert_eq!(
         NodeContent::Snippet(SnippetContent {
-            content: vec![1, 2, 3, 4],
+            content: Bytes::from_static(&[1, 2, 3, 4]),
             model: None,
             metadata: None,
         })
         .reduce(),
         NodeContent::Snippet(SnippetContent {
-            content: vec![1, 2, 3, 4],
+            content: Bytes::from_static(&[1, 2, 3, 4]),
             model: None,
             metadata: None,
         })
@@ -902,7 +900,7 @@ fn nodecontent_reduce() {
     assert_eq!(
         NodeContent::Tokens(TokenContent {
             content: vec![ContentToken {
-                content: vec![1, 2, 3, 4],
+                content: Bytes::from_static(&[1, 2, 3, 4]),
                 metadata: None,
             }],
             model: None,
@@ -910,7 +908,7 @@ fn nodecontent_reduce() {
         })
         .reduce(),
         NodeContent::Snippet(SnippetContent {
-            content: vec![1, 2, 3, 4],
+            content: Bytes::from_static(&[1, 2, 3, 4]),
             model: None,
             metadata: None,
         })
@@ -919,11 +917,11 @@ fn nodecontent_reduce() {
         NodeContent::Tokens(TokenContent {
             content: vec![
                 ContentToken {
-                    content: vec![1, 2, 3, 4],
+                    content: Bytes::from_static(&[1, 2, 3, 4]),
                     metadata: None,
                 },
                 ContentToken {
-                    content: vec![5, 6],
+                    content: Bytes::from_static(&[5, 6]),
                     metadata: None,
                 }
             ],
@@ -934,11 +932,11 @@ fn nodecontent_reduce() {
         NodeContent::Tokens(TokenContent {
             content: vec![
                 ContentToken {
-                    content: vec![1, 2, 3, 4],
+                    content: Bytes::from_static(&[1, 2, 3, 4]),
                     metadata: None,
                 },
                 ContentToken {
-                    content: vec![5, 6],
+                    content: Bytes::from_static(&[5, 6]),
                     metadata: None,
                 }
             ],
@@ -1002,7 +1000,7 @@ fn nodecontent_into_diff() {
             content: Diff {
                 content: vec![Modification {
                     index: 2,
-                    content: ModificationContent::Insertion(vec![])
+                    content: ModificationContent::Insertion(Bytes::new())
                 }],
             },
             model: None,
@@ -1011,7 +1009,7 @@ fn nodecontent_into_diff() {
     );
     assert_eq!(
         NodeContent::Snippet(SnippetContent {
-            content: vec![4, 3, 2, 1],
+            content: Bytes::from_static(&[4, 3, 2, 1]),
             model: None,
             metadata: None
         })
@@ -1020,7 +1018,7 @@ fn nodecontent_into_diff() {
             content: Diff {
                 content: vec![Modification {
                     index: 2,
-                    content: ModificationContent::Insertion(vec![4, 3, 2, 1])
+                    content: ModificationContent::Insertion(Bytes::from_static(&[4, 3, 2, 1]))
                 }],
             },
             model: None,
@@ -1029,7 +1027,7 @@ fn nodecontent_into_diff() {
     );
     assert_eq!(
         NodeContent::Snippet(SnippetContent {
-            content: vec![4, 3, 2, 1],
+            content: Bytes::from_static(&[4, 3, 2, 1]),
             model: None,
             metadata: None
         })
@@ -1043,7 +1041,7 @@ fn nodecontent_into_diff() {
                     },
                     Modification {
                         index: 2,
-                        content: ModificationContent::Insertion(vec![4, 3, 2, 1])
+                        content: ModificationContent::Insertion(Bytes::from_static(&[4, 3, 2, 1]))
                     }
                 ],
             },
@@ -1053,7 +1051,7 @@ fn nodecontent_into_diff() {
     );
     assert_eq!(
         NodeContent::Tokens(TokenContent {
-            content: Bytes::new(),
+            content: vec![],
             model: None,
             metadata: None
         })
@@ -1073,11 +1071,11 @@ fn nodecontent_into_diff() {
         NodeContent::Tokens(TokenContent {
             content: vec![
                 ContentToken {
-                    content: vec![4, 1, 2],
+                    content: Bytes::from_static(&[4, 1, 2]),
                     metadata: None
                 },
                 ContentToken {
-                    content: vec![6, 3],
+                    content: Bytes::from_static(&[6, 3]),
                     metadata: None
                 },
             ],
@@ -1091,11 +1089,11 @@ fn nodecontent_into_diff() {
                     index: 2,
                     content: ModificationContent::TokenInsertion(vec![
                         ContentToken {
-                            content: vec![4, 1, 2],
+                            content: Bytes::from_static(&[4, 1, 2]),
                             metadata: None
                         },
                         ContentToken {
-                            content: vec![6, 3],
+                            content: Bytes::from_static(&[6, 3]),
                             metadata: None
                         },
                     ])
@@ -1109,11 +1107,11 @@ fn nodecontent_into_diff() {
         NodeContent::Tokens(TokenContent {
             content: vec![
                 ContentToken {
-                    content: vec![4, 1, 2],
+                    content: Bytes::from_static(&[4, 1, 2]),
                     metadata: None
                 },
                 ContentToken {
-                    content: vec![6, 3],
+                    content: Bytes::from_static(&[6, 3]),
                     metadata: None
                 },
             ],
@@ -1132,11 +1130,11 @@ fn nodecontent_into_diff() {
                         index: 2,
                         content: ModificationContent::TokenInsertion(vec![
                             ContentToken {
-                                content: vec![4, 1, 2],
+                                content: Bytes::from_static(&[4, 1, 2]),
                                 metadata: None
                             },
                             ContentToken {
-                                content: vec![6, 3],
+                                content: Bytes::from_static(&[6, 3]),
                                 metadata: None
                             },
                         ])
@@ -1209,7 +1207,7 @@ fn nodecontent_split() {
     );
     assert_eq!(
         NodeContent::Snippet(SnippetContent {
-            content: vec![5, 6, 7, 8],
+            content: Bytes::from_static(&[5, 6, 7, 8]),
             model: None,
             metadata: None
         })
@@ -1217,7 +1215,7 @@ fn nodecontent_split() {
         Some((
             NodeContent::Blank,
             NodeContent::Snippet(SnippetContent {
-                content: vec![5, 6, 7, 8],
+                content: Bytes::from_static(&[5, 6, 7, 8]),
                 model: None,
                 metadata: None
             })
@@ -1225,19 +1223,19 @@ fn nodecontent_split() {
     );
     assert_eq!(
         NodeContent::Snippet(SnippetContent {
-            content: vec![5, 6, 7, 8],
+            content: Bytes::from_static(&[5, 6, 7, 8]),
             model: model_content.clone(),
             metadata: metadata_content.clone(),
         })
         .split(2),
         Some((
             NodeContent::Snippet(SnippetContent {
-                content: vec![5, 6],
+                content: Bytes::from_static(&[5, 6]),
                 model: model_content.clone(),
                 metadata: metadata_content.clone(),
             }),
             NodeContent::Snippet(SnippetContent {
-                content: vec![7, 8],
+                content: Bytes::from_static(&[7, 8]),
                 model: model_content.clone(),
                 metadata: metadata_content.clone(),
             })
@@ -1245,14 +1243,14 @@ fn nodecontent_split() {
     );
     assert_eq!(
         NodeContent::Snippet(SnippetContent {
-            content: vec![5, 6, 7, 8],
+            content: Bytes::from_static(&[5, 6, 7, 8]),
             model: None,
             metadata: None,
         })
         .split(4),
         Some((
             NodeContent::Snippet(SnippetContent {
-                content: vec![5, 6, 7, 8],
+                content: Bytes::from_static(&[5, 6, 7, 8]),
                 model: None,
                 metadata: None,
             }),
@@ -1261,7 +1259,7 @@ fn nodecontent_split() {
     );
     assert_eq!(
         NodeContent::Snippet(SnippetContent {
-            content: vec![5, 6, 7, 8],
+            content: Bytes::from_static(&[5, 6, 7, 8]),
             model: None,
             metadata: None,
         })
@@ -1284,15 +1282,15 @@ fn nodecontent_split() {
         NodeContent::Tokens(TokenContent {
             content: vec![
                 ContentToken {
-                    content: vec![1, 2],
+                    content: Bytes::from_static(&[1, 2]),
                     metadata: metadata_token_1.clone(),
                 },
                 ContentToken {
-                    content: vec![3, 4],
+                    content: Bytes::from_static(&[3, 4]),
                     metadata: metadata_token_2.clone(),
                 },
                 ContentToken {
-                    content: vec![5, 6],
+                    content: Bytes::from_static(&[5, 6]),
                     metadata: metadata_token_3.clone(),
                 }
             ],
@@ -1304,11 +1302,11 @@ fn nodecontent_split() {
             NodeContent::Tokens(TokenContent {
                 content: vec![
                     ContentToken {
-                        content: vec![1, 2],
+                        content: Bytes::from_static(&[1, 2]),
                         metadata: metadata_token_1.clone(),
                     },
                     ContentToken {
-                        content: vec![3],
+                        content: Bytes::from_static(&[3]),
                         metadata: metadata_token_2.clone(),
                     }
                 ],
@@ -1318,11 +1316,11 @@ fn nodecontent_split() {
             NodeContent::Tokens(TokenContent {
                 content: vec![
                     ContentToken {
-                        content: vec![4],
+                        content: Bytes::from_static(&[4]),
                         metadata: metadata_token_2.clone(),
                     },
                     ContentToken {
-                        content: vec![5, 6],
+                        content: Bytes::from_static(&[5, 6]),
                         metadata: metadata_token_3.clone(),
                     }
                 ],
@@ -1335,15 +1333,15 @@ fn nodecontent_split() {
         NodeContent::Tokens(TokenContent {
             content: vec![
                 ContentToken {
-                    content: vec![1, 2],
+                    content: Bytes::from_static(&[1, 2]),
                     metadata: metadata_token_1.clone(),
                 },
                 ContentToken {
-                    content: vec![3, 4],
+                    content: Bytes::from_static(&[3, 4]),
                     metadata: metadata_token_2.clone(),
                 },
                 ContentToken {
-                    content: vec![5, 6],
+                    content: Bytes::from_static(&[5, 6]),
                     metadata: metadata_token_3.clone(),
                 }
             ],
@@ -1354,7 +1352,7 @@ fn nodecontent_split() {
         Some((
             NodeContent::Tokens(TokenContent {
                 content: vec![ContentToken {
-                    content: vec![1, 2],
+                    content: Bytes::from_static(&[1, 2]),
                     metadata: metadata_token_1.clone(),
                 }],
                 model: model_content.clone(),
@@ -1363,11 +1361,11 @@ fn nodecontent_split() {
             NodeContent::Tokens(TokenContent {
                 content: vec![
                     ContentToken {
-                        content: vec![3, 4],
+                        content: Bytes::from_static(&[3, 4]),
                         metadata: metadata_token_2.clone(),
                     },
                     ContentToken {
-                        content: vec![5, 6],
+                        content: Bytes::from_static(&[5, 6]),
                         metadata: metadata_token_3.clone(),
                     }
                 ],
@@ -1380,15 +1378,15 @@ fn nodecontent_split() {
         NodeContent::Tokens(TokenContent {
             content: vec![
                 ContentToken {
-                    content: vec![1, 2],
+                    content: Bytes::from_static(&[1, 2]),
                     metadata: None,
                 },
                 ContentToken {
-                    content: vec![3, 4],
+                    content: Bytes::from_static(&[3, 4]),
                     metadata: None,
                 },
                 ContentToken {
-                    content: vec![5, 6],
+                    content: Bytes::from_static(&[5, 6]),
                     metadata: None,
                 }
             ],
@@ -1398,18 +1396,18 @@ fn nodecontent_split() {
         .split(2),
         Some((
             NodeContent::Snippet(SnippetContent {
-                content: vec![1, 2],
+                content: Bytes::from_static(&[1, 2]),
                 model: model_content.clone(),
                 metadata: metadata_content.clone(),
             }),
             NodeContent::Tokens(TokenContent {
                 content: vec![
                     ContentToken {
-                        content: vec![3, 4],
+                        content: Bytes::from_static(&[3, 4]),
                         metadata: None,
                     },
                     ContentToken {
-                        content: vec![5, 6],
+                        content: Bytes::from_static(&[5, 6]),
                         metadata: None,
                     }
                 ],
@@ -1419,6 +1417,9 @@ fn nodecontent_split() {
         ))
     );
 }
+
+/*
+
 
 #[test]
 fn nodecontent_merge() {
