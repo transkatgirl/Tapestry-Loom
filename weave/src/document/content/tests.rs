@@ -1896,6 +1896,8 @@ fn apply_modification_out_bounds_deletion() {
     .apply(&mut content);
 }
 
+*/
+
 #[test]
 fn format_modification_count() {
     assert_eq!(
@@ -1976,6 +1978,8 @@ fn format_modification_count() {
         "2 Insertions, 2 Deletions"
     );
 }
+
+/*
 
 // TODO: Need to add position-change specific tests for apply_annotations
 
@@ -3965,65 +3969,117 @@ fn modification_range_apply_annotations() {
     );
 }
 
+     */
+
 #[test]
 #[should_panic]
 fn modification_range_invalid_token_insertion_over_length() {
-    let mut annotations: Vec<ContentAnnotation> = vec![];
+    let mut annotations: LinkedList<ContentAnnotation> = LinkedList::new();
+
+    let mut location = 0;
+    let mut cursor = annotations.cursor_front_mut();
 
     ModificationRange::TokenInsertion(ModificationRangeTokens {
         range: Range { start: 0, end: 6 },
         tokens: vec![(2, None), (3, None)],
     })
-    .apply_annotations(&mut annotations);
+    .apply_annotations(
+        &mut location,
+        &mut cursor,
+        |_| {},
+        |_, _| {},
+        |_| {},
+        |_| {},
+    );
 }
 
 #[test]
 #[should_panic]
 fn modification_range_invalid_token_insertion_under_length() {
-    let mut annotations: Vec<ContentAnnotation> = vec![];
+    let mut annotations: LinkedList<ContentAnnotation> = LinkedList::new();
+
+    let mut location = 0;
+    let mut cursor = annotations.cursor_front_mut();
 
     ModificationRange::TokenInsertion(ModificationRangeTokens {
         range: Range { start: 0, end: 4 },
         tokens: vec![(2, None), (3, None)],
     })
-    .apply_annotations(&mut annotations);
+    .apply_annotations(
+        &mut location,
+        &mut cursor,
+        |_| {},
+        |_, _| {},
+        |_| {},
+        |_| {},
+    );
 }
 
 #[test]
 #[should_panic]
 fn modification_range_invalid_insert_modification_index() {
-    let mut annotations: Vec<ContentAnnotation> = vec![ContentAnnotation {
-        range: Range { start: 0, end: 4 },
+    let mut annotations: LinkedList<ContentAnnotation> = LinkedList::from([ContentAnnotation {
+        len: 4,
         metadata: None,
-    }];
+    }]);
 
-    ModificationRange::Insertion(Range { start: 5, end: 6 }).apply_annotations(&mut annotations);
+    let mut location = 0;
+    let mut cursor = annotations.cursor_front_mut();
+
+    ModificationRange::Insertion(Range { start: 5, end: 6 }).apply_annotations(
+        &mut location,
+        &mut cursor,
+        |_| {},
+        |_, _| {},
+        |_| {},
+        |_| {},
+    );
 }
 
 #[test]
 #[should_panic]
 fn modification_range_invalid_token_insert_modification_index() {
-    let mut annotations: Vec<ContentAnnotation> = vec![ContentAnnotation {
-        range: Range { start: 0, end: 4 },
+    let mut annotations: LinkedList<ContentAnnotation> = LinkedList::from([ContentAnnotation {
+        len: 4,
         metadata: None,
-    }];
+    }]);
+
+    let mut location = 0;
+    let mut cursor = annotations.cursor_front_mut();
 
     ModificationRange::TokenInsertion(ModificationRangeTokens {
         range: Range { start: 5, end: 10 },
         tokens: vec![(2, None), (3, None)],
     })
-    .apply_annotations(&mut annotations);
+    .apply_annotations(
+        &mut location,
+        &mut cursor,
+        |_| {},
+        |_, _| {},
+        |_| {},
+        |_| {},
+    );
 }
 
 #[test]
 #[should_panic]
 fn modification_range_invalid_deletion_modification_index() {
-    let mut annotations: Vec<ContentAnnotation> = vec![ContentAnnotation {
-        range: Range { start: 0, end: 4 },
+    let mut annotations: LinkedList<ContentAnnotation> = LinkedList::from([ContentAnnotation {
+        len: 4,
         metadata: None,
-    }];
+    }]);
 
-    ModificationRange::Deletion(Range { start: 3, end: 6 }).apply_annotations(&mut annotations);
+    let mut location = 0;
+    let mut cursor = annotations.cursor_front_mut();
+
+    ModificationRange::Deletion(Range { start: 3, end: 6 }).apply_annotations(
+        &mut location,
+        &mut cursor,
+        |_| {},
+        |_, _| {},
+        |_| {},
+        |_| {},
+    );
 }
 
 #[test]
@@ -4036,7 +4092,7 @@ fn weave_timeline_annotated_string_valid_utf8() {
             active: true,
             bookmarked: false,
             content: NodeContent::Snippet(SnippetContent {
-                content: "I wish you a happy".as_bytes().to_owned(),
+                content: "I wish you a happy".into(),
                 model: None,
                 metadata: Some(HashMap::from([("index".to_string(), "0".to_string())])),
             }),
@@ -4050,14 +4106,14 @@ fn weave_timeline_annotated_string_valid_utf8() {
             content: NodeContent::Tokens(TokenContent {
                 content: vec![
                     ContentToken {
-                        content: " new".as_bytes().to_owned(),
+                        content: " new".into(),
                         metadata: Some(HashMap::from([(
                             "token_index".to_string(),
                             "0".to_string(),
                         )])),
                     },
                     ContentToken {
-                        content: " year!".as_bytes().to_owned(),
+                        content: " year!".into(),
                         metadata: Some(HashMap::from([(
                             "token_index".to_string(),
                             "1".to_string(),
@@ -4086,7 +4142,7 @@ fn weave_timeline_annotated_string_valid_utf8() {
                         },
                         Modification {
                             index: 21,
-                            content: ModificationContent::Insertion("xt".as_bytes().to_owned()),
+                            content: ModificationContent::Insertion("xt".into()),
                         },
                         Modification {
                             index: 28,
@@ -4105,7 +4161,7 @@ fn weave_timeline_annotated_string_valid_utf8() {
             active: true,
             bookmarked: false,
             content: NodeContent::Snippet(SnippetContent {
-                content: " my friend!".as_bytes().to_owned(),
+                content: " my friend!".into(),
                 model: None,
                 metadata: Some(HashMap::from([("index".to_string(), "3".to_string())])),
             }),
@@ -4140,9 +4196,9 @@ fn weave_timeline_annotated_string_valid_utf8() {
     );
     assert_eq!(
         annotations,
-        vec![
+        LinkedList::from([
             TimelineAnnotation {
-                range: 0..18,
+                len: 18,
                 node: Some(&nodes[0]),
                 model: None,
                 parameters: None,
@@ -4150,7 +4206,7 @@ fn weave_timeline_annotated_string_valid_utf8() {
                 content_metadata: nodes[0].content.metadata(),
             },
             TimelineAnnotation {
-                range: 18..21,
+                len: 3,
                 node: Some(&nodes[1]),
                 model: Some(&models[0]),
                 parameters: nodes[1].content.model().map(|model| &model.parameters),
@@ -4161,7 +4217,7 @@ fn weave_timeline_annotated_string_valid_utf8() {
                 content_metadata: nodes[1].content.metadata(),
             },
             TimelineAnnotation {
-                range: 21..23,
+                len: 2,
                 node: Some(&nodes[2]),
                 model: None,
                 parameters: None,
@@ -4169,7 +4225,7 @@ fn weave_timeline_annotated_string_valid_utf8() {
                 content_metadata: nodes[2].content.metadata(),
             },
             TimelineAnnotation {
-                range: 23..28,
+                len: 5,
                 node: Some(&nodes[1]),
                 model: Some(&models[0]),
                 parameters: nodes[1].content.model().map(|model| &model.parameters),
@@ -4180,14 +4236,14 @@ fn weave_timeline_annotated_string_valid_utf8() {
                 content_metadata: nodes[1].content.metadata(),
             },
             TimelineAnnotation {
-                range: 28..39,
+                len: 11,
                 node: Some(&nodes[3]),
                 model: None,
                 parameters: None,
                 subsection_metadata: None,
                 content_metadata: nodes[3].content.metadata(),
             },
-        ]
+        ])
     );
 }
 
@@ -4201,7 +4257,7 @@ fn weave_timeline_annotated_string_invalid_utf8() {
             active: true,
             bookmarked: false,
             content: NodeContent::Snippet(SnippetContent {
-                content: "I love you".as_bytes().to_owned(),
+                content: "I love you".into(),
                 model: None,
                 metadata: Some(HashMap::from([("index".to_string(), "0".to_string())])),
             }),
@@ -4215,14 +4271,14 @@ fn weave_timeline_annotated_string_invalid_utf8() {
             content: NodeContent::Tokens(TokenContent {
                 content: vec![
                     ContentToken {
-                        content: " so".as_bytes().to_owned(),
+                        content: " so".into(),
                         metadata: Some(HashMap::from([(
                             "token_index".to_string(),
                             "0".to_string(),
                         )])),
                     },
                     ContentToken {
-                        content: " much!".as_bytes().to_owned(),
+                        content: " much!".into(),
                         metadata: Some(HashMap::from([(
                             "token_index".to_string(),
                             "1".to_string(),
@@ -4253,14 +4309,14 @@ fn weave_timeline_annotated_string_invalid_utf8() {
                             index: 10,
                             content: ModificationContent::TokenInsertion(vec![
                                 ContentToken {
-                                    content: "~ ".as_bytes().to_owned(),
+                                    content: "~ ".into(),
                                     metadata: Some(HashMap::from([(
                                         "token_index".to_string(),
                                         "3".to_string(),
                                     )])),
                                 },
                                 ContentToken {
-                                    content: "💖".as_bytes()[..3].to_vec(),
+                                    content: "💖".as_bytes()[..3].into(),
                                     metadata: Some(HashMap::from([(
                                         "token_index".to_string(),
                                         "4".to_string(),
@@ -4284,7 +4340,7 @@ fn weave_timeline_annotated_string_invalid_utf8() {
             active: true,
             bookmarked: false,
             content: NodeContent::Snippet(SnippetContent {
-                content: "\nMwah! <3".as_bytes().to_owned(),
+                content: "\nMwah! <3".into(),
                 model: None,
                 metadata: Some(HashMap::from([("index".to_string(), "3".to_string())])),
             }),
@@ -4307,9 +4363,9 @@ fn weave_timeline_annotated_string_invalid_utf8() {
     assert_eq!(string, "I love you~ \nMwah! <3".to_string());
     assert_eq!(
         annotations,
-        vec![
+        LinkedList::from([
             TimelineAnnotation {
-                range: 0..10,
+                len: 10,
                 node: Some(&nodes[0]),
                 model: None,
                 parameters: None,
@@ -4317,7 +4373,7 @@ fn weave_timeline_annotated_string_invalid_utf8() {
                 content_metadata: nodes[0].content.metadata(),
             },
             TimelineAnnotation {
-                range: 10..12,
+                len: 2,
                 node: Some(&nodes[2]),
                 model: Some(&models[0]),
                 parameters: nodes[2].content.model().map(|model| &model.parameters),
@@ -4328,7 +4384,7 @@ fn weave_timeline_annotated_string_invalid_utf8() {
                 content_metadata: nodes[2].content.metadata(),
             },
             TimelineAnnotation {
-                range: 12..15,
+                len: 3,
                 node: Some(&nodes[2]),
                 model: Some(&models[0]),
                 parameters: nodes[2].content.model().map(|model| &model.parameters),
@@ -4339,15 +4395,13 @@ fn weave_timeline_annotated_string_invalid_utf8() {
                 content_metadata: nodes[2].content.metadata(),
             },
             TimelineAnnotation {
-                range: 15..24,
+                len: 9,
                 node: Some(&nodes[3]),
                 model: None,
                 parameters: None,
                 subsection_metadata: None,
                 content_metadata: nodes[3].content.metadata(),
             },
-        ]
+        ])
     );
 }
-
- */
