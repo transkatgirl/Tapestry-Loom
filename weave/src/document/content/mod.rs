@@ -1561,7 +1561,7 @@ impl ModificationRange {
                     }
                 }
                 None => {
-                    if *location == 0 && range.start == 0 {
+                    if *location == range.start {
                         cursor.insert_after(T::from(length));
                         cursor.move_next();
                         *location += length;
@@ -1579,24 +1579,32 @@ impl ModificationRange {
                         tokens.tokens.iter().map(|(length, _)| T::from(*length));
 
                     if range.start == *location {
+                        let original_location = *location;
+
                         for (index, token_annotation) in token_annotations.enumerate() {
                             cursor.insert_after(token_annotation);
                             cursor.move_next();
                             *location += length;
                             insert_token_callback(cursor.current().unwrap(), index);
                         }
+
+                        assert!(*location - original_location == length);
 
                         true
                     } else if range.start == *location + annotation.len() {
                         *location += annotation.len();
                         cursor.move_next();
 
+                        let original_location = *location;
+
                         for (index, token_annotation) in token_annotations.enumerate() {
                             cursor.insert_after(token_annotation);
                             cursor.move_next();
                             *location += length;
                             insert_token_callback(cursor.current().unwrap(), index);
                         }
+
+                        assert!(*location - original_location == length);
 
                         true
                     } else {
@@ -1609,12 +1617,16 @@ impl ModificationRange {
                         cursor.move_next();
                         split_left_callback(cursor.current().unwrap());
 
+                        let original_location = *location;
+
                         for (index, token_annotation) in token_annotations.enumerate() {
                             cursor.insert_after(token_annotation);
                             cursor.move_next();
                             *location += length;
                             insert_token_callback(cursor.current().unwrap(), index);
                         }
+
+                        assert!(*location - original_location == length);
 
                         cursor.insert_after(right);
                         cursor.move_next();
@@ -1624,9 +1636,11 @@ impl ModificationRange {
                     }
                 }
                 None => {
-                    if *location == 0 && range.start == 0 {
+                    if *location == range.start {
                         let token_annotations =
                             tokens.tokens.iter().map(|(length, _)| T::from(*length));
+
+                        let original_location = *location;
 
                         for (index, token_annotation) in token_annotations.enumerate() {
                             cursor.insert_after(token_annotation);
@@ -1634,6 +1648,8 @@ impl ModificationRange {
                             *location += length;
                             insert_token_callback(cursor.current().unwrap(), index);
                         }
+
+                        assert!(*location - original_location == length);
 
                         true
                     } else {
