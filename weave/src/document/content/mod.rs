@@ -1588,7 +1588,7 @@ impl ModificationRange {
                             insert_token_callback(cursor.current().unwrap(), index);
                         }
 
-                        assert!(*location - original_location == length);
+                        assert_eq!(*location - original_location, length);
 
                         true
                     } else if range.start == *location + annotation.len() {
@@ -1604,7 +1604,7 @@ impl ModificationRange {
                             insert_token_callback(cursor.current().unwrap(), index);
                         }
 
-                        assert!(*location - original_location == length);
+                        assert_eq!(*location - original_location, length);
 
                         true
                     } else {
@@ -1626,7 +1626,7 @@ impl ModificationRange {
                             insert_token_callback(cursor.current().unwrap(), index);
                         }
 
-                        assert!(*location - original_location == length);
+                        assert_eq!(*location - original_location, length);
 
                         cursor.insert_after(right);
                         cursor.move_next();
@@ -1649,7 +1649,7 @@ impl ModificationRange {
                             insert_token_callback(cursor.current().unwrap(), index);
                         }
 
-                        assert!(*location - original_location == length);
+                        assert_eq!(*location - original_location, length);
 
                         true
                     } else {
@@ -1658,6 +1658,8 @@ impl ModificationRange {
                 }
             },
             Self::Deletion(range) => {
+                let mut removed = 0;
+
                 while let Some(current) = cursor.peek_next() {
                     let mut annotation_range = Range {
                         start: *location,
@@ -1665,15 +1667,21 @@ impl ModificationRange {
                     };
 
                     if annotation_range.start >= range.start && annotation_range.end <= range.end {
+                        cursor.move_next();
                         cursor.remove_current().unwrap();
+                        removed += annotation_range.end - annotation_range.start;
                     } else if range.start > annotation_range.start
                         && range.end < annotation_range.end
                     {
-                        let (left, mut right) = cursor
-                            .peek_next()
-                            .unwrap()
-                            .split(range.start - annotation_range.start)
-                            .unwrap();
+                        let old_length = annotation_range.end - annotation_range.start;
+
+                        let (left, mut right) =
+                            current.split(range.start - annotation_range.start).unwrap();
+
+                        let left_annotation_range = Range {
+                            start: annotation_range.start,
+                            end: range.start - annotation_range.start,
+                        };
 
                         let right_annotation_range = Range {
                             start: range.start - annotation_range.start,
@@ -1682,6 +1690,7 @@ impl ModificationRange {
 
                         right.resize(right_annotation_range.end - right_annotation_range.start);
 
+                        cursor.move_next();
                         cursor.remove_current().unwrap();
                         cursor.move_prev();
 
@@ -1691,12 +1700,19 @@ impl ModificationRange {
                         cursor.move_next();
                         split_right_callback(cursor.current().unwrap());
 
-                        *location += (annotation_range.end - annotation_range.start) - length;
+                        let new_length = (right_annotation_range.end
+                            - right_annotation_range.start)
+                            + (left_annotation_range.end - left_annotation_range.start);
+
+                        *location += new_length;
+                        removed += old_length - new_length;
 
                         break;
                     } else if annotation_range.start >= range.start
-                        && annotation_range.start < range.end
+                        && (annotation_range.start + 1) < range.end
                     {
+                        let old_length = annotation_range.end - annotation_range.start;
+
                         annotation_range.start = range.start;
                         annotation_range.end -= length;
 
@@ -1706,8 +1722,13 @@ impl ModificationRange {
                         split_right_callback(cursor.current().unwrap());
 
                         *location += new_length;
+                        removed += old_length - new_length;
                         cursor.move_next();
-                    } else if annotation_range.start < range.end {
+                    } else if annotation_range.start < range.end
+                        && annotation_range.end <= range.end
+                    {
+                        let old_length = annotation_range.end - annotation_range.start;
+
                         annotation_range.end = range.start;
 
                         let new_length = annotation_range.end - annotation_range.start;
@@ -1716,11 +1737,14 @@ impl ModificationRange {
                         split_left_callback(cursor.current().unwrap());
 
                         *location += new_length;
+                        removed += old_length - new_length;
                         cursor.move_next();
                     } else {
                         break;
                     }
                 }
+
+                assert_eq!(removed, length);
 
                 true
             }
