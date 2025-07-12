@@ -1582,9 +1582,9 @@ impl ModificationRange {
                         let original_location = *location;
 
                         for (index, token_annotation) in token_annotations.enumerate() {
+                            *location += token_annotation.len();
                             cursor.insert_after(token_annotation);
                             cursor.move_next();
-                            *location += length;
                             insert_token_callback(cursor.current().unwrap(), index);
                         }
 
@@ -1598,9 +1598,9 @@ impl ModificationRange {
                         let original_location = *location;
 
                         for (index, token_annotation) in token_annotations.enumerate() {
+                            *location += token_annotation.len();
                             cursor.insert_after(token_annotation);
                             cursor.move_next();
-                            *location += length;
                             insert_token_callback(cursor.current().unwrap(), index);
                         }
 
@@ -1620,9 +1620,9 @@ impl ModificationRange {
                         let original_location = *location;
 
                         for (index, token_annotation) in token_annotations.enumerate() {
+                            *location += token_annotation.len();
                             cursor.insert_after(token_annotation);
                             cursor.move_next();
-                            *location += length;
                             insert_token_callback(cursor.current().unwrap(), index);
                         }
 
@@ -1643,9 +1643,9 @@ impl ModificationRange {
                         let original_location = *location;
 
                         for (index, token_annotation) in token_annotations.enumerate() {
+                            *location += token_annotation.len();
                             cursor.insert_after(token_annotation);
                             cursor.move_next();
-                            *location += length;
                             insert_token_callback(cursor.current().unwrap(), index);
                         }
 
