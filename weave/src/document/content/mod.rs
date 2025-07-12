@@ -1,14 +1,14 @@
 //! Interactive representations of Weave contents.
 
 use std::{
-    collections::{HashMap, HashSet, LinkedList},
+    collections::{HashMap, HashSet},
     fmt::{Debug, Display},
     iter,
-    ops::{Add, Range, Sub},
+    ops::Range,
     vec,
 };
 
-use any_rope::{Measurable, Rope, max_children, max_len};
+use any_rope::{Measurable, Rope};
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
 use similar::Instant;
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
@@ -176,17 +176,19 @@ impl<'w> WeaveTimeline<'w> {
         (string, annotations)
     }
     // Trivial; shouldn't require unit tests
-    pub(super) fn length_annotated_string(self) -> (String, Vec<TimelineNodeLength>) {
+    pub(super) fn length_annotated_string(self) -> (String, Rope<TimelineNodeLength>) {
         let (content, annotations) = self.annotated_string();
         (
             content,
-            annotations
-                .iter()
-                .map(|(_index, annotation)| TimelineNodeLength {
-                    len: annotation.len,
-                    node: annotation.node.map(|node| node.id),
-                })
-                .collect(),
+            Rope::from(
+                annotations
+                    .iter()
+                    .map(|(_index, annotation)| TimelineNodeLength {
+                        len: annotation.len,
+                        node: annotation.node.map(|node| node.id),
+                    })
+                    .collect::<Vec<_>>(),
+            ),
         )
     }
     // Trivial; shouldn't require unit tests
@@ -207,7 +209,7 @@ impl<'w> WeaveTimeline<'w> {
 }
 
 pub(super) struct TimelineUpdate {
-    pub(super) lengths: Vec<TimelineNodeLength>,
+    pub(super) lengths: Rope<TimelineNodeLength>,
     pub(super) diff: Diff,
     pub(super) metadata: Option<HashMap<String, String>>,
 }
@@ -1127,7 +1129,7 @@ impl Diff {
         content_metadata: Option<&'w HashMap<String, String>>,
     ) {
         for modification in &self.content {
-            modification.apply_annotations(
+            modification.apply_timeline_annotations(
                 insertion_index,
                 annotations,
                 |annotation| {
@@ -1261,14 +1263,14 @@ impl Modification {
     }
     // Trivial; shouldn't require unit tests
     // Unable to use generics due to compiler bug
-    fn apply_annotations<'w>(
+    fn apply_timeline_annotations<'w>(
         &self,
         insertion_index: &mut usize,
         annotations: &mut Rope<TimelineAnnotation<'w>>,
         insert_snippet_callback: impl Fn(&mut TimelineAnnotation<'w>),
         insert_token_callback: impl Fn(&mut TimelineAnnotation<'w>, usize),
     ) {
-        ModificationRange::from(self).apply_annotations(
+        ModificationRange::from(self).apply_timeline_annotations(
             insertion_index,
             annotations,
             insert_snippet_callback,
@@ -1382,8 +1384,8 @@ impl From<&Modification> for ModificationRange {
     }
 }
 
+// Trivial; shouldn't require unit tests
 impl ModificationRange {
-    // Trivial; shouldn't require unit tests
     #[inline]
     pub(super) fn range(&self) -> &Range<usize> {
         match self {
@@ -1392,7 +1394,7 @@ impl ModificationRange {
         }
     }
     // Unable to use generics due to compiler bug
-    pub(super) fn apply_annotations<'w>(
+    pub(super) fn apply_timeline_annotations<'w>(
         &self,
         insertion_index: &mut usize,
         annotations: &mut Rope<TimelineAnnotation<'w>>,
@@ -1417,6 +1419,48 @@ impl ModificationRange {
                     .enumerate()
                     .map(|(index, length)| {
                         let mut annotation = TimelineAnnotation::from(*length);
+                        insert_token_callback(&mut annotation, index);
+                        total_length += *length;
+                        annotation
+                    })
+                    .collect();
+
+                assert_eq!(tokens.range.end - tokens.range.start, total_length);
+
+                annotations.insert_slice(tokens.range.start, &token_annotations, usize::cmp);
+                *insertion_index += total_length;
+            }
+            Self::Deletion(range) => {
+                annotations.remove_inclusive(range.clone(), usize::cmp);
+            }
+        }
+    }
+    // Unable to use generics due to compiler bug
+    pub(super) fn apply_length_annotations<'w>(
+        &self,
+        insertion_index: &mut usize,
+        annotations: &mut Rope<TimelineNodeLength>,
+        insert_snippet_callback: impl Fn(&mut TimelineNodeLength),
+        insert_token_callback: impl Fn(&mut TimelineNodeLength, usize),
+    ) {
+        match self {
+            Self::Insertion(range) => {
+                let length = range.end - range.start;
+                let mut annotation = TimelineNodeLength::from(length);
+                insert_snippet_callback(&mut annotation);
+
+                annotations.insert(range.start, annotation, usize::cmp);
+                *insertion_index += length;
+            }
+            Self::TokenInsertion(tokens) => {
+                let mut total_length = 0;
+
+                let token_annotations: Vec<_> = tokens
+                    .tokens
+                    .iter()
+                    .enumerate()
+                    .map(|(index, length)| {
+                        let mut annotation = TimelineNodeLength::from(*length);
                         insert_token_callback(&mut annotation, index);
                         total_length += *length;
                         annotation
