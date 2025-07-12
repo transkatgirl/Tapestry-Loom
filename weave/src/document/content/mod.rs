@@ -1,13 +1,14 @@
 //! Interactive representations of Weave contents.
 
 use std::{
-    collections::{HashMap, HashSet, LinkedList, linked_list::CursorMut},
+    collections::{HashMap, HashSet, LinkedList},
     fmt::{Debug, Display},
     iter,
-    ops::Range,
+    ops::{Add, Range, Sub},
     vec,
 };
 
+use any_rope::{Measurable, Rope, max_children, max_len};
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
 use similar::Instant;
 #[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
@@ -97,61 +98,57 @@ impl<'w> WeaveTimeline<'w> {
     ///
     /// Bytes which are invalid UTF-8 will be replaced by the character U+001A, keeping the length the same as the original set of bytes.
     #[must_use]
-    pub fn annotated_string(&self) -> (String, LinkedList<TimelineAnnotation<'w>>) {
+    pub fn annotated_string(&self) -> (String, Rope<TimelineAnnotation<'w>>) {
         let mut bytes = BytesMut::new();
-        let mut annotations = LinkedList::new();
+        let mut annotations = Rope::new();
 
-        let mut location = 0;
-        let mut cursor = annotations.cursor_front_mut();
+        let mut insertion_index = 0;
+
+        let mut pending_insertion = Vec::with_capacity(self.timeline.len());
+        let mut pending_length = 0;
 
         for (node, model) in &self.timeline {
             match &node.content {
                 NodeContent::Snippet(snippet) => {
-                    let annotations: LinkedList<TimelineAnnotation<'_>> = snippet
-                        .annotations()
-                        .map(|annotation| TimelineAnnotation {
+                    for annotation in snippet.annotations() {
+                        let annotation = TimelineAnnotation {
                             len: annotation.len,
                             node: Some(node),
                             model: *model,
                             subsection_metadata: annotation.metadata,
                             content_metadata: node.content.metadata(),
                             parameters: node.content.model().map(|model| &model.parameters),
-                        })
-                        .collect();
-                    let annotations_len = annotations.len();
-
-                    cursor.splice_after(annotations);
-                    for _ in 0..annotations_len {
-                        cursor.move_next();
+                        };
+                        pending_length += annotation.len;
+                        pending_insertion.push(annotation);
                     }
-                    location += snippet.len();
                     bytes.extend_from_slice(&snippet.as_bytes());
                 }
                 NodeContent::Tokens(tokens) => {
-                    let annotations: LinkedList<TimelineAnnotation<'_>> = tokens
-                        .annotations()
-                        .map(|annotation| TimelineAnnotation {
+                    for annotation in tokens.annotations() {
+                        let annotation = TimelineAnnotation {
                             len: annotation.len,
                             node: Some(node),
                             model: *model,
                             subsection_metadata: annotation.metadata,
                             content_metadata: node.content.metadata(),
                             parameters: node.content.model().map(|model| &model.parameters),
-                        })
-                        .collect();
-                    let annotations_len = annotations.len();
-
-                    cursor.splice_after(annotations);
-                    for _ in 0..annotations_len {
-                        cursor.move_next();
+                        };
+                        pending_length += annotation.len;
+                        pending_insertion.push(annotation);
                     }
-                    location += tokens.len();
                     bytes.extend_from_slice(&tokens.as_bytes());
                 }
                 NodeContent::Diff(diff) => {
+                    if pending_length > 0 {
+                        annotations.insert_slice(insertion_index, &pending_insertion, usize::cmp);
+                        insertion_index += pending_length;
+                        pending_length = 0;
+                    }
+
                     diff.content.apply_timeline_annotations(
-                        &mut location,
-                        &mut cursor,
+                        &mut insertion_index,
+                        &mut annotations,
                         node,
                         *model,
                         node.content.metadata(),
@@ -160,6 +157,10 @@ impl<'w> WeaveTimeline<'w> {
                 }
                 NodeContent::Blank => {}
             }
+        }
+
+        if pending_length > 0 {
+            annotations.insert_slice(insertion_index, &pending_insertion, usize::cmp);
         }
 
         let mut string = String::with_capacity(bytes.len());
@@ -175,13 +176,13 @@ impl<'w> WeaveTimeline<'w> {
         (string, annotations)
     }
     // Trivial; shouldn't require unit tests
-    pub(super) fn length_annotated_string(self) -> (String, LinkedList<TimelineNodeLength>) {
+    pub(super) fn length_annotated_string(self) -> (String, Vec<TimelineNodeLength>) {
         let (content, annotations) = self.annotated_string();
         (
             content,
             annotations
-                .into_iter()
-                .map(|annotation| TimelineNodeLength {
+                .iter()
+                .map(|(_index, annotation)| TimelineNodeLength {
                     len: annotation.len,
                     node: annotation.node.map(|node| node.id),
                 })
@@ -206,12 +207,12 @@ impl<'w> WeaveTimeline<'w> {
 }
 
 pub(super) struct TimelineUpdate {
-    pub(super) lengths: LinkedList<TimelineNodeLength>,
+    pub(super) lengths: Vec<TimelineNodeLength>,
     pub(super) diff: Diff,
     pub(super) metadata: Option<HashMap<String, String>>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub(super) struct TimelineNodeLength {
     pub(super) len: usize,
     pub(super) node: Option<Ulid>,
@@ -224,31 +225,11 @@ impl From<usize> for TimelineNodeLength {
     }
 }
 
-// Trivial; shouldn't require unit tests
-impl Annotation for TimelineNodeLength {
-    #[inline]
-    fn len(&self) -> usize {
-        self.len
-    }
-    #[inline]
-    fn resize(&mut self, len: usize) {
-        self.len = len;
-    }
-    fn split(&self, index: usize) -> Option<(Self, Self)> {
-        if index == 0 || index >= self.len {
-            return None;
-        }
+impl Measurable for TimelineNodeLength {
+    type Measure = usize;
 
-        Some((
-            Self {
-                len: index,
-                node: self.node,
-            },
-            Self {
-                len: self.len - index,
-                node: self.node,
-            },
-        ))
+    fn measure(&self) -> Self::Measure {
+        self.len
     }
 }
 
@@ -576,84 +557,21 @@ pub struct TimelineAnnotation<'w> {
 }
 
 /// Types which act as content annotations for sets of bytes.
-pub trait Annotation: Default + Debug + Sized + From<usize> {
-    /// Returns the number of content bytes that the annotation applies to.
-    #[must_use]
-    fn len(&self) -> usize;
-    /// Returns `true` if the annotation has a length of zero.
-    #[must_use]
-    #[inline]
-    fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-    /// Updates the number of content bytes that the annotation applies to.
-    fn resize(&mut self, len: usize);
-    /// Splits the annotation in half at the specified index, retaining all associated metadata.
-    #[must_use]
-    fn split(&self, index: usize) -> Option<(Self, Self)>;
-}
+pub trait Annotation: Measurable<Measure = usize> + Sized + From<usize> {}
 
-// Trivial; shouldn't require unit tests
-impl Annotation for ContentAnnotation<'_> {
-    #[inline]
-    fn len(&self) -> usize {
+impl Measurable for ContentAnnotation<'_> {
+    type Measure = usize;
+
+    fn measure(&self) -> Self::Measure {
         self.len
-    }
-    #[inline]
-    fn resize(&mut self, len: usize) {
-        self.len = len;
-    }
-    fn split(&self, index: usize) -> Option<(Self, Self)> {
-        if index == 0 || index >= self.len {
-            return None;
-        }
-
-        Some((
-            Self {
-                len: index,
-                metadata: self.metadata,
-            },
-            Self {
-                len: self.len - index,
-                metadata: self.metadata,
-            },
-        ))
     }
 }
 
-// Trivial; shouldn't require unit tests
-impl Annotation for TimelineAnnotation<'_> {
-    #[inline]
-    fn len(&self) -> usize {
-        self.len
-    }
-    #[inline]
-    fn resize(&mut self, len: usize) {
-        self.len = len;
-    }
-    fn split(&self, index: usize) -> Option<(Self, Self)> {
-        if index == 0 || index >= self.len {
-            return None;
-        }
+impl Measurable for TimelineAnnotation<'_> {
+    type Measure = usize;
 
-        Some((
-            Self {
-                len: index,
-                node: self.node,
-                model: self.model,
-                subsection_metadata: self.subsection_metadata,
-                content_metadata: self.content_metadata,
-                parameters: self.parameters,
-            },
-            Self {
-                len: self.len - index,
-                node: self.node,
-                model: self.model,
-                subsection_metadata: self.subsection_metadata,
-                content_metadata: self.content_metadata,
-                parameters: self.parameters,
-            },
-        ))
+    fn measure(&self) -> Self::Measure {
+        self.len
     }
 }
 
@@ -1202,16 +1120,16 @@ impl Diff {
     // Trivial; shouldn't require unit tests
     pub(super) fn apply_timeline_annotations<'w>(
         &'w self,
-        location: &mut usize,
-        cursor: &mut CursorMut<'_, TimelineAnnotation<'w>>,
+        insertion_index: &mut usize,
+        annotations: &mut Rope<TimelineAnnotation<'w>>,
         node: &'w Node,
         model: Option<&'w Model>,
         content_metadata: Option<&'w HashMap<String, String>>,
     ) {
         for modification in &self.content {
             modification.apply_annotations(
-                location,
-                cursor,
+                insertion_index,
+                annotations,
                 |annotation| {
                     annotation.node = Some(node);
                     annotation.model = model;
@@ -1229,8 +1147,6 @@ impl Diff {
                         panic!() // Should never happen
                     }
                 },
-                |_annotation| {},
-                |_annotation| {},
             );
         }
     }
@@ -1344,26 +1260,20 @@ impl Modification {
         }
     }
     // Trivial; shouldn't require unit tests
-    fn apply_annotations<T>(
+    // Unable to use generics due to compiler bug
+    fn apply_annotations<'w>(
         &self,
-        location: &mut usize,
-        cursor: &mut CursorMut<'_, T>,
-        insert_snippet_callback: impl Fn(&mut T),
-        insert_token_callback: impl Fn(&mut T, usize),
-        split_left_callback: impl Fn(&mut T),
-        split_right_callback: impl Fn(&mut T),
-    ) -> bool
-    where
-        T: Annotation,
-    {
+        insertion_index: &mut usize,
+        annotations: &mut Rope<TimelineAnnotation<'w>>,
+        insert_snippet_callback: impl Fn(&mut TimelineAnnotation<'w>),
+        insert_token_callback: impl Fn(&mut TimelineAnnotation<'w>, usize),
+    ) {
         ModificationRange::from(self).apply_annotations(
-            location,
-            cursor,
+            insertion_index,
+            annotations,
             insert_snippet_callback,
             insert_token_callback,
-            split_left_callback,
-            split_right_callback,
-        )
+        );
     }
 }
 
@@ -1453,7 +1363,7 @@ pub(super) enum ModificationRange {
 
 pub(super) struct ModificationRangeTokens {
     range: Range<usize>,
-    tokens: Vec<(usize, Option<HashMap<String, String>>)>,
+    tokens: Vec<usize>,
 }
 
 // Trivial; shouldn't require unit tests
@@ -1464,10 +1374,7 @@ impl From<&Modification> for ModificationRange {
             ModificationContent::TokenInsertion(tokens) => {
                 Self::TokenInsertion(ModificationRangeTokens {
                     range: input.range(),
-                    tokens: tokens
-                        .iter()
-                        .map(|token| (token.content.len(), token.metadata.clone()))
-                        .collect(),
+                    tokens: tokens.iter().map(|token| token.content.len()).collect(),
                 })
             }
             ModificationContent::Deletion(_) => Self::Deletion(input.range()),
@@ -1484,283 +1391,45 @@ impl ModificationRange {
             Self::TokenInsertion(token_set) => &token_set.range,
         }
     }
-    #[allow(clippy::too_many_lines)]
-    pub(super) fn apply_annotations<T>(
+    // Unable to use generics due to compiler bug
+    pub(super) fn apply_annotations<'w>(
         &self,
-        location: &mut usize,
-        cursor: &mut CursorMut<'_, T>,
-        insert_snippet_callback: impl Fn(&mut T),
-        insert_token_callback: impl Fn(&mut T, usize),
-        split_left_callback: impl Fn(&mut T),
-        split_right_callback: impl Fn(&mut T),
-    ) -> bool
-    where
-        T: Annotation,
-    {
-        let range = self.range();
-        let length = range.end - range.start;
-        if length == 0 {
-            return false;
-        }
-
-        while let Some(current) = cursor.current() {
-            if *location > range.start {
-                *location -= current.len();
-                cursor.move_prev();
-            } else {
-                break;
-            }
-        }
-
-        while let Some(next) = cursor.peek_next() {
-            if *location + next.len() >= range.start {
-                break;
-            }
-            *location += next.len();
-            cursor.move_next();
-        }
-
+        insertion_index: &mut usize,
+        annotations: &mut Rope<TimelineAnnotation<'w>>,
+        insert_snippet_callback: impl Fn(&mut TimelineAnnotation<'w>),
+        insert_token_callback: impl Fn(&mut TimelineAnnotation<'w>, usize),
+    ) {
         match self {
-            Self::Insertion(range) => match cursor.peek_next() {
-                Some(annotation) => {
-                    if range.start == *location {
-                        cursor.insert_after(T::from(length));
-                        cursor.move_next();
-                        *location += length;
-                        insert_snippet_callback(cursor.current().unwrap());
+            Self::Insertion(range) => {
+                let length = range.end - range.start;
+                let mut annotation = TimelineAnnotation::from(length);
+                insert_snippet_callback(&mut annotation);
 
-                        true
-                    } else if range.start == *location + annotation.len() {
-                        *location += annotation.len();
-                        cursor.move_next();
+                annotations.insert(range.start, annotation, usize::cmp);
+                *insertion_index += length;
+            }
+            Self::TokenInsertion(tokens) => {
+                let mut total_length = 0;
 
-                        cursor.insert_after(T::from(length));
-                        cursor.move_next();
-                        *location += length;
-                        insert_snippet_callback(cursor.current().unwrap());
+                let token_annotations: Vec<_> = tokens
+                    .tokens
+                    .iter()
+                    .enumerate()
+                    .map(|(index, length)| {
+                        let mut annotation = TimelineAnnotation::from(*length);
+                        insert_token_callback(&mut annotation, index);
+                        total_length += *length;
+                        annotation
+                    })
+                    .collect();
 
-                        true
-                    } else {
-                        let (left, right) = annotation.split(range.start - *location).unwrap();
-                        let middle = T::from(length);
-                        let annotations = LinkedList::from([left, middle, right]);
+                assert_eq!(tokens.range.end - tokens.range.start, total_length);
 
-                        cursor.remove_current().unwrap();
-                        cursor.move_prev();
-
-                        cursor.splice_after(annotations);
-                        cursor.move_next();
-                        split_left_callback(cursor.current().unwrap());
-                        cursor.move_next();
-                        insert_snippet_callback(cursor.current().unwrap());
-                        cursor.move_next();
-                        split_right_callback(cursor.current().unwrap());
-                        *location += length;
-
-                        true
-                    }
-                }
-                None => {
-                    if *location == range.start {
-                        cursor.insert_after(T::from(length));
-                        cursor.move_next();
-                        *location += length;
-                        insert_snippet_callback(cursor.current().unwrap());
-
-                        true
-                    } else {
-                        panic!()
-                    }
-                }
-            },
-            Self::TokenInsertion(tokens) => match cursor.peek_next() {
-                Some(annotation) => {
-                    let token_annotations =
-                        tokens.tokens.iter().map(|(length, _)| T::from(*length));
-
-                    if range.start == *location {
-                        let original_location = *location;
-
-                        for (index, token_annotation) in token_annotations.enumerate() {
-                            cursor.insert_after(token_annotation);
-                            cursor.move_next();
-                            *location += length;
-                            insert_token_callback(cursor.current().unwrap(), index);
-                        }
-
-                        assert_eq!(*location - original_location, length);
-
-                        true
-                    } else if range.start == *location + annotation.len() {
-                        *location += annotation.len();
-                        cursor.move_next();
-
-                        let original_location = *location;
-
-                        for (index, token_annotation) in token_annotations.enumerate() {
-                            cursor.insert_after(token_annotation);
-                            cursor.move_next();
-                            *location += length;
-                            insert_token_callback(cursor.current().unwrap(), index);
-                        }
-
-                        assert_eq!(*location - original_location, length);
-
-                        true
-                    } else {
-                        let (left, right) = annotation.split(range.start - *location).unwrap();
-
-                        cursor.remove_current().unwrap();
-                        cursor.move_prev();
-
-                        cursor.insert_after(left);
-                        cursor.move_next();
-                        split_left_callback(cursor.current().unwrap());
-
-                        let original_location = *location;
-
-                        for (index, token_annotation) in token_annotations.enumerate() {
-                            cursor.insert_after(token_annotation);
-                            cursor.move_next();
-                            *location += length;
-                            insert_token_callback(cursor.current().unwrap(), index);
-                        }
-
-                        assert_eq!(*location - original_location, length);
-
-                        cursor.insert_after(right);
-                        cursor.move_next();
-                        split_right_callback(cursor.current().unwrap());
-
-                        true
-                    }
-                }
-                None => {
-                    if *location == range.start {
-                        let token_annotations =
-                            tokens.tokens.iter().map(|(length, _)| T::from(*length));
-
-                        let original_location = *location;
-
-                        for (index, token_annotation) in token_annotations.enumerate() {
-                            cursor.insert_after(token_annotation);
-                            cursor.move_next();
-                            *location += length;
-                            insert_token_callback(cursor.current().unwrap(), index);
-                        }
-
-                        assert_eq!(*location - original_location, length);
-
-                        true
-                    } else {
-                        panic!()
-                    }
-                }
-            },
+                annotations.insert_slice(tokens.range.start, &token_annotations, usize::cmp);
+                *insertion_index += total_length;
+            }
             Self::Deletion(range) => {
-                let mut removed = 0;
-
-                if let Some(next) = cursor.peek_next() {
-                    *location += next.len();
-                    cursor.move_next();
-                }
-
-                while let Some(current) = cursor.current() {
-                    assert!(*location >= current.len());
-
-                    let mut annotation_range = Range {
-                        start: *location - current.len(),
-                        end: *location,
-                    };
-
-                    if annotation_range.start >= range.start && annotation_range.end <= range.end {
-                        cursor.remove_current().unwrap();
-                        *location -= annotation_range.end - annotation_range.start;
-                        removed += annotation_range.end - annotation_range.start;
-                    } else if range.start > annotation_range.start
-                        && range.end < annotation_range.end
-                    {
-                        let old_length = annotation_range.end - annotation_range.start;
-
-                        let (left, mut right) =
-                            current.split(range.start - annotation_range.start).unwrap();
-
-                        let left_annotation_range = Range {
-                            start: annotation_range.start,
-                            end: range.start,
-                        };
-
-                        let right_annotation_range = Range {
-                            start: range.start,
-                            end: annotation_range.end - length,
-                        };
-
-                        right.resize(right_annotation_range.end - right_annotation_range.start);
-
-                        cursor.remove_current().unwrap();
-                        cursor.move_prev();
-
-                        cursor.splice_after(LinkedList::from([left, right]));
-                        cursor.move_next();
-                        split_left_callback(cursor.current().unwrap());
-                        cursor.move_next();
-                        split_right_callback(cursor.current().unwrap());
-
-                        let new_length = (right_annotation_range.end
-                            - right_annotation_range.start)
-                            + (left_annotation_range.end - left_annotation_range.start);
-
-                        *location -= old_length - new_length;
-                        removed += old_length - new_length;
-
-                        break;
-                    } else if annotation_range.start >= range.start
-                        && (annotation_range.start + 1) < range.end
-                    {
-                        let old_length = annotation_range.end - annotation_range.start;
-
-                        annotation_range.start = range.start;
-                        annotation_range.end -= length;
-
-                        let new_length = annotation_range.end - annotation_range.start;
-                        current.resize(new_length);
-
-                        split_right_callback(current);
-
-                        *location -= old_length - new_length;
-                        removed += old_length - new_length;
-                        cursor.move_next();
-                    } else if annotation_range.start < range.end
-                        && annotation_range.end <= range.end
-                    {
-                        let old_length = annotation_range.end - annotation_range.start;
-
-                        annotation_range.end = range.start;
-
-                        let new_length = annotation_range.end - annotation_range.start;
-                        current.resize(new_length);
-
-                        split_left_callback(current);
-
-                        *location -= old_length - new_length;
-                        removed += old_length - new_length;
-                        cursor.move_next();
-                    } else {
-                        break;
-                    }
-
-                    if let Some(current) = cursor.current() {
-                        *location += current.len();
-                    }
-                }
-
-                if cursor.current().is_none() {
-                    cursor.move_prev();
-                }
-
-                assert_eq!(removed, length);
-
-                true
+                annotations.remove_inclusive(range.clone(), usize::cmp);
             }
         }
     }
