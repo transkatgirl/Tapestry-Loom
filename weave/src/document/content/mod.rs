@@ -2,7 +2,7 @@
 
 use std::{
     collections::{HashMap, HashSet, LinkedList, linked_list::CursorMut},
-    fmt::Display,
+    fmt::{Debug, Display},
     iter,
     ops::Range,
     vec,
@@ -211,7 +211,7 @@ pub(super) struct TimelineUpdate {
     pub(super) metadata: Option<HashMap<String, String>>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub(super) struct TimelineNodeLength {
     pub(super) len: usize,
     pub(super) node: Option<Ulid>,
@@ -576,7 +576,7 @@ pub struct TimelineAnnotation<'w> {
 }
 
 /// Types which act as content annotations for sets of bytes.
-pub trait Annotation: Default + Sized + From<usize> {
+pub trait Annotation: Default + Debug + Sized + From<usize> {
     /// Returns the number of content bytes that the annotation applies to.
     #[must_use]
     fn len(&self) -> usize;
@@ -1660,15 +1660,22 @@ impl ModificationRange {
             Self::Deletion(range) => {
                 let mut removed = 0;
 
-                while let Some(current) = cursor.peek_next() {
+                if let Some(next) = cursor.peek_next() {
+                    *location += next.len();
+                    cursor.move_next();
+                }
+
+                while let Some(current) = cursor.current() {
+                    assert!(*location >= current.len());
+
                     let mut annotation_range = Range {
-                        start: *location,
-                        end: *location + current.len(),
+                        start: *location - current.len(),
+                        end: *location,
                     };
 
                     if annotation_range.start >= range.start && annotation_range.end <= range.end {
-                        cursor.move_next();
                         cursor.remove_current().unwrap();
+                        *location -= annotation_range.end - annotation_range.start;
                         removed += annotation_range.end - annotation_range.start;
                     } else if range.start > annotation_range.start
                         && range.end < annotation_range.end
@@ -1680,17 +1687,16 @@ impl ModificationRange {
 
                         let left_annotation_range = Range {
                             start: annotation_range.start,
-                            end: range.start - annotation_range.start,
+                            end: range.start,
                         };
 
                         let right_annotation_range = Range {
-                            start: range.start - annotation_range.start,
+                            start: range.start,
                             end: annotation_range.end - length,
                         };
 
                         right.resize(right_annotation_range.end - right_annotation_range.start);
 
-                        cursor.move_next();
                         cursor.remove_current().unwrap();
                         cursor.move_prev();
 
@@ -1704,7 +1710,7 @@ impl ModificationRange {
                             - right_annotation_range.start)
                             + (left_annotation_range.end - left_annotation_range.start);
 
-                        *location += new_length;
+                        *location -= old_length - new_length;
                         removed += old_length - new_length;
 
                         break;
@@ -1719,9 +1725,9 @@ impl ModificationRange {
                         let new_length = annotation_range.end - annotation_range.start;
                         current.resize(new_length);
 
-                        split_right_callback(cursor.current().unwrap());
+                        split_right_callback(current);
 
-                        *location += new_length;
+                        *location -= old_length - new_length;
                         removed += old_length - new_length;
                         cursor.move_next();
                     } else if annotation_range.start < range.end
@@ -1734,14 +1740,22 @@ impl ModificationRange {
                         let new_length = annotation_range.end - annotation_range.start;
                         current.resize(new_length);
 
-                        split_left_callback(cursor.current().unwrap());
+                        split_left_callback(current);
 
-                        *location += new_length;
+                        *location -= old_length - new_length;
                         removed += old_length - new_length;
                         cursor.move_next();
                     } else {
                         break;
                     }
+
+                    if let Some(current) = cursor.current() {
+                        *location += current.len();
+                    }
+                }
+
+                if cursor.current().is_none() {
+                    cursor.move_prev();
                 }
 
                 assert_eq!(removed, length);
