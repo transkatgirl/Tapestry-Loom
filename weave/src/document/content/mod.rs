@@ -102,10 +102,7 @@ impl<'w> WeaveTimeline<'w> {
         let mut bytes = BytesMut::new();
         let mut annotations = Rope::new();
 
-        let mut insertion_index = 0;
-
-        let mut pending_insertion = Vec::with_capacity(self.timeline.len());
-        let mut pending_length = 0;
+        let mut pending = Vec::with_capacity(self.timeline.len());
 
         for (node, model) in &self.timeline {
             match &node.content {
@@ -119,8 +116,7 @@ impl<'w> WeaveTimeline<'w> {
                             content_metadata: node.content.metadata(),
                             parameters: node.content.model().map(|model| &model.parameters),
                         };
-                        pending_length += annotation.len;
-                        pending_insertion.push(annotation);
+                        pending.push(annotation);
                     }
                     bytes.extend_from_slice(&snippet.as_bytes());
                 }
@@ -134,20 +130,16 @@ impl<'w> WeaveTimeline<'w> {
                             content_metadata: node.content.metadata(),
                             parameters: node.content.model().map(|model| &model.parameters),
                         };
-                        pending_length += annotation.len;
-                        pending_insertion.push(annotation);
+                        pending.push(annotation);
                     }
                     bytes.extend_from_slice(&tokens.as_bytes());
                 }
                 NodeContent::Diff(diff) => {
-                    if pending_length > 0 {
-                        annotations.insert_slice(insertion_index, &pending_insertion, usize::cmp);
-                        insertion_index += pending_length;
-                        pending_length = 0;
+                    if !pending.is_empty() {
+                        annotations.append(Rope::from(std::mem::take(&mut pending)));
                     }
 
                     diff.content.apply_timeline_annotations(
-                        &mut insertion_index,
                         &mut annotations,
                         node,
                         *model,
@@ -159,8 +151,8 @@ impl<'w> WeaveTimeline<'w> {
             }
         }
 
-        if pending_length > 0 {
-            annotations.insert_slice(insertion_index, &pending_insertion, usize::cmp);
+        if !pending.is_empty() {
+            annotations.append(Rope::from(std::mem::take(&mut pending)));
         }
 
         let mut string = String::with_capacity(bytes.len());
@@ -1122,7 +1114,6 @@ impl Diff {
     // Trivial; shouldn't require unit tests
     pub(super) fn apply_timeline_annotations<'w>(
         &'w self,
-        insertion_index: &mut usize,
         annotations: &mut Rope<TimelineAnnotation<'w>>,
         node: &'w Node,
         model: Option<&'w Model>,
@@ -1130,7 +1121,6 @@ impl Diff {
     ) {
         for modification in &self.content {
             modification.apply_timeline_annotations(
-                insertion_index,
                 annotations,
                 |annotation| {
                     annotation.node = Some(node);
@@ -1265,13 +1255,11 @@ impl Modification {
     // Unable to use generics due to compiler bug
     fn apply_timeline_annotations<'w>(
         &self,
-        insertion_index: &mut usize,
         annotations: &mut Rope<TimelineAnnotation<'w>>,
         insert_snippet_callback: impl Fn(&mut TimelineAnnotation<'w>),
         insert_token_callback: impl Fn(&mut TimelineAnnotation<'w>, usize),
     ) {
         ModificationRange::from(self).apply_timeline_annotations(
-            insertion_index,
             annotations,
             insert_snippet_callback,
             insert_token_callback,
@@ -1396,7 +1384,6 @@ impl ModificationRange {
     // Unable to use generics due to compiler bug
     pub(super) fn apply_timeline_annotations<'w>(
         &self,
-        insertion_index: &mut usize,
         annotations: &mut Rope<TimelineAnnotation<'w>>,
         insert_snippet_callback: impl Fn(&mut TimelineAnnotation<'w>),
         insert_token_callback: impl Fn(&mut TimelineAnnotation<'w>, usize),
@@ -1408,7 +1395,6 @@ impl ModificationRange {
                 insert_snippet_callback(&mut annotation);
 
                 annotations.insert(range.start, annotation, usize::cmp);
-                *insertion_index += length;
             }
             Self::TokenInsertion(tokens) => {
                 let mut total_length = 0;
@@ -1428,7 +1414,6 @@ impl ModificationRange {
                 assert_eq!(tokens.range.end - tokens.range.start, total_length);
 
                 annotations.insert_slice(tokens.range.start, &token_annotations, usize::cmp);
-                *insertion_index += total_length;
             }
             Self::Deletion(range) => {
                 annotations.remove_inclusive(range.clone(), usize::cmp);
@@ -1438,7 +1423,6 @@ impl ModificationRange {
     // Unable to use generics due to compiler bug
     pub(super) fn apply_length_annotations<'w>(
         &self,
-        insertion_index: &mut usize,
         annotations: &mut Rope<TimelineNodeLength>,
         insert_snippet_callback: impl Fn(&mut TimelineNodeLength),
         insert_token_callback: impl Fn(&mut TimelineNodeLength, usize),
@@ -1450,7 +1434,6 @@ impl ModificationRange {
                 insert_snippet_callback(&mut annotation);
 
                 annotations.insert(range.start, annotation, usize::cmp);
-                *insertion_index += length;
             }
             Self::TokenInsertion(tokens) => {
                 let mut total_length = 0;
@@ -1470,7 +1453,6 @@ impl ModificationRange {
                 assert_eq!(tokens.range.end - tokens.range.start, total_length);
 
                 annotations.insert_slice(tokens.range.start, &token_annotations, usize::cmp);
-                *insertion_index += total_length;
             }
             Self::Deletion(range) => {
                 annotations.remove_inclusive(range.clone(), usize::cmp);
