@@ -307,7 +307,7 @@ impl NodeContent {
             match left {
                 Self::Snippet(mut left) => match right {
                     Self::Snippet(right) => {
-                        let mut bytes = left.content.try_into_mut().unwrap();
+                        let mut bytes = BytesMut::from(left.content);
                         bytes.extend_from_slice(&right.content);
                         left.content = bytes.freeze();
 
