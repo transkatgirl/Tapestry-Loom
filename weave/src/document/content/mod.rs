@@ -1521,7 +1521,7 @@ impl ModificationRange {
         }
 
         match self {
-            Self::Insertion(range) => match cursor.peek_next() {
+            Self::Insertion(range) => match cursor.current() {
                 Some(annotation) => {
                     if range.start == *location {
                         cursor.insert_after(T::from(length));
@@ -1573,7 +1573,7 @@ impl ModificationRange {
                     }
                 }
             },
-            Self::TokenInsertion(tokens) => match cursor.peek_next() {
+            Self::TokenInsertion(tokens) => match cursor.current() {
                 Some(annotation) => {
                     let token_annotations =
                         tokens.tokens.iter().map(|(length, _)| T::from(*length));
