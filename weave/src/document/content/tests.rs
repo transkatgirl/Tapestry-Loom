@@ -1783,44 +1783,60 @@ fn diff_new() {
     );
 }
 
-/*
-
-
-
 #[test]
 fn diff_apply() {
     {
-        let mut before = vec![];
-        let after = vec![];
-        let diff = Diff::new(&before, &after, Instant::now() + Duration::from_secs(60));
+        let mut before = BytesMut::new();
+        let after = Bytes::new();
+        let diff = Diff::new(
+            &before.clone().freeze(),
+            &after,
+            Instant::now() + Duration::from_secs(60),
+        );
         diff.apply(&mut before);
         assert_eq!(before, after);
     }
     {
-        let mut before = vec![1, 5, 2, 2, 3, 1, 4, 1];
-        let after = vec![1, 5, 2, 2, 3, 1, 4, 1];
-        let diff = Diff::new(&before, &after, Instant::now() + Duration::from_secs(60));
+        let mut before = BytesMut::from(Bytes::from_static(&[1, 5, 2, 2, 3, 1, 4, 1]));
+        let after = Bytes::from_static(&[1, 5, 2, 2, 3, 1, 4, 1]);
+        let diff = Diff::new(
+            &before.clone().freeze(),
+            &after,
+            Instant::now() + Duration::from_secs(60),
+        );
         diff.apply(&mut before);
         assert_eq!(before, after);
     }
     {
-        let mut before = vec![1, 1, 1, 1, 1, 1, 1, 1];
-        let after = vec![1, 1, 1, 1];
-        let diff = Diff::new(&before, &after, Instant::now() + Duration::from_secs(60));
+        let mut before = BytesMut::from(Bytes::from_static(&[1, 1, 1, 1, 1, 1, 1, 1]));
+        let after = Bytes::from_static(&[1, 1, 1, 1]);
+        let diff = Diff::new(
+            &before.clone().freeze(),
+            &after,
+            Instant::now() + Duration::from_secs(60),
+        );
         diff.apply(&mut before);
         assert_eq!(before, after);
     }
     {
-        let mut before = vec![1, 1, 1, 1, 1, 1, 1, 1];
-        let after = vec![1, 1, 2, 2, 2, 2, 1, 1];
-        let diff = Diff::new(&before, &after, Instant::now() + Duration::from_secs(60));
+        let mut before = BytesMut::from(Bytes::from_static(&[1, 1, 1, 1, 1, 1, 1, 1]));
+        let after = Bytes::from_static(&[1, 1, 2, 2, 2, 2, 1, 1]);
+        let diff = Diff::new(
+            &before.clone().freeze(),
+            &after,
+            Instant::now() + Duration::from_secs(60),
+        );
         diff.apply(&mut before);
         assert_eq!(before, after);
     }
     {
-        let mut before = vec![1, 1, 1, 1, 1, 1, 1, 1];
-        let after = vec![1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1];
-        let diff = Diff::new(&before, &after, Instant::now() + Duration::from_secs(60));
+        let mut before = BytesMut::from(Bytes::from_static(&[1, 1, 1, 1, 1, 1, 1, 1]));
+        let after = Bytes::from_static(&[1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1]);
+        let diff = Diff::new(
+            &before.clone().freeze(),
+            &after,
+            Instant::now() + Duration::from_secs(60),
+        );
         diff.apply(&mut before);
         assert_eq!(before, after);
     }
@@ -1828,59 +1844,62 @@ fn diff_apply() {
 
 #[test]
 fn apply_modification_in_bounds() {
-    let mut content: Vec<u8> = vec![1, 1, 1, 1, 1, 1, 1, 1];
+    let mut content = BytesMut::from(Bytes::from_static(&[1, 1, 1, 1, 1, 1, 1, 1]));
     Modification {
         index: 0,
-        content: ModificationContent::Insertion(vec![2, 2, 2]),
+        content: ModificationContent::Insertion(Bytes::from_static(&[2, 2, 2])),
     }
     .apply(&mut content);
-    assert_eq!(content, vec![2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1]);
+    assert_eq!(
+        content,
+        Bytes::from_static(&[2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1])
+    );
     Modification {
         index: 0,
         content: ModificationContent::Deletion(3),
     }
     .apply(&mut content);
-    assert_eq!(content, vec![1, 1, 1, 1, 1, 1, 1, 1]);
+    assert_eq!(content, Bytes::from_static(&[1, 1, 1, 1, 1, 1, 1, 1]));
     Modification {
         index: 5,
-        content: ModificationContent::Insertion(vec![3, 3, 3, 3]),
+        content: ModificationContent::Insertion(Bytes::from_static(&[3, 3, 3, 3])),
     }
     .apply(&mut content);
-    assert_eq!(content, vec![1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1]);
+    assert_eq!(
+        content,
+        Bytes::from_static(&[1, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1])
+    );
     Modification {
         index: 5,
         content: ModificationContent::Deletion(4),
     }
     .apply(&mut content);
-    assert_eq!(content, vec![1, 1, 1, 1, 1, 1, 1, 1]);
+    assert_eq!(content, Bytes::from_static(&[1, 1, 1, 1, 1, 1, 1, 1]));
     Modification {
         index: 8,
-        content: ModificationContent::Insertion(vec![4, 4]),
+        content: ModificationContent::Insertion(Bytes::from_static(&[4, 4])),
     }
     .apply(&mut content);
-    assert_eq!(content, vec![1, 1, 1, 1, 1, 1, 1, 1, 4, 4]);
+    assert_eq!(content, Bytes::from_static(&[1, 1, 1, 1, 1, 1, 1, 1, 4, 4]));
     Modification {
         index: 8,
         content: ModificationContent::Deletion(2),
     }
     .apply(&mut content);
-    assert_eq!(content, vec![1, 1, 1, 1, 1, 1, 1, 1]);
+    assert_eq!(content, Bytes::from_static(&[1, 1, 1, 1, 1, 1, 1, 1]));
     Modification {
         index: 5,
         content: ModificationContent::Deletion(0),
     }
     .apply(&mut content);
-    assert_eq!(content, vec![1, 1, 1, 1, 1, 1, 1, 1]);
+    assert_eq!(content, Bytes::from_static(&[1, 1, 1, 1, 1, 1, 1, 1]));
     Modification {
         index: 5,
-        content: ModificationContent::Insertion(vec![]),
+        content: ModificationContent::Insertion(Bytes::new()),
     }
     .apply(&mut content);
-    assert_eq!(content, vec![1, 1, 1, 1, 1, 1, 1, 1]);
+    assert_eq!(content, Bytes::from_static(&[1, 1, 1, 1, 1, 1, 1, 1]));
 }
-
-
-*/
 
 #[test]
 #[should_panic]
