@@ -99,7 +99,7 @@ impl<'w> WeaveTimeline<'w> {
     #[must_use]
     pub fn annotated_string(&self) -> (String, LinkedList<TimelineAnnotation<'w>>) {
         let mut bytes = BytesMut::new();
-        let mut annotations = LinkedList::new();
+        let mut annotations: LinkedList<TimelineAnnotation<'_>> = LinkedList::new();
 
         let mut location = 0;
         let mut cursor = annotations.cursor_front_mut();
@@ -107,6 +107,11 @@ impl<'w> WeaveTimeline<'w> {
         for (node, model) in &self.timeline {
             match &node.content {
                 NodeContent::Snippet(snippet) => {
+                    while let Some(next) = cursor.peek_next() {
+                        location += next.len();
+                        cursor.move_next();
+                    }
+
                     let annotations: LinkedList<TimelineAnnotation<'_>> = snippet
                         .annotations()
                         .map(|annotation| TimelineAnnotation {
@@ -128,6 +133,11 @@ impl<'w> WeaveTimeline<'w> {
                     bytes.extend_from_slice(&snippet.as_bytes());
                 }
                 NodeContent::Tokens(tokens) => {
+                    while let Some(next) = cursor.peek_next() {
+                        location += next.len();
+                        cursor.move_next();
+                    }
+
                     let annotations: LinkedList<TimelineAnnotation<'_>> = tokens
                         .annotations()
                         .map(|annotation| TimelineAnnotation {

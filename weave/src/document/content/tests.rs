@@ -4654,3 +4654,172 @@ fn weave_timeline_annotated_string_invalid_utf8() {
         ])
     );
 }
+
+#[test]
+fn weave_timeline_annotated_string_middle_diff() {
+    let nodes = [
+        Node {
+            id: Ulid::from_parts(0, 0),
+            from: HashSet::new(),
+            to: HashSet::from([Ulid::from_parts(0, 1)]),
+            active: true,
+            bookmarked: false,
+            content: NodeContent::Snippet(SnippetContent {
+                content: "I love you".into(),
+                model: None,
+                metadata: Some(HashMap::from([("index".to_string(), "0".to_string())])),
+            }),
+        },
+        Node {
+            id: Ulid::from_parts(0, 1),
+            from: HashSet::from([Ulid::from_parts(0, 0)]),
+            to: HashSet::from([Ulid::from_parts(0, 2)]),
+            active: true,
+            bookmarked: false,
+            content: NodeContent::Tokens(TokenContent {
+                content: vec![
+                    ContentToken {
+                        content: " so".into(),
+                        metadata: Some(HashMap::from([(
+                            "token_index".to_string(),
+                            "0".to_string(),
+                        )])),
+                    },
+                    ContentToken {
+                        content: " much!".into(),
+                        metadata: Some(HashMap::from([(
+                            "token_index".to_string(),
+                            "1".to_string(),
+                        )])),
+                    },
+                ],
+                model: Some(ContentModel {
+                    id: Ulid::from_parts(99, 0),
+                    parameters: vec![("content_model_index".to_string(), "0".to_string())],
+                }),
+                metadata: Some(HashMap::from([("index".to_string(), "1".to_string())])),
+            }),
+        },
+        Node {
+            id: Ulid::from_parts(0, 2),
+            from: HashSet::from([Ulid::from_parts(0, 1)]),
+            to: HashSet::from([Ulid::from_parts(0, 3)]),
+            active: true,
+            bookmarked: false,
+            content: NodeContent::Diff(DiffContent {
+                content: Diff {
+                    content: vec![
+                        Modification {
+                            index: 2,
+                            content: ModificationContent::Deletion(4),
+                        },
+                        Modification {
+                            index: 2,
+                            content: ModificationContent::TokenInsertion(vec![ContentToken {
+                                content: "hate".into(),
+                                metadata: Some(HashMap::from([(
+                                    "token_index".to_string(),
+                                    "2".to_string(),
+                                )])),
+                            }]),
+                        },
+                    ],
+                },
+                model: Some(ContentModel {
+                    id: Ulid::from_parts(99, 0),
+                    parameters: vec![("content_model_index".to_string(), "1".to_string())],
+                }),
+                metadata: Some(HashMap::from([("index".to_string(), "2".to_string())])),
+            }),
+        },
+        Node {
+            id: Ulid::from_parts(0, 3),
+            from: HashSet::from([Ulid::from_parts(0, 2)]),
+            to: HashSet::from([Ulid::from_parts(0, 4)]),
+            active: true,
+            bookmarked: false,
+            content: NodeContent::Snippet(SnippetContent {
+                content: "\nFuck you!".into(),
+                model: None,
+                metadata: Some(HashMap::from([("index".to_string(), "3".to_string())])),
+            }),
+        },
+    ];
+    let models = [Model {
+        id: Ulid::from_parts(99, 0),
+        label: "Test Model".to_string(),
+        metadata: HashMap::new(),
+    }];
+    let timeline = WeaveTimeline {
+        timeline: vec![
+            (&nodes[0], None),
+            (&nodes[1], Some(&models[0])),
+            (&nodes[2], Some(&models[0])),
+            (&nodes[3], None),
+        ],
+    };
+    let (string, annotations) = timeline.annotated_string();
+    assert_eq!(string, "I hate you so much!\nFuck you!".to_string());
+    assert_eq!(
+        annotations,
+        LinkedList::from([
+            TimelineAnnotation {
+                len: 2,
+                node: Some(&nodes[0]),
+                model: None,
+                parameters: None,
+                subsection_metadata: None,
+                content_metadata: nodes[0].content.metadata(),
+            },
+            TimelineAnnotation {
+                len: 4,
+                node: Some(&nodes[2]),
+                model: Some(&models[0]),
+                parameters: nodes[2].content.model().map(|model| &model.parameters),
+                subsection_metadata: Some(&HashMap::from([(
+                    "token_index".to_string(),
+                    "2".to_string(),
+                )])),
+                content_metadata: nodes[2].content.metadata(),
+            },
+            TimelineAnnotation {
+                len: 4,
+                node: Some(&nodes[0]),
+                model: None,
+                parameters: None,
+                subsection_metadata: None,
+                content_metadata: nodes[0].content.metadata(),
+            },
+            TimelineAnnotation {
+                len: 3,
+                node: Some(&nodes[1]),
+                model: Some(&models[0]),
+                parameters: nodes[1].content.model().map(|model| &model.parameters),
+                subsection_metadata: Some(&HashMap::from([(
+                    "token_index".to_string(),
+                    "0".to_string(),
+                )])),
+                content_metadata: nodes[1].content.metadata(),
+            },
+            TimelineAnnotation {
+                len: 6,
+                node: Some(&nodes[1]),
+                model: Some(&models[0]),
+                parameters: nodes[1].content.model().map(|model| &model.parameters),
+                subsection_metadata: Some(&HashMap::from([(
+                    "token_index".to_string(),
+                    "1".to_string(),
+                )])),
+                content_metadata: nodes[1].content.metadata(),
+            },
+            TimelineAnnotation {
+                len: 10,
+                node: Some(&nodes[3]),
+                model: None,
+                parameters: None,
+                subsection_metadata: None,
+                content_metadata: nodes[3].content.metadata(),
+            },
+        ])
+    );
+}
