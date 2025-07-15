@@ -1525,6 +1525,7 @@ impl ModificationRange {
             cursor.move_next();
         }
 
+        #[allow(clippy::single_match_else)]
         match self {
             Self::Insertion(range) => match cursor.current() {
                 Some(annotation) => {
@@ -1568,16 +1569,14 @@ impl ModificationRange {
                     }
                 }
                 None => {
-                    if *location == range.start {
-                        cursor.insert_after(T::from(length));
-                        cursor.move_next();
-                        *location += length;
-                        insert_snippet_callback(cursor.current().unwrap());
+                    assert!(*location == range.start);
 
-                        true
-                    } else {
-                        panic!()
-                    }
+                    cursor.insert_after(T::from(length));
+                    cursor.move_next();
+                    *location += length;
+                    insert_snippet_callback(cursor.current().unwrap());
+
+                    true
                 }
             },
             Self::TokenInsertion(tokens) => match cursor.current() {
@@ -1645,25 +1644,23 @@ impl ModificationRange {
                     }
                 }
                 None => {
-                    if *location == range.start {
-                        let token_annotations =
-                            tokens.tokens.iter().map(|(length, _)| T::from(*length));
+                    assert!(*location == range.start);
 
-                        let original_location = *location;
+                    let token_annotations =
+                        tokens.tokens.iter().map(|(length, _)| T::from(*length));
 
-                        for (index, token_annotation) in token_annotations.enumerate() {
-                            *location += token_annotation.len();
-                            cursor.insert_after(token_annotation);
-                            cursor.move_next();
-                            insert_token_callback(cursor.current().unwrap(), index);
-                        }
+                    let original_location = *location;
 
-                        assert_eq!(*location - original_location, length);
-
-                        true
-                    } else {
-                        panic!()
+                    for (index, token_annotation) in token_annotations.enumerate() {
+                        *location += token_annotation.len();
+                        cursor.insert_after(token_annotation);
+                        cursor.move_next();
+                        insert_token_callback(cursor.current().unwrap(), index);
                     }
+
+                    assert_eq!(*location - original_location, length);
+
+                    true
                 }
             },
             Self::Deletion(range) => {
