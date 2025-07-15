@@ -1677,6 +1677,7 @@ impl ModificationRange {
                         start: *location - current.len(),
                         end: *location,
                     };
+                    let length = range.end - range.start;
 
                     #[allow(unused_assignments)]
                     let mut removed_amount = 0;
@@ -1726,7 +1727,7 @@ impl ModificationRange {
 
                         break;
                     } else if annotation_range.start >= range.start
-                        && (annotation_range.start + 1) < range.end
+                        && annotation_range.start < range.end
                     {
                         let old_length = annotation_range.end - annotation_range.start;
 

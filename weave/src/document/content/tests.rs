@@ -2283,7 +2283,7 @@ fn modification_range_apply_annotations() {
             }
         ])
     );
-    /*assert_eq!(
+    assert!(
         ModificationRange::Deletion(Range { start: 3, end: 8 }).apply_annotations(
             &mut location,
             &mut cursor,
@@ -2292,27 +2292,21 @@ fn modification_range_apply_annotations() {
             |_| {},
             |_| {}
         )
-        ModificationIndices {
-            inserted_bytes: None,
-            inserted_tokens: None,
-            left_split: Some(0),
-            right_split: Some(1),
-        }
     );
     assert_eq!(
         *cursor.as_list(),
-        vec![
+        LinkedList::from([
             ContentAnnotation {
-                range: Range { start: 0, end: 3 },
+                len: 3,
                 metadata: None
             },
             ContentAnnotation {
-                range: Range { start: 3, end: 6 },
+                len: 3,
                 metadata: None
             },
-        ]
+        ])
     );
-    assert_eq!(
+    /*assert_eq!(
         ModificationRange::Deletion(Range { start: 0, end: 6 }).apply_annotations(
             &mut location,
             &mut cursor,
