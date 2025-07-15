@@ -30,7 +30,7 @@ pub trait WeaveView {
     fn get_bookmarked_nodes(&self) -> impl Iterator<Item = (&Node, Option<&Model>)>;
     /// Retrieve all active nodes as [`WeaveTimeline`] objects.
     #[must_use]
-    fn get_active_timelines(&self) -> Vec<WeaveTimeline>;
+    fn get_active_timelines(&'_ self) -> Vec<WeaveTimeline<'_>>;
 }
 
 /// An owned Weave document.
@@ -290,10 +290,10 @@ impl Weave {
         }
 
         for old_parent in old_parents {
-            if !parents.contains(&old_parent) {
-                if let Some(parent) = self.nodes.get_mut(&old_parent) {
-                    parent.to.remove(identifier);
-                }
+            if !parents.contains(&old_parent)
+                && let Some(parent) = self.nodes.get_mut(&old_parent)
+            {
+                parent.to.remove(identifier);
             }
         }
 
@@ -407,13 +407,13 @@ impl Weave {
                     }
                 }
             }
-            if let Some(node_model) = node.content.model() {
-                if let Some(model_nodes) = self.model_nodes.get_mut(&node_model.id) {
-                    model_nodes.remove(&node.id);
-                    if model_nodes.is_empty() {
-                        self.models.remove(&node_model.id);
-                        self.model_nodes.remove(&node_model.id);
-                    }
+            if let Some(node_model) = node.content.model()
+                && let Some(model_nodes) = self.model_nodes.get_mut(&node_model.id)
+            {
+                model_nodes.remove(&node.id);
+                if model_nodes.is_empty() {
+                    self.models.remove(&node_model.id);
+                    self.model_nodes.remove(&node_model.id);
                 }
             }
             Some(node)
@@ -617,7 +617,7 @@ impl WeaveView for Weave {
                 )
             })
     }
-    fn get_active_timelines(&self) -> Vec<WeaveTimeline> {
+    fn get_active_timelines(&'_ self) -> Vec<WeaveTimeline<'_>> {
         let mut timelines: Vec<Vec<&Node>> = self
             .root_nodes
             .iter()
@@ -748,7 +748,7 @@ impl WeaveView for WeaveSnapshot<'_> {
                 )
             })
     }
-    fn get_active_timelines(&self) -> Vec<WeaveTimeline> {
+    fn get_active_timelines(&'_ self) -> Vec<WeaveTimeline<'_>> {
         let mut timelines: Vec<Vec<&Node>> = self
             .root_nodes
             .iter()

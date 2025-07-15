@@ -737,7 +737,7 @@ pub trait ConcatableNodeContents: NodeContents {
     fn is_empty(&self) -> bool;
     /// Returns annotations for the content.
     #[must_use]
-    fn annotations(&self) -> impl Iterator<Item = ContentAnnotation>;
+    fn annotations(&'_ self) -> impl Iterator<Item = ContentAnnotation<'_>>;
     /// Splits the content in half at the specified index.
     ///
     /// If the content has metadata, both sides of the split retain that metadata.
@@ -859,7 +859,7 @@ impl ConcatableNodeContents for SnippetContent {
         self.content.is_empty()
     }
     // Trivial; shouldn't require unit tests
-    fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
+    fn annotations(&'_ self) -> impl Iterator<Item = ContentAnnotation<'_>> {
         iter::once(ContentAnnotation {
             metadata: None,
             len: self.content.len(),
@@ -966,7 +966,7 @@ impl ConcatableNodeContents for TokenContent {
         self.content.iter().all(|token| token.content.is_empty())
     }
     // Trivial; shouldn't require unit tests
-    fn annotations(&self) -> impl Iterator<Item = ContentAnnotation> {
+    fn annotations(&'_ self) -> impl Iterator<Item = ContentAnnotation<'_>> {
         self.content.iter().map(move |token| ContentAnnotation {
             len: token.content.len(),
             metadata: token.metadata.as_ref(),
