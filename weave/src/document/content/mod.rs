@@ -1687,16 +1687,6 @@ impl ModificationRange {
                         removed_amount = annotation_range.end - annotation_range.start;
                         *location -= removed_amount;
                         removed += removed_amount;
-
-                        if range.end > annotation_range.end {
-                            range.start -= removed_amount;
-                            range.end -= removed_amount;
-                        } else {
-                            if let Some(current) = cursor.current() {
-                                *location += current.len();
-                            }
-                            break;
-                        }
                     } else if range.start > annotation_range.start
                         && range.end < annotation_range.end
                     {
@@ -1752,12 +1742,6 @@ impl ModificationRange {
                         *location -= removed_amount;
                         removed += removed_amount;
 
-                        if range.end > annotation_range.end {
-                            range.end -= removed_amount;
-                        } else {
-                            break;
-                        }
-
                         cursor.move_next();
                     } else if annotation_range.start < range.end
                         && annotation_range.end <= range.end
@@ -1775,8 +1759,6 @@ impl ModificationRange {
                         *location -= removed_amount;
                         removed += removed_amount;
 
-                        range.end -= removed_amount;
-
                         cursor.move_next();
                     } else {
                         break;
@@ -1785,6 +1767,8 @@ impl ModificationRange {
                     if let Some(current) = cursor.current() {
                         *location += current.len();
                     }
+
+                    range.end -= removed_amount;
                 }
 
                 if cursor.current().is_none() {
