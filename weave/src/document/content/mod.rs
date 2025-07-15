@@ -1534,8 +1534,6 @@ impl ModificationRange {
                         cursor.move_next();
                         *location += length;
                         insert_snippet_callback(cursor.current().unwrap());
-
-                        true
                     } else if range.start == *location - annotation.len() {
                         *location -= annotation.len();
                         cursor.move_prev();
@@ -1544,8 +1542,6 @@ impl ModificationRange {
                         cursor.move_next();
                         *location += length;
                         insert_snippet_callback(cursor.current().unwrap());
-
-                        true
                     } else {
                         let (left, right) = annotation
                             .split(range.start - (*location - annotation.len()))
@@ -1564,8 +1560,6 @@ impl ModificationRange {
                         cursor.move_next();
                         split_right_callback(cursor.current().unwrap());
                         *location += length;
-
-                        true
                     }
                 }
                 None => {
@@ -1575,8 +1569,6 @@ impl ModificationRange {
                     cursor.move_next();
                     *location += length;
                     insert_snippet_callback(cursor.current().unwrap());
-
-                    true
                 }
             },
             Self::TokenInsertion(tokens) => match cursor.current() {
@@ -1595,8 +1587,6 @@ impl ModificationRange {
                         }
 
                         assert_eq!(*location - original_location, length);
-
-                        true
                     } else if range.start == *location - annotation.len() {
                         *location -= annotation.len();
                         cursor.move_prev();
@@ -1611,8 +1601,6 @@ impl ModificationRange {
                         }
 
                         assert_eq!(*location - original_location, length);
-
-                        true
                     } else {
                         let (left, right) = annotation
                             .split(range.start - (*location - annotation.len()))
@@ -1639,8 +1627,6 @@ impl ModificationRange {
                         cursor.insert_after(right);
                         cursor.move_next();
                         split_right_callback(cursor.current().unwrap());
-
-                        true
                     }
                 }
                 None => {
@@ -1659,8 +1645,6 @@ impl ModificationRange {
                     }
 
                     assert_eq!(*location - original_location, length);
-
-                    true
                 }
             },
             Self::Deletion(range) => {
@@ -1774,9 +1758,9 @@ impl ModificationRange {
                 }
 
                 assert_eq!(removed, length);
-
-                true
             }
         }
+
+        true
     }
 }
