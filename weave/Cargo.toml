@@ -35,3 +35,6 @@ similar = { version = "2.7.0", features = [
 getrandom = { version = "=0.3.1", features = [
 	"wasm_js",
 ] }
+
+[profile.release]
+overflow-checks = true

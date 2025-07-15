@@ -2105,8 +2105,8 @@ fn modification_range_apply_annotations() {
             }
         ])
     );
-    /*assert_eq!(
-        ModificationRange::TokenInsertion(ModificationRangeTokens {
+    assert!(
+        !ModificationRange::TokenInsertion(ModificationRangeTokens {
             range: Range { start: 4, end: 4 },
             tokens: vec![(0, None)]
         })
@@ -2118,22 +2118,22 @@ fn modification_range_apply_annotations() {
             |_| {},
             |_| {}
         )
-        );
+    );
     assert_eq!(
         *cursor.as_list(),
-        vec![
+        LinkedList::from([
             ContentAnnotation {
-                range: Range { start: 0, end: 4 },
+                len: 4,
                 metadata: None
             },
             ContentAnnotation {
-                range: Range { start: 4, end: 7 },
+                len: 3,
                 metadata: None
             }
-        ]
+        ])
     );
-    assert_eq!(
-        ModificationRange::Deletion(Range { start: 4, end: 4 }).apply_annotations(
+    assert!(
+        !ModificationRange::Deletion(Range { start: 4, end: 4 }).apply_annotations(
             &mut location,
             &mut cursor,
             |_| {},
@@ -2141,23 +2141,22 @@ fn modification_range_apply_annotations() {
             |_| {},
             |_| {}
         )
-        );
+    );
     assert_eq!(
         *cursor.as_list(),
-        vec![
+        LinkedList::from([
             ContentAnnotation {
-                range: Range { start: 0, end: 4 },
+                len: 4,
                 metadata: None
             },
             ContentAnnotation {
-                range: Range { start: 4, end: 7 },
+                len: 3,
                 metadata: None
             }
-        ]
+        ])
     );
-    assert_eq!(
-        ModificationRange::Insertion(Range { start: 7, end: 11 })
-            .apply_annotations(
+    assert!(
+        ModificationRange::Insertion(Range { start: 7, end: 11 }).apply_annotations(
             &mut location,
             &mut cursor,
             |_| {},
@@ -2165,33 +2164,26 @@ fn modification_range_apply_annotations() {
             |_| {},
             |_| {}
         )
-        ModificationIndices {
-            inserted_bytes: Some(2),
-            inserted_tokens: None,
-            left_split: None,
-            right_split: None,
-        }
     );
     assert_eq!(
         *cursor.as_list(),
-        vec![
+        LinkedList::from([
             ContentAnnotation {
-                range: Range { start: 0, end: 4 },
+                len: 4,
                 metadata: None
             },
             ContentAnnotation {
-                range: Range { start: 4, end: 7 },
+                len: 3,
                 metadata: None
             },
             ContentAnnotation {
-                range: Range { start: 7, end: 11 },
+                len: 4,
                 metadata: None
             }
-        ]
+        ])
     );
-    assert_eq!(
-        ModificationRange::Insertion(Range { start: 5, end: 12 })
-            .apply_annotations(
+    assert!(
+        ModificationRange::Insertion(Range { start: 5, end: 12 }).apply_annotations(
             &mut location,
             &mut cursor,
             |_| {},
@@ -2199,39 +2191,33 @@ fn modification_range_apply_annotations() {
             |_| {},
             |_| {}
         )
-        ModificationIndices {
-            inserted_bytes: Some(2),
-            inserted_tokens: None,
-            left_split: Some(1),
-            right_split: Some(3),
-        }
     );
     assert_eq!(
         *cursor.as_list(),
-        vec![
+        LinkedList::from([
             ContentAnnotation {
-                range: Range { start: 0, end: 4 },
+                len: 4,
                 metadata: None
             },
             ContentAnnotation {
-                range: Range { start: 4, end: 5 },
+                len: 1,
                 metadata: None
             },
             ContentAnnotation {
-                range: Range { start: 5, end: 12 },
+                len: 7,
                 metadata: None
             },
             ContentAnnotation {
-                range: Range { start: 12, end: 14 },
+                len: 2,
                 metadata: None
             },
             ContentAnnotation {
-                range: Range { start: 14, end: 18 },
+                len: 4,
                 metadata: None
             }
-        ]
+        ])
     );
-    assert_eq!(
+    /*assert_eq!(
         ModificationRange::Deletion(Range { start: 12, end: 14 })
             .apply_annotations(
             &mut location,

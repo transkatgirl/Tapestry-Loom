@@ -1520,6 +1520,11 @@ impl ModificationRange {
             cursor.move_next();
         }
 
+        if let Some(next) = cursor.peek_next() {
+            *location += next.len();
+            cursor.move_next();
+        }
+
         match self {
             Self::Insertion(range) => match cursor.current() {
                 Some(annotation) => {
@@ -1530,9 +1535,9 @@ impl ModificationRange {
                         insert_snippet_callback(cursor.current().unwrap());
 
                         true
-                    } else if range.start == *location + annotation.len() {
-                        *location += annotation.len();
-                        cursor.move_next();
+                    } else if range.start == *location - annotation.len() {
+                        *location -= annotation.len();
+                        cursor.move_prev();
 
                         cursor.insert_after(T::from(length));
                         cursor.move_next();
@@ -1541,7 +1546,9 @@ impl ModificationRange {
 
                         true
                     } else {
-                        let (left, right) = annotation.split(range.start - *location).unwrap();
+                        let (left, right) = annotation
+                            .split(range.start - (*location - annotation.len()))
+                            .unwrap();
                         let middle = T::from(length);
                         let annotations = LinkedList::from([left, middle, right]);
 
@@ -1591,9 +1598,9 @@ impl ModificationRange {
                         assert_eq!(*location - original_location, length);
 
                         true
-                    } else if range.start == *location + annotation.len() {
-                        *location += annotation.len();
-                        cursor.move_next();
+                    } else if range.start == *location - annotation.len() {
+                        *location -= annotation.len();
+                        cursor.move_prev();
 
                         let original_location = *location;
 
@@ -1608,7 +1615,9 @@ impl ModificationRange {
 
                         true
                     } else {
-                        let (left, right) = annotation.split(range.start - *location).unwrap();
+                        let (left, right) = annotation
+                            .split(range.start - (*location - annotation.len()))
+                            .unwrap();
 
                         cursor.remove_current().unwrap();
                         cursor.move_prev();
@@ -1659,11 +1668,6 @@ impl ModificationRange {
             },
             Self::Deletion(range) => {
                 let mut removed = 0;
-
-                if let Some(next) = cursor.peek_next() {
-                    *location += next.len();
-                    cursor.move_next();
-                }
 
                 while let Some(current) = cursor.current() {
                     assert!(*location >= current.len());
