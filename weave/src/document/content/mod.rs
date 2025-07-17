@@ -172,6 +172,11 @@ impl<'w> WeaveTimeline<'w> {
             }
         }
 
+        while let Some(next) = cursor.peek_next() {
+            location += next.len();
+            cursor.move_next();
+        }
+
         let mut string = String::with_capacity(bytes.len());
 
         for chunk in bytes.utf8_chunks() {
@@ -181,6 +186,8 @@ impl<'w> WeaveTimeline<'w> {
                 string.push(''); // Legacy substitution character is used due to it being a single byte in length.
             }
         }
+
+        assert_eq!(string.len(), location);
 
         (string, annotations)
     }
