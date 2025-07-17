@@ -2332,40 +2332,40 @@ fn modification_range_apply_annotations() {
         ModificationRange::Insertion(Range { start: 0, end: 4 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |annotation| { annotation.metadata = Some(&metadata[0]) },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |_| { panic!() }
         )
     );
     assert!(
         ModificationRange::Insertion(Range { start: 4, end: 6 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |annotation| { annotation.metadata = Some(&metadata[1]) },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |_| { panic!() }
         )
     );
     assert!(
         ModificationRange::Insertion(Range { start: 6, end: 11 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |annotation| { annotation.metadata = Some(&metadata[2]) },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |_| { panic!() }
         )
     );
     assert!(
         ModificationRange::Insertion(Range { start: 11, end: 15 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |annotation| { annotation.metadata = Some(&metadata[3]) },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |_| { panic!() }
         )
     );
     assert_eq!(
@@ -2373,19 +2373,19 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
             ContentAnnotation {
                 len: 5,
-                metadata: None,
+                metadata: Some(&metadata[2]),
             },
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[3]),
             },
         ])
     );
@@ -2393,10 +2393,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Insertion(Range { start: 0, end: 8 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |annotation| { annotation.metadata = Some(&metadata[4]) },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |_| { panic!() }
         )
     );
     assert_eq!(
@@ -2404,23 +2404,23 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 8,
-                metadata: None
+                metadata: Some(&metadata[4])
             },
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
             ContentAnnotation {
                 len: 5,
-                metadata: None,
+                metadata: Some(&metadata[2]),
             },
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[3]),
             },
         ])
     );
@@ -2428,10 +2428,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Deletion(Range { start: 0, end: 8 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |_| { panic!() },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |_| { panic!() }
         )
     );
     assert_eq!(
@@ -2439,19 +2439,19 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
             ContentAnnotation {
                 len: 5,
-                metadata: None,
+                metadata: Some(&metadata[2]),
             },
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[3]),
             },
         ])
     );
@@ -2459,10 +2459,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Insertion(Range { start: 4, end: 12 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |annotation| { annotation.metadata = Some(&metadata[4]) },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |_| { panic!() }
         )
     );
     assert_eq!(
@@ -2470,23 +2470,23 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 8,
-                metadata: None,
+                metadata: Some(&metadata[4]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
             ContentAnnotation {
                 len: 5,
-                metadata: None,
+                metadata: Some(&metadata[2]),
             },
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[3]),
             },
         ])
     );
@@ -2494,10 +2494,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Insertion(Range { start: 14, end: 16 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |annotation| { annotation.metadata = Some(&metadata[5]) },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |_| { panic!() }
         )
     );
     assert_eq!(
@@ -2505,27 +2505,27 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 8,
-                metadata: None,
+                metadata: Some(&metadata[4]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[5]),
             },
             ContentAnnotation {
                 len: 5,
-                metadata: None,
+                metadata: Some(&metadata[2]),
             },
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[3]),
             },
         ])
     );
@@ -2533,10 +2533,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Deletion(Range { start: 4, end: 12 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |_| { panic!() },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |_| { panic!() }
         )
     );
     assert_eq!(
@@ -2544,23 +2544,23 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[5]),
             },
             ContentAnnotation {
                 len: 5,
-                metadata: None,
+                metadata: Some(&metadata[2]),
             },
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[3]),
             },
         ])
     );
@@ -2568,10 +2568,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Insertion(Range { start: 13, end: 16 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |annotation| { annotation.metadata = Some(&metadata[4]) },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |_| { panic!() }
         )
     );
     assert_eq!(
@@ -2579,27 +2579,27 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[5]),
             },
             ContentAnnotation {
                 len: 5,
-                metadata: None,
+                metadata: Some(&metadata[2]),
             },
             ContentAnnotation {
                 len: 3,
-                metadata: None,
+                metadata: Some(&metadata[4]),
             },
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[3]),
             },
         ])
     );
@@ -2607,10 +2607,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Insertion(Range { start: 20, end: 23 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |annotation| { annotation.metadata = Some(&metadata[6]) },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |_| { panic!() }
         )
     );
     assert_eq!(
@@ -2618,31 +2618,31 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[5]),
             },
             ContentAnnotation {
                 len: 5,
-                metadata: None,
+                metadata: Some(&metadata[2]),
             },
             ContentAnnotation {
                 len: 3,
-                metadata: None,
+                metadata: Some(&metadata[4]),
             },
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[3]),
             },
             ContentAnnotation {
                 len: 3,
-                metadata: None,
+                metadata: Some(&metadata[6]),
             },
         ])
     );
@@ -2650,10 +2650,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Deletion(Range { start: 8, end: 13 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |_| { panic!() },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |_| { panic!() }
         )
     );
     assert_eq!(
@@ -2661,27 +2661,27 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[5]),
             },
             ContentAnnotation {
                 len: 3,
-                metadata: None,
+                metadata: Some(&metadata[4]),
             },
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[3]),
             },
             ContentAnnotation {
                 len: 3,
-                metadata: None,
+                metadata: Some(&metadata[6]),
             },
         ])
     );
@@ -2689,10 +2689,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Deletion(Range { start: 11, end: 15 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |_| { panic!() },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |_| { panic!() }
         )
     );
     assert_eq!(
@@ -2700,23 +2700,23 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[5]),
             },
             ContentAnnotation {
                 len: 3,
-                metadata: None,
+                metadata: Some(&metadata[4]),
             },
             ContentAnnotation {
                 len: 3,
-                metadata: None,
+                metadata: Some(&metadata[6]),
             },
         ])
     );
@@ -2724,10 +2724,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Deletion(Range { start: 11, end: 14 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |_| { panic!() },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |_| { panic!() }
         )
     );
     assert_eq!(
@@ -2735,19 +2735,19 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 4,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[5]),
             },
             ContentAnnotation {
                 len: 3,
-                metadata: None,
+                metadata: Some(&metadata[4]),
             },
         ])
     );
@@ -2755,10 +2755,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Insertion(Range { start: 2, end: 4 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |annotation| { annotation.metadata = Some(&metadata[2]) },
+            |_, _| { panic!() },
+            |annotation| { annotation.metadata = Some(&metadata[3]) },
+            |annotation| { annotation.metadata = Some(&metadata[6]) }
         )
     );
     assert_eq!(
@@ -2766,27 +2766,27 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[3]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[2]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[6]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[5]),
             },
             ContentAnnotation {
                 len: 3,
-                metadata: None,
+                metadata: Some(&metadata[4]),
             },
         ])
     );
@@ -2794,10 +2794,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Deletion(Range { start: 1, end: 4 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |_| { panic!() },
+            |_, _| { panic!() },
+            |annotation| { annotation.metadata = Some(&metadata[0]) },
+            |_| { panic!() }
         )
     );
     assert_eq!(
@@ -2805,23 +2805,23 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[6]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[5]),
             },
             ContentAnnotation {
                 len: 3,
-                metadata: None,
+                metadata: Some(&metadata[4]),
             },
         ])
     );
@@ -2829,10 +2829,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Deletion(Range { start: 1, end: 4 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |_| { panic!() },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |annotation| { annotation.metadata = Some(&metadata[2]) }
         )
     );
     assert_eq!(
@@ -2840,19 +2840,19 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[2]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[5]),
             },
             ContentAnnotation {
                 len: 3,
-                metadata: None,
+                metadata: Some(&metadata[4]),
             },
         ])
     );
@@ -2860,10 +2860,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Insertion(Range { start: 3, end: 4 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |annotation| { annotation.metadata = Some(&metadata[1]) },
+            |_, _| { panic!() },
+            |annotation| { annotation.metadata = Some(&metadata[3]) },
+            |annotation| { annotation.metadata = Some(&metadata[6]) },
         )
     );
     assert_eq!(
@@ -2871,38 +2871,38 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[2]),
             },
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[3]),
             },
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[6]),
             },
             ContentAnnotation {
                 len: 3,
-                metadata: None,
-            }
+                metadata: Some(&metadata[4]),
+            },
         ])
     );
     assert!(
         ModificationRange::Insertion(Range { start: 6, end: 9 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |annotation| { annotation.metadata = Some(&metadata[5]) },
+            |_, _| { panic!() },
+            |annotation| { annotation.metadata = Some(&metadata[7]) },
+            |annotation| { annotation.metadata = Some(&metadata[8]) },
         )
     );
     assert_eq!(
@@ -2910,35 +2910,35 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[2]),
             },
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[3]),
             },
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[6]),
             },
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[7]),
             },
             ContentAnnotation {
                 len: 3,
-                metadata: None,
+                metadata: Some(&metadata[5]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[8]),
             }
         ])
     );
@@ -2946,10 +2946,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Deletion(Range { start: 0, end: 6 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |_| { panic!() },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |_| { panic!() }
         )
     );
     assert_eq!(
@@ -2957,11 +2957,11 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 3,
-                metadata: None,
+                metadata: Some(&metadata[5]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[8]),
             }
         ])
     );
@@ -2973,10 +2973,10 @@ fn modification_range_apply_annotations() {
         .apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |_| { panic!() },
+            |annotation, index| { annotation.metadata = Some(&metadata[2 + index]) },
+            |annotation| { annotation.metadata = Some(&metadata[0]) },
+            |annotation| { annotation.metadata = Some(&metadata[1]) }
         )
     );
     assert_eq!(
@@ -2984,23 +2984,23 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[2]),
             },
             ContentAnnotation {
                 len: 3,
-                metadata: None,
+                metadata: Some(&metadata[3]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[8]),
             }
         ])
     );
@@ -3008,10 +3008,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Deletion(Range { start: 6, end: 9 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |_| { panic!() },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |annotation| { annotation.metadata = Some(&metadata[5]) }
         )
     );
     assert_eq!(
@@ -3019,19 +3019,19 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[2]),
             },
             ContentAnnotation {
                 len: 3,
-                metadata: None,
+                metadata: Some(&metadata[3]),
             },
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[5]),
             }
         ])
     );
@@ -3039,10 +3039,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Deletion(Range { start: 5, end: 7 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |_| { panic!() },
+            |_, _| { panic!() },
+            |annotation| { annotation.metadata = Some(&metadata[1]) },
+            |_| { panic!() }
         )
     );
     assert_eq!(
@@ -3050,15 +3050,15 @@ fn modification_range_apply_annotations() {
         LinkedList::from([
             ContentAnnotation {
                 len: 1,
-                metadata: None,
+                metadata: Some(&metadata[0]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[2]),
             },
             ContentAnnotation {
                 len: 2,
-                metadata: None,
+                metadata: Some(&metadata[1]),
             },
         ])
     );
@@ -3066,10 +3066,10 @@ fn modification_range_apply_annotations() {
         ModificationRange::Deletion(Range { start: 0, end: 5 }).apply_annotations(
             &mut location,
             &mut cursor,
-            |_| {},
-            |_, _| {},
-            |_| {},
-            |_| {}
+            |_| { panic!() },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |_| { panic!() }
         )
     );
     assert!(cursor.as_list().is_empty());
