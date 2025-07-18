@@ -3,7 +3,7 @@
 
 use super::*;
 
-/*#[test]
+#[test]
 #[allow(clippy::bool_assert_comparison)]
 fn update_node_activity_not_in_place() {
     let mut nodes = HashMap::from([
@@ -78,7 +78,11 @@ fn update_node_activity_not_in_place() {
             Node {
                 id: Ulid::from_parts(1, 2),
                 from: HashSet::from([Ulid::from_parts(1, 0)]),
-                to: HashSet::new(),
+                to: HashSet::from([
+                    Ulid::from_parts(1, 5),
+                    Ulid::from_parts(1, 6),
+                    Ulid::from_parts(1, 7),
+                ]),
                 active: false,
                 bookmarked: false,
                 content: NodeContent::Blank,
@@ -89,7 +93,7 @@ fn update_node_activity_not_in_place() {
             Node {
                 id: Ulid::from_parts(1, 3),
                 from: HashSet::from([Ulid::from_parts(1, 0), Ulid::from_parts(1, 1)]),
-                to: HashSet::new(),
+                to: HashSet::from([Ulid::from_parts(1, 7), Ulid::from_parts(1, 10)]),
                 active: false,
                 bookmarked: false,
                 content: NodeContent::Blank,
@@ -100,6 +104,72 @@ fn update_node_activity_not_in_place() {
             Node {
                 id: Ulid::from_parts(1, 4),
                 from: HashSet::from([Ulid::from_parts(1, 1)]),
+                to: HashSet::from([Ulid::from_parts(1, 8), Ulid::from_parts(1, 9)]),
+                active: false,
+                bookmarked: false,
+                content: NodeContent::Blank,
+            },
+        ),
+        (
+            Ulid::from_parts(1, 5),
+            Node {
+                id: Ulid::from_parts(1, 5),
+                from: HashSet::from([Ulid::from_parts(1, 2)]),
+                to: HashSet::new(),
+                active: false,
+                bookmarked: false,
+                content: NodeContent::Blank,
+            },
+        ),
+        (
+            Ulid::from_parts(1, 6),
+            Node {
+                id: Ulid::from_parts(1, 6),
+                from: HashSet::from([Ulid::from_parts(1, 2)]),
+                to: HashSet::from([Ulid::from_parts(1, 10)]),
+                active: false,
+                bookmarked: false,
+                content: NodeContent::Blank,
+            },
+        ),
+        (
+            Ulid::from_parts(1, 7),
+            Node {
+                id: Ulid::from_parts(1, 7),
+                from: HashSet::from([Ulid::from_parts(1, 2), Ulid::from_parts(1, 3)]),
+                to: HashSet::new(),
+                active: false,
+                bookmarked: false,
+                content: NodeContent::Blank,
+            },
+        ),
+        (
+            Ulid::from_parts(1, 8),
+            Node {
+                id: Ulid::from_parts(1, 8),
+                from: HashSet::from([Ulid::from_parts(1, 4)]),
+                to: HashSet::new(),
+                active: false,
+                bookmarked: false,
+                content: NodeContent::Blank,
+            },
+        ),
+        (
+            Ulid::from_parts(1, 9),
+            Node {
+                id: Ulid::from_parts(1, 9),
+                from: HashSet::from([Ulid::from_parts(1, 4)]),
+                to: HashSet::new(),
+                active: false,
+                bookmarked: false,
+                content: NodeContent::Blank,
+            },
+        ),
+        (
+            Ulid::from_parts(1, 10),
+            Node {
+                id: Ulid::from_parts(1, 10),
+                from: HashSet::from([Ulid::from_parts(1, 6), Ulid::from_parts(1, 3)]),
                 to: HashSet::new(),
                 active: false,
                 bookmarked: false,
@@ -107,7 +177,7 @@ fn update_node_activity_not_in_place() {
             },
         ),
     ]);
-    assert_eq!(nodes.len(), 14);
+    assert_eq!(nodes.len(), 15);
     assert_eq!(nodes.get(&Ulid::from_parts(0, 0)).unwrap().active, false);
     assert_eq!(nodes.get(&Ulid::from_parts(0, 1)).unwrap().active, false);
     assert_eq!(nodes.get(&Ulid::from_parts(0, 2)).unwrap().active, false);
@@ -123,7 +193,7 @@ fn update_node_activity_not_in_place() {
     assert_eq!(nodes.get(&Ulid::from_parts(1, 8)).unwrap().active, false);
     assert_eq!(nodes.get(&Ulid::from_parts(1, 9)).unwrap().active, false);
     assert_eq!(nodes.get(&Ulid::from_parts(1, 10)).unwrap().active, false);
-}*/
+}
 
 /*#[test]
 fn update_node_activity_in_place() {}*/
