@@ -2004,8 +2004,6 @@ fn format_modification_count() {
     );
 }
 
-// TODO: Need to add assertions in test split handlers
-
 #[test]
 fn modification_range_apply_annotations() {
     let mut annotations: LinkedList<ContentAnnotation> = LinkedList::new();
@@ -2202,8 +2200,14 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |annotation| { annotation.metadata = Some(&metadata[3]) },
             |_, _| { panic!() },
-            |annotation| { annotation.metadata = Some(&metadata[4]) },
-            |annotation| { annotation.metadata = Some(&metadata[5]) }
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[1]));
+                annotation.metadata = Some(&metadata[4]);
+            },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[1]));
+                annotation.metadata = Some(&metadata[5]);
+            }
         )
     );
     assert_eq!(
@@ -2268,8 +2272,14 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |_| { panic!() },
             |_, _| { panic!() },
-            |annotation| { annotation.metadata = Some(&metadata[1]) },
-            |annotation| { annotation.metadata = Some(&metadata[5]) },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[3]));
+                annotation.metadata = Some(&metadata[1]);
+            },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[3]));
+                annotation.metadata = Some(&metadata[5]);
+            },
         )
     );
     assert_eq!(
@@ -2303,8 +2313,14 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |_| { panic!() },
             |_, _| { panic!() },
-            |annotation| { annotation.metadata = Some(&metadata[3]) },
-            |annotation| { annotation.metadata = Some(&metadata[6]) },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[0]));
+                annotation.metadata = Some(&metadata[3]);
+            },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[2]));
+                annotation.metadata = Some(&metadata[6]);
+            },
         )
     );
     assert_eq!(
@@ -2760,8 +2776,14 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |annotation| { annotation.metadata = Some(&metadata[2]) },
             |_, _| { panic!() },
-            |annotation| { annotation.metadata = Some(&metadata[3]) },
-            |annotation| { annotation.metadata = Some(&metadata[6]) }
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[0]));
+                annotation.metadata = Some(&metadata[3]);
+            },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[0]));
+                annotation.metadata = Some(&metadata[6]);
+            }
         )
     );
     assert_eq!(
@@ -2799,7 +2821,10 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |_| { panic!() },
             |_, _| { panic!() },
-            |annotation| { annotation.metadata = Some(&metadata[0]) },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[3]));
+                annotation.metadata = Some(&metadata[0]);
+            },
             |_| { panic!() }
         )
     );
@@ -2835,7 +2860,10 @@ fn modification_range_apply_annotations() {
             |_| { panic!() },
             |_, _| { panic!() },
             |_| { panic!() },
-            |annotation| { annotation.metadata = Some(&metadata[2]) }
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[1]));
+                annotation.metadata = Some(&metadata[2]);
+            }
         )
     );
     assert_eq!(
@@ -2865,8 +2893,14 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |annotation| { annotation.metadata = Some(&metadata[1]) },
             |_, _| { panic!() },
-            |annotation| { annotation.metadata = Some(&metadata[3]) },
-            |annotation| { annotation.metadata = Some(&metadata[6]) },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[5]));
+                annotation.metadata = Some(&metadata[3]);
+            },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[5]));
+                annotation.metadata = Some(&metadata[6]);
+            },
         )
     );
     assert_eq!(
@@ -2904,8 +2938,14 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |annotation| { annotation.metadata = Some(&metadata[5]) },
             |_, _| { panic!() },
-            |annotation| { annotation.metadata = Some(&metadata[7]) },
-            |annotation| { annotation.metadata = Some(&metadata[8]) },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[4]));
+                annotation.metadata = Some(&metadata[7]);
+            },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[4]));
+                annotation.metadata = Some(&metadata[8]);
+            },
         )
     );
     assert_eq!(
@@ -2978,8 +3018,14 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |_| { panic!() },
             |annotation, index| { annotation.metadata = Some(&metadata[2 + index]) },
-            |annotation| { annotation.metadata = Some(&metadata[0]) },
-            |annotation| { annotation.metadata = Some(&metadata[1]) }
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[5]));
+                annotation.metadata = Some(&metadata[0]);
+            },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[5]));
+                annotation.metadata = Some(&metadata[1]);
+            }
         )
     );
     assert_eq!(
@@ -3014,7 +3060,10 @@ fn modification_range_apply_annotations() {
             |_| { panic!() },
             |_, _| { panic!() },
             |_| { panic!() },
-            |annotation| { annotation.metadata = Some(&metadata[5]) }
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[8]));
+                annotation.metadata = Some(&metadata[5]);
+            }
         )
     );
     assert_eq!(
@@ -3044,7 +3093,10 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |_| { panic!() },
             |_, _| { panic!() },
-            |annotation| { annotation.metadata = Some(&metadata[1]) },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[3]));
+                annotation.metadata = Some(&metadata[1]);
+            },
             |_| { panic!() }
         )
     );
@@ -3171,7 +3223,10 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |_| { panic!() },
             |_, _| { panic!() },
-            |annotation| { annotation.metadata = Some(&metadata[4]) },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[1]));
+                annotation.metadata = Some(&metadata[4]);
+            },
             |_| { panic!() }
         )
     );
@@ -3202,7 +3257,10 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |_| { panic!() },
             |_, _| { panic!() },
-            |annotation| { annotation.metadata = Some(&metadata[1]) },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[0]));
+                annotation.metadata = Some(&metadata[1]);
+            },
             |_| { panic!() }
         )
     );
@@ -3291,8 +3349,14 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |_| { panic!() },
             |_, _| { panic!() },
-            |annotation| { annotation.metadata = Some(&metadata[4]) },
-            |annotation| { annotation.metadata = Some(&metadata[5]) }
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[3]));
+                annotation.metadata = Some(&metadata[4]);
+            },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[3]));
+                annotation.metadata = Some(&metadata[5]);
+            }
         )
     );
     assert_eq!(
@@ -3357,8 +3421,14 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |_| { panic!() },
             |_, _| { panic!() },
-            |annotation| { annotation.metadata = Some(&metadata[2]) },
-            |annotation| { annotation.metadata = Some(&metadata[3]) }
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[0]));
+                annotation.metadata = Some(&metadata[2]);
+            },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[0]));
+                annotation.metadata = Some(&metadata[3]);
+            }
         )
     );
     assert_eq!(
@@ -3525,8 +3595,14 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |_| { panic!() },
             |annotation, index| { annotation.metadata = Some(&metadata[9 + index]) },
-            |annotation| { annotation.metadata = Some(&metadata[0]) },
-            |annotation| { annotation.metadata = Some(&metadata[8]) }
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[6]));
+                annotation.metadata = Some(&metadata[0]);
+            },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[6]));
+                annotation.metadata = Some(&metadata[8]);
+            }
         )
     );
     assert_eq!(
@@ -3619,8 +3695,14 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |_| { panic!() },
             |annotation, index| { annotation.metadata = Some(&metadata[6 + index]) },
-            |annotation| { annotation.metadata = Some(&metadata[0]) },
-            |annotation| { annotation.metadata = Some(&metadata[5]) }
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[7]));
+                annotation.metadata = Some(&metadata[0]);
+            },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[7]));
+                annotation.metadata = Some(&metadata[5]);
+            }
         )
     );
     assert_eq!(
@@ -3865,8 +3947,14 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |_| { panic!() },
             |annotation, index| { annotation.metadata = Some(&metadata[7 + index]) },
-            |annotation| { annotation.metadata = Some(&metadata[5]) },
-            |annotation| { annotation.metadata = Some(&metadata[6]) }
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[2]));
+                annotation.metadata = Some(&metadata[5]);
+            },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[2]));
+                annotation.metadata = Some(&metadata[6]);
+            }
         )
     );
     assert_eq!(
@@ -3912,8 +4000,14 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |_| {},
             |annotation, index| { annotation.metadata = Some(&metadata[9 + index]) },
-            |annotation| { annotation.metadata = Some(&metadata[2]) },
-            |annotation| { annotation.metadata = Some(&metadata[8]) }
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[1]));
+                annotation.metadata = Some(&metadata[2]);
+            },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[1]));
+                annotation.metadata = Some(&metadata[8]);
+            }
         )
     );
     assert_eq!(
@@ -3967,8 +4061,14 @@ fn modification_range_apply_annotations() {
             &mut cursor,
             |_| {},
             |annotation, index| { annotation.metadata = Some(&metadata[11 + index]) },
-            |annotation| { annotation.metadata = Some(&metadata[1]) },
-            |annotation| { annotation.metadata = Some(&metadata[10]) }
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[3]));
+                annotation.metadata = Some(&metadata[1]);
+            },
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[3]));
+                annotation.metadata = Some(&metadata[10]);
+            }
         )
     );
     assert_eq!(
@@ -4094,7 +4194,10 @@ fn modification_range_apply_annotations() {
             |_| { panic!() },
             |_, _| { panic!() },
             |_| { panic!() },
-            |annotation| { annotation.metadata = Some(&metadata[3]) }
+            |annotation| {
+                assert_eq!(annotation.metadata, Some(&metadata[12]));
+                annotation.metadata = Some(&metadata[3]);
+            }
         )
     );
     assert_eq!(

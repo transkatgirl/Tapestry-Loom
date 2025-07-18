@@ -84,8 +84,8 @@ The current target is to finish `v1-alpha` before the end of 2025.
 			- [ ] Rewrite `document` module to use Entry whenever possible
 			- [ ] Rewrite `update` module to allow using user-provided timelines & Diff objects, rather than always building a timeline & calculating the diff
 		- [ ] Test & fix code
-			- [ ] Implement unit tests for `content` module (WIP)
-			- [ ] Implement unit tests for `document` module
+			- [x] Implement unit tests for `content` module
+			- [ ] Implement unit tests for `document` module (WIP)
 			- [ ] Implement unit tests for `update` module
 			- [ ] Implement integration tests for `document` + `content` modules
 			- [ ] Implement integration tests for `document` + `update` modules
