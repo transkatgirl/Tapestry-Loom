@@ -123,6 +123,8 @@ The current target is to finish `v1-alpha` before the end of 2025.
 	- [ ] Color coding by embeddings
 - [ ] Add support for displaying prompt logprobs if returned by API
 - [ ] UI improvements
+	- [ ] Allow adjusting proportion of completions from each model
+		- [ ] Allow dynamically adjusting proportions based on usage
 	- [ ] Code cleanup
 		- [ ] Remove reliance on Obsidian's undocumented styling rules
 		- [ ] Rewrite UI using svelte?
