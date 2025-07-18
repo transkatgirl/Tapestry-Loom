@@ -514,14 +514,11 @@ fn update_node_activity(
             return;
         }
 
-        let mut is_parent_active = false;
-
-        for parent in node.from.iter().filter_map(|id| nodes.get(id)) {
-            if parent.active {
-                is_parent_active = true;
-                break;
-            }
-        }
+        let is_parent_active = node
+            .from
+            .iter()
+            .filter_map(|id| nodes.get(id))
+            .any(|parent| parent.active);
 
         if is_parent_active != active {
             if active {

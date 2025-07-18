@@ -81,7 +81,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 	- [ ] Create `tapestry-weave` Rust library
 		- [x] Write code for new Weave data structure & serialization+deserialization
 			- [x] Rewrite `content` module to use ~~any_rope~~ ~~flo_rope~~ LinkedList + Bytes
-			- [ ] Rewrite `document` module to use Entry whenever possible
+			- [ ] Rewrite `document` module to use Iterators and Entry whenever possible
 			- [ ] Rewrite `update` module to allow using user-provided timelines & Diff objects, rather than always building a timeline & calculating the diff
 		- [ ] Test & fix code
 			- [x] Implement unit tests for `content` module
