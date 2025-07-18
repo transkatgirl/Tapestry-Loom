@@ -4087,7 +4087,69 @@ fn modification_range_apply_annotations() {
             },
         ])
     );
-    // TODO: Add additional tail deletion tests
+    assert!(
+        ModificationRange::Deletion(Range { start: 17, end: 18 }).apply_annotations(
+            &mut location,
+            &mut cursor,
+            |_| { panic!() },
+            |_, _| { panic!() },
+            |_| { panic!() },
+            |annotation| { annotation.metadata = Some(&metadata[3]) }
+        )
+    );
+    assert_eq!(
+        *cursor.as_list(),
+        LinkedList::from([
+            ContentAnnotation {
+                len: 1,
+                metadata: Some(&metadata[5]),
+            },
+            ContentAnnotation {
+                len: 2,
+                metadata: Some(&metadata[7]),
+            },
+            ContentAnnotation {
+                len: 1,
+                metadata: Some(&metadata[6]),
+            },
+            ContentAnnotation {
+                len: 1,
+                metadata: Some(&metadata[2]),
+            },
+            ContentAnnotation {
+                len: 2,
+                metadata: Some(&metadata[9]),
+            },
+            ContentAnnotation {
+                len: 2,
+                metadata: Some(&metadata[8]),
+            },
+            ContentAnnotation {
+                len: 2,
+                metadata: Some(&metadata[4]),
+            },
+            ContentAnnotation {
+                len: 2,
+                metadata: Some(&metadata[0]),
+            },
+            ContentAnnotation {
+                len: 1,
+                metadata: Some(&metadata[1]),
+            },
+            ContentAnnotation {
+                len: 2,
+                metadata: Some(&metadata[11]),
+            },
+            ContentAnnotation {
+                len: 1,
+                metadata: Some(&metadata[10]),
+            },
+            ContentAnnotation {
+                len: 1,
+                metadata: Some(&metadata[3]),
+            },
+        ])
+    );
 }
 
 #[test]
