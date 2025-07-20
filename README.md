@@ -101,6 +101,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 			- [ ] Implement weave format v0 -> v1 conversion
 			- [ ] Store weave in dedicated files by default, only store in document frontmatter if the user explicitly requests to do so
 			- [ ] Rewrite async code to fix document switching race conditions
+			- [ ] Handle document model metadata update on settings update and document load
 			- [ ] Allow graceful handling of editor undo/redo functionality
 		- [ ] Add support for FIM completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 		- [ ] Add support for diff weaves, similar to [minihf's loom](https://github.com/JD-P/minihf)
@@ -125,6 +126,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 - [ ] UI improvements
 	- [ ] Allow adjusting proportion of completions from each model
 		- [ ] Allow dynamically adjusting proportions based on usage
+	- [ ] Allow adjusting model parameters for each model?
 	- [ ] Code cleanup
 		- [ ] Remove reliance on Obsidian's undocumented styling rules
 		- [ ] Rewrite UI using svelte?
@@ -152,6 +154,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
 	- [ ] Implement "select node and generate completions" selection mode, similar to [inkstream](https://inkstream.ai)
 	- [ ] Add Generation presets
+	- [ ] Add error message when when attempting to generate without any models selected
 
 #### Tapestry Loom v1-rc checklist
 
