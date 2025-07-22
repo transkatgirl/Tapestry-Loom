@@ -103,6 +103,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 			- [ ] Rewrite async code to fix document switching race conditions
 			- [ ] Handle document model metadata update on settings update and document load
 			- [ ] Allow graceful handling of editor undo/redo functionality
+		- [ ] Implement adaptive looming based on next token vs previous token probability
 		- [ ] Add support for FIM completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 		- [ ] Add support for diff weaves, similar to [minihf's loom](https://github.com/JD-P/minihf)
 		- [ ] Add support for copying / moving nodes (and their children) to different parents
