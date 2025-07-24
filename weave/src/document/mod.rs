@@ -517,10 +517,10 @@ fn update_node_activity(
     let to_update = to_update.unwrap_or_else(|| queue.as_mut().unwrap());
 
     if let Some(node) = nodes.get(identifier) {
-        assert_eq!(&node.id, identifier);
         if node.active == active {
             return;
         }
+        assert_eq!(&node.id, identifier);
 
         let is_parent_active = node
             .from
@@ -530,10 +530,8 @@ fn update_node_activity(
 
         if is_parent_active != active {
             if active {
-                let mut parents: Vec<Ulid> = node.from.iter().copied().collect();
-                parents.sort();
-                if let Some(parent) = parents.first() {
-                    update_node_activity(nodes, parent, true, in_place, Some(to_update));
+                if let Some(parent) = node.from.iter().min().copied() {
+                    update_node_activity(nodes, &parent, true, in_place, Some(to_update));
                 }
             } else if !in_place {
                 for parent in node.from.clone() {
