@@ -569,10 +569,10 @@ fn update_node_activity(
 
 fn update_removed_child_activity(nodes: &mut HashMap<Ulid, Node>, identifier: &Ulid) {
     if let Some(node) = nodes.get(identifier) {
-        assert_eq!(&node.id, identifier);
         if !node.active {
             return;
         }
+        assert_eq!(&node.id, identifier);
 
         if node
             .from
