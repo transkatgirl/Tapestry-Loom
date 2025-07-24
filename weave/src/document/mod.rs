@@ -574,10 +574,13 @@ fn update_removed_child_activity(nodes: &mut HashMap<Ulid, Node>, identifier: &U
             return;
         }
 
-        for parent in node.from.iter().filter_map(|id| nodes.get(id)) {
-            if parent.active {
-                return;
-            }
+        if node
+            .from
+            .iter()
+            .filter_map(|id| nodes.get(id))
+            .any(|parent| parent.active)
+        {
+            return;
         }
     }
     if let Some(node) = nodes.get_mut(identifier) {
