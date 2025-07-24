@@ -584,6 +584,50 @@ fn update_node_activity_tree() {
     assert_eq!(nodes.get(&Ulid::from_parts(1, 8)).unwrap().active, false);
     assert_eq!(nodes.get(&Ulid::from_parts(1, 9)).unwrap().active, false);
     assert_eq!(nodes.get(&Ulid::from_parts(1, 10)).unwrap().active, false);
+    nodes
+        .get_mut(&Ulid::from_parts(1, 7))
+        .unwrap()
+        .to
+        .insert(Ulid::from_parts(1, 10));
+    nodes
+        .get_mut(&Ulid::from_parts(1, 10))
+        .unwrap()
+        .from
+        .insert(Ulid::from_parts(1, 7));
+    update_node_activity(&mut nodes, &Ulid::from_parts(1, 7), true, true, None);
+    assert_eq!(nodes.len(), 15);
+    assert_eq!(nodes.get(&Ulid::from_parts(0, 0)).unwrap().active, true);
+    assert_eq!(nodes.get(&Ulid::from_parts(0, 1)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(0, 2)).unwrap().active, true);
+    assert_eq!(nodes.get(&Ulid::from_parts(0, 3)).unwrap().active, true);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 0)).unwrap().active, true);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 1)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 2)).unwrap().active, true);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 3)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 4)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 5)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 6)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 7)).unwrap().active, true);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 8)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 9)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 10)).unwrap().active, false);
+    update_node_activity(&mut nodes, &Ulid::from_parts(1, 10), true, true, None);
+    assert_eq!(nodes.len(), 15);
+    assert_eq!(nodes.get(&Ulid::from_parts(0, 0)).unwrap().active, true);
+    assert_eq!(nodes.get(&Ulid::from_parts(0, 1)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(0, 2)).unwrap().active, true);
+    assert_eq!(nodes.get(&Ulid::from_parts(0, 3)).unwrap().active, true);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 0)).unwrap().active, true);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 1)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 2)).unwrap().active, true);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 3)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 4)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 5)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 6)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 7)).unwrap().active, true);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 8)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 9)).unwrap().active, false);
+    assert_eq!(nodes.get(&Ulid::from_parts(1, 10)).unwrap().active, true);
 }
 
 /*#[test]
