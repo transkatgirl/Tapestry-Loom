@@ -538,6 +538,7 @@ fn update_node_activity(
                 .iter()
                 .filter_map(|id| nodes.get(id))
                 .flat_map(|parent| parent.to.clone())
+                .filter(|id| !node.from.contains(id))
                 .collect();
 
             for sibling in siblings {
