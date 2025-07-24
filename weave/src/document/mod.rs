@@ -215,7 +215,7 @@ impl Weave {
     /// ```
     // Trivial; shouldn't require unit tests
     pub fn update_node_activity(&mut self, identifier: &Ulid, active: bool, in_place: bool) {
-        update_node_activity(&mut self.nodes, identifier, active, in_place);
+        update_node_activity(&mut self.nodes, identifier, active, in_place, None);
     }
     /// Update the bookmarked status of a [`Node`] by it's [`Ulid`].
     // Trivial; shouldn't require unit tests
@@ -507,7 +507,15 @@ fn update_node_activity(
     identifier: &Ulid,
     active: bool,
     in_place: bool,
+    to_update: Option<&mut Vec<Ulid>>,
 ) {
+    let mut queue = if to_update.is_none() {
+        Some(Vec::new())
+    } else {
+        None
+    };
+    let to_update = to_update.unwrap_or_else(|| queue.as_mut().unwrap());
+
     if let Some(node) = nodes.get(identifier) {
         assert_eq!(&node.id, identifier);
         if node.active == active {
@@ -525,11 +533,11 @@ fn update_node_activity(
                 let mut parents: Vec<Ulid> = node.from.iter().copied().collect();
                 parents.sort();
                 if let Some(parent) = parents.first() {
-                    update_node_activity(nodes, parent, true, in_place);
+                    update_node_activity(nodes, parent, true, in_place, Some(to_update));
                 }
             } else if !in_place {
                 for parent in node.from.clone() {
-                    update_node_activity(nodes, &parent, false, false);
+                    update_node_activity(nodes, &parent, false, false, Some(to_update));
                 }
             }
         } else if in_place && active {
@@ -542,16 +550,19 @@ fn update_node_activity(
                 .collect();
 
             for sibling in siblings {
-                update_node_activity(nodes, &sibling, false, true);
+                update_node_activity(nodes, &sibling, false, true, Some(to_update));
             }
         }
     }
     if let Some(node) = nodes.get_mut(identifier) {
         node.active = active;
         if !active {
-            for child in node.to.clone() {
-                update_removed_child_activity(nodes, &child);
-            }
+            to_update.extend(node.to.iter());
+        }
+    }
+    if let Some(queue) = &queue {
+        for child in queue {
+            update_removed_child_activity(nodes, child);
         }
     }
 }
