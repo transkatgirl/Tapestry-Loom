@@ -636,7 +636,7 @@ fn get_active_timelines() {}*/
 /*#[test]
 fn add_model() {}*/
 
-/*#[test]
+#[test]
 fn add_node() {
     let mut weave = Weave::default();
     assert_eq!(
@@ -855,7 +855,7 @@ fn add_node() {
     );
 
     println!("{:#?}", weave);
-}*/
+}
 
 /*#[test]
 fn add_node_multiparent() {}*/
