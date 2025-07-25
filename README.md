@@ -156,6 +156,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 	- [ ] Implement "select node and generate completions" selection mode, similar to [inkstream](https://inkstream.ai)
 	- [ ] Add Generation presets
 	- [ ] Add error message when when attempting to generate without any models selected
+	- [ ] Implement default shortcuts from [loomsidian](https://github.com/cosmicoptima/loom)
 
 #### Tapestry Loom v1-rc checklist
 
