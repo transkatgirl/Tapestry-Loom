@@ -122,7 +122,6 @@ The current target is to finish `v1-alpha` before the end of 2025.
 
 - [ ] Implement embedding model requests
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
-	- [ ] Color coding by embeddings
 - [ ] Add support for displaying prompt logprobs if returned by API
 - [ ] UI improvements
 	- [ ] Allow adjusting proportion of completions from each model
@@ -135,7 +134,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 		- [ ] Time added
 		- [ ] Alphabetical
 		- [ ] Semantic sort
-	- [ ] Add color coding by token variety (number of tokens within 0.95 nucleus)
+	- [ ] Add color coding by token variety (number of tokens within top 0.95)
 	- [ ] Improve list view to support all of the same functionality as the tree interface
 		- [ ] Add hover buttons to list view
 	- [ ] Allow quickly moving to node under cursor, similar to [exoloom](https://exoloom.io)
@@ -157,6 +156,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 	- [ ] Add Generation presets
 	- [ ] Add error message when when attempting to generate without any models selected
 	- [ ] Implement default shortcuts from [loomsidian](https://github.com/cosmicoptima/loom)
+	- [ ] Show alternate completions on hover
 
 #### Tapestry Loom v1-rc checklist
 
@@ -198,6 +198,8 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 - Integration with local LLM engines:
 	- Option 1: Ollama integration
 	- Option 2: An optional Tapestry Loom LLM server to handle running models locally using llama.cpp. This will likely only end up getting implemented if implementing [logprobs in Ollama](https://github.com/ollama/ollama/issues/2415) keeps getting delayed.
+- Implement looming of chat-style LLMs
+	- Implement a chatroom-style conversation
 - Integration with external inference providers
 	- Easy setup + built-in payment UI
 	- May allow for monetization through provider profit sharing agreements without degrading user experience
