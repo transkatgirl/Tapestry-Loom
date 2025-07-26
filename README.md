@@ -135,6 +135,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 		- [ ] Alphabetical
 		- [ ] Semantic sort
 	- [ ] Add color coding by token variety (number of tokens within top 0.95)
+	- [ ] Add more color coding customization
 	- [ ] Improve list view to support all of the same functionality as the tree interface
 		- [ ] Add hover buttons to list view
 	- [ ] Allow quickly moving to node under cursor, similar to [exoloom](https://exoloom.io)
