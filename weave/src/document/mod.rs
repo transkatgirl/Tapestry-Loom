@@ -111,6 +111,9 @@ impl Weave {
             if let Some(child) = self.nodes.get_mut(&child) {
                 child.from.insert(node.id);
                 self.root_nodes.remove(&child.id);
+                if child.from.len() > 1 {
+                    self.multiparent_nodes.insert(child.id);
+                }
             } else {
                 node.to.remove(&child);
             }
@@ -128,7 +131,7 @@ impl Weave {
         if node.from.is_empty() {
             self.root_nodes.insert(node.id);
         }
-        if node.from.len() > 1 || !node.to.is_empty() {
+        if node.from.len() > 1 {
             self.multiparent_nodes.insert(node.id);
         }
         if !node.content.is_concatable() {
@@ -161,7 +164,6 @@ impl Weave {
     /// In addition to the model, this function also takes a capacity hint. If this hint is present, capacity will be reserved for at least n nodes associated with the model.
     pub fn add_model(&mut self, model: Model, model_nodes: Option<usize>) {
         let identifier = model.id;
-
         self.models.insert(model.id, model);
 
         if let Some(capacity) = model_nodes {
