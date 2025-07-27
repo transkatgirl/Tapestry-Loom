@@ -928,40 +928,36 @@ fn add_node() {
 #[should_panic]
 fn add_node_invalid_parent() {
     let mut weave = Weave::default();
-    weave
-        .add_node(
-            Node {
-                id: Ulid::from_parts(0, 0),
-                from: HashSet::from([Ulid::from_parts(0, 1)]),
-                to: HashSet::new(),
-                active: true,
-                bookmarked: false,
-                content: NodeContent::Blank,
-            },
-            None,
-            false,
-        )
-        .unwrap();
+    let _ = weave.add_node(
+        Node {
+            id: Ulid::from_parts(0, 0),
+            from: HashSet::from([Ulid::from_parts(0, 1)]),
+            to: HashSet::new(),
+            active: true,
+            bookmarked: false,
+            content: NodeContent::Blank,
+        },
+        None,
+        false,
+    );
 }
 
 #[test]
 #[should_panic]
 fn add_node_invalid_child() {
     let mut weave = Weave::default();
-    weave
-        .add_node(
-            Node {
-                id: Ulid::from_parts(0, 0),
-                from: HashSet::new(),
-                to: HashSet::from([Ulid::from_parts(0, 1)]),
-                active: true,
-                bookmarked: false,
-                content: NodeContent::Blank,
-            },
-            None,
-            false,
-        )
-        .unwrap();
+    let _ = weave.add_node(
+        Node {
+            id: Ulid::from_parts(0, 0),
+            from: HashSet::new(),
+            to: HashSet::from([Ulid::from_parts(0, 1)]),
+            active: true,
+            bookmarked: false,
+            content: NodeContent::Blank,
+        },
+        None,
+        false,
+    );
 }
 
 /*#[test]

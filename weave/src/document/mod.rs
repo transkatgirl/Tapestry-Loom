@@ -67,6 +67,9 @@ impl Weave {
     /// Returns the [`Ulid`] of the input node if the node was successfully added. If the node was deduplicated, the returned Ulid will correspond to a node which was already in the document (the node's active & bookmarked statuses will be updated to match the input). Returns [`None`] if the node could not be added.
     ///
     /// Nodes which have the same identifier as a node already in the [`Weave`] cannot be added. If the Weave contains any nodes with multiple parents, non-concatable nodes cannot be added. If the Weave contains any non-concatable nodes, nodes with multiple parents cannot be added.
+    ///
+    /// # Panics
+    /// Panics if the [`Node`] references a Ulid that does not correspond to an item contained within the [`Weave`].
     #[must_use]
     pub fn add_node(
         &mut self,
@@ -115,7 +118,7 @@ impl Weave {
                     self.multiparent_nodes.insert(child.id);
                 }
             } else {
-                return None;
+                panic!();
             }
         }
         for parent in &node.from {
@@ -125,7 +128,7 @@ impl Weave {
             if let Some(parent) = self.nodes.get_mut(parent) {
                 parent.to.insert(node.id);
             } else {
-                return None;
+                panic!();
             }
         }
         if node.from.is_empty() {
@@ -141,9 +144,11 @@ impl Weave {
             self.bookmarked_nodes.insert(node.id);
         }
         if let Some(node_model) = node.content.model() {
-            if let Some(mut model) = model {
-                model.id = node_model.id;
+            if let Some(model) = model {
+                assert_eq!(model.id, node_model.id);
                 self.models.insert(model.id, model);
+            } else {
+                assert!(self.models.contains_key(&node_model.id));
             }
             match self.model_nodes.entry(node_model.id) {
                 Entry::Occupied(mut entry) => {
@@ -231,15 +236,17 @@ impl Weave {
             }
         }
     }
-    /// Moves a [`Node`] to a new position on the tree (without performing deduplication).
+    /// Moves a [`Node`] to a new position on the graph (without performing deduplication).
     ///
     /// This function will always return `false` if the Weave contains any non-concatable nodes.
     ///
     /// Care must be taken to prevent loops between nodes, as loop checking is not performed by this function. If a loop between nodes is added to the [`Weave`], it may cause unintended behavior (such as functions panicking or getting stuck in infinite loops).
     ///
     /// The modified node retains all of it's other attributes, including its identifier. Returns if the node was moved successfully.
+    ///
+    /// # Panics
+    /// Panics if the new parent set contains a Ulid that does not correspond to a node within the [`Weave`].
     #[must_use]
-    #[allow(clippy::missing_panics_doc)]
     pub fn move_node(&mut self, identifier: &Ulid, parents: HashSet<Ulid>) -> bool {
         if !self.nonconcatable_nodes.is_empty() && parents.len() > 1 {
             return false;
@@ -273,7 +280,7 @@ impl Weave {
             if let Some(parent) = self.nodes.get_mut(parent) {
                 parent.to.insert(*identifier);
             } else {
-                return false;
+                panic!();
             }
         }
         if parents.is_empty() {
