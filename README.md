@@ -82,6 +82,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 		- [x] Write code for new Weave data structure & serialization+deserialization
 			- [x] Rewrite `content` module to use ~~any_rope~~ ~~flo_rope~~ LinkedList + Bytes
 			- [ ] Rewrite `document` module to use Iterators and Entry whenever possible
+			- [ ] Optimize modules to use `mem::take` and `mem::replace`
 			- [ ] Rewrite `update` module to allow using user-provided timelines & Diff objects, rather than always building a timeline & calculating the diff
 		- [ ] Test & fix code
 			- [x] Implement unit tests for `content` module
