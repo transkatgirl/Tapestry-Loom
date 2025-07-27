@@ -162,15 +162,14 @@ impl Weave {
     /// Add a [`Model`] without a corresponding [`Node`]. If it is already present, the model's contents will be updated.
     ///
     /// In addition to the model, this function also takes a capacity hint. If this hint is present, capacity will be reserved for at least n nodes associated with the model.
+    // Trivial; shouldn't require unit tests
     pub fn add_model(&mut self, model: Model, model_nodes: Option<usize>) {
-        let identifier = model.id;
-        self.models.insert(model.id, model);
-
         if let Some(capacity) = model_nodes {
-            match self.model_nodes.entry(identifier) {
+            match self.model_nodes.entry(model.id) {
                 Entry::Occupied(mut entry) => {
-                    let len = entry.get().len();
-                    if capacity > len {
+                    let item = entry.get();
+                    if capacity > item.capacity() {
+                        let len = item.len();
                         entry.get_mut().reserve(capacity - len);
                     }
                 }
@@ -179,13 +178,14 @@ impl Weave {
                 }
             }
         } else {
-            match self.model_nodes.entry(identifier) {
+            match self.model_nodes.entry(model.id) {
                 Entry::Occupied(_) => {}
                 Entry::Vacant(entry) => {
                     entry.insert(HashSet::new());
                 }
             }
         }
+        self.models.insert(model.id, model);
     }
     /// Recursively update the active status of a [`Node`] by it's [`Ulid`].
     ///

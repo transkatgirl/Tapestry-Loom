@@ -633,9 +633,6 @@ fn update_node_activity_tree() {
 /*#[test]
 fn get_active_timelines() {}*/
 
-/*#[test]
-fn add_model() {}*/
-
 #[test]
 fn add_node() {
     let mut weave = Weave::default();
