@@ -70,7 +70,7 @@ impl Weave {
     #[must_use]
     pub fn add_node(
         &mut self,
-        mut node: Node,
+        node: Node,
         model: Option<Model>,
         deduplicate: bool,
     ) -> Option<Ulid> {
@@ -107,25 +107,25 @@ impl Weave {
                 }
             }
         }
-        for child in node.to.clone() {
-            if let Some(child) = self.nodes.get_mut(&child) {
+        for child in &node.to {
+            if let Some(child) = self.nodes.get_mut(child) {
                 child.from.insert(node.id);
                 self.root_nodes.remove(&child.id);
                 if child.from.len() > 1 {
                     self.multiparent_nodes.insert(child.id);
                 }
             } else {
-                node.to.remove(&child);
+                return None;
             }
         }
-        for parent in node.from.clone() {
+        for parent in &node.from {
             if node.active {
-                self.update_node_activity(&parent, true, true);
+                self.update_node_activity(parent, true, true);
             }
-            if let Some(parent) = self.nodes.get_mut(&parent) {
+            if let Some(parent) = self.nodes.get_mut(parent) {
                 parent.to.insert(node.id);
             } else {
-                node.from.remove(&parent);
+                return None;
             }
         }
         if node.from.is_empty() {
@@ -240,7 +240,7 @@ impl Weave {
     /// The modified node retains all of it's other attributes, including its identifier. Returns if the node was moved successfully.
     #[must_use]
     #[allow(clippy::missing_panics_doc)]
-    pub fn move_node(&mut self, identifier: &Ulid, mut parents: HashSet<Ulid>) -> bool {
+    pub fn move_node(&mut self, identifier: &Ulid, parents: HashSet<Ulid>) -> bool {
         if !self.nonconcatable_nodes.is_empty() && parents.len() > 1 {
             return false;
         }
@@ -266,14 +266,14 @@ impl Weave {
             return false;
         }
 
-        for parent in parents.clone() {
+        for parent in &parents {
             if active_status {
-                self.update_node_activity(&parent, true, true);
+                self.update_node_activity(parent, true, true);
             }
-            if let Some(parent) = self.nodes.get_mut(&parent) {
+            if let Some(parent) = self.nodes.get_mut(parent) {
                 parent.to.insert(*identifier);
             } else {
-                parents.remove(&parent);
+                return false;
             }
         }
         if parents.is_empty() {
@@ -287,16 +287,16 @@ impl Weave {
             self.multiparent_nodes.remove(identifier);
         }
 
-        if let Some(node) = self.nodes.get_mut(identifier) {
-            node.from.clone_from(&parents);
-        }
-
         for old_parent in old_parents {
             if !parents.contains(&old_parent)
                 && let Some(parent) = self.nodes.get_mut(&old_parent)
             {
                 parent.to.remove(identifier);
             }
+        }
+
+        if let Some(node) = self.nodes.get_mut(identifier) {
+            node.from = parents;
         }
 
         true
@@ -363,18 +363,19 @@ impl Weave {
         let from = left.from.clone();
         let bookmarked = left.bookmarked;
 
+        for parent in &from {
+            if let Some(parent) = self.nodes.get_mut(parent) {
+                parent.to.insert(right_identifier);
+            }
+        }
+
         let node = self.nodes.get_mut(&right_identifier)?;
         node.content = content;
         if !node.bookmarked && bookmarked {
             node.bookmarked = true;
             self.bookmarked_nodes.insert(right_identifier);
         }
-        node.from.clone_from(&from);
-        for parent in from {
-            if let Some(parent) = self.nodes.get_mut(&parent) {
-                parent.to.insert(right_identifier);
-            }
-        }
+        node.from = from;
 
         self.remove_node(&left_identifier);
 
