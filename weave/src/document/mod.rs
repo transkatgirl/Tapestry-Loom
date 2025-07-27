@@ -335,6 +335,8 @@ impl Weave {
         right.content = right_content;
         right.bookmarked = false;
         self.bookmarked_nodes.remove(identifier);
+        self.root_nodes.remove(identifier);
+        self.multiparent_nodes.remove(identifier);
         right.from = HashSet::from([left_identifier]);
 
         Some((left_identifier, right.id))
