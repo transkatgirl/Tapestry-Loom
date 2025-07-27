@@ -11,8 +11,10 @@ Checklist:
 - [ ] if node.from.len() <= 1, remove from multi parent nodes
 - [ ] ensure node connection consistency
 - [ ] ensure active status propagation
-- [ ] ensure node identifier consistency
-- [ ] ensure model identifier consistency
+- [ ] ensure node object identifier consistency
+- [ ] ensure model object identifier consistency
+- [ ] ensure weave node identifier consistency
+- [ ] ensure weave model identifier consistency
 - [ ] handle deduplication
 - [ ] if bookmarked, add to bookmarked nodes
 - [ ] if !bookmarked, remove from bookmarked nodes
