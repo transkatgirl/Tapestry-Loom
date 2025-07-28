@@ -744,9 +744,6 @@ fn update_node_activity_tree() {
     assert_eq!(nodes.get(&Ulid::from_parts(1, 10)).unwrap().active, true);
 }
 
-/*#[test]
-fn get_active_timelines() {}*/
-
 #[test]
 fn add_node() {
     let mut weave = Weave::default();
@@ -1100,3 +1097,6 @@ fn split_node() {}*/
 
 /*#[test]
 fn merge_node() {}*/
+
+/*#[test]
+fn get_active_timelines() {}*/
