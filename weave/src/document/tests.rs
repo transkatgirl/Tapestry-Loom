@@ -5,24 +5,24 @@ use super::*;
 
 /*
 Checklist:
-- [ ] if node.from.len() == 0, add to root nodes
-- [ ] if node.from.len() > 0, remove from root nodes
-- [ ] if node.from.len() > 1, add to multi parent nodes
-- [ ] if node.from.len() <= 1, remove from multi parent nodes
 - [ ] ensure node connection consistency
 - [ ] ensure active status propagation
 - [ ] ensure node object identifier consistency
-- [ ] ensure model object identifier consistency
 - [ ] ensure weave node identifier consistency
+- [ ] if node.from.len() == 0, add to root nodes
+- [ ] if node.from.len() > 0, remove from root nodes
+- [ ] if node.from.len() > 1, add to multiparent nodes
+- [ ] if node.from.len() <= 1, remove from multiparent nodes
+- [ ] if node.content.model, add to model nodes
+- [ ] if !node.content.model, remove from model nodes
+- [ ] ensure model object identifier consistency
 - [ ] ensure weave model identifier consistency
-- [ ] handle deduplication
 - [ ] if bookmarked, add to bookmarked nodes
 - [ ] if !bookmarked, remove from bookmarked nodes
 - [ ] if nonconcatable, add to nonconcatable nodes
 - [ ] if concatable, remove from nonconcatable nodes
+- [ ] handle deduplication
 - [ ] prevent mixing of nonconcatable and multiparent nodes
-- [ ] if node.content.model, add to model nodes
-- [ ] if !node.content.model, remove from model nodes
 - [ ] ensure error states do not break consistency
 - [ ] ensure behavior lines up with documentation
 */
