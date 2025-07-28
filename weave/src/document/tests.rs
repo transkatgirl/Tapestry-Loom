@@ -6,25 +6,115 @@ use super::*;
 /*
 Checklist:
 - [ ] ensure node connection consistency
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
+    - [ ] remove_node
 - [ ] ensure active status propagation
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
+    - [ ] remove_node
 - [ ] ensure node object identifier consistency
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
+    - [ ] remove_node
 - [ ] ensure weave node identifier consistency
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
+    - [ ] remove_node
 - [ ] if node.from.len() == 0, add to root nodes
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
 - [ ] if node.from.len() > 0, remove from root nodes
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
+    - [ ] remove_node
 - [ ] if node.from.len() > 1, add to multiparent nodes
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
 - [ ] if node.from.len() <= 1, remove from multiparent nodes
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
+    - [ ] remove_node
 - [ ] if node.content.model, add to model nodes
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
 - [ ] if !node.content.model, remove from model nodes
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
+    - [ ] remove_node
 - [ ] ensure model object identifier consistency
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
+    - [ ] remove_node
 - [ ] ensure weave model identifier consistency
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
+    - [ ] remove_node
 - [ ] if bookmarked, add to bookmarked nodes
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
 - [ ] if !bookmarked, remove from bookmarked nodes
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
+    - [ ] remove_node
 - [ ] if nonconcatable, add to nonconcatable nodes
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
 - [ ] if concatable, remove from nonconcatable nodes
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
+    - [ ] remove_node
 - [ ] handle deduplication
+    - [ ] add_node
 - [ ] prevent mixing of nonconcatable and multiparent nodes
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
 - [ ] ensure error states do not break consistency
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
+    - [ ] remove_node
 - [ ] ensure behavior lines up with documentation
+    - [ ] add_node
+    - [ ] move_node
+    - [ ] split_node
+    - [ ] merge_nodes
+    - [ ] remove_node
 */
 
 #[test]
