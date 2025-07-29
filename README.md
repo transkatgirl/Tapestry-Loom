@@ -126,6 +126,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 - [ ] UI improvements
 	- [ ] Allow adjusting proportion of completions from each model
 		- [ ] Allow dynamically adjusting proportions based on usage
+			- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count
 	- [ ] Allow adjusting model parameters for each model?
 	- [ ] Code cleanup
 		- [ ] Remove reliance on Obsidian's undocumented styling rules
