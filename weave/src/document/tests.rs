@@ -116,6 +116,8 @@ Checklist:
     - [ ] remove_node
 */
 
+// Need to update move_node and split_node documentation with node identifier guarantees
+
 #[test]
 #[allow(clippy::bool_assert_comparison)]
 fn update_node_activity_tree() {
