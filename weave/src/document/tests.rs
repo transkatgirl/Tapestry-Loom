@@ -118,6 +118,8 @@ Checklist:
 
 // Need to update move_node and split_node documentation with node identifier guarantees
 
+// TODO: Update node_activity_tree test to account for node.to sibling handling
+
 #[test]
 #[allow(clippy::bool_assert_comparison)]
 fn update_node_activity_tree() {
@@ -978,7 +980,7 @@ fn add_node() {
             },
             None,
             false,
-            true,
+            false,
         ),
         Some(Ulid::from_parts(0, 3))
     );

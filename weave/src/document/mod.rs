@@ -73,6 +73,7 @@ impl Weave {
     /// # Panics
     /// Panics if the [`Node`] references a Ulid that does not correspond to an item contained within the [`Weave`].
     #[must_use]
+    #[allow(clippy::too_many_lines)]
     pub fn add_node(
         &mut self,
         mut node: Node,
@@ -139,6 +140,20 @@ impl Weave {
                 parent.to.insert(node.id);
             } else {
                 panic!();
+            }
+        }
+        if in_place && node.active {
+            // Copied from update_note_activity()
+            let siblings: Vec<Ulid> = node
+                .from
+                .iter()
+                .filter_map(|id| self.nodes.get(id))
+                .flat_map(|parent| parent.to.clone())
+                .filter(|id| !node.from.contains(id) && !node.to.contains(id))
+                .collect();
+
+            for sibling in siblings {
+                update_node_activity(&mut self.nodes, &sibling, false, true, None);
             }
         }
         if node.from.is_empty() {
@@ -566,7 +581,7 @@ fn update_node_activity(
                 .iter()
                 .filter_map(|id| nodes.get(id))
                 .flat_map(|parent| parent.to.clone())
-                .filter(|id| !node.from.contains(id))
+                .filter(|id| !node.from.contains(id) && !node.to.contains(id))
                 .collect();
 
             for sibling in siblings {
