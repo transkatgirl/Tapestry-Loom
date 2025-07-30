@@ -99,7 +99,7 @@ impl Weave {
             .filter_map(|id| self.nodes.get(id));
 
             for sibling in siblings {
-                if sibling.content == node.content {
+                if sibling.content == node.content && sibling.to == node.to {
                     let identifier = sibling.id;
                     let sibling_active = sibling.active;
                     let sibling_bookmarked = sibling.bookmarked;
