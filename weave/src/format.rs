@@ -307,7 +307,7 @@ impl TryFrom<CompactWeave> for Weave {
                 content: content::NodeContent::try_from(content)?,
             };
 
-            if weave.add_node(node, None, false).is_none() {
+            if weave.add_node(node, None, false, false).is_none() {
                 return Err(WeaveError::FailedInteractive(
                     "Unable to add Node to Weave".to_string(),
                 ));

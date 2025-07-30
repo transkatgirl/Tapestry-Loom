@@ -12,7 +12,8 @@ Checklist:
     - [ ] merge_nodes
     - [ ] remove_node
 - [ ] ensure active status propagation
-    - [ ] add_node
+    - [x] add_node (w/o deduplication)
+    - [ ] add_node (w/ deduplication)
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
@@ -758,6 +759,7 @@ fn add_node() {
             },
             None,
             false,
+            true,
         ),
         Some(Ulid::from_parts(0, 0))
     );
@@ -793,6 +795,7 @@ fn add_node() {
             },
             None,
             false,
+            true,
         ),
         Some(Ulid::from_parts(0, 1))
     );
@@ -844,6 +847,7 @@ fn add_node() {
             },
             None,
             false,
+            true,
         ),
         Some(Ulid::from_parts(0, 2))
     );
@@ -908,6 +912,7 @@ fn add_node() {
             },
             None,
             false,
+            true,
         ),
         None
     );
@@ -972,6 +977,7 @@ fn add_node() {
             },
             None,
             false,
+            true,
         ),
         Some(Ulid::from_parts(0, 3))
     );
@@ -1045,6 +1051,7 @@ fn add_node() {
             },
             None,
             false,
+            true,
         ),
         Some(Ulid::from_parts(0, 4))
     );
@@ -1136,6 +1143,7 @@ fn add_node() {
             },
             None,
             false,
+            true,
         ),
         Some(Ulid::from_parts(0, 5))
     );
@@ -1239,6 +1247,7 @@ fn add_node() {
             },
             None,
             false,
+            true,
         ),
         Some(Ulid::from_parts(0, 6))
     );
@@ -1344,7 +1353,7 @@ fn add_node() {
         HashSet::from([Ulid::from_parts(0, 1)])
     );
 
-    /*assert_eq!(
+    assert_eq!(
         weave.add_node(
             Node {
                 id: Ulid::from_parts(0, 7),
@@ -1355,6 +1364,7 @@ fn add_node() {
                 content: NodeContent::Blank,
             },
             None,
+            false,
             false,
         ),
         Some(Ulid::from_parts(0, 7))
@@ -1467,7 +1477,7 @@ fn add_node() {
     assert_eq!(
         weave.bookmarked_nodes,
         HashSet::from([Ulid::from_parts(0, 1)])
-    );*/
+    );
 }
 
 #[test]
@@ -1485,6 +1495,7 @@ fn add_node_invalid_parent() {
         },
         None,
         false,
+        true,
     );
 }
 
@@ -1503,6 +1514,7 @@ fn add_node_invalid_child() {
         },
         None,
         false,
+        true,
     );
 }
 

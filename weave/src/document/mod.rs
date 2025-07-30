@@ -58,6 +58,8 @@ pub struct Weave {
 impl Weave {
     /// Add a [`Node`] (along with it's corresponding [`Model`]).
     ///
+    /// If the [`Weave`] contains any active nodes (including the one being added), active statuses are propagated using the rules of the [`Weave::update_node_activity`] function. The `in_place` boolean can be used to change the propagation rules used when activating nodes.
+    ///
     /// If a model corresponding to the node's model identifier is already present in the Weave, the model will be updated.
     ///
     /// Performs content deduplication if `deduplicate` is true.
@@ -76,6 +78,7 @@ impl Weave {
         mut node: Node,
         model: Option<Model>,
         deduplicate: bool,
+        in_place: bool,
     ) -> Option<Ulid> {
         if self.nodes.contains_key(&node.id) {
             return None;
@@ -101,7 +104,11 @@ impl Weave {
                     let sibling_active = sibling.active;
                     let sibling_bookmarked = sibling.bookmarked;
                     if sibling_active != node.active {
-                        self.update_node_activity(&identifier, node.active, true);
+                        self.update_node_activity(
+                            &identifier,
+                            node.active,
+                            in_place || !node.active,
+                        );
                     }
                     if sibling_bookmarked != node.bookmarked {
                         self.update_node_bookmarked_status(&identifier, node.bookmarked);
@@ -126,7 +133,7 @@ impl Weave {
         }
         for parent in &node.from {
             if node.active {
-                self.update_node_activity(parent, true, true);
+                self.update_node_activity(parent, true, in_place);
             }
             if let Some(parent) = self.nodes.get_mut(parent) {
                 parent.to.insert(node.id);
@@ -332,7 +339,7 @@ impl Weave {
             content: left_content,
         };
 
-        let left_identifier = self.add_node(node, None, false)?;
+        let left_identifier = self.add_node(node, None, false, false)?;
 
         let right = self.nodes.get_mut(identifier)?;
         right.content = right_content;
