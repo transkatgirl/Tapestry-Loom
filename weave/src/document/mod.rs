@@ -73,7 +73,7 @@ impl Weave {
     #[must_use]
     pub fn add_node(
         &mut self,
-        node: Node,
+        mut node: Node,
         model: Option<Model>,
         deduplicate: bool,
     ) -> Option<Ulid> {
@@ -112,6 +112,9 @@ impl Weave {
         }
         for child in &node.to {
             if let Some(child) = self.nodes.get_mut(child) {
+                if !node.active && child.active && child.from.is_empty() {
+                    node.active = true;
+                }
                 child.from.insert(node.id);
                 self.root_nodes.remove(&child.id);
                 if child.from.len() > 1 {

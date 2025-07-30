@@ -75,12 +75,11 @@ Checklist:
     - [ ] merge_nodes
     - [ ] remove_node
 - [ ] if bookmarked, add to bookmarked nodes
-    - [ ] add_node
+    - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
 - [ ] if !bookmarked, remove from bookmarked nodes
-    - [ ] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
@@ -839,7 +838,7 @@ fn add_node() {
                 id: Ulid::from_parts(0, 2),
                 from: HashSet::new(),
                 to: HashSet::new(),
-                active: false,
+                active: true,
                 bookmarked: false,
                 content: NodeContent::Blank,
             },
@@ -879,7 +878,7 @@ fn add_node() {
                     id: Ulid::from_parts(0, 2),
                     from: HashSet::new(),
                     to: HashSet::new(),
-                    active: false,
+                    active: true,
                     bookmarked: false,
                     content: NodeContent::Blank,
                 }
@@ -943,7 +942,7 @@ fn add_node() {
                     id: Ulid::from_parts(0, 2),
                     from: HashSet::new(),
                     to: HashSet::new(),
-                    active: false,
+                    active: true,
                     bookmarked: false,
                     content: NodeContent::Blank,
                 }
@@ -1007,7 +1006,7 @@ fn add_node() {
                     id: Ulid::from_parts(0, 2),
                     from: HashSet::from([Ulid::from_parts(0, 3)]),
                     to: HashSet::new(),
-                    active: false,
+                    active: true,
                     bookmarked: false,
                     content: NodeContent::Blank,
                 }
@@ -1018,7 +1017,7 @@ fn add_node() {
                     id: Ulid::from_parts(0, 3),
                     from: HashSet::from([Ulid::from_parts(0, 0)]),
                     to: HashSet::from([Ulid::from_parts(0, 2)]),
-                    active: false,
+                    active: true,
                     bookmarked: false,
                     content: NodeContent::Blank,
                 }
