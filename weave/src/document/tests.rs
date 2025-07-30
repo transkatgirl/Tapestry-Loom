@@ -6,7 +6,7 @@ use super::*;
 /*
 Checklist:
 - [ ] ensure node connection consistency
-    - [ ] add_node
+    - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
@@ -19,35 +19,34 @@ Checklist:
     - [ ] merge_nodes
     - [ ] remove_node
 - [ ] ensure node object identifier consistency
-    - [ ] add_node
+    - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
     - [ ] remove_node
 - [ ] ensure weave node identifier consistency
-    - [ ] add_node
+    - [ ] add_node (w/ deduplication)
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
     - [ ] remove_node
 - [ ] if node.from.len() == 0, add to root nodes
-    - [ ] add_node
+    - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
 - [ ] if node.from.len() > 0, remove from root nodes
-    - [ ] add_node
+    - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
     - [ ] remove_node
 - [ ] if node.from.len() > 1, add to multiparent nodes
-    - [ ] add_node
+    - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
 - [ ] if node.from.len() <= 1, remove from multiparent nodes
-    - [ ] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
