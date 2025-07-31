@@ -127,7 +127,6 @@ impl Weave {
                 self.root_nodes.remove(&child.id);
                 if child.from.len() > 1 {
                     self.multiparent_nodes.insert(child.id);
-                    assert!(self.nonconcatable_nodes.is_empty());
                 }
             } else {
                 panic!();
