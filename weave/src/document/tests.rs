@@ -747,6 +747,8 @@ fn update_node_activity_tree() {
     assert_eq!(nodes.get(&Ulid::from_parts(1, 10)).unwrap().active, true);
 }
 
+// TODO: Add additional in_place tests to add_node
+
 #[test]
 fn add_node() {
     let mut weave = Weave::default();
