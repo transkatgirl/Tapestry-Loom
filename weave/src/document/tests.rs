@@ -56,24 +56,23 @@ Checklist:
     - [ ] merge_nodes
     - [ ] remove_node
 - [ ] if node.content.model, add to model nodes
-    - [ ] add_node
+    - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
 - [ ] if !node.content.model, remove from model nodes
-    - [ ] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
     - [ ] remove_node
 - [ ] ensure model object identifier consistency
-    - [ ] add_node
+    - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
     - [ ] remove_node
 - [ ] ensure weave model identifier consistency
-    - [ ] add_node
+    - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
@@ -1976,6 +1975,443 @@ fn add_node() {
         weave.bookmarked_nodes,
         HashSet::from([Ulid::from_parts(0, 1)])
     );
+
+    assert_eq!(
+        weave.add_node(
+            Node {
+                id: Ulid::from_parts(0, 10),
+                from: HashSet::new(),
+                to: HashSet::new(),
+                active: true,
+                bookmarked: false,
+                content: NodeContent::Snippet(SnippetContent {
+                    content: Bytes::new(),
+                    model: Some(ContentModel {
+                        id: Ulid::from_parts(0, 0),
+                        parameters: Vec::new(),
+                    }),
+                    metadata: None,
+                })
+            },
+            Some(Model {
+                id: Ulid::from_parts(0, 0),
+                label: "Test Model".to_string(),
+                metadata: HashMap::new()
+            }),
+            false,
+            false,
+        ),
+        Some(Ulid::from_parts(0, 10))
+    );
+    assert_eq!(
+        weave.nodes,
+        HashMap::from([
+            (
+                Ulid::from_parts(0, 0),
+                Node {
+                    id: Ulid::from_parts(0, 0),
+                    from: HashSet::new(),
+                    to: HashSet::from([
+                        Ulid::from_parts(0, 1),
+                        Ulid::from_parts(0, 3),
+                        Ulid::from_parts(0, 4),
+                        Ulid::from_parts(0, 5),
+                        Ulid::from_parts(0, 8)
+                    ]),
+                    active: true,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 1),
+                Node {
+                    id: Ulid::from_parts(0, 1),
+                    from: HashSet::from([Ulid::from_parts(0, 0)]),
+                    to: HashSet::from([Ulid::from_parts(0, 5)]),
+                    active: false,
+                    bookmarked: true,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 2),
+                Node {
+                    id: Ulid::from_parts(0, 2),
+                    from: HashSet::from([Ulid::from_parts(0, 3), Ulid::from_parts(0, 4)]),
+                    to: HashSet::new(),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 3),
+                Node {
+                    id: Ulid::from_parts(0, 3),
+                    from: HashSet::from([Ulid::from_parts(0, 0)]),
+                    to: HashSet::from([Ulid::from_parts(0, 2)]),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 4),
+                Node {
+                    id: Ulid::from_parts(0, 4),
+                    from: HashSet::from([Ulid::from_parts(0, 0)]),
+                    to: HashSet::from([Ulid::from_parts(0, 2)]),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 5),
+                Node {
+                    id: Ulid::from_parts(0, 5),
+                    from: HashSet::from([Ulid::from_parts(0, 0), Ulid::from_parts(0, 1)]),
+                    to: HashSet::from([Ulid::from_parts(0, 7)]),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 6),
+                Node {
+                    id: Ulid::from_parts(0, 6),
+                    from: HashSet::from([Ulid::from_parts(0, 7)]),
+                    to: HashSet::new(),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 7),
+                Node {
+                    id: Ulid::from_parts(0, 7),
+                    from: HashSet::from([Ulid::from_parts(0, 5)]),
+                    to: HashSet::from([Ulid::from_parts(0, 6)]),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 8),
+                Node {
+                    id: Ulid::from_parts(0, 8),
+                    from: HashSet::from([Ulid::from_parts(0, 0)]),
+                    to: HashSet::new(),
+                    active: true,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 9),
+                Node {
+                    id: Ulid::from_parts(0, 9),
+                    from: HashSet::new(),
+                    to: HashSet::new(),
+                    active: true,
+                    bookmarked: false,
+                    content: NodeContent::Snippet(SnippetContent {
+                        content: Bytes::new(),
+                        model: Some(ContentModel {
+                            id: Ulid::from_parts(0, 0),
+                            parameters: Vec::new(),
+                        }),
+                        metadata: None,
+                    })
+                }
+            ),
+            (
+                Ulid::from_parts(0, 10),
+                Node {
+                    id: Ulid::from_parts(0, 10),
+                    from: HashSet::new(),
+                    to: HashSet::new(),
+                    active: true,
+                    bookmarked: false,
+                    content: NodeContent::Snippet(SnippetContent {
+                        content: Bytes::new(),
+                        model: Some(ContentModel {
+                            id: Ulid::from_parts(0, 0),
+                            parameters: Vec::new(),
+                        }),
+                        metadata: None,
+                    })
+                }
+            )
+        ])
+    );
+    assert_eq!(
+        weave.models,
+        HashMap::from([(
+            Ulid::from_parts(0, 0),
+            Model {
+                id: Ulid::from_parts(0, 0),
+                label: "Test Model".to_string(),
+                metadata: HashMap::new()
+            }
+        )])
+    );
+    assert_eq!(
+        weave.model_nodes,
+        HashMap::from([(
+            Ulid::from_parts(0, 0),
+            HashSet::from([Ulid::from_parts(0, 9), Ulid::from_parts(0, 10)])
+        )])
+    );
+    assert_eq!(
+        weave.multiparent_nodes,
+        HashSet::from([Ulid::from_parts(0, 2), Ulid::from_parts(0, 5)])
+    );
+    assert!(weave.nonconcatable_nodes.is_empty());
+    assert_eq!(
+        weave.root_nodes,
+        HashSet::from([
+            Ulid::from_parts(0, 0),
+            Ulid::from_parts(0, 9),
+            Ulid::from_parts(0, 10)
+        ])
+    );
+    assert_eq!(
+        weave.bookmarked_nodes,
+        HashSet::from([Ulid::from_parts(0, 1)])
+    );
+
+    assert_eq!(
+        weave.add_node(
+            Node {
+                id: Ulid::from_parts(0, 11),
+                from: HashSet::new(),
+                to: HashSet::new(),
+                active: true,
+                bookmarked: false,
+                content: NodeContent::Snippet(SnippetContent {
+                    content: Bytes::new(),
+                    model: Some(ContentModel {
+                        id: Ulid::from_parts(0, 0),
+                        parameters: Vec::new(),
+                    }),
+                    metadata: None,
+                })
+            },
+            None,
+            false,
+            false,
+        ),
+        Some(Ulid::from_parts(0, 11))
+    );
+    assert_eq!(
+        weave.nodes,
+        HashMap::from([
+            (
+                Ulid::from_parts(0, 0),
+                Node {
+                    id: Ulid::from_parts(0, 0),
+                    from: HashSet::new(),
+                    to: HashSet::from([
+                        Ulid::from_parts(0, 1),
+                        Ulid::from_parts(0, 3),
+                        Ulid::from_parts(0, 4),
+                        Ulid::from_parts(0, 5),
+                        Ulid::from_parts(0, 8)
+                    ]),
+                    active: true,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 1),
+                Node {
+                    id: Ulid::from_parts(0, 1),
+                    from: HashSet::from([Ulid::from_parts(0, 0)]),
+                    to: HashSet::from([Ulid::from_parts(0, 5)]),
+                    active: false,
+                    bookmarked: true,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 2),
+                Node {
+                    id: Ulid::from_parts(0, 2),
+                    from: HashSet::from([Ulid::from_parts(0, 3), Ulid::from_parts(0, 4)]),
+                    to: HashSet::new(),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 3),
+                Node {
+                    id: Ulid::from_parts(0, 3),
+                    from: HashSet::from([Ulid::from_parts(0, 0)]),
+                    to: HashSet::from([Ulid::from_parts(0, 2)]),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 4),
+                Node {
+                    id: Ulid::from_parts(0, 4),
+                    from: HashSet::from([Ulid::from_parts(0, 0)]),
+                    to: HashSet::from([Ulid::from_parts(0, 2)]),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 5),
+                Node {
+                    id: Ulid::from_parts(0, 5),
+                    from: HashSet::from([Ulid::from_parts(0, 0), Ulid::from_parts(0, 1)]),
+                    to: HashSet::from([Ulid::from_parts(0, 7)]),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 6),
+                Node {
+                    id: Ulid::from_parts(0, 6),
+                    from: HashSet::from([Ulid::from_parts(0, 7)]),
+                    to: HashSet::new(),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 7),
+                Node {
+                    id: Ulid::from_parts(0, 7),
+                    from: HashSet::from([Ulid::from_parts(0, 5)]),
+                    to: HashSet::from([Ulid::from_parts(0, 6)]),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 8),
+                Node {
+                    id: Ulid::from_parts(0, 8),
+                    from: HashSet::from([Ulid::from_parts(0, 0)]),
+                    to: HashSet::new(),
+                    active: true,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                }
+            ),
+            (
+                Ulid::from_parts(0, 9),
+                Node {
+                    id: Ulid::from_parts(0, 9),
+                    from: HashSet::new(),
+                    to: HashSet::new(),
+                    active: true,
+                    bookmarked: false,
+                    content: NodeContent::Snippet(SnippetContent {
+                        content: Bytes::new(),
+                        model: Some(ContentModel {
+                            id: Ulid::from_parts(0, 0),
+                            parameters: Vec::new(),
+                        }),
+                        metadata: None,
+                    })
+                }
+            ),
+            (
+                Ulid::from_parts(0, 10),
+                Node {
+                    id: Ulid::from_parts(0, 10),
+                    from: HashSet::new(),
+                    to: HashSet::new(),
+                    active: true,
+                    bookmarked: false,
+                    content: NodeContent::Snippet(SnippetContent {
+                        content: Bytes::new(),
+                        model: Some(ContentModel {
+                            id: Ulid::from_parts(0, 0),
+                            parameters: Vec::new(),
+                        }),
+                        metadata: None,
+                    })
+                }
+            ),
+            (
+                Ulid::from_parts(0, 11),
+                Node {
+                    id: Ulid::from_parts(0, 11),
+                    from: HashSet::new(),
+                    to: HashSet::new(),
+                    active: true,
+                    bookmarked: false,
+                    content: NodeContent::Snippet(SnippetContent {
+                        content: Bytes::new(),
+                        model: Some(ContentModel {
+                            id: Ulid::from_parts(0, 0),
+                            parameters: Vec::new(),
+                        }),
+                        metadata: None,
+                    })
+                }
+            )
+        ])
+    );
+    assert_eq!(
+        weave.models,
+        HashMap::from([(
+            Ulid::from_parts(0, 0),
+            Model {
+                id: Ulid::from_parts(0, 0),
+                label: "Test Model".to_string(),
+                metadata: HashMap::new()
+            }
+        )])
+    );
+    assert_eq!(
+        weave.model_nodes,
+        HashMap::from([(
+            Ulid::from_parts(0, 0),
+            HashSet::from([
+                Ulid::from_parts(0, 9),
+                Ulid::from_parts(0, 10),
+                Ulid::from_parts(0, 11)
+            ])
+        )])
+    );
+    assert_eq!(
+        weave.multiparent_nodes,
+        HashSet::from([Ulid::from_parts(0, 2), Ulid::from_parts(0, 5)])
+    );
+    assert!(weave.nonconcatable_nodes.is_empty());
+    assert_eq!(
+        weave.root_nodes,
+        HashSet::from([
+            Ulid::from_parts(0, 0),
+            Ulid::from_parts(0, 9),
+            Ulid::from_parts(0, 10),
+            Ulid::from_parts(0, 11)
+        ])
+    );
+    assert_eq!(
+        weave.bookmarked_nodes,
+        HashSet::from([Ulid::from_parts(0, 1)])
+    );
 }
 
 #[test]
@@ -2018,7 +2454,7 @@ fn add_node_invalid_child() {
 
 #[test]
 #[should_panic]
-fn add_node_invalid_model() {
+fn add_node_unspecified_model() {
     let mut weave = Weave::default();
     let _ = weave.add_node(
         Node {
@@ -2037,6 +2473,36 @@ fn add_node_invalid_model() {
             }),
         },
         None,
+        false,
+        true,
+    );
+}
+
+#[test]
+#[should_panic]
+fn add_node_invalid_model() {
+    let mut weave = Weave::default();
+    let _ = weave.add_node(
+        Node {
+            id: Ulid::from_parts(0, 0),
+            from: HashSet::new(),
+            to: HashSet::new(),
+            active: true,
+            bookmarked: false,
+            content: NodeContent::Snippet(SnippetContent {
+                content: Bytes::new(),
+                model: Some(ContentModel {
+                    id: Ulid::from_parts(0, 0),
+                    parameters: Vec::new(),
+                }),
+                metadata: None,
+            }),
+        },
+        Some(Model {
+            id: Ulid::from_parts(0, 1),
+            label: String::new(),
+            metadata: HashMap::new(),
+        }),
         false,
         true,
     );
