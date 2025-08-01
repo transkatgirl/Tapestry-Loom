@@ -88,12 +88,11 @@ Checklist:
     - [ ] merge_nodes
     - [ ] remove_node
 - [ ] if nonconcatable, add to nonconcatable nodes
-    - [ ] add_node
+    - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
 - [ ] if concatable, remove from nonconcatable nodes
-    - [ ] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
@@ -101,7 +100,7 @@ Checklist:
 - [ ] handle deduplication
     - [ ] add_node
 - [ ] prevent mixing of nonconcatable and multiparent nodes
-    - [ ] add_node
+    - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
