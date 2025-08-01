@@ -106,14 +106,14 @@ Checklist:
     - [ ] merge_nodes
 - [ ] ensure error states do not break consistency
     - [ ] deduplicate_node
-    - [ ] add_node
+    - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
     - [ ] remove_node
 - [ ] ensure behavior lines up with documentation
     - [ ] deduplicate_node
-    - [ ] add_node
+    - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
