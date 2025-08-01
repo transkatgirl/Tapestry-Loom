@@ -24,6 +24,7 @@ Checklist:
     - [ ] merge_nodes
     - [ ] remove_node
 - [ ] ensure node object identifier consistency
+    - [ ] deduplicate_node
     - [x] add_node
     - [ ] move_node
     - [ ] split_node
@@ -98,20 +99,20 @@ Checklist:
     - [ ] split_node
     - [ ] merge_nodes
     - [ ] remove_node
-- [ ] handle deduplication
-    - [ ] add_node
 - [ ] prevent mixing of nonconcatable and multiparent nodes
     - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
 - [ ] ensure error states do not break consistency
+    - [ ] deduplicate_node
     - [ ] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
     - [ ] remove_node
 - [ ] ensure behavior lines up with documentation
+    - [ ] deduplicate_node
     - [ ] add_node
     - [ ] move_node
     - [ ] split_node
@@ -120,8 +121,6 @@ Checklist:
 */
 
 // Need to update move_node and split_node documentation with node identifier guarantees
-
-// TODO: Add deduplication to other functions
 
 #[test]
 #[allow(clippy::bool_assert_comparison)]
@@ -768,9 +767,6 @@ fn update_node_activity_tree() {
     assert_eq!(nodes.get(&Ulid::from_parts(1, 10)).unwrap().active, true);
 }
 
-/*#[test]
-fn deduplicate_node() {}*/
-
 #[test]
 fn add_node() {
     let mut weave = Weave::default();
@@ -785,7 +781,6 @@ fn add_node() {
                 content: NodeContent::Blank,
             },
             None,
-            false,
             true,
         ),
         Some(Ulid::from_parts(0, 0))
@@ -822,7 +817,6 @@ fn add_node() {
                 content: NodeContent::Blank,
             },
             None,
-            false,
             true,
         ),
         Some(Ulid::from_parts(0, 1))
@@ -875,7 +869,6 @@ fn add_node() {
                 content: NodeContent::Blank,
             },
             None,
-            false,
             true,
         ),
         Some(Ulid::from_parts(0, 2))
@@ -941,7 +934,6 @@ fn add_node() {
                 content: NodeContent::Blank,
             },
             None,
-            false,
             true,
         ),
         None
@@ -1007,7 +999,6 @@ fn add_node() {
                 content: NodeContent::Blank,
             },
             None,
-            false,
             true,
         ),
         Some(Ulid::from_parts(0, 3))
@@ -1083,7 +1074,6 @@ fn add_node() {
                 content: NodeContent::Blank,
             },
             None,
-            false,
             true,
         ),
         Some(Ulid::from_parts(0, 4))
@@ -1176,7 +1166,6 @@ fn add_node() {
                 content: NodeContent::Blank,
             },
             None,
-            false,
             true,
         ),
         Some(Ulid::from_parts(0, 5))
@@ -1281,7 +1270,6 @@ fn add_node() {
                 content: NodeContent::Blank,
             },
             None,
-            false,
             true,
         ),
         Some(Ulid::from_parts(0, 6))
@@ -1400,7 +1388,6 @@ fn add_node() {
                 content: NodeContent::Blank,
             },
             None,
-            false,
             false,
         ),
         Some(Ulid::from_parts(0, 7))
@@ -1527,7 +1514,6 @@ fn add_node() {
                 content: NodeContent::Blank,
             },
             None,
-            false,
             true,
         ),
         Some(Ulid::from_parts(0, 8))
@@ -1666,7 +1652,6 @@ fn add_node() {
                 content: NodeContent::Diff(DiffContent::default()),
             },
             None,
-            false,
             false,
         ),
         None
@@ -1816,7 +1801,6 @@ fn add_node() {
                 label: String::new(),
                 metadata: HashMap::new()
             }),
-            false,
             false,
         ),
         Some(Ulid::from_parts(0, 9))
@@ -2003,7 +1987,6 @@ fn add_node() {
                 label: "Test Model".to_string(),
                 metadata: HashMap::new()
             }),
-            false,
             false,
         ),
         Some(Ulid::from_parts(0, 10))
@@ -2208,7 +2191,6 @@ fn add_node() {
                 })
             },
             None,
-            false,
             false,
         ),
         Some(Ulid::from_parts(0, 11))
@@ -2433,7 +2415,6 @@ fn add_node_invalid_parent() {
             content: NodeContent::Blank,
         },
         None,
-        false,
         true,
     );
 }
@@ -2452,7 +2433,6 @@ fn add_node_invalid_child() {
             content: NodeContent::Blank,
         },
         None,
-        false,
         true,
     );
 }
@@ -2478,7 +2458,6 @@ fn add_node_unspecified_model() {
             }),
         },
         None,
-        false,
         true,
     );
 }
@@ -2508,13 +2487,9 @@ fn add_node_invalid_model() {
             label: String::new(),
             metadata: HashMap::new(),
         }),
-        false,
         true,
     );
 }
-
-/*#[test]
-fn add_node_deduplicate() {}*/
 
 #[test]
 fn add_node_nonconcatable() {
@@ -2530,7 +2505,6 @@ fn add_node_nonconcatable() {
                 content: NodeContent::Diff(DiffContent::default()),
             },
             None,
-            false,
             true,
         ),
         Some(Ulid::from_parts(1, 0))
@@ -2570,7 +2544,6 @@ fn add_node_nonconcatable() {
                 content: NodeContent::Blank,
             },
             None,
-            false,
             true,
         ),
         Some(Ulid::from_parts(0, 0))
@@ -2626,7 +2599,6 @@ fn add_node_nonconcatable() {
                 content: NodeContent::Blank,
             },
             None,
-            false,
             true,
         ),
         None
@@ -2682,7 +2654,6 @@ fn add_node_nonconcatable() {
                 content: NodeContent::Blank,
             },
             None,
-            false,
             true,
         ),
         Some(Ulid::from_parts(0, 1))
@@ -2749,7 +2720,6 @@ fn add_node_nonconcatable() {
                 content: NodeContent::Blank,
             },
             None,
-            false,
             true,
         ),
         Some(Ulid::from_parts(0, 2))
@@ -2827,7 +2797,6 @@ fn add_node_nonconcatable() {
                 content: NodeContent::Blank,
             },
             None,
-            false,
             true,
         ),
         None
@@ -2905,7 +2874,6 @@ fn add_node_nonconcatable() {
                 content: NodeContent::Blank,
             },
             None,
-            false,
             true,
         ),
         Some(Ulid::from_parts(0, 3))
@@ -2986,6 +2954,9 @@ fn add_node_nonconcatable() {
 
 /*#[test]
 fn remove_node() {}*/
+
+/*#[test]
+fn deduplicate_node() {}*/
 
 /*#[test]
 fn move_node() {}*/

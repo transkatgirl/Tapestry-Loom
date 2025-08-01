@@ -56,17 +56,15 @@ pub struct Weave {
 }
 
 impl Weave {
-    /// Add a [`Node`] (along with it's corresponding [`Model`]).
+    /// Add a [`Node`] (along with it's corresponding [`Model`]) without performing deduplication.
     ///
     /// If the [`Weave`] contains any active nodes (including the one being added), active statuses are propagated using the rules of the [`Weave::update_node_activity`] function. The `in_place` boolean can be used to change the propagation rules used when activating nodes.
     ///
     /// If a model corresponding to the node's model identifier is already present in the Weave, the model will be updated.
     ///
-    /// Performs content deduplication if `deduplicate` is true.
-    ///
     /// Care must be taken to prevent loops between nodes, as loop checking is not performed by this function. If a loop between nodes is added to the [`Weave`], it may cause unintended behavior (such as functions panicking or getting stuck in infinite loops).
     ///
-    /// Returns the [`Ulid`] of the input node if the node was successfully added. If the node was deduplicated, the returned Ulid will correspond to a node which was already in the document (the node's active & bookmarked statuses will be updated to match the input). Returns [`None`] if the node could not be added.
+    /// Returns the [`Ulid`] of the input node if the node was successfully added, otherwise returns [`None`] if the node could not be added.
     ///
     /// Nodes which have the same identifier as a node already in the [`Weave`] cannot be added. If the Weave contains any nodes with multiple parents, non-concatable nodes cannot be added. If the Weave contains any non-concatable nodes, nodes with multiple parents cannot be added.
     ///
@@ -77,7 +75,6 @@ impl Weave {
         &mut self,
         mut node: Node,
         model: Option<Model>,
-        deduplicate: bool,
         in_place: bool,
     ) -> Option<Ulid> {
         if self.nodes.contains_key(&node.id) {
@@ -87,9 +84,6 @@ impl Weave {
             && (!self.multiparent_nodes.is_empty() || node.from.len() > 1 || !node.to.is_empty())
         {
             return None;
-        }
-        if deduplicate && let Some(identifier) = self.deduplicate_node(&node, in_place) {
-            return Some(identifier);
         }
         for child in &node.to {
             if let Some(child) = self.nodes.get_mut(child) {
@@ -327,7 +321,7 @@ impl Weave {
             content: left_content,
         };
 
-        let left_identifier = self.add_node(node, None, false, false)?;
+        let left_identifier = self.add_node(node, None, false)?;
 
         let right = self.nodes.get_mut(identifier)?;
         right.content = right_content;
@@ -386,7 +380,7 @@ impl Weave {
 
         self.remove_node(&left_identifier);
 
-        Some(left_identifier)
+        Some(right_identifier)
     }
     /// Remove a [`Node`] by it's [`Ulid`], returning it's value if it was present.
     ///
@@ -462,35 +456,47 @@ impl Weave {
         self.nonconcatable_nodes.shrink_to_fit();
     }
     #[must_use]
-    fn deduplicate_node(&mut self, node: &Node, in_place: bool) -> Option<Ulid> {
-        match if node.from.is_empty() {
-            self.root_nodes.iter()
-        } else {
-            node.from.iter()
-        }
-        .filter_map(|id| self.nodes.get(id))
-        .flat_map(|parent| &parent.to)
-        .filter_map(|id| self.nodes.get(id))
-        .find(|sibling| {
-            sibling.content == node.content && sibling.to == node.to && sibling.from == node.from
-        }) {
-            Some(duplicate) => {
-                let identifier = duplicate.id;
+    #[allow(clippy::missing_panics_doc)]
+    pub fn deduplicate_node(&mut self, identifier: &Ulid, in_place: bool) -> Option<Ulid> {
+        if let Some(node) = self.nodes.get(identifier) {
+            let duplicate = if node.from.is_empty() {
+                self.root_nodes.iter()
+            } else {
+                node.from.iter()
+            }
+            .filter_map(|id| self.nodes.get(id))
+            .flat_map(|parent| &parent.to)
+            .filter_map(|id| self.nodes.get(id))
+            .find(|sibling| {
+                sibling.content == node.content
+                    && sibling.to == node.to
+                    && sibling.from == node.from
+            });
+
+            if let Some(duplicate) = duplicate {
+                let original_active = node.active;
+                let original_bookmarked = node.bookmarked;
+                let duplicate_identifier = duplicate.id;
                 let duplicate_active = duplicate.active;
                 let duplicate_bookmarked = duplicate.bookmarked;
-                if duplicate_active != node.active {
-                    self.update_node_activity(&identifier, node.active, in_place || !node.active);
+                if duplicate_active != original_active {
+                    self.update_node_activity(
+                        &duplicate_identifier,
+                        node.active,
+                        in_place || !original_active,
+                    );
                 }
-                if duplicate_bookmarked != node.bookmarked {
-                    self.update_node_bookmarked_status(&identifier, node.bookmarked);
+                if duplicate_bookmarked != original_bookmarked {
+                    self.update_node_bookmarked_status(&duplicate_identifier, original_bookmarked);
                 }
-                if self.nodes.contains_key(&node.id) {
-                    self.remove_node(&node.id).unwrap();
-                }
-                Some(identifier)
+
+                self.remove_node(identifier).unwrap();
+
+                return Some(duplicate_identifier);
             }
-            None => None,
         }
+
+        None
     }
     fn build_timelines<'a>(&'a self, timelines: &mut Vec<Vec<&'a Node>>) {
         let mut new_timelines = Vec::new();
