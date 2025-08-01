@@ -85,6 +85,14 @@ The current target is to finish `v1-alpha` before the end of 2025.
 			- [ ] Rewrite `update` module to allow using user-provided timelines & Diff objects, rather than always building a timeline & calculating the diff
 		- [ ] Test & fix code
 			- [x] Implement unit tests for `content` module
+				- [x] update_node_activity
+				- [x] add_node
+				- [ ] remove_node
+				- [ ] deduplicate_node
+				- [ ] move_node
+				- [ ] split_node
+				- [ ] merge_nodes
+				- [ ] get_active_timelines
 			- [ ] Implement unit tests for `document` module (WIP)
 			- [ ] Implement unit tests for `update` module
 			- [ ] Implement integration tests for `document` + `content` modules

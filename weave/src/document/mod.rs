@@ -86,28 +86,23 @@ impl Weave {
             return None;
         }
         for child in &node.to {
-            if let Some(child) = self.nodes.get_mut(child) {
-                if !node.active && child.active && child.from.is_empty() {
-                    node.active = true;
-                }
-                child.from.insert(node.id);
-                self.root_nodes.remove(&child.id);
-                if child.from.len() > 1 {
-                    self.multiparent_nodes.insert(child.id);
-                }
-            } else {
-                panic!();
+            let child = self.nodes.get_mut(child).unwrap();
+
+            if !node.active && child.active && child.from.is_empty() {
+                node.active = true;
+            }
+            child.from.insert(node.id);
+            self.root_nodes.remove(&child.id);
+            if child.from.len() > 1 {
+                self.multiparent_nodes.insert(child.id);
             }
         }
         for parent in &node.from {
             if node.active {
                 self.update_node_activity(parent, true, in_place);
             }
-            if let Some(parent) = self.nodes.get_mut(parent) {
-                parent.to.insert(node.id);
-            } else {
-                panic!();
-            }
+            let parent = self.nodes.get_mut(parent).unwrap();
+            parent.to.insert(node.id);
         }
         if in_place && node.active {
             // Copied from update_note_activity()
