@@ -10,14 +10,15 @@ use super::*;
 /*
 Checklist:
 - [ ] ensure node connection consistency
+    - [ ] deduplicate_node
     - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
     - [ ] remove_node
 - [ ] ensure active status propagation
-    - [x] add_node (w/o deduplication)
-    - [ ] add_node (w/ deduplication)
+    - [ ] deduplicate_node
+    - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
@@ -29,7 +30,7 @@ Checklist:
     - [ ] merge_nodes
     - [ ] remove_node
 - [ ] ensure weave node identifier consistency
-    - [ ] add_node (w/ deduplication)
+    - [ ] deduplicate_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
@@ -119,6 +120,8 @@ Checklist:
 */
 
 // Need to update move_node and split_node documentation with node identifier guarantees
+
+// TODO: Add deduplication to other functions
 
 #[test]
 #[allow(clippy::bool_assert_comparison)]
@@ -764,6 +767,9 @@ fn update_node_activity_tree() {
     assert_eq!(nodes.get(&Ulid::from_parts(1, 9)).unwrap().active, false);
     assert_eq!(nodes.get(&Ulid::from_parts(1, 10)).unwrap().active, true);
 }
+
+/*#[test]
+fn deduplicate_node() {}*/
 
 #[test]
 fn add_node() {
