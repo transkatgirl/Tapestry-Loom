@@ -73,7 +73,6 @@ impl Weave {
     /// # Panics
     /// Panics if the [`Node`] references a Ulid that does not correspond to an item contained within the [`Weave`].
     #[must_use]
-    #[allow(clippy::too_many_lines)]
     pub fn add_node(
         &mut self,
         mut node: Node,
@@ -464,35 +463,34 @@ impl Weave {
     }
     #[must_use]
     fn deduplicate_node(&mut self, node: &Node, in_place: bool) -> Option<Ulid> {
-        let siblings = if node.from.is_empty() {
+        match if node.from.is_empty() {
             self.root_nodes.iter()
         } else {
             node.from.iter()
         }
         .filter_map(|id| self.nodes.get(id))
         .flat_map(|parent| &parent.to)
-        .filter_map(|id| self.nodes.get(id));
-
-        for sibling in siblings {
-            if sibling.content == node.content && sibling.to == node.to && sibling.from == node.from
-            {
-                let identifier = sibling.id;
-                let sibling_active = sibling.active;
-                let sibling_bookmarked = sibling.bookmarked;
-                if sibling_active != node.active {
+        .filter_map(|id| self.nodes.get(id))
+        .find(|sibling| {
+            sibling.content == node.content && sibling.to == node.to && sibling.from == node.from
+        }) {
+            Some(duplicate) => {
+                let identifier = duplicate.id;
+                let duplicate_active = duplicate.active;
+                let duplicate_bookmarked = duplicate.bookmarked;
+                if duplicate_active != node.active {
                     self.update_node_activity(&identifier, node.active, in_place || !node.active);
                 }
-                if sibling_bookmarked != node.bookmarked {
+                if duplicate_bookmarked != node.bookmarked {
                     self.update_node_bookmarked_status(&identifier, node.bookmarked);
                 }
                 if self.nodes.contains_key(&node.id) {
                     self.remove_node(&node.id).unwrap();
                 }
-                return Some(identifier);
+                Some(identifier)
             }
+            None => None,
         }
-
-        None
     }
     fn build_timelines<'a>(&'a self, timelines: &mut Vec<Vec<&'a Node>>) {
         let mut new_timelines = Vec::new();
