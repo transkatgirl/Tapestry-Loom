@@ -457,9 +457,18 @@ impl Weave {
     }
     #[must_use]
     #[allow(clippy::missing_panics_doc)]
-    pub fn deduplicate_node(&mut self, identifier: &Ulid, in_place: bool) -> Option<Ulid> {
+    /// Performs content deduplication on a [`Node`].
+    ///
+    /// Nodes are only considered duplicates if they have the same parents, children, and content.
+    ///
+    /// If `replace` is `true`, the original (input) node will be replaced by the first duplicate found. This node's active and bookmarked statuses will be updated to match the original, and it's identifier will be returned.
+    ///
+    /// If `replace` is `false`, all duplicate nodes found will be removed. The original (input) node will be kept, with it's identifier being returned by the function unchanged if any duplicates are found.
+    ///
+    /// If no duplicates are found, this function returns [`None`].
+    pub fn deduplicate_node(&mut self, identifier: &Ulid, replace: bool) -> Option<Ulid> {
         if let Some(node) = self.nodes.get(identifier) {
-            let duplicate = if node.from.is_empty() {
+            let mut duplicates = if node.from.is_empty() {
                 self.root_nodes.iter()
             } else {
                 node.from.iter()
@@ -467,32 +476,47 @@ impl Weave {
             .filter_map(|id| self.nodes.get(id))
             .flat_map(|parent| &parent.to)
             .filter_map(|id| self.nodes.get(id))
-            .find(|sibling| {
+            .filter(|sibling| {
                 sibling.content == node.content
                     && sibling.to == node.to
                     && sibling.from == node.from
             });
 
-            if let Some(duplicate) = duplicate {
-                let original_active = node.active;
-                let original_bookmarked = node.bookmarked;
-                let duplicate_identifier = duplicate.id;
-                let duplicate_active = duplicate.active;
-                let duplicate_bookmarked = duplicate.bookmarked;
-                if duplicate_active != original_active {
-                    self.update_node_activity(
-                        &duplicate_identifier,
-                        node.active,
-                        in_place || !original_active,
-                    );
+            if replace {
+                if let Some(duplicate) = duplicates.next() {
+                    let original_active = node.active;
+                    let original_bookmarked = node.bookmarked;
+                    let duplicate_identifier = duplicate.id;
+                    let duplicate_active = duplicate.active;
+                    let duplicate_bookmarked = duplicate.bookmarked;
+                    if duplicate_active != original_active {
+                        self.update_node_activity(
+                            &duplicate_identifier,
+                            node.active,
+                            !original_active,
+                        );
+                    }
+                    if duplicate_bookmarked != original_bookmarked {
+                        self.update_node_bookmarked_status(
+                            &duplicate_identifier,
+                            original_bookmarked,
+                        );
+                    }
+
+                    self.remove_node(identifier).unwrap();
+
+                    return Some(duplicate_identifier);
                 }
-                if duplicate_bookmarked != original_bookmarked {
-                    self.update_node_bookmarked_status(&duplicate_identifier, original_bookmarked);
+            } else {
+                let duplicates: Vec<Ulid> = duplicates.map(|node| node.id).collect();
+
+                for duplicate in &duplicates {
+                    self.remove_node(duplicate).unwrap();
                 }
 
-                self.remove_node(identifier).unwrap();
-
-                return Some(duplicate_identifier);
+                if !duplicates.is_empty() {
+                    return Some(*identifier);
+                }
             }
         }
 
