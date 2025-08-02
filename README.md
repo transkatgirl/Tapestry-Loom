@@ -94,6 +94,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 				- [ ] split_node
 				- [ ] merge_nodes
 				- [ ] get_active_timelines
+			- [ ] Fix `update` module
 			- [ ] Implement unit tests for `update` module
 			- [ ] Implement integration tests for `document` + `content` modules
 			- [ ] Implement integration tests for `document` + `update` modules
