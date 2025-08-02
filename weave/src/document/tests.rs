@@ -34,7 +34,7 @@ Checklist:
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
-    - [ ] remove_node
+    - [x] remove_node
 - [ ] if node.from.len() == 0, add to root nodes
     - [x] add_node
     - [ ] move_node
@@ -55,7 +55,7 @@ Checklist:
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
-    - [ ] remove_node
+    - [x] remove_node
 - [ ] if node.content.model, add to model nodes
     - [x] add_node
     - [ ] move_node
@@ -4519,6 +4519,28 @@ fn remove_node() {
         weave.root_nodes,
         HashSet::from([Ulid::from_parts(1, 0), Ulid::from_parts(1, 1)])
     );
+}
+
+#[test]
+#[should_panic]
+fn remove_inconsistent_node() {
+    let mut weave = Weave::default();
+    weave
+        .add_node(
+            Node {
+                id: Ulid::from_parts(0, 0),
+                from: HashSet::new(),
+                to: HashSet::new(),
+                active: true,
+                bookmarked: false,
+                content: NodeContent::Blank,
+            },
+            None,
+            true,
+        )
+        .unwrap();
+    weave.nodes.get_mut(&Ulid::from_parts(0, 0)).unwrap().id = Ulid::from_parts(0, 1);
+    weave.remove_node(&Ulid::from_parts(0, 0));
 }
 
 /*#[test]
