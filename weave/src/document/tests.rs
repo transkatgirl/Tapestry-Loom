@@ -116,7 +116,7 @@ Checklist:
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
-    - [ ] remove_node
+    - [x] remove_node
 */
 
 // Need to update move_node and split_node documentation with node identifier guarantees

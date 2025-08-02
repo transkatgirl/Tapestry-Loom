@@ -88,7 +88,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 			- [ ] Implement unit tests for `document` module (WIP)
 				- [x] update_node_activity
 				- [x] add_node
-				- [ ] remove_node
+				- [x] remove_node
 				- [ ] deduplicate_node
 				- [ ] move_node
 				- [ ] split_node
