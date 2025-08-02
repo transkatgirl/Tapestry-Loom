@@ -486,7 +486,8 @@ impl Weave {
             .flat_map(|parent| &parent.to)
             .filter_map(|id| self.nodes.get(id))
             .filter(|sibling| {
-                sibling.content == node.content
+                sibling.id != node.id
+                    && sibling.content == node.content
                     && sibling.to == node.to
                     && sibling.from == node.from
             });
@@ -624,7 +625,7 @@ fn update_node_activity(
                 .iter()
                 .filter_map(|id| nodes.get(id))
                 .flat_map(|parent| parent.to.clone())
-                .filter(|id| !node.from.contains(id) && !node.to.contains(id))
+                .filter(|id| !node.from.contains(id) && !node.to.contains(id) && id != &node.id)
                 .collect();
 
             for sibling in siblings {
