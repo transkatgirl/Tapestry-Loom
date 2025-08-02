@@ -97,10 +97,17 @@ impl Weave {
                 self.multiparent_nodes.insert(child.id);
             }
         }
-        for parent in &node.from {
-            if node.active {
-                self.update_node_activity(parent, true, in_place);
+        if node.active {
+            let is_parent_active = node
+                .from
+                .iter()
+                .filter_map(|id| self.nodes.get(id))
+                .any(|parent| parent.active);
+            if !is_parent_active && let Some(parent) = node.from.iter().min().copied() {
+                self.update_node_activity(&parent, true, in_place);
             }
+        }
+        for parent in &node.from {
             let parent = self.nodes.get_mut(parent).unwrap();
             parent.to.insert(node.id);
         }
