@@ -15,7 +15,7 @@ Checklist:
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
-    - [ ] remove_node
+    - [x] remove_node
 - [ ] ensure active status propagation
     - [ ] deduplicate_node
     - [x] add_node
@@ -88,7 +88,7 @@ Checklist:
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
-    - [ ] remove_node
+    - [x] remove_node
 - [ ] if nonconcatable, add to nonconcatable nodes
     - [x] add_node
     - [ ] move_node
@@ -110,7 +110,7 @@ Checklist:
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
-    - [ ] remove_node
+    - [x] remove_node
 - [ ] ensure behavior lines up with documentation
     - [ ] deduplicate_node
     - [x] add_node
@@ -2976,7 +2976,7 @@ fn remove_node() {
                 from: HashSet::from([Ulid::from_parts(0, 0)]),
                 to: HashSet::new(),
                 active: true,
-                bookmarked: false,
+                bookmarked: true,
                 content: NodeContent::Blank,
             },
             None,
@@ -2990,7 +2990,7 @@ fn remove_node() {
                 from: HashSet::from([Ulid::from_parts(0, 0)]),
                 to: HashSet::new(),
                 active: true,
-                bookmarked: false,
+                bookmarked: true,
                 content: NodeContent::Blank,
             },
             None,
@@ -3190,7 +3190,7 @@ fn remove_node() {
                     from: HashSet::from([Ulid::from_parts(0, 0)]),
                     to: HashSet::new(),
                     active: true,
-                    bookmarked: false,
+                    bookmarked: true,
                     content: NodeContent::Blank,
                 },
             ),
@@ -3201,7 +3201,7 @@ fn remove_node() {
                     from: HashSet::from([Ulid::from_parts(0, 0)]),
                     to: HashSet::from([Ulid::from_parts(0, 3)]),
                     active: true,
-                    bookmarked: false,
+                    bookmarked: true,
                     content: NodeContent::Blank,
                 },
             ),
@@ -3349,7 +3349,10 @@ fn remove_node() {
     );
     //assert!(weave.models.is_empty());
     //assert!(weave.model_nodes.is_empty());
-    assert!(weave.bookmarked_nodes.is_empty());
+    assert_eq!(
+        weave.bookmarked_nodes,
+        HashSet::from([Ulid::from_parts(0, 1), Ulid::from_parts(0, 2)])
+    );
     assert_eq!(
         weave.multiparent_nodes,
         HashSet::from([
@@ -3390,7 +3393,7 @@ fn remove_node() {
                     from: HashSet::from([Ulid::from_parts(0, 0)]),
                     to: HashSet::new(),
                     active: true,
-                    bookmarked: false,
+                    bookmarked: true,
                     content: NodeContent::Blank,
                 },
             ),
@@ -3527,7 +3530,10 @@ fn remove_node() {
     );
     //assert!(weave.models.is_empty());
     //assert!(weave.model_nodes.is_empty());
-    assert!(weave.bookmarked_nodes.is_empty());
+    assert_eq!(
+        weave.bookmarked_nodes,
+        HashSet::from([Ulid::from_parts(0, 1)])
+    );
     assert_eq!(
         weave.multiparent_nodes,
         HashSet::from([
@@ -4047,6 +4053,99 @@ fn remove_node() {
     );
 
     weave.remove_node(&Ulid::from_parts(1, 9));
+    assert_eq!(
+        weave.nodes,
+        HashMap::from([
+            (
+                Ulid::from_parts(1, 0),
+                Node {
+                    id: Ulid::from_parts(1, 0),
+                    from: HashSet::new(),
+                    to: HashSet::from([Ulid::from_parts(1, 2)]),
+                    active: true,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                },
+            ),
+            (
+                Ulid::from_parts(1, 1),
+                Node {
+                    id: Ulid::from_parts(1, 1),
+                    from: HashSet::new(),
+                    to: HashSet::from([Ulid::from_parts(1, 4)]),
+                    active: true,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                },
+            ),
+            (
+                Ulid::from_parts(1, 2),
+                Node {
+                    id: Ulid::from_parts(1, 2),
+                    from: HashSet::from([Ulid::from_parts(1, 0)]),
+                    to: HashSet::from([Ulid::from_parts(1, 6)]),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                },
+            ),
+            (
+                Ulid::from_parts(1, 4),
+                Node {
+                    id: Ulid::from_parts(1, 4),
+                    from: HashSet::from([Ulid::from_parts(1, 1)]),
+                    to: HashSet::from([Ulid::from_parts(1, 8)]),
+                    active: true,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                },
+            ),
+            (
+                Ulid::from_parts(1, 6),
+                Node {
+                    id: Ulid::from_parts(1, 6),
+                    from: HashSet::from([Ulid::from_parts(1, 2)]),
+                    to: HashSet::from([Ulid::from_parts(1, 10)]),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                },
+            ),
+            (
+                Ulid::from_parts(1, 8),
+                Node {
+                    id: Ulid::from_parts(1, 8),
+                    from: HashSet::from([Ulid::from_parts(1, 4)]),
+                    to: HashSet::new(),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                },
+            ),
+            (
+                Ulid::from_parts(1, 10),
+                Node {
+                    id: Ulid::from_parts(1, 10),
+                    from: HashSet::from([Ulid::from_parts(1, 6)]),
+                    to: HashSet::new(),
+                    active: false,
+                    bookmarked: false,
+                    content: NodeContent::Blank,
+                },
+            ),
+        ])
+    );
+    //assert!(weave.models.is_empty());
+    //assert!(weave.model_nodes.is_empty());
+    assert!(weave.bookmarked_nodes.is_empty());
+    assert!(weave.multiparent_nodes.is_empty());
+    assert!(weave.nonconcatable_nodes.is_empty());
+    assert_eq!(
+        weave.root_nodes,
+        HashSet::from([Ulid::from_parts(1, 0), Ulid::from_parts(1, 1)])
+    );
+
+    assert_eq!(weave.remove_node(&Ulid::from_parts(1, 16)), None);
     assert_eq!(
         weave.nodes,
         HashMap::from([
