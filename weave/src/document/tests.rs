@@ -104,7 +104,7 @@ Checklist:
     - [ ] split_node
     - [ ] merge_nodes
 - [ ] ensure error states do not break consistency
-    - [ ] deduplicate_node
+    - [x] deduplicate_node
     - [x] add_node
     - [ ] move_node
     - [ ] split_node
