@@ -3370,7 +3370,17 @@ fn remove_node() {
         ])
     );
 
-    weave.remove_node(&Ulid::from_parts(0, 2));
+    assert_eq!(
+        weave.remove_node(&Ulid::from_parts(0, 2)),
+        Some(Node {
+            id: Ulid::from_parts(0, 2),
+            from: HashSet::from([Ulid::from_parts(0, 0)]),
+            to: HashSet::from([Ulid::from_parts(0, 3)]),
+            active: true,
+            bookmarked: true,
+            content: NodeContent::Blank,
+        })
+    );
     assert_eq!(
         weave.nodes,
         HashMap::from([
@@ -3551,7 +3561,17 @@ fn remove_node() {
         ])
     );
 
-    weave.remove_node(&Ulid::from_parts(0, 0));
+    assert_eq!(
+        weave.remove_node(&Ulid::from_parts(0, 0)),
+        Some(Node {
+            id: Ulid::from_parts(0, 0),
+            from: HashSet::new(),
+            to: HashSet::from([Ulid::from_parts(0, 1)]),
+            active: true,
+            bookmarked: false,
+            content: NodeContent::Blank,
+        })
+    );
     assert_eq!(
         weave.nodes,
         HashMap::from([
@@ -3703,7 +3723,17 @@ fn remove_node() {
         HashSet::from([Ulid::from_parts(1, 0), Ulid::from_parts(1, 1)])
     );
 
-    weave.remove_node(&Ulid::from_parts(1, 7));
+    assert_eq!(
+        weave.remove_node(&Ulid::from_parts(1, 7)),
+        Some(Node {
+            id: Ulid::from_parts(1, 7),
+            from: HashSet::from([Ulid::from_parts(1, 2), Ulid::from_parts(1, 3)]),
+            to: HashSet::from([Ulid::from_parts(1, 10)]),
+            active: true,
+            bookmarked: false,
+            content: NodeContent::Blank,
+        })
+    );
     assert_eq!(
         weave.nodes,
         HashMap::from([
@@ -3832,7 +3862,17 @@ fn remove_node() {
         HashSet::from([Ulid::from_parts(1, 0), Ulid::from_parts(1, 1)])
     );
 
-    weave.remove_node(&Ulid::from_parts(1, 3));
+    assert_eq!(
+        weave.remove_node(&Ulid::from_parts(1, 3)),
+        Some(Node {
+            id: Ulid::from_parts(1, 3),
+            from: HashSet::from([Ulid::from_parts(1, 0), Ulid::from_parts(1, 1)]),
+            to: HashSet::from([Ulid::from_parts(1, 10)]),
+            active: true,
+            bookmarked: false,
+            content: NodeContent::Blank,
+        })
+    );
     assert_eq!(
         weave.nodes,
         HashMap::from([
@@ -3947,7 +3987,17 @@ fn remove_node() {
         HashSet::from([Ulid::from_parts(1, 0), Ulid::from_parts(1, 1)])
     );
 
-    weave.remove_node(&Ulid::from_parts(1, 5));
+    assert_eq!(
+        weave.remove_node(&Ulid::from_parts(1, 5)),
+        Some(Node {
+            id: Ulid::from_parts(1, 5),
+            from: HashSet::from([Ulid::from_parts(1, 2)]),
+            to: HashSet::new(),
+            active: false,
+            bookmarked: false,
+            content: NodeContent::Blank,
+        })
+    );
     assert_eq!(
         weave.nodes,
         HashMap::from([
@@ -4051,7 +4101,17 @@ fn remove_node() {
         HashSet::from([Ulid::from_parts(1, 0), Ulid::from_parts(1, 1)])
     );
 
-    weave.remove_node(&Ulid::from_parts(1, 9));
+    assert_eq!(
+        weave.remove_node(&Ulid::from_parts(1, 9)),
+        Some(Node {
+            id: Ulid::from_parts(1, 9),
+            from: HashSet::from([Ulid::from_parts(1, 4)]),
+            to: HashSet::new(),
+            active: true,
+            bookmarked: false,
+            content: NodeContent::Blank,
+        })
+    );
     assert_eq!(
         weave.nodes,
         HashMap::from([
