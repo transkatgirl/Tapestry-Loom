@@ -410,8 +410,13 @@ impl Weave {
                     let identifier = child.id;
                     if child.from.is_empty() {
                         self.remove_node(&identifier);
-                    } else if node.active {
-                        update_removed_child_activity(&mut self.nodes, &identifier);
+                    } else {
+                        if child.from.len() == 1 {
+                            self.multiparent_nodes.remove(&child.id);
+                        }
+                        if node.active {
+                            update_removed_child_activity(&mut self.nodes, &identifier);
+                        }
                     }
                 }
             }
