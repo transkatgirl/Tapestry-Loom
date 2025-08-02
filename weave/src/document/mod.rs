@@ -105,27 +105,27 @@ impl Weave {
                 .filter_map(|id| self.nodes.get(id))
                 .any(|parent| parent.active);
 
-            if !is_parent_active && let Some(parent) = node.from.iter().min().copied() {
-                self.update_node_activity(&parent, true, in_place);
+            if !is_parent_active {
+                if let Some(parent) = node.from.iter().min().copied() {
+                    self.update_node_activity(&parent, true, in_place);
+                }
+            } else if in_place {
+                let siblings: Vec<Ulid> = node
+                    .from
+                    .iter()
+                    .filter_map(|id| self.nodes.get(id))
+                    .flat_map(|parent| parent.to.clone())
+                    .filter(|id| !node.from.contains(id) && !node.to.contains(id))
+                    .collect();
+
+                for sibling in siblings {
+                    update_node_activity(&mut self.nodes, &sibling, false, true, None);
+                }
             }
         }
         for parent in &node.from {
             let parent = self.nodes.get_mut(parent).unwrap();
             parent.to.insert(node.id);
-        }
-        if in_place && node.active {
-            // Copied from update_note_activity()
-            let siblings: Vec<Ulid> = node
-                .from
-                .iter()
-                .filter_map(|id| self.nodes.get(id))
-                .flat_map(|parent| parent.to.clone())
-                .filter(|id| !node.from.contains(id) && !node.to.contains(id))
-                .collect();
-
-            for sibling in siblings {
-                update_node_activity(&mut self.nodes, &sibling, false, true, None);
-            }
         }
         if node.from.is_empty() {
             self.root_nodes.insert(node.id);
