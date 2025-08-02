@@ -98,11 +98,13 @@ impl Weave {
             }
         }
         if node.active {
+            // Copied from update_note_activity()
             let is_parent_active = node
                 .from
                 .iter()
                 .filter_map(|id| self.nodes.get(id))
                 .any(|parent| parent.active);
+
             if !is_parent_active && let Some(parent) = node.from.iter().min().copied() {
                 self.update_node_activity(&parent, true, in_place);
             }
