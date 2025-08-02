@@ -67,6 +67,15 @@ Note: In order to create a good interface, deciding what not to include is just 
 
 </details>
 
+<!--
+
+## Testimonials
+
+- "Mid-2023 called, it wants its sense of wonder back."
+- "It feels like you're trying to make the TempleOS of LLM interfaces."
+
+-->
+
 ### Development roadmap
 
 Development on Tapestry Loom is currently paused due to factors outside of my control. When I am able to work on it again (or if I find new maintainers), development will resume.
@@ -82,7 +91,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 		- [x] Write code for new Weave data structure & serialization+deserialization
 			- [x] Rewrite `content` module to use ~~any_rope~~ ~~flo_rope~~ LinkedList + Bytes
 			- [ ] Rewrite `document` module to use Iterators and Entry whenever possible
-			- [ ] Rewrite `update` module to allow using user-provided timelines & Diff objects, rather than always building a timeline & calculating the diff
+			- [ ] Rewrite `update` module to allow using user-provided timelines & Diff objects, rather than always building a timeline & calculating the diff (use a locking mechanism for the Weave?)
 		- [ ] Test & fix code
 			- [x] Implement unit tests for `content` module
 			- [ ] Implement unit tests for `document` module (WIP)
@@ -122,6 +131,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 			- [ ] Update Node list to display sibings of node at cursor rather than last active node
 			- [ ] Update graph to focus node at cursor rather than last active node
 		- [ ] Add support for saving last-used model & parameter choices in Weave
+		- [ ] Improve whitespace handling
 	- [ ] Implement importing text from other documents, similar to [loom](https://github.com/socketteer/loom)
 - [ ] Improve handling of tokenization boundaries
 - [ ] Weave format stabilization & finalization
@@ -134,6 +144,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 - [ ] Implement embedding model requests
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Add support for displaying prompt logprobs if returned by API
+- [ ] Implement token streaming
 - [ ] UI improvements
 	- [ ] Allow adjusting proportion of completions from each model
 		- [ ] Allow dynamically adjusting proportions based on usage
