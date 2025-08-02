@@ -65,19 +65,19 @@ Checklist:
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
-    - [ ] remove_node
+    - [x] remove_node
 - [ ] ensure model object identifier consistency
     - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
-    - [ ] remove_node
+    - [x] remove_node
 - [ ] ensure weave model identifier consistency
     - [x] add_node
     - [ ] move_node
     - [ ] split_node
     - [ ] merge_nodes
-    - [ ] remove_node
+    - [x] remove_node
 - [ ] if bookmarked, add to bookmarked nodes
     - [x] add_node
     - [ ] move_node
@@ -2962,9 +2962,20 @@ fn remove_node() {
                 to: HashSet::new(),
                 active: true,
                 bookmarked: false,
-                content: NodeContent::Blank,
+                content: NodeContent::Snippet(SnippetContent {
+                    content: Bytes::new(),
+                    model: Some(ContentModel {
+                        id: Ulid::from_parts(0, 0),
+                        parameters: Vec::new(),
+                    }),
+                    metadata: None,
+                }),
             },
-            None,
+            Some(Model {
+                id: Ulid::from_parts(0, 0),
+                label: String::new(),
+                metadata: HashMap::new(),
+            }),
             false,
         )
         .unwrap();
@@ -2990,7 +3001,14 @@ fn remove_node() {
                 to: HashSet::new(),
                 active: true,
                 bookmarked: true,
-                content: NodeContent::Blank,
+                content: NodeContent::Snippet(SnippetContent {
+                    content: Bytes::new(),
+                    model: Some(ContentModel {
+                        id: Ulid::from_parts(0, 0),
+                        parameters: Vec::new(),
+                    }),
+                    metadata: None,
+                }),
             },
             None,
             false,
@@ -3116,9 +3134,20 @@ fn remove_node() {
                 to: HashSet::new(),
                 active: true,
                 bookmarked: false,
-                content: NodeContent::Blank,
+                content: NodeContent::Snippet(SnippetContent {
+                    content: Bytes::new(),
+                    model: Some(ContentModel {
+                        id: Ulid::from_parts(0, 1),
+                        parameters: Vec::new(),
+                    }),
+                    metadata: None,
+                }),
             },
-            None,
+            Some(Model {
+                id: Ulid::from_parts(0, 1),
+                label: String::new(),
+                metadata: HashMap::new(),
+            }),
             false,
         )
         .unwrap();
@@ -3179,7 +3208,14 @@ fn remove_node() {
                     to: HashSet::from([Ulid::from_parts(0, 1), Ulid::from_parts(0, 2)]),
                     active: true,
                     bookmarked: false,
-                    content: NodeContent::Blank,
+                    content: NodeContent::Snippet(SnippetContent {
+                        content: Bytes::new(),
+                        model: Some(ContentModel {
+                            id: Ulid::from_parts(0, 0),
+                            parameters: Vec::new(),
+                        }),
+                        metadata: None,
+                    }),
                 },
             ),
             (
@@ -3201,7 +3237,14 @@ fn remove_node() {
                     to: HashSet::from([Ulid::from_parts(0, 3)]),
                     active: true,
                     bookmarked: true,
-                    content: NodeContent::Blank,
+                    content: NodeContent::Snippet(SnippetContent {
+                        content: Bytes::new(),
+                        model: Some(ContentModel {
+                            id: Ulid::from_parts(0, 0),
+                            parameters: Vec::new(),
+                        }),
+                        metadata: None,
+                    }),
                 },
             ),
             (
@@ -3304,7 +3347,14 @@ fn remove_node() {
                     to: HashSet::from([Ulid::from_parts(1, 10)]),
                     active: true,
                     bookmarked: false,
-                    content: NodeContent::Blank,
+                    content: NodeContent::Snippet(SnippetContent {
+                        content: Bytes::new(),
+                        model: Some(ContentModel {
+                            id: Ulid::from_parts(0, 1),
+                            parameters: Vec::new(),
+                        }),
+                        metadata: None,
+                    }),
                 },
             ),
             (
@@ -3346,8 +3396,40 @@ fn remove_node() {
             ),
         ])
     );
-    //assert!(weave.models.is_empty());
-    //assert!(weave.model_nodes.is_empty());
+    assert_eq!(
+        weave.models,
+        HashMap::from([
+            (
+                Ulid::from_parts(0, 0),
+                Model {
+                    id: Ulid::from_parts(0, 0),
+                    label: String::new(),
+                    metadata: HashMap::new(),
+                }
+            ),
+            (
+                Ulid::from_parts(0, 1),
+                Model {
+                    id: Ulid::from_parts(0, 1),
+                    label: String::new(),
+                    metadata: HashMap::new(),
+                }
+            )
+        ])
+    );
+    assert_eq!(
+        weave.model_nodes,
+        HashMap::from([
+            (
+                Ulid::from_parts(0, 0),
+                HashSet::from([Ulid::from_parts(0, 0), Ulid::from_parts(0, 2)])
+            ),
+            (
+                Ulid::from_parts(0, 1),
+                HashSet::from([Ulid::from_parts(1, 7)])
+            )
+        ])
+    );
     assert_eq!(
         weave.bookmarked_nodes,
         HashSet::from([Ulid::from_parts(0, 1), Ulid::from_parts(0, 2)])
@@ -3378,7 +3460,14 @@ fn remove_node() {
             to: HashSet::from([Ulid::from_parts(0, 3)]),
             active: true,
             bookmarked: true,
-            content: NodeContent::Blank,
+            content: NodeContent::Snippet(SnippetContent {
+                content: Bytes::new(),
+                model: Some(ContentModel {
+                    id: Ulid::from_parts(0, 0),
+                    parameters: Vec::new(),
+                }),
+                metadata: None,
+            }),
         })
     );
     assert_eq!(
@@ -3392,7 +3481,14 @@ fn remove_node() {
                     to: HashSet::from([Ulid::from_parts(0, 1)]),
                     active: true,
                     bookmarked: false,
-                    content: NodeContent::Blank,
+                    content: NodeContent::Snippet(SnippetContent {
+                        content: Bytes::new(),
+                        model: Some(ContentModel {
+                            id: Ulid::from_parts(0, 0),
+                            parameters: Vec::new(),
+                        }),
+                        metadata: None,
+                    }),
                 },
             ),
             (
@@ -3495,7 +3591,14 @@ fn remove_node() {
                     to: HashSet::from([Ulid::from_parts(1, 10)]),
                     active: true,
                     bookmarked: false,
-                    content: NodeContent::Blank,
+                    content: NodeContent::Snippet(SnippetContent {
+                        content: Bytes::new(),
+                        model: Some(ContentModel {
+                            id: Ulid::from_parts(0, 1),
+                            parameters: Vec::new(),
+                        }),
+                        metadata: None,
+                    }),
                 },
             ),
             (
@@ -3537,8 +3640,40 @@ fn remove_node() {
             ),
         ])
     );
-    //assert!(weave.models.is_empty());
-    //assert!(weave.model_nodes.is_empty());
+    assert_eq!(
+        weave.models,
+        HashMap::from([
+            (
+                Ulid::from_parts(0, 0),
+                Model {
+                    id: Ulid::from_parts(0, 0),
+                    label: String::new(),
+                    metadata: HashMap::new(),
+                }
+            ),
+            (
+                Ulid::from_parts(0, 1),
+                Model {
+                    id: Ulid::from_parts(0, 1),
+                    label: String::new(),
+                    metadata: HashMap::new(),
+                }
+            )
+        ])
+    );
+    assert_eq!(
+        weave.model_nodes,
+        HashMap::from([
+            (
+                Ulid::from_parts(0, 0),
+                HashSet::from([Ulid::from_parts(0, 0)])
+            ),
+            (
+                Ulid::from_parts(0, 1),
+                HashSet::from([Ulid::from_parts(1, 7)])
+            )
+        ])
+    );
     assert_eq!(
         weave.bookmarked_nodes,
         HashSet::from([Ulid::from_parts(0, 1)])
@@ -3569,7 +3704,14 @@ fn remove_node() {
             to: HashSet::from([Ulid::from_parts(0, 1)]),
             active: true,
             bookmarked: false,
-            content: NodeContent::Blank,
+            content: NodeContent::Snippet(SnippetContent {
+                content: Bytes::new(),
+                model: Some(ContentModel {
+                    id: Ulid::from_parts(0, 0),
+                    parameters: Vec::new(),
+                }),
+                metadata: None,
+            }),
         })
     );
     assert_eq!(
@@ -3664,7 +3806,14 @@ fn remove_node() {
                     to: HashSet::from([Ulid::from_parts(1, 10)]),
                     active: true,
                     bookmarked: false,
-                    content: NodeContent::Blank,
+                    content: NodeContent::Snippet(SnippetContent {
+                        content: Bytes::new(),
+                        model: Some(ContentModel {
+                            id: Ulid::from_parts(0, 1),
+                            parameters: Vec::new(),
+                        }),
+                        metadata: None,
+                    }),
                 },
             ),
             (
@@ -3706,8 +3855,24 @@ fn remove_node() {
             ),
         ])
     );
-    //assert!(weave.models.is_empty());
-    //assert!(weave.model_nodes.is_empty());
+    assert_eq!(
+        weave.models,
+        HashMap::from([(
+            Ulid::from_parts(0, 1),
+            Model {
+                id: Ulid::from_parts(0, 1),
+                label: String::new(),
+                metadata: HashMap::new(),
+            }
+        )])
+    );
+    assert_eq!(
+        weave.model_nodes,
+        HashMap::from([(
+            Ulid::from_parts(0, 1),
+            HashSet::from([Ulid::from_parts(1, 7)])
+        )])
+    );
     assert!(weave.bookmarked_nodes.is_empty());
     assert_eq!(
         weave.multiparent_nodes,
@@ -3731,7 +3896,14 @@ fn remove_node() {
             to: HashSet::from([Ulid::from_parts(1, 10)]),
             active: true,
             bookmarked: false,
-            content: NodeContent::Blank,
+            content: NodeContent::Snippet(SnippetContent {
+                content: Bytes::new(),
+                model: Some(ContentModel {
+                    id: Ulid::from_parts(0, 1),
+                    parameters: Vec::new(),
+                }),
+                metadata: None,
+            }),
         })
     );
     assert_eq!(
@@ -3849,8 +4021,8 @@ fn remove_node() {
             ),
         ])
     );
-    //assert!(weave.models.is_empty());
-    //assert!(weave.model_nodes.is_empty());
+    assert!(weave.models.is_empty());
+    assert!(weave.model_nodes.is_empty());
     assert!(weave.bookmarked_nodes.is_empty());
     assert_eq!(
         weave.multiparent_nodes,
@@ -3977,8 +4149,8 @@ fn remove_node() {
             ),
         ])
     );
-    //assert!(weave.models.is_empty());
-    //assert!(weave.model_nodes.is_empty());
+    assert!(weave.models.is_empty());
+    assert!(weave.model_nodes.is_empty());
     assert!(weave.bookmarked_nodes.is_empty());
     assert!(weave.multiparent_nodes.is_empty());
     assert!(weave.nonconcatable_nodes.is_empty());
@@ -4091,8 +4263,8 @@ fn remove_node() {
             ),
         ])
     );
-    //assert!(weave.models.is_empty());
-    //assert!(weave.model_nodes.is_empty());
+    assert!(weave.models.is_empty());
+    assert!(weave.model_nodes.is_empty());
     assert!(weave.bookmarked_nodes.is_empty());
     assert!(weave.multiparent_nodes.is_empty());
     assert!(weave.nonconcatable_nodes.is_empty());
@@ -4194,8 +4366,8 @@ fn remove_node() {
             ),
         ])
     );
-    //assert!(weave.models.is_empty());
-    //assert!(weave.model_nodes.is_empty());
+    assert!(weave.models.is_empty());
+    assert!(weave.model_nodes.is_empty());
     assert!(weave.bookmarked_nodes.is_empty());
     assert!(weave.multiparent_nodes.is_empty());
     assert!(weave.nonconcatable_nodes.is_empty());
@@ -4287,8 +4459,8 @@ fn remove_node() {
             ),
         ])
     );
-    //assert!(weave.models.is_empty());
-    //assert!(weave.model_nodes.is_empty());
+    assert!(weave.models.is_empty());
+    assert!(weave.model_nodes.is_empty());
     assert!(weave.bookmarked_nodes.is_empty());
     assert!(weave.multiparent_nodes.is_empty());
     assert!(weave.nonconcatable_nodes.is_empty());
@@ -4404,8 +4576,8 @@ fn remove_node() {
             ),
         ])
     );
-    //assert!(weave.models.is_empty());
-    //assert!(weave.model_nodes.is_empty());
+    assert!(weave.models.is_empty());
+    assert!(weave.model_nodes.is_empty());
     assert!(weave.bookmarked_nodes.is_empty());
     assert!(weave.multiparent_nodes.is_empty());
     assert_eq!(
@@ -4510,8 +4682,8 @@ fn remove_node() {
             ),
         ])
     );
-    //assert!(weave.models.is_empty());
-    //assert!(weave.model_nodes.is_empty());
+    assert!(weave.models.is_empty());
+    assert!(weave.model_nodes.is_empty());
     assert!(weave.bookmarked_nodes.is_empty());
     assert!(weave.multiparent_nodes.is_empty());
     assert!(weave.nonconcatable_nodes.is_empty());
