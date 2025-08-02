@@ -2,8 +2,8 @@
 
 An Obsidian plugin that aims to turn your editor into an IDE for working with base model LLMs.
 
-> [!NOTE]
-> This plugin is a work in progress, and may contain bugs and missing/broken functionality.
+> [!WARNING]
+> This plugin is a work in progress and may contain bugs that result in data loss. Always run it in a dedicated vault and make frequent backups.
 
 ## Included features
 
@@ -121,9 +121,6 @@ The current target is to finish `v1-alpha` before the end of 2025.
 			- [ ] Rewrite async code to fix document switching race conditions
 			- [ ] Handle document model metadata update on settings update and document load
 			- [ ] Allow graceful handling of editor undo/redo functionality
-		- [ ] Implement adaptive looming:
-			- [ ] Next token vs previous token probability
-			- [ ] Top-N tokens
 		- [ ] Add support for FIM completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 		- [ ] Add support for diff weaves, similar to [minihf's loom](https://github.com/JD-P/minihf)
 		- [ ] Add support for copying / moving nodes (and their children) to different parents
@@ -131,9 +128,6 @@ The current target is to finish `v1-alpha` before the end of 2025.
 			- [ ] Update Node list to display sibings of node at cursor rather than last active node
 			- [ ] Update graph to focus node at cursor rather than last active node
 		- [ ] Add support for saving last-used model & parameter choices in Weave
-		- [ ] Improve whitespace handling
-	- [ ] Implement importing text from other documents, similar to [loom](https://github.com/socketteer/loom)
-- [ ] Improve handling of tokenization boundaries
 - [ ] Weave format stabilization & finalization
 	- [ ] Update feature list
 	- [ ] Update README to mention Rust libraries within repository
@@ -145,6 +139,11 @@ The current target is to finish `v1-alpha` before the end of 2025.
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Add support for displaying prompt logprobs if returned by API
 - [ ] Implement token streaming
+- [ ] Implement adaptive looming
+	- [ ] Next token vs previous token probability
+	- [ ] Top-N tokens
+- [ ] Improve handling of trailing whitespace
+- [ ] Implement importing text from other documents, similar to [loom](https://github.com/socketteer/loom)
 - [ ] UI improvements
 	- [ ] Allow adjusting proportion of completions from each model
 		- [ ] Allow dynamically adjusting proportions based on usage
