@@ -168,6 +168,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 	- [ ] Add error message when when attempting to generate without any models selected
 	- [ ] Implement default shortcuts from [loomsidian](https://github.com/cosmicoptima/loom)
 	- [ ] Show alternate completions on hover
+	- [ ] Repeat keypresses when a keyboard shortcut is held down
 
 #### Tapestry Loom v1-rc checklist
 
