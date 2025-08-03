@@ -72,15 +72,13 @@ Note: In order to create a good interface, deciding what not to include is just 
 ## Testimonials
 
 - "Mid-2023 called, it wants its sense of wonder back."
-- "It feels like you're trying to make the TempleOS of LLM interfaces."
+- "It feels like you're trying to build the TempleOS of LLM interfaces."
 
 -->
 
 ### Development roadmap
 
-Development on Tapestry Loom is currently paused due to factors outside of my control. When I am able to work on it again (or if I find new maintainers), development will resume.
-
-Development may be intermittent, with long periods of inactivity between periods of development work.
+Development on Tapestry Loom may be intermittent, with long periods of inactivity between periods of development work.
 
 #### Tapestry Loom v1-alpha checklist
 
@@ -135,6 +133,8 @@ The current target is to finish `v1-alpha` before the end of 2025.
 
 #### Tapestry Loom v1-beta checklist
 
+<!-- The current target is to finish `v1-beta` before May 2026. -->
+
 - [ ] Implement embedding model requests
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Add support for displaying prompt logprobs if returned by API
@@ -142,6 +142,11 @@ The current target is to finish `v1-alpha` before the end of 2025.
 - [ ] Implement adaptive looming
 	- [ ] Next token vs previous token probability
 	- [ ] Top-N tokens
+- [ ] Implement color palette generator for model colors
+	- [ ] Implement default color setting
+- [ ] Implement blind comparison modes
+	- [ ] (Hide) Models & token probabilities / boundaries
+	- [ ] (Hide) Generated node text (only showing metadata & probabilities)
 - [ ] Improve handling of trailing whitespace
 - [ ] Implement importing text from other documents, similar to [loom](https://github.com/socketteer/loom)
 - [ ] UI improvements
@@ -186,19 +191,17 @@ The current target is to finish `v1-alpha` before the end of 2025.
 	- [ ] Talon Voice
 	- [ ] Controllers / Gamepads
 	- [ ] USB DDR Pads
-
-#### Tapestry Loom v1-rc checklist
-
-Tapestry Loom v1 will be the first stable version, and will be listed on the Obsidian community plugin registry.
-
 - [ ] Document & selection analysis tools
 	- [ ] Predictability analysis using logprobs
 	- [ ] Statistical analysis of various metrics (model usage, text length, logprobs, number of branches, etc)
 	- [ ] Weave metadata
+- [ ] Implement context window wrapping
+
+#### Tapestry Loom v1-rc checklist
+
+Tapestry Loom v1 will be the first stable version, and will be listed on the Obsidian community plugin registry.
 - [ ] Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
 	- [ ] If the specification is not ready by v1, support for Standard Completions will be delayed to v2
-- [ ] Implement color palette generator for model colors
-- [ ] Blind model comparison mode
 
 #### Tapestry Loom Post-v1 plans
 
@@ -209,7 +212,6 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 		- Implement optional edit username tracking
 		- Implement support for memory-mapped Weaves on the *server* side
 - Implement support for the zero-copy Weave format, implement support for memory mapping Weaves on desktop
-- Implement context window wrapping
 - Implement mobile UI support
 
 #### Tapestry Loom v2 plans
