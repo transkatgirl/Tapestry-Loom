@@ -97,6 +97,7 @@ impl<'w> WeaveTimeline<'w> {
     ///
     /// Bytes which are invalid UTF-8 will be replaced by the character U+001A, keeping the length the same as the original set of bytes.
     #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn annotated_string(&self) -> (String, LinkedList<TimelineAnnotation<'w>>) {
         let mut bytes = BytesMut::new();
         let mut annotations: LinkedList<TimelineAnnotation<'_>> = LinkedList::new();
