@@ -226,9 +226,7 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 	- Allow a chat weave session to reference another weave using LLM tool use (based on this [twitter thread](https://x.com/arcreflex_/status/1930671693707591767))
 - Tooling for autolooms (looms where node choices are picked by another model)
 - Add some sort of plugin API for building on top of Tapestry Loom???
-- Integration with local LLM engines:
-	- Option 1: Ollama integration
-	- Option 2: An optional Tapestry Loom LLM server to handle running models locally using llama.cpp. This will likely only end up getting implemented if implementing [logprobs in Ollama](https://github.com/ollama/ollama/issues/2415) keeps getting delayed.
+- Add an optional Tapestry Loom LLM server to handle running models locally using llama.cpp
 - Implement looming of chat-style LLMs
 	- Implement a chatroom-style conversation
 - Integration with external inference providers
