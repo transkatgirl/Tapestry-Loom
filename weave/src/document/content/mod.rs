@@ -217,6 +217,7 @@ impl<'w> WeaveTimeline<'w> {
 
         TimelineUpdate {
             lengths,
+            total: before.len(),
             diff: Diff::new(&before.into(), &content.into(), deadline),
             metadata,
         }
@@ -225,6 +226,7 @@ impl<'w> WeaveTimeline<'w> {
 
 pub(super) struct TimelineUpdate {
     pub(super) lengths: LinkedList<TimelineNodeLength>,
+    pub(super) total: usize,
     pub(super) diff: Diff,
     pub(super) metadata: Option<HashMap<String, String>>,
 }
