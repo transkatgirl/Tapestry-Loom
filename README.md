@@ -133,7 +133,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 
 #### Tapestry Loom v1-beta checklist
 
-<!-- The current target is to finish `v1-beta` before May 2026. -->
+The current target is to finish `v1-beta` before May 2026.
 
 - [ ] Implement embedding model requests
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
