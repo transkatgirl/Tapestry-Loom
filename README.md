@@ -227,6 +227,7 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 - Tooling for autolooms (looms where node choices are picked by another model)
 - Add some sort of plugin API for building on top of Tapestry Loom???
 - Add an optional Tapestry Loom LLM server to handle running models locally using llama.cpp
+	- Maybe work on some sort of custom LLM inference engine to allow for utilizing LLM interpretability techniques for steering
 - Implement looming of chat-style LLMs
 	- Implement a chatroom-style conversation
 - Integration with external inference providers
