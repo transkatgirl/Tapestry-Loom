@@ -1,6 +1,6 @@
 use std::{
     cmp::Ordering,
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet, LinkedList, linked_list::CursorMut},
     ops::Range,
     vec,
 };
@@ -17,7 +17,7 @@ use super::{
     Weave, WeaveView,
     content::{
         Diff, DiffContent, Modification, ModificationContent, ModificationRange, Node, NodeContent,
-        NodeContents, SnippetContent, TimelineNodeRange, TimelineUpdate,
+        NodeContents, SnippetContent, TimelineNodeLength, TimelineUpdate,
     },
 };
 
@@ -27,12 +27,14 @@ use super::{WeaveTimeline, content::Model};
 #[cfg(test)]
 mod tests;
 
+// Note: Need to add special handling for removing text from beginning of root Node
+
 impl Weave {
     /// Update the Weave's contents based on a UTF-8 string and a timeline index.
     ///
     /// This calculates a [`Diff`] using the output of the selected [`WeaveTimeline`] and the user input, and then applies the diff as a series of updates to the Weave. The specific algorithm used to update the Weave is subject to change.
     ///
-    /// If the selected timeline is not found, an empty timeline is created to build the diff against.
+    /// If no timelines are found, an empty timeline is created to build the diff against.
     ///
     /// If `add_diff_node` is `true`, modifications are added as [`NodeContent::Diff`] items whenever possible. If `add_diff_node` is `false`, modifications are added as updates to [`Node`] objects whenever possible.
     ///
@@ -55,8 +57,10 @@ impl Weave {
                 .swap_remove(timeline)
                 .build_update(content, metadata, diff_deadline)
         } else {
+            assert!(timelines.len() == 0);
             TimelineUpdate {
-                ranges: vec![],
+                lengths: LinkedList::new(),
+                total: 0,
                 diff: Diff {
                     content: vec![Modification {
                         index: 0,
@@ -83,11 +87,7 @@ impl Weave {
         }
     }
     fn perform_diff_update(&mut self, mut update: TimelineUpdate, merge_tail_nodes: bool) {
-        let end = update
-            .ranges
-            .last()
-            .map(|range| range.range.end)
-            .unwrap_or_default();
+        /*let end = update.total;
 
         if update.diff.content.len() == 1 {
             let modification = update.diff.content.remove(0);
@@ -115,15 +115,13 @@ impl Weave {
                 update.diff,
                 update.metadata,
             );
-        }
+        }*/
     }
     fn perform_graph_update(&mut self, mut update: TimelineUpdate, merge_tail_nodes: bool) {
+        /*
+
         for modification in update.diff.content {
-            let end = update
-                .ranges
-                .last()
-                .map(|range| range.range.end)
-                .unwrap_or_default();
+            let end = update.total;
 
             if modification.index >= end {
                 handle_modification_tail(
@@ -141,7 +139,7 @@ impl Weave {
                     update.metadata.clone(),
                 );
             }
-        }
+        }*/
     }
     // Trivial; shouldn't require unit tests
     fn remove_node_if_not_generated(&mut self, identifier: &Ulid) -> bool {
@@ -212,7 +210,7 @@ impl Weave {
         let mut timelines = self.get_active_timelines();
 
         let (timeline_content, ranges) = if timelines.len() > timeline {
-            timelines.swap_remove(timeline).ranged_string()
+            timelines.swap_remove(timeline).length_annotated_string()
         } else {
             return self.add_node(node, model, deduplicate);
         };
@@ -227,7 +225,7 @@ impl Weave {
             if let Some(content) = node.content.into_diff(range) {
                 node.content = content;
                 node.from = ranges
-                    .last()
+                    .back()
                     .and_then(|annotation| annotation.node)
                     .map(|node| HashSet::from([node]))
                     .unwrap_or_default();
@@ -238,11 +236,18 @@ impl Weave {
             return None;
         }
 
-        let selected_ranges: Vec<(usize, &TimelineNodeRange)> = ranges
+        let mut position = 0;
+        let selected_ranges: Vec<(usize, &TimelineNodeLength)> = ranges
             .iter()
+            .inspect(|annotation| position += annotation.len)
             .enumerate()
-            .filter(|(_index, node_range)| {
-                range.contains(&node_range.range.start) || range.contains(&node_range.range.end)
+            .filter(|(_index, annotation)| {
+                let annotation_range = Range {
+                    start: position - annotation.len,
+                    end: position,
+                };
+
+                range.contains(&annotation_range.start) || range.contains(&annotation_range.end)
             })
             .collect();
 
@@ -279,15 +284,18 @@ impl Weave {
 #[allow(clippy::too_many_lines)]
 fn handle_modification_tail(
     weave: &mut Weave,
-    ranges: &mut Vec<TimelineNodeRange>,
+    lengths_location: &mut usize,
+    lengths_cursor: &mut CursorMut<'_, TimelineNodeRange>,
     modification: Modification,
     metadata: Option<HashMap<String, String>>,
     merge_tail_nodes: bool,
 ) {
-    let mut insertion = None;
+    todo!();
+
+    /*let mut insertion = None;
     let mut split = (None, None);
 
-    let last_node = ranges.last().map(|range| range.node.unwrap());
+    let last_node = lengths_cursor.back().map(|range| range.node.unwrap());
 
     let update_modification = ModificationRange::from(&modification);
 
@@ -387,23 +395,25 @@ fn handle_modification_tail(
         }
     }
 
-    let updates = update_modification.apply_annotations(ranges);
-
-    if let Some(index) = updates.inserted_bytes {
-        if insertion.is_some() {
-            ranges[index].node = insertion;
-        }
-    }
-    if let Some(index) = updates.left_split {
-        if split.0.is_some() {
-            ranges[index].node = split.0;
-        }
-    }
-    if let Some(index) = updates.right_split {
-        if split.1.is_some() {
-            ranges[index].node = split.1;
-        }
-    }
+    assert!(update_modification.apply_annotations(
+        &mut lengths_cursor,
+        &mut lengths_location,
+        |annotation| {
+            assert!(insertion.is_some());
+            annotation.node = insertion;
+        },
+        |_, _| panic!(),
+        |annotation| {
+            if split.0.is_some() {
+                annotation.node = split.0;
+            }
+        },
+        |annotation| {
+            if split.1.is_some() {
+                annotation.node = split.1;
+            }
+        },
+    ));*/
 }
 
 fn handle_singular_modification_diff_nontail(
@@ -475,7 +485,9 @@ fn handle_graph_modification_nontail(
     modification: Modification,
     metadata: Option<HashMap<String, String>>,
 ) {
-    let mut insertion = None;
+    todo!();
+
+    /*let mut insertion = None;
     #[allow(unused_assignments)]
     let mut split = (None, None);
 
@@ -592,5 +604,5 @@ fn handle_graph_modification_nontail(
         if split.1.is_some() {
             ranges[index].node = split.1;
         }
-    }
+    }*/
 }
