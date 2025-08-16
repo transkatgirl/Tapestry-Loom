@@ -191,6 +191,7 @@ The current target is to finish `v1-beta` before May 2026.
 	- [ ] Talon Voice
 	- [ ] Controllers / Gamepads
 	- [ ] USB DDR Pads
+	- [ ] Phones/Tablets (Obsidian Mobile)
 - [ ] Document & selection analysis tools
 	- [ ] Predictability analysis using logprobs
 	- [ ] Statistical analysis of various metrics (model usage, text length, logprobs, number of branches, etc)
@@ -214,7 +215,7 @@ Tapestry Loom v1 will be the first stable version, and will be listed on the Obs
 - Implement support for the zero-copy Weave format, implement support for memory mapping Weaves on desktop
 - Implement mobile UI support
 
-#### Tapestry Loom v2 plans
+#### Tapestry Loom v2 ideas
 
 - Implement multi-platform support (Web, Desktop, Obsidian, Vim??, etc..)
 	- Implement integration with some sort of local transcription plugin
