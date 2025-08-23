@@ -139,9 +139,7 @@ The current target is to finish `v1-beta` before May 2026.
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Add support for displaying prompt logprobs if returned by API
 - [ ] Implement token streaming
-- [ ] Implement adaptive looming
-	- [ ] Next token vs previous token probability
-	- [ ] Top-N tokens
+- [ ] Implement adaptive looming using token entropy
 - [ ] Implement color palette generator for model colors
 	- [ ] Implement default color setting
 - [ ] Implement blind comparison modes
@@ -161,7 +159,7 @@ The current target is to finish `v1-beta` before May 2026.
 		- [ ] Time added
 		- [ ] Alphabetical
 		- [ ] Semantic sort
-	- [ ] Add color coding by token variety (number of tokens within top 0.95)
+	- [ ] Add color coding by token entropy
 	- [ ] Add more color coding customization
 	- [ ] Improve list view to support all of the same functionality as the tree interface
 		- [ ] Add hover buttons to list view
