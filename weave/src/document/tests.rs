@@ -5330,7 +5330,7 @@ fn example_weave() -> Weave {
     weave
 }
 
-#[test]
+/*#[test]
 fn deduplicate_node() {
     let mut weave = example_weave();
 
@@ -5564,7 +5564,7 @@ fn deduplicate_node() {
             Ulid::from_parts(0, 0)
         ])
     );
-}
+}*/
 
 /*#[test]
 fn move_node() {}*/

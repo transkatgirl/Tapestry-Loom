@@ -200,7 +200,7 @@ impl Weave {
         model: Option<Model>,
         deduplicate: bool,
     ) -> Option<Ulid> {
-        if let NodeContent::Diff(_) = &node.content {
+        /*if let NodeContent::Diff(_) = &node.content {
             return None;
         }
 
@@ -277,7 +277,9 @@ impl Weave {
         node.from = HashSet::from([starting_node]);
         node.to = HashSet::from([after_node]);
 
-        self.add_node(node, model, deduplicate)
+        self.add_node(node, model, deduplicate)*/
+
+        todo!()
     }
 }
 
@@ -285,7 +287,7 @@ impl Weave {
 fn handle_modification_tail(
     weave: &mut Weave,
     lengths_location: &mut usize,
-    lengths_cursor: &mut CursorMut<'_, TimelineNodeRange>,
+    lengths_cursor: &mut CursorMut<'_, TimelineNodeLength>,
     modification: Modification,
     metadata: Option<HashMap<String, String>>,
     merge_tail_nodes: bool,
@@ -418,7 +420,7 @@ fn handle_modification_tail(
 
 fn handle_singular_modification_diff_nontail(
     weave: &mut Weave,
-    ranges: &mut [TimelineNodeRange],
+    ranges: &mut [TimelineNodeLength],
     modification: Modification,
     metadata: Option<HashMap<String, String>>,
 ) {
@@ -450,7 +452,7 @@ fn handle_singular_modification_diff_nontail(
 
 fn handle_multiple_modification_diff(
     weave: &mut Weave,
-    ranges: &mut [TimelineNodeRange],
+    ranges: &mut [TimelineNodeLength],
     diff: Diff,
     metadata: Option<HashMap<String, String>>,
 ) {
@@ -481,7 +483,7 @@ fn handle_multiple_modification_diff(
 #[allow(clippy::too_many_lines)]
 fn handle_graph_modification_nontail(
     weave: &mut Weave,
-    ranges: &mut Vec<TimelineNodeRange>,
+    ranges: &mut Vec<TimelineNodeLength>,
     modification: Modification,
     metadata: Option<HashMap<String, String>>,
 ) {
