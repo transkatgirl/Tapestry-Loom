@@ -87,7 +87,7 @@ The current target is to finish `v1-alpha` before the end of 2025.
 - [ ] Improve Weave format to improve flexibility and efficiency:
 	- [ ] Create `tapestry-weave` Rust library
 		- [x] Write code for new Weave data structure & serialization+deserialization
-			- [x] Rewrite `content` module to use ~~any_rope~~ ~~flo_rope~~ LinkedList + Bytes
+			- [ ] Remove support for diff-based weaves, rewrite `content` module to use Vec
 			- [ ] Rewrite `document` module to use Iterators and Entry whenever possible (WIP)
 			- [ ] Rewrite `update` module to allow using user-provided timelines & Diff objects, rather than always building a timeline & calculating the diff (use a locking mechanism for the Weave?)
 		- [ ] Test & fix code
@@ -120,7 +120,6 @@ The current target is to finish `v1-alpha` before the end of 2025.
 			- [ ] Handle document model metadata update on settings update and document load
 			- [ ] Allow graceful handling of editor undo/redo functionality
 		- [ ] Add support for FIM completions, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
-		- [ ] Add support for diff weaves, similar to [minihf's loom](https://github.com/JD-P/minihf)
 		- [ ] Add support for copying / moving nodes (and their children) to different parents
 		- [ ] Implement multi-token multi-logprob generations as chains of single token nodes, inspired by [loom](https://github.com/socketteer/loom) and [logitloom](https://github.com/vgel/logitloom)
 			- [ ] Update Node list to display sibings of node at cursor rather than last active node
@@ -146,7 +145,7 @@ The current target is to finish `v1-beta` before May 2026.
 	- [ ] (Hide) Models & token probabilities / boundaries
 	- [ ] (Hide) Generated node text (only showing metadata & probabilities)
 - [ ] Improve handling of trailing whitespace
-- [ ] Implement importing text from other documents, similar to [loom](https://github.com/socketteer/loom)
+- [ ] Implement importing text from other documents
 - [ ] UI improvements
 	- [ ] Allow adjusting proportion of completions from each model
 		- [ ] Allow dynamically adjusting proportions based on usage
