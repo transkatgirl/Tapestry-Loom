@@ -35,10 +35,14 @@ Weave<T> where T: DiscreteContents actions:
 Weave<T> where T: DedupableContents actions:
 - find_duplicates(&self, id: Ulid) -> Vec<Ulid>
 
+DependentWeave implements TryFrom<IndependentWeave>
+
 IndependentWeave actions:
 - move_node(&mut self, target: Ulid, new_parents: Ulid) -> bool
 
-DependentWeave implements From<IndependentWeave>
+IndependentWeave actions:
+- unsafe from_dependent(value: DependentWeave) -> Self
+
 
 tapestry-weave
 
