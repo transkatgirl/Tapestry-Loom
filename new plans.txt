@@ -2,12 +2,15 @@ plans for tapestry loom rewrite
 
 universal-weave library
 
-rust library containing a universal "loom for anything" format which supporting zero-copy deserialization
+rust library containing a universal "loom for anything" library which supporting zero-copy deserialization
 
 two types of Weave: DependentWeave and IndependentWeave
 
 DependentWeave - nodes rely on the contents of previous nodes
 IndependentWeave - nodes do not rely on the contents of previous nodes, nodes can have multiple children
+
+Weave<T, U> public fields:
+- metadata: U
 
 Node<T>:
 - id: Ulid
