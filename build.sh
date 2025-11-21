@@ -1,2 +1,1 @@
-cd universal-weave
-wasm-pack build tapestry-weave-wasm
+cd universal-weave && wasm-pack build tapestry-weave-wasm && cd .. && npm install && npm run build
