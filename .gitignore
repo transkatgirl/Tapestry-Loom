@@ -23,6 +23,7 @@ data.json
 
 # Rust
 /target
+/tapestry-glue/target
 **/*.rs.bk
 Cargo.lock
 *.profraw

@@ -1,0 +1,22 @@
+[package]
+name    = "tapestry-glue"
+version = "0.0.0"
+edition = "2024"
+
+[lib]
+crate-type = [
+	"cdylib",
+	"rlib",
+]
+
+[dependencies]
+wasm-bindgen    = "0.2.84"
+universal-weave = { path = "../universal-weave" }
+tapestry-weave  = { path = "../universal-weave/tapestry-weave" }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.34"
+
+[profile.release]
+strip = "symbols"
+panic = "abort"
