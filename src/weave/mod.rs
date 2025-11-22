@@ -210,7 +210,7 @@ impl WrappedWeave {
 }
 
 #[get("/weaves")]
-pub async fn list(set: &State<WeaveSet>) -> Result<Json<Vec<rusty_ulid::Ulid>>, Status> {
+pub async fn list(set: &State<Arc<WeaveSet>>) -> Result<Json<Vec<rusty_ulid::Ulid>>, Status> {
     Ok(Json(set.list().await.map_err(|e| {
         eprintln!("{e:#?}");
         Status::new(500)
@@ -218,7 +218,7 @@ pub async fn list(set: &State<WeaveSet>) -> Result<Json<Vec<rusty_ulid::Ulid>>, 
 }
 
 #[get("/weaves/new")]
-pub async fn create(set: &State<WeaveSet>) -> Result<Json<rusty_ulid::Ulid>, Status> {
+pub async fn create(set: &State<Arc<WeaveSet>>) -> Result<Json<rusty_ulid::Ulid>, Status> {
     let id = rusty_ulid::Ulid::generate();
 
     let is_success = set
@@ -240,7 +240,7 @@ pub async fn create(set: &State<WeaveSet>) -> Result<Json<rusty_ulid::Ulid>, Sta
 }
 
 #[get("/weaves/<id>")]
-pub async fn download(set: &State<WeaveSet>, id: rusty_ulid::Ulid) -> Result<Vec<u8>, Status> {
+pub async fn download(set: &State<Arc<WeaveSet>>, id: rusty_ulid::Ulid) -> Result<Vec<u8>, Status> {
     let weave = set.get(&id).await.map_err(|e| {
         eprintln!("{e:#?}");
         Status::new(500)
@@ -266,7 +266,7 @@ pub async fn download(set: &State<WeaveSet>, id: rusty_ulid::Ulid) -> Result<Vec
 }
 
 #[delete("/weaves/<id>")]
-pub async fn delete(set: &State<WeaveSet>, id: rusty_ulid::Ulid) -> Status {
+pub async fn delete(set: &State<Arc<WeaveSet>>, id: rusty_ulid::Ulid) -> Status {
     match set.delete(&id).await {
         Ok(exists) => {
             if exists {
