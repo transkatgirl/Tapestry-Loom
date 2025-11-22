@@ -66,7 +66,7 @@ impl WeaveSet {
             Entry::Occupied(_) => Err(Error::msg("Item already exists")),
             Entry::Vacant(entry) => {
                 let path = self.root.join(id.to_string());
-                let weave = Arc::new(Mutex::new(WrappedWeave::load(&path).await?));
+                let weave = Arc::new(Mutex::new(WrappedWeave::create(&path).await?));
 
                 entry.insert(weave.clone());
 
