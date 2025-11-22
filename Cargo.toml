@@ -1,0 +1,13 @@
+[package]
+name = "tapestry-loom"
+version = "0.0.0"
+authors = [
+	"transkatgirl",
+]
+license = "AGPL-3.0-or-later"
+description = "A web-based IDE for working with base model LLMs."
+edition = "2024"
+
+[dependencies]
+tapestry-weave = { path = "universal-weave/tapestry-weave" }
+rocket         = "0.5.1"
