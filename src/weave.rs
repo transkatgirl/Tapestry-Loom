@@ -14,7 +14,7 @@ use rocket::{
     http::Status,
     serde::json::Json,
     tokio::{
-        fs::{File, read_dir, remove_file},
+        fs::{File, read_dir, remove_file, try_exists},
         io::{AsyncReadExt, AsyncWriteExt},
         sync::RwLock,
     },
@@ -75,23 +75,30 @@ impl WeaveSet {
             }
         }
     }
-    async fn get(&self, id: &rusty_ulid::Ulid) -> Result<SharedWeave, Error> {
+    async fn get(&self, id: &rusty_ulid::Ulid) -> Result<Option<SharedWeave>, Error> {
         let weaves = self.weaves.read().await;
 
         if let Some(weave) = weaves.get(id) {
-            Ok(weave.clone())
+            Ok(Some(weave.clone()))
         } else {
             let mut weaves = self.weaves.write().await;
 
             match weaves.entry(*id) {
-                Entry::Occupied(entry) => Ok(entry.get().clone()),
+                Entry::Occupied(entry) => Ok(Some(entry.get().clone())),
                 Entry::Vacant(entry) => {
                     let path = self.root.join(id.to_string());
-                    let weave = Arc::new(Mutex::new(Some(WrappedWeave::load(&path).await?)));
 
-                    entry.insert(weave.clone());
+                    let exists = try_exists(&path).await?;
 
-                    Ok(weave)
+                    if exists {
+                        let weave = Arc::new(Mutex::new(Some(WrappedWeave::load(&path).await?)));
+
+                        entry.insert(weave.clone());
+
+                        Ok(Some(weave))
+                    } else {
+                        Ok(None)
+                    }
                 }
             }
         }
