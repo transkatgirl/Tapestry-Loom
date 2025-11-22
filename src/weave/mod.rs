@@ -307,7 +307,6 @@ pub async fn websocket(
                             let message = message?;
 
                             if message.is_close() {
-                                stream.send(ws::Message::Close(None)).await?;
                                 break;
                             }
 
