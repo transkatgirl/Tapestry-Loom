@@ -304,17 +304,24 @@ pub async fn websocket(
                         let mut last_value = None;
 
                         while let Some(message) = stream.next().await {
+                            let message = message?;
+
+                            if message.is_close() {
+                                stream.send(ws::Message::Close(None)).await?;
+                                break;
+                            }
+
                             let mut weave = weave.lock().await;
                             if let Some(weave) = weave.as_mut() {
-                                let (responses, has_changed) = socket::handle_message(
+                                let (response, has_changed) = socket::handle_message(
                                     &mut weave.0.data,
                                     weave.1 != last_value.unwrap_or(weave.1),
-                                    message?,
+                                    message,
                                 );
-
-                                for message in responses {
-                                    stream.send(message).await?;
+                                if let Some(response) = response {
+                                    stream.send(response).await?;
                                 }
+
                                 if has_changed {
                                     weave.1 = weave.1.wrapping_add(1);
                                 }
