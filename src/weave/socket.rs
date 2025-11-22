@@ -48,7 +48,7 @@ pub fn handle_message(
                             eprintln!("{e:#?}");
                             (
                                 Some(Message::Text(
-                                    "{\"Error\": \"Unable to serialize JSON\"}".to_string(),
+                                    "{\"Error\": \"Unable to serialize response\"}".to_string(),
                                 )),
                                 false,
                             )
@@ -58,7 +58,7 @@ pub fn handle_message(
                         eprintln!("{e:#?}");
                         (
                             Some(Message::Text(
-                                "{\"Error\": \"Unable to serialize JSON\"}".to_string(),
+                                "{\"Error\": \"Unable to serialize response\"}".to_string(),
                             )),
                             false,
                         )
@@ -67,7 +67,7 @@ pub fn handle_message(
             } else {
                 (
                     Some(Message::Text(
-                        "{\"Error\": \"Unable to deserialize JSON\"}".to_string(),
+                        "{\"Error\": \"Unable to deserialize request\"}".to_string(),
                     )),
                     false,
                 )
@@ -82,7 +82,7 @@ pub fn handle_message(
                             eprintln!("{e:#?}");
                             (
                                 Some(Message::Text(
-                                    "{\"Error\": \"Unable to serialize JSON\"}".to_string(),
+                                    "{\"Error\": \"Unable to serialize response\"}".to_string(),
                                 )),
                                 false,
                             )
@@ -92,7 +92,7 @@ pub fn handle_message(
                         eprintln!("{e:#?}");
                         (
                             Some(Message::Text(
-                                "{\"Error\": \"Unable to serialize JSON\"}".to_string(),
+                                "{\"Error\": \"Unable to serialize response\"}".to_string(),
                             )),
                             false,
                         )
@@ -101,7 +101,7 @@ pub fn handle_message(
             } else {
                 (
                     Some(Message::Text(
-                        "{\"Error\": \"Unable to deserialize JSON\"}".to_string(),
+                        "{\"Error\": \"Unable to deserialize request\"}".to_string(),
                     )),
                     false,
                 )
