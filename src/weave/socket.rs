@@ -1,9 +1,4 @@
-use std::{
-    iter,
-    path::{Path, PathBuf},
-    str::FromStr,
-    sync::Arc,
-};
+use std::time::{Duration, SystemTime};
 
 use serde::Deserialize;
 use serde_json::Value;
@@ -121,43 +116,80 @@ fn handle_incoming_message(
         IncomingMessage::GetLength => Ok((Value::Number(weave.len().into()), false)),
         IncomingMessage::IsChanged => Ok((Value::Bool(has_changed), false)),
         IncomingMessage::GetNode(id) => {
-            todo!()
+            let node = weave.get_node(&id);
+
+            serde_json::to_value(node).map(|v| (v, false))
         }
         IncomingMessage::GetNodes(nodes) => {
-            todo!()
+            let nodes: Vec<_> = nodes.into_iter().map(|id| weave.get_node(&id)).collect();
+
+            serde_json::to_value(nodes).map(|v| (v, false))
         }
         IncomingMessage::GetRoots => {
-            todo!()
+            let roots: Vec<_> = weave
+                .get_roots()
+                .filter_map(|id| weave.get_node(&id))
+                .collect();
+
+            serde_json::to_value(roots).map(|v| (v, false))
         }
         IncomingMessage::GetBookmarks => {
-            todo!()
+            let bookmarks: Vec<_> = weave
+                .get_bookmarks()
+                .filter_map(|id| weave.get_node(&id))
+                .collect();
+
+            serde_json::to_value(bookmarks).map(|v| (v, false))
         }
         IncomingMessage::GetActiveThread => {
-            todo!()
+            let active: Vec<_> = weave.get_active_thread().collect();
+
+            serde_json::to_value(active).map(|v| (v, false))
         }
         IncomingMessage::AddNode(node) => {
-            todo!()
+            let result = weave.add_node(*node);
+
+            Ok((Value::Bool(result), true))
         }
         IncomingMessage::SetNodeActiveStatus((id, value)) => {
-            todo!()
+            let result = weave.set_node_active_status(&id, value);
+
+            Ok((Value::Bool(result), true))
         }
         IncomingMessage::SetNodeBookmarkedStatus((id, value)) => {
-            todo!()
+            let result = weave.set_node_bookmarked_status(&id, value);
+
+            Ok((Value::Bool(result), true))
         }
         IncomingMessage::SetActiveContent((value, metadata)) => {
-            todo!()
+            let result = weave.set_active_content(&value, metadata, |t| match t {
+                Some(t) => Ulid::from_datetime(SystemTime::UNIX_EPOCH + Duration::from_millis(t)),
+                None => Ulid::new(),
+            });
+
+            Ok((Value::Bool(result), true))
         }
         IncomingMessage::SplitNode((id, at)) => {
-            todo!()
+            let result = weave.split_node(&id, at, |t| {
+                Ulid::from_datetime(SystemTime::UNIX_EPOCH + Duration::from_millis(t))
+            });
+
+            serde_json::to_value(result).map(|v| (v, true))
         }
         IncomingMessage::MergeNodeWithParent(id) => {
-            todo!()
+            let result = weave.merge_with_parent(&id);
+
+            Ok((Value::Bool(result), true))
         }
         IncomingMessage::IsNodeMergeableWithParent(id) => {
-            todo!()
+            let value = weave.is_mergeable_with_parent(&id);
+
+            Ok((Value::Bool(value), false))
         }
         IncomingMessage::RemoveNode(id) => {
-            todo!()
+            let result = weave.remove_node(&id);
+
+            Ok((Value::Bool(result.is_some()), true))
         }
     }
 }
