@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, hash_map::Entry},
+    iter,
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
@@ -26,6 +27,6 @@ pub fn update_message(weave: &TapestryWeave) -> Message {
     Message::Text("start".to_string()) // TODO
 }
 
-pub fn handle_message(weave: &mut TapestryWeave, input: Message) -> Message {
-    input // TODO
+pub fn handle_message(weave: &mut TapestryWeave, input: Message) -> impl Iterator<Item = Message> {
+    iter::once(input)
 }

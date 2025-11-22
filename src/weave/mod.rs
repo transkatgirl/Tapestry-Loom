@@ -319,9 +319,9 @@ pub async fn websocket(
                         while let Some(message) = stream.next().await {
                             let mut weave = weave.lock().await;
                             if let Some(weave) = weave.as_mut() {
-                                stream
-                                    .send(socket::handle_message(&mut weave.data, message?))
-                                    .await?;
+                                for message in socket::handle_message(&mut weave.data, message?) {
+                                    stream.send(message).await?;
+                                }
                             } else {
                                 stream
                                     .send(ws::Message::Close(Some(CloseFrame {
