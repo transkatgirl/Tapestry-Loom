@@ -7,7 +7,7 @@ use std::{
 
 use anyhow::Error;
 use rocket::{
-    State,
+    State, delete,
     fs::relative,
     futures::{SinkExt, StreamExt, lock::Mutex},
     get,
@@ -212,7 +212,7 @@ pub async fn list(set: &State<WeaveSet>) -> Result<Json<Vec<rusty_ulid::Ulid>>, 
 }
 
 #[get("/weaves/new")]
-pub async fn new(set: &State<WeaveSet>) -> Result<Json<rusty_ulid::Ulid>, Status> {
+pub async fn create(set: &State<WeaveSet>) -> Result<Json<rusty_ulid::Ulid>, Status> {
     let id = rusty_ulid::Ulid::generate();
 
     let is_success = set
@@ -227,7 +227,45 @@ pub async fn new(set: &State<WeaveSet>) -> Result<Json<rusty_ulid::Ulid>, Status
     if is_success {
         Ok(Json(id))
     } else {
-        Err(Status::new(409))
+        eprintln!("Generated duplicate ULID: {}", id);
+        Err(Status::new(500))
+    }
+}
+
+#[get("/weaves/<id>")]
+pub async fn download(set: &State<WeaveSet>, id: rusty_ulid::Ulid) -> Result<Vec<u8>, Status> {
+    let weave = set.get(&id).await.map_err(|e| {
+        eprintln!("{e:#?}");
+        Status::new(500)
+    })?;
+
+    let result = match weave {
+        Some(weave) => {
+            let lock = weave.lock().await;
+            match lock.as_ref() {
+                Some(weave) => weave.data.to_versioned_bytes().map_err(|e| {
+                    eprintln!("{e:#?}");
+                    Status::new(500)
+                }),
+                None => Err(Status::new(404)),
+            }
+        }
+        None => Err(Status::new(404)),
+    };
+
+    set.opportunistic_unload(&id).await;
+
+    result
+}
+
+#[delete("/weaves/<id>")]
+pub async fn delete(set: &State<WeaveSet>, id: rusty_ulid::Ulid) -> Status {
+    match set.delete(&id).await {
+        Ok(()) => Status::new(200),
+        Err(e) => {
+            eprintln!("{e:#?}");
+            Status::new(500)
+        }
     }
 }
 
