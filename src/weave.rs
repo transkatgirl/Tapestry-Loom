@@ -6,26 +6,27 @@ use std::{
 };
 
 use anyhow::Error;
-use parking_lot::Mutex;
 use rocket::{
     State,
     fs::relative,
-    futures::{SinkExt, StreamExt},
+    futures::{SinkExt, StreamExt, lock::Mutex},
     get,
     http::Status,
     serde::json::Json,
     tokio::{
-        self,
         fs::{File, read_dir, remove_file},
         io::{AsyncReadExt, AsyncWriteExt},
+        sync::RwLock,
     },
 };
 use tapestry_weave::{VersionedWeave, universal_weave::indexmap::IndexMap, v0::TapestryWeave};
 
 pub struct WeaveSet {
-    weaves: tokio::sync::RwLock<HashMap<rusty_ulid::Ulid, Arc<Mutex<WrappedWeave>>>>,
+    weaves: RwLock<HashMap<rusty_ulid::Ulid, SharedWeave>>,
     root: PathBuf,
 }
+
+pub type SharedWeave = Arc<Mutex<Option<WrappedWeave>>>;
 
 impl Default for WeaveSet {
     fn default() -> Self {
@@ -59,22 +60,22 @@ impl WeaveSet {
 
         Ok(items)
     }
-    async fn create(&self, id: rusty_ulid::Ulid) -> Result<Arc<Mutex<WrappedWeave>>, Error> {
+    async fn create(&self, id: rusty_ulid::Ulid) -> Result<Option<SharedWeave>, Error> {
         let mut weaves = self.weaves.write().await;
 
         match weaves.entry(id) {
-            Entry::Occupied(_) => Err(Error::msg("Item already exists")),
+            Entry::Occupied(_) => Ok(None),
             Entry::Vacant(entry) => {
                 let path = self.root.join(id.to_string());
-                let weave = Arc::new(Mutex::new(WrappedWeave::create(&path).await?));
+                let weave = Arc::new(Mutex::new(Some(WrappedWeave::create(&path).await?)));
 
                 entry.insert(weave.clone());
 
-                Ok(weave)
+                Ok(Some(weave))
             }
         }
     }
-    async fn get(&self, id: &rusty_ulid::Ulid) -> Result<Arc<Mutex<WrappedWeave>>, Error> {
+    async fn get(&self, id: &rusty_ulid::Ulid) -> Result<SharedWeave, Error> {
         let weaves = self.weaves.read().await;
 
         if let Some(weave) = weaves.get(id) {
@@ -86,7 +87,7 @@ impl WeaveSet {
                 Entry::Occupied(entry) => Ok(entry.get().clone()),
                 Entry::Vacant(entry) => {
                     let path = self.root.join(id.to_string());
-                    let weave = Arc::new(Mutex::new(WrappedWeave::load(&path).await?));
+                    let weave = Arc::new(Mutex::new(Some(WrappedWeave::load(&path).await?)));
 
                     entry.insert(weave.clone());
 
@@ -95,7 +96,7 @@ impl WeaveSet {
             }
         }
     }
-    async fn unload(&self, id: &rusty_ulid::Ulid) {
+    async fn opportunistic_unload(&self, id: &rusty_ulid::Ulid) {
         let mut weaves = self.weaves.write().await;
 
         if let Some(weave) = weaves.remove(id) {
@@ -113,15 +114,20 @@ impl WeaveSet {
         if let Some(weave) = weaves.remove(id) {
             match Arc::try_unwrap(weave) {
                 Ok(weave) => {
-                    let weave = weave.into_inner();
-
-                    weave.delete().await
+                    if let Some(weave) = weave.into_inner() {
+                        weave.delete().await?;
+                    }
                 }
                 Err(weave) => {
-                    weaves.insert(*id, weave);
-                    Err(Error::msg("Item is still in use"))
+                    let mut weave_lock = weave.lock().await;
+                    if let Some(weave) = weave_lock.as_ref() {
+                        remove_file(weave.path.clone()).await?;
+                    }
+                    *weave_lock = None;
                 }
             }
+
+            Ok(())
         } else {
             Ok(())
         }
@@ -175,7 +181,7 @@ impl WrappedWeave {
                 data: weave,
             })
         } else {
-            Err(Error::msg("Invalid header"))
+            Err(Error::msg("Invalid file header"))
         }
     }
     async fn save(&mut self) -> Result<(), Error> {
@@ -202,12 +208,20 @@ pub async fn list(set: &State<WeaveSet>) -> Result<Json<Vec<rusty_ulid::Ulid>>, 
 pub async fn new(set: &State<WeaveSet>) -> Result<Json<rusty_ulid::Ulid>, Status> {
     let id = rusty_ulid::Ulid::generate();
 
-    set.create(id).await.map_err(|e| {
-        eprintln!("{e:#?}");
-        Status::new(500)
-    })?;
+    let is_success = set
+        .create(id)
+        .await
+        .map_err(|e| {
+            eprintln!("{e:#?}");
+            Status::new(500)
+        })?
+        .is_some();
 
-    Ok(Json(id))
+    if is_success {
+        Ok(Json(id))
+    } else {
+        Err(Status::new(409))
+    }
 }
 
 #[get("/weaves/<id>/ws")]
