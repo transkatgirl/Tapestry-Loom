@@ -115,7 +115,7 @@ impl WeaveSet {
             }
         }
     }
-    async fn delete(&self, id: &rusty_ulid::Ulid) -> Result<(), Error> {
+    async fn delete(&self, id: &rusty_ulid::Ulid) -> Result<bool, Error> {
         let mut weaves = self.weaves.write().await;
 
         if let Some(weave) = weaves.remove(id) {
@@ -134,9 +134,16 @@ impl WeaveSet {
                 }
             }
 
-            Ok(())
+            Ok(true)
         } else {
-            Ok(())
+            let path = self.root.join(id.to_string());
+            let exists = try_exists(&path).await?;
+
+            if exists {
+                remove_file(path).await?;
+            }
+
+            Ok(exists)
         }
     }
 }
@@ -261,7 +268,13 @@ pub async fn download(set: &State<WeaveSet>, id: rusty_ulid::Ulid) -> Result<Vec
 #[delete("/weaves/<id>")]
 pub async fn delete(set: &State<WeaveSet>, id: rusty_ulid::Ulid) -> Status {
     match set.delete(&id).await {
-        Ok(()) => Status::new(200),
+        Ok(exists) => {
+            if exists {
+                Status::new(200)
+            } else {
+                Status::new(404)
+            }
+        }
         Err(e) => {
             eprintln!("{e:#?}");
             Status::new(500)
