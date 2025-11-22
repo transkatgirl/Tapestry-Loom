@@ -16,7 +16,7 @@ use rocket::{
     serde::json::Json,
     tokio::{
         fs::{File, read_dir, remove_file, try_exists},
-        io::{AsyncReadExt, AsyncWriteExt},
+        io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt},
         sync::RwLock,
     },
 };
@@ -211,6 +211,7 @@ impl WrappedWeave {
     }
     async fn save(&mut self) -> Result<(), Error> {
         let data = self.data.to_versioned_bytes()?;
+        self.file.seek(std::io::SeekFrom::Start(0)).await?;
         self.file.write_all(&data).await?;
         self.file.flush().await?;
 
@@ -348,6 +349,7 @@ pub async fn websocket(
                                         reason: Cow::Borrowed("Item has been deleted"),
                                     })))
                                     .await?;
+                                drop(weave);
                                 if let Err(e) = set.opportunistic_unload(&identifier).await {
                                     eprintln!("{e:#?}");
                                 }
@@ -355,6 +357,7 @@ pub async fn websocket(
                             }
                         }
 
+                        drop(weave);
                         if let Err(e) = set.opportunistic_unload(&identifier).await {
                             eprintln!("{e:#?}");
                         }
