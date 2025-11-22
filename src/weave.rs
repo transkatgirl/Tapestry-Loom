@@ -26,9 +26,15 @@ pub struct WeaveSet {
 
 impl Default for WeaveSet {
     fn default() -> Self {
+        let root: PathBuf = relative!("weaves").into();
+
+        if !root.exists() {
+            let _ = std::fs::create_dir(&root);
+        }
+
         Self {
             weaves: HashMap::with_capacity(1024),
-            root: relative!("weaves").into(),
+            root,
         }
     }
 }
