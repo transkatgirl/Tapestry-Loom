@@ -1477,6 +1477,7 @@ dependencies = [
  "rocket_codegen",
  "rocket_http",
  "serde",
+ "serde_json",
  "state",
  "tempfile",
  "time",
@@ -1593,6 +1594,18 @@ name = "rustversion"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
+
+[[package]]
+name = "rusty_ulid"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e0719c0520bdfc6f5a02c8bd8b20f9fc8785de57d4e117e144ade9c5f152626"
+dependencies = [
+ "rand 0.8.5",
+ "rocket",
+ "serde",
+ "time",
+]
 
 [[package]]
 name = "ryu"
@@ -1877,10 +1890,10 @@ dependencies = [
  "reqwest",
  "rocket",
  "rocket_ws",
+ "rusty_ulid",
  "serde",
  "serde_json",
  "tapestry-weave",
- "tokio",
 ]
 
 [[package]]
@@ -2000,7 +2013,6 @@ dependencies = [
  "bytes",
  "libc",
  "mio",
- "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
  "socket2 0.6.1",

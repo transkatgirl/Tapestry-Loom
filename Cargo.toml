@@ -12,7 +12,9 @@ edition = "2024"
 tapestry-weave = { path = "universal-weave/tapestry-weave", features = [
 	"serde",
 ] }
-rocket = "0.5.1"
+rocket = { version = "0.5.1", features = [
+	"json",
+] }
 ws = { package = "rocket_ws", version = "0.1.1" }
 serde = { version = "1.0.228", features = [
 	"derive",
@@ -23,6 +25,6 @@ serde_json = { version = "1.0.145", features = [
 reqwest = { version = "0.12", features = [
 	"json",
 ] }
-tokio = { version = "1", features = [
-	"full",
+rusty_ulid = { version = "2.0.0", features = [
+	"rocket",
 ] }
