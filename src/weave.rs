@@ -283,11 +283,34 @@ pub async fn delete(set: &State<WeaveSet>, id: rusty_ulid::Ulid) -> Status {
 }
 
 #[get("/weaves/<id>/ws")]
-pub fn socket(
+pub async fn socket(
     set: &State<WeaveSet>,
     ws: ws::WebSocket,
     id: rusty_ulid::Ulid,
 ) -> ws::Channel<'static> {
+    let weave = set.get(&id).await;
+
+    match weave {
+        Ok(weave) => match weave {
+            Some(weave) => socket_handler(ws, weave),
+            None => ws.channel(move |mut stream| {
+                Box::pin(async move {
+                    let _ = stream.send(ws::Message::Close(None)).await;
+                    Ok(())
+                })
+            }),
+        },
+        Err(err) => ws.channel(move |mut stream| {
+            Box::pin(async move {
+                eprintln!("{err:#?}");
+                let _ = stream.send(ws::Message::Close(None)).await;
+                Ok(())
+            })
+        }),
+    }
+}
+
+pub fn socket_handler(ws: ws::WebSocket, weave: SharedWeave) -> ws::Channel<'static> {
     ws.channel(move |mut stream| {
         Box::pin(async move {
             while let Some(message) = stream.next().await {
