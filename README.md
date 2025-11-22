@@ -34,6 +34,11 @@ In addition, below are the tentative plans for Tapestry Loom v2:
 - [ ] Multi-user rather than single-user, multi-session
 	- [ ] User authentication
 	- [ ] User permissions
+	- [ ] User rate limiting
+- [ ] HTTPS support
+- [ ] Compression support
+	- [ ] Brotli compression for static assets
+	- [ ] LZ4 compression for websocket data
 - [ ] Mobile support
 - [ ] Support for DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- [ ] FIM completions

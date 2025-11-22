@@ -9,5 +9,14 @@ description = "A web-based IDE for working with base model LLMs."
 edition = "2024"
 
 [dependencies]
-tapestry-weave = { path = "universal-weave/tapestry-weave" }
-rocket         = "0.5.1"
+tapestry-weave = { path = "universal-weave/tapestry-weave", features = [
+	"serde",
+] }
+rocket = "0.5.1"
+ws = { package = "rocket_ws", version = "0.1.1" }
+serde = { version = "1.0.228", features = [
+	"derive",
+], optional = true }
+serde_json = { version = "1.0.145", features = [
+	"preserve_order",
+] }
