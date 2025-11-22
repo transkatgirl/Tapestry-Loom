@@ -31,3 +31,4 @@ rusty_ulid = { version = "2.0.0", features = [
 parking_lot = { version = "0.12.5", features = [
 	"serde",
 ] }
+anyhow = "1.0.100"

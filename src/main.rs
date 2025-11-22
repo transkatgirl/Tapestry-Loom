@@ -11,8 +11,7 @@ async fn main() -> Result<(), rocket::Error> {
     let _rocket = rocket::build()
         .manage(weave::WeaveSet::default())
         .mount("/", FileServer::from(relative!("static")))
-        .mount("/v0", routes![weave::list])
-        .mount("/v0", routes![weave::handler])
+        .mount("/v0", routes![weave::list, weave::new, weave::socket])
         .launch()
         .await?;
 
