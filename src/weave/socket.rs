@@ -22,6 +22,14 @@ use rocket::{
 use tapestry_weave::{VersionedWeave, universal_weave::indexmap::IndexMap, v0::TapestryWeave};
 use ws::Message;
 
-pub fn handle_message(weave: &mut TapestryWeave, input: Message) -> impl Iterator<Item = Message> {
-    iter::once(input)
+enum SocketMessage {
+    Refresh,
+}
+
+pub fn handle_message(
+    weave: &mut TapestryWeave,
+    has_changed: bool,
+    input: Message,
+) -> (Vec<Message>, bool) {
+    (vec![input], false)
 }

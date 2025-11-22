@@ -30,7 +30,7 @@ pub struct WeaveSet {
     root: PathBuf,
 }
 
-pub type SharedWeave = Arc<Mutex<Option<WrappedWeave>>>;
+pub type SharedWeave = Arc<Mutex<Option<(WrappedWeave, usize)>>>;
 
 impl Default for WeaveSet {
     fn default() -> Self {
@@ -71,7 +71,7 @@ impl WeaveSet {
             Entry::Occupied(_) => Ok(None),
             Entry::Vacant(entry) => {
                 let path = self.root.join(id.to_string());
-                let weave = Arc::new(Mutex::new(Some(WrappedWeave::create(&path).await?)));
+                let weave = Arc::new(Mutex::new(Some((WrappedWeave::create(&path).await?, 0))));
 
                 entry.insert(weave.clone());
 
@@ -96,7 +96,8 @@ impl WeaveSet {
                     let exists = try_exists(&path).await?;
 
                     if exists {
-                        let weave = Arc::new(Mutex::new(Some(WrappedWeave::load(&path).await?)));
+                        let weave =
+                            Arc::new(Mutex::new(Some((WrappedWeave::load(&path).await?, 0))));
 
                         entry.insert(weave.clone());
 
@@ -127,13 +128,13 @@ impl WeaveSet {
             match Arc::try_unwrap(weave) {
                 Ok(weave) => {
                     if let Some(weave) = weave.into_inner() {
-                        weave.delete().await?;
+                        weave.0.delete().await?;
                     }
                 }
                 Err(weave) => {
                     let mut weave_lock = weave.lock().await;
                     if let Some(weave) = weave_lock.as_ref() {
-                        remove_file(weave.path.clone()).await?;
+                        remove_file(weave.0.path.clone()).await?;
                     }
                     *weave_lock = None;
                 }
@@ -252,7 +253,7 @@ pub async fn download(set: &State<Arc<WeaveSet>>, id: rusty_ulid::Ulid) -> Resul
         Some(weave) => {
             let lock = weave.lock().await;
             match lock.as_ref() {
-                Some(weave) => weave.data.to_versioned_bytes().map_err(|e| {
+                Some(weave) => weave.0.data.to_versioned_bytes().map_err(|e| {
                     eprintln!("{e:#?}");
                     Status::new(500)
                 }),
@@ -300,12 +301,24 @@ pub async fn websocket(
 
                 ws.channel(move |mut stream| {
                     Box::pin(async move {
+                        let mut last_value = None;
+
                         while let Some(message) = stream.next().await {
                             let mut weave = weave.lock().await;
                             if let Some(weave) = weave.as_mut() {
-                                for message in socket::handle_message(&mut weave.data, message?) {
+                                let (responses, has_changed) = socket::handle_message(
+                                    &mut weave.0.data,
+                                    weave.1 != last_value.unwrap_or(weave.1),
+                                    message?,
+                                );
+
+                                for message in responses {
                                     stream.send(message).await?;
                                 }
+                                if has_changed {
+                                    weave.1 = weave.1.wrapping_add(1);
+                                }
+                                last_value = Some(weave.1);
                             } else {
                                 stream
                                     .send(ws::Message::Close(Some(CloseFrame {
