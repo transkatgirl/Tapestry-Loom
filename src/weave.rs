@@ -16,10 +16,10 @@ use rocket::{
     tokio::{
         self,
         fs::{File, read_dir},
-        io,
+        io::{self, AsyncReadExt, AsyncWriteExt},
     },
 };
-use tapestry_weave::v0::TapestryWeave;
+use tapestry_weave::{VersionedWeave, universal_weave::indexmap::IndexMap, v0::TapestryWeave};
 
 pub struct WeaveSet {
     weaves: tokio::sync::RwLock<HashMap<rusty_ulid::Ulid, Arc<Mutex<WrappedWeave>>>>,
@@ -91,9 +91,51 @@ pub struct WrappedWeave {
 
 impl WrappedWeave {
     async fn load_or_create(path: &Path) -> Result<Self, String> {
-        todo!()
+        let mut file = File::options()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(path)
+            .await
+            .map_err(|e| e.to_string())?;
+        let metadata = file.metadata().await.map_err(|e| e.to_string())?;
+
+        let len = usize::try_from(metadata.len()).unwrap_or(usize::MAX);
+
+        let mut bytes = Vec::with_capacity(len);
+        file.read_to_end(&mut bytes)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let weave = if bytes.is_empty() {
+            TapestryWeave::with_capacity(16384, IndexMap::default())
+        } else if let Some(weave) = VersionedWeave::from_bytes(&bytes) {
+            let mut weave = weave
+                .map(|weave| weave.into_latest())
+                .map_err(|err| err.to_string())?;
+
+            if weave.capacity() < 16384 {
+                weave.reserve(16384 - weave.capacity());
+            }
+
+            weave
+        } else {
+            return Err("Invalid header".to_string());
+        };
+
+        Ok(Self { file, data: weave })
     }
-    //async fn save(&mut self) ->
+    async fn save(&mut self) -> Result<(), String> {
+        let data = self.data.to_versioned_bytes().map_err(|e| e.to_string())?;
+
+        self.file
+            .write_all(&data)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        Ok(())
+    }
 }
 
 #[get("/weaves")]
