@@ -309,6 +309,7 @@ pub async fn socket(
 }
 
 pub fn socket_handler(ws: ws::WebSocket, weave: SharedWeave) -> ws::Channel<'static> {
+    // TODO: Websocket API, opportunistic Weave unloading
     ws.channel(move |mut stream| {
         Box::pin(async move {
             while let Some(message) = stream.next().await {
