@@ -197,6 +197,7 @@ impl WrappedWeave {
     async fn save(&mut self) -> Result<(), Error> {
         let data = self.data.to_versioned_bytes()?;
         self.file.write_all(&data).await?;
+        self.file.flush().await?;
 
         Ok(())
     }
@@ -228,6 +229,7 @@ pub async fn create(set: &State<WeaveSet>) -> Result<Json<rusty_ulid::Ulid>, Sta
         .is_some();
 
     if is_success {
+        set.opportunistic_unload(&id).await;
         Ok(Json(id))
     } else {
         eprintln!("Generated duplicate ULID: {}", id);
