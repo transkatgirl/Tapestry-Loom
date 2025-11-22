@@ -16,7 +16,7 @@ use rocket::{
     serde::json::Json,
     tokio::{
         self,
-        fs::{File, metadata, read_dir},
+        fs::{File, read_dir, remove_file},
         io::{AsyncReadExt, AsyncWriteExt},
     },
 };
@@ -74,15 +74,15 @@ impl WeaveSet {
             }
         }
     }
-    async fn get(&self, id: rusty_ulid::Ulid) -> Result<Arc<Mutex<WrappedWeave>>, Error> {
+    async fn get(&self, id: &rusty_ulid::Ulid) -> Result<Arc<Mutex<WrappedWeave>>, Error> {
         let weaves = self.weaves.read().await;
 
-        if let Some(weave) = weaves.get(&id) {
+        if let Some(weave) = weaves.get(id) {
             Ok(weave.clone())
         } else {
             let mut weaves = self.weaves.write().await;
 
-            match weaves.entry(id) {
+            match weaves.entry(*id) {
                 Entry::Occupied(entry) => Ok(entry.get().clone()),
                 Entry::Vacant(entry) => {
                     let path = self.root.join(id.to_string());
@@ -95,11 +95,43 @@ impl WeaveSet {
             }
         }
     }
+    async fn unload(&self, id: &rusty_ulid::Ulid) {
+        let mut weaves = self.weaves.write().await;
+
+        if let Some(weave) = weaves.remove(id) {
+            match Arc::try_unwrap(weave) {
+                Ok(_) => {}
+                Err(weave) => {
+                    weaves.insert(*id, weave);
+                }
+            }
+        }
+    }
+    async fn delete(&self, id: &rusty_ulid::Ulid) -> Result<(), Error> {
+        let mut weaves = self.weaves.write().await;
+
+        if let Some(weave) = weaves.remove(id) {
+            match Arc::try_unwrap(weave) {
+                Ok(weave) => {
+                    let weave = weave.into_inner();
+
+                    weave.delete().await
+                }
+                Err(weave) => {
+                    weaves.insert(*id, weave);
+                    Err(Error::msg("Item is still in use"))
+                }
+            }
+        } else {
+            Ok(())
+        }
+    }
 }
 
 pub struct WrappedWeave {
     data: TapestryWeave,
     file: File,
+    path: PathBuf,
 }
 
 impl WrappedWeave {
@@ -107,7 +139,11 @@ impl WrappedWeave {
         let file = File::create_new(path).await?;
         let weave = TapestryWeave::with_capacity(16384, IndexMap::default());
 
-        let mut wrapped = Self { file, data: weave };
+        let mut wrapped = Self {
+            file,
+            path: path.to_path_buf(),
+            data: weave,
+        };
         wrapped.save().await?;
 
         Ok(wrapped)
@@ -133,7 +169,11 @@ impl WrappedWeave {
                 weave.reserve(16384 - weave.capacity());
             }
 
-            Ok(Self { file, data: weave })
+            Ok(Self {
+                file,
+                path: path.to_path_buf(),
+                data: weave,
+            })
         } else {
             Err(Error::msg("Invalid header"))
         }
@@ -142,6 +182,10 @@ impl WrappedWeave {
         let data = self.data.to_versioned_bytes()?;
         self.file.write_all(&data).await?;
 
+        Ok(())
+    }
+    async fn delete(self) -> Result<(), Error> {
+        remove_file(self.path).await?;
         Ok(())
     }
 }
