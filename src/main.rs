@@ -1,15 +1,17 @@
-mod weave;
+use std::sync::Arc;
 
 use rocket::{
     fs::{FileServer, relative},
     routes,
 };
 
+mod weave;
+
 #[rocket::main]
 #[allow(clippy::result_large_err)]
 async fn main() -> Result<(), rocket::Error> {
     let _rocket = rocket::build()
-        .manage(weave::WeaveSet::default())
+        .manage(Arc::new(weave::WeaveSet::default()))
         .mount("/", FileServer::from(relative!("static")))
         .mount(
             "/api",
@@ -18,7 +20,7 @@ async fn main() -> Result<(), rocket::Error> {
                 weave::create,
                 weave::download,
                 weave::delete,
-                weave::socket
+                weave::websocket
             ],
         )
         .launch()

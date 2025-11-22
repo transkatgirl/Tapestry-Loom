@@ -21,6 +21,8 @@ use rocket::{
 };
 use tapestry_weave::{VersionedWeave, universal_weave::indexmap::IndexMap, v0::TapestryWeave};
 
+mod socket;
+
 pub struct WeaveSet {
     weaves: RwLock<HashMap<rusty_ulid::Ulid, SharedWeave>>,
     root: PathBuf,
@@ -281,8 +283,8 @@ pub async fn delete(set: &State<WeaveSet>, id: rusty_ulid::Ulid) -> Status {
 }
 
 #[get("/weaves/<id>/ws")]
-pub async fn socket(
-    set: &State<WeaveSet>,
+pub async fn websocket(
+    set: &State<Arc<WeaveSet>>,
     ws: ws::WebSocket,
     id: rusty_ulid::Ulid,
 ) -> ws::Channel<'static> {
@@ -290,33 +292,58 @@ pub async fn socket(
 
     match weave {
         Ok(weave) => match weave {
-            Some(weave) => socket_handler(ws, weave),
-            None => ws.channel(move |mut stream| {
-                Box::pin(async move {
-                    let _ = stream.send(ws::Message::Close(None)).await;
-                    Ok(())
+            Some(weave) => {
+                let identifier = id;
+                let set = set.inner().clone();
+
+                ws.channel(move |mut stream| {
+                    Box::pin(async move {
+                        {
+                            let weave = weave.lock().await;
+                            if let Some(weave) = weave.as_ref() {
+                                stream.send(socket::update_message(&weave.data)).await?;
+                            } else {
+                                stream.send(ws::Message::Close(None)).await?;
+                                set.opportunistic_unload(&identifier).await;
+                                return Ok(());
+                            }
+                        }
+
+                        while let Some(message) = stream.next().await {
+                            let mut weave = weave.lock().await;
+                            if let Some(weave) = weave.as_mut() {
+                                stream
+                                    .send(socket::handle_message(&mut weave.data, message?))
+                                    .await?;
+                            } else {
+                                stream.send(ws::Message::Close(None)).await?;
+                                set.opportunistic_unload(&identifier).await;
+                                return Ok(());
+                            }
+                        }
+
+                        set.opportunistic_unload(&identifier).await;
+
+                        Ok(())
+                    })
                 })
-            }),
+            }
+            None => {
+                set.opportunistic_unload(&id).await;
+                ws.channel(move |mut stream| {
+                    Box::pin(async move {
+                        stream.send(ws::Message::Close(None)).await?;
+                        Ok(())
+                    })
+                })
+            }
         },
         Err(err) => ws.channel(move |mut stream| {
             Box::pin(async move {
                 eprintln!("{err:#?}");
-                let _ = stream.send(ws::Message::Close(None)).await;
+                stream.send(ws::Message::Close(None)).await?;
                 Ok(())
             })
         }),
     }
-}
-
-pub fn socket_handler(ws: ws::WebSocket, weave: SharedWeave) -> ws::Channel<'static> {
-    // TODO: Websocket API, opportunistic Weave unloading
-    ws.channel(move |mut stream| {
-        Box::pin(async move {
-            while let Some(message) = stream.next().await {
-                let _ = stream.send(message?).await;
-            }
-
-            Ok(())
-        })
-    })
 }
