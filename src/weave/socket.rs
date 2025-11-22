@@ -4,10 +4,24 @@ use serde::Deserialize;
 use serde_json::Value;
 use tapestry_weave::{
     ulid::Ulid,
-    universal_weave::{dependent::DependentNode, indexmap::IndexMap},
-    v0::{NodeContent, TapestryWeave},
+    universal_weave::{
+        dependent::DependentNode,
+        indexmap::{IndexMap, IndexSet},
+    },
+    v0::{InnerNodeContent, Model, NodeContent, TapestryWeave},
 };
 use ws::Message;
+
+#[derive(Deserialize, Debug)]
+struct IncomingAddNode {
+    id: Option<Ulid>,
+    from: Option<Ulid>,
+    active: bool,
+    bookmarked: bool,
+    content: InnerNodeContent,
+    metadata: IndexMap<String, String>,
+    model: Option<Model>,
+}
 
 #[derive(Deserialize, Debug)]
 enum IncomingMessage {
@@ -18,7 +32,7 @@ enum IncomingMessage {
     GetRoots,
     GetBookmarks,
     GetActiveThread,
-    AddNode(Box<DependentNode<NodeContent>>),
+    AddNode(IncomingAddNode),
     SetNodeActiveStatus((Ulid, bool)),
     SetNodeBookmarkedStatus((Ulid, bool)),
     SetActiveContent((String, IndexMap<String, String>)),
@@ -147,7 +161,20 @@ fn handle_incoming_message(
             serde_json::to_value(active).map(|v| (v, false))
         }
         IncomingMessage::AddNode(node) => {
-            let result = weave.add_node(*node);
+            let node = DependentNode {
+                id: node.id.unwrap_or_else(Ulid::new).0,
+                from: node.from.map(|u| u.0),
+                to: IndexSet::default(),
+                active: node.active,
+                bookmarked: node.bookmarked,
+                contents: NodeContent {
+                    content: node.content,
+                    metadata: node.metadata,
+                    model: node.model,
+                },
+            };
+
+            let result = weave.add_node(node);
 
             Ok((Value::Bool(result), true))
         }
