@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     collections::{HashMap, hash_map::Entry},
     path::{Path, PathBuf},
     str::FromStr,
@@ -20,6 +21,7 @@ use rocket::{
     },
 };
 use tapestry_weave::{VersionedWeave, universal_weave::indexmap::IndexMap, v0::TapestryWeave};
+use ws::frame::{CloseCode, CloseFrame};
 
 mod socket;
 
@@ -303,7 +305,12 @@ pub async fn websocket(
                             if let Some(weave) = weave.as_ref() {
                                 stream.send(socket::update_message(&weave.data)).await?;
                             } else {
-                                stream.send(ws::Message::Close(None)).await?;
+                                stream
+                                    .send(ws::Message::Close(Some(CloseFrame {
+                                        code: CloseCode::Away,
+                                        reason: Cow::Borrowed("Item has been deleted"),
+                                    })))
+                                    .await?;
                                 set.opportunistic_unload(&identifier).await;
                                 return Ok(());
                             }
@@ -316,7 +323,12 @@ pub async fn websocket(
                                     .send(socket::handle_message(&mut weave.data, message?))
                                     .await?;
                             } else {
-                                stream.send(ws::Message::Close(None)).await?;
+                                stream
+                                    .send(ws::Message::Close(Some(CloseFrame {
+                                        code: CloseCode::Away,
+                                        reason: Cow::Borrowed("Item has been deleted"),
+                                    })))
+                                    .await?;
                                 set.opportunistic_unload(&identifier).await;
                                 return Ok(());
                             }
@@ -328,20 +340,27 @@ pub async fn websocket(
                     })
                 })
             }
-            None => {
-                set.opportunistic_unload(&id).await;
-                ws.channel(move |mut stream| {
-                    Box::pin(async move {
-                        stream.send(ws::Message::Close(None)).await?;
-                        Ok(())
-                    })
+            None => ws.channel(move |mut stream| {
+                Box::pin(async move {
+                    stream
+                        .send(ws::Message::Close(Some(CloseFrame {
+                            code: CloseCode::Policy,
+                            reason: Cow::Borrowed("Not found"),
+                        })))
+                        .await?;
+                    Ok(())
                 })
-            }
+            }),
         },
         Err(err) => ws.channel(move |mut stream| {
             Box::pin(async move {
                 eprintln!("{err:#?}");
-                stream.send(ws::Message::Close(None)).await?;
+                stream
+                    .send(ws::Message::Close(Some(CloseFrame {
+                        code: CloseCode::Error,
+                        reason: Cow::Borrowed("Internal error"),
+                    })))
+                    .await?;
                 Ok(())
             })
         }),
