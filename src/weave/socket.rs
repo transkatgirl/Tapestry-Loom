@@ -6,7 +6,6 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::Error;
 use rocket::{
     State, delete,
     fs::relative,
@@ -22,10 +21,6 @@ use rocket::{
 };
 use tapestry_weave::{VersionedWeave, universal_weave::indexmap::IndexMap, v0::TapestryWeave};
 use ws::Message;
-
-pub fn update_message(weave: &TapestryWeave) -> Message {
-    Message::Text("start".to_string()) // TODO
-}
 
 pub fn handle_message(weave: &mut TapestryWeave, input: Message) -> impl Iterator<Item = Message> {
     iter::once(input)

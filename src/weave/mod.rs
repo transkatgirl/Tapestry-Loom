@@ -300,22 +300,6 @@ pub async fn websocket(
 
                 ws.channel(move |mut stream| {
                     Box::pin(async move {
-                        {
-                            let weave = weave.lock().await;
-                            if let Some(weave) = weave.as_ref() {
-                                stream.send(socket::update_message(&weave.data)).await?;
-                            } else {
-                                stream
-                                    .send(ws::Message::Close(Some(CloseFrame {
-                                        code: CloseCode::Away,
-                                        reason: Cow::Borrowed("Item has been deleted"),
-                                    })))
-                                    .await?;
-                                set.opportunistic_unload(&identifier).await;
-                                return Ok(());
-                            }
-                        }
-
                         while let Some(message) = stream.next().await {
                             let mut weave = weave.lock().await;
                             if let Some(weave) = weave.as_mut() {
