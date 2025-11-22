@@ -1,6 +1,6 @@
 use std::time::{Duration, SystemTime};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tapestry_weave::{
     ulid::Ulid,
@@ -18,9 +18,90 @@ struct IncomingAddNode {
     from: Option<Ulid>,
     active: bool,
     bookmarked: bool,
-    content: InnerNodeContent,
+    content: MessageNodeContent,
     metadata: IndexMap<String, String>,
     model: Option<Model>,
+}
+
+impl From<IncomingAddNode> for DependentNode<NodeContent> {
+    fn from(value: IncomingAddNode) -> Self {
+        DependentNode {
+            #[allow(clippy::unwrap_or_default)]
+            id: value.id.unwrap_or_else(Ulid::new).0,
+            from: value.from.map(|u| u.0),
+            to: IndexSet::default(),
+            active: value.active,
+            bookmarked: value.bookmarked,
+            contents: NodeContent {
+                content: value.content.into(),
+                metadata: value.metadata,
+                model: value.model,
+            },
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+enum MessageNodeContent {
+    Snippet(String),
+    Tokens(Vec<(String, IndexMap<String, String>)>),
+}
+
+impl From<InnerNodeContent> for MessageNodeContent {
+    fn from(value: InnerNodeContent) -> Self {
+        match value {
+            InnerNodeContent::Snippet(snippet) => {
+                Self::Snippet(String::from_utf8_lossy(&snippet).to_string())
+            }
+            InnerNodeContent::Tokens(tokens) => Self::Tokens(
+                tokens
+                    .into_iter()
+                    .map(|t| (String::from_utf8_lossy(&t.0).to_string(), t.1))
+                    .collect(),
+            ),
+        }
+    }
+}
+
+impl From<MessageNodeContent> for InnerNodeContent {
+    fn from(value: MessageNodeContent) -> Self {
+        match value {
+            MessageNodeContent::Snippet(snippet) => Self::Snippet(snippet.into_bytes()),
+            MessageNodeContent::Tokens(tokens) => Self::Tokens(
+                tokens
+                    .into_iter()
+                    .map(|t| (t.0.into_bytes(), t.1))
+                    .collect(),
+            ),
+        }
+    }
+}
+
+#[derive(Serialize, Debug)]
+struct OutgoingNode {
+    id: Ulid,
+    from: Option<Ulid>,
+    to: IndexSet<Ulid>,
+    active: bool,
+    bookmarked: bool,
+    content: MessageNodeContent,
+    metadata: IndexMap<String, String>,
+    model: Option<Model>,
+}
+
+impl From<DependentNode<NodeContent>> for OutgoingNode {
+    fn from(value: DependentNode<NodeContent>) -> Self {
+        Self {
+            id: Ulid(value.id),
+            from: value.from.map(Ulid),
+            to: IndexSet::from_iter(value.to.into_iter().map(Ulid)),
+            active: value.active,
+            bookmarked: value.bookmarked,
+            content: value.contents.content.into(),
+            metadata: value.contents.metadata,
+            model: value.contents.model,
+        }
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -130,51 +211,44 @@ fn handle_incoming_message(
         IncomingMessage::GetLength => Ok((Value::Number(weave.len().into()), false)),
         IncomingMessage::IsChanged => Ok((Value::Bool(has_changed), false)),
         IncomingMessage::GetNode(id) => {
-            let node = weave.get_node(&id);
+            let node = weave.get_node(&id).cloned().map(OutgoingNode::from);
 
             serde_json::to_value(node).map(|v| (v, false))
         }
         IncomingMessage::GetNodes(nodes) => {
-            let nodes: Vec<_> = nodes.into_iter().map(|id| weave.get_node(&id)).collect();
+            let nodes: Vec<OutgoingNode> = nodes
+                .into_iter()
+                .filter_map(|id| weave.get_node(&id).cloned().map(OutgoingNode::from))
+                .collect();
 
             serde_json::to_value(nodes).map(|v| (v, false))
         }
         IncomingMessage::GetRoots => {
-            let roots: Vec<_> = weave
+            let roots: Vec<OutgoingNode> = weave
                 .get_roots()
-                .filter_map(|id| weave.get_node(&id))
+                .filter_map(|id| weave.get_node(&id).cloned().map(OutgoingNode::from))
                 .collect();
 
             serde_json::to_value(roots).map(|v| (v, false))
         }
         IncomingMessage::GetBookmarks => {
-            let bookmarks: Vec<_> = weave
+            let bookmarks: Vec<OutgoingNode> = weave
                 .get_bookmarks()
-                .filter_map(|id| weave.get_node(&id))
+                .filter_map(|id| weave.get_node(&id).cloned().map(OutgoingNode::from))
                 .collect();
 
             serde_json::to_value(bookmarks).map(|v| (v, false))
         }
         IncomingMessage::GetActiveThread => {
-            let active: Vec<_> = weave.get_active_thread().collect();
+            let active: Vec<OutgoingNode> = weave
+                .get_active_thread()
+                .map(|node| OutgoingNode::from(node.clone()))
+                .collect();
 
             serde_json::to_value(active).map(|v| (v, false))
         }
         IncomingMessage::AddNode(node) => {
-            let node = DependentNode {
-                id: node.id.unwrap_or_else(Ulid::new).0,
-                from: node.from.map(|u| u.0),
-                to: IndexSet::default(),
-                active: node.active,
-                bookmarked: node.bookmarked,
-                contents: NodeContent {
-                    content: node.content,
-                    metadata: node.metadata,
-                    model: node.model,
-                },
-            };
-
-            let result = weave.add_node(node);
+            let result = weave.add_node(node.into());
 
             Ok((Value::Bool(result), true))
         }
