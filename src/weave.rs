@@ -81,6 +81,7 @@ impl WeaveSet {
         if let Some(weave) = weaves.get(id) {
             Ok(Some(weave.clone()))
         } else {
+            drop(weaves);
             let mut weaves = self.weaves.write().await;
 
             match weaves.entry(*id) {
@@ -169,12 +170,7 @@ impl WrappedWeave {
         Ok(wrapped)
     }
     async fn load(path: &Path) -> Result<Self, Error> {
-        let mut file = File::options()
-            .read(true)
-            .write(true)
-            .truncate(true)
-            .open(path)
-            .await?;
+        let mut file = File::options().read(true).write(true).open(path).await?;
         let metadata = file.metadata().await?;
 
         let len = usize::try_from(metadata.len()).unwrap_or(usize::MAX);
