@@ -1,16 +1,24 @@
-#[macro_use]
-extern crate rocket;
+mod weave;
 
-use rocket::fs::{relative, FileServer};
+use rocket::{
+    fs::{FileServer, relative},
+    get, routes,
+};
 
 #[get("/hello")]
 fn index() -> &'static str {
     "Hello, world!"
 }
 
-#[launch]
-fn rocket() -> _ {
-    rocket::build()
+#[rocket::main]
+#[allow(clippy::result_large_err)]
+async fn main() -> Result<(), rocket::Error> {
+    let _rocket = rocket::build()
         .mount("/", FileServer::from(relative!("static")))
-        .mount("/hello", routes![index])
+        .mount("/v0", routes![index])
+        .mount("/v0", routes![weave::handler])
+        .launch()
+        .await?;
+
+    Ok(())
 }
