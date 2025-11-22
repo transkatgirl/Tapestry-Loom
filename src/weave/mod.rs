@@ -109,17 +109,27 @@ impl WeaveSet {
             }
         }
     }
-    async fn opportunistic_unload(&self, id: &rusty_ulid::Ulid) {
+    async fn opportunistic_unload(&self, id: &rusty_ulid::Ulid) -> Result<(), Error> {
         let mut weaves = self.weaves.write().await;
 
         if let Some(weave) = weaves.remove(id) {
             match Arc::try_unwrap(weave) {
-                Ok(_) => {}
+                Ok(weave) => {
+                    let mut lock = weave.lock().await;
+
+                    if let Some(weave) = lock.as_mut()
+                        && weave.1 > 0
+                    {
+                        weave.0.save().await?;
+                    }
+                }
                 Err(weave) => {
                     weaves.insert(*id, weave);
                 }
             }
         }
+
+        Ok(())
     }
     async fn delete(&self, id: &rusty_ulid::Ulid) -> Result<bool, Error> {
         let mut weaves = self.weaves.write().await;
@@ -234,7 +244,10 @@ pub async fn create(set: &State<Arc<WeaveSet>>) -> Result<Json<rusty_ulid::Ulid>
         .is_some();
 
     if is_success {
-        set.opportunistic_unload(&id).await;
+        set.opportunistic_unload(&id).await.map_err(|e| {
+            eprintln!("{e:#?}");
+            Status::new(500)
+        })?;
         Ok(Json(id))
     } else {
         eprintln!("Generated duplicate ULID: {}", id);
@@ -263,7 +276,10 @@ pub async fn download(set: &State<Arc<WeaveSet>>, id: rusty_ulid::Ulid) -> Resul
         None => Err(Status::new(404)),
     };
 
-    set.opportunistic_unload(&id).await;
+    set.opportunistic_unload(&id).await.map_err(|e| {
+        eprintln!("{e:#?}");
+        Status::new(500)
+    })?;
 
     result
 }
@@ -332,12 +348,16 @@ pub async fn websocket(
                                         reason: Cow::Borrowed("Item has been deleted"),
                                     })))
                                     .await?;
-                                set.opportunistic_unload(&identifier).await;
+                                if let Err(e) = set.opportunistic_unload(&identifier).await {
+                                    eprintln!("{e:#?}");
+                                }
                                 return Ok(());
                             }
                         }
 
-                        set.opportunistic_unload(&identifier).await;
+                        if let Err(e) = set.opportunistic_unload(&identifier).await {
+                            eprintln!("{e:#?}");
+                        }
 
                         Ok(())
                     })
