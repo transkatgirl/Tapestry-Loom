@@ -108,6 +108,8 @@ impl From<DependentNode<NodeContent>> for OutgoingNode {
 enum IncomingMessage {
     GetLength,
     IsChanged,
+    GetMetadata,
+    SetMetadata(IndexMap<String, String>),
     GetNode(Ulid),
     GetNodes(Vec<Ulid>),
     GetRoots,
@@ -210,6 +212,13 @@ fn handle_incoming_message(
     match message {
         IncomingMessage::GetLength => Ok((Value::Number(weave.len().into()), false)),
         IncomingMessage::IsChanged => Ok((Value::Bool(has_changed), false)),
+        IncomingMessage::GetMetadata => {
+            serde_json::to_value(&weave.weave.metadata).map(|v| (v, false))
+        }
+        IncomingMessage::SetMetadata(metadata) => {
+            weave.weave.metadata = metadata;
+            Ok((Value::Bool(true), true))
+        }
         IncomingMessage::GetNode(id) => {
             let node = weave.get_node(&id).cloned().map(OutgoingNode::from);
 
