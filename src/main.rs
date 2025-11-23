@@ -5,7 +5,7 @@ use std::sync::Arc;
 use eframe::{
     App, CreationContext, Frame, NativeOptions,
     egui::{
-        CentralPanel, Context, FontDefinitions, IconData, SidePanel, TopBottomPanel,
+        Button, CentralPanel, Context, FontDefinitions, IconData, SidePanel, TopBottomPanel,
         ViewportBuilder,
     },
 };
@@ -93,11 +93,22 @@ impl TapestryLoomApp {
 impl App for TapestryLoomApp {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
         TopBottomPanel::top("global-top-panel").show(ctx, |ui| {
+            let mut file_manager_button = Button::new("\u{E260} Files");
+            let mut settings_button = Button::new("\u{E270} Settings");
+
+            if self.show_file_manager {
+                file_manager_button = file_manager_button.fill(ui.visuals().extreme_bg_color);
+            }
+
+            if self.show_settings {
+                settings_button = settings_button.fill(ui.visuals().extreme_bg_color);
+            }
+
             ui.horizontal_wrapped(|ui| {
-                if ui.button("\u{E260} Files").clicked() {
+                if ui.add(file_manager_button).clicked() {
                     self.show_file_manager = !self.show_file_manager
                 };
-                if ui.button("\u{E270} Settings").clicked() {
+                if ui.add(settings_button).clicked() {
                     self.show_settings = !self.show_settings
                 };
                 if !self.show_settings {
