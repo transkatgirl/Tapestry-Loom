@@ -1,17 +1,29 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use eframe::egui;
+use std::sync::Arc;
+
+use eframe::{
+    NativeOptions,
+    egui::{self, IconData},
+};
+
+mod editor;
+mod files;
+mod settings;
 
 fn main() -> eframe::Result {
-    env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([320.0, 240.0]),
+    env_logger::init();
+    let options = NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_fullscreen(true)
+            .with_icon(Arc::new(IconData::default())),
+        persist_window: true,
         ..Default::default()
     };
     eframe::run_native(
-        "My egui App",
+        "Tapestry Loom",
         options,
-        Box::new(|cc| Ok(Box::<MyApp>::default())),
+        Box::new(|_| Ok(Box::<MyApp>::default())),
     )
 }
 
