@@ -5,7 +5,7 @@ This branch contains is where work on Tapestry Loom's Version 1 rewrite is takin
 ## Plans
 
 The plans for the rewrite are the following:
-- [ ] Migrate to a collaborative (unauthenticated / LAN-only) WebUI rather than an Obsidian plugin
+- [ ] Migrate to a desktop app rather than an Obsidian plugin
 	- [ ] Implement conversion from the old Weave format to the new one
 	- [ ] Implement all functionality supported by the original Obsidian plugin
 - [ ] Full UI redesign
@@ -76,7 +76,9 @@ The plans for the rewrite are the following:
 - [ ] Better documentation & onboarding
 
 In addition, below are the tentative plans for Tapestry Loom v2:
-- [ ] Multi-user rather than single-user, multi-session
+
+- [ ] Server-client, multi-user WebUI
+	- [ ] Support collaborating on Weaves
 	- [ ] User authentication
 	- [ ] User permissions
 	- [ ] User rate limiting
@@ -132,29 +134,3 @@ See also: the [original v1 plans](https://github.com/transkatgirl/Tapestry-Loom/
 Note: This project is a work in progress. Missing features and major bugs are a certainty.
 
 Make sure to clone the repository with submodules!
-
-To run Tapestry Loom, install rust and [trunk](https://trunkrs.dev), and then run the following commands:
-
-```bash
-cd frontend
-trunk build --release
-cd ..
-cargo run --release
-```
-
-### Development
-
-To run Tapestry Loom in development mode, run the following commands:
-
-Terminal 1:
-
-```bash
-mkdir -p frontend/dist
-cargo run
-```
-
-Terminal 2:
-```bash
-cd frontend
-trunk serve
-```

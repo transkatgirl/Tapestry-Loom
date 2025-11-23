@@ -5,28 +5,24 @@ authors = [
 	"transkatgirl",
 ]
 license = "AGPL-3.0-or-later"
-description = "A web-based IDE for working with base model LLMs."
+description = "An IDE for working with base model LLMs."
 edition = "2024"
 
 [dependencies]
 tapestry-weave = { path = "universal-weave/tapestry-weave", features = [
 	"serde",
 ] }
-rocket = { version = "0.5.1", features = [
-	"json",
+eframe = { workspace = true, features = [
+  "default",
 ] }
-ws = { package = "rocket_ws", version = "0.1.1" }
+egui_extras = { workspace = true, features = ["default", "image"] }
+env_logger = { workspace = true, features = ["auto-color", "humantime"] }
 serde = { version = "1.0.228", features = [
 	"derive",
 ] }
-serde_json = { version = "1.0.145", features = [
-	"preserve_order",
-] }
+serde_json = "1.0.145"
 reqwest = { version = "0.12", features = [
 	"json",
-] }
-rusty_ulid = { version = "2.0.0", features = [
-	"rocket",
 ] }
 parking_lot = { version = "0.12.5", features = [
 	"serde",
