@@ -6,7 +6,7 @@ use eframe::{
     CreationContext, Frame, NativeOptions,
     egui::{self, Context, IconData, ViewportBuilder},
 };
-use log::{debug, info, warn};
+use log::{debug, warn};
 
 use crate::settings::Settings;
 
@@ -62,7 +62,7 @@ impl TapestryLoomApp {
         if let Some(storage) = frame.storage_mut() {
             match ron::to_string(&self.settings) {
                 Ok(data) => {
-                    debug!("Settings saved");
+                    debug!("Settings saved (may not yet be written to disk)");
                     storage.set_string("settings", data);
                 }
                 Err(error) => {

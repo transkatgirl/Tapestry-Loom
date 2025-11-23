@@ -32,3 +32,4 @@ parking_lot = { version = "0.12.5", features = [
 anyhow = "1.0.100"
 thiserror = "2.0.17"
 log = "0.4.28"
+dirs-next = "2.0.0"
