@@ -1,7 +1,6 @@
 use std::time::{Duration, SystemTime};
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{
@@ -106,7 +105,7 @@ impl From<DependentNode<NodeContent>> for OutgoingNode {
 
 #[derive(Deserialize, Debug)]
 enum IncomingMessage {
-    GetLength,
+    GetNodeCount,
     IsChanged,
     GetMetadata,
     SetMetadata(IndexMap<String, String>),
@@ -123,6 +122,27 @@ enum IncomingMessage {
     MergeNodeWithParent(Ulid),
     IsNodeMergeableWithParent(Ulid),
     RemoveNode(Ulid),
+}
+
+#[derive(Serialize, Debug)]
+enum OutgoingMessage {
+    GetNodeCount(usize),
+    IsChanged(bool),
+    GetMetadata(IndexMap<String, String>),
+    SetMetadata,
+    GetNode(Box<Option<OutgoingNode>>),
+    GetNodes(Vec<OutgoingNode>),
+    GetRoots(Vec<OutgoingNode>),
+    GetBookmarks(Vec<OutgoingNode>),
+    GetActiveThread(Vec<OutgoingNode>),
+    AddNode(Option<Ulid>),
+    SetNodeActiveStatus(bool),
+    SetNodeBookmarkedStatus(bool),
+    SetActiveContent(bool),
+    SplitNode(Option<Ulid>),
+    MergeNodeWithParent(bool),
+    IsNodeMergeableWithParent(bool),
+    RemoveNode(bool),
 }
 
 pub fn handle_message(
@@ -208,21 +228,22 @@ fn handle_incoming_message(
     weave: &mut TapestryWeave,
     has_changed: bool,
     message: IncomingMessage,
-) -> Result<(Value, bool), serde_json::Error> {
+) -> Result<(OutgoingMessage, bool), serde_json::Error> {
     match message {
-        IncomingMessage::GetLength => Ok((Value::Number(weave.len().into()), false)),
-        IncomingMessage::IsChanged => Ok((Value::Bool(has_changed), false)),
-        IncomingMessage::GetMetadata => {
-            serde_json::to_value(&weave.weave.metadata).map(|v| (v, false))
-        }
+        IncomingMessage::GetNodeCount => Ok((OutgoingMessage::GetNodeCount(weave.len()), false)),
+        IncomingMessage::IsChanged => Ok((OutgoingMessage::IsChanged(has_changed), false)),
+        IncomingMessage::GetMetadata => Ok((
+            OutgoingMessage::GetMetadata(weave.weave.metadata.clone()),
+            false,
+        )),
         IncomingMessage::SetMetadata(metadata) => {
             weave.weave.metadata = metadata;
-            Ok((Value::Bool(true), true))
+            Ok((OutgoingMessage::SetMetadata, true))
         }
         IncomingMessage::GetNode(id) => {
             let node = weave.get_node(&id).cloned().map(OutgoingNode::from);
 
-            serde_json::to_value(node).map(|v| (v, false))
+            Ok((OutgoingMessage::GetNode(Box::new(node)), false))
         }
         IncomingMessage::GetNodes(nodes) => {
             let nodes: Vec<OutgoingNode> = nodes
@@ -230,7 +251,7 @@ fn handle_incoming_message(
                 .filter_map(|id| weave.get_node(&id).cloned().map(OutgoingNode::from))
                 .collect();
 
-            serde_json::to_value(nodes).map(|v| (v, false))
+            Ok((OutgoingMessage::GetNodes(nodes), false))
         }
         IncomingMessage::GetRoots => {
             let roots: Vec<OutgoingNode> = weave
@@ -238,7 +259,7 @@ fn handle_incoming_message(
                 .filter_map(|id| weave.get_node(&id).cloned().map(OutgoingNode::from))
                 .collect();
 
-            serde_json::to_value(roots).map(|v| (v, false))
+            Ok((OutgoingMessage::GetRoots(roots), false))
         }
         IncomingMessage::GetBookmarks => {
             let bookmarks: Vec<OutgoingNode> = weave
@@ -246,7 +267,7 @@ fn handle_incoming_message(
                 .filter_map(|id| weave.get_node(&id).cloned().map(OutgoingNode::from))
                 .collect();
 
-            serde_json::to_value(bookmarks).map(|v| (v, false))
+            Ok((OutgoingMessage::GetBookmarks(bookmarks), false))
         }
         IncomingMessage::GetActiveThread => {
             let active: Vec<OutgoingNode> = weave
@@ -254,22 +275,27 @@ fn handle_incoming_message(
                 .map(|node| OutgoingNode::from(node.clone()))
                 .collect();
 
-            serde_json::to_value(active).map(|v| (v, false))
+            Ok((OutgoingMessage::GetActiveThread(active), false))
         }
         IncomingMessage::AddNode(node) => {
-            let result = weave.add_node(node.into());
+            let node: DependentNode<NodeContent> = node.into();
+            let identifier = node.id;
+            let result = weave.add_node(node);
 
-            Ok((Value::Bool(result), true))
+            Ok((
+                OutgoingMessage::AddNode(if result { Some(Ulid(identifier)) } else { None }),
+                true,
+            ))
         }
         IncomingMessage::SetNodeActiveStatus((id, value)) => {
             let result = weave.set_node_active_status(&id, value);
 
-            Ok((Value::Bool(result), true))
+            Ok((OutgoingMessage::SetNodeActiveStatus(result), true))
         }
         IncomingMessage::SetNodeBookmarkedStatus((id, value)) => {
             let result = weave.set_node_bookmarked_status(&id, value);
 
-            Ok((Value::Bool(result), true))
+            Ok((OutgoingMessage::SetNodeBookmarkedStatus(result), true))
         }
         IncomingMessage::SetActiveContent((value, metadata)) => {
             let result = weave.set_active_content(&value, metadata, |t| match t {
@@ -277,29 +303,29 @@ fn handle_incoming_message(
                 None => Ulid::new(),
             });
 
-            Ok((Value::Bool(result), true))
+            Ok((OutgoingMessage::SetActiveContent(result), true))
         }
         IncomingMessage::SplitNode((id, at)) => {
             let result = weave.split_node(&id, at, |t| {
                 Ulid::from_datetime(SystemTime::UNIX_EPOCH + Duration::from_millis(t))
             });
 
-            serde_json::to_value(result).map(|v| (v, true))
+            Ok((OutgoingMessage::SplitNode(result), true))
         }
         IncomingMessage::MergeNodeWithParent(id) => {
             let result = weave.merge_with_parent(&id);
 
-            Ok((Value::Bool(result), true))
+            Ok((OutgoingMessage::MergeNodeWithParent(result), true))
         }
         IncomingMessage::IsNodeMergeableWithParent(id) => {
             let value = weave.is_mergeable_with_parent(&id);
 
-            Ok((Value::Bool(value), false))
+            Ok((OutgoingMessage::IsNodeMergeableWithParent(value), false))
         }
         IncomingMessage::RemoveNode(id) => {
             let result = weave.remove_node(&id);
 
-            Ok((Value::Bool(result.is_some()), true))
+            Ok((OutgoingMessage::RemoveNode(result.is_some()), true))
         }
     }
 }
