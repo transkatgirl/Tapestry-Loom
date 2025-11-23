@@ -115,7 +115,6 @@ impl From<DependentNode<NodeContent>> for OutgoingNode {
 
 #[derive(Deserialize, Debug)]
 enum IncomingMessage {
-    GetNodeCount,
     IsChanged,
     GetMetadata,
     SetMetadata(IndexMap<String, String>),
@@ -136,7 +135,6 @@ enum IncomingMessage {
 
 #[derive(Serialize, Debug)]
 enum OutgoingMessage {
-    GetNodeCount(usize),
     IsChanged(bool),
     GetMetadata(IndexMap<String, String>),
     SetMetadata,
@@ -240,7 +238,6 @@ fn handle_incoming_message(
     message: IncomingMessage,
 ) -> Result<(OutgoingMessage, bool), serde_json::Error> {
     match message {
-        IncomingMessage::GetNodeCount => Ok((OutgoingMessage::GetNodeCount(weave.len()), false)),
         IncomingMessage::IsChanged => Ok((OutgoingMessage::IsChanged(has_changed), false)),
         IncomingMessage::GetMetadata => Ok((
             OutgoingMessage::GetMetadata(weave.weave.metadata.clone()),
