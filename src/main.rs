@@ -49,7 +49,7 @@ impl TapestryLoomApp {
                 match ron::from_str(&data) {
                     Ok(settings) => settings,
                     Err(error) => {
-                        toasts.warning(format!("Settings deserialization failed: {error:#?}"));
+                        toasts.error(format!("Settings deserialization failed: {error:#?}"));
                         Settings::default()
                     }
                 }
@@ -63,6 +63,7 @@ impl TapestryLoomApp {
         let settings = Rc::new(RefCell::new(settings));
 
         let mut fonts = FontDefinitions::default();
+        egui_phosphor::add_to_fonts(&mut fonts, egui_phosphor::Variant::Regular);
         fonts.font_data.insert(
             "phosphor".into(),
             Arc::new(egui_phosphor::Variant::Regular.font_data()),
@@ -71,14 +72,14 @@ impl TapestryLoomApp {
             FontFamily::Name("phosphor".into()),
             vec!["Ubuntu-Light".into(), "phosphor".into()],
         );
-        /*fonts.font_data.insert(
+        fonts.font_data.insert(
             "phosphor-bold".into(),
             Arc::new(egui_phosphor::Variant::Bold.font_data()),
         );
         fonts.families.insert(
             FontFamily::Name("phosphor-bold".into()),
             vec!["Ubuntu-Light".into(), "phosphor-bold".into()],
-        );*/
+        );
         fonts.font_data.insert(
             "phosphor-fill".into(),
             Arc::new(egui_phosphor::Variant::Fill.font_data()),
@@ -104,7 +105,7 @@ impl TapestryLoomApp {
                     .family(FontFamily::Name("phosphor-fill".into())),
             ),
             new_tab_label: Arc::new(
-                RichText::new(regular::PLUS).family(FontFamily::Name("phosphor".into())),
+                RichText::new(regular::PLUS).family(FontFamily::Name("phosphor-bold".into())),
             ),
             toasts,
         };
@@ -170,6 +171,8 @@ impl App for TapestryLoomApp {
                         }
                     }
 
+                    self.behavior.new_editor_queue.clear();
+
                     if let Some(Tile::Container(root)) = self
                         .tree
                         .root
@@ -184,7 +187,6 @@ impl App for TapestryLoomApp {
                             .borrow_mut()
                             .error("Unable to find window root");
                     }
-                    self.behavior.new_editor_queue.clear();
                 }
             });
         self.behavior.toasts.borrow_mut().show(ctx);
