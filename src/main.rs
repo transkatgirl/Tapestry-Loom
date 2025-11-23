@@ -5,7 +5,7 @@ use std::{cell::RefCell, path::PathBuf, rc::Rc, sync::Arc};
 use eframe::{
     App, CreationContext, Frame, NativeOptions,
     egui::{
-        CentralPanel, Context, FontDefinitions, FontFamily, IconData, RichText, Ui,
+        self, CentralPanel, Context, FontDefinitions, FontFamily, IconData, RichText, Ui,
         ViewportBuilder, WidgetText,
     },
 };
@@ -147,44 +147,46 @@ impl TapestryLoomApp {
 
 impl App for TapestryLoomApp {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
-        CentralPanel::default().show(ctx, |ui| {
-            self.tree.ui(&mut self.behavior, ui);
+        CentralPanel::default()
+            .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0.0))
+            .show(ctx, |ui| {
+                self.tree.ui(&mut self.behavior, ui);
 
-            if self.behavior.unchanged_settings_changes {
-                self.save_settings(frame);
-                self.behavior.unchanged_settings_changes = false;
-            }
-
-            if !self.behavior.new_editor_queue.is_empty() {
-                let mut new_tiles = Vec::with_capacity(self.behavior.new_editor_queue.len());
-
-                for path in &self.behavior.new_editor_queue {
-                    if let Some(editor) = Editor::new(
-                        self.behavior.settings.clone(),
-                        self.behavior.toasts.clone(),
-                        path.as_deref(),
-                    ) {
-                        new_tiles.push(self.tree.tiles.insert_pane(Pane::Editor(editor)));
-                    }
+                if self.behavior.unchanged_settings_changes {
+                    self.save_settings(frame);
+                    self.behavior.unchanged_settings_changes = false;
                 }
 
-                if let Some(Tile::Container(root)) = self
-                    .tree
-                    .root
-                    .and_then(|root| self.tree.tiles.get_mut(root))
-                {
-                    for id in new_tiles {
-                        root.add_child(id);
+                if !self.behavior.new_editor_queue.is_empty() {
+                    let mut new_tiles = Vec::with_capacity(self.behavior.new_editor_queue.len());
+
+                    for path in &self.behavior.new_editor_queue {
+                        if let Some(editor) = Editor::new(
+                            self.behavior.settings.clone(),
+                            self.behavior.toasts.clone(),
+                            path.as_deref(),
+                        ) {
+                            new_tiles.push(self.tree.tiles.insert_pane(Pane::Editor(editor)));
+                        }
                     }
-                } else {
-                    self.behavior
-                        .toasts
-                        .borrow_mut()
-                        .error("Unable to find window root");
+
+                    if let Some(Tile::Container(root)) = self
+                        .tree
+                        .root
+                        .and_then(|root| self.tree.tiles.get_mut(root))
+                    {
+                        for id in new_tiles {
+                            root.add_child(id);
+                        }
+                    } else {
+                        self.behavior
+                            .toasts
+                            .borrow_mut()
+                            .error("Unable to find window root");
+                    }
+                    self.behavior.new_editor_queue.clear();
                 }
-                self.behavior.new_editor_queue.clear();
-            }
-        });
+            });
         self.behavior.toasts.borrow_mut().show(ctx);
     }
 }
