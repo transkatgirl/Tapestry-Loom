@@ -3,8 +3,8 @@
 use std::sync::Arc;
 
 use eframe::{
-    CreationContext, Frame, NativeOptions,
-    egui::{self, Context, IconData, ViewportBuilder},
+    App, CreationContext, Frame, NativeOptions,
+    egui::{self, Context, IconData, Ui, ViewportBuilder},
 };
 use log::{debug, warn};
 
@@ -31,12 +31,14 @@ fn main() -> eframe::Result {
 }
 
 struct TapestryLoomApp {
+    show_settings: bool,
     settings: Settings,
 }
 
 impl TapestryLoomApp {
     fn new(cc: &CreationContext<'_>) -> Self {
         Self {
+            show_settings: false,
             settings: if let Some(storage) = cc.storage {
                 if let Some(data) = storage.get_string("settings") {
                     match ron::from_str(&data) {
@@ -75,8 +77,9 @@ impl TapestryLoomApp {
     }
 }
 
-impl eframe::App for TapestryLoomApp {
+impl App for TapestryLoomApp {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
+        egui::TopBottomPanel::top("my_panel").show(ctx, |ui| {});
         egui::CentralPanel::default().show(ctx, |ui| {
             // TODO
             if self.settings.render(ctx, ui) {
@@ -84,4 +87,10 @@ impl eframe::App for TapestryLoomApp {
             }
         });
     }
+}
+
+trait AppComponent<T> {
+    fn new(settings: Settings) -> Self;
+    fn update_settings(&mut self, settings: Settings);
+    fn render(&mut self, ctx: &Context, ui: &mut Ui) -> T;
 }

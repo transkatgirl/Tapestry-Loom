@@ -3,17 +3,17 @@ use std::{path::PathBuf, time::Duration};
 use eframe::egui::{Context, Ui};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Settings {
     interface: UISettings,
     documents: DocumentSettings,
     inference: InferenceSettings,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct UISettings {}
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DocumentSettings {
     location: PathBuf,
     autosave_interval: Duration,
@@ -30,7 +30,7 @@ impl Default for DocumentSettings {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct InferenceSettings {}
 
 impl Settings {
