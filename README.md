@@ -133,33 +133,28 @@ Note: This project is a work in progress. Missing features and major bugs are a 
 
 Make sure to clone the repository with submodules!
 
-To run Tapestry Loom, install npm and rust, and then run the following command:
-
-```bash
-sh run.sh
-```
-
-### Development
-
-If the repository has been freshly cloned, run the the following commands first:
+To run Tapestry Loom, install rust and [trunk](https://trunkrs.dev), and then run the following commands:
 
 ```bash
 cd frontend
-npm install
-mkdir dist
+trunk build --release
 cd ..
+cargo run --release
 ```
+
+### Development
 
 To run Tapestry Loom in development mode, run the following commands:
 
 Terminal 1:
 
 ```bash
+mkdir -p frontend/dist
 cargo run
 ```
 
 Terminal 2:
 ```bash
 cd frontend
-npm run dev
+trunk serve
 ```
