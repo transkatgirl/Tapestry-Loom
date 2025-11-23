@@ -92,7 +92,7 @@ impl TapestryLoomApp {
         let toasts = Rc::new(RefCell::new(toasts));
         let behavior = TapestryLoomBehavior {
             file_manager: FileManager::new(settings.clone(), toasts.clone()),
-            unchanged_settings_changes: false,
+            unsaved_settings_changes: false,
             new_editor_queue: Vec::with_capacity(16),
             settings,
             settings_tab_label: Arc::new(
@@ -152,9 +152,9 @@ impl App for TapestryLoomApp {
             .show(ctx, |ui| {
                 self.tree.ui(&mut self.behavior, ui);
 
-                if self.behavior.unchanged_settings_changes {
+                if self.behavior.unsaved_settings_changes {
                     self.save_settings(frame);
-                    self.behavior.unchanged_settings_changes = false;
+                    self.behavior.unsaved_settings_changes = false;
                 }
 
                 if !self.behavior.new_editor_queue.is_empty() {
@@ -196,7 +196,7 @@ struct TapestryLoomBehavior {
     file_manager_tab_label: Arc<RichText>,
     new_tab_label: Arc<RichText>,
     settings: Rc<RefCell<Settings>>,
-    unchanged_settings_changes: bool,
+    unsaved_settings_changes: bool,
     new_editor_queue: Vec<Option<PathBuf>>,
     file_manager: FileManager,
     toasts: Rc<RefCell<Toasts>>,
@@ -220,7 +220,7 @@ impl Behavior<Pane> for TapestryLoomBehavior {
         match pane {
             Pane::Settings => {
                 if self.settings.borrow_mut().render(ui) {
-                    self.unchanged_settings_changes = true;
+                    self.unsaved_settings_changes = true;
                 }
             }
             Pane::FileManager => {
