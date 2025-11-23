@@ -14,7 +14,7 @@ async fn main() -> Result<(), rocket::Error> {
 
     let _rocket = rocket::build()
         .manage(weave_set.clone())
-        .mount("/", FileServer::from(relative!("static")))
+        .mount("/", FileServer::from(relative!("frontend/dist")))
         .mount(
             "/api",
             routes![
