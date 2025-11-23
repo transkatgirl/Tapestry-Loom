@@ -15,8 +15,9 @@ pub struct Editor {
     settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
     threadpool: Rc<RefCell<ThreadPool>>,
-    //document: Document,
     pub title: String,
+    path: Option<PathBuf>,
+    document: Option<Document>,
 }
 
 impl Editor {
@@ -25,20 +26,21 @@ impl Editor {
         toasts: Rc<RefCell<Toasts>>,
         threadpool: Rc<RefCell<ThreadPool>>,
         path: Option<PathBuf>,
-    ) -> Option<Self> {
-        /*self.toasts
-        .borrow_mut()
-        .error(format!("Document loading failed: {error:#?}"));*/
-
-        Some(Self {
+    ) -> Self {
+        Self {
             settings,
             toasts,
             threadpool,
-            //document: Document::load(path)?,
             title: "Editor".to_string(),
-        })
+            path,
+            document: None,
+        }
     }
-    pub fn render(&mut self, ui: &mut Ui) {}
+    pub fn render(&mut self, ui: &mut Ui) {
+        /*self.toasts
+        .borrow_mut()
+        .error(format!("Document loading failed: {error:#?}"));*/
+    }
 }
 
 struct Document {}

@@ -28,7 +28,7 @@ impl FileManager {
             threadpool,
         }
     }
-    pub fn render(&mut self, ui: &mut Ui) -> Option<PathBuf> {
+    pub fn render(&mut self, ui: &mut Ui) -> Option<Vec<PathBuf>> {
         ui.heading("File Manager");
 
         None

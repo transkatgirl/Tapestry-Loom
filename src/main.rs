@@ -169,14 +169,12 @@ impl App for TapestryLoomApp {
                     let mut new_tiles = Vec::with_capacity(self.behavior.new_editor_queue.len());
 
                     for path in self.behavior.new_editor_queue.drain(..) {
-                        if let Some(editor) = Editor::new(
+                        new_tiles.push(self.tree.tiles.insert_pane(Pane::Editor(Editor::new(
                             self.behavior.settings.clone(),
                             self.behavior.toasts.clone(),
                             self.behavior.threadpool.clone(),
                             path,
-                        ) {
-                            new_tiles.push(self.tree.tiles.insert_pane(Pane::Editor(editor)));
-                        }
+                        ))));
                     }
 
                     if let Some(Tile::Container(root)) = self
@@ -233,8 +231,10 @@ impl Behavior<Pane> for TapestryLoomBehavior {
                 }
             }
             Pane::FileManager => {
-                if let Some(path) = self.file_manager.render(ui) {
-                    self.new_editor_queue.push(Some(path));
+                if let Some(paths) = self.file_manager.render(ui) {
+                    for path in paths {
+                        self.new_editor_queue.push(Some(path));
+                    }
                 }
             }
             Pane::Editor(editor) => editor.render(ui),
