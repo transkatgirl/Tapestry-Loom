@@ -4,7 +4,10 @@ use std::sync::Arc;
 
 use eframe::{
     App, CreationContext, Frame, NativeOptions,
-    egui::{self, Context, IconData, Ui, ViewportBuilder},
+    egui::{
+        CentralPanel, Context, FontDefinitions, IconData, SidePanel, TopBottomPanel,
+        ViewportBuilder,
+    },
 };
 use log::{debug, warn};
 
@@ -58,6 +61,10 @@ impl TapestryLoomApp {
             Settings::default()
         };
 
+        let mut fonts = FontDefinitions::default();
+        egui_phosphor::add_to_fonts(&mut fonts, egui_phosphor::Variant::Fill);
+        cc.egui_ctx.set_fonts(fonts);
+
         Self {
             show_settings: false,
             show_file_manager: false,
@@ -85,18 +92,34 @@ impl TapestryLoomApp {
 
 impl App for TapestryLoomApp {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
-        egui::TopBottomPanel::top("global-top-panel")
-            .show(ctx, |ui| ui.horizontal_wrapped(|ui| {}));
-        if self.show_file_manager {}
-        if self.show_settings {}
-
-        egui::CentralPanel::default().show(ctx, |ui| {
-            // TODO
-
-            if self.settings.render(ui) {
-                self.file_manager.update_settings(self.settings.clone());
-                self.editor.update_settings(self.settings.clone());
-                self.save_settings(frame);
+        TopBottomPanel::top("global-top-panel").show(ctx, |ui| {
+            ui.horizontal_wrapped(|ui| {
+                if ui.button("\u{E260} Files").clicked() {
+                    self.show_file_manager = !self.show_file_manager
+                };
+                if ui.button("\u{E270} Settings").clicked() {
+                    self.show_settings = !self.show_settings
+                };
+                if !self.show_settings {
+                    ui.label("|");
+                    self.editor.render_bar(ui);
+                }
+            })
+        });
+        if self.show_file_manager {
+            SidePanel::left("global-left-panel").show(ctx, |ui| {
+                self.file_manager.render(ui);
+            });
+        }
+        CentralPanel::default().show(ctx, |ui| {
+            if self.show_settings {
+                if self.settings.render(ui) {
+                    self.file_manager.update_settings(self.settings.clone());
+                    self.editor.update_settings(self.settings.clone());
+                    self.save_settings(frame);
+                }
+            } else {
+                self.editor.render_main(ui);
             }
         });
     }
