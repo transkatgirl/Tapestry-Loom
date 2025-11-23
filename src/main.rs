@@ -16,7 +16,7 @@ async fn main() -> Result<(), rocket::Error> {
         .manage(weave_set.clone())
         .mount("/", FileServer::from(relative!("frontend/dist")))
         .mount(
-            "/api",
+            "/api/v0",
             routes![
                 weave::list,
                 weave::create,

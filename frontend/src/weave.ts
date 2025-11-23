@@ -31,4 +31,6 @@ interface Model {
 	metadata: Map<String, String>;
 }
 
-interface Weave {}
+interface Weave {
+	backend: WebSocket;
+}

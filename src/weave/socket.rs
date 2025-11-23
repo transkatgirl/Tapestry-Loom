@@ -41,9 +41,16 @@ impl From<IncomingAddNode> for DependentNode<NodeContent> {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
+#[serde(untagged)]
 enum MessageNodeContent {
     Snippet(String),
-    Tokens(Vec<(String, IndexMap<String, String>)>),
+    Tokens(Vec<MessageNodeContentToken>),
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+struct MessageNodeContentToken {
+    label: String,
+    metadata: IndexMap<String, String>,
 }
 
 impl From<InnerNodeContent> for MessageNodeContent {
@@ -55,7 +62,10 @@ impl From<InnerNodeContent> for MessageNodeContent {
             InnerNodeContent::Tokens(tokens) => Self::Tokens(
                 tokens
                     .into_iter()
-                    .map(|t| (String::from_utf8_lossy(&t.0).to_string(), t.1))
+                    .map(|t| MessageNodeContentToken {
+                        label: String::from_utf8_lossy(&t.0).to_string(),
+                        metadata: t.1,
+                    })
                     .collect(),
             ),
         }
@@ -69,7 +79,7 @@ impl From<MessageNodeContent> for InnerNodeContent {
             MessageNodeContent::Tokens(tokens) => Self::Tokens(
                 tokens
                     .into_iter()
-                    .map(|t| (t.0.into_bytes(), t.1))
+                    .map(|t| (t.label.into_bytes(), t.metadata))
                     .collect(),
             ),
         }
