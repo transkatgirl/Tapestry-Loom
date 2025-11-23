@@ -13,7 +13,7 @@ use egui_notify::Toasts;
 use egui_phosphor::{fill, regular};
 use egui_tiles::{Behavior, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse};
 use mimalloc::MiMalloc;
-use threadpool::ThreadPool;
+use tokio::runtime::Runtime;
 
 use crate::{editor::Editor, files::FileManager, settings::Settings};
 
@@ -96,9 +96,8 @@ impl TapestryLoomApp {
         cc.egui_ctx.set_fonts(fonts);
 
         let toasts = Rc::new(RefCell::new(toasts));
-        let threadpool = Rc::new(RefCell::new(ThreadPool::new(16)));
         let behavior = TapestryLoomBehavior {
-            file_manager: FileManager::new(settings.clone(), toasts.clone(), threadpool.clone()),
+            file_manager: FileManager::new(settings.clone(), toasts.clone()),
             unsaved_settings_changes: false,
             new_editor_queue: Vec::with_capacity(16),
             settings,
@@ -114,7 +113,12 @@ impl TapestryLoomApp {
                 RichText::new(regular::PLUS).family(FontFamily::Name("phosphor-bold".into())),
             ),
             toasts,
-            threadpool,
+            runtime: Arc::new(
+                tokio::runtime::Builder::new_multi_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap(),
+            ),
         };
 
         let mut tiles = Tiles::default();
@@ -172,7 +176,7 @@ impl App for TapestryLoomApp {
                         new_tiles.push(self.tree.tiles.insert_pane(Pane::Editor(Editor::new(
                             self.behavior.settings.clone(),
                             self.behavior.toasts.clone(),
-                            self.behavior.threadpool.clone(),
+                            self.behavior.runtime.clone(),
                             path,
                         ))));
                     }
@@ -206,7 +210,7 @@ struct TapestryLoomBehavior {
     new_editor_queue: Vec<Option<PathBuf>>,
     file_manager: FileManager,
     toasts: Rc<RefCell<Toasts>>,
-    threadpool: Rc<RefCell<ThreadPool>>,
+    runtime: Arc<Runtime>,
 }
 
 enum Pane {

@@ -13,22 +13,24 @@ use crate::settings::Settings;
 pub struct FileManager {
     settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
-    threadpool: Rc<RefCell<ThreadPool>>,
+    threadpool: ThreadPool,
+    path: PathBuf,
 }
 
 impl FileManager {
-    pub fn new(
-        settings: Rc<RefCell<Settings>>,
-        toasts: Rc<RefCell<Toasts>>,
-        threadpool: Rc<RefCell<ThreadPool>>,
-    ) -> Self {
+    pub fn new(settings: Rc<RefCell<Settings>>, toasts: Rc<RefCell<Toasts>>) -> Self {
+        let path = settings.borrow().documents.location.clone();
+
         Self {
+            path,
             settings,
             toasts,
-            threadpool,
+            threadpool: ThreadPool::new(4),
         }
     }
     pub fn render(&mut self, ui: &mut Ui) -> Option<Vec<PathBuf>> {
+        let settings = self.settings.borrow();
+
         ui.heading("File Manager");
 
         None

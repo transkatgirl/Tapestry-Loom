@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Settings {
-    interface: UISettings,
-    documents: DocumentSettings,
-    inference: InferenceSettings,
+    pub interface: UISettings,
+    pub documents: DocumentSettings,
+    pub inference: InferenceSettings,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
@@ -15,8 +15,8 @@ pub struct UISettings {}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DocumentSettings {
-    location: PathBuf,
-    autosave_interval: Duration,
+    pub location: PathBuf,
+    pub autosave_interval: Duration,
 }
 
 impl Default for DocumentSettings {
