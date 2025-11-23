@@ -9,9 +9,9 @@ use eframe::{
         ViewportBuilder, WidgetText,
     },
 };
+use egui_notify::Toasts;
 use egui_phosphor::{fill, regular};
 use egui_tiles::{Behavior, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse};
-use log::{debug, warn};
 
 use crate::{editor::Editor, files::FileManager, settings::Settings};
 
@@ -42,21 +42,22 @@ struct TapestryLoomApp {
 
 impl TapestryLoomApp {
     fn new(cc: &CreationContext<'_>) -> Self {
+        let mut toasts = Toasts::new();
+
         let settings = if let Some(storage) = cc.storage {
             if let Some(data) = storage.get_string("settings") {
                 match ron::from_str(&data) {
                     Ok(settings) => settings,
                     Err(error) => {
-                        warn!("Unable to deserialize settings: {error:#?}\nUsing default settings");
+                        toasts.warning(format!("Settings deserialization failed: {error:#?}"));
                         Settings::default()
                     }
                 }
             } else {
-                debug!("Using default settings");
                 Settings::default()
             }
         } else {
-            warn!("Unable to connect to persistent storage; Using default settings");
+            toasts.error("Unable to open settings storage");
             Settings::default()
         };
         let settings = Rc::new(RefCell::new(settings));
@@ -88,8 +89,9 @@ impl TapestryLoomApp {
         );
         cc.egui_ctx.set_fonts(fonts);
 
+        let toasts = Rc::new(RefCell::new(toasts));
         let behavior = TapestryLoomBehavior {
-            file_manager: FileManager::new(settings.clone()),
+            file_manager: FileManager::new(settings.clone(), toasts.clone()),
             unchanged_settings_changes: false,
             new_editor_queue: Vec::with_capacity(16),
             settings,
@@ -104,6 +106,7 @@ impl TapestryLoomApp {
             new_tab_label: Arc::new(
                 RichText::new(regular::PLUS).family(FontFamily::Name("phosphor".into())),
             ),
+            toasts,
         };
 
         let mut tiles = Tiles::default();
@@ -124,15 +127,20 @@ impl TapestryLoomApp {
         if let Some(storage) = frame.storage_mut() {
             match ron::to_string(&self.behavior.settings) {
                 Ok(data) => {
-                    debug!("Settings saved (may not yet be written to disk)");
                     storage.set_string("settings", data);
                 }
                 Err(error) => {
-                    warn!("Unable to serialize settings: {error:#?}\n; Settings not saved");
+                    self.behavior
+                        .toasts
+                        .borrow_mut()
+                        .error(format!("Settings serialization failed: {error:#?}"));
                 }
             }
         } else {
-            warn!("Unable to connect to persistent storage; Settings not saved");
+            self.behavior
+                .toasts
+                .borrow_mut()
+                .error("Unable to open settings storage");
         }
     }
 }
@@ -151,13 +159,12 @@ impl App for TapestryLoomApp {
                 let mut new_tiles = Vec::with_capacity(self.behavior.new_editor_queue.len());
 
                 for path in &self.behavior.new_editor_queue {
-                    match Editor::new(self.behavior.settings.clone(), path.as_deref()) {
-                        Ok(editor) => {
-                            new_tiles.push(self.tree.tiles.insert_pane(Pane::Editor(editor)));
-                        }
-                        Err(error) => {
-                            // TODO
-                        }
+                    if let Some(editor) = Editor::new(
+                        self.behavior.settings.clone(),
+                        self.behavior.toasts.clone(),
+                        path.as_deref(),
+                    ) {
+                        new_tiles.push(self.tree.tiles.insert_pane(Pane::Editor(editor)));
                     }
                 }
 
@@ -170,11 +177,15 @@ impl App for TapestryLoomApp {
                         root.add_child(id);
                     }
                 } else {
-                    // TODO
+                    self.behavior
+                        .toasts
+                        .borrow_mut()
+                        .error("Unable to find window root");
                 }
                 self.behavior.new_editor_queue.clear();
             }
         });
+        self.behavior.toasts.borrow_mut().show(ctx);
     }
 }
 
@@ -186,6 +197,7 @@ struct TapestryLoomBehavior {
     unchanged_settings_changes: bool,
     new_editor_queue: Vec<Option<PathBuf>>,
     file_manager: FileManager,
+    toasts: Rc<RefCell<Toasts>>,
 }
 
 enum Pane {
