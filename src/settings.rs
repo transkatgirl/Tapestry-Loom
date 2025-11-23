@@ -34,7 +34,7 @@ impl Default for DocumentSettings {
 pub struct InferenceSettings {}
 
 impl Settings {
-    pub fn render(&mut self, ctx: &Context, ui: &mut Ui) -> bool {
+    pub fn render(&mut self, ui: &mut Ui) -> bool {
         ui.heading("My egui Application");
 
         false

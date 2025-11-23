@@ -8,7 +8,7 @@ use eframe::{
 };
 use log::{debug, warn};
 
-use crate::settings::Settings;
+use crate::{editor::Editor, files::FileManager, settings::Settings};
 
 mod editor;
 mod files;
@@ -32,32 +32,38 @@ fn main() -> eframe::Result {
 
 struct TapestryLoomApp {
     show_settings: bool,
+    show_file_manager: bool,
+    file_manager: FileManager,
+    editor: Editor,
     settings: Settings,
 }
 
 impl TapestryLoomApp {
     fn new(cc: &CreationContext<'_>) -> Self {
-        Self {
-            show_settings: false,
-            settings: if let Some(storage) = cc.storage {
-                if let Some(data) = storage.get_string("settings") {
-                    match ron::from_str(&data) {
-                        Ok(settings) => settings,
-                        Err(error) => {
-                            warn!(
-                                "Unable to deserialize settings: {error:#?}\nUsing default settings"
-                            );
-                            Settings::default()
-                        }
+        let settings = if let Some(storage) = cc.storage {
+            if let Some(data) = storage.get_string("settings") {
+                match ron::from_str(&data) {
+                    Ok(settings) => settings,
+                    Err(error) => {
+                        warn!("Unable to deserialize settings: {error:#?}\nUsing default settings");
+                        Settings::default()
                     }
-                } else {
-                    debug!("Using default settings");
-                    Settings::default()
                 }
             } else {
-                warn!("Unable to connect to persistent storage; Using default settings");
+                debug!("Using default settings");
                 Settings::default()
-            },
+            }
+        } else {
+            warn!("Unable to connect to persistent storage; Using default settings");
+            Settings::default()
+        };
+
+        Self {
+            show_settings: false,
+            show_file_manager: false,
+            file_manager: FileManager::new(settings.clone()),
+            editor: Editor::new(settings.clone()),
+            settings,
         }
     }
     fn save_settings(&self, frame: &mut Frame) {
@@ -79,18 +85,19 @@ impl TapestryLoomApp {
 
 impl App for TapestryLoomApp {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
-        egui::TopBottomPanel::top("my_panel").show(ctx, |ui| {});
+        egui::TopBottomPanel::top("global-top-panel")
+            .show(ctx, |ui| ui.horizontal_wrapped(|ui| {}));
+        if self.show_file_manager {}
+        if self.show_settings {}
+
         egui::CentralPanel::default().show(ctx, |ui| {
             // TODO
-            if self.settings.render(ctx, ui) {
+
+            if self.settings.render(ui) {
+                self.file_manager.update_settings(self.settings.clone());
+                self.editor.update_settings(self.settings.clone());
                 self.save_settings(frame);
             }
         });
     }
-}
-
-trait AppComponent<T> {
-    fn new(settings: Settings) -> Self;
-    fn update_settings(&mut self, settings: Settings);
-    fn render(&mut self, ctx: &Context, ui: &mut Ui) -> T;
 }
