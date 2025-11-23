@@ -2,6 +2,8 @@
 
 This branch contains is where work on Tapestry Loom's Version 1 rewrite is taking place.
 
+## Plans
+
 The plans for the rewrite are the following:
 - [ ] Migrate to a collaborative (unauthenticated / LAN-only) WebUI rather than an Obsidian plugin
 	- [ ] Implement conversion from the old Weave format to the new one
@@ -79,3 +81,40 @@ In addition, below are the tentative plans for Tapestry Loom v2:
 - [ ] Implement an optional inference server using llama.cpp
 
 See also: the [original v1 plans](https://github.com/transkatgirl/Tapestry-Loom/blob/c8ccca0079ae186fcc7a70b955b2d2b123082d63/README.md)
+
+## Usage
+
+Note: This project is a work in progress. Missing features and major bugs are a certainty.
+
+Make sure to clone the repository with submodules!
+
+To run Tapestry Loom, install npm and rust, and then run the following command:
+
+```bash
+sh run.sh
+```
+
+### Development
+
+If the repository has been freshly cloned, run the the following commands first:
+
+```bash
+cd frontend
+npm install
+mkdir dist
+cd ..
+```
+
+To run Tapestry Loom in development mode, run the following commands:
+
+Terminal 1:
+
+```bash
+cargo run
+```
+
+Terminal 2:
+```bash
+cd frontend
+npm run dev
+```

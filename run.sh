@@ -1,1 +1,1 @@
-cd frontend && npm run build && cd .. && cargo run --release
+cd frontend && npm install && npm run build && cd .. && cargo run --release
