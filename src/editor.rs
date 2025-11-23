@@ -7,12 +7,14 @@ use std::{
 use anyhow::Error;
 use eframe::egui::Ui;
 use egui_notify::Toasts;
+use threadpool::ThreadPool;
 
 use crate::settings::Settings;
 
 pub struct Editor {
     settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
+    threadpool: Rc<RefCell<ThreadPool>>,
     //document: Document,
     pub title: String,
 }
@@ -21,7 +23,8 @@ impl Editor {
     pub fn new(
         settings: Rc<RefCell<Settings>>,
         toasts: Rc<RefCell<Toasts>>,
-        path: Option<&Path>,
+        threadpool: Rc<RefCell<ThreadPool>>,
+        path: Option<PathBuf>,
     ) -> Option<Self> {
         /*self.toasts
         .borrow_mut()
@@ -30,6 +33,7 @@ impl Editor {
         Some(Self {
             settings,
             toasts,
+            threadpool,
             //document: Document::load(path)?,
             title: "Editor".to_string(),
         })

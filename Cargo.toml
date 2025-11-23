@@ -16,6 +16,9 @@ eframe = { version = "0.33.2", features = [
 	"persistence",
 ] }
 env_logger = { version = "0.11.8", features = ["auto-color", "humantime"] }
+mimalloc = { version = "0.1.48", features = [
+	"v3",
+] }
 serde = { version = "1.0.228", features = [
 	"derive",
 ] }
@@ -30,14 +33,15 @@ parking_lot = { version = "0.12.5", features = [
 	"serde",
 ] }
 anyhow = "1.0.100"
-thiserror = "2.0.17"
-log = "0.4.28"
+#thiserror = "2.0.17"
+#log = "0.4.28"
 dirs-next = "2.0.0"
 egui-phosphor = { version = "0.11.0", features = ["regular", "bold", "fill"] }
-egui_dnd = "0.14.0"
-egui_flex = "0.5.0"
-egui_virtual_list = "0.9.0"
-egui_suspense = "0.10.0"
-egui_alignments = "0.3.4"
 egui_tiles = "0.14.0"
 egui-notify = "0.21.0"
+threadpool = "1.8.1"
+#egui_dnd = "0.14.0"
+#egui_flex = "0.5.0"
+#egui_virtual_list = "0.9.0"
+#egui_suspense = "0.10.0"
+#egui_alignments = "0.3.4"

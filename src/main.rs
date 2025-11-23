@@ -12,12 +12,17 @@ use eframe::{
 use egui_notify::Toasts;
 use egui_phosphor::{fill, regular};
 use egui_tiles::{Behavior, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse};
+use mimalloc::MiMalloc;
+use threadpool::ThreadPool;
 
 use crate::{editor::Editor, files::FileManager, settings::Settings};
 
 mod editor;
 mod files;
 mod settings;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() -> eframe::Result {
     env_logger::init();
@@ -91,8 +96,9 @@ impl TapestryLoomApp {
         cc.egui_ctx.set_fonts(fonts);
 
         let toasts = Rc::new(RefCell::new(toasts));
+        let threadpool = Rc::new(RefCell::new(ThreadPool::new(16)));
         let behavior = TapestryLoomBehavior {
-            file_manager: FileManager::new(settings.clone(), toasts.clone()),
+            file_manager: FileManager::new(settings.clone(), toasts.clone(), threadpool.clone()),
             unsaved_settings_changes: false,
             new_editor_queue: Vec::with_capacity(16),
             settings,
@@ -108,6 +114,7 @@ impl TapestryLoomApp {
                 RichText::new(regular::PLUS).family(FontFamily::Name("phosphor-bold".into())),
             ),
             toasts,
+            threadpool,
         };
 
         let mut tiles = Tiles::default();
@@ -161,17 +168,16 @@ impl App for TapestryLoomApp {
                 if !self.behavior.new_editor_queue.is_empty() {
                     let mut new_tiles = Vec::with_capacity(self.behavior.new_editor_queue.len());
 
-                    for path in &self.behavior.new_editor_queue {
+                    for path in self.behavior.new_editor_queue.drain(..) {
                         if let Some(editor) = Editor::new(
                             self.behavior.settings.clone(),
                             self.behavior.toasts.clone(),
-                            path.as_deref(),
+                            self.behavior.threadpool.clone(),
+                            path,
                         ) {
                             new_tiles.push(self.tree.tiles.insert_pane(Pane::Editor(editor)));
                         }
                     }
-
-                    self.behavior.new_editor_queue.clear();
 
                     if let Some(Tile::Container(root)) = self
                         .tree
@@ -202,6 +208,7 @@ struct TapestryLoomBehavior {
     new_editor_queue: Vec<Option<PathBuf>>,
     file_manager: FileManager,
     toasts: Rc<RefCell<Toasts>>,
+    threadpool: Rc<RefCell<ThreadPool>>,
 }
 
 enum Pane {
