@@ -144,9 +144,36 @@ impl App for TapestryLoomApp {
 
             if self.behavior.unchanged_settings_changes {
                 self.save_settings(frame);
+                self.behavior.unchanged_settings_changes = false;
             }
 
-            if !self.behavior.new_editor_queue.is_empty() {}
+            if !self.behavior.new_editor_queue.is_empty() {
+                let mut new_tiles = Vec::with_capacity(self.behavior.new_editor_queue.len());
+
+                for path in &self.behavior.new_editor_queue {
+                    match Editor::new(self.behavior.settings.clone(), path.as_deref()) {
+                        Ok(editor) => {
+                            new_tiles.push(self.tree.tiles.insert_pane(Pane::Editor(editor)));
+                        }
+                        Err(error) => {
+                            // TODO
+                        }
+                    }
+                }
+
+                if let Some(Tile::Container(root)) = self
+                    .tree
+                    .root
+                    .and_then(|root| self.tree.tiles.get_mut(root))
+                {
+                    for id in new_tiles {
+                        root.add_child(id);
+                    }
+                } else {
+                    // TODO
+                }
+                self.behavior.new_editor_queue.clear();
+            }
         });
     }
 }

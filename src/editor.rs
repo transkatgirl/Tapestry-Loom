@@ -11,15 +11,15 @@ use crate::settings::Settings;
 
 pub struct Editor {
     settings: Rc<RefCell<Settings>>,
-    document: Document,
+    //document: Document,
     pub title: String,
 }
 
 impl Editor {
-    pub fn new(settings: Rc<RefCell<Settings>>, path: &Path) -> Result<Self, Error> {
+    pub fn new(settings: Rc<RefCell<Settings>>, path: Option<&Path>) -> Result<Self, Error> {
         Ok(Self {
             settings,
-            document: Document::load(path)?,
+            //document: Document::load(path)?,
             title: "Editor".to_string(),
         })
     }
