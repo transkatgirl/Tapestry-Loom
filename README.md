@@ -8,28 +8,71 @@ The plans for the rewrite are the following:
 - [ ] Migrate to a collaborative (unauthenticated / LAN-only) WebUI rather than an Obsidian plugin
 	- [ ] Implement conversion from the old Weave format to the new one
 	- [ ] Implement all functionality supported by the original Obsidian plugin
+- [ ] Full UI redesign
+	- [ ] Resizable, dragable, scrollable, and collapsible settings
+	- [ ] Selection = generation mode, similar to [inkstream](https://inkstream.ai)
+	- [ ] Three user-switchable UIs:
+		- [ ] Interactive canvas + textbox, similar to [wool](https://github.com/lyramakesmusic/wool)
+			- [ ] Implement dragable and scrollable canvas
+			- [ ] Implement draggable canvas nodes
+				- [ ] Implement canvas node left click
+				- [ ] Implement canvas node right click
+			- [ ] Implement canvas actions
+			- [ ] Implement resizable & dragable textbox
+				- [ ] Show node siblings on hover
+			- [ ] Automatically adjust canvas position & highlighting based on textbox cursor location
+			- [ ] Automatically scroll textbox based on canvas cursor
+			- [ ] Scroll newly generated nodes into view
+		- [ ] Compact tree + compact treelist + textbox, similar to [loomsidian](https://github.com/cosmicoptima/loom) & old Tapestry Loom
+			- [ ] Implement resizable, dragable & scrollable tree
+			- [ ] Implement tree nodes
+				- [ ] Implement tree node content display on hover
+				- [ ] Implement tree node left click
+				- [ ] Implement tree node right click
+			- [ ] Implement resizable & scrollable treelist
+				- [ ] Implement automatic hoisting
+				- [ ] Implement manual hoisting
+				- [ ] Implement treelist action display on hover
+				- [ ] Implement treelist item left click
+				- [ ] Implement treelist item right click
+			- [ ] Implement resizable and scrollable textbox
+				- [ ] Show node siblings on hover
+			- [ ] Automatically adjust tree position & highlighting based on textbox cursor location
+			- [ ] Automatically scroll textbox based on tree cursor location
+			- [ ] Scroll newly generated nodes into view
+		- [ ] Compact tree + node child list + textbox, similar to [exoloom](https://exoloom.io)
+			- [ ] Implement resizable, dragable & scrollable tree
+			- [ ] Implement tree nodes
+				- [ ] Implement tree node content display on hover
+				- [ ] Implement tree node left click
+				- [ ] Implement tree node right click
+			- [ ] Implement resizable and scrollable node child list
+				- [ ] Implement list action display on hover
+				- [ ] Implement list item left click
+				- [ ] Implement list item right click
+			- [ ] Implement resizable and scrollable textbox
+				- [ ] Show node siblings on hover
+			- [ ] Automatically adjust tree position & highlighting based on textbox cursor location
+			- [ ] Automatically scroll textbox based on tree cursor location
+			- [ ] Scroll newly generated nodes into view
+	- [ ] Node finding
+	- [ ] Better error handling
+		- [ ] Make UI operation failures visible
+		- [ ] Make configuration errors visible
+		- [ ] Trim trailing white space from nodes before generation
+	- [ ] Experiments to try (may or may not end up being implemented):
+		- [ ] Applying colors to background instead of text
+		- [ ] Implement multi-token multi-logprob generations as chains of single token nodes, inspired by [loom](https://github.com/socketteer/loom) and [logitloom](https://github.com/vgel/logitloom)
+- [ ] Keyboard shortcut implementation
+	- [ ] Automatically adapt keyboards shortcuts based on OS (such as Mac vs Windows/Linux)
+	- [ ] Repeat keypresses when a keyboard be cut is held down
+	- [ ] Multiple presets
+		- [ ] [loomsidian](https://github.com/cosmicoptima/loom)-like
+		- [ ] [exoloom](https://exoloom.io)-like
+		- [ ] Tapestry Loom
+	- [ ] Allows saving loading custom presets
+	- [ ] Allow importing and exporting custom presets
 - [ ] UI improvements
-	- [ ] Implement default shortcuts from [loomsidian](https://github.com/cosmicoptima/loom)
-	- [ ] Repeat keypresses when a keyboard shortcut is held down
-	- [ ] Try applying colors to text background instead of text?
-	- [ ] Add error message when when attempting to generate without any models selected
-	- [ ] Implement multi-token multi-logprob generations as chains of single token nodes, inspired by [loom](https://github.com/socketteer/loom) and [logitloom](https://github.com/vgel/logitloom)
-		- [ ] Update Node list to display sibings of node at cursor rather than last active node
-	- [ ] Automatic color palette generation
-	- [ ] Improve handling of trailing whitespace
-	- [ ] Bring list view to feature parity with tree view
-	- [ ] Integrate the tree/graph and the editor more, similar to [loom](https://github.com/socketteer/loom)
-		- [ ] Implement tree "unhoisting", similar to [loomsidian](https://github.com/cosmicoptima/loom)
-		- [ ] Update graph to focus node at cursor rather than last active node, similar to [exoloom](https://exoloom.io)
-		- [ ] Show sibling nodes on hover, similar to [loom](https://github.com/socketteer/loom)
-		- [ ] Improve interactability of graph view to match [loom](https://generative.ink/posts/loom-interface-to-the-multiverse/)
-			- [ ] Implement right click menu in graph view
-			- [ ] Implement hover handling in graph view
-				- [ ] Implement setting to only show node contents on hover, similar to [exoloom](https://exoloom.io)
-			- [ ] Implement folding in graph view
-	- [ ] Improve node searching
-	- [ ] Scroll to newly generated nodes
-	- [ ] Implement "select node and generate completions" selection mode, similar to [inkstream](https://inkstream.ai)
 - [ ] Better documentation & onboarding
 
 In addition, below are the tentative plans for Tapestry Loom v2:
@@ -37,6 +80,8 @@ In addition, below are the tentative plans for Tapestry Loom v2:
 	- [ ] User authentication
 	- [ ] User permissions
 	- [ ] User rate limiting
+- [ ] Event-based server-client communication to reduce bandwidth usage
+- [ ] Automatic color palette generation in settings
 - [ ] HTTPS support
 - [ ] Compression support
 	- [ ] Brotli compression for static assets
