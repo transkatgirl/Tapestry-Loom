@@ -222,7 +222,7 @@ impl Behavior<Pane> for TapestryLoomBehavior {
     fn is_tab_closable(&self, tiles: &Tiles<Pane>, tile_id: TileId) -> bool {
         if let Some(tile) = tiles.get(tile_id) {
             match tile {
-                Tile::Container(_) => true,
+                Tile::Container(_) => false,
                 Tile::Pane(pane) => match pane {
                     Pane::Settings => false,
                     Pane::FileManager => false,
@@ -230,7 +230,7 @@ impl Behavior<Pane> for TapestryLoomBehavior {
                 },
             }
         } else {
-            true
+            false
         }
     }
     fn simplification_options(&self) -> SimplificationOptions {
