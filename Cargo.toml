@@ -20,10 +20,7 @@ serde = { version = "1.0.228", features = [
 	"derive",
 ] }
 serde_json = { version = "1.0.145", features = [
-	"preserve-order",
-] }
-toml = { version = "0.9.8", features = [
-	"preserve-order",
+	"preserve_order",
 ] }
 ron = { version = "0.12.0", features = ["indexmap", "integer128", "unicode-segmentation"] }
 reqwest = { version = "0.12", features = [
@@ -34,3 +31,4 @@ parking_lot = { version = "0.12.5", features = [
 ] }
 anyhow = "1.0.100"
 thiserror = "2.0.17"
+log = "0.4.28"

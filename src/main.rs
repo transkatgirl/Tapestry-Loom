@@ -3,9 +3,12 @@
 use std::sync::Arc;
 
 use eframe::{
-    NativeOptions,
-    egui::{self, IconData},
+    CreationContext, Frame, NativeOptions,
+    egui::{self, Context, IconData, ViewportBuilder},
 };
+use log::{debug, info, warn};
+
+use crate::settings::Settings;
 
 mod editor;
 mod files;
@@ -14,7 +17,7 @@ mod settings;
 fn main() -> eframe::Result {
     env_logger::init();
     let options = NativeOptions {
-        viewport: egui::ViewportBuilder::default()
+        viewport: ViewportBuilder::default()
             .with_fullscreen(true)
             .with_icon(Arc::new(IconData::default())),
         persist_window: true,
@@ -23,38 +26,62 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "Tapestry Loom",
         options,
-        Box::new(|_| Ok(Box::<MyApp>::default())),
+        Box::new(|cc| Ok(Box::new(TapestryLoomApp::new(cc)))),
     )
 }
 
-struct MyApp {
-    name: String,
-    age: u32,
+struct TapestryLoomApp {
+    settings: Settings,
 }
 
-impl Default for MyApp {
-    fn default() -> Self {
+impl TapestryLoomApp {
+    fn new(cc: &CreationContext<'_>) -> Self {
         Self {
-            name: "Arthur".to_owned(),
-            age: 42,
+            settings: if let Some(storage) = cc.storage {
+                if let Some(data) = storage.get_string("settings") {
+                    match ron::from_str(&data) {
+                        Ok(settings) => settings,
+                        Err(error) => {
+                            warn!(
+                                "Unable to deserialize settings: {error:#?}\nUsing default settings"
+                            );
+                            Settings::default()
+                        }
+                    }
+                } else {
+                    debug!("Using default settings");
+                    Settings::default()
+                }
+            } else {
+                warn!("Unable to connect to persistent storage; Using default settings");
+                Settings::default()
+            },
+        }
+    }
+    fn save_settings(&self, frame: &mut Frame) {
+        if let Some(storage) = frame.storage_mut() {
+            match ron::to_string(&self.settings) {
+                Ok(data) => {
+                    debug!("Settings saved");
+                    storage.set_string("settings", data);
+                }
+                Err(error) => {
+                    warn!("Unable to serialize settings: {error:#?}\n; Settings not saved");
+                }
+            }
+        } else {
+            warn!("Unable to connect to persistent storage; Settings not saved");
         }
     }
 }
 
-impl eframe::App for MyApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+impl eframe::App for TapestryLoomApp {
+    fn update(&mut self, ctx: &Context, frame: &mut Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("My egui Application");
-            ui.horizontal(|ui| {
-                let name_label = ui.label("Your name: ");
-                ui.text_edit_singleline(&mut self.name)
-                    .labelled_by(name_label.id);
-            });
-            ui.add(egui::Slider::new(&mut self.age, 0..=120).text("age"));
-            if ui.button("Increment").clicked() {
-                self.age += 1;
+            // TODO
+            if self.settings.render(ctx, ui) {
+                self.save_settings(frame);
             }
-            ui.label(format!("Hello '{}', age {}", self.name, self.age));
         });
     }
 }
