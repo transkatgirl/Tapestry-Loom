@@ -17,7 +17,7 @@ use eframe::{
         ViewportBuilder, WidgetText,
     },
 };
-use egui_tiles::{Behavior, Tile, TileId, Tiles, Tree, UiResponse};
+use egui_tiles::{Behavior, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse};
 use log::{debug, warn};
 use parking_lot::Mutex;
 
@@ -80,9 +80,19 @@ impl TapestryLoomApp {
             settings,
         };
 
-        let tree = Tree::empty("global-tree");
+        let mut tiles = Tiles::default();
 
-        Self { behavior, tree }
+        let tabs = vec![
+            tiles.insert_pane(Pane::FileManager),
+            tiles.insert_pane(Pane::Settings),
+        ];
+
+        let root = tiles.insert_tab_tile(tabs);
+
+        Self {
+            behavior,
+            tree: Tree::new("global-tree", root, tiles),
+        }
     }
     fn save_settings(&self, frame: &mut Frame) {
         if let Some(storage) = frame.storage_mut() {
@@ -166,5 +176,14 @@ impl Behavior<Pane> for TapestryLoomBehavior {
         } else {
             true
         }
+    }
+    fn simplification_options(&self) -> SimplificationOptions {
+        SimplificationOptions {
+            all_panes_must_have_tabs: true,
+            ..Default::default()
+        }
+    }
+    fn on_tab_close(&mut self, _tiles: &mut Tiles<Pane>, _tile_id: TileId) -> bool {
+        true
     }
 }

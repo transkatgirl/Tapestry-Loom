@@ -35,7 +35,7 @@ pub struct InferenceSettings {}
 
 impl Settings {
     pub fn render(&mut self, ui: &mut Ui) -> bool {
-        ui.heading("My egui Application");
+        ui.heading("Settings");
 
         false
     }

@@ -17,6 +17,8 @@ impl FileManager {
         Self { settings }
     }
     pub fn render(&mut self, ui: &mut Ui) -> Option<PathBuf> {
+        ui.heading("File Manager");
+
         None
     }
 }
