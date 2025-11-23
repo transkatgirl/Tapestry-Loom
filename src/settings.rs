@@ -1,6 +1,6 @@
 use std::{path::PathBuf, time::Duration};
 
-use eframe::egui::{Context, Ui};
+use eframe::egui::Ui;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]

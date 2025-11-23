@@ -1,19 +1,20 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 
-use eframe::egui::{Context, Ui};
+use eframe::egui::Ui;
+use parking_lot::Mutex;
 
 use crate::settings::Settings;
 
 pub struct FileManager {
-    settings: Settings,
+    settings: Rc<Mutex<Settings>>,
 }
 
 impl FileManager {
-    pub fn new(settings: Settings) -> Self {
+    pub fn new(settings: Rc<Mutex<Settings>>) -> Self {
         Self { settings }
-    }
-    pub fn update_settings(&mut self, settings: Settings) {
-        self.settings = settings;
     }
     pub fn render(&mut self, ui: &mut Ui) -> Option<PathBuf> {
         None

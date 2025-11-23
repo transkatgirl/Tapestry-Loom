@@ -1144,6 +1144,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_tiles"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ebfac3ca35f5e4fe217d3b03312111b234fe55ce059faf62b4cb47f7cf6d54f1"
+dependencies = [
+ "ahash",
+ "egui 0.33.2",
+ "itertools",
+ "log",
+ "serde",
+]
+
+[[package]]
 name = "egui_virtual_list"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1152,6 +1165,12 @@ dependencies = [
  "egui 0.33.2",
  "web-time",
 ]
+
+[[package]]
+name = "either"
+version = "1.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
 name = "emath"
@@ -2048,6 +2067,15 @@ name = "is_terminal_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
+
+[[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
+dependencies = [
+ "either",
+]
 
 [[package]]
 name = "itoa"
@@ -3747,6 +3775,7 @@ dependencies = [
  "egui_dnd",
  "egui_flex",
  "egui_suspense",
+ "egui_tiles",
  "egui_virtual_list",
  "env_logger",
  "log",

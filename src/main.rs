@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::sync::Arc;
+use std::{rc::Rc, sync::Arc};
 
 use eframe::{
     App, CreationContext, Frame, NativeOptions,
@@ -10,6 +10,7 @@ use eframe::{
     },
 };
 use log::{debug, warn};
+use parking_lot::Mutex;
 
 use crate::{editor::Editor, files::FileManager, settings::Settings};
 
@@ -38,7 +39,7 @@ struct TapestryLoomApp {
     show_file_manager: bool,
     file_manager: FileManager,
     editor: Editor,
-    settings: Settings,
+    settings: Rc<Mutex<Settings>>,
 }
 
 impl TapestryLoomApp {
@@ -60,6 +61,7 @@ impl TapestryLoomApp {
             warn!("Unable to connect to persistent storage; Using default settings");
             Settings::default()
         };
+        let settings = Rc::new(Mutex::new(settings));
 
         let mut fonts = FontDefinitions::default();
         egui_phosphor::add_to_fonts(&mut fonts, egui_phosphor::Variant::Fill);
@@ -124,9 +126,7 @@ impl App for TapestryLoomApp {
         }
         CentralPanel::default().show(ctx, |ui| {
             if self.show_settings {
-                if self.settings.render(ui) {
-                    self.file_manager.update_settings(self.settings.clone());
-                    self.editor.update_settings(self.settings.clone());
+                if self.settings.lock().render(ui) {
                     self.save_settings(frame);
                 }
             } else {
