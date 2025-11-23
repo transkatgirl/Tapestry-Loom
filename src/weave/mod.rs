@@ -115,9 +115,7 @@ impl WeaveSet {
         if let Some(weave) = weaves.remove(id) {
             match Arc::try_unwrap(weave) {
                 Ok(weave) => {
-                    let mut lock = weave.lock().await;
-
-                    if let Some(weave) = lock.as_mut()
+                    if let Some(mut weave) = weave.into_inner()
                         && weave.1 > 0
                     {
                         weave.0.save().await?;
@@ -160,6 +158,33 @@ impl WeaveSet {
             }
 
             Ok(exists)
+        }
+    }
+    pub(super) async fn unload(&self) {
+        let mut weaves = self.weaves.write().await;
+        let keys: Vec<rusty_ulid::Ulid> = weaves.keys().copied().collect();
+
+        for weave in keys.into_iter().filter_map(|id| weaves.remove(&id)) {
+            match Arc::try_unwrap(weave) {
+                Ok(weave) => {
+                    if let Some(mut weave) = weave.into_inner()
+                        && weave.1 > 0
+                        && let Err(err) = weave.0.save().await
+                    {
+                        eprintln!("{err:#?}");
+                    }
+                }
+                Err(weave) => {
+                    let mut lock = weave.lock().await;
+                    if let Some(weave) = lock.as_mut()
+                        && weave.1 > 0
+                        && let Err(err) = weave.0.save().await
+                    {
+                        eprintln!("{err:#?}");
+                    }
+                    *lock = None;
+                }
+            }
         }
     }
 }

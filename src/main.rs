@@ -10,8 +10,10 @@ mod weave;
 #[rocket::main]
 #[allow(clippy::result_large_err)]
 async fn main() -> Result<(), rocket::Error> {
+    let weave_set = Arc::new(weave::WeaveSet::default());
+
     let _rocket = rocket::build()
-        .manage(Arc::new(weave::WeaveSet::default()))
+        .manage(weave_set.clone())
         .mount("/", FileServer::from(relative!("static")))
         .mount(
             "/api",
@@ -25,6 +27,8 @@ async fn main() -> Result<(), rocket::Error> {
         )
         .launch()
         .await?;
+
+    weave_set.unload().await;
 
     Ok(())
 }
