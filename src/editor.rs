@@ -1,24 +1,35 @@
-use std::rc::Rc;
+use std::{
+    cell::RefCell,
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 
+use anyhow::Error;
 use eframe::egui::Ui;
-use parking_lot::Mutex;
 
 use crate::settings::Settings;
 
 pub struct Editor {
-    settings: Rc<Mutex<Settings>>,
-    document: Option<Document>,
+    settings: Rc<RefCell<Settings>>,
+    document: Document,
+    pub title: String,
 }
 
 impl Editor {
-    pub fn new(settings: Rc<Mutex<Settings>>) -> Self {
-        Self {
+    pub fn new(settings: Rc<RefCell<Settings>>, path: &Path) -> Result<Self, Error> {
+        Ok(Self {
             settings,
-            document: None,
-        }
+            document: Document::load(path)?,
+            title: "Editor".to_string(),
+        })
     }
-    pub fn render_main(&mut self, ui: &mut Ui) {}
-    pub fn render_bar(&mut self, ui: &mut Ui) {}
+    pub fn render(&mut self, ui: &mut Ui) {}
 }
 
 struct Document {}
+
+impl Document {
+    fn load(path: &Path) -> Result<Self, Error> {
+        Ok(Self {})
+    }
+}

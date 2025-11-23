@@ -1,14 +1,23 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{rc::Rc, sync::Arc};
+use std::{
+    cell::RefCell,
+    path::PathBuf,
+    rc::Rc,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+};
 
 use eframe::{
     App, CreationContext, Frame, NativeOptions,
     egui::{
-        Button, CentralPanel, Context, FontDefinitions, IconData, SidePanel, TopBottomPanel,
-        ViewportBuilder,
+        Button, CentralPanel, Context, FontDefinitions, IconData, SidePanel, TopBottomPanel, Ui,
+        ViewportBuilder, WidgetText,
     },
 };
+use egui_tiles::{Behavior, Tile, TileId, Tiles, Tree, UiResponse};
 use log::{debug, warn};
 use parking_lot::Mutex;
 
@@ -35,11 +44,8 @@ fn main() -> eframe::Result {
 }
 
 struct TapestryLoomApp {
-    show_settings: bool,
-    show_file_manager: bool,
-    file_manager: FileManager,
-    editor: Editor,
-    settings: Rc<Mutex<Settings>>,
+    behavior: TapestryLoomBehavior,
+    tree: Tree<Pane>,
 }
 
 impl TapestryLoomApp {
@@ -61,23 +67,26 @@ impl TapestryLoomApp {
             warn!("Unable to connect to persistent storage; Using default settings");
             Settings::default()
         };
-        let settings = Rc::new(Mutex::new(settings));
+        let settings = Rc::new(RefCell::new(settings));
 
         let mut fonts = FontDefinitions::default();
         egui_phosphor::add_to_fonts(&mut fonts, egui_phosphor::Variant::Fill);
         cc.egui_ctx.set_fonts(fonts);
 
-        Self {
-            show_settings: false,
-            show_file_manager: false,
+        let behavior = TapestryLoomBehavior {
             file_manager: FileManager::new(settings.clone()),
-            editor: Editor::new(settings.clone()),
+            unchanged_settings_changes: false,
+            queued_files: Vec::with_capacity(16),
             settings,
-        }
+        };
+
+        let tree = Tree::empty("global-tree");
+
+        Self { behavior, tree }
     }
     fn save_settings(&self, frame: &mut Frame) {
         if let Some(storage) = frame.storage_mut() {
-            match ron::to_string(&self.settings) {
+            match ron::to_string(&self.behavior.settings) {
                 Ok(data) => {
                     debug!("Settings saved (may not yet be written to disk)");
                     storage.set_string("settings", data);
@@ -94,44 +103,68 @@ impl TapestryLoomApp {
 
 impl App for TapestryLoomApp {
     fn update(&mut self, ctx: &Context, frame: &mut Frame) {
-        TopBottomPanel::top("global-top-panel").show(ctx, |ui| {
-            let mut file_manager_button = Button::new("\u{E260} Files");
-            let mut settings_button = Button::new("\u{E270} Settings");
-
-            if self.show_file_manager {
-                file_manager_button = file_manager_button.fill(ui.visuals().extreme_bg_color);
-            }
-
-            if self.show_settings {
-                settings_button = settings_button.fill(ui.visuals().extreme_bg_color);
-            }
-
-            ui.horizontal_wrapped(|ui| {
-                if ui.add(file_manager_button).clicked() {
-                    self.show_file_manager = !self.show_file_manager
-                };
-                if ui.add(settings_button).clicked() {
-                    self.show_settings = !self.show_settings
-                };
-                if !self.show_settings {
-                    ui.label("|");
-                    self.editor.render_bar(ui);
-                }
-            })
-        });
-        if self.show_file_manager {
-            SidePanel::left("global-left-panel").show(ctx, |ui| {
-                self.file_manager.render(ui);
-            });
-        }
         CentralPanel::default().show(ctx, |ui| {
-            if self.show_settings {
-                if self.settings.lock().render(ui) {
-                    self.save_settings(frame);
-                }
-            } else {
-                self.editor.render_main(ui);
+            self.tree.ui(&mut self.behavior, ui);
+
+            if self.behavior.unchanged_settings_changes {
+                self.save_settings(frame);
             }
+
+            if !self.behavior.queued_files.is_empty() {}
         });
+    }
+}
+
+struct TapestryLoomBehavior {
+    settings: Rc<RefCell<Settings>>,
+    unchanged_settings_changes: bool,
+    queued_files: Vec<PathBuf>,
+    file_manager: FileManager,
+}
+
+enum Pane {
+    Settings,
+    FileManager,
+    Editor(Editor),
+}
+
+impl Behavior<Pane> for TapestryLoomBehavior {
+    fn tab_title_for_pane(&mut self, pane: &Pane) -> WidgetText {
+        match pane {
+            Pane::Settings => WidgetText::Text("Settings".to_string()),
+            Pane::FileManager => WidgetText::Text("Files".to_string()),
+            Pane::Editor(editor) => WidgetText::Text(editor.title.clone()),
+        }
+    }
+    fn pane_ui(&mut self, ui: &mut Ui, _tile_id: TileId, pane: &mut Pane) -> UiResponse {
+        match pane {
+            Pane::Settings => {
+                if self.settings.borrow_mut().render(ui) {
+                    self.unchanged_settings_changes = true;
+                }
+            }
+            Pane::FileManager => {
+                if let Some(path) = self.file_manager.render(ui) {
+                    self.queued_files.push(path);
+                }
+            }
+            Pane::Editor(editor) => editor.render(ui),
+        }
+
+        UiResponse::None
+    }
+    fn is_tab_closable(&self, tiles: &Tiles<Pane>, tile_id: TileId) -> bool {
+        if let Some(tile) = tiles.get(tile_id) {
+            match tile {
+                Tile::Container(_) => true,
+                Tile::Pane(pane) => match pane {
+                    Pane::Settings => false,
+                    Pane::FileManager => false,
+                    Pane::Editor(_) => true,
+                },
+            }
+        } else {
+            true
+        }
     }
 }
