@@ -249,10 +249,8 @@ impl Behavior<Pane> for TapestryLoomBehavior {
                 }
             }
             Pane::FileManager => {
-                if let Some(paths) = self.file_manager.render(ui) {
-                    for path in paths {
-                        self.new_editor_queue.push((Some(path), None));
-                    }
+                for path in self.file_manager.render(ui) {
+                    self.new_editor_queue.push((Some(path), None));
                 }
             }
             Pane::Editor(editor) => editor.render(ui),

@@ -36,7 +36,6 @@ pub struct FileManager {
     items: BTreeMap<PathBuf, ScannedItem>,
     scanned: bool,
     stop_scanning: Arc<AtomicBool>,
-    last_selected_items: HashSet<PathBuf>,
 }
 
 type ScanResult = Result<ItemScanEvent, String>;
@@ -136,13 +135,14 @@ impl FileManager {
             items: BTreeMap::new(),
             scanned: false,
             stop_scanning: Arc::new(AtomicBool::new(false)),
-            last_selected_items: HashSet::with_capacity(16),
         }
     }
-    pub fn render(&mut self, ui: &mut Ui) -> Option<Vec<PathBuf>> {
+    pub fn render(&mut self, ui: &mut Ui) -> Vec<PathBuf> {
         self.update_items();
 
         let items = self.items();
+
+        let mut selected_items = Vec::new();
 
         let text_style = TextStyle::Monospace;
         let row_height = (*ui).text_style_height(&text_style);
@@ -194,15 +194,20 @@ impl FileManager {
                     };
                     ui.horizontal(|ui| {
                         ui.add_space(ch * padding as f32);
-                        ui.button(
-                            RichText::new(format!("{icon} {label}{suffix}"))
-                                .family(eframe::egui::FontFamily::Monospace),
-                        );
+                        if ui
+                            .button(
+                                RichText::new(format!("{icon} {label}{suffix}"))
+                                    .family(eframe::egui::FontFamily::Monospace),
+                            )
+                            .clicked()
+                        {
+                            selected_items.push(item.path.clone());
+                        };
 
                         if ui.rect_contains_pointer(ui.max_rect()) {
                             //ui.button(regular::FILE_PLUS);
                             ui.button(regular::FOLDER_PLUS);
-                            ui.button(regular::PENCIL_LINE);
+                            ui.button(regular::PENCIL_LINE).clicked();
 
                             if ui.button(regular::TRASH).clicked() {
                                 self.remove_item(item.path.clone());
@@ -212,7 +217,7 @@ impl FileManager {
                 }
             });
 
-        None
+        selected_items
     }
     fn items(&self) -> Vec<ScannedItem> {
         self.items
