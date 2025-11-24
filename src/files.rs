@@ -30,6 +30,7 @@ use crate::{editor::blank_weave_bytes, settings::Settings};
 pub struct FileManager {
     settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
+    open_documents: Rc<RefCell<HashSet<PathBuf>>>,
     scan_threadpool: ThreadPool,
     action_threadpool: ThreadPool,
     channel: (Sender<ScanResult>, Receiver<ScanResult>),
@@ -50,7 +51,11 @@ pub struct FileManager {
 type ScanResult = Result<ItemScanEvent, String>;
 
 impl FileManager {
-    pub fn new(settings: Rc<RefCell<Settings>>, toasts: Rc<RefCell<Toasts>>) -> Self {
+    pub fn new(
+        settings: Rc<RefCell<Settings>>,
+        toasts: Rc<RefCell<Toasts>>,
+        open_documents: Rc<RefCell<HashSet<PathBuf>>>,
+    ) -> Self {
         let path = settings.borrow().documents.location.clone();
 
         let (sender, receiver) = mpsc::channel::<ScanResult>();
@@ -58,6 +63,7 @@ impl FileManager {
         Self {
             settings,
             toasts,
+            open_documents,
             channel: (sender, receiver),
             scan_threadpool: ThreadPool::new(1),
             action_threadpool: ThreadPool::new(16),
@@ -163,6 +169,8 @@ impl FileManager {
                         (0, item.path.to_string_lossy())
                     };
 
+                    let full_path = self.path.join(item.path.clone());
+
                     //let padding = (0..(padding)).map(|_| " ").collect::<String>();
                     let (icon, suffix) = match item.r#type {
                         ScannedItemType::File => ("📄", ""),
@@ -181,6 +189,7 @@ impl FileManager {
                         if item.r#type == ScannedItemType::File {
                             if !(item.path.extension() == Some(&file_extension_normal)
                                 || item.path.extension() == Some(&file_extension_treeless))
+                                || self.open_documents.borrow().contains(&full_path)
                             {
                                 enabled = false;
                             }
@@ -190,7 +199,7 @@ impl FileManager {
 
                         if ui.add_enabled(enabled, button).clicked() {
                             if item.r#type == ScannedItemType::File {
-                                selected_items.push(self.path.join(item.path.clone()));
+                                selected_items.push(full_path.clone());
                             } else {
                                 if self.open_folders.contains(&item.path) {
                                     self.open_folders.remove(&item.path);
@@ -201,7 +210,9 @@ impl FileManager {
                             }
                         };
 
-                        if ui.rect_contains_pointer(ui.max_rect()) {
+                        if ui.rect_contains_pointer(ui.max_rect())
+                            && !self.open_documents.borrow().contains(&full_path)
+                        {
                             if item.r#type == ScannedItemType::Directory
                                 && self.open_folders.contains(&item.path)
                             {

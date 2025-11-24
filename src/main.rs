@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{cell::RefCell, path::PathBuf, rc::Rc, sync::Arc};
+use std::{cell::RefCell, collections::HashSet, path::PathBuf, rc::Rc, sync::Arc};
 
 use eframe::{
     App, CreationContext, Frame, NativeOptions,
@@ -96,8 +96,13 @@ impl TapestryLoomApp {
         cc.egui_ctx.set_fonts(fonts);
 
         let toasts = Rc::new(RefCell::new(toasts));
+        let open_documents = Rc::new(RefCell::new(HashSet::with_capacity(64)));
         let behavior = TapestryLoomBehavior {
-            file_manager: FileManager::new(settings.clone(), toasts.clone()),
+            file_manager: FileManager::new(
+                settings.clone(),
+                toasts.clone(),
+                open_documents.clone(),
+            ),
             unsaved_settings_changes: false,
             new_editor_queue: Vec::with_capacity(16),
             settings,
@@ -119,6 +124,7 @@ impl TapestryLoomApp {
                     .build()
                     .unwrap(),
             ),
+            open_documents,
         };
 
         let mut tiles = Tiles::default();
@@ -173,9 +179,16 @@ impl App for TapestryLoomApp {
                     let mut new_tiles = Vec::with_capacity(self.behavior.new_editor_queue.len());
 
                     for (path, parent) in self.behavior.new_editor_queue.drain(..) {
+                        if let Some(path) = &path
+                            && self.behavior.open_documents.borrow().contains(path)
+                        {
+                            continue;
+                        }
+
                         let identifier = self.tree.tiles.insert_pane(Pane::Editor(Editor::new(
                             self.behavior.settings.clone(),
                             self.behavior.toasts.clone(),
+                            self.behavior.open_documents.clone(),
                             self.behavior.runtime.clone(),
                             path,
                         )));
@@ -225,6 +238,7 @@ struct TapestryLoomBehavior {
     file_manager: FileManager,
     toasts: Rc<RefCell<Toasts>>,
     runtime: Arc<Runtime>,
+    open_documents: Rc<RefCell<HashSet<PathBuf>>>,
 }
 
 enum Pane {
@@ -290,7 +304,13 @@ impl Behavior<Pane> for TapestryLoomBehavior {
             self.new_editor_queue.push((None, Some(tile_id)));
         }
     }
-    fn on_tab_close(&mut self, _tiles: &mut Tiles<Pane>, _tile_id: TileId) -> bool {
+    fn on_tab_close(&mut self, tiles: &mut Tiles<Pane>, tile_id: TileId) -> bool {
+        if let Some(Tile::Pane(Pane::Editor(editor))) = tiles.get(tile_id)
+            && let Some(path) = editor.path()
+        {
+            self.open_documents.borrow_mut().remove(path);
+        }
+
         true
     }
 }
