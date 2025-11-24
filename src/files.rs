@@ -200,6 +200,7 @@ impl FileManager {
                         );
 
                         if ui.rect_contains_pointer(ui.max_rect()) {
+                            //ui.button(regular::FILE_PLUS);
                             ui.button(regular::FOLDER_PLUS);
                             ui.button(regular::PENCIL_LINE);
 
@@ -244,6 +245,9 @@ impl FileManager {
                     || item.r#type == ScannedItemType::Other)
             })
             .collect()
+    }
+    fn create_weave(&mut self, item: PathBuf) {
+        todo!()
     }
     fn create_directory(&mut self, item: PathBuf) {
         let path = self.path.join(item);
