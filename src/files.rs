@@ -110,8 +110,18 @@ impl FileManager {
                     }
                 });
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    ui.label("TODO: Add buttons here!");
-                    // TODO: Add buttons to add files & folders at the root
+                    if ui.button(regular::ARROW_CLOCKWISE).clicked() {
+                        self.scanned = false;
+                    }
+                    if ui.button(regular::FOLDER_PLUS).clicked() {
+                        *self.modal.borrow_mut() =
+                            ModalType::CreateDirectory("Untitled Folder".to_string());
+                    }
+                    if ui.button(regular::FILE_PLUS).clicked() {
+                        *self.modal.borrow_mut() = ModalType::CreateWeave(
+                            ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION].concat(),
+                        );
+                    }
                 });
             });
         });
