@@ -7,6 +7,7 @@ use std::{
     rc::Rc,
     sync::{
         Arc,
+        atomic::{AtomicBool, Ordering},
         mpsc::{self, Receiver, Sender},
     },
 };
@@ -20,6 +21,7 @@ use notify::{
 };
 use parking_lot::Mutex;
 use threadpool::ThreadPool;
+use walkdir::WalkDir;
 
 use crate::settings::Settings;
 
@@ -32,6 +34,7 @@ pub struct FileManager {
     path: PathBuf,
     items: Arc<Mutex<HashMap<PathBuf, ScannedItem>>>,
     scanned: bool,
+    stop_scanning: Arc<AtomicBool>,
 }
 
 type ScanResult = Result<ItemScanEvent, String>;
@@ -42,13 +45,13 @@ impl FileManager {
 
         let (sender, receiver) = mpsc::channel::<ScanResult>();
 
-        let watcher_sender = sender.clone();
+        let tx = sender.clone();
         let watcher = match recommended_watcher(move |event: Result<Event, notify::Error>| {
             let insert_item = |path: PathBuf| match path.metadata() {
                 Ok(metadata) => {
                     let filetype = metadata.file_type();
 
-                    let _ = watcher_sender.send(Ok(ItemScanEvent::Insert(ScannedItem {
+                    let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
                         name: path.file_name().map(|n| n.to_owned()).unwrap_or_default(),
                         path,
                         r#type: if filetype.is_file() {
@@ -61,11 +64,11 @@ impl FileManager {
                     })));
                 }
                 Err(error) => {
-                    let _ = watcher_sender.send(Err(format!("{error:#?}")));
+                    let _ = tx.send(Err(format!("{error:#?}")));
                 }
             };
             let remove_item = |path: PathBuf| {
-                let _ = watcher_sender.send(Ok(ItemScanEvent::Delete(path)));
+                let _ = tx.send(Ok(ItemScanEvent::Delete(path)));
             };
             let unknown_item = |path: PathBuf| match fs::exists(&path) {
                 Ok(exists) => {
@@ -76,7 +79,7 @@ impl FileManager {
                     }
                 }
                 Err(error) => {
-                    let _ = watcher_sender.send(Err(format!("{error:#?}")));
+                    let _ = tx.send(Err(format!("{error:#?}")));
                 }
             };
 
@@ -108,7 +111,7 @@ impl FileManager {
                     EventKind::Access(_) => {}
                 },
                 Err(error) => {
-                    let _ = watcher_sender.send(Err(format!("{error:#?}")));
+                    let _ = tx.send(Err(format!("{error:#?}")));
                 }
             }
         }) {
@@ -126,10 +129,11 @@ impl FileManager {
             toasts,
             watcher,
             channel: (sender, receiver),
-            threadpool: ThreadPool::new(8),
+            threadpool: ThreadPool::new(1),
             path,
             items: Arc::new(Mutex::new(HashMap::with_capacity(512))),
             scanned: false,
+            stop_scanning: Arc::new(AtomicBool::new(false)),
         }
     }
     pub fn render(&mut self, ui: &mut Ui) -> Option<Vec<PathBuf>> {
@@ -144,7 +148,9 @@ impl FileManager {
         let mut toasts = self.toasts.borrow_mut();
 
         if settings.documents.location != self.path {
-            if let Some(watcher) = &mut self.watcher {
+            if self.scanned
+                && let Some(watcher) = &mut self.watcher
+            {
                 watcher.unwatch(&self.path);
             }
             self.items.lock().clear();
@@ -152,6 +158,7 @@ impl FileManager {
                 watcher.watch(&self.path, RecursiveMode::Recursive);
             }
             self.scanned = false;
+            self.stop_scanning.store(true, Ordering::SeqCst);
         }
 
         if !self.scanned {
@@ -159,7 +166,38 @@ impl FileManager {
                 watcher.watch(&self.path, RecursiveMode::Recursive);
             }
 
-            // TODO
+            let tx = self.channel.0.clone();
+            let path = self.path.clone();
+            let stop_scanning = self.stop_scanning.clone();
+            self.threadpool.execute(move || {
+                for entry in WalkDir::new(path) {
+                    if stop_scanning.load(Ordering::SeqCst) {
+                        stop_scanning.store(false, Ordering::SeqCst);
+                        break;
+                    }
+
+                    match entry {
+                        Ok(entry) => {
+                            let filetype = entry.file_type();
+
+                            let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
+                                name: entry.file_name().to_owned(),
+                                path: entry.path().to_path_buf(),
+                                r#type: if filetype.is_file() {
+                                    ScannedItemType::File
+                                } else if filetype.is_dir() {
+                                    ScannedItemType::Directory
+                                } else {
+                                    ScannedItemType::Other
+                                },
+                            })));
+                        }
+                        Err(error) => {
+                            let _ = tx.send(Err(format!("{error:#?}")));
+                        }
+                    }
+                }
+            });
 
             self.scanned = true;
         }
