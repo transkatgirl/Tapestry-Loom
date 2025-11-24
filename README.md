@@ -66,6 +66,7 @@ The plans for the rewrite are the following:
 - [ ] Keyboard shortcut implementation
 	- [ ] Automatically adapt keyboards shortcuts based on OS (such as Mac vs Windows/Linux)
 	- [ ] Repeat keypresses when a keyboard be cut is held down
+	- [ ] Support shortcuts for all aspects of the UI, not just the weave editor
 	- [ ] Multiple presets
 		- [ ] [loomsidian](https://github.com/cosmicoptima/loom)-like
 		- [ ] [exoloom](https://exoloom.io)-like
