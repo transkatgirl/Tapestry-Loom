@@ -268,23 +268,26 @@ impl FileManager {
 
                         if ui.rect_contains_pointer(ui.max_rect()) {
                             if item.r#type == ScannedItemType::Directory
-                                && ui.button(regular::FILE_PLUS).clicked()
+                                && self.open_folders.contains(&item.path)
                             {
-                                *self.modal.borrow_mut() = ModalType::CreateWeave(
-                                    item.path
-                                        .join("Untitled.weave")
-                                        .to_string_lossy()
-                                        .to_string(),
-                                );
-                            };
-                            if ui.button(regular::FOLDER_PLUS).clicked() {
-                                *self.modal.borrow_mut() = ModalType::CreateDirectory(
-                                    item.path
-                                        .join("Untitled Folder")
-                                        .to_string_lossy()
-                                        .to_string(),
-                                );
+                                if ui.button(regular::FILE_PLUS).clicked() {
+                                    *self.modal.borrow_mut() = ModalType::CreateWeave(
+                                        item.path
+                                            .join("Untitled.weave")
+                                            .to_string_lossy()
+                                            .to_string(),
+                                    );
+                                }
+                                if ui.button(regular::FOLDER_PLUS).clicked() {
+                                    *self.modal.borrow_mut() = ModalType::CreateDirectory(
+                                        item.path
+                                            .join("Untitled Folder")
+                                            .to_string_lossy()
+                                            .to_string(),
+                                    );
+                                }
                             }
+
                             if ui.button(regular::PENCIL_LINE).clicked() {
                                 *self.modal.borrow_mut() = ModalType::RenameFile((
                                     item.path.clone(),
