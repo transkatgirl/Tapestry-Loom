@@ -63,11 +63,10 @@ impl Editor {
         }
     }
     pub fn render(&mut self, ui: &mut Ui) {
-        if let Some(mut weave) = self.weave.try_lock() {
+        if let Some(mut weave) = self.weave.clone().try_lock() {
             match weave.as_mut() {
                 Some(weave) => {
-                    // TODO,
-                    ui.label("weave loaded");
+                    self.render_weave(ui, weave);
                 }
                 None => {
                     drop(weave);
@@ -130,26 +129,22 @@ impl Editor {
                         }
                     });
                     barrier.wait();
-
-                    //
                 }
             }
         } else {
             ui.add(Spinner::new());
         }
 
-        //let settings = self.settings.borrow();
-
-        ui.label(format!("{:#?}", self.path));
-
-        /*self.toasts
-        .borrow_mut()
-        .error(format!("Document loading failed: {error:#?}"));*/
-
         let mut toasts = self.toasts.borrow_mut();
         while let Ok(message) = self.error_channel.1.try_recv() {
             toasts.error(message);
         }
+    }
+    fn render_weave(&mut self, ui: &mut Ui, weave: &mut TapestryWeave) {
+        let settings = self.settings.borrow();
+
+        ui.label("weave loaded");
+        ui.label(format!("{:#?}", self.path));
     }
     fn save(&self) {
         let weave = self.weave.clone();
