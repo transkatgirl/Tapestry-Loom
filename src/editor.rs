@@ -1,6 +1,7 @@
 use std::{
     cell::RefCell,
     collections::HashSet,
+    fs,
     path::{Path, PathBuf},
     rc::Rc,
     sync::{
@@ -9,10 +10,11 @@ use std::{
     },
 };
 
-use eframe::egui::Ui;
+use eframe::egui::{Spinner, Ui};
 use egui_notify::Toasts;
 use parking_lot::Mutex;
 use tapestry_weave::{
+    VersionedWeave,
     universal_weave::{indexmap::IndexMap, rkyv::rancor},
     v0::TapestryWeave,
 };
@@ -28,9 +30,9 @@ pub struct Editor {
     open_documents: Rc<RefCell<HashSet<PathBuf>>>,
     runtime: Arc<Runtime>,
     pub title: String,
-    path: Option<PathBuf>,
+    path: Arc<Mutex<Option<PathBuf>>>,
     weave: Arc<Mutex<Option<TapestryWeave>>>,
-    error_channel: (Sender<String>, Receiver<String>),
+    error_channel: (Arc<Sender<String>>, Receiver<String>),
 }
 
 impl Editor {
@@ -46,6 +48,8 @@ impl Editor {
             open_documents.borrow_mut().insert(path.clone());
         }
 
+        let (sender, receiver) = mpsc::channel();
+
         Self {
             settings,
             toasts,
@@ -53,9 +57,9 @@ impl Editor {
             open_documents,
             runtime,
             title: "Editor".to_string(),
-            path,
+            path: Arc::new(Mutex::new(path)),
             weave: Arc::new(Mutex::new(None)),
-            error_channel: mpsc::channel(),
+            error_channel: (Arc::new(sender), receiver),
         }
     }
     pub fn render(&mut self, ui: &mut Ui) {
@@ -63,6 +67,7 @@ impl Editor {
             match weave.as_mut() {
                 Some(weave) => {
                     // TODO,
+                    ui.label("weave loaded");
                 }
                 None => {
                     drop(weave);
@@ -70,16 +75,67 @@ impl Editor {
                     let barrier = Arc::new(Barrier::new(2));
                     let thread_barrier = barrier.clone();
                     let path = self.path.clone();
+                    let error_sender = self.error_channel.0.clone();
 
                     self.threadpool.execute(move || {
-                        let weave = weave.lock();
+                        let mut weave_dest = weave.lock();
+                        let mut path = path.lock();
                         thread_barrier.wait();
+
+                        if let Some(filepath) = path.as_deref() {
+                            match fs::read(filepath) {
+                                Ok(bytes) => match VersionedWeave::from_bytes(&bytes) {
+                                    Some(Ok(weave)) => {
+                                        let mut weave = weave.into_latest();
+
+                                        if weave.capacity() < 16384 {
+                                            weave.reserve(16384 - weave.capacity());
+                                        }
+
+                                        *weave_dest = Some(weave);
+                                    }
+                                    Some(Err(error)) => {
+                                        let _ = error_sender.send(format!(
+                                            "Weave deserialization failed: {error:#?}"
+                                        ));
+                                        *path = None;
+                                        *weave_dest = Some(TapestryWeave::with_capacity(
+                                            16384,
+                                            IndexMap::default(),
+                                        ));
+                                    }
+                                    None => {
+                                        let _ =
+                                            error_sender.send("Invalid weave header".to_string());
+                                        *path = None;
+                                        *weave_dest = Some(TapestryWeave::with_capacity(
+                                            16384,
+                                            IndexMap::default(),
+                                        ));
+                                    }
+                                },
+                                Err(error) => {
+                                    let _ =
+                                        error_sender.send(format!("Filesystem error: {error:#?}"));
+                                    *path = None;
+                                    *weave_dest = Some(TapestryWeave::with_capacity(
+                                        16384,
+                                        IndexMap::default(),
+                                    ));
+                                }
+                            }
+                        } else {
+                            *weave_dest =
+                                Some(TapestryWeave::with_capacity(16384, IndexMap::default()));
+                        }
                     });
                     barrier.wait();
 
                     //
                 }
             }
+        } else {
+            ui.add(Spinner::new());
         }
 
         //let settings = self.settings.borrow();
@@ -92,13 +148,40 @@ impl Editor {
 
         let mut toasts = self.toasts.borrow_mut();
         while let Ok(message) = self.error_channel.1.try_recv() {
-            toasts.warning(message);
+            toasts.error(message);
         }
     }
-    pub fn save(&mut self) {
-        if let Some(path) = &self.path {
-            self.open_documents.borrow_mut().remove(path);
+    fn save(&self) {
+        let weave = self.weave.clone();
+        let path = self.path.clone();
+        let error_sender = self.error_channel.0.clone();
+
+        self.threadpool.execute(move || {
+            if let Some(path) = path.lock().as_ref()
+                && let Some(weave) = weave.lock().as_ref()
+            {
+                match weave.to_versioned_bytes() {
+                    Ok(bytes) => {
+                        if let Err(error) = fs::write(path, bytes) {
+                            let _ = error_sender.send(format!("Filesystem error: {error:#?}"));
+                        }
+                    }
+                    Err(error) => {
+                        let _ =
+                            error_sender.send(format!("Weave serialization failed: {error:#?}"));
+                    }
+                }
+            }
+        });
+    }
+    pub fn close(&mut self) -> bool {
+        self.save();
+
+        if let Some(path) = &self.path.lock().as_ref() {
+            self.open_documents.borrow_mut().remove(*path);
         }
+
+        true
     }
 }
 
