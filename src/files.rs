@@ -1,7 +1,6 @@
 use std::{
     cell::RefCell,
-    collections::{HashMap, HashSet},
-    ffi::OsString,
+    collections::{BTreeMap, HashSet},
     fs,
     path::PathBuf,
     rc::Rc,
@@ -31,7 +30,7 @@ pub struct FileManager {
     action_threadpool: ThreadPool,
     channel: (Sender<ScanResult>, Receiver<ScanResult>),
     path: PathBuf,
-    items: HashMap<PathBuf, ScannedItem>,
+    items: BTreeMap<PathBuf, ScannedItem>,
     scanned: bool,
     stop_scanning: Arc<AtomicBool>,
     last_selected_items: HashSet<PathBuf>,
@@ -52,7 +51,6 @@ impl FileManager {
                     let filetype = metadata.file_type();
 
                     let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
-                        name: path.file_name().map(|n| n.to_owned()).unwrap_or_default(),
                         path,
                         r#type: if filetype.is_file() {
                             ScannedItemType::File
@@ -132,7 +130,7 @@ impl FileManager {
             scan_threadpool: ThreadPool::new(1),
             action_threadpool: ThreadPool::new(16),
             path,
-            items: HashMap::with_capacity(512),
+            items: BTreeMap::new(),
             scanned: false,
             stop_scanning: Arc::new(AtomicBool::new(false)),
             last_selected_items: HashSet::with_capacity(16),
@@ -141,22 +139,7 @@ impl FileManager {
     pub fn render(&mut self, ui: &mut Ui) -> Option<Vec<PathBuf>> {
         self.update_items();
 
-        let items: Vec<ScannedItem> = self
-            .items
-            .iter()
-            .map(|i| i.1.clone())
-            .filter(|item| {
-                let lowercase_name = item.name.to_ascii_lowercase();
-
-                #[allow(clippy::nonminimal_bool)]
-                !((lowercase_name.to_string_lossy().chars().nth(0) == Some('.'))
-                    || lowercase_name == "thumbs.db"
-                    || lowercase_name == "thumbs.db"
-                    || lowercase_name == "Thumbs.db:encryptable"
-                    || lowercase_name == "ehthumbs.db"
-                    || lowercase_name == "desktop.ini")
-            })
-            .collect();
+        let items = self.items();
 
         for item in items {
             let icon = match item.r#type {
@@ -164,10 +147,40 @@ impl FileManager {
                 ScannedItemType::Directory => "📂",
                 ScannedItemType::Other => "?",
             };
-            ui.label(format!("{icon} {:?}", item.path));
+            ui.label(format!("{icon} {}", item.path.to_string_lossy()));
         }
 
         None
+    }
+    fn items(&self) -> Vec<ScannedItem> {
+        self.items
+            .iter()
+            .map(|i| i.1.clone())
+            .filter_map(|mut item| match item.path.strip_prefix(&self.path) {
+                Ok(new_path) => {
+                    item.path = new_path.to_path_buf();
+                    Some(item)
+                }
+                Err(_) => None,
+            })
+            .filter(|item| {
+                let lowercase_name = item
+                    .path
+                    .file_name()
+                    .map(|s| s.to_os_string())
+                    .unwrap_or_default()
+                    .to_ascii_lowercase();
+
+                #[allow(clippy::nonminimal_bool)]
+                !(lowercase_name.is_empty()
+                    || (lowercase_name.to_string_lossy().chars().nth(0) == Some('.'))
+                    || lowercase_name == "thumbs.db"
+                    || lowercase_name == "thumbs.db"
+                    || lowercase_name == "Thumbs.db:encryptable"
+                    || lowercase_name == "ehthumbs.db"
+                    || lowercase_name == "desktop.ini")
+            })
+            .collect()
     }
     fn create_directory(&mut self, item: PathBuf) {
         let path = self.path.join(item);
@@ -278,7 +291,6 @@ impl FileManager {
                             let filetype = entry.file_type();
 
                             let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
-                                name: entry.file_name().to_owned(),
                                 path: entry.path().to_path_buf(),
                                 r#type: if filetype.is_file() {
                                     ScannedItemType::File
@@ -332,7 +344,6 @@ enum ItemScanEvent {
 
 #[derive(Debug, Clone)]
 struct ScannedItem {
-    name: OsString,
     path: PathBuf,
     r#type: ScannedItemType,
 }
