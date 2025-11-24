@@ -273,7 +273,10 @@ impl FileManager {
                                 if ui.button(regular::FILE_PLUS).clicked() {
                                     *self.modal.borrow_mut() = ModalType::CreateWeave(
                                         item.path
-                                            .join("Untitled.weave")
+                                            .join(
+                                                ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION]
+                                                    .concat(),
+                                            )
                                             .to_string_lossy()
                                             .to_string(),
                                     );
