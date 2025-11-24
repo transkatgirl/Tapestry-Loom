@@ -305,10 +305,8 @@ impl Behavior<Pane> for TapestryLoomBehavior {
         }
     }
     fn on_tab_close(&mut self, tiles: &mut Tiles<Pane>, tile_id: TileId) -> bool {
-        if let Some(Tile::Pane(Pane::Editor(editor))) = tiles.get(tile_id)
-            && let Some(path) = editor.path()
-        {
-            self.open_documents.borrow_mut().remove(path);
+        if let Some(Tile::Pane(Pane::Editor(editor))) = tiles.get_mut(tile_id) {
+            editor.save();
         }
 
         true

@@ -46,9 +46,6 @@ impl Editor {
             document: None,
         }
     }
-    pub fn path(&self) -> &Option<PathBuf> {
-        &self.path
-    }
     pub fn render(&mut self, ui: &mut Ui) {
         let settings = self.settings.borrow();
 
@@ -57,6 +54,11 @@ impl Editor {
         /*self.toasts
         .borrow_mut()
         .error(format!("Document loading failed: {error:#?}"));*/
+    }
+    pub fn save(&mut self) {
+        if let Some(path) = &self.path {
+            self.open_documents.borrow_mut().remove(path);
+        }
     }
 }
 
