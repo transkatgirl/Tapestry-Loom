@@ -342,6 +342,10 @@ impl FileManager {
             .collect::<Vec<_>>();
 
         for item in items {
+            if let TreeItem::Other(_) = item {
+                continue;
+            }
+
             let lowercase_name = item
                 .path()
                 .file_name()
@@ -584,6 +588,7 @@ impl FileManager {
             self.scanned = true;
         }
 
+        let mut handled_messages: u32 = 0;
         while let Ok(message) = self.channel.1.try_recv() {
             match message {
                 Ok(message) => match message {
@@ -664,6 +669,10 @@ impl FileManager {
                 Err(error) => {
                     toasts.warning(format!("Filesystem error: {error:#?}"));
                 }
+            }
+            handled_messages += 1;
+            if handled_messages > 10000 {
+                break;
             }
         }
 
