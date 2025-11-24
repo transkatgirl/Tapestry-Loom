@@ -140,7 +140,7 @@ impl FileManager {
                             )
                             .map(|_| 1)
                             .sum();
-                            if parent_length > 2 && self.items.contains_key(parent) {
+                            if parent_length > 0 && self.items.contains_key(parent) {
                                 (
                                     parent_length - 1,
                                     Cow::Owned(

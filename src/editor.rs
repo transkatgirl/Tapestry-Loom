@@ -41,6 +41,8 @@ impl Editor {
     pub fn render(&mut self, ui: &mut Ui) {
         let settings = self.settings.borrow();
 
+        ui.label(format!("{:#?}", self.path));
+
         /*self.toasts
         .borrow_mut()
         .error(format!("Document loading failed: {error:#?}"));*/
