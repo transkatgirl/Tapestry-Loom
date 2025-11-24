@@ -189,7 +189,7 @@ impl FileManager {
 
                         if ui.add_enabled(enabled, button).clicked() {
                             if item.r#type == ScannedItemType::File {
-                                selected_items.push(item.path.clone());
+                                selected_items.push(self.path.join(item.path.clone()));
                             } else {
                                 if self.open_folders.contains(&item.path) {
                                     self.open_folders.remove(&item.path);
