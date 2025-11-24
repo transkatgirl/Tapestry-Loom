@@ -13,6 +13,7 @@ use egui_notify::Toasts;
 use egui_phosphor::{fill, regular};
 use egui_tiles::{Behavior, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse};
 use mimalloc::MiMalloc;
+use threadpool::ThreadPool;
 use tokio::runtime::Runtime;
 
 use crate::{editor::Editor, files::FileManager, settings::Settings};
@@ -96,11 +97,13 @@ impl TapestryLoomApp {
         cc.egui_ctx.set_fonts(fonts);
 
         let toasts = Rc::new(RefCell::new(toasts));
+        let threadpool = Rc::new(ThreadPool::new(16));
         let open_documents = Rc::new(RefCell::new(HashSet::with_capacity(64)));
         let behavior = TapestryLoomBehavior {
             file_manager: FileManager::new(
                 settings.clone(),
                 toasts.clone(),
+                threadpool.clone(),
                 open_documents.clone(),
             ),
             unsaved_settings_changes: false,
@@ -124,6 +127,7 @@ impl TapestryLoomApp {
                     .build()
                     .unwrap(),
             ),
+            threadpool,
             open_documents,
         };
 
@@ -188,6 +192,7 @@ impl App for TapestryLoomApp {
                         let identifier = self.tree.tiles.insert_pane(Pane::Editor(Editor::new(
                             self.behavior.settings.clone(),
                             self.behavior.toasts.clone(),
+                            self.behavior.threadpool.clone(),
                             self.behavior.open_documents.clone(),
                             self.behavior.runtime.clone(),
                             path,
@@ -237,6 +242,7 @@ struct TapestryLoomBehavior {
     new_editor_queue: Vec<(Option<PathBuf>, Option<TileId>)>,
     file_manager: FileManager,
     toasts: Rc<RefCell<Toasts>>,
+    threadpool: Rc<ThreadPool>,
     runtime: Arc<Runtime>,
     open_documents: Rc<RefCell<HashSet<PathBuf>>>,
 }

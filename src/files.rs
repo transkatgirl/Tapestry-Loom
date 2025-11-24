@@ -32,7 +32,7 @@ pub struct FileManager {
     toasts: Rc<RefCell<Toasts>>,
     open_documents: Rc<RefCell<HashSet<PathBuf>>>,
     scan_threadpool: ThreadPool,
-    action_threadpool: ThreadPool,
+    action_threadpool: Rc<ThreadPool>,
     channel: (Sender<ScanResult>, Receiver<ScanResult>),
     path: PathBuf,
     roots: BTreeSet<PathBuf>,
@@ -54,6 +54,7 @@ impl FileManager {
     pub fn new(
         settings: Rc<RefCell<Settings>>,
         toasts: Rc<RefCell<Toasts>>,
+        action_threadpool: Rc<ThreadPool>,
         open_documents: Rc<RefCell<HashSet<PathBuf>>>,
     ) -> Self {
         let path = settings.borrow().documents.location.clone();
@@ -66,7 +67,7 @@ impl FileManager {
             open_documents,
             channel: (sender, receiver),
             scan_threadpool: ThreadPool::new(1),
-            action_threadpool: ThreadPool::new(16),
+            action_threadpool,
             path,
             roots: BTreeSet::new(),
             items: BTreeMap::new(),
