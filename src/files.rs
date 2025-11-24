@@ -14,6 +14,7 @@ use std::{
 
 use eframe::egui::{Align, Layout, RichText, ScrollArea, TextStyle, Ui, Vec2};
 use egui_notify::Toasts;
+use egui_phosphor::regular;
 use notify::{
     Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher, event::ModifyKind,
     recommended_watcher,
@@ -197,6 +198,15 @@ impl FileManager {
                             RichText::new(format!("{icon} {label}{suffix}"))
                                 .family(eframe::egui::FontFamily::Monospace),
                         );
+
+                        if ui.rect_contains_pointer(ui.max_rect()) {
+                            ui.button(regular::FOLDER_PLUS);
+                            ui.button(regular::PENCIL_LINE);
+
+                            if ui.button(regular::TRASH).clicked() {
+                                self.remove_item(item.path.clone());
+                            };
+                        };
                     });
                 }
             });
