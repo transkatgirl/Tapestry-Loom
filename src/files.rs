@@ -145,11 +145,10 @@ impl FileManager {
 
         let text_style = TextStyle::Body;
         let row_height = (*ui).text_style_height(&text_style);
-        ScrollArea::vertical().auto_shrink(false).show_rows(
-            ui,
-            row_height,
-            items.len(),
-            |ui, range| {
+        ScrollArea::vertical()
+            .auto_shrink(false)
+            .animated(false)
+            .show_rows(ui, row_height, items.len(), |ui, range| {
                 for item in &items[range] {
                     let (padding, label) = if let Some(parent) = item.path.parent() {
                         if let Ok(without_prefix) = item.path.strip_prefix(parent) {
@@ -199,8 +198,7 @@ impl FileManager {
                     .clicked();
                     //});
                 }
-            },
-        );
+            });
 
         None
     }
