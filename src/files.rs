@@ -2,6 +2,7 @@ use std::{
     borrow::Cow,
     cell::RefCell,
     collections::{BTreeMap, HashSet},
+    ffi::OsString,
     fs,
     path::{MAIN_SEPARATOR_STR, PathBuf},
     rc::Rc,
@@ -19,11 +20,12 @@ use notify::{
     Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher, event::ModifyKind,
     recommended_watcher,
 };
+use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, treeless::FILE_EXTENSION};
 use threadpool::ThreadPool;
 use unicode_segmentation::UnicodeSegmentation;
 use walkdir::WalkDir;
 
-use crate::settings::Settings;
+use crate::{editor::blank_weave_bytes, settings::Settings};
 
 pub struct FileManager {
     settings: Rc<RefCell<Settings>>,
@@ -152,6 +154,8 @@ impl FileManager {
         //let row_height = (*ui).text_style_height(&text_style);
         let row_height = ui.spacing().interact_size.y;
         let ch = ui.fonts_mut(|f| f.glyph_width(&text_style.resolve(ui.style()), ' '));
+        let file_extension_normal = OsString::from(VERSIONED_WEAVE_FILE_EXTENSION);
+        let file_extension_treeless = OsString::from(FILE_EXTENSION);
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
@@ -204,14 +208,19 @@ impl FileManager {
                             RichText::new(format!("{icon} {label}{suffix}"))
                                 .family(eframe::egui::FontFamily::Monospace),
                         );
+                        let mut enabled = true;
 
-                        if item.r#type != ScannedItemType::File
-                            && self.open_folders.contains(&item.path)
-                        {
+                        if item.r#type == ScannedItemType::File {
+                            if !(item.path.extension() == Some(&file_extension_normal)
+                                || item.path.extension() == Some(&file_extension_treeless))
+                            {
+                                enabled = false;
+                            }
+                        } else if self.open_folders.contains(&item.path) {
                             button = button.fill(ui.style().visuals.extreme_bg_color);
                         }
 
-                        if ui.add(button).clicked() {
+                        if ui.add_enabled(enabled, button).clicked() {
                             if item.r#type == ScannedItemType::File {
                                 selected_items.push(item.path.clone());
                             } else {
@@ -279,7 +288,21 @@ impl FileManager {
             .collect();
     }
     fn create_weave(&self, item: PathBuf) {
-        todo!()
+        let path = self.path.join(item);
+        let tx = self.channel.0.clone();
+
+        self.action_threadpool
+            .execute(move || match blank_weave_bytes() {
+                Ok(bytes) => match fs::write(path, bytes) {
+                    Ok(_) => {}
+                    Err(error) => {
+                        let _ = tx.send(Err(format!("{error:#?}")));
+                    }
+                },
+                Err(error) => {
+                    let _ = tx.send(Err(format!("{error:#?}")));
+                }
+            });
     }
     fn create_directory(&self, item: PathBuf) {
         let path = self.path.join(item);

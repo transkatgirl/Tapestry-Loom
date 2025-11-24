@@ -8,6 +8,7 @@ use std::{
 use anyhow::Error;
 use eframe::egui::Ui;
 use egui_notify::Toasts;
+use tapestry_weave::{universal_weave::indexmap::IndexMap, v0::TapestryWeave};
 use tokio::runtime::Runtime;
 
 use crate::settings::Settings;
@@ -52,4 +53,8 @@ impl Document {
     fn load(path: &Path) -> Result<Self, Error> {
         Ok(Self {})
     }
+}
+
+pub fn blank_weave_bytes() -> Result<Vec<u8>, Error> {
+    Ok(TapestryWeave::with_capacity(0, IndexMap::with_capacity(0)).to_versioned_bytes()?)
 }
