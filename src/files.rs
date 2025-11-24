@@ -12,7 +12,7 @@ use std::{
     },
 };
 
-use eframe::egui::{RichText, ScrollArea, TextStyle, Ui};
+use eframe::egui::{Align, Layout, RichText, ScrollArea, TextStyle, Ui, Vec2};
 use egui_notify::Toasts;
 use notify::{
     Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher, event::ModifyKind,
@@ -151,7 +151,7 @@ impl FileManager {
             items.len(),
             |ui, range| {
                 for item in &items[range] {
-                    let label = if let Some(parent) = item.path.parent() {
+                    let (padding, label) = if let Some(parent) = item.path.parent() {
                         if let Ok(without_prefix) = item.path.strip_prefix(parent) {
                             let parent_length: usize = UnicodeSegmentation::graphemes(
                                 parent.to_string_lossy().as_ref(),
@@ -164,27 +164,28 @@ impl FileManager {
                                     .items
                                     .contains_key(&self.path.join(PathBuf::from(parent)))
                             {
-                                let padding =
-                                    (0..(parent_length - 1)).map(|_| " ").collect::<String>();
-                                Cow::Owned(
-                                    [
-                                        &padding,
-                                        ".",
-                                        MAIN_SEPARATOR_STR,
-                                        without_prefix.to_string_lossy().as_ref(),
-                                    ]
-                                    .concat(),
+                                (
+                                    parent_length - 1,
+                                    Cow::Owned(
+                                        [
+                                            ".",
+                                            MAIN_SEPARATOR_STR,
+                                            without_prefix.to_string_lossy().as_ref(),
+                                        ]
+                                        .concat(),
+                                    ),
                                 )
                             } else {
-                                item.path.to_string_lossy()
+                                (0, item.path.to_string_lossy())
                             }
                         } else {
-                            item.path.to_string_lossy()
+                            (0, item.path.to_string_lossy())
                         }
                     } else {
-                        item.path.to_string_lossy()
+                        (0, item.path.to_string_lossy())
                     };
 
+                    let padding = (0..(padding)).map(|_| " ").collect::<String>();
                     let icon = match item.r#type {
                         ScannedItemType::File => "📄",
                         ScannedItemType::Directory => "📂",
@@ -195,10 +196,12 @@ impl FileManager {
                         ScannedItemType::Directory => MAIN_SEPARATOR_STR,
                         ScannedItemType::Other => "",
                     };
+                    //ui.horizontal(|ui| {
                     ui.label(
-                        RichText::new(format!("{icon} {label}{suffix}"))
+                        RichText::new(format!("{padding}{icon} {label}{suffix}"))
                             .family(eframe::egui::FontFamily::Monospace),
                     );
+                    //});
                 }
             },
         );
