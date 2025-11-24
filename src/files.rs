@@ -13,7 +13,7 @@ use std::{
     },
 };
 
-use eframe::egui::{Align, Button, Layout, RichText, ScrollArea, TextStyle, Ui, Vec2};
+use eframe::egui::{Align, Button, Layout, RichText, ScrollArea, Spinner, TextStyle, Ui, Vec2};
 use egui_notify::Toasts;
 use egui_phosphor::regular;
 use notify::{
@@ -38,6 +38,7 @@ pub struct FileManager {
     items: BTreeMap<PathBuf, ScannedItem>,
     item_list: Vec<ScannedItem>,
     scanned: bool,
+    finished: bool,
     stop_scanning: Arc<AtomicBool>,
     open_folders: HashSet<PathBuf>,
 }
@@ -139,12 +140,21 @@ impl FileManager {
             items: BTreeMap::new(),
             item_list: Vec::with_capacity(1024),
             scanned: false,
+            finished: false,
             stop_scanning: Arc::new(AtomicBool::new(false)),
             open_folders: HashSet::with_capacity(64),
         }
     }
     pub fn render(&mut self, ui: &mut Ui) -> Vec<PathBuf> {
         self.update_items();
+
+        if !self.finished {
+            ui.horizontal(|ui| {
+                ui.add(Spinner::new());
+                ui.label("Scanning...");
+            });
+            return vec![];
+        }
 
         let mut selected_items = Vec::new();
 
@@ -234,9 +244,11 @@ impl FileManager {
                         };
 
                         if ui.rect_contains_pointer(ui.max_rect()) {
-                            //ui.button(regular::FILE_PLUS);
+                            if item.r#type == ScannedItemType::Directory {
+                                ui.button(regular::FILE_PLUS);
+                            }
                             ui.button(regular::FOLDER_PLUS);
-                            ui.button(regular::PENCIL_LINE).clicked();
+                            ui.button(regular::PENCIL_LINE);
 
                             if ui.button(regular::TRASH).clicked() {
                                 self.remove_item(item.path.clone());
@@ -385,6 +397,7 @@ impl FileManager {
         }
         self.items.clear();
         self.scanned = false;
+        self.finished = false;
     }
     fn update_items(&mut self) {
         let mut has_changed = false;
@@ -456,6 +469,8 @@ impl FileManager {
                         }
                     }
                 }
+
+                let _ = tx.send(Ok(ItemScanEvent::Finish));
             });
 
             self.scanned = true;
@@ -479,6 +494,9 @@ impl FileManager {
                             toasts.error(format!("Unable to watch folder: {error:#?}"));
                         };
                     }
+                    ItemScanEvent::Finish => {
+                        self.finished = true;
+                    }
                 },
                 Err(error) => {
                     toasts.warning(format!("Filesystem error: {error:#?}"));
@@ -498,6 +516,7 @@ enum ItemScanEvent {
     Insert(ScannedItem),
     Delete(PathBuf),
     Watch(PathBuf),
+    Finish,
 }
 
 #[derive(Debug, Clone)]

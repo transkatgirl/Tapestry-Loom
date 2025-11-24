@@ -991,6 +991,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui-keybind"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c9dbaae0504f3ed63ec4322102148b6e00b778269e51a290106fa929bbb8c86d"
+dependencies = [
+ "egui",
+ "serde",
+]
+
+[[package]]
 name = "egui-notify"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3768,6 +3778,7 @@ dependencies = [
  "anyhow",
  "dirs-next",
  "eframe",
+ "egui-keybind",
  "egui-notify",
  "egui-phosphor",
  "egui_tiles",
