@@ -11,7 +11,7 @@ use std::{
     },
 };
 
-use eframe::egui::Ui;
+use eframe::egui::{ScrollArea, TextStyle, Ui};
 use egui_notify::Toasts;
 use notify::{
     Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher, event::ModifyKind,
@@ -141,14 +141,23 @@ impl FileManager {
 
         let items = self.items();
 
-        for item in items {
-            let icon = match item.r#type {
-                ScannedItemType::File => "📄",
-                ScannedItemType::Directory => "📂",
-                ScannedItemType::Other => "?",
-            };
-            ui.label(format!("{icon} {}", item.path.to_string_lossy()));
-        }
+        let text_style = TextStyle::Body;
+        let row_height = (*ui).text_style_height(&text_style);
+        ScrollArea::vertical().auto_shrink(false).show_rows(
+            ui,
+            row_height,
+            items.len(),
+            |ui, range| {
+                for item in &items[range] {
+                    let icon = match item.r#type {
+                        ScannedItemType::File => "📄",
+                        ScannedItemType::Directory => "📂",
+                        ScannedItemType::Other => "?",
+                    };
+                    ui.label(format!("{icon} {}", item.path.to_string_lossy()));
+                }
+            },
+        );
 
         None
     }
