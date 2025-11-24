@@ -272,6 +272,10 @@ impl FileManager {
             .items
             .values()
             .filter(|&item| {
+                if !self.is_visible(&item.path) || item.r#type == ScannedItemType::Other {
+                    return false;
+                }
+
                 let lowercase_name = item
                     .path
                     .file_name()
@@ -287,9 +291,7 @@ impl FileManager {
                     || lowercase_name == "thumbs.db"
                     || lowercase_name == "Thumbs.db:encryptable"
                     || lowercase_name == "ehthumbs.db"
-                    || lowercase_name == "desktop.ini"
-                    || item.r#type == ScannedItemType::Other
-                    || !self.is_visible(&item.path))
+                    || lowercase_name == "desktop.ini")
             })
             .cloned()
             .collect();
