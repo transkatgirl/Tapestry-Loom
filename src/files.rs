@@ -170,6 +170,21 @@ impl FileManager {
             let path = self.path.clone();
             let stop_scanning = self.stop_scanning.clone();
             self.threadpool.execute(move || {
+                match fs::exists(&path) {
+                    Ok(exists) => {
+                        if !exists {
+                            if let Err(error) = fs::create_dir(&path) {
+                                let _ = tx.send(Err(format!("{error:#?}")));
+                            } else {
+                                return;
+                            }
+                        }
+                    }
+                    Err(error) => {
+                        let _ = tx.send(Err(format!("{error:#?}")));
+                    }
+                }
+
                 for entry in WalkDir::new(path) {
                     if stop_scanning.load(Ordering::SeqCst) {
                         stop_scanning.store(false, Ordering::SeqCst);
