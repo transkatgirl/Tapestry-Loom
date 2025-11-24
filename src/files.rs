@@ -145,7 +145,8 @@ impl FileManager {
         let mut selected_items = Vec::new();
 
         let text_style = TextStyle::Monospace;
-        let row_height = (*ui).text_style_height(&text_style);
+        //let row_height = (*ui).text_style_height(&text_style);
+        let row_height = ui.spacing().interact_size.y;
         let ch = ui.fonts_mut(|f| f.glyph_width(&text_style.resolve(ui.style()), ' '));
         ScrollArea::vertical()
             .auto_shrink(false)
