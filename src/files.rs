@@ -252,13 +252,19 @@ impl FileManager {
         let settings = self.settings.borrow();
 
         if settings.documents.location != self.path {
+            let settings_location = settings.documents.location.clone();
             drop(settings);
             self.refresh();
+            self.path = settings_location;
         }
 
         let mut toasts = self.toasts.borrow_mut();
 
         if !self.scanned {
+            if self.stop_scanning.load(Ordering::Relaxed) {
+                self.scan_threadpool.join();
+                self.stop_scanning.store(false, Ordering::SeqCst);
+            }
             let tx = self.channel.0.clone();
             let path = self.path.clone();
             let stop_scanning = self.stop_scanning.clone();

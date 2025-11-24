@@ -37,6 +37,12 @@ impl Settings {
     pub fn render(&mut self, ui: &mut Ui) -> bool {
         ui.heading("Settings");
 
+        let mut document_location = self.documents.location.to_string_lossy().to_string();
+
+        if ui.text_edit_singleline(&mut document_location).changed() {
+            self.documents.location = PathBuf::from(document_location);
+        }
+
         false
     }
 }
