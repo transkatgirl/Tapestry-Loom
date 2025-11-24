@@ -38,6 +38,8 @@ pub struct FileManager {
     item_list: Vec<ScannedItem>,
     scanned: bool,
     finished: bool,
+    file_count: usize,
+    folder_count: usize,
     stop_scanning: Arc<AtomicBool>,
     open_folders: HashSet<PathBuf>,
     ignore_list: HashSet<&'static str>,
@@ -63,6 +65,8 @@ impl FileManager {
             item_list: Vec::with_capacity(1024),
             scanned: false,
             finished: false,
+            file_count: 0,
+            folder_count: 0,
             stop_scanning: Arc::new(AtomicBool::new(false)),
             open_folders: HashSet::with_capacity(64),
             ignore_list: HashSet::from_iter([
@@ -89,15 +93,22 @@ impl FileManager {
                         ui.add(Spinner::new());
                     }
                     if self.items.len() < 100000 {
-                        ui.label(format!("{} items", self.items.len()));
+                        ui.label(format!(
+                            "{} files, {} folders",
+                            self.file_count,
+                            self.folder_count.saturating_sub(1)
+                        ));
                     } else {
                         ui.colored_label(
                             ui.style().visuals.warn_fg_color,
-                            format!("{} items", self.items.len()),
+                            format!(
+                                "{} files, {} folders",
+                                self.file_count,
+                                self.folder_count.saturating_sub(1)
+                            ),
                         );
                     }
                 });
-
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     ui.label("TODO: Add buttons here!");
                     // TODO: Add buttons to add files & folders at the root
@@ -487,6 +498,8 @@ impl FileManager {
         if !self.scanned {
             self.items.clear();
             self.finished = false;
+            self.file_count = 0;
+            self.folder_count = 0;
             if self.stop_scanning.load(Ordering::Relaxed) {
                 self.scan_threadpool.join();
                 self.stop_scanning.store(false, Ordering::SeqCst);
@@ -548,6 +561,11 @@ impl FileManager {
             match message {
                 Ok(message) => match message {
                     ItemScanEvent::Insert(insert) => {
+                        if insert.r#type == ScannedItemType::Directory {
+                            self.folder_count += 1;
+                        } else {
+                            self.file_count += 1;
+                        }
                         if insert.path.starts_with(&self.path) {
                             self.items.insert(
                                 insert.path.clone(),
@@ -564,7 +582,13 @@ impl FileManager {
                         }
                     }
                     ItemScanEvent::Delete(delete) => {
-                        self.items.remove(&delete);
+                        if let Some(item) = self.items.remove(&delete) {
+                            if item.r#type == ScannedItemType::Directory {
+                                self.folder_count -= 1;
+                            } else {
+                                self.file_count -= 1;
+                            }
+                        }
                         has_changed = true;
                     }
                     ItemScanEvent::Finish => {
