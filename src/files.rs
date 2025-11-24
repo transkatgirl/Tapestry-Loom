@@ -1,8 +1,9 @@
 use std::{
+    borrow::Cow,
     cell::RefCell,
     collections::{BTreeMap, HashSet},
     fs,
-    path::PathBuf,
+    path::{MAIN_SEPARATOR_STR, PathBuf},
     rc::Rc,
     sync::{
         Arc,
@@ -11,7 +12,7 @@ use std::{
     },
 };
 
-use eframe::egui::{ScrollArea, TextStyle, Ui};
+use eframe::egui::{RichText, ScrollArea, TextStyle, Ui};
 use egui_notify::Toasts;
 use notify::{
     Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher, event::ModifyKind,
@@ -149,12 +150,46 @@ impl FileManager {
             items.len(),
             |ui, range| {
                 for item in &items[range] {
+                    let label = if let Some(parent) = item.path.parent() {
+                        if let Ok(without_prefix) = item.path.strip_prefix(parent) {
+                            let parent_length: usize =
+                                parent.to_string_lossy().chars().map(|_| 1).sum();
+                            if parent_length > 2 {
+                                let padding =
+                                    (0..(parent_length - 1)).map(|_| " ").collect::<String>();
+                                Cow::Owned(
+                                    [
+                                        &padding,
+                                        ".",
+                                        MAIN_SEPARATOR_STR,
+                                        without_prefix.to_string_lossy().as_ref(),
+                                    ]
+                                    .concat(),
+                                )
+                            } else {
+                                item.path.to_string_lossy()
+                            }
+                        } else {
+                            item.path.to_string_lossy()
+                        }
+                    } else {
+                        item.path.to_string_lossy()
+                    };
+
                     let icon = match item.r#type {
                         ScannedItemType::File => "📄",
                         ScannedItemType::Directory => "📂",
                         ScannedItemType::Other => "?",
                     };
-                    ui.label(format!("{icon} {}", item.path.to_string_lossy()));
+                    let suffix = match item.r#type {
+                        ScannedItemType::File => "",
+                        ScannedItemType::Directory => MAIN_SEPARATOR_STR,
+                        ScannedItemType::Other => "",
+                    };
+                    ui.label(
+                        RichText::new(format!("{icon} {label}{suffix}"))
+                            .family(eframe::egui::FontFamily::Monospace),
+                    );
                 }
             },
         );
