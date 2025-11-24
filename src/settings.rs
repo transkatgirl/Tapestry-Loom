@@ -22,7 +22,7 @@ pub struct DocumentSettings {
 impl Default for DocumentSettings {
     fn default() -> Self {
         Self {
-            location: dirs_next::download_dir()
+            location: dirs_next::document_dir()
                 .unwrap_or_default()
                 .join("Tapestry Loom"),
             autosave_interval: Duration::from_secs(30),
