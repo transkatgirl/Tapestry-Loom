@@ -186,21 +186,17 @@ impl FileManager {
                     };
 
                     let padding = (0..(padding)).map(|_| " ").collect::<String>();
-                    let icon = match item.r#type {
-                        ScannedItemType::File => "📄",
-                        ScannedItemType::Directory => "📂",
-                        ScannedItemType::Other => "?",
-                    };
-                    let suffix = match item.r#type {
-                        ScannedItemType::File => "",
-                        ScannedItemType::Directory => MAIN_SEPARATOR_STR,
-                        ScannedItemType::Other => "",
+                    let (icon, suffix) = match item.r#type {
+                        ScannedItemType::File => ("📄", ""),
+                        ScannedItemType::Directory => ("📂", MAIN_SEPARATOR_STR),
+                        ScannedItemType::Other => ("?", ""),
                     };
                     //ui.horizontal(|ui| {
                     ui.label(
                         RichText::new(format!("{padding}{icon} {label}{suffix}"))
                             .family(eframe::egui::FontFamily::Monospace),
-                    );
+                    )
+                    .clicked();
                     //});
                 }
             },
