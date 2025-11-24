@@ -12,7 +12,7 @@ use std::{
     },
 };
 
-use eframe::egui::{Align, Layout, RichText, ScrollArea, TextStyle, Ui, Vec2};
+use eframe::egui::{Align, Button, Layout, RichText, ScrollArea, TextStyle, Ui, Vec2};
 use egui_notify::Toasts;
 use egui_phosphor::regular;
 use notify::{
@@ -199,13 +199,19 @@ impl FileManager {
                     };
                     ui.horizontal(|ui| {
                         ui.add_space(ch * padding as f32);
-                        if ui
-                            .button(
-                                RichText::new(format!("{icon} {label}{suffix}"))
-                                    .family(eframe::egui::FontFamily::Monospace),
-                            )
-                            .clicked()
+
+                        let mut button = Button::new(
+                            RichText::new(format!("{icon} {label}{suffix}"))
+                                .family(eframe::egui::FontFamily::Monospace),
+                        );
+
+                        if item.r#type != ScannedItemType::File
+                            && self.open_folders.contains(&item.path)
                         {
+                            button = button.fill(ui.style().visuals.extreme_bg_color);
+                        }
+
+                        if ui.add(button).clicked() {
                             if item.r#type == ScannedItemType::File {
                                 selected_items.push(item.path.clone());
                             } else {
