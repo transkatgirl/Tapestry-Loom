@@ -13,7 +13,7 @@ use std::{
     },
 };
 
-use eframe::egui::{Align, Button, Layout, RichText, ScrollArea, Spinner, TextStyle, Ui, Vec2};
+use eframe::egui::{Button, Modal, RichText, ScrollArea, Sides, Spinner, TextStyle, Ui};
 use egui_notify::Toasts;
 use egui_phosphor::regular;
 use notify::{
@@ -42,6 +42,7 @@ pub struct FileManager {
     stop_scanning: Arc<AtomicBool>,
     open_folders: HashSet<PathBuf>,
     ignore_list: HashSet<&'static str>,
+    modal: ModalType,
 }
 
 type ScanResult = Result<ItemScanEvent, String>;
@@ -155,6 +156,7 @@ impl FileManager {
                 "ehthumbs.db",
                 "desktop.ini",
             ]),
+            modal: ModalType::None,
         }
     }
     pub fn render(&mut self, ui: &mut Ui) -> Vec<PathBuf> {
@@ -263,11 +265,30 @@ impl FileManager {
                         };
 
                         if ui.rect_contains_pointer(ui.max_rect()) {
-                            if item.r#type == ScannedItemType::Directory {
-                                ui.button(regular::FILE_PLUS);
+                            if item.r#type == ScannedItemType::Directory
+                                && ui.button(regular::FILE_PLUS).clicked()
+                            {
+                                self.modal = ModalType::CreateWeave(
+                                    item.path
+                                        .join("Untitled Weave")
+                                        .to_string_lossy()
+                                        .to_string(),
+                                );
+                            };
+                            if ui.button(regular::FOLDER_PLUS).clicked() {
+                                self.modal = ModalType::CreateDirectory(
+                                    item.path
+                                        .join("Untitled Folder")
+                                        .to_string_lossy()
+                                        .to_string(),
+                                );
                             }
-                            ui.button(regular::FOLDER_PLUS);
-                            ui.button(regular::PENCIL_LINE);
+                            if ui.button(regular::PENCIL_LINE).clicked() {
+                                self.modal = ModalType::RenameFile((
+                                    item.path.clone(),
+                                    item.path.to_string_lossy().to_string(),
+                                ));
+                            };
 
                             if ui.button(regular::TRASH).clicked() {
                                 self.remove_item(item.path.clone());
@@ -276,6 +297,88 @@ impl FileManager {
                     });
                 }
             });
+
+        match &mut self.modal {
+            ModalType::CreateWeave(path) => {
+                if Modal::new("filemanager-create-weave-modal".into())
+                    .show(ui.ctx(), |ui| {
+                        ui.set_width(280.0);
+                        ui.heading("Create Weave");
+                        let label = ui.label("Path:");
+                        ui.text_edit_singleline(path).labelled_by(label.id);
+                        Sides::new().show(
+                            ui,
+                            |_ui| {},
+                            |ui| {
+                                if ui.button("Cancel").clicked() {
+                                    ui.close();
+                                }
+                                if ui.button("Save").clicked() {
+                                    //self.create_weave(PathBuf::from(path.clone()));
+                                    //ui.close();
+                                }
+                            },
+                        );
+                    })
+                    .should_close()
+                {
+                    self.modal = ModalType::None;
+                };
+            }
+            ModalType::CreateDirectory(path) => {
+                if Modal::new("filemanager-create-directory-modal".into())
+                    .show(ui.ctx(), |ui| {
+                        ui.set_width(280.0);
+                        ui.heading("Create Folder");
+                        let label = ui.label("Path:");
+                        ui.text_edit_singleline(path).labelled_by(label.id);
+                        Sides::new().show(
+                            ui,
+                            |_ui| {},
+                            |ui| {
+                                if ui.button("Cancel").clicked() {
+                                    ui.close();
+                                }
+                                if ui.button("Save").clicked() {
+                                    // path
+                                    //ui.close();
+                                }
+                            },
+                        );
+                    })
+                    .should_close()
+                {
+                    self.modal = ModalType::None;
+                };
+            }
+            ModalType::RenameFile((from, to)) => {
+                if Modal::new("filemanager-rename-item-modal".into())
+                    .show(ui.ctx(), |ui| {
+                        ui.set_width(280.0);
+                        ui.heading("Move/Rename Item");
+                        let label = ui.label("New Path:");
+                        ui.text_edit_singleline(to).labelled_by(label.id);
+                        Sides::new().show(
+                            ui,
+                            |_ui| {},
+                            |ui| {
+                                if ui.button("Cancel").clicked() {
+                                    ui.close();
+                                }
+                                if ui.button("Save").clicked() {
+                                    // to
+                                    //ui.close();
+                                }
+                            },
+                        );
+                    })
+                    .should_close()
+                {
+                    self.modal = ModalType::None;
+                };
+            }
+            ModalType::None => {}
+        }
 
         selected_items
     }
@@ -545,4 +648,11 @@ enum ScannedItemType {
     File,
     Directory,
     Other,
+}
+
+enum ModalType {
+    CreateWeave(String),
+    CreateDirectory(String),
+    RenameFile((PathBuf, String)),
+    None,
 }
