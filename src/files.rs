@@ -190,13 +190,15 @@ impl FileManager {
                         ScannedItemType::Directory => ("📂", MAIN_SEPARATOR_STR),
                         ScannedItemType::Other => ("?", ""),
                     };
-                    //ui.horizontal(|ui| {
-                    ui.label(
-                        RichText::new(format!("{padding}{icon} {label}{suffix}"))
-                            .family(eframe::egui::FontFamily::Monospace),
-                    )
-                    .clicked();
-                    //});
+                    ui.horizontal(|ui| {
+                        ui.label(
+                            RichText::new(padding).family(eframe::egui::FontFamily::Monospace),
+                        );
+                        ui.button(
+                            RichText::new(format!("{icon} {label}{suffix}"))
+                                .family(eframe::egui::FontFamily::Monospace),
+                        );
+                    });
                 }
             });
 
@@ -229,7 +231,8 @@ impl FileManager {
                     || lowercase_name == "thumbs.db"
                     || lowercase_name == "Thumbs.db:encryptable"
                     || lowercase_name == "ehthumbs.db"
-                    || lowercase_name == "desktop.ini")
+                    || lowercase_name == "desktop.ini"
+                    || item.r#type == ScannedItemType::Other)
             })
             .collect()
     }
