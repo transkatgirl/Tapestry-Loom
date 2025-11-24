@@ -160,7 +160,7 @@ impl FileManager {
                 ui.colored_label(
                     ui.style().visuals.warn_fg_color,
                     format!(
-                        "This directory contains {} files; File picker performance may suffer.",
+                        "This directory contains {} files; Performance may suffer.",
                         self.items.len()
                     ),
                 );
@@ -190,11 +190,7 @@ impl FileManager {
                             )
                             .map(|_| 1)
                             .sum();
-                            if parent_length > 2
-                                && self
-                                    .items
-                                    .contains_key(&self.path.join(PathBuf::from(parent)))
-                            {
+                            if parent_length > 2 && self.items.contains_key(parent) {
                                 (
                                     parent_length - 1,
                                     Cow::Owned(
@@ -274,16 +270,8 @@ impl FileManager {
     fn update_item_list(&mut self) {
         self.item_list = self
             .items
-            .iter()
-            .map(|i| i.1.clone())
-            .filter_map(|mut item| match item.path.strip_prefix(&self.path) {
-                Ok(new_path) => {
-                    item.path = new_path.to_path_buf();
-                    Some(item)
-                }
-                Err(_) => None,
-            })
-            .filter(|item| {
+            .values()
+            .filter(|&item| {
                 let lowercase_name = item
                     .path
                     .file_name()
@@ -303,6 +291,7 @@ impl FileManager {
                     || item.r#type == ScannedItemType::Other
                     || !self.is_visible(&item.path))
             })
+            .cloned()
             .collect();
     }
     fn is_visible(&self, path: &Path) -> bool {
@@ -455,7 +444,7 @@ impl FileManager {
 
                 let _ = tx.send(Ok(ItemScanEvent::Watch(path.clone())));
 
-                for entry in WalkDir::new(path) {
+                for entry in WalkDir::new(&path) {
                     if stop_scanning.load(Ordering::SeqCst) {
                         stop_scanning.store(false, Ordering::SeqCst);
                         break;
@@ -466,7 +455,12 @@ impl FileManager {
                             let filetype = entry.file_type();
 
                             let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
-                                path: entry.path().to_path_buf(),
+                                path: entry
+                                    .path()
+                                    .to_path_buf()
+                                    .strip_prefix(&path)
+                                    .map(|p| p.to_path_buf())
+                                    .unwrap_or_default(),
                                 r#type: if filetype.is_file() {
                                     ScannedItemType::File
                                 } else if filetype.is_dir() {
