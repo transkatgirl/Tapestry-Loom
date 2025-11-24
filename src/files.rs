@@ -238,6 +238,7 @@ impl FileManager {
     fn refresh(&mut self) {
         let mut toasts = self.toasts.borrow_mut();
 
+        self.stop_scanning.store(true, Ordering::SeqCst);
         if self.scanned
             && let Some(watcher) = &mut self.watcher
             && let Err(error) = watcher.unwatch(&self.path)
@@ -246,7 +247,6 @@ impl FileManager {
         }
         self.items.clear();
         self.scanned = false;
-        self.stop_scanning.store(true, Ordering::SeqCst);
     }
     fn update_items(&mut self) {
         let settings = self.settings.borrow();
