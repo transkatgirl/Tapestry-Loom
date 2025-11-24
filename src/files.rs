@@ -182,6 +182,10 @@ impl FileManager {
             });
         }
 
+        //ui.horizontal(|ui| {});
+
+        // TODO: Add buttons to add files & folders at the root
+
         let mut selected_items = Vec::new();
 
         let items = self.item_list.clone();
@@ -619,10 +623,14 @@ impl FileManager {
                                 r#type: insert.r#type,
                             },
                         );
+
+                        // TODO: If item is a directory, scan for childen
                         has_changed = true;
                     }
                     ItemScanEvent::Delete(delete) => {
                         self.items.remove(&delete);
+
+                        // TODO: Need to remove all children of deleted item
                         has_changed = true;
                     }
                     ItemScanEvent::Watch(watch) => {
