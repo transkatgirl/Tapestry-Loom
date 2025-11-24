@@ -265,6 +265,7 @@ impl FileManager {
                 self.scan_threadpool.join();
                 self.stop_scanning.store(false, Ordering::SeqCst);
             }
+            while self.channel.1.try_recv().is_ok() {}
             let tx = self.channel.0.clone();
             let path = self.path.clone();
             let stop_scanning = self.stop_scanning.clone();
