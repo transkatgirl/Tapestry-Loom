@@ -153,7 +153,18 @@ impl FileManager {
                 ui.add(Spinner::new());
                 ui.label("Scanning...");
             });
-            //return vec![];
+        }
+
+        if self.items.len() > 100000 {
+            ui.horizontal(|ui| {
+                ui.colored_label(
+                    ui.style().visuals.warn_fg_color,
+                    format!(
+                        "This directory contains {} files; File picker performance may suffer.",
+                        self.items.len()
+                    ),
+                );
+            });
         }
 
         let mut selected_items = Vec::new();
