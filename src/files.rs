@@ -4,7 +4,7 @@ use std::{
     collections::{BTreeMap, HashSet},
     ffi::OsString,
     fs,
-    path::{MAIN_SEPARATOR_STR, PathBuf},
+    path::{MAIN_SEPARATOR_STR, Path, PathBuf},
     rc::Rc,
     sync::{
         Arc,
@@ -267,7 +267,6 @@ impl FileManager {
                     .map(|s| s.to_os_string())
                     .unwrap_or_default()
                     .to_ascii_lowercase();
-                let parent = item.path.parent();
 
                 #[allow(clippy::nonminimal_bool)]
                 !(lowercase_name.is_empty()
@@ -279,13 +278,22 @@ impl FileManager {
                     || lowercase_name == "ehthumbs.db"
                     || lowercase_name == "desktop.ini"
                     || item.r#type == ScannedItemType::Other
-                    || parent
-                        .map(|path| {
-                            !(path == PathBuf::default() || self.open_folders.contains(path))
-                        })
-                        .unwrap_or_default())
+                    || !self.is_visible(&item.path))
             })
             .collect();
+    }
+    fn is_visible(&self, path: &Path) -> bool {
+        if let Some(parent) = path.parent() {
+            if parent == PathBuf::default() {
+                true
+            } else if self.open_folders.contains(parent) {
+                self.is_visible(parent)
+            } else {
+                false
+            }
+        } else {
+            true
+        }
     }
     fn create_weave(&self, item: PathBuf) {
         let path = self.path.join(item);
