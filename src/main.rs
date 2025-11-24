@@ -172,13 +172,24 @@ impl App for TapestryLoomApp {
                 if !self.behavior.new_editor_queue.is_empty() {
                     let mut new_tiles = Vec::with_capacity(self.behavior.new_editor_queue.len());
 
-                    for path in self.behavior.new_editor_queue.drain(..) {
-                        new_tiles.push(self.tree.tiles.insert_pane(Pane::Editor(Editor::new(
+                    for (path, parent) in self.behavior.new_editor_queue.drain(..) {
+                        let identifier = self.tree.tiles.insert_pane(Pane::Editor(Editor::new(
                             self.behavior.settings.clone(),
                             self.behavior.toasts.clone(),
                             self.behavior.runtime.clone(),
                             path,
-                        ))));
+                        )));
+
+                        if let Some(Tile::Container(parent)) =
+                            parent.and_then(|root| self.tree.tiles.get_mut(root))
+                        {
+                            parent.add_child(identifier);
+                            if let egui_tiles::Container::Tabs(tabs) = parent {
+                                tabs.set_active(identifier);
+                            }
+                        } else {
+                            new_tiles.push(identifier);
+                        }
                     }
 
                     if let Some(Tile::Container(root)) = self
@@ -188,6 +199,9 @@ impl App for TapestryLoomApp {
                     {
                         for id in new_tiles {
                             root.add_child(id);
+                            if let egui_tiles::Container::Tabs(tabs) = root {
+                                tabs.set_active(id);
+                            }
                         }
                     } else {
                         self.behavior
@@ -207,7 +221,7 @@ struct TapestryLoomBehavior {
     new_tab_label: Arc<RichText>,
     settings: Rc<RefCell<Settings>>,
     unsaved_settings_changes: bool,
-    new_editor_queue: Vec<Option<PathBuf>>,
+    new_editor_queue: Vec<(Option<PathBuf>, Option<TileId>)>,
     file_manager: FileManager,
     toasts: Rc<RefCell<Toasts>>,
     runtime: Arc<Runtime>,
@@ -237,7 +251,7 @@ impl Behavior<Pane> for TapestryLoomBehavior {
             Pane::FileManager => {
                 if let Some(paths) = self.file_manager.render(ui) {
                     for path in paths {
-                        self.new_editor_queue.push(Some(path));
+                        self.new_editor_queue.push((Some(path), None));
                     }
                 }
             }
@@ -270,12 +284,12 @@ impl Behavior<Pane> for TapestryLoomBehavior {
         &mut self,
         _tiles: &Tiles<Pane>,
         ui: &mut Ui,
-        _tile_id: TileId,
+        tile_id: TileId,
         _tabs: &egui_tiles::Tabs,
         _scroll_offset: &mut f32,
     ) {
         if ui.button(self.new_tab_label.clone()).clicked() {
-            self.new_editor_queue.push(None);
+            self.new_editor_queue.push((None, Some(tile_id)));
         }
     }
     fn on_tab_close(&mut self, _tiles: &mut Tiles<Pane>, _tile_id: TileId) -> bool {
