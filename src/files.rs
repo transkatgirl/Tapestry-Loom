@@ -1,11 +1,11 @@
 use std::{
     borrow::Cow,
     cell::RefCell,
-    collections::{BTreeMap, HashSet},
+    collections::{BTreeMap, BTreeSet, HashSet},
     ffi::OsString,
     fs,
     ops::DerefMut,
-    path::{MAIN_SEPARATOR_STR, Path, PathBuf},
+    path::{MAIN_SEPARATOR_STR, PathBuf},
     rc::Rc,
     sync::{
         Arc,
@@ -34,7 +34,8 @@ pub struct FileManager {
     action_threadpool: ThreadPool,
     channel: (Sender<ScanResult>, Receiver<ScanResult>),
     path: PathBuf,
-    items: BTreeMap<PathBuf, ScannedItem>,
+    roots: BTreeSet<PathBuf>,
+    items: BTreeMap<PathBuf, TreeItem>,
     item_list: Vec<ScannedItem>,
     scanned: bool,
     finished: bool,
@@ -61,6 +62,7 @@ impl FileManager {
             scan_threadpool: ThreadPool::new(1),
             action_threadpool: ThreadPool::new(16),
             path,
+            roots: BTreeSet::new(),
             items: BTreeMap::new(),
             item_list: Vec::with_capacity(32768),
             scanned: false,
@@ -92,22 +94,11 @@ impl FileManager {
                     if !self.finished {
                         ui.add(Spinner::new());
                     }
-                    if self.items.len() < 100000 {
-                        ui.label(format!(
-                            "{} files, {} folders",
-                            self.file_count,
-                            self.folder_count.saturating_sub(1)
-                        ));
-                    } else {
-                        ui.colored_label(
-                            ui.style().visuals.warn_fg_color,
-                            format!(
-                                "{} files, {} folders",
-                                self.file_count,
-                                self.folder_count.saturating_sub(1)
-                            ),
-                        );
-                    }
+                    ui.label(format!(
+                        "{} files, {} folders",
+                        self.file_count,
+                        self.folder_count.saturating_sub(1)
+                    ));
                 });
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if ui.button(regular::ARROW_CLOCKWISE).clicked() {
@@ -149,8 +140,7 @@ impl FileManager {
                             )
                             .map(|_| 1)
                             .sum();
-                            if parent_length > 2 && self.items.contains_key(&self.path.join(parent))
-                            {
+                            if parent_length > 2 && self.items.contains_key(parent) {
                                 (
                                     parent_length - 1,
                                     Cow::Owned(
@@ -341,41 +331,36 @@ impl FileManager {
         selected_items
     }
     fn update_item_list(&mut self) {
-        self.item_list = self
-            .items
-            .values()
-            .filter(|&item| {
-                if !self.is_visible(&item.path) || item.r#type == ScannedItemType::Other {
-                    return false;
-                }
-
-                let lowercase_name = item
-                    .path
-                    .file_name()
-                    .map(|s| s.to_os_string())
-                    .unwrap_or_default()
-                    .to_ascii_lowercase();
-
-                #[allow(clippy::nonminimal_bool)]
-                !(lowercase_name.is_empty()
-                    || self
-                        .ignore_list
-                        .contains(lowercase_name.to_string_lossy().as_ref()))
-            })
-            .cloned()
-            .collect();
+        self.item_list.clear();
+        self.build_item_list(self.roots.iter().cloned().collect::<Vec<_>>());
     }
-    fn is_visible(&self, path: &Path) -> bool {
-        if let Some(parent) = path.parent() {
-            if parent == PathBuf::default() {
-                true
-            } else if self.open_folders.contains(parent) {
-                self.is_visible(parent)
-            } else {
-                false
+    fn build_item_list(&mut self, items: impl IntoIterator<Item = PathBuf>) {
+        let items = items
+            .into_iter()
+            .filter_map(|p| self.items.get(&p).cloned())
+            .collect::<Vec<_>>();
+
+        for item in items {
+            let lowercase_name = item
+                .path()
+                .file_name()
+                .map(|s| s.to_os_string())
+                .unwrap_or_default()
+                .to_ascii_lowercase();
+
+            if !(lowercase_name.is_empty()
+                || self
+                    .ignore_list
+                    .contains(lowercase_name.to_string_lossy().as_ref()))
+            {
+                self.item_list.push(item.clone().into());
             }
-        } else {
-            true
+
+            if let TreeItem::Directory(_, children) = &item
+                && (self.open_folders.contains(item.path()))
+            {
+                self.build_item_list(children.iter().cloned().collect::<Vec<_>>());
+            }
         }
     }
     fn create_weave(&self, item: PathBuf) {
@@ -507,6 +492,7 @@ impl FileManager {
 
         if !self.scanned {
             self.items.clear();
+            self.roots.clear();
             self.finished = false;
             self.file_count = 0;
             self.folder_count = 0;
@@ -571,32 +557,71 @@ impl FileManager {
             match message {
                 Ok(message) => match message {
                     ItemScanEvent::Insert(insert) => {
-                        if insert.r#type == ScannedItemType::Directory {
-                            self.folder_count += 1;
-                        } else {
-                            self.file_count += 1;
-                        }
                         if insert.path.starts_with(&self.path) {
+                            let path = insert
+                                .path
+                                .strip_prefix(&self.path)
+                                .map(|p| p.to_path_buf())
+                                .unwrap_or_default();
+
+                            if let Some(parent) = path.parent() {
+                                if let Some(TreeItem::Directory(_, children)) =
+                                    self.items.get_mut(parent)
+                                {
+                                    children.insert(path.clone());
+                                }
+                                if parent == PathBuf::default() {
+                                    self.roots.insert(path.clone());
+                                }
+                            } else if path != PathBuf::default() {
+                                self.roots.insert(path.clone());
+                            }
+
                             self.items.insert(
-                                insert.path.clone(),
-                                ScannedItem {
-                                    path: insert
-                                        .path
-                                        .strip_prefix(&self.path)
-                                        .map(|p| p.to_path_buf())
-                                        .unwrap_or_default(),
-                                    r#type: insert.r#type,
+                                path.clone(),
+                                match insert.r#type {
+                                    ScannedItemType::Directory => {
+                                        self.folder_count += 1;
+                                        TreeItem::Directory(path, BTreeSet::new())
+                                    }
+                                    ScannedItemType::File => {
+                                        self.file_count += 1;
+                                        TreeItem::File(path)
+                                    }
+                                    ScannedItemType::Other => {
+                                        self.file_count += 1;
+                                        TreeItem::Other(path)
+                                    }
                                 },
                             );
                             has_changed = true;
                         }
                     }
                     ItemScanEvent::Delete(delete) => {
-                        if let Some(item) = self.items.remove(&delete) {
-                            if item.r#type == ScannedItemType::Directory {
-                                self.folder_count -= 1;
-                            } else {
-                                self.file_count -= 1;
+                        if let Some(item) = self.items.remove(
+                            &delete
+                                .strip_prefix(&self.path)
+                                .map(|p| p.to_path_buf())
+                                .unwrap_or_default(),
+                        ) {
+                            self.roots.remove(item.path());
+                            if let Some(parent) = item.path().parent()
+                                && let Some(TreeItem::Directory(_, children)) =
+                                    self.items.get_mut(parent)
+                            {
+                                children.remove(item.path());
+                            }
+
+                            match item {
+                                TreeItem::Directory(_, _) => {
+                                    self.folder_count -= 1;
+                                }
+                                TreeItem::File(_) => {
+                                    self.file_count -= 1;
+                                }
+                                TreeItem::Other(_) => {
+                                    self.file_count -= 1;
+                                }
                             }
                         }
                         has_changed = true;
@@ -630,6 +655,25 @@ struct ScannedItem {
     r#type: ScannedItemType,
 }
 
+impl From<TreeItem> for ScannedItem {
+    fn from(value: TreeItem) -> Self {
+        match value {
+            TreeItem::Directory(path, _) => ScannedItem {
+                path,
+                r#type: ScannedItemType::Directory,
+            },
+            TreeItem::File(path) => ScannedItem {
+                path,
+                r#type: ScannedItemType::File,
+            },
+            TreeItem::Other(path) => ScannedItem {
+                path,
+                r#type: ScannedItemType::Other,
+            },
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum ScannedItemType {
     File,
@@ -642,4 +686,21 @@ enum ModalType {
     CreateDirectory(String),
     RenameFile((PathBuf, String)),
     None,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum TreeItem {
+    Directory(PathBuf, BTreeSet<PathBuf>),
+    File(PathBuf),
+    Other(PathBuf),
+}
+
+impl TreeItem {
+    fn path(&self) -> &PathBuf {
+        match self {
+            Self::Directory(path, _) => path,
+            Self::File(path) => path,
+            Self::Other(path) => path,
+        }
+    }
 }
