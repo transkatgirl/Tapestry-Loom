@@ -34,8 +34,10 @@ pub struct FileManager {
     channel: (Sender<ScanResult>, Receiver<ScanResult>),
     path: PathBuf,
     items: BTreeMap<PathBuf, ScannedItem>,
+    item_list: Vec<ScannedItem>,
     scanned: bool,
     stop_scanning: Arc<AtomicBool>,
+    open_folders: HashSet<PathBuf>,
 }
 
 type ScanResult = Result<ItemScanEvent, String>;
@@ -133,16 +135,18 @@ impl FileManager {
             action_threadpool: ThreadPool::new(16),
             path,
             items: BTreeMap::new(),
+            item_list: Vec::with_capacity(1024),
             scanned: false,
             stop_scanning: Arc::new(AtomicBool::new(false)),
+            open_folders: HashSet::with_capacity(64),
         }
     }
     pub fn render(&mut self, ui: &mut Ui) -> Vec<PathBuf> {
         self.update_items();
 
-        let items = self.items();
-
         let mut selected_items = Vec::new();
+
+        let items = self.item_list.clone();
 
         let text_style = TextStyle::Monospace;
         //let row_height = (*ui).text_style_height(&text_style);
@@ -202,7 +206,16 @@ impl FileManager {
                             )
                             .clicked()
                         {
-                            selected_items.push(item.path.clone());
+                            if item.r#type == ScannedItemType::File {
+                                selected_items.push(item.path.clone());
+                            } else {
+                                if self.open_folders.contains(&item.path) {
+                                    self.open_folders.remove(&item.path);
+                                } else {
+                                    self.open_folders.insert(item.path.clone());
+                                }
+                                self.update_item_list();
+                            }
                         };
 
                         if ui.rect_contains_pointer(ui.max_rect()) {
@@ -220,8 +233,9 @@ impl FileManager {
 
         selected_items
     }
-    fn items(&self) -> Vec<ScannedItem> {
-        self.items
+    fn update_item_list(&mut self) {
+        self.item_list = self
+            .items
             .iter()
             .map(|i| i.1.clone())
             .filter_map(|mut item| match item.path.strip_prefix(&self.path) {
@@ -238,6 +252,7 @@ impl FileManager {
                     .map(|s| s.to_os_string())
                     .unwrap_or_default()
                     .to_ascii_lowercase();
+                let parent = item.path.parent();
 
                 #[allow(clippy::nonminimal_bool)]
                 !(lowercase_name.is_empty()
@@ -248,14 +263,19 @@ impl FileManager {
                     || lowercase_name == "Thumbs.db:encryptable"
                     || lowercase_name == "ehthumbs.db"
                     || lowercase_name == "desktop.ini"
-                    || item.r#type == ScannedItemType::Other)
+                    || item.r#type == ScannedItemType::Other
+                    || parent
+                        .map(|path| {
+                            !(path == PathBuf::default() || self.open_folders.contains(path))
+                        })
+                        .unwrap_or_default())
             })
-            .collect()
+            .collect();
     }
-    fn create_weave(&mut self, item: PathBuf) {
+    fn create_weave(&self, item: PathBuf) {
         todo!()
     }
-    fn create_directory(&mut self, item: PathBuf) {
+    fn create_directory(&self, item: PathBuf) {
         let path = self.path.join(item);
         let tx = self.channel.0.clone();
 
@@ -267,7 +287,7 @@ impl FileManager {
                 }
             });
     }
-    fn move_item(&mut self, item: PathBuf, to: PathBuf) {
+    fn move_item(&self, item: PathBuf, to: PathBuf) {
         let from = self.path.join(item);
         let to = self.path.join(to);
         let tx = self.channel.0.clone();
@@ -280,7 +300,7 @@ impl FileManager {
                 }
             });
     }
-    fn remove_item(&mut self, item: PathBuf) {
+    fn remove_item(&self, item: PathBuf) {
         let path = self.path.join(item);
         let tx = self.channel.0.clone();
 
@@ -330,6 +350,8 @@ impl FileManager {
         self.scanned = false;
     }
     fn update_items(&mut self) {
+        let mut has_changed = false;
+
         let settings = self.settings.borrow();
 
         if settings.documents.location != self.path {
@@ -337,6 +359,9 @@ impl FileManager {
             drop(settings);
             self.refresh();
             self.path = settings_location;
+            has_changed = true;
+        } else {
+            drop(settings);
         }
 
         let mut toasts = self.toasts.borrow_mut();
@@ -404,9 +429,11 @@ impl FileManager {
                 Ok(message) => match message {
                     ItemScanEvent::Insert(insert) => {
                         self.items.insert(insert.path.clone(), insert);
+                        has_changed = true;
                     }
                     ItemScanEvent::Delete(delete) => {
                         self.items.remove(&delete);
+                        has_changed = true;
                     }
                     ItemScanEvent::Watch(watch) => {
                         if let Some(watcher) = &mut self.watcher
@@ -420,6 +447,12 @@ impl FileManager {
                     toasts.warning(format!("Filesystem error: {error:#?}"));
                 }
             }
+        }
+
+        if has_changed {
+            drop(toasts);
+            self.open_folders.clear();
+            self.update_item_list();
         }
     }
 }
