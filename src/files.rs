@@ -19,6 +19,7 @@ use notify::{
     recommended_watcher,
 };
 use threadpool::ThreadPool;
+use unicode_segmentation::UnicodeSegmentation;
 use walkdir::WalkDir;
 
 use crate::settings::Settings;
@@ -152,9 +153,17 @@ impl FileManager {
                 for item in &items[range] {
                     let label = if let Some(parent) = item.path.parent() {
                         if let Ok(without_prefix) = item.path.strip_prefix(parent) {
-                            let parent_length: usize =
-                                parent.to_string_lossy().chars().map(|_| 1).sum();
-                            if parent_length > 2 {
+                            let parent_length: usize = UnicodeSegmentation::graphemes(
+                                parent.to_string_lossy().as_ref(),
+                                true,
+                            )
+                            .map(|_| 1)
+                            .sum();
+                            if parent_length > 2
+                                && self
+                                    .items
+                                    .contains_key(&self.path.join(PathBuf::from(parent)))
+                            {
                                 let padding =
                                     (0..(parent_length - 1)).map(|_| " ").collect::<String>();
                                 Cow::Owned(
@@ -217,7 +226,8 @@ impl FileManager {
 
                 #[allow(clippy::nonminimal_bool)]
                 !(lowercase_name.is_empty()
-                    || (lowercase_name.to_string_lossy().chars().nth(0) == Some('.'))
+                    || (item.r#type == ScannedItemType::File
+                        && lowercase_name.to_string_lossy().chars().nth(0) == Some('.'))
                     || lowercase_name == "thumbs.db"
                     || lowercase_name == "thumbs.db"
                     || lowercase_name == "Thumbs.db:encryptable"
@@ -399,7 +409,7 @@ struct ScannedItem {
     r#type: ScannedItemType,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum ScannedItemType {
     File,
     Directory,

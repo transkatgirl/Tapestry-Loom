@@ -3747,6 +3747,7 @@ dependencies = [
  "tapestry-weave",
  "threadpool",
  "tokio",
+ "unicode-segmentation",
  "walkdir",
 ]
 
