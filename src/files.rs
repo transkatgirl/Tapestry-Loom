@@ -102,6 +102,7 @@ impl FileManager {
                 });
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if ui.button(regular::ARROW_CLOCKWISE).clicked() {
+                        self.open_folders.clear();
                         self.scanned = false;
                     }
                     if ui.button(regular::FOLDER_PLUS).clicked() {
