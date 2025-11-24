@@ -4,6 +4,7 @@ use std::{
     collections::{BTreeMap, HashSet},
     ffi::OsString,
     fs,
+    ops::DerefMut,
     path::{MAIN_SEPARATOR_STR, Path, PathBuf},
     rc::Rc,
     sync::{
@@ -42,7 +43,7 @@ pub struct FileManager {
     stop_scanning: Arc<AtomicBool>,
     open_folders: HashSet<PathBuf>,
     ignore_list: HashSet<&'static str>,
-    modal: ModalType,
+    modal: RefCell<ModalType>,
 }
 
 type ScanResult = Result<ItemScanEvent, String>;
@@ -156,7 +157,7 @@ impl FileManager {
                 "ehthumbs.db",
                 "desktop.ini",
             ]),
-            modal: ModalType::None,
+            modal: RefCell::new(ModalType::None),
         }
     }
     pub fn render(&mut self, ui: &mut Ui) -> Vec<PathBuf> {
@@ -268,15 +269,15 @@ impl FileManager {
                             if item.r#type == ScannedItemType::Directory
                                 && ui.button(regular::FILE_PLUS).clicked()
                             {
-                                self.modal = ModalType::CreateWeave(
+                                *self.modal.borrow_mut() = ModalType::CreateWeave(
                                     item.path
-                                        .join("Untitled Weave")
+                                        .join("Untitled.weave")
                                         .to_string_lossy()
                                         .to_string(),
                                 );
                             };
                             if ui.button(regular::FOLDER_PLUS).clicked() {
-                                self.modal = ModalType::CreateDirectory(
+                                *self.modal.borrow_mut() = ModalType::CreateDirectory(
                                     item.path
                                         .join("Untitled Folder")
                                         .to_string_lossy()
@@ -284,7 +285,7 @@ impl FileManager {
                                 );
                             }
                             if ui.button(regular::PENCIL_LINE).clicked() {
-                                self.modal = ModalType::RenameFile((
+                                *self.modal.borrow_mut() = ModalType::RenameFile((
                                     item.path.clone(),
                                     item.path.to_string_lossy().to_string(),
                                 ));
@@ -298,7 +299,8 @@ impl FileManager {
                 }
             });
 
-        match &mut self.modal {
+        let mut modal = self.modal.borrow_mut();
+        match &mut modal.deref_mut() {
             ModalType::CreateWeave(path) => {
                 if Modal::new("filemanager-create-weave-modal".into())
                     .show(ui.ctx(), |ui| {
@@ -314,15 +316,15 @@ impl FileManager {
                                     ui.close();
                                 }
                                 if ui.button("Save").clicked() {
-                                    //self.create_weave(PathBuf::from(path.clone()));
-                                    //ui.close();
+                                    self.create_weave(self.path.join(PathBuf::from(path.clone())));
+                                    ui.close();
                                 }
                             },
                         );
                     })
                     .should_close()
                 {
-                    self.modal = ModalType::None;
+                    *modal = ModalType::None;
                 };
             }
             ModalType::CreateDirectory(path) => {
@@ -340,22 +342,24 @@ impl FileManager {
                                     ui.close();
                                 }
                                 if ui.button("Save").clicked() {
-                                    // path
-                                    //ui.close();
+                                    self.create_directory(
+                                        self.path.join(PathBuf::from(path.clone())),
+                                    );
+                                    ui.close();
                                 }
                             },
                         );
                     })
                     .should_close()
                 {
-                    self.modal = ModalType::None;
+                    *modal = ModalType::None;
                 };
             }
             ModalType::RenameFile((from, to)) => {
                 if Modal::new("filemanager-rename-item-modal".into())
                     .show(ui.ctx(), |ui| {
                         ui.set_width(280.0);
-                        ui.heading("Move/Rename Item");
+                        ui.heading("Move or Rename Item");
                         let label = ui.label("New Path:");
                         ui.text_edit_singleline(to).labelled_by(label.id);
                         Sides::new().show(
@@ -366,15 +370,18 @@ impl FileManager {
                                     ui.close();
                                 }
                                 if ui.button("Save").clicked() {
-                                    // to
-                                    //ui.close();
+                                    self.move_item(
+                                        self.path.join(from),
+                                        self.path.join(PathBuf::from(to.clone())),
+                                    );
+                                    ui.close();
                                 }
                             },
                         );
                     })
                     .should_close()
                 {
-                    self.modal = ModalType::None;
+                    *modal = ModalType::None;
                 };
             }
             ModalType::None => {}
