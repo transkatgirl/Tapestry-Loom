@@ -205,7 +205,8 @@ impl FileManager {
                             )
                             .map(|_| 1)
                             .sum();
-                            if parent_length > 2 && self.items.contains_key(parent) {
+                            if parent_length > 2 && self.items.contains_key(&self.path.join(parent))
+                            {
                                 (
                                     parent_length - 1,
                                     Cow::Owned(
@@ -575,12 +576,7 @@ impl FileManager {
                             let filetype = entry.file_type();
 
                             let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
-                                path: entry
-                                    .path()
-                                    .to_path_buf()
-                                    .strip_prefix(&path)
-                                    .map(|p| p.to_path_buf())
-                                    .unwrap_or_default(),
+                                path: entry.path().to_path_buf(),
                                 r#type: if filetype.is_file() {
                                     ScannedItemType::File
                                 } else if filetype.is_dir() {
@@ -606,7 +602,17 @@ impl FileManager {
             match message {
                 Ok(message) => match message {
                     ItemScanEvent::Insert(insert) => {
-                        self.items.insert(insert.path.clone(), insert);
+                        self.items.insert(
+                            insert.path.clone(),
+                            ScannedItem {
+                                path: insert
+                                    .path
+                                    .strip_prefix(&self.path)
+                                    .map(|p| p.to_path_buf())
+                                    .unwrap_or_default(),
+                                r#type: insert.r#type,
+                            },
+                        );
                         has_changed = true;
                     }
                     ItemScanEvent::Delete(delete) => {
