@@ -3,7 +3,10 @@ use std::{
     collections::HashSet,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::Arc,
+    sync::{
+        Arc, Barrier,
+        mpsc::{self, Receiver, Sender},
+    },
 };
 
 use eframe::egui::Ui;
@@ -27,6 +30,7 @@ pub struct Editor {
     pub title: String,
     path: Option<PathBuf>,
     weave: Arc<Mutex<Option<TapestryWeave>>>,
+    error_channel: (Sender<String>, Receiver<String>),
 }
 
 impl Editor {
@@ -51,16 +55,45 @@ impl Editor {
             title: "Editor".to_string(),
             path,
             weave: Arc::new(Mutex::new(None)),
+            error_channel: mpsc::channel(),
         }
     }
     pub fn render(&mut self, ui: &mut Ui) {
-        let settings = self.settings.borrow();
+        if let Some(mut weave) = self.weave.try_lock() {
+            match weave.as_mut() {
+                Some(weave) => {
+                    // TODO,
+                }
+                None => {
+                    drop(weave);
+                    let weave = self.weave.clone();
+                    let barrier = Arc::new(Barrier::new(2));
+                    let thread_barrier = barrier.clone();
+                    let path = self.path.clone();
+
+                    self.threadpool.execute(move || {
+                        let weave = weave.lock();
+                        thread_barrier.wait();
+                    });
+                    barrier.wait();
+
+                    //
+                }
+            }
+        }
+
+        //let settings = self.settings.borrow();
 
         ui.label(format!("{:#?}", self.path));
 
         /*self.toasts
         .borrow_mut()
         .error(format!("Document loading failed: {error:#?}"));*/
+
+        let mut toasts = self.toasts.borrow_mut();
+        while let Ok(message) = self.error_channel.1.try_recv() {
+            toasts.warning(message);
+        }
     }
     pub fn save(&mut self) {
         if let Some(path) = &self.path {
@@ -70,5 +103,5 @@ impl Editor {
 }
 
 pub fn blank_weave_bytes() -> Result<Vec<u8>, rancor::Error> {
-    Ok(TapestryWeave::with_capacity(0, IndexMap::with_capacity(0)).to_versioned_bytes()?)
+    TapestryWeave::with_capacity(0, IndexMap::with_capacity(0)).to_versioned_bytes()
 }

@@ -543,10 +543,9 @@ impl FileManager {
             self.finished = false;
             self.file_count = 0;
             self.folder_count = 0;
-            if self.stop_scanning.load(Ordering::Relaxed) {
-                self.scan_threadpool.join();
-                self.stop_scanning.store(false, Ordering::SeqCst);
-            }
+            self.stop_scanning.store(true, Ordering::SeqCst);
+            self.scan_threadpool.join();
+            self.stop_scanning.store(false, Ordering::SeqCst);
             while self.channel.1.try_recv().is_ok() {}
             let tx = self.channel.0.clone();
             let path = self.path.clone();
