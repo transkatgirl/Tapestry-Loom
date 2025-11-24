@@ -41,6 +41,7 @@ pub struct FileManager {
     finished: bool,
     stop_scanning: Arc<AtomicBool>,
     open_folders: HashSet<PathBuf>,
+    ignore_list: HashSet<&'static str>,
 }
 
 type ScanResult = Result<ItemScanEvent, String>;
@@ -143,6 +144,17 @@ impl FileManager {
             finished: false,
             stop_scanning: Arc::new(AtomicBool::new(false)),
             open_folders: HashSet::with_capacity(64),
+            ignore_list: HashSet::from_iter([
+                ".directory",
+                ".ds_store",
+                "__macosx",
+                ".appledouble",
+                ".lsoverride",
+                "thumbs.db",
+                "thumbs.db:encryptable",
+                "ehthumbs.db",
+                "desktop.ini",
+            ]),
         }
     }
     pub fn render(&mut self, ui: &mut Ui) -> Vec<PathBuf> {
@@ -285,13 +297,9 @@ impl FileManager {
 
                 #[allow(clippy::nonminimal_bool)]
                 !(lowercase_name.is_empty()
-                    || (item.r#type == ScannedItemType::File
-                        && lowercase_name.to_string_lossy().chars().nth(0) == Some('.'))
-                    || lowercase_name == "thumbs.db"
-                    || lowercase_name == "thumbs.db"
-                    || lowercase_name == "Thumbs.db:encryptable"
-                    || lowercase_name == "ehthumbs.db"
-                    || lowercase_name == "desktop.ini")
+                    || self
+                        .ignore_list
+                        .contains(lowercase_name.to_string_lossy().as_ref()))
             })
             .cloned()
             .collect();
