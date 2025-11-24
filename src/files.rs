@@ -153,7 +153,7 @@ impl FileManager {
                 ui.add(Spinner::new());
                 ui.label("Scanning...");
             });
-            return vec![];
+            //return vec![];
         }
 
         let mut selected_items = Vec::new();
@@ -410,6 +410,7 @@ impl FileManager {
             self.refresh();
             self.path = settings_location;
             has_changed = true;
+            self.open_folders.clear();
         } else {
             drop(settings);
         }
@@ -506,7 +507,6 @@ impl FileManager {
 
         if has_changed {
             drop(toasts);
-            self.open_folders.clear();
             self.update_item_list();
         }
     }
