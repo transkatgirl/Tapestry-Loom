@@ -264,8 +264,8 @@ impl FileManager {
         let path = self.path.join(item);
         let tx = self.channel.0.clone();
 
-        self.action_threadpool
-            .execute(move || match path.metadata() {
+        self.action_threadpool.execute(move || {
+            /*match path.metadata() {
                 Ok(metadata) => {
                     if metadata.is_dir() {
                         match fs::remove_dir_all(path) {
@@ -282,11 +282,19 @@ impl FileManager {
                             }
                         }
                     }
+
                 }
                 Err(error) => {
                     let _ = tx.send(Err(format!("{error:#?}")));
                 }
-            });
+            }*/
+            match trash::delete(path) {
+                Ok(_) => {}
+                Err(error) => {
+                    let _ = tx.send(Err(format!("{error:#?}")));
+                }
+            }
+        });
     }
     fn refresh(&mut self) {
         let mut toasts = self.toasts.borrow_mut();
