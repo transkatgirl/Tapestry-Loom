@@ -2,7 +2,7 @@ use std::{
     cell::RefCell,
     collections::HashSet,
     fs,
-    path::{Path, PathBuf},
+    path::PathBuf,
     rc::Rc,
     sync::{
         Arc, Barrier,
@@ -132,7 +132,10 @@ impl Editor {
                 }
             }
         } else {
-            ui.add(Spinner::new());
+            ui.horizontal(|ui| {
+                ui.add(Spinner::new());
+                ui.label("Loading document...");
+            });
         }
 
         let mut toasts = self.toasts.borrow_mut();
@@ -142,9 +145,10 @@ impl Editor {
     }
     fn render_weave(&mut self, ui: &mut Ui, weave: &mut TapestryWeave) {
         let settings = self.settings.borrow();
+        let path = self.path.lock();
 
         ui.label("weave loaded");
-        ui.label(format!("{:#?}", self.path));
+        ui.label(format!("{:#?}", path));
     }
     fn save(&self) {
         let weave = self.weave.clone();
