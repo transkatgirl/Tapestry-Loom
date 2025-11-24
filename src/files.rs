@@ -406,6 +406,7 @@ impl FileManager {
         let from = self.path.join(item);
         let to = self.path.join(to);
         let tx = self.channel.0.clone();
+        let stop_scanning = self.stop_scanning.clone();
 
         self.action_threadpool
             .execute(move || match fs::rename(&from, &to) {
@@ -414,7 +415,7 @@ impl FileManager {
                     match to.metadata() {
                         Ok(metadata) => {
                             let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
-                                path: to,
+                                path: to.clone(),
                                 r#type: if metadata.is_dir() {
                                     ScannedItemType::Directory
                                 } else if metadata.is_file() {
@@ -423,6 +424,35 @@ impl FileManager {
                                     ScannedItemType::Other
                                 },
                             })));
+                            if metadata.is_dir() {
+                                for entry in WalkDir::new(&to) {
+                                    if stop_scanning.load(Ordering::SeqCst) {
+                                        stop_scanning.store(false, Ordering::SeqCst);
+                                        break;
+                                    }
+
+                                    match entry {
+                                        Ok(entry) => {
+                                            let filetype = entry.file_type();
+
+                                            let _ =
+                                                tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
+                                                    path: entry.path().to_path_buf(),
+                                                    r#type: if filetype.is_file() {
+                                                        ScannedItemType::File
+                                                    } else if filetype.is_dir() {
+                                                        ScannedItemType::Directory
+                                                    } else {
+                                                        ScannedItemType::Other
+                                                    },
+                                                })));
+                                        }
+                                        Err(error) => {
+                                            let _ = tx.send(Err(format!("{error:#?}")));
+                                        }
+                                    }
+                                }
+                            }
                         }
                         Err(error) => {
                             let _ = tx.send(Err(format!("{error:#?}")));
