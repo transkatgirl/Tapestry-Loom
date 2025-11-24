@@ -15,11 +15,9 @@ use std::{
 use eframe::egui::Ui;
 use egui_notify::Toasts;
 use notify::{
-    Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
-    event::{Flag, ModifyKind},
+    Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher, event::ModifyKind,
     recommended_watcher,
 };
-use parking_lot::Mutex;
 use threadpool::ThreadPool;
 use walkdir::WalkDir;
 
@@ -32,7 +30,7 @@ pub struct FileManager {
     threadpool: ThreadPool,
     channel: (Sender<ScanResult>, Receiver<ScanResult>),
     path: PathBuf,
-    items: Arc<Mutex<HashMap<PathBuf, ScannedItem>>>,
+    items: HashMap<PathBuf, ScannedItem>,
     scanned: bool,
     stop_scanning: Arc<AtomicBool>,
 }
@@ -131,7 +129,7 @@ impl FileManager {
             channel: (sender, receiver),
             threadpool: ThreadPool::new(1),
             path,
-            items: Arc::new(Mutex::new(HashMap::with_capacity(512))),
+            items: HashMap::with_capacity(512),
             scanned: false,
             stop_scanning: Arc::new(AtomicBool::new(false)),
         }
@@ -150,22 +148,16 @@ impl FileManager {
         if settings.documents.location != self.path {
             if self.scanned
                 && let Some(watcher) = &mut self.watcher
+                && let Err(error) = watcher.unwatch(&self.path)
             {
-                watcher.unwatch(&self.path);
+                toasts.error(format!("Unable to unwatch folder: {error:#?}"));
             }
-            self.items.lock().clear();
-            if let Some(watcher) = &mut self.watcher {
-                watcher.watch(&self.path, RecursiveMode::Recursive);
-            }
+            self.items.clear();
             self.scanned = false;
             self.stop_scanning.store(true, Ordering::SeqCst);
         }
 
         if !self.scanned {
-            if let Some(watcher) = &mut self.watcher {
-                watcher.watch(&self.path, RecursiveMode::Recursive);
-            }
-
             let tx = self.channel.0.clone();
             let path = self.path.clone();
             let stop_scanning = self.stop_scanning.clone();
@@ -184,6 +176,8 @@ impl FileManager {
                         let _ = tx.send(Err(format!("{error:#?}")));
                     }
                 }
+
+                let _ = tx.send(Ok(ItemScanEvent::Watch(path.clone())));
 
                 for entry in WalkDir::new(path) {
                     if stop_scanning.load(Ordering::SeqCst) {
@@ -217,24 +211,35 @@ impl FileManager {
             self.scanned = true;
         }
 
-        /*if let Some(watcher) = &self.watcher {
-            while let Ok(message) = watcher.1.try_recv() {
-                match message {
-                    Ok(event) => {
-                        // TODO
+        while let Ok(message) = self.channel.1.try_recv() {
+            match message {
+                Ok(message) => match message {
+                    ItemScanEvent::Insert(insert) => {
+                        self.items.insert(insert.path.clone(), insert);
                     }
-                    Err(error) => {
-                        toasts.warning(format!("Filesystem watcher returned error: {error:#?}"));
+                    ItemScanEvent::Delete(delete) => {
+                        self.items.remove(&delete);
                     }
+                    ItemScanEvent::Watch(watch) => {
+                        if let Some(watcher) = &mut self.watcher
+                            && let Err(error) = watcher.watch(&watch, RecursiveMode::Recursive)
+                        {
+                            toasts.error(format!("Unable to watch folder: {error:#?}"));
+                        };
+                    }
+                },
+                Err(error) => {
+                    toasts.warning(format!("Filesystem returned error: {error:#?}"));
                 }
             }
-        }*/
+        }
     }
 }
 
 enum ItemScanEvent {
     Insert(ScannedItem),
     Delete(PathBuf),
+    Watch(PathBuf),
 }
 
 struct ScannedItem {
