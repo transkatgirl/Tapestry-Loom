@@ -3,7 +3,7 @@ use std::{
     collections::{HashMap, HashSet},
     ffi::OsString,
     fs,
-    path::{Path, PathBuf},
+    path::PathBuf,
     rc::Rc,
     sync::{
         Arc,
@@ -27,12 +27,14 @@ pub struct FileManager {
     settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
     watcher: Option<RecommendedWatcher>,
-    threadpool: ThreadPool,
+    scan_threadpool: ThreadPool,
+    action_threadpool: ThreadPool,
     channel: (Sender<ScanResult>, Receiver<ScanResult>),
     path: PathBuf,
     items: HashMap<PathBuf, ScannedItem>,
     scanned: bool,
     stop_scanning: Arc<AtomicBool>,
+    last_selected_items: HashSet<PathBuf>,
 }
 
 type ScanResult = Result<ItemScanEvent, String>;
@@ -127,45 +129,131 @@ impl FileManager {
             toasts,
             watcher,
             channel: (sender, receiver),
-            threadpool: ThreadPool::new(1),
+            scan_threadpool: ThreadPool::new(1),
+            action_threadpool: ThreadPool::new(16),
             path,
             items: HashMap::with_capacity(512),
             scanned: false,
             stop_scanning: Arc::new(AtomicBool::new(false)),
+            last_selected_items: HashSet::with_capacity(16),
         }
     }
     pub fn render(&mut self, ui: &mut Ui) -> Option<Vec<PathBuf>> {
         self.update_items();
 
-        ui.heading("File Manager");
+        let items: Vec<ScannedItem> = self
+            .items
+            .iter()
+            .map(|i| i.1.clone())
+            .filter(|item| {
+                let lowercase_name = item.name.to_ascii_lowercase();
+
+                #[allow(clippy::nonminimal_bool)]
+                !((lowercase_name.to_string_lossy().chars().nth(0) == Some('.'))
+                    || lowercase_name == "thumbs.db"
+                    || lowercase_name == "thumbs.db"
+                    || lowercase_name == "Thumbs.db:encryptable"
+                    || lowercase_name == "ehthumbs.db"
+                    || lowercase_name == "desktop.ini")
+            })
+            .collect();
+
+        for item in items {
+            let icon = match item.r#type {
+                ScannedItemType::File => "📄",
+                ScannedItemType::Directory => "📂",
+                ScannedItemType::Other => "?",
+            };
+            ui.label(format!("{icon} {:?}", item.path));
+        }
 
         None
     }
-    fn update_items(&mut self) {
-        let settings = self.settings.borrow();
+    fn create_directory(&mut self, item: PathBuf) {
+        let path = self.path.join(item);
+        let tx = self.channel.0.clone();
+
+        self.action_threadpool
+            .execute(move || match fs::create_dir_all(path) {
+                Ok(_) => {}
+                Err(error) => {
+                    let _ = tx.send(Err(format!("{error:#?}")));
+                }
+            });
+    }
+    fn move_item(&mut self, item: PathBuf, to: PathBuf) {
+        let from = self.path.join(item);
+        let to = self.path.join(to);
+        let tx = self.channel.0.clone();
+
+        self.action_threadpool
+            .execute(move || match fs::rename(from, to) {
+                Ok(_) => {}
+                Err(error) => {
+                    let _ = tx.send(Err(format!("{error:#?}")));
+                }
+            });
+    }
+    fn remove_item(&mut self, item: PathBuf) {
+        let path = self.path.join(item);
+        let tx = self.channel.0.clone();
+
+        self.action_threadpool
+            .execute(move || match path.metadata() {
+                Ok(metadata) => {
+                    if metadata.is_dir() {
+                        match fs::remove_dir_all(path) {
+                            Ok(_) => {}
+                            Err(error) => {
+                                let _ = tx.send(Err(format!("{error:#?}")));
+                            }
+                        }
+                    } else {
+                        match fs::remove_file(path) {
+                            Ok(_) => {}
+                            Err(error) => {
+                                let _ = tx.send(Err(format!("{error:#?}")));
+                            }
+                        }
+                    }
+                }
+                Err(error) => {
+                    let _ = tx.send(Err(format!("{error:#?}")));
+                }
+            });
+    }
+    fn refresh(&mut self) {
         let mut toasts = self.toasts.borrow_mut();
 
-        if settings.documents.location != self.path {
-            if self.scanned
-                && let Some(watcher) = &mut self.watcher
-                && let Err(error) = watcher.unwatch(&self.path)
-            {
-                toasts.error(format!("Unable to unwatch folder: {error:#?}"));
-            }
-            self.items.clear();
-            self.scanned = false;
-            self.stop_scanning.store(true, Ordering::SeqCst);
+        if self.scanned
+            && let Some(watcher) = &mut self.watcher
+            && let Err(error) = watcher.unwatch(&self.path)
+        {
+            toasts.error(format!("Unable to unwatch folder: {error:#?}"));
         }
+        self.items.clear();
+        self.scanned = false;
+        self.stop_scanning.store(true, Ordering::SeqCst);
+    }
+    fn update_items(&mut self) {
+        let settings = self.settings.borrow();
+
+        if settings.documents.location != self.path {
+            drop(settings);
+            self.refresh();
+        }
+
+        let mut toasts = self.toasts.borrow_mut();
 
         if !self.scanned {
             let tx = self.channel.0.clone();
             let path = self.path.clone();
             let stop_scanning = self.stop_scanning.clone();
-            self.threadpool.execute(move || {
+            self.scan_threadpool.execute(move || {
                 match fs::exists(&path) {
                     Ok(exists) => {
                         if !exists {
-                            if let Err(error) = fs::create_dir(&path) {
+                            if let Err(error) = fs::create_dir_all(&path) {
                                 let _ = tx.send(Err(format!("{error:#?}")));
                             } else {
                                 return;
@@ -229,7 +317,7 @@ impl FileManager {
                     }
                 },
                 Err(error) => {
-                    toasts.warning(format!("Filesystem returned error: {error:#?}"));
+                    toasts.warning(format!("Filesystem error: {error:#?}"));
                 }
             }
         }
@@ -242,12 +330,14 @@ enum ItemScanEvent {
     Watch(PathBuf),
 }
 
+#[derive(Debug, Clone)]
 struct ScannedItem {
     name: OsString,
     path: PathBuf,
     r#type: ScannedItemType,
 }
 
+#[derive(Debug, Clone, Copy)]
 enum ScannedItemType {
     File,
     Directory,
