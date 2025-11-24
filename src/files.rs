@@ -143,8 +143,9 @@ impl FileManager {
 
         let items = self.items();
 
-        let text_style = TextStyle::Body;
+        let text_style = TextStyle::Monospace;
         let row_height = (*ui).text_style_height(&text_style);
+        let ch = ui.fonts_mut(|f| f.glyph_width(&text_style.resolve(ui.style()), ' '));
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
@@ -184,16 +185,14 @@ impl FileManager {
                         (0, item.path.to_string_lossy())
                     };
 
-                    let padding = (0..(padding)).map(|_| " ").collect::<String>();
+                    //let padding = (0..(padding)).map(|_| " ").collect::<String>();
                     let (icon, suffix) = match item.r#type {
                         ScannedItemType::File => ("📄", ""),
                         ScannedItemType::Directory => ("📂", MAIN_SEPARATOR_STR),
                         ScannedItemType::Other => ("?", ""),
                     };
                     ui.horizontal(|ui| {
-                        ui.label(
-                            RichText::new(padding).family(eframe::egui::FontFamily::Monospace),
-                        );
+                        ui.add_space(ch * padding as f32);
                         ui.button(
                             RichText::new(format!("{icon} {label}{suffix}"))
                                 .family(eframe::egui::FontFamily::Monospace),
