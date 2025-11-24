@@ -228,12 +228,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyhow"
-version = "1.0.100"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
-
-[[package]]
 name = "arboard"
 version = "3.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -988,16 +982,6 @@ dependencies = [
  "serde",
  "smallvec",
  "unicode-segmentation",
-]
-
-[[package]]
-name = "egui-keybind"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9dbaae0504f3ed63ec4322102148b6e00b778269e51a290106fa929bbb8c86d"
-dependencies = [
- "egui",
- "serde",
 ]
 
 [[package]]
@@ -3701,10 +3685,8 @@ dependencies = [
 name = "tapestry-loom"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "dirs-next",
  "eframe",
- "egui-keybind",
  "egui-notify",
  "egui-phosphor",
  "egui_tiles",

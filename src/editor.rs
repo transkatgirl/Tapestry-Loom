@@ -6,10 +6,13 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::Error;
 use eframe::egui::Ui;
 use egui_notify::Toasts;
-use tapestry_weave::{universal_weave::indexmap::IndexMap, v0::TapestryWeave};
+use parking_lot::Mutex;
+use tapestry_weave::{
+    universal_weave::{indexmap::IndexMap, rkyv::rancor},
+    v0::TapestryWeave,
+};
 use threadpool::ThreadPool;
 use tokio::runtime::Runtime;
 
@@ -23,7 +26,7 @@ pub struct Editor {
     runtime: Arc<Runtime>,
     pub title: String,
     path: Option<PathBuf>,
-    document: Option<Document>,
+    weave: Arc<Mutex<Option<TapestryWeave>>>,
 }
 
 impl Editor {
@@ -47,7 +50,7 @@ impl Editor {
             runtime,
             title: "Editor".to_string(),
             path,
-            document: None,
+            weave: Arc::new(Mutex::new(None)),
         }
     }
     pub fn render(&mut self, ui: &mut Ui) {
@@ -66,14 +69,6 @@ impl Editor {
     }
 }
 
-struct Document {}
-
-impl Document {
-    fn load(path: &Path) -> Result<Self, Error> {
-        Ok(Self {})
-    }
-}
-
-pub fn blank_weave_bytes() -> Result<Vec<u8>, Error> {
+pub fn blank_weave_bytes() -> Result<Vec<u8>, rancor::Error> {
     Ok(TapestryWeave::with_capacity(0, IndexMap::with_capacity(0)).to_versioned_bytes()?)
 }
