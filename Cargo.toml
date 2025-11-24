@@ -40,7 +40,6 @@ egui-phosphor = { version = "0.11.0", features = ["regular", "bold", "fill"] }
 egui_tiles = "0.14.0"
 egui-notify = "0.21.0"
 threadpool = "1.8.1"
-notify = "8.2.0"
 tokio = { version = "1.48.0", features = ["full"] }
 walkdir = "2.5.0"
 unicode-segmentation = "1.12.0"

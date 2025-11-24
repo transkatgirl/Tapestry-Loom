@@ -17,10 +17,6 @@ use std::{
 use eframe::egui::{Button, Modal, RichText, ScrollArea, Sides, Spinner, TextStyle, Ui};
 use egui_notify::Toasts;
 use egui_phosphor::regular;
-use notify::{
-    Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher, event::ModifyKind,
-    recommended_watcher,
-};
 use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, treeless::FILE_EXTENSION};
 use threadpool::ThreadPool;
 use unicode_segmentation::UnicodeSegmentation;
@@ -31,7 +27,6 @@ use crate::{editor::blank_weave_bytes, settings::Settings};
 pub struct FileManager {
     settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
-    watcher: Option<RecommendedWatcher>,
     scan_threadpool: ThreadPool,
     action_threadpool: ThreadPool,
     channel: (Sender<ScanResult>, Receiver<ScanResult>),
@@ -54,88 +49,9 @@ impl FileManager {
 
         let (sender, receiver) = mpsc::channel::<ScanResult>();
 
-        let tx = sender.clone();
-        let watcher = match recommended_watcher(move |event: Result<Event, notify::Error>| {
-            let insert_item = |path: PathBuf| match path.metadata() {
-                Ok(metadata) => {
-                    let filetype = metadata.file_type();
-
-                    let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
-                        path,
-                        r#type: if filetype.is_file() {
-                            ScannedItemType::File
-                        } else if filetype.is_dir() {
-                            ScannedItemType::Directory
-                        } else {
-                            ScannedItemType::Other
-                        },
-                    })));
-                }
-                Err(error) => {
-                    let _ = tx.send(Err(format!("{error:#?}")));
-                }
-            };
-            let remove_item = |path: PathBuf| {
-                let _ = tx.send(Ok(ItemScanEvent::Delete(path)));
-            };
-            let unknown_item = |path: PathBuf| match fs::exists(&path) {
-                Ok(exists) => {
-                    if exists {
-                        insert_item(path);
-                    } else {
-                        remove_item(path);
-                    }
-                }
-                Err(error) => {
-                    let _ = tx.send(Err(format!("{error:#?}")));
-                }
-            };
-
-            match event {
-                Ok(event) => match event.kind {
-                    EventKind::Create(_) => {
-                        for path in event.paths {
-                            insert_item(path);
-                        }
-                    }
-                    EventKind::Modify(modify) => match modify {
-                        ModifyKind::Any | ModifyKind::Name(_) | ModifyKind::Other => {
-                            for path in event.paths {
-                                unknown_item(path);
-                            }
-                        }
-                        ModifyKind::Data(_) | ModifyKind::Metadata(_) => {}
-                    },
-                    EventKind::Remove(_) => {
-                        for path in event.paths {
-                            remove_item(path);
-                        }
-                    }
-                    EventKind::Any | EventKind::Other => {
-                        for path in event.paths {
-                            unknown_item(path);
-                        }
-                    }
-                    EventKind::Access(_) => {}
-                },
-                Err(error) => {
-                    let _ = tx.send(Err(format!("{error:#?}")));
-                }
-            }
-        }) {
-            Ok(watcher) => Some(watcher),
-            Err(error) => {
-                toasts
-                    .borrow_mut()
-                    .error(format!("Filesystem watcher creation failed: {error:#?}"));
-                None
-            }
-        };
-
         Self {
             settings,
             toasts,
-            watcher,
             channel: (sender, receiver),
             scan_threadpool: ThreadPool::new(1),
             action_threadpool: ThreadPool::new(16),
@@ -444,8 +360,13 @@ impl FileManager {
 
         self.action_threadpool
             .execute(move || match blank_weave_bytes() {
-                Ok(bytes) => match fs::write(path, bytes) {
-                    Ok(_) => {}
+                Ok(bytes) => match fs::write(&path, bytes) {
+                    Ok(_) => {
+                        let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
+                            path,
+                            r#type: ScannedItemType::File,
+                        })));
+                    }
                     Err(error) => {
                         let _ = tx.send(Err(format!("{error:#?}")));
                     }
@@ -460,8 +381,13 @@ impl FileManager {
         let tx = self.channel.0.clone();
 
         self.action_threadpool
-            .execute(move || match fs::create_dir_all(path) {
-                Ok(_) => {}
+            .execute(move || match fs::create_dir_all(&path) {
+                Ok(_) => {
+                    let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
+                        path,
+                        r#type: ScannedItemType::Directory,
+                    })));
+                }
                 Err(error) => {
                     let _ = tx.send(Err(format!("{error:#?}")));
                 }
@@ -473,8 +399,27 @@ impl FileManager {
         let tx = self.channel.0.clone();
 
         self.action_threadpool
-            .execute(move || match fs::rename(from, to) {
-                Ok(_) => {}
+            .execute(move || match fs::rename(&from, &to) {
+                Ok(_) => {
+                    let _ = tx.send(Ok(ItemScanEvent::Delete(from)));
+                    match to.metadata() {
+                        Ok(metadata) => {
+                            let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
+                                path: to,
+                                r#type: if metadata.is_dir() {
+                                    ScannedItemType::Directory
+                                } else if metadata.is_file() {
+                                    ScannedItemType::File
+                                } else {
+                                    ScannedItemType::Other
+                                },
+                            })));
+                        }
+                        Err(error) => {
+                            let _ = tx.send(Err(format!("{error:#?}")));
+                        }
+                    }
+                }
                 Err(error) => {
                     let _ = tx.send(Err(format!("{error:#?}")));
                 }
@@ -508,27 +453,15 @@ impl FileManager {
                     let _ = tx.send(Err(format!("{error:#?}")));
                 }
             }*/
-            match trash::delete(path) {
-                Ok(_) => {}
+            match trash::delete(&path) {
+                Ok(_) => {
+                    let _ = tx.send(Ok(ItemScanEvent::Delete(path)));
+                }
                 Err(error) => {
                     let _ = tx.send(Err(format!("{error:#?}")));
                 }
             }
         });
-    }
-    fn refresh(&mut self) {
-        let mut toasts = self.toasts.borrow_mut();
-
-        self.stop_scanning.store(true, Ordering::SeqCst);
-        if self.scanned
-            && let Some(watcher) = &mut self.watcher
-            && let Err(error) = watcher.unwatch(&self.path)
-        {
-            toasts.error(format!("Unable to unwatch folder: {error:#?}"));
-        }
-        self.items.clear();
-        self.scanned = false;
-        self.finished = false;
     }
     fn update_items(&mut self) {
         let mut has_changed = false;
@@ -536,12 +469,12 @@ impl FileManager {
         let settings = self.settings.borrow();
 
         if settings.documents.location != self.path {
-            let settings_location = settings.documents.location.clone();
-            drop(settings);
-            self.refresh();
-            self.path = settings_location;
+            self.scanned = false;
             has_changed = true;
             self.open_folders.clear();
+            let settings_location = settings.documents.location.clone();
+            drop(settings);
+            self.path = settings_location;
         } else {
             drop(settings);
         }
@@ -549,6 +482,8 @@ impl FileManager {
         let mut toasts = self.toasts.borrow_mut();
 
         if !self.scanned {
+            self.items.clear();
+            self.finished = false;
             if self.stop_scanning.load(Ordering::Relaxed) {
                 self.scan_threadpool.join();
                 self.stop_scanning.store(false, Ordering::SeqCst);
@@ -572,8 +507,6 @@ impl FileManager {
                         let _ = tx.send(Err(format!("{error:#?}")));
                     }
                 }
-
-                let _ = tx.send(Ok(ItemScanEvent::Watch(path.clone())));
 
                 for entry in WalkDir::new(&path) {
                     if stop_scanning.load(Ordering::SeqCst) {
@@ -612,33 +545,24 @@ impl FileManager {
             match message {
                 Ok(message) => match message {
                     ItemScanEvent::Insert(insert) => {
-                        self.items.insert(
-                            insert.path.clone(),
-                            ScannedItem {
-                                path: insert
-                                    .path
-                                    .strip_prefix(&self.path)
-                                    .map(|p| p.to_path_buf())
-                                    .unwrap_or_default(),
-                                r#type: insert.r#type,
-                            },
-                        );
-
-                        // TODO: If item is a directory, scan for childen
-                        has_changed = true;
+                        if insert.path.starts_with(&self.path) {
+                            self.items.insert(
+                                insert.path.clone(),
+                                ScannedItem {
+                                    path: insert
+                                        .path
+                                        .strip_prefix(&self.path)
+                                        .map(|p| p.to_path_buf())
+                                        .unwrap_or_default(),
+                                    r#type: insert.r#type,
+                                },
+                            );
+                            has_changed = true;
+                        }
                     }
                     ItemScanEvent::Delete(delete) => {
                         self.items.remove(&delete);
-
-                        // TODO: Need to remove all children of deleted item
                         has_changed = true;
-                    }
-                    ItemScanEvent::Watch(watch) => {
-                        if let Some(watcher) = &mut self.watcher
-                            && let Err(error) = watcher.watch(&watch, RecursiveMode::Recursive)
-                        {
-                            toasts.error(format!("Unable to watch folder: {error:#?}"));
-                        };
                     }
                     ItemScanEvent::Finish => {
                         self.finished = true;
@@ -660,7 +584,6 @@ impl FileManager {
 enum ItemScanEvent {
     Insert(ScannedItem),
     Delete(PathBuf),
-    Watch(PathBuf),
     Finish,
 }
 
