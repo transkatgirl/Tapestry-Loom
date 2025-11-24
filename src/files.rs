@@ -14,7 +14,10 @@ use std::{
     },
 };
 
-use eframe::egui::{Button, Modal, RichText, ScrollArea, Sides, Spinner, TextStyle, Ui};
+use eframe::egui::{
+    Align, Button, Layout, Modal, RichText, ScrollArea, Sides, Spinner, TextStyle, TopBottomPanel,
+    Ui,
+};
 use egui_notify::Toasts;
 use egui_phosphor::regular;
 use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, treeless::FILE_EXTENSION};
@@ -79,28 +82,28 @@ impl FileManager {
     pub fn render(&mut self, ui: &mut Ui) -> Vec<PathBuf> {
         self.update_items();
 
-        if !self.finished {
+        TopBottomPanel::bottom("filemanager-bottom-panel").show_animated_inside(ui, true, |ui| {
             ui.horizontal(|ui| {
-                ui.add(Spinner::new());
-                ui.label("Scanning...");
+                ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                    if !self.finished {
+                        ui.add(Spinner::new());
+                    }
+                    if self.items.len() < 100000 {
+                        ui.label(format!("{} items", self.items.len()));
+                    } else {
+                        ui.colored_label(
+                            ui.style().visuals.warn_fg_color,
+                            format!("{} items", self.items.len()),
+                        );
+                    }
+                });
+
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    ui.label("TODO: Add buttons here!");
+                    // TODO: Add buttons to add files & folders at the root
+                });
             });
-        }
-
-        if self.items.len() > 100000 {
-            ui.horizontal(|ui| {
-                ui.colored_label(
-                    ui.style().visuals.warn_fg_color,
-                    format!(
-                        "This directory contains {} files; Performance may suffer.",
-                        self.items.len()
-                    ),
-                );
-            });
-        }
-
-        //ui.horizontal(|ui| {});
-
-        // TODO: Add buttons to add files & folders at the root
+        });
 
         let mut selected_items = Vec::new();
 
