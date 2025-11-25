@@ -5,7 +5,6 @@ use eframe::egui::{
     UiBuilder, Vec2, WidgetText, collapsing_header::CollapsingState,
 };
 use egui_notify::Toasts;
-use egui_phosphor::{fill, regular};
 use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{
@@ -17,26 +16,8 @@ use tapestry_weave::{
 
 use crate::{editor::shared::SharedState, settings::Settings};
 
-#[derive(Debug)]
-pub struct ListView {
-    bookmark_icon: Arc<RichText>,
-    unbookmark_icon: Arc<RichText>,
-}
-
-impl Default for ListView {
-    fn default() -> Self {
-        Self {
-            bookmark_icon: Arc::new(
-                RichText::new(regular::BOOKMARK_SIMPLE.to_string())
-                    .family(FontFamily::Name("phosphor".into())),
-            ),
-            unbookmark_icon: Arc::new(
-                RichText::new(fill::BOOKMARK_SIMPLE.to_string())
-                    .family(FontFamily::Name("phosphor-fill".into())),
-            ),
-        }
-    }
-}
+#[derive(Default, Debug)]
+pub struct ListView {}
 
 impl ListView {
     pub fn reset(&mut self) {}
@@ -89,21 +70,21 @@ impl ListView {
                             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                                 ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
                                     ui.add_space(ui.spacing().icon_spacing);
-                                    if ui.button(regular::ERASER).clicked() {
+                                    if ui.button("\u{E28F}").clicked() {
                                         weave.remove_node(&Ulid(node.id));
                                     };
-                                    let bookmark_label = WidgetText::RichText(if node.bookmarked {
-                                        self.unbookmark_icon.clone()
+                                    let bookmark_label = if node.bookmarked {
+                                        "\u{E23C}"
                                     } else {
-                                        self.bookmark_icon.clone()
-                                    });
+                                        "\u{E23d}"
+                                    };
                                     if ui.button(bookmark_label).clicked() {
                                         weave.set_node_bookmarked_status(
                                             &Ulid(node.id),
                                             !node.bookmarked,
                                         );
                                     };
-                                    if ui.button(regular::CHAT_TEXT).clicked() {
+                                    if ui.button("\u{E40C}").clicked() {
                                         weave.add_node(DependentNode {
                                             id: Ulid::new().0,
                                             from: Some(node.id),
@@ -117,11 +98,11 @@ impl ListView {
                                             },
                                         });
                                     };
-                                    if ui.button(regular::SPARKLE).clicked() {
+                                    if ui.button("\u{E5CE}").clicked() {
                                         todo!()
                                     };
                                     if weave.is_mergeable_with_parent(&Ulid(node.id))
-                                        && ui.button(regular::GIT_MERGE).clicked()
+                                        && ui.button("\u{E43F}").clicked()
                                     {
                                         weave.merge_with_parent(&Ulid(node.id));
                                     };
@@ -132,7 +113,7 @@ impl ListView {
                         } else if node.bookmarked {
                             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                                 ui.add_space(ui.spacing().icon_spacing);
-                                ui.label(regular::BOOKMARK_SIMPLE);
+                                ui.label("\u{E060}");
                                 ui.add_space(ui.spacing().icon_spacing);
                             });
                         }
@@ -147,21 +128,8 @@ impl ListView {
     }
 }
 
-#[derive(Debug)]
-pub struct BookmarkListView {
-    unbookmark_icon: Arc<RichText>,
-}
-
-impl Default for BookmarkListView {
-    fn default() -> Self {
-        Self {
-            unbookmark_icon: Arc::new(
-                RichText::new(fill::BOOKMARK_SIMPLE.to_string())
-                    .family(FontFamily::Name("phosphor-fill".into())),
-            ),
-        }
-    }
-}
+#[derive(Default, Debug)]
+pub struct BookmarkListView {}
 
 impl BookmarkListView {
     pub fn reset(&mut self) {}
@@ -188,7 +156,7 @@ impl BookmarkListView {
         if let Some(node) = weave.get_node(item).cloned() {
             ui.horizontal(|ui| {
                 ui.add_space(ui.spacing().icon_spacing);
-                ui.label(regular::BOOKMARK_SIMPLE);
+                ui.label("\u{E060}");
 
                 let response = ui
                     .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
@@ -211,10 +179,7 @@ impl BookmarkListView {
                             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                                 ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
                                     ui.add_space(ui.spacing().icon_spacing);
-                                    if ui
-                                        .button(WidgetText::RichText(self.unbookmark_icon.clone()))
-                                        .clicked()
-                                    {
+                                    if ui.button("\u{E23C}").clicked() {
                                         weave.set_node_bookmarked_status(&Ulid(node.id), false);
                                     };
                                     ui.add_space(ui.spacing().icon_spacing);
@@ -233,27 +198,9 @@ impl BookmarkListView {
     }
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct TreeListView {
     hoist: Option<Ulid>,
-    bookmark_icon: Arc<RichText>,
-    unbookmark_icon: Arc<RichText>,
-}
-
-impl Default for TreeListView {
-    fn default() -> Self {
-        Self {
-            hoist: None,
-            bookmark_icon: Arc::new(
-                RichText::new(regular::BOOKMARK_SIMPLE.to_string())
-                    .family(FontFamily::Name("phosphor".into())),
-            ),
-            unbookmark_icon: Arc::new(
-                RichText::new(fill::BOOKMARK_SIMPLE.to_string())
-                    .family(FontFamily::Name("phosphor-fill".into())),
-            ),
-        }
-    }
 }
 
 impl TreeListView {
@@ -354,22 +301,21 @@ impl TreeListView {
                                             UiBuilder::new().sense(Sense::click()),
                                             |ui| {
                                                 ui.add_space(ui.spacing().icon_spacing);
-                                                if ui.button(regular::ERASER).clicked() {
+                                                if ui.button("\u{E28F}").clicked() {
                                                     weave.remove_node(&Ulid(node.id));
                                                 };
-                                                let bookmark_label =
-                                                    WidgetText::RichText(if node.bookmarked {
-                                                        self.unbookmark_icon.clone()
-                                                    } else {
-                                                        self.bookmark_icon.clone()
-                                                    });
+                                                let bookmark_label = if node.bookmarked {
+                                                    "\u{E23C}"
+                                                } else {
+                                                    "\u{E23d}"
+                                                };
                                                 if ui.button(bookmark_label).clicked() {
                                                     weave.set_node_bookmarked_status(
                                                         &Ulid(node.id),
                                                         !node.bookmarked,
                                                     );
                                                 };
-                                                if ui.button(regular::CHAT_TEXT).clicked() {
+                                                if ui.button("\u{E40C}").clicked() {
                                                     weave.add_node(DependentNode {
                                                         id: Ulid::new().0,
                                                         from: Some(node.id),
@@ -385,11 +331,11 @@ impl TreeListView {
                                                         },
                                                     });
                                                 };
-                                                if ui.button(regular::SPARKLE).clicked() {
+                                                if ui.button("\u{E5CE}").clicked() {
                                                     todo!()
                                                 };
                                                 if weave.is_mergeable_with_parent(&Ulid(node.id))
-                                                    && ui.button(regular::GIT_MERGE).clicked()
+                                                    && ui.button("\u{E43F}").clicked()
                                                 {
                                                     weave.merge_with_parent(&Ulid(node.id));
                                                 };
@@ -401,7 +347,7 @@ impl TreeListView {
                                 } else if node.bookmarked {
                                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                                         ui.add_space(ui.spacing().icon_spacing);
-                                        ui.label(regular::BOOKMARK_SIMPLE);
+                                        ui.label("\u{E060}");
                                         ui.add_space(ui.spacing().icon_spacing);
                                     });
                                 }

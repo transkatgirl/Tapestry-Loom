@@ -5,12 +5,11 @@ use std::{cell::RefCell, collections::HashSet, path::PathBuf, rc::Rc, sync::Arc}
 use eframe::{
     App, CreationContext, Frame, NativeOptions,
     egui::{
-        self, CentralPanel, Context, FontDefinitions, FontFamily, IconData, RichText, Ui,
+        self, CentralPanel, Context, FontData, FontDefinitions, FontFamily, IconData, Ui,
         ViewportBuilder, WidgetText,
     },
 };
 use egui_notify::Toasts;
-use egui_phosphor::{fill, regular};
 use egui_tiles::{Behavior, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse};
 use mimalloc::MiMalloc;
 use threadpool::ThreadPool;
@@ -73,31 +72,58 @@ impl TapestryLoomApp {
         let settings = Rc::new(RefCell::new(settings));
 
         let mut fonts = FontDefinitions::default();
-        egui_phosphor::add_to_fonts(&mut fonts, egui_phosphor::Variant::Regular);
         fonts.font_data.insert(
+            "lucide".into(),
+            Arc::new(FontData::from_static(include_bytes!("../icons/Lucide.ttf"))),
+        );
+        /*fonts.font_data.insert(
             "phosphor".into(),
-            Arc::new(egui_phosphor::Variant::Regular.font_data()),
+            Arc::new(FontData::from_static(include_bytes!(
+                "../icons/Phosphor.ttf"
+            ))),
+        );
+        fonts.font_data.insert(
+            "phosphor-light".into(),
+            Arc::new(FontData::from_static(include_bytes!(
+                "../icons/Phosphor-Light.ttf"
+            ))),
+        );
+        fonts.font_data.insert(
+            "phosphor-bold".into(),
+            Arc::new(FontData::from_static(include_bytes!(
+                "../icons/Phosphor-Bold.ttf"
+            ))),
+        );
+        fonts.font_data.insert(
+            "phosphor-fill".into(),
+            Arc::new(FontData::from_static(include_bytes!(
+                "../icons/Phosphor-Fill.ttf"
+            ))),
+        );*/
+        if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Proportional) {
+            font_keys.insert(1, "lucide".into());
+        }
+        /*fonts.families.insert(
+            FontFamily::Name("lucide".into()),
+            vec!["Ubuntu-Light".into(), "phosphor-bold".into()],
         );
         fonts.families.insert(
             FontFamily::Name("phosphor".into()),
             vec!["Ubuntu-Light".into(), "phosphor".into()],
         );
-        fonts.font_data.insert(
-            "phosphor-bold".into(),
-            Arc::new(egui_phosphor::Variant::Bold.font_data()),
-        );
+        fonts.families.insert(
+            FontFamily::Name("phosphor-light".into()),
+            vec!["Ubuntu-Light".into(), "phosphor-light".into()],
+        );*/
         fonts.families.insert(
             FontFamily::Name("phosphor-bold".into()),
             vec!["Ubuntu-Light".into(), "phosphor-bold".into()],
-        );
-        fonts.font_data.insert(
-            "phosphor-fill".into(),
-            Arc::new(egui_phosphor::Variant::Fill.font_data()),
         );
         fonts.families.insert(
             FontFamily::Name("phosphor-fill".into()),
             vec!["Ubuntu-Light".into(), "phosphor-fill".into()],
         );
+
         cc.egui_ctx.set_fonts(fonts);
 
         let toasts = Rc::new(RefCell::new(toasts));
@@ -113,17 +139,6 @@ impl TapestryLoomApp {
             unsaved_settings_changes: false,
             new_editor_queue: Vec::with_capacity(16),
             settings,
-            settings_tab_label: Arc::new(
-                RichText::new([fill::GEAR, " Settings"].concat())
-                    .family(FontFamily::Name("phosphor-fill".into())),
-            ),
-            file_manager_tab_label: Arc::new(
-                RichText::new([fill::FOLDERS, " Files"].concat())
-                    .family(FontFamily::Name("phosphor-fill".into())),
-            ),
-            new_tab_label: Arc::new(
-                RichText::new(regular::PLUS).family(FontFamily::Name("phosphor-bold".into())),
-            ),
             toasts,
             runtime: Arc::new(
                 tokio::runtime::Builder::new_multi_thread()
@@ -243,9 +258,6 @@ impl App for TapestryLoomApp {
 }
 
 struct TapestryLoomBehavior {
-    settings_tab_label: Arc<RichText>,
-    file_manager_tab_label: Arc<RichText>,
-    new_tab_label: Arc<RichText>,
     settings: Rc<RefCell<Settings>>,
     unsaved_settings_changes: bool,
     new_editor_queue: Vec<(Option<PathBuf>, Option<TileId>)>,
@@ -265,8 +277,8 @@ enum Pane {
 impl Behavior<Pane> for TapestryLoomBehavior {
     fn tab_title_for_pane(&mut self, pane: &Pane) -> WidgetText {
         match pane {
-            Pane::Settings => WidgetText::RichText(self.settings_tab_label.clone()),
-            Pane::FileManager => WidgetText::RichText(self.file_manager_tab_label.clone()),
+            Pane::Settings => WidgetText::Text("\u{E154} Settings".to_string()),
+            Pane::FileManager => WidgetText::Text("\u{E33C} Files".to_string()),
             Pane::Editor(editor) => WidgetText::Text(editor.title.clone()),
         }
     }
@@ -315,7 +327,7 @@ impl Behavior<Pane> for TapestryLoomBehavior {
         _tabs: &egui_tiles::Tabs,
         _scroll_offset: &mut f32,
     ) {
-        if ui.button(self.new_tab_label.clone()).clicked() {
+        if ui.button("\u{E13D}").clicked() {
             self.new_editor_queue.push((None, Some(tile_id)));
         }
     }

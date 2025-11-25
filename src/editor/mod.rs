@@ -13,6 +13,8 @@ use std::{
 };
 
 // TODO: Prevent editor conflicts via renaming
+// TODO: Abort tab closing on error
+// TODO: Prompt on closing if weave does not have a save directory
 
 mod canvas;
 mod graph;
@@ -21,11 +23,8 @@ mod menus;
 mod shared;
 mod textedit;
 
-use eframe::egui::{
-    Align, FontFamily, Layout, Modal, RichText, Sides, Spinner, TopBottomPanel, Ui, WidgetText,
-};
+use eframe::egui::{Align, Layout, Modal, Sides, Spinner, TopBottomPanel, Ui, WidgetText};
 use egui_notify::Toasts;
-use egui_phosphor::fill;
 use egui_tiles::{Behavior, SimplificationOptions, TileId, Tiles, Tree, UiResponse};
 use parking_lot::Mutex;
 use tapestry_weave::{
@@ -136,34 +135,6 @@ impl Editor {
                 bookmark_list_view: BookmarkListView::default(),
                 text_edit_view: TextEditorView::default(),
                 menu_view: MenuView::default(),
-                canvas_title: Arc::new(
-                    RichText::new([fill::TREE_STRUCTURE, " Canvas"].concat())
-                        .family(FontFamily::Name("phosphor-fill".into())),
-                ),
-                graph_title: Arc::new(
-                    RichText::new([fill::GRAPH, " Graph"].concat())
-                        .family(FontFamily::Name("phosphor-fill".into())),
-                ),
-                tree_list_title: Arc::new(
-                    RichText::new([fill::TREE_VIEW, " Tree"].concat())
-                        .family(FontFamily::Name("phosphor-fill".into())),
-                ),
-                list_title: Arc::new(
-                    RichText::new([fill::ROWS, " List"].concat())
-                        .family(FontFamily::Name("phosphor-fill".into())),
-                ),
-                bookmark_list_title: Arc::new(
-                    RichText::new([fill::BOOKMARKS, " Bookmarks"].concat())
-                        .family(FontFamily::Name("phosphor-fill".into())),
-                ),
-                text_edit_title: Arc::new(
-                    RichText::new([fill::TEXTBOX, " Text Editor"].concat())
-                        .family(FontFamily::Name("phosphor-fill".into())),
-                ),
-                menu_title: Arc::new(
-                    RichText::new([fill::WRENCH, " Menu"].concat())
-                        .family(FontFamily::Name("phosphor-fill".into())),
-                ),
             },
         }
     }
@@ -465,13 +436,6 @@ struct EditorTilingBehavior {
     bookmark_list_view: BookmarkListView,
     text_edit_view: TextEditorView,
     menu_view: MenuView,
-    canvas_title: Arc<RichText>,
-    graph_title: Arc<RichText>,
-    tree_list_title: Arc<RichText>,
-    list_title: Arc<RichText>,
-    bookmark_list_title: Arc<RichText>,
-    text_edit_title: Arc<RichText>,
-    menu_title: Arc<RichText>,
     settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
     weave: Arc<Mutex<Option<TapestryWeave>>>,
@@ -567,13 +531,13 @@ impl Behavior<Pane> for EditorTilingBehavior {
     }
     fn tab_title_for_pane(&mut self, pane: &Pane) -> WidgetText {
         match pane {
-            Pane::Canvas => WidgetText::RichText(self.canvas_title.clone()),
-            Pane::Graph => WidgetText::RichText(self.graph_title.clone()),
-            Pane::TreeList => WidgetText::RichText(self.tree_list_title.clone()),
-            Pane::List => WidgetText::RichText(self.list_title.clone()),
-            Pane::BookmarkList => WidgetText::RichText(self.bookmark_list_title.clone()),
-            Pane::TextEdit => WidgetText::RichText(self.text_edit_title.clone()),
-            Pane::Menu => WidgetText::RichText(self.menu_title.clone()),
+            Pane::Canvas => WidgetText::Text("\u{E125} Canvas".to_string()),
+            Pane::Graph => WidgetText::Text("\u{E52E} Graph".to_string()),
+            Pane::TreeList => WidgetText::Text("\u{E408} Tree".to_string()),
+            Pane::List => WidgetText::Text("\u{E106} List".to_string()),
+            Pane::BookmarkList => WidgetText::Text("\u{E060} Bookmarks".to_string()),
+            Pane::TextEdit => WidgetText::Text("\u{E265} Text Editor".to_string()),
+            Pane::Menu => WidgetText::Text("\u{E1B1} Menu".to_string()),
         }
     }
     fn is_tab_closable(&self, _tiles: &Tiles<Pane>, _tile_id: TileId) -> bool {

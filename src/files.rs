@@ -19,7 +19,6 @@ use eframe::egui::{
     Ui,
 };
 use egui_notify::Toasts;
-use egui_phosphor::regular;
 use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, treeless::FILE_EXTENSION};
 use threadpool::ThreadPool;
 use unicode_segmentation::UnicodeSegmentation;
@@ -110,15 +109,15 @@ impl FileManager {
                     ));
                 });
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    if ui.button(regular::ARROW_CLOCKWISE).clicked() {
+                    if ui.button("\u{E145}").clicked() {
                         self.open_folders.clear();
                         self.scanned = false;
                     }
-                    if ui.button(regular::FOLDER_PLUS).clicked() {
+                    if ui.button("\u{E0D9}").clicked() {
                         *self.modal.borrow_mut() =
                             ModalType::CreateDirectory("Untitled Folder".to_string());
                     }
-                    if ui.button(regular::FILE_PLUS).clicked() {
+                    if ui.button("\u{E0C9}").clicked() {
                         *self.modal.borrow_mut() = ModalType::CreateWeave(
                             ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION].concat(),
                         );
@@ -217,7 +216,7 @@ impl FileManager {
                             if item.r#type == ScannedItemType::Directory
                                 && self.open_folders.contains(&item.path)
                             {
-                                if ui.button(regular::FILE_PLUS).clicked() {
+                                if ui.button("\u{E0C9}").clicked() {
                                     *self.modal.borrow_mut() = ModalType::CreateWeave(
                                         item.path
                                             .join(
@@ -228,7 +227,7 @@ impl FileManager {
                                             .to_string(),
                                     );
                                 }
-                                if ui.button(regular::FOLDER_PLUS).clicked() {
+                                if ui.button("\u{E0D9}").clicked() {
                                     *self.modal.borrow_mut() = ModalType::CreateDirectory(
                                         item.path
                                             .join("Untitled Folder")
@@ -238,14 +237,14 @@ impl FileManager {
                                 }
                             }
 
-                            if ui.button(regular::PENCIL_LINE).clicked() {
+                            if ui.button("\u{E4F0}").clicked() {
                                 *self.modal.borrow_mut() = ModalType::RenameFile((
                                     item.path.clone(),
                                     item.path.to_string_lossy().to_string(),
                                 ));
                             };
 
-                            if ui.button(regular::TRASH).clicked() {
+                            if ui.button("\u{E18E}").clicked() {
                                 self.remove_item(item.path.clone());
                             };
                         };
