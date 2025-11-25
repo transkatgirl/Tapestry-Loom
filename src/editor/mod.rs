@@ -120,8 +120,7 @@ impl Editor {
                 settings,
                 toasts,
                 weave,
-                runtime,
-                shared_state: SharedState::default(),
+                shared_state: SharedState::new(runtime),
                 canvas_view: CanvasView::default(),
                 graph_view: GraphView::default(),
                 tree_list_view: TreeListView::default(),
@@ -461,7 +460,6 @@ struct EditorTilingBehavior {
     settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
     weave: Arc<Mutex<Option<TapestryWeave>>>,
-    runtime: Arc<Runtime>,
 }
 
 // TODO: Set drag_preview_color, tab_bar_color, and tab_bg_color
