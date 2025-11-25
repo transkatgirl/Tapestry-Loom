@@ -46,6 +46,7 @@ impl BookmarkListView {
         toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
+        let bookmarks: Vec<Ulid> = weave.get_bookmarks().collect();
     }
 }
 
@@ -142,62 +143,75 @@ impl TreeListView {
                             ui.add_space(indent_compensation);
                         }
 
-                        let mut label = RichText::new(String::from_utf8_lossy(
-                            &node.contents.content.as_bytes().to_vec(),
-                        ))
-                        .family(FontFamily::Monospace);
+                        let response = ui
+                            .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                                let mut label = RichText::new(String::from_utf8_lossy(
+                                    &node.contents.content.as_bytes().to_vec(),
+                                ))
+                                .family(FontFamily::Monospace);
 
-                        if node.active {
-                            label = label.color(ui.style().visuals.hyperlink_color);
-                        }
+                                if node.active {
+                                    label = label.color(ui.style().visuals.hyperlink_color);
+                                }
 
-                        if ui
-                            .add(Button::new(label).fill(Color32::TRANSPARENT))
-                            .clicked()
-                        {
-                            weave.set_node_active_status(&Ulid(node.id), !node.active);
-                        }
-
-                        if ui.rect_contains_pointer(ui.max_rect()) {
-                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                ui.add_space(ui.spacing().icon_spacing);
-                                if ui.button(regular::ERASER).clicked() {
-                                    weave.remove_node(&Ulid(node.id));
-                                };
-                                let bookmark_label = WidgetText::RichText(if node.bookmarked {
-                                    self.unbookmark_icon.clone()
-                                } else {
-                                    self.bookmark_icon.clone()
-                                });
-                                if ui.button(bookmark_label).clicked() {
-                                    weave.set_node_bookmarked_status(
-                                        &Ulid(node.id),
-                                        !node.bookmarked,
-                                    );
-                                };
-                                if ui.button(regular::CHAT_TEXT).clicked() {
-                                    weave.add_node(DependentNode {
-                                        id: Ulid::new().0,
-                                        from: Some(node.id),
-                                        to: IndexSet::default(),
-                                        active: false,
-                                        bookmarked: false,
-                                        contents: NodeContent {
-                                            content: InnerNodeContent::Snippet(vec![]),
-                                            metadata: IndexMap::new(),
-                                            model: None,
-                                        },
-                                    });
-                                };
-                                if ui.button(regular::SPARKLE).clicked() {
-                                    todo!()
-                                };
-                                if weave.is_mergeable_with_parent(&Ulid(node.id))
-                                    && ui.button(regular::GIT_MERGE).clicked()
+                                if ui
+                                    .add(Button::new(label).fill(Color32::TRANSPARENT))
+                                    .clicked()
                                 {
-                                    weave.merge_with_parent(&Ulid(node.id));
-                                };
-                            });
+                                    weave.set_node_active_status(&Ulid(node.id), !node.active);
+                                }
+
+                                if ui.rect_contains_pointer(ui.max_rect()) {
+                                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                        ui.add_space(ui.spacing().icon_spacing);
+                                        if ui.button(regular::ERASER).clicked() {
+                                            weave.remove_node(&Ulid(node.id));
+                                        };
+                                        let bookmark_label =
+                                            WidgetText::RichText(if node.bookmarked {
+                                                self.unbookmark_icon.clone()
+                                            } else {
+                                                self.bookmark_icon.clone()
+                                            });
+                                        if ui.button(bookmark_label).clicked() {
+                                            weave.set_node_bookmarked_status(
+                                                &Ulid(node.id),
+                                                !node.bookmarked,
+                                            );
+                                        };
+                                        if ui.button(regular::CHAT_TEXT).clicked() {
+                                            weave.add_node(DependentNode {
+                                                id: Ulid::new().0,
+                                                from: Some(node.id),
+                                                to: IndexSet::default(),
+                                                active: false,
+                                                bookmarked: false,
+                                                contents: NodeContent {
+                                                    content: InnerNodeContent::Snippet(vec![]),
+                                                    metadata: IndexMap::new(),
+                                                    model: None,
+                                                },
+                                            });
+                                        };
+                                        if ui.button(regular::SPARKLE).clicked() {
+                                            todo!()
+                                        };
+                                        if weave.is_mergeable_with_parent(&Ulid(node.id))
+                                            && ui.button(regular::GIT_MERGE).clicked()
+                                        {
+                                            weave.merge_with_parent(&Ulid(node.id));
+                                        };
+                                    });
+                                }
+                            })
+                            .response;
+
+                        /*if response.hovered() {
+                            response.
+                        }*/
+
+                        if response.clicked() {
+                            weave.set_node_active_status(&Ulid(node.id), !node.active);
                         }
                     });
                 };
@@ -206,25 +220,24 @@ impl TreeListView {
                     render_label(ui);
                 } else {
                     let id = ui.make_persistent_id([editor_id.0, node.id, 0]);
-                    let mut collapsing =
-                        CollapsingState::load_with_default_open(ui.ctx(), id, false);
-                    if active_items.contains(&Ulid(node.id)) {
-                        collapsing.set_open(true);
-                    }
-                    collapsing
-                        .show_header(ui, |ui| {
-                            render_label(ui);
-                        })
-                        .body(|ui| {
-                            self.render_node_tree(
-                                weave,
-                                ui,
-                                editor_id,
-                                node.to.into_iter().map(Ulid),
-                                active_items,
-                                max_depth - 1,
-                            );
-                        });
+                    CollapsingState::load_with_default_open(
+                        ui.ctx(),
+                        id,
+                        active_items.contains(&Ulid(node.id)),
+                    )
+                    .show_header(ui, |ui| {
+                        render_label(ui);
+                    })
+                    .body(|ui| {
+                        self.render_node_tree(
+                            weave,
+                            ui,
+                            editor_id,
+                            node.to.into_iter().map(Ulid),
+                            active_items,
+                            max_depth - 1,
+                        );
+                    });
                 }
             }
         }
