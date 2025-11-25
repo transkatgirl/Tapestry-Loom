@@ -39,7 +39,7 @@ use crate::{
     editor::{
         canvas::CanvasView,
         graph::GraphView,
-        lists::{ListView, TreeListView},
+        lists::{BookmarkListView, ListView, TreeListView},
         menus::MenuView,
         shared::SharedState,
         textedit::TextEditorView,
@@ -92,6 +92,7 @@ impl Editor {
             tiles.insert_pane(Pane::Graph),
             tiles.insert_pane(Pane::TreeList),
             tiles.insert_pane(Pane::List),
+            tiles.insert_pane(Pane::BookmarkList),
             tiles.insert_pane(Pane::TextEdit),
             tiles.insert_pane(Pane::Menu),
         ];
@@ -130,6 +131,7 @@ impl Editor {
                 graph_view: GraphView::default(),
                 tree_list_view: TreeListView::default(),
                 list_view: ListView::default(),
+                bookmark_list_view: BookmarkListView::default(),
                 text_edit_view: TextEditorView::default(),
                 menu_view: MenuView::default(),
                 canvas_title: Arc::new(
@@ -146,6 +148,10 @@ impl Editor {
                 ),
                 list_title: Arc::new(
                     RichText::new([fill::ROWS, " List"].concat())
+                        .family(FontFamily::Name("phosphor-fill".into())),
+                ),
+                bookmark_list_title: Arc::new(
+                    RichText::new([fill::BOOKMARKS, " Bookmarks"].concat())
                         .family(FontFamily::Name("phosphor-fill".into())),
                 ),
                 text_edit_title: Arc::new(
@@ -444,6 +450,7 @@ enum Pane {
     Graph,
     TreeList,
     List,
+    BookmarkList,
     TextEdit,
     Menu,
 }
@@ -454,12 +461,14 @@ struct EditorTilingBehavior {
     graph_view: GraphView,
     tree_list_view: TreeListView,
     list_view: ListView,
+    bookmark_list_view: BookmarkListView,
     text_edit_view: TextEditorView,
     menu_view: MenuView,
     canvas_title: Arc<RichText>,
     graph_title: Arc<RichText>,
     tree_list_title: Arc<RichText>,
     list_title: Arc<RichText>,
+    bookmark_list_title: Arc<RichText>,
     text_edit_title: Arc<RichText>,
     menu_title: Arc<RichText>,
     settings: Rc<RefCell<Settings>>,
@@ -476,6 +485,7 @@ impl EditorTilingBehavior {
         self.graph_view.reset();
         self.tree_list_view.reset();
         self.list_view.reset();
+        self.bookmark_list_view.reset();
         self.text_edit_view.reset();
         self.menu_view.reset();
     }
@@ -530,6 +540,13 @@ impl Behavior<Pane> for EditorTilingBehavior {
                     self.list_view
                         .render(ui, weave, &settings, &mut toasts, &mut self.shared_state)
                 }
+                Pane::BookmarkList => self.bookmark_list_view.render(
+                    ui,
+                    weave,
+                    &settings,
+                    &mut toasts,
+                    &mut self.shared_state,
+                ),
                 Pane::TextEdit => self.text_edit_view.render(
                     ui,
                     weave,
@@ -552,6 +569,7 @@ impl Behavior<Pane> for EditorTilingBehavior {
             Pane::Graph => WidgetText::RichText(self.graph_title.clone()),
             Pane::TreeList => WidgetText::RichText(self.tree_list_title.clone()),
             Pane::List => WidgetText::RichText(self.list_title.clone()),
+            Pane::BookmarkList => WidgetText::RichText(self.bookmark_list_title.clone()),
             Pane::TextEdit => WidgetText::RichText(self.text_edit_title.clone()),
             Pane::Menu => WidgetText::RichText(self.menu_title.clone()),
         }

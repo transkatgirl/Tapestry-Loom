@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use eframe::egui::{
     self, Align, Button, Color32, FontFamily, Layout, Margin, RichText, ScrollArea, Sense, Ui,
@@ -21,6 +21,22 @@ use crate::{editor::shared::SharedState, settings::Settings};
 pub struct ListView {}
 
 impl ListView {
+    pub fn reset(&mut self) {}
+    pub fn render(
+        &mut self,
+        ui: &mut Ui,
+        weave: &mut TapestryWeave,
+        settings: &Settings,
+        toasts: &mut Toasts,
+        state: &mut SharedState,
+    ) {
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct BookmarkListView {}
+
+impl BookmarkListView {
     pub fn reset(&mut self) {}
     pub fn render(
         &mut self,
@@ -69,15 +85,19 @@ impl TreeListView {
         state: &mut SharedState,
     ) {
         let roots: Vec<Ulid> = weave.get_roots().collect();
+        let active: Vec<Ulid> = weave
+            .get_active_thread()
+            .map(|node| Ulid(node.id))
+            .collect();
+        let active_set = HashSet::from_iter(active.clone());
         ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-            render_weave_node_tree(
+            self.render_node_tree(
                 weave,
                 ui,
                 state.identifier,
                 roots,
+                &active_set,
                 settings.interface.max_tree_depth,
-                &self.bookmark_icon,
-                &self.unbookmark_icon,
             );
 
             if ui.button("test").clicked() {
@@ -98,110 +118,108 @@ impl TreeListView {
             }
         });
     }
-}
+    fn render_node_tree(
+        &self,
+        weave: &mut TapestryWeave,
+        ui: &mut Ui,
+        editor_id: Ulid,
+        items: impl IntoIterator<Item = Ulid>,
+        active_items: &HashSet<Ulid>,
+        max_depth: usize,
+    ) {
+        if max_depth == 0 {
+            return;
+        }
 
-fn render_weave_node_tree(
-    weave: &mut TapestryWeave,
-    ui: &mut Ui,
-    editor_id: Ulid,
-    items: impl IntoIterator<Item = Ulid>,
-    max_depth: usize,
-    bookmark_icon: &Arc<RichText>,
-    unbookmark_icon: &Arc<RichText>,
-) {
-    if max_depth == 0 {
-        return;
-    }
+        let indent_compensation = ui.spacing().icon_width + ui.spacing().icon_spacing;
 
-    let indent_compensation = ui.spacing().icon_width + ui.spacing().icon_spacing;
+        for item in items {
+            if let Some(node) = weave.get_node(&item).cloned() {
+                let mut render_label = |ui: &mut Ui| {
+                    ui.horizontal(|ui| {
+                        if node.to.is_empty() {
+                            ui.add_space(indent_compensation);
+                        }
 
-    for item in items {
-        if let Some(node) = weave.get_node(&item).cloned() {
-            let mut render_label = |ui: &mut Ui| {
-                ui.horizontal(|ui| {
-                    if node.to.is_empty() {
-                        ui.add_space(indent_compensation);
-                    }
+                        let mut label = RichText::new(String::from_utf8_lossy(
+                            &node.contents.content.as_bytes().to_vec(),
+                        ))
+                        .family(FontFamily::Monospace);
 
-                    let mut label = RichText::new(String::from_utf8_lossy(
-                        &node.contents.content.as_bytes().to_vec(),
-                    ))
-                    .family(FontFamily::Monospace);
+                        if node.active {
+                            label = label.color(ui.style().visuals.hyperlink_color);
+                        }
 
-                    if node.active {
-                        label = label.color(ui.style().visuals.hyperlink_color);
-                    }
+                        if ui
+                            .add(Button::new(label).fill(Color32::TRANSPARENT))
+                            .clicked()
+                        {
+                            weave.set_node_active_status(&Ulid(node.id), !node.active);
+                        }
 
-                    if ui
-                        .add(Button::new(label).fill(Color32::TRANSPARENT).frame(false))
-                        .clicked()
-                    {
-                        weave.set_node_active_status(&Ulid(node.id), !node.active);
-                    }
-
-                    if ui.rect_contains_pointer(ui.max_rect()) {
-                        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                            ui.add_space(ui.spacing().icon_spacing);
-                            if ui.button(regular::ERASER).clicked() {
-                                weave.remove_node(&Ulid(node.id));
-                            };
-                            let bookmark_label = WidgetText::RichText(if node.bookmarked {
-                                unbookmark_icon.clone()
-                            } else {
-                                bookmark_icon.clone()
-                            });
-                            if ui.button(bookmark_label).clicked() {
-                                weave.set_node_bookmarked_status(&Ulid(node.id), !node.bookmarked);
-                            };
-                            if ui.button(regular::CHAT_TEXT).clicked() {
-                                weave.add_node(DependentNode {
-                                    id: Ulid::new().0,
-                                    from: Some(node.id),
-                                    to: IndexSet::default(),
-                                    active: false,
-                                    bookmarked: false,
-                                    contents: NodeContent {
-                                        content: InnerNodeContent::Snippet(vec![]),
-                                        /*content: InnerNodeContent::Snippet(
-                                            Ulid::new().to_string().as_bytes().to_vec(),
-                                        ),*/
-                                        metadata: IndexMap::new(),
-                                        model: None,
-                                    },
+                        if ui.rect_contains_pointer(ui.max_rect()) {
+                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                ui.add_space(ui.spacing().icon_spacing);
+                                if ui.button(regular::ERASER).clicked() {
+                                    weave.remove_node(&Ulid(node.id));
+                                };
+                                let bookmark_label = WidgetText::RichText(if node.bookmarked {
+                                    self.unbookmark_icon.clone()
+                                } else {
+                                    self.bookmark_icon.clone()
                                 });
-                            };
-                            if ui.button(regular::SPARKLE).clicked() {
-                                todo!()
-                            };
-                            if weave.is_mergeable_with_parent(&Ulid(node.id))
-                                && ui.button(regular::GIT_MERGE).clicked()
-                            {
-                                weave.merge_with_parent(&Ulid(node.id));
-                            };
-                        });
-                    }
-                });
-            };
-
-            if node.to.is_empty() {
-                render_label(ui);
-            } else {
-                let id = ui.make_persistent_id([editor_id.0, node.id, 0]);
-                CollapsingState::load_with_default_open(ui.ctx(), id, false)
-                    .show_header(ui, |ui| {
-                        render_label(ui);
-                    })
-                    .body(|ui| {
-                        render_weave_node_tree(
-                            weave,
-                            ui,
-                            editor_id,
-                            node.to.into_iter().map(Ulid),
-                            max_depth - 1,
-                            bookmark_icon,
-                            unbookmark_icon,
-                        );
+                                if ui.button(bookmark_label).clicked() {
+                                    weave.set_node_bookmarked_status(
+                                        &Ulid(node.id),
+                                        !node.bookmarked,
+                                    );
+                                };
+                                if ui.button(regular::CHAT_TEXT).clicked() {
+                                    weave.add_node(DependentNode {
+                                        id: Ulid::new().0,
+                                        from: Some(node.id),
+                                        to: IndexSet::default(),
+                                        active: false,
+                                        bookmarked: false,
+                                        contents: NodeContent {
+                                            content: InnerNodeContent::Snippet(vec![]),
+                                            metadata: IndexMap::new(),
+                                            model: None,
+                                        },
+                                    });
+                                };
+                                if ui.button(regular::SPARKLE).clicked() {
+                                    todo!()
+                                };
+                                if weave.is_mergeable_with_parent(&Ulid(node.id))
+                                    && ui.button(regular::GIT_MERGE).clicked()
+                                {
+                                    weave.merge_with_parent(&Ulid(node.id));
+                                };
+                            });
+                        }
                     });
+                };
+
+                if node.to.is_empty() {
+                    render_label(ui);
+                } else {
+                    let id = ui.make_persistent_id([editor_id.0, node.id, 0]);
+                    CollapsingState::load_with_default_open(ui.ctx(), id, false)
+                        .show_header(ui, |ui| {
+                            render_label(ui);
+                        })
+                        .body(|ui| {
+                            self.render_node_tree(
+                                weave,
+                                ui,
+                                editor_id,
+                                node.to.into_iter().map(Ulid),
+                                active_items,
+                                max_depth - 1,
+                            );
+                        });
+                }
             }
         }
     }
