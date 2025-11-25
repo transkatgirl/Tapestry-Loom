@@ -55,7 +55,7 @@ impl TapestryLoomApp {
                 match ron::from_str(&data) {
                     Ok(settings) => settings,
                     Err(error) => {
-                        toasts.error(format!("Settings deserialization failed: {error:#?}"));
+                        toasts.error(format!("Settings deserialization failed: {error:?}"));
                         Settings::default()
                     }
                 }
@@ -155,7 +155,7 @@ impl TapestryLoomApp {
                     self.behavior
                         .toasts
                         .borrow_mut()
-                        .error(format!("Settings serialization failed: {error:#?}"));
+                        .error(format!("Settings serialization failed: {error:?}"));
                 }
             }
         } else {

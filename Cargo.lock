@@ -2869,6 +2869,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "poll-promise"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f6a58fecbf9da8965bcdb20ce4fd29788d1acee68ddbb64f0ba1b81bccdb7df"
+dependencies = [
+ "document-features",
+ "static_assertions",
+ "tokio",
+]
+
+[[package]]
 name = "polling"
 version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3693,6 +3704,7 @@ dependencies = [
  "env_logger",
  "mimalloc",
  "parking_lot",
+ "poll-promise",
  "reqwest",
  "ron 0.12.0",
  "serde",

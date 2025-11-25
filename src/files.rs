@@ -392,11 +392,11 @@ impl FileManager {
                         })));
                     }
                     Err(error) => {
-                        let _ = tx.send(Err(format!("{error:#?}")));
+                        let _ = tx.send(Err(format!("{error:?}")));
                     }
                 },
                 Err(error) => {
-                    let _ = tx.send(Err(format!("{error:#?}")));
+                    let _ = tx.send(Err(format!("{error:?}")));
                 }
             });
     }
@@ -413,7 +413,7 @@ impl FileManager {
                     })));
                 }
                 Err(error) => {
-                    let _ = tx.send(Err(format!("{error:#?}")));
+                    let _ = tx.send(Err(format!("{error:?}")));
                 }
             });
     }
@@ -463,19 +463,19 @@ impl FileManager {
                                                 })));
                                         }
                                         Err(error) => {
-                                            let _ = tx.send(Err(format!("{error:#?}")));
+                                            let _ = tx.send(Err(format!("{error:?}")));
                                         }
                                     }
                                 }
                             }
                         }
                         Err(error) => {
-                            let _ = tx.send(Err(format!("{error:#?}")));
+                            let _ = tx.send(Err(format!("{error:?}")));
                         }
                     }
                 }
                 Err(error) => {
-                    let _ = tx.send(Err(format!("{error:#?}")));
+                    let _ = tx.send(Err(format!("{error:?}")));
                 }
             });
     }
@@ -490,21 +490,21 @@ impl FileManager {
                         match fs::remove_dir_all(path) {
                             Ok(_) => {}
                             Err(error) => {
-                                let _ = tx.send(Err(format!("{error:#?}")));
+                                let _ = tx.send(Err(format!("{error:?}")));
                             }
                         }
                     } else {
                         match fs::remove_file(path) {
                             Ok(_) => {}
                             Err(error) => {
-                                let _ = tx.send(Err(format!("{error:#?}")));
+                                let _ = tx.send(Err(format!("{error:?}")));
                             }
                         }
                     }
 
                 }
                 Err(error) => {
-                    let _ = tx.send(Err(format!("{error:#?}")));
+                    let _ = tx.send(Err(format!("{error:?}")));
                 }
             }*/
             match trash::delete(&path) {
@@ -512,7 +512,7 @@ impl FileManager {
                     let _ = tx.send(Ok(ItemScanEvent::Delete(path)));
                 }
                 Err(error) => {
-                    let _ = tx.send(Err(format!("{error:#?}")));
+                    let _ = tx.send(Err(format!("{error:?}")));
                 }
             }
         });
@@ -553,14 +553,14 @@ impl FileManager {
                     Ok(exists) => {
                         if !exists {
                             if let Err(error) = fs::create_dir_all(&path) {
-                                let _ = tx.send(Err(format!("{error:#?}")));
+                                let _ = tx.send(Err(format!("{error:?}")));
                             } else {
                                 return;
                             }
                         }
                     }
                     Err(error) => {
-                        let _ = tx.send(Err(format!("{error:#?}")));
+                        let _ = tx.send(Err(format!("{error:?}")));
                     }
                 }
 
@@ -586,7 +586,7 @@ impl FileManager {
                             })));
                         }
                         Err(error) => {
-                            let _ = tx.send(Err(format!("{error:#?}")));
+                            let _ = tx.send(Err(format!("{error:?}")));
                         }
                     }
                 }
@@ -676,7 +676,7 @@ impl FileManager {
                     }
                 },
                 Err(error) => {
-                    toasts.warning(format!("Filesystem error: {error:#?}"));
+                    toasts.warning(format!("Filesystem error: {error:?}"));
                 }
             }
             handled_messages += 1;

@@ -206,7 +206,7 @@ impl Editor {
                                     }
                                     Some(Err(error)) => {
                                         let _ = error_sender.send(format!(
-                                            "Weave deserialization failed: {error:#?}"
+                                            "Weave deserialization failed: {error:?}"
                                         ));
                                         *path = None;
                                         *weave_dest = Some(TapestryWeave::with_capacity(
@@ -226,7 +226,7 @@ impl Editor {
                                 },
                                 Err(error) => {
                                     let _ =
-                                        error_sender.send(format!("Filesystem error: {error:#?}"));
+                                        error_sender.send(format!("Filesystem error: {error:?}"));
                                     *path = None;
                                     *weave_dest = Some(TapestryWeave::with_capacity(
                                         16384,
@@ -366,7 +366,7 @@ impl Editor {
                 match weave.to_versioned_bytes() {
                     Ok(bytes) => {
                         if let Err(error) = write_bytes(path, &bytes) {
-                            let _ = error_sender.send(format!("Filesystem error: {error:#?}"));
+                            let _ = error_sender.send(format!("Filesystem error: {error:?}"));
                             *path_lock = None;
                         } else if unload {
                             *weave_lock = None;
@@ -374,8 +374,7 @@ impl Editor {
                         }
                     }
                     Err(error) => {
-                        let _ =
-                            error_sender.send(format!("Weave serialization failed: {error:#?}"));
+                        let _ = error_sender.send(format!("Weave serialization failed: {error:?}"));
                     }
                 }
             }

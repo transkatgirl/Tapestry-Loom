@@ -15,7 +15,10 @@ tapestry-weave = { path = "universal-weave/tapestry-weave", features = [
 eframe = { version = "0.33.2", features = [
 	"persistence",
 ] }
-env_logger = { version = "0.11.8", features = ["auto-color", "humantime"] }
+env_logger = { version = "0.11.8", features = [
+	"auto-color",
+	"humantime",
+] }
 mimalloc = { version = "0.1.48", features = [
 	"v3",
 ] }
@@ -25,7 +28,11 @@ serde = { version = "1.0.228", features = [
 serde_json = { version = "1.0.145", features = [
 	"preserve_order",
 ] }
-ron = { version = "0.12.0", features = ["indexmap", "integer128", "unicode-segmentation"] }
+ron = { version = "0.12.0", features = [
+	"indexmap",
+	"integer128",
+	"unicode-segmentation",
+] }
 reqwest = { version = "0.12", features = [
 	"json",
 ] }
@@ -34,14 +41,23 @@ parking_lot = { version = "0.12.5", features = [
 ] }
 #anyhow = "1.0.100"
 dirs-next = "2.0.0"
-egui-phosphor = { version = "0.11.0", features = ["regular", "bold", "fill"] }
+egui-phosphor = { version = "0.11.0", features = [
+	"regular",
+	"bold",
+	"fill",
+] }
 egui_tiles = "0.14.0"
 egui-notify = "0.21.0"
 threadpool = "1.8.1"
-tokio = { version = "1.48.0", features = ["full"] }
+tokio = { version = "1.48.0", features = [
+	"full",
+] }
 walkdir = "2.5.0"
 unicode-segmentation = "1.12.0"
 trash = "5.2.5"
+poll-promise = { version = "0.3.0", features = [
+	"tokio",
+] }
 #egui-keybind = { version = "0.8.0", features = ["serde"] }
 #egui-graph-edit = "0.7.1"
 #egui_nodes = "0.1.3"
