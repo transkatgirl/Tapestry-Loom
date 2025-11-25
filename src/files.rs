@@ -252,7 +252,7 @@ impl FileManager {
                             };
 
                             if ui.button("\u{E18E}").clicked() {
-                                self.remove_item(item.path.clone());
+                                *self.modal.borrow_mut() = ModalType::Delete(item.path.clone());
                             };
                         };
                     });
@@ -276,8 +276,15 @@ impl FileManager {
                                     ui.close();
                                 }
                                 if ui.button("Save").clicked() {
-                                    self.create_weave(self.path.join(PathBuf::from(path.clone())));
-                                    ui.close();
+                                    let path = PathBuf::from(path.clone());
+                                    if !self
+                                        .open_documents
+                                        .borrow()
+                                        .contains(&self.path.join(&path))
+                                    {
+                                        self.create_weave(path);
+                                        ui.close();
+                                    }
                                 }
                             },
                         );
@@ -302,10 +309,15 @@ impl FileManager {
                                     ui.close();
                                 }
                                 if ui.button("Save").clicked() {
-                                    self.create_directory(
-                                        self.path.join(PathBuf::from(path.clone())),
-                                    );
-                                    ui.close();
+                                    let path = PathBuf::from(path.clone());
+                                    if !self
+                                        .open_documents
+                                        .borrow()
+                                        .contains(&self.path.join(&path))
+                                    {
+                                        self.create_directory(path);
+                                        ui.close();
+                                    }
                                 }
                             },
                         );
@@ -331,8 +343,13 @@ impl FileManager {
                                 }
                                 if ui.button("Save").clicked() {
                                     let to = PathBuf::from(to.clone());
-                                    if from != &to {
-                                        self.move_item(self.path.join(from), self.path.join(to));
+                                    if from != &to
+                                        && !self
+                                            .open_documents
+                                            .borrow()
+                                            .contains(&self.path.join(&to))
+                                    {
+                                        self.move_item(from.clone(), to);
                                         ui.close();
                                     }
                                 }
@@ -360,10 +377,41 @@ impl FileManager {
                                 }
                                 if ui.button("Save").clicked() {
                                     let to = PathBuf::from(to.clone());
-                                    if from != &to {
-                                        self.copy_file(self.path.join(from), self.path.join(to));
+                                    if from != &to
+                                        && !self
+                                            .open_documents
+                                            .borrow()
+                                            .contains(&self.path.join(&to))
+                                    {
+                                        self.copy_file(from.clone(), to);
                                         ui.close();
                                     }
+                                }
+                            },
+                        );
+                    })
+                    .should_close()
+                {
+                    *modal = ModalType::None;
+                };
+            }
+            ModalType::Delete(path) => {
+                if Modal::new("filemanager-create-directory-modal".into())
+                    .show(ui.ctx(), |ui| {
+                        ui.set_width(280.0);
+                        ui.heading("Confirm Deletion");
+                        ui.label("The following item will be deleted:");
+                        ui.label(path.to_string_lossy());
+                        Sides::new().show(
+                            ui,
+                            |_ui| {},
+                            |ui| {
+                                if ui.button("Cancel").clicked() {
+                                    ui.close();
+                                }
+                                if ui.button("Confirm").clicked() {
+                                    self.remove_item(path.clone());
+                                    ui.close();
                                 }
                             },
                         );
@@ -790,6 +838,7 @@ enum ModalType {
     CreateDirectory(String),
     RenameItem((PathBuf, String)),
     CopyFile((PathBuf, String)),
+    Delete(PathBuf),
     None,
 }
 
