@@ -145,19 +145,18 @@ impl TreeListView {
 
                         let response = ui
                             .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
-                                let mut label = RichText::new(String::from_utf8_lossy(
+                                let label = RichText::new(String::from_utf8_lossy(
                                     &node.contents.content.as_bytes().to_vec(),
                                 ))
                                 .family(FontFamily::Monospace);
 
-                                if node.active {
-                                    label = label.color(ui.style().visuals.hyperlink_color);
-                                }
+                                let label_button = if node.active {
+                                    Button::new(label).selected(true)
+                                } else {
+                                    Button::new(label).fill(Color32::TRANSPARENT)
+                                };
 
-                                if ui
-                                    .add(Button::new(label).fill(Color32::TRANSPARENT))
-                                    .clicked()
-                                {
+                                if ui.add(label_button).clicked() {
                                     weave.set_node_active_status(&Ulid(node.id), !node.active);
                                 }
 
