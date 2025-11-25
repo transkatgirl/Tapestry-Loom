@@ -27,6 +27,10 @@ static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() -> eframe::Result {
     env_logger::init();
+
+    #[cfg(not(debug_assertions))]
+    let _ = ctrlc::set_handler(|| {}); // Hack to work around eframe's lack of signal handling
+
     let options = NativeOptions {
         viewport: ViewportBuilder::default()
             .with_fullscreen(true)
