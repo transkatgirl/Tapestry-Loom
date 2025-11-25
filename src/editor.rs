@@ -163,19 +163,25 @@ impl Editor {
         ui.label("weave loaded");
         ui.label(format!("{:#?}", path));
     }
-    fn save(&self) {
+    fn save(&self, unload: bool) {
         let weave = self.weave.clone();
         let path = self.path.clone();
         let error_sender = self.error_channel.0.clone();
 
         self.threadpool.execute(move || {
-            if let Some(path) = path.lock().as_ref()
-                && let Some(weave) = weave.lock().as_ref()
+            let mut path_lock = path.lock();
+            let mut weave_lock = weave.lock();
+
+            if let Some(path) = path_lock.as_ref()
+                && let Some(weave) = weave_lock.as_ref()
             {
                 match weave.to_versioned_bytes() {
                     Ok(bytes) => {
                         if let Err(error) = fs::write(path, bytes) {
                             let _ = error_sender.send(format!("Filesystem error: {error:#?}"));
+                        } else if unload {
+                            *weave_lock = None;
+                            *path_lock = None;
                         }
                     }
                     Err(error) => {
@@ -187,7 +193,7 @@ impl Editor {
         });
     }
     pub fn close(&mut self) -> bool {
-        self.save();
+        self.save(true);
 
         if let Some(path) = &self.path.lock().as_ref() {
             self.open_documents.borrow_mut().remove(*path);
