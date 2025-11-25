@@ -12,12 +12,11 @@ use std::{
     time::Instant,
 };
 
-use eframe::egui::{Align, Layout, Spinner, TopBottomPanel, Ui};
+use eframe::egui::{Align, Layout, Modal, Sides, Spinner, TopBottomPanel, Ui};
 use egui_notify::Toasts;
-use egui_tiles::TileId;
 use parking_lot::Mutex;
 use tapestry_weave::{
-    VersionedWeave,
+    VERSIONED_WEAVE_FILE_EXTENSION, VersionedWeave,
     ulid::Ulid,
     universal_weave::{indexmap::IndexMap, rkyv::rancor},
     v0::TapestryWeave,
@@ -42,6 +41,8 @@ pub struct Editor {
     closing: bool,
     panel_identifier: String,
     modal_identifier: String,
+    show_modal: bool,
+    save_as_input_box: String,
 }
 
 impl Editor {
@@ -76,6 +77,8 @@ impl Editor {
             closing: false,
             panel_identifier: ["editor-", &identifier, "-bottom-panel"].concat(),
             modal_identifier: ["editor-", &identifier, "-modal"].concat(),
+            show_modal: false,
+            save_as_input_box: ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION].concat(),
         }
     }
     pub fn render(&mut self, ui: &mut Ui) {
@@ -176,7 +179,7 @@ impl Editor {
     }
     fn render_weave(&mut self, ui: &mut Ui, weave: &mut TapestryWeave) {
         let settings = self.settings.borrow();
-        let path = self.path.lock();
+        let mut path = self.path.lock();
 
         if self.old_path != *path {
             self.title = generate_title(&path);
@@ -187,6 +190,41 @@ impl Editor {
                 self.open_documents.borrow_mut().insert(path.clone());
             }
             self.old_path = path.clone();
+        }
+
+        if self.show_modal
+            && Modal::new(self.modal_identifier.clone().into())
+                .show(ui.ctx(), |ui| {
+                    ui.set_width(280.0);
+                    ui.heading("Save Weave");
+                    let label = ui.label("Path:");
+                    ui.text_edit_singleline(&mut self.save_as_input_box)
+                        .labelled_by(label.id);
+                    Sides::new().show(
+                        ui,
+                        |_ui| {},
+                        |ui| {
+                            if ui.button("Cancel").clicked() {
+                                ui.close();
+                            }
+                            if ui.button("Save").clicked() {
+                                let new_path = settings
+                                    .documents
+                                    .location
+                                    .join(self.save_as_input_box.clone());
+                                self.title = generate_title(&Some(new_path.clone()));
+                                *path = Some(new_path);
+                                ui.close();
+                            }
+                        },
+                    );
+                })
+                .should_close()
+        {
+            self.show_modal = false;
+            if path.is_some() {
+                self.save(false);
+            }
         }
 
         TopBottomPanel::bottom(self.panel_identifier.clone()).show_animated_inside(
@@ -201,9 +239,8 @@ impl Editor {
                             } else {
                                 ui.label(path.to_string_lossy());
                             }
-                        } else {
-                            ui.button("Save As...");
-                            //ui.label("New Weave");
+                        } else if ui.button("Save As...").clicked() {
+                            self.show_modal = true;
                         }
                     });
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {});
