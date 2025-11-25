@@ -12,8 +12,17 @@ use std::{
     time::Instant,
 };
 
-use eframe::egui::{Align, Layout, Modal, Sides, Spinner, TopBottomPanel, Ui};
+mod canvas;
+mod graph;
+mod lists;
+mod menus;
+
+use eframe::egui::{
+    Align, FontFamily, Layout, Modal, RichText, Sides, Spinner, TopBottomPanel, Ui, WidgetText,
+};
 use egui_notify::Toasts;
+use egui_phosphor::fill;
+use egui_tiles::{Behavior, SimplificationOptions, TileId, Tiles, Tree, UiResponse};
 use parking_lot::Mutex;
 use tapestry_weave::{
     VERSIONED_WEAVE_FILE_EXTENSION, VersionedWeave,
@@ -31,7 +40,6 @@ pub struct Editor {
     toasts: Rc<RefCell<Toasts>>,
     threadpool: Rc<ThreadPool>,
     open_documents: Rc<RefCell<HashSet<PathBuf>>>,
-    runtime: Arc<Runtime>,
     pub title: String,
     path: Arc<Mutex<Option<PathBuf>>>,
     old_path: Option<PathBuf>,
@@ -43,6 +51,8 @@ pub struct Editor {
     modal_identifier: String,
     show_modal: bool,
     save_as_input_box: String,
+    tree: Tree<Pane>,
+    behavior: EditorTilingBehavior,
 }
 
 impl Editor {
@@ -62,12 +72,24 @@ impl Editor {
 
         let identifier = Ulid::new().to_string();
 
+        let mut tiles = Tiles::default();
+
+        let tabs = vec![
+            tiles.insert_pane(Pane::Canvas),
+            tiles.insert_pane(Pane::Graph),
+            tiles.insert_pane(Pane::TreeList),
+            tiles.insert_pane(Pane::List),
+            tiles.insert_pane(Pane::TextEdit),
+            tiles.insert_pane(Pane::Menu),
+        ];
+
+        let root = tiles.insert_tab_tile(tabs);
+
         Self {
             settings,
             toasts,
             threadpool,
             open_documents,
-            runtime,
             title: generate_title(&path),
             path: Arc::new(Mutex::new(path.clone())),
             old_path: path,
@@ -79,6 +101,34 @@ impl Editor {
             modal_identifier: ["editor-", &identifier, "-modal"].concat(),
             show_modal: false,
             save_as_input_box: ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION].concat(),
+            tree: Tree::new(["editor-", &identifier, "-tree"].concat(), root, tiles),
+            behavior: EditorTilingBehavior {
+                runtime,
+                canvas_title: Arc::new(
+                    RichText::new([fill::TREE_STRUCTURE, " Canvas"].concat())
+                        .family(FontFamily::Name("phosphor-fill".into())),
+                ),
+                graph_title: Arc::new(
+                    RichText::new([fill::GRAPH, " Graph"].concat())
+                        .family(FontFamily::Name("phosphor-fill".into())),
+                ),
+                tree_list_title: Arc::new(
+                    RichText::new([fill::TREE_VIEW, " Tree"].concat())
+                        .family(FontFamily::Name("phosphor-fill".into())),
+                ),
+                list_title: Arc::new(
+                    RichText::new([fill::LIST, " List"].concat())
+                        .family(FontFamily::Name("phosphor-fill".into())),
+                ),
+                text_edit_title: Arc::new(
+                    RichText::new([fill::TEXTBOX, " Text Editor"].concat())
+                        .family(FontFamily::Name("phosphor-fill".into())),
+                ),
+                menu_title: Arc::new(
+                    RichText::new([fill::WRENCH, " Menu"].concat())
+                        .family(FontFamily::Name("phosphor-fill".into())),
+                ),
+            },
         }
     }
     pub fn render(&mut self, ui: &mut Ui) {
@@ -191,6 +241,8 @@ impl Editor {
             }
             self.old_path = path.clone();
         }
+
+        self.tree.ui(&mut self.behavior, ui);
 
         if self.show_modal
             && Modal::new(self.modal_identifier.clone().into())
@@ -344,4 +396,50 @@ fn write_bytes(path: &Path, contents: &[u8]) -> Result<(), io::Error> {
 
 pub fn blank_weave_bytes() -> Result<Vec<u8>, rancor::Error> {
     TapestryWeave::with_capacity(0, IndexMap::with_capacity(0)).to_versioned_bytes()
+}
+
+enum Pane {
+    Canvas,
+    Graph,
+    TreeList,
+    List,
+    TextEdit,
+    Menu,
+}
+
+struct EditorTilingBehavior {
+    canvas_title: Arc<RichText>,
+    graph_title: Arc<RichText>,
+    tree_list_title: Arc<RichText>,
+    list_title: Arc<RichText>,
+    text_edit_title: Arc<RichText>,
+    menu_title: Arc<RichText>,
+    runtime: Arc<Runtime>,
+}
+
+impl Behavior<Pane> for EditorTilingBehavior {
+    fn pane_ui(&mut self, ui: &mut Ui, tile_id: TileId, pane: &mut Pane) -> UiResponse {
+        // TODO
+
+        UiResponse::None
+    }
+    fn tab_title_for_pane(&mut self, pane: &Pane) -> WidgetText {
+        match pane {
+            Pane::Canvas => WidgetText::RichText(self.canvas_title.clone()),
+            Pane::Graph => WidgetText::RichText(self.graph_title.clone()),
+            Pane::TreeList => WidgetText::RichText(self.tree_list_title.clone()),
+            Pane::List => WidgetText::RichText(self.list_title.clone()),
+            Pane::TextEdit => WidgetText::RichText(self.text_edit_title.clone()),
+            Pane::Menu => WidgetText::RichText(self.menu_title.clone()),
+        }
+    }
+    fn is_tab_closable(&self, _tiles: &Tiles<Pane>, _tile_id: TileId) -> bool {
+        false
+    }
+    fn simplification_options(&self) -> SimplificationOptions {
+        SimplificationOptions {
+            all_panes_must_have_tabs: true,
+            ..Default::default()
+        }
+    }
 }
