@@ -220,12 +220,15 @@ impl FileManager {
                                                 .to_string(),
                                         );
                                     }
+                                    ui.separator();
                                 } else if item.r#type == ScannedItemType::File {
-                                    if (item.path.extension() == Some(&file_extension_normal)
-                                        || item.path.extension() == Some(&file_extension_treeless))
-                                        && ui.button("Open Weave").clicked()
+                                    if item.path.extension() == Some(&file_extension_normal)
+                                        || item.path.extension() == Some(&file_extension_treeless)
                                     {
-                                        selected_items.push(full_path.clone());
+                                        if ui.button("Open Weave").clicked() {
+                                            selected_items.push(full_path.clone());
+                                        }
+                                        ui.separator();
                                     }
 
                                     if ui.button("Copy File").clicked() {
