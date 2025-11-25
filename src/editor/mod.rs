@@ -138,7 +138,7 @@ impl Editor {
                         .family(FontFamily::Name("phosphor-fill".into())),
                 ),
                 list_title: Arc::new(
-                    RichText::new([fill::LIST, " List"].concat())
+                    RichText::new([fill::ROWS, " List"].concat())
                         .family(FontFamily::Name("phosphor-fill".into())),
                 ),
                 text_edit_title: Arc::new(
