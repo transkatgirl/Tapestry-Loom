@@ -114,7 +114,7 @@ impl TapestryLoomApp {
         fonts.families.insert(
             FontFamily::Name("phosphor-light".into()),
             vec!["Ubuntu-Light".into(), "phosphor-light".into()],
-        );*/
+        );
         fonts.families.insert(
             FontFamily::Name("phosphor-bold".into()),
             vec!["Ubuntu-Light".into(), "phosphor-bold".into()],
@@ -122,7 +122,7 @@ impl TapestryLoomApp {
         fonts.families.insert(
             FontFamily::Name("phosphor-fill".into()),
             vec!["Ubuntu-Light".into(), "phosphor-fill".into()],
-        );
+        );*/
 
         cc.egui_ctx.set_fonts(fonts);
 
