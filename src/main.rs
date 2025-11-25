@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{cell::RefCell, collections::HashSet, path::PathBuf, rc::Rc, sync::Arc, time::Duration};
+use std::{cell::RefCell, collections::HashSet, path::PathBuf, rc::Rc, sync::Arc};
 
 use eframe::{
     App, CreationContext, Frame, NativeOptions,
@@ -189,14 +189,17 @@ impl App for TapestryLoomApp {
                             continue;
                         }
 
-                        let identifier = self.tree.tiles.insert_pane(Pane::Editor(Editor::new(
-                            self.behavior.settings.clone(),
-                            self.behavior.toasts.clone(),
-                            self.behavior.threadpool.clone(),
-                            self.behavior.open_documents.clone(),
-                            self.behavior.runtime.clone(),
-                            path,
-                        )));
+                        let identifier =
+                            self.tree
+                                .tiles
+                                .insert_pane(Pane::Editor(Box::new(Editor::new(
+                                    self.behavior.settings.clone(),
+                                    self.behavior.toasts.clone(),
+                                    self.behavior.threadpool.clone(),
+                                    self.behavior.open_documents.clone(),
+                                    self.behavior.runtime.clone(),
+                                    path,
+                                ))));
 
                         if let Some(Tile::Container(parent)) =
                             parent.and_then(|root| self.tree.tiles.get_mut(root))
@@ -250,7 +253,7 @@ struct TapestryLoomBehavior {
 enum Pane {
     Settings,
     FileManager,
-    Editor(Editor),
+    Editor(Box<Editor>),
 }
 
 impl Behavior<Pane> for TapestryLoomBehavior {
