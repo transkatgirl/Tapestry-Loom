@@ -29,22 +29,21 @@ impl ListView {
         _toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
-        let items: Vec<Ulid> = weave
+        let items = weave
             .get_active_thread()
-            .last()
-            .iter()
-            .flat_map(|node| node.to.iter().cloned())
-            .map(Ulid)
-            .collect();
-        let row_height = ui.spacing().interact_size.y;
-        ScrollArea::vertical()
-            .auto_shrink(false)
-            .animated(false)
-            .show_rows(ui, row_height, items.len(), |ui, range| {
-                for item in &items[range] {
-                    self.render_item(weave, ui, item);
-                }
-            });
+            .next()
+            .map(|node| node.to.iter().cloned().map(Ulid).collect::<Vec<Ulid>>());
+        if let Some(items) = items {
+            let row_height = ui.spacing().interact_size.y;
+            ScrollArea::vertical()
+                .auto_shrink(false)
+                .animated(false)
+                .show_rows(ui, row_height, items.len(), |ui, range| {
+                    for item in &items[range] {
+                        self.render_item(weave, ui, item);
+                    }
+                });
+        }
     }
     fn render_item(&mut self, weave: &mut TapestryWeave, ui: &mut Ui, item: &Ulid) {
         // TODO: Add inference
