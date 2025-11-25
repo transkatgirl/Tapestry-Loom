@@ -1,8 +1,9 @@
 use std::{
     cell::RefCell,
     collections::HashSet,
-    fs,
-    path::PathBuf,
+    fs::{self, File},
+    io::{self, Read, Write},
+    path::{Path, PathBuf},
     rc::Rc,
     sync::{
         Arc, Barrier,
@@ -89,7 +90,7 @@ impl Editor {
                         thread_barrier.wait();
 
                         if let Some(filepath) = path.as_deref() {
-                            match fs::read(filepath) {
+                            match read_bytes(filepath) {
                                 Ok(bytes) => match VersionedWeave::from_bytes(&bytes) {
                                     Some(Ok(weave)) => {
                                         let mut weave = weave.into_latest();
@@ -187,7 +188,7 @@ impl Editor {
             {
                 match weave.to_versioned_bytes() {
                     Ok(bytes) => {
-                        if let Err(error) = fs::write(path, bytes) {
+                        if let Err(error) = write_bytes(path, &bytes) {
                             let _ = error_sender.send(format!("Filesystem error: {error:#?}"));
                         } else if unload {
                             *weave_lock = None;
@@ -237,6 +238,28 @@ fn generate_title(path: &Option<PathBuf>) -> String {
         }
         None => "New Weave".to_string(),
     }
+}
+
+fn read_bytes(path: &Path) -> Result<Vec<u8>, io::Error> {
+    let mut file = File::open(path)?;
+    file.lock()?;
+
+    let size = file
+        .metadata()
+        .map(|m| m.len() as usize)
+        .unwrap_or_default();
+
+    let mut bytes = Vec::with_capacity(size);
+    file.read_to_end(&mut bytes)?;
+
+    Ok(bytes)
+}
+
+fn write_bytes(path: &Path, contents: &[u8]) -> Result<(), io::Error> {
+    let mut file = File::create(path)?;
+    file.lock()?;
+
+    file.write_all(contents)
 }
 
 pub fn blank_weave_bytes() -> Result<Vec<u8>, rancor::Error> {
