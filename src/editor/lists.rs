@@ -210,6 +210,12 @@ impl TreeListView {
                                         );
                                         ui.add_space(0.0);
                                     });
+                                } else if node.bookmarked {
+                                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                        ui.add_space(ui.spacing().icon_spacing);
+                                        ui.label(regular::BOOKMARK_SIMPLE);
+                                        ui.add_space(ui.spacing().icon_spacing);
+                                    });
                                 }
                             })
                             .response;
