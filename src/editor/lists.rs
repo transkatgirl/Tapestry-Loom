@@ -84,6 +84,7 @@ impl TreeListView {
         toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
+        // TODO: hoisting, hover tooltips, right click menu
         let roots: Vec<Ulid> = weave.get_roots().collect();
         let active: Vec<Ulid> = weave
             .get_active_thread()
@@ -205,7 +206,12 @@ impl TreeListView {
                     render_label(ui);
                 } else {
                     let id = ui.make_persistent_id([editor_id.0, node.id, 0]);
-                    CollapsingState::load_with_default_open(ui.ctx(), id, false)
+                    let mut collapsing =
+                        CollapsingState::load_with_default_open(ui.ctx(), id, false);
+                    if active_items.contains(&Ulid(node.id)) {
+                        collapsing.set_open(true);
+                    }
+                    collapsing
                         .show_header(ui, |ui| {
                             render_label(ui);
                         })
