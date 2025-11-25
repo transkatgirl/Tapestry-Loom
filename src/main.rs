@@ -172,6 +172,8 @@ impl App for TapestryLoomApp {
         CentralPanel::default()
             .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0.0))
             .show(ctx, |ui| {
+                ctx.style_mut(|style| style.animation_time = 0.0);
+
                 self.tree.ui(&mut self.behavior, ui);
 
                 if self.behavior.unsaved_settings_changes {
