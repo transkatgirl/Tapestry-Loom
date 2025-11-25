@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
 use eframe::egui::{
-    self, Align, Button, Color32, Layout, Margin, Sense, Ui, UiBuilder, Vec2,
-    collapsing_header::CollapsingState,
+    self, Align, Button, Color32, FontFamily, Layout, Margin, RichText, Sense, Ui, UiBuilder, Vec2,
+    WidgetText, collapsing_header::CollapsingState,
 };
 use egui_notify::Toasts;
-use egui_phosphor::regular;
+use egui_phosphor::{fill, regular};
 use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{
@@ -31,9 +33,27 @@ impl ListView {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct TreeListView {
     hoist: Option<Ulid>,
+    bookmark_icon: Arc<RichText>,
+    unbookmark_icon: Arc<RichText>,
+}
+
+impl Default for TreeListView {
+    fn default() -> Self {
+        Self {
+            hoist: None,
+            bookmark_icon: Arc::new(
+                RichText::new(regular::BOOKMARK_SIMPLE.to_string())
+                    .family(FontFamily::Name("phosphor".into())),
+            ),
+            unbookmark_icon: Arc::new(
+                RichText::new(fill::BOOKMARK_SIMPLE.to_string())
+                    .family(FontFamily::Name("phosphor-fill".into())),
+            ),
+        }
+    }
 }
 
 impl TreeListView {
@@ -49,7 +69,15 @@ impl TreeListView {
         state: &mut SharedState,
     ) {
         let roots: Vec<Ulid> = weave.get_roots().collect();
-        render_weave_node_tree(weave, ui, state.identifier, roots, 4);
+        render_weave_node_tree(
+            weave,
+            ui,
+            state.identifier,
+            roots,
+            4,
+            &self.bookmark_icon,
+            &self.unbookmark_icon,
+        );
 
         if ui.button("test").clicked() {
             weave.add_node(DependentNode {
@@ -74,6 +102,8 @@ fn render_weave_node_tree(
     editor_id: Ulid,
     items: impl IntoIterator<Item = Ulid>,
     max_depth: usize,
+    bookmark_icon: &Arc<RichText>,
+    unbookmark_icon: &Arc<RichText>,
 ) {
     if max_depth == 0 {
         return;
@@ -89,18 +119,20 @@ fn render_weave_node_tree(
                         ui.add_space(indent_compensation);
                     }
 
+                    let mut label = RichText::new(String::from_utf8_lossy(
+                        &node.contents.content.as_bytes().to_vec(),
+                    ))
+                    .family(FontFamily::Monospace);
+
+                    if node.active {
+                        label = label.color(ui.style().visuals.hyperlink_color);
+                    }
+
                     if ui
-                        .add(
-                            Button::new(String::from_utf8_lossy(
-                                &node.contents.content.as_bytes().to_vec(),
-                            ))
-                            .fill(Color32::TRANSPARENT)
-                            .frame(false),
-                        )
+                        .add(Button::new(label).fill(Color32::TRANSPARENT).frame(false))
                         .clicked()
                     {
                         weave.set_node_active_status(&Ulid(node.id), !node.active);
-                        println!("{}", Ulid(node.id));
                     }
 
                     if ui.rect_contains_pointer(ui.max_rect()) {
@@ -108,7 +140,12 @@ fn render_weave_node_tree(
                             if ui.button(regular::ERASER).clicked() {
                                 weave.remove_node(&Ulid(node.id));
                             };
-                            if ui.button(regular::BOOKMARK_SIMPLE).clicked() {
+                            let bookmark_label = WidgetText::RichText(if node.bookmarked {
+                                unbookmark_icon.clone()
+                            } else {
+                                bookmark_icon.clone()
+                            });
+                            if ui.button(bookmark_label).clicked() {
                                 weave.set_node_bookmarked_status(&Ulid(node.id), !node.bookmarked);
                             };
                             if ui.button(regular::CHAT_TEXT).clicked() {
@@ -156,6 +193,8 @@ fn render_weave_node_tree(
                             editor_id,
                             node.to.into_iter().map(Ulid),
                             max_depth - 1,
+                            bookmark_icon,
+                            unbookmark_icon,
                         );
                     });
             }
