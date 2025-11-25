@@ -12,6 +12,8 @@ use std::{
     time::Instant,
 };
 
+// TODO: Prevent editor conflicts via renaming
+
 mod canvas;
 mod graph;
 mod lists;

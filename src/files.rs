@@ -27,6 +27,8 @@ use walkdir::WalkDir;
 
 use crate::{editor::blank_weave_bytes, settings::Settings};
 
+// TODO: Add duplicate button
+
 pub struct FileManager {
     settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
