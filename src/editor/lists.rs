@@ -50,7 +50,7 @@ impl ListView {
     ) {
         /*let items: Vec<Ulid> = weave.get_bookmarks().collect();
         let row_height = ui.spacing().interact_size.y;
-        ScrollArea::vertical().auto_shrink(false).show_rows(
+        ScrollArea::vertical().auto_shrink(false).animated(false).show_rows(
             ui,
             row_height,
             items.len(),
@@ -175,16 +175,14 @@ impl BookmarkListView {
     ) {
         let items: Vec<Ulid> = weave.get_bookmarks().collect();
         let row_height = ui.spacing().interact_size.y;
-        ScrollArea::vertical().auto_shrink(false).show_rows(
-            ui,
-            row_height,
-            items.len(),
-            |ui, range| {
+        ScrollArea::vertical()
+            .auto_shrink(false)
+            .animated(false)
+            .show_rows(ui, row_height, items.len(), |ui, range| {
                 for item in &items[range] {
                     self.render_bookmark(weave, ui, item);
                 }
-            },
-        );
+            });
     }
     fn render_bookmark(&mut self, weave: &mut TapestryWeave, ui: &mut Ui, item: &Ulid) {
         if let Some(node) = weave.get_node(item).cloned() {
@@ -277,33 +275,36 @@ impl TreeListView {
             .map(|node| Ulid(node.id))
             .collect();
         let active_set = HashSet::from_iter(active.clone());
-        ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-            self.render_node_tree(
-                weave,
-                ui,
-                state.identifier,
-                roots,
-                &active_set,
-                settings.interface.max_tree_depth,
-            );
+        ScrollArea::vertical()
+            .auto_shrink(false)
+            .animated(false)
+            .show(ui, |ui| {
+                self.render_node_tree(
+                    weave,
+                    ui,
+                    state.identifier,
+                    roots,
+                    &active_set,
+                    settings.interface.max_tree_depth,
+                );
 
-            /*if ui.button("test").clicked() {
-                weave.add_node(DependentNode {
-                    id: Ulid::new().0,
-                    from: None,
-                    to: IndexSet::default(),
-                    active: false,
-                    bookmarked: false,
-                    contents: NodeContent {
-                        content: InnerNodeContent::Snippet(
-                            Ulid::new().to_string().as_bytes().to_vec(),
-                        ),
-                        metadata: IndexMap::new(),
-                        model: None,
-                    },
-                });
-            }*/
-        });
+                /*if ui.button("test").clicked() {
+                    weave.add_node(DependentNode {
+                        id: Ulid::new().0,
+                        from: None,
+                        to: IndexSet::default(),
+                        active: false,
+                        bookmarked: false,
+                        contents: NodeContent {
+                            content: InnerNodeContent::Snippet(
+                                Ulid::new().to_string().as_bytes().to_vec(),
+                            ),
+                            metadata: IndexMap::new(),
+                            model: None,
+                        },
+                    });
+                }*/
+            });
     }
     fn render_node_tree(
         &self,
