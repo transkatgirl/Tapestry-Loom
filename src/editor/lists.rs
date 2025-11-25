@@ -17,8 +17,26 @@ use tapestry_weave::{
 
 use crate::{editor::shared::SharedState, settings::Settings};
 
-#[derive(Default, Debug)]
-pub struct ListView {}
+#[derive(Debug)]
+pub struct ListView {
+    bookmark_icon: Arc<RichText>,
+    unbookmark_icon: Arc<RichText>,
+}
+
+impl Default for ListView {
+    fn default() -> Self {
+        Self {
+            bookmark_icon: Arc::new(
+                RichText::new(regular::BOOKMARK_SIMPLE.to_string())
+                    .family(FontFamily::Name("phosphor".into())),
+            ),
+            unbookmark_icon: Arc::new(
+                RichText::new(fill::BOOKMARK_SIMPLE.to_string())
+                    .family(FontFamily::Name("phosphor-fill".into())),
+            ),
+        }
+    }
+}
 
 impl ListView {
     pub fn reset(&mut self) {}
@@ -30,11 +48,120 @@ impl ListView {
         toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
+        /*let items: Vec<Ulid> = weave.get_bookmarks().collect();
+        let row_height = ui.spacing().interact_size.y;
+        ScrollArea::vertical().auto_shrink(false).show_rows(
+            ui,
+            row_height,
+            items.len(),
+            |ui, range| {
+                for item in &items[range] {
+                    self.render_bookmark(weave, ui, item);
+                }
+            },
+        );*/
+    }
+    fn render_item(&mut self, weave: &mut TapestryWeave, ui: &mut Ui, item: &Ulid) {
+        // TODO: Add inference
+
+        if let Some(node) = weave.get_node(item).cloned() {
+            ui.horizontal(|ui| {
+                ui.add_space(ui.spacing().icon_spacing);
+
+                let response = ui
+                    .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                        let label = RichText::new(String::from_utf8_lossy(
+                            &node.contents.content.as_bytes().to_vec(),
+                        ))
+                        .family(FontFamily::Monospace);
+
+                        let label_button = if node.active {
+                            Button::new(label).selected(true)
+                        } else {
+                            Button::new(label).fill(Color32::TRANSPARENT)
+                        };
+
+                        if ui.add(label_button).clicked() {
+                            weave.set_node_active_status(&Ulid(node.id), !node.active);
+                        }
+
+                        if ui.rect_contains_pointer(ui.max_rect()) {
+                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                                    ui.add_space(ui.spacing().icon_spacing);
+                                    if ui.button(regular::ERASER).clicked() {
+                                        weave.remove_node(&Ulid(node.id));
+                                    };
+                                    let bookmark_label = WidgetText::RichText(if node.bookmarked {
+                                        self.unbookmark_icon.clone()
+                                    } else {
+                                        self.bookmark_icon.clone()
+                                    });
+                                    if ui.button(bookmark_label).clicked() {
+                                        weave.set_node_bookmarked_status(
+                                            &Ulid(node.id),
+                                            !node.bookmarked,
+                                        );
+                                    };
+                                    if ui.button(regular::CHAT_TEXT).clicked() {
+                                        weave.add_node(DependentNode {
+                                            id: Ulid::new().0,
+                                            from: Some(node.id),
+                                            to: IndexSet::default(),
+                                            active: false,
+                                            bookmarked: false,
+                                            contents: NodeContent {
+                                                content: InnerNodeContent::Snippet(vec![]),
+                                                metadata: IndexMap::new(),
+                                                model: None,
+                                            },
+                                        });
+                                    };
+                                    if ui.button(regular::SPARKLE).clicked() {
+                                        todo!()
+                                    };
+                                    if weave.is_mergeable_with_parent(&Ulid(node.id))
+                                        && ui.button(regular::GIT_MERGE).clicked()
+                                    {
+                                        weave.merge_with_parent(&Ulid(node.id));
+                                    };
+                                    ui.add_space(ui.spacing().icon_spacing);
+                                });
+                                ui.add_space(0.0);
+                            });
+                        } else if node.bookmarked {
+                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                ui.add_space(ui.spacing().icon_spacing);
+                                ui.label(regular::BOOKMARK_SIMPLE);
+                                ui.add_space(ui.spacing().icon_spacing);
+                            });
+                        }
+                    })
+                    .response;
+
+                if response.clicked() {
+                    weave.set_node_active_status(&Ulid(node.id), !node.active);
+                }
+            });
+        }
     }
 }
 
-#[derive(Default, Debug)]
-pub struct BookmarkListView {}
+#[derive(Debug)]
+pub struct BookmarkListView {
+    unbookmark_icon: Arc<RichText>,
+}
+
+impl Default for BookmarkListView {
+    fn default() -> Self {
+        Self {
+            unbookmark_icon: Arc::new(
+                RichText::new(fill::BOOKMARK_SIMPLE.to_string())
+                    .family(FontFamily::Name("phosphor-fill".into())),
+            ),
+        }
+    }
+}
 
 impl BookmarkListView {
     pub fn reset(&mut self) {}
@@ -46,7 +173,65 @@ impl BookmarkListView {
         toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
-        let bookmarks: Vec<Ulid> = weave.get_bookmarks().collect();
+        let items: Vec<Ulid> = weave.get_bookmarks().collect();
+        let row_height = ui.spacing().interact_size.y;
+        ScrollArea::vertical().auto_shrink(false).show_rows(
+            ui,
+            row_height,
+            items.len(),
+            |ui, range| {
+                for item in &items[range] {
+                    self.render_bookmark(weave, ui, item);
+                }
+            },
+        );
+    }
+    fn render_bookmark(&mut self, weave: &mut TapestryWeave, ui: &mut Ui, item: &Ulid) {
+        if let Some(node) = weave.get_node(item).cloned() {
+            ui.horizontal(|ui| {
+                ui.add_space(ui.spacing().icon_spacing);
+                ui.label(regular::BOOKMARK_SIMPLE);
+
+                let response = ui
+                    .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                        let label = RichText::new(String::from_utf8_lossy(
+                            &node.contents.content.as_bytes().to_vec(),
+                        ))
+                        .family(FontFamily::Monospace);
+
+                        let label_button = if node.active {
+                            Button::new(label).selected(true)
+                        } else {
+                            Button::new(label).fill(Color32::TRANSPARENT)
+                        };
+
+                        if ui.add(label_button).clicked() {
+                            weave.set_node_active_status(&Ulid(node.id), !node.active);
+                        }
+
+                        if ui.rect_contains_pointer(ui.max_rect()) {
+                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                                    ui.add_space(ui.spacing().icon_spacing);
+                                    if ui
+                                        .button(WidgetText::RichText(self.unbookmark_icon.clone()))
+                                        .clicked()
+                                    {
+                                        weave.set_node_bookmarked_status(&Ulid(node.id), false);
+                                    };
+                                    ui.add_space(ui.spacing().icon_spacing);
+                                });
+                                ui.add_space(0.0);
+                            });
+                        }
+                    })
+                    .response;
+
+                if response.clicked() {
+                    weave.set_node_active_status(&Ulid(node.id), !node.active);
+                }
+            });
+        }
     }
 }
 
@@ -102,7 +287,7 @@ impl TreeListView {
                 settings.interface.max_tree_depth,
             );
 
-            if ui.button("test").clicked() {
+            /*if ui.button("test").clicked() {
                 weave.add_node(DependentNode {
                     id: Ulid::new().0,
                     from: None,
@@ -117,7 +302,7 @@ impl TreeListView {
                         model: None,
                     },
                 });
-            }
+            }*/
         });
     }
     fn render_node_tree(
@@ -129,6 +314,8 @@ impl TreeListView {
         active_items: &HashSet<Ulid>,
         max_depth: usize,
     ) {
+        // TODO: Test node activation handling, add inference
+
         if max_depth == 0 {
             return;
         }
