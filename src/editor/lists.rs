@@ -76,10 +76,15 @@ fn render_weave_node_tree(
         return;
     }
 
+    let indent_compensation = ui.spacing().icon_width + ui.spacing().icon_spacing;
+
     for item in items {
         if let Some(node) = weave.get_node(&item).cloned() {
             let mut render_label = |ui: &mut Ui| {
                 ui.horizontal(|ui| {
+                    if node.to.is_empty() {
+                        ui.add_space(indent_compensation);
+                    }
                     ui.label(String::from_utf8_lossy(
                         &node.contents.content.as_bytes().to_vec(),
                     ));
