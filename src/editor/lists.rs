@@ -1,4 +1,7 @@
-use eframe::egui::{self, Align, Layout, Ui, collapsing_header::CollapsingState};
+use eframe::egui::{
+    self, Align, Button, Color32, Layout, Margin, Sense, Ui, UiBuilder, Vec2,
+    collapsing_header::CollapsingState,
+};
 use egui_notify::Toasts;
 use egui_phosphor::regular;
 use tapestry_weave::{
@@ -85,13 +88,20 @@ fn render_weave_node_tree(
                     if node.to.is_empty() {
                         ui.add_space(indent_compensation);
                     }
-                    ui.label(String::from_utf8_lossy(
-                        &node.contents.content.as_bytes().to_vec(),
-                    ));
 
-                    // TODO
-
-                    //ui.label(Ulid(node.id).to_string());
+                    if ui
+                        .add(
+                            Button::new(String::from_utf8_lossy(
+                                &node.contents.content.as_bytes().to_vec(),
+                            ))
+                            .fill(Color32::TRANSPARENT)
+                            .frame(false),
+                        )
+                        .clicked()
+                    {
+                        weave.set_node_active_status(&Ulid(node.id), !node.active);
+                        println!("{}", Ulid(node.id));
+                    }
 
                     if ui.rect_contains_pointer(ui.max_rect()) {
                         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -110,6 +120,9 @@ fn render_weave_node_tree(
                                     bookmarked: false,
                                     contents: NodeContent {
                                         content: InnerNodeContent::Snippet(vec![]),
+                                        /*content: InnerNodeContent::Snippet(
+                                            Ulid::new().to_string().as_bytes().to_vec(),
+                                        ),*/
                                         metadata: IndexMap::new(),
                                         model: None,
                                     },
