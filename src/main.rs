@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{cell::RefCell, collections::HashSet, path::PathBuf, rc::Rc, sync::Arc};
+use std::{cell::RefCell, collections::HashSet, path::PathBuf, rc::Rc, sync::Arc, time::Duration};
 
 use eframe::{
     App, CreationContext, Frame, NativeOptions,
@@ -316,5 +316,11 @@ impl Behavior<Pane> for TapestryLoomBehavior {
         }
 
         true
+    }
+}
+
+impl Drop for TapestryLoomBehavior {
+    fn drop(&mut self) {
+        self.threadpool.join();
     }
 }
