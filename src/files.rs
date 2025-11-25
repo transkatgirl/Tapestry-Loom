@@ -198,7 +198,56 @@ impl FileManager {
 
                         let button_response = ui.add_enabled(enabled, button);
 
-                        //button_response.context_menu(|ui| {});
+                        if !self.open_documents.borrow().contains(&full_path) {
+                            button_response.context_menu(|ui| {
+                                if item.r#type == ScannedItemType::Directory {
+                                    if ui.button("New Weave").clicked() {
+                                        *self.modal.borrow_mut() = ModalType::CreateWeave(
+                                            item.path
+                                                .join(
+                                                    ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION]
+                                                        .concat(),
+                                                )
+                                                .to_string_lossy()
+                                                .to_string(),
+                                        );
+                                    }
+                                    if ui.button("New Folder").clicked() {
+                                        *self.modal.borrow_mut() = ModalType::CreateDirectory(
+                                            item.path
+                                                .join("Untitled Folder")
+                                                .to_string_lossy()
+                                                .to_string(),
+                                        );
+                                    }
+                                } else if item.r#type == ScannedItemType::File {
+                                    if (item.path.extension() == Some(&file_extension_normal)
+                                        || item.path.extension() == Some(&file_extension_treeless))
+                                        && ui.button("Open Weave").clicked()
+                                    {
+                                        selected_items.push(full_path.clone());
+                                    }
+
+                                    if ui.button("Copy File").clicked() {
+                                        *self.modal.borrow_mut() = ModalType::CopyFile((
+                                            item.path.clone(),
+                                            item.path.to_string_lossy().to_string(),
+                                        ));
+                                    }
+                                };
+
+                                if ui.button("Rename Item").clicked() {
+                                    *self.modal.borrow_mut() = ModalType::RenameItem((
+                                        item.path.clone(),
+                                        item.path.to_string_lossy().to_string(),
+                                    ));
+                                };
+
+                                if ui.button("Delete Item").clicked() {
+                                    *self.modal.borrow_mut() = ModalType::Delete(item.path.clone());
+                                };
+                            });
+                        }
 
                         if button_response.clicked() {
                             if item.r#type == ScannedItemType::File {
