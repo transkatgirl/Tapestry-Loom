@@ -88,8 +88,8 @@ impl Editor {
         let weave = Arc::new(Mutex::new(None));
 
         Self {
-            settings,
-            toasts,
+            settings: settings.clone(),
+            toasts: toasts.clone(),
             threadpool,
             open_documents,
             title: generate_title(&path),
@@ -105,6 +105,8 @@ impl Editor {
             save_as_input_box: ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION].concat(),
             tree: Tree::new(["editor-", &identifier, "-tree"].concat(), root, tiles),
             behavior: EditorTilingBehavior {
+                settings,
+                toasts,
                 weave,
                 runtime,
                 canvas_title: Arc::new(
@@ -262,7 +264,9 @@ impl Editor {
                             self.show_modal = true;
                         }
                     });
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {});
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        self.behavior.panel_rtl(ui);
+                    });
                 });
             },
         );
@@ -427,12 +431,24 @@ struct EditorTilingBehavior {
     list_title: Arc<RichText>,
     text_edit_title: Arc<RichText>,
     menu_title: Arc<RichText>,
+    settings: Rc<RefCell<Settings>>,
+    toasts: Rc<RefCell<Toasts>>,
     weave: Arc<Mutex<Option<TapestryWeave>>>,
     runtime: Arc<Runtime>,
 }
 
+impl EditorTilingBehavior {
+    fn panel_rtl(&mut self, ui: &mut Ui) {
+        let settings = self.settings.borrow();
+        let toasts = self.toasts.borrow_mut();
+        let weave = self.weave.lock();
+    }
+}
+
 impl Behavior<Pane> for EditorTilingBehavior {
     fn pane_ui(&mut self, ui: &mut Ui, tile_id: TileId, pane: &mut Pane) -> UiResponse {
+        let settings = self.settings.borrow();
+        let toasts = self.toasts.borrow_mut();
         let weave = self.weave.lock();
 
         // TODO
