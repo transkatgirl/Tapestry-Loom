@@ -104,18 +104,19 @@ impl FileManager {
                         "{} files, {} folders",
                         self.file_count,
                         self.folder_count.saturating_sub(1)
-                    ));
+                    ))
+                    .on_hover_text(self.path.to_string_lossy());
                 });
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    if ui.button("\u{E145}").clicked() {
+                    if ui.button("\u{E145}").on_hover_text("Refresh").clicked() {
                         self.open_folders.clear();
                         self.scanned = false;
                     }
-                    if ui.button("\u{E0D9}").clicked() {
+                    if ui.button("\u{E0D9}").on_hover_text("New Folder").clicked() {
                         *self.modal.borrow_mut() =
                             ModalType::CreateDirectory("Untitled Folder".to_string());
                     }
-                    if ui.button("\u{E0C9}").clicked() {
+                    if ui.button("\u{E0C9}").on_hover_text("New Weave").clicked() {
                         *self.modal.borrow_mut() = ModalType::CreateWeave(
                             ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION].concat(),
                         );
@@ -195,7 +196,11 @@ impl FileManager {
                             button = button.fill(ui.style().visuals.extreme_bg_color);
                         }
 
-                        if ui.add_enabled(enabled, button).clicked() {
+                        let button_response = ui.add_enabled(enabled, button);
+
+                        //button_response.context_menu(|ui| {});
+
+                        if button_response.clicked() {
                             if item.r#type == ScannedItemType::File {
                                 selected_items.push(full_path.clone());
                             } else {
@@ -214,7 +219,7 @@ impl FileManager {
                             if item.r#type == ScannedItemType::Directory
                                 && self.open_folders.contains(&item.path)
                             {
-                                if ui.button("\u{E0C9}").clicked() {
+                                if ui.button("\u{E0C9}").on_hover_text("New Weave").clicked() {
                                     *self.modal.borrow_mut() = ModalType::CreateWeave(
                                         item.path
                                             .join(
@@ -225,7 +230,7 @@ impl FileManager {
                                             .to_string(),
                                     );
                                 }
-                                if ui.button("\u{E0D9}").clicked() {
+                                if ui.button("\u{E0D9}").on_hover_text("New Folder").clicked() {
                                     *self.modal.borrow_mut() = ModalType::CreateDirectory(
                                         item.path
                                             .join("Untitled Folder")
@@ -236,7 +241,7 @@ impl FileManager {
                             }
 
                             if item.r#type == ScannedItemType::File
-                                && ui.button("\u{E09E}").clicked()
+                                && ui.button("\u{E09E}").on_hover_text("Copy File").clicked()
                             {
                                 *self.modal.borrow_mut() = ModalType::CopyFile((
                                     item.path.clone(),
@@ -244,14 +249,14 @@ impl FileManager {
                                 ));
                             };
 
-                            if ui.button("\u{E4F0}").clicked() {
+                            if ui.button("\u{E4F0}").on_hover_text("Rename Item").clicked() {
                                 *self.modal.borrow_mut() = ModalType::RenameItem((
                                     item.path.clone(),
                                     item.path.to_string_lossy().to_string(),
                                 ));
                             };
 
-                            if ui.button("\u{E18E}").clicked() {
+                            if ui.button("\u{E18E}").on_hover_text("Delete Item").clicked() {
                                 *self.modal.borrow_mut() = ModalType::Delete(item.path.clone());
                             };
                         };
