@@ -12,11 +12,13 @@ use std::{
     time::Instant,
 };
 
-use eframe::egui::{Spinner, Ui};
+use eframe::egui::{Align, Layout, Spinner, TopBottomPanel, Ui};
 use egui_notify::Toasts;
+use egui_tiles::TileId;
 use parking_lot::Mutex;
 use tapestry_weave::{
     VersionedWeave,
+    ulid::Ulid,
     universal_weave::{indexmap::IndexMap, rkyv::rancor},
     v0::TapestryWeave,
 };
@@ -38,6 +40,8 @@ pub struct Editor {
     error_channel: (Arc<Sender<String>>, Receiver<String>),
     last_save: Instant,
     closing: bool,
+    panel_identifier: String,
+    modal_identifier: String,
 }
 
 impl Editor {
@@ -55,6 +59,8 @@ impl Editor {
 
         let (sender, receiver) = mpsc::channel();
 
+        let identifier = Ulid::new().to_string();
+
         Self {
             settings,
             toasts,
@@ -68,6 +74,8 @@ impl Editor {
             error_channel: (Arc::new(sender), receiver),
             last_save: Instant::now(),
             closing: false,
+            panel_identifier: ["editor-", &identifier, "-bottom-panel"].concat(),
+            modal_identifier: ["editor-", &identifier, "-modal"].concat(),
         }
     }
     pub fn render(&mut self, ui: &mut Ui) {
@@ -75,6 +83,13 @@ impl Editor {
             match weave.as_mut() {
                 Some(weave) => {
                     self.render_weave(ui, weave);
+
+                    let mut toasts = self.toasts.borrow_mut();
+                    while let Ok(message) = self.error_channel.1.try_recv() {
+                        toasts.error(message);
+                    }
+
+                    return;
                 }
                 None => {
                     drop(weave);
@@ -139,12 +154,20 @@ impl Editor {
                     barrier.wait();
                 }
             }
-        } else {
-            ui.horizontal(|ui| {
-                ui.add(Spinner::new());
-                ui.label("Loading weave...");
-            });
         }
+
+        TopBottomPanel::bottom(self.panel_identifier.clone()).show_animated_inside(
+            ui,
+            true,
+            |ui| {
+                ui.horizontal(|ui| {
+                    ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                        ui.add(Spinner::new());
+                        ui.label("Loading weave...");
+                    });
+                });
+            },
+        );
 
         let mut toasts = self.toasts.borrow_mut();
         while let Ok(message) = self.error_channel.1.try_recv() {
@@ -166,8 +189,27 @@ impl Editor {
             self.old_path = path.clone();
         }
 
-        ui.label("weave loaded");
-        ui.label(format!("{:#?}", path));
+        TopBottomPanel::bottom(self.panel_identifier.clone()).show_animated_inside(
+            ui,
+            true,
+            |ui| {
+                ui.horizontal(|ui| {
+                    ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                        if let Some(path) = path.as_ref() {
+                            if let Ok(path) = path.strip_prefix(&settings.documents.location) {
+                                ui.label(path.to_string_lossy());
+                            } else {
+                                ui.label(path.to_string_lossy());
+                            }
+                        } else {
+                            ui.button("Save As...");
+                            //ui.label("New Weave");
+                        }
+                    });
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {});
+                });
+            },
+        );
 
         if self.last_save.elapsed() > settings.documents.save_interval {
             self.last_save = Instant::now();
