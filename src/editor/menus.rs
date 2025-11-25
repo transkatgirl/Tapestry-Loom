@@ -2,7 +2,7 @@ use eframe::egui::Ui;
 use egui_notify::Toasts;
 use tapestry_weave::v0::TapestryWeave;
 
-use crate::settings::Settings;
+use crate::{editor::shared::SharedState, settings::Settings};
 
 #[derive(Default, Debug)]
 pub struct MenuView {}
@@ -15,6 +15,7 @@ impl MenuView {
         weave: &mut TapestryWeave,
         settings: &Settings,
         toasts: &mut Toasts,
+        state: &mut SharedState,
     ) {
     }
     pub fn render_rtl_panel(
@@ -23,6 +24,7 @@ impl MenuView {
         weave: &mut TapestryWeave,
         settings: &Settings,
         toasts: &mut Toasts,
+        state: &mut SharedState,
     ) {
     }
 }

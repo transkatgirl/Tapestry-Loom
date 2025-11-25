@@ -16,6 +16,7 @@ mod canvas;
 mod graph;
 mod lists;
 mod menus;
+mod shared;
 mod textedit;
 
 use eframe::egui::{
@@ -40,6 +41,7 @@ use crate::{
         graph::GraphView,
         lists::{ListView, TreeListView},
         menus::MenuView,
+        shared::SharedState,
         textedit::TextEditorView,
     },
     settings::Settings,
@@ -119,6 +121,7 @@ impl Editor {
                 toasts,
                 weave,
                 runtime,
+                shared_state: SharedState::default(),
                 canvas_view: CanvasView::default(),
                 graph_view: GraphView::default(),
                 tree_list_view: TreeListView::default(),
@@ -442,6 +445,7 @@ enum Pane {
 }
 
 struct EditorTilingBehavior {
+    shared_state: SharedState,
     canvas_view: CanvasView,
     graph_view: GraphView,
     tree_list_view: TreeListView,
@@ -464,6 +468,7 @@ struct EditorTilingBehavior {
 
 impl EditorTilingBehavior {
     fn reset(&mut self) {
+        self.shared_state.reset();
         self.canvas_view.reset();
         self.graph_view.reset();
         self.tree_list_view.reset();
@@ -477,8 +482,13 @@ impl EditorTilingBehavior {
         if let Some(weave) = weave.as_mut() {
             let settings = self.settings.borrow();
             let mut toasts = self.toasts.borrow_mut();
-            self.menu_view
-                .render_rtl_panel(ui, weave, &settings, &mut toasts);
+            self.menu_view.render_rtl_panel(
+                ui,
+                weave,
+                &settings,
+                &mut toasts,
+                &mut self.shared_state,
+            );
         }
     }
 }
@@ -492,16 +502,42 @@ impl Behavior<Pane> for EditorTilingBehavior {
             let mut toasts = self.toasts.borrow_mut();
 
             match pane {
-                Pane::Canvas => self.canvas_view.render(ui, weave, &settings, &mut toasts),
-                Pane::Graph => self.graph_view.render(ui, weave, &settings, &mut toasts),
-                Pane::TreeList => self
-                    .tree_list_view
-                    .render(ui, weave, &settings, &mut toasts),
-                Pane::List => self.list_view.render(ui, weave, &settings, &mut toasts),
-                Pane::TextEdit => self
-                    .text_edit_view
-                    .render(ui, weave, &settings, &mut toasts),
-                Pane::Menu => self.menu_view.render(ui, weave, &settings, &mut toasts),
+                Pane::Canvas => self.canvas_view.render(
+                    ui,
+                    weave,
+                    &settings,
+                    &mut toasts,
+                    &mut self.shared_state,
+                ),
+                Pane::Graph => self.graph_view.render(
+                    ui,
+                    weave,
+                    &settings,
+                    &mut toasts,
+                    &mut self.shared_state,
+                ),
+                Pane::TreeList => self.tree_list_view.render(
+                    ui,
+                    weave,
+                    &settings,
+                    &mut toasts,
+                    &mut self.shared_state,
+                ),
+                Pane::List => {
+                    self.list_view
+                        .render(ui, weave, &settings, &mut toasts, &mut self.shared_state)
+                }
+                Pane::TextEdit => self.text_edit_view.render(
+                    ui,
+                    weave,
+                    &settings,
+                    &mut toasts,
+                    &mut self.shared_state,
+                ),
+                Pane::Menu => {
+                    self.menu_view
+                        .render(ui, weave, &settings, &mut toasts, &mut self.shared_state)
+                }
             }
         }
 
