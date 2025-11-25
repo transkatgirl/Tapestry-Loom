@@ -82,7 +82,8 @@ impl Editor {
 
         let (sender, receiver) = mpsc::channel();
 
-        let identifier = Ulid::new().to_string();
+        let identifier = Ulid::new();
+        let identifier_string = identifier.to_string();
 
         let mut tiles = Tiles::default();
 
@@ -111,16 +112,20 @@ impl Editor {
             error_channel: (Arc::new(sender), receiver),
             last_save: Instant::now(),
             closing: false,
-            panel_identifier: ["editor-", &identifier, "-bottom-panel"].concat(),
-            modal_identifier: ["editor-", &identifier, "-modal"].concat(),
+            panel_identifier: ["editor-", &identifier_string, "-bottom-panel"].concat(),
+            modal_identifier: ["editor-", &identifier_string, "-modal"].concat(),
             show_modal: false,
             save_as_input_box: ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION].concat(),
-            tree: Tree::new(["editor-", &identifier, "-tree"].concat(), root, tiles),
+            tree: Tree::new(
+                ["editor-", &identifier_string, "-tree"].concat(),
+                root,
+                tiles,
+            ),
             behavior: EditorTilingBehavior {
                 settings,
                 toasts,
                 weave,
-                shared_state: SharedState::new(runtime),
+                shared_state: SharedState::new(identifier, runtime),
                 canvas_view: CanvasView::default(),
                 graph_view: GraphView::default(),
                 tree_list_view: TreeListView::default(),
