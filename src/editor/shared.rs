@@ -5,8 +5,8 @@ use tokio::runtime::Runtime;
 
 #[derive(Debug)]
 pub struct SharedState {
-    identifier: Ulid,
-    runtime: Arc<Runtime>,
+    pub identifier: Ulid,
+    pub runtime: Arc<Runtime>,
 }
 
 impl SharedState {
