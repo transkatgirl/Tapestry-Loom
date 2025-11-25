@@ -16,6 +16,7 @@ mod canvas;
 mod graph;
 mod lists;
 mod menus;
+mod textedit;
 
 use eframe::egui::{
     Align, FontFamily, Layout, Modal, RichText, Sides, Spinner, TopBottomPanel, Ui, WidgetText,
@@ -33,7 +34,16 @@ use tapestry_weave::{
 use threadpool::ThreadPool;
 use tokio::runtime::Runtime;
 
-use crate::settings::Settings;
+use crate::{
+    editor::{
+        canvas::CanvasView,
+        graph::GraphView,
+        lists::{ListView, TreeListView},
+        menus::MenuView,
+        textedit::TextEditorView,
+    },
+    settings::Settings,
+};
 
 pub struct Editor {
     settings: Rc<RefCell<Settings>>,
@@ -109,6 +119,12 @@ impl Editor {
                 toasts,
                 weave,
                 runtime,
+                canvas_view: CanvasView::default(),
+                graph_view: GraphView::default(),
+                tree_list_view: TreeListView::default(),
+                list_view: ListView::default(),
+                text_edit_view: TextEditorView::default(),
+                menu_view: MenuView::default(),
                 canvas_title: Arc::new(
                     RichText::new([fill::TREE_STRUCTURE, " Canvas"].concat())
                         .family(FontFamily::Name("phosphor-fill".into())),
@@ -246,6 +262,7 @@ impl Editor {
                 self.open_documents.borrow_mut().insert(path.clone());
             }
             self.old_path = path.clone();
+            self.behavior.reset();
         }
 
         TopBottomPanel::bottom(self.panel_identifier.clone()).show_animated_inside(
@@ -425,6 +442,12 @@ enum Pane {
 }
 
 struct EditorTilingBehavior {
+    canvas_view: CanvasView,
+    graph_view: GraphView,
+    tree_list_view: TreeListView,
+    list_view: ListView,
+    text_edit_view: TextEditorView,
+    menu_view: MenuView,
     canvas_title: Arc<RichText>,
     graph_title: Arc<RichText>,
     tree_list_title: Arc<RichText>,
@@ -440,20 +463,47 @@ struct EditorTilingBehavior {
 // TODO: Set drag_preview_color, tab_bar_color, and tab_bg_color
 
 impl EditorTilingBehavior {
+    fn reset(&mut self) {
+        self.canvas_view.reset();
+        self.graph_view.reset();
+        self.tree_list_view.reset();
+        self.list_view.reset();
+        self.text_edit_view.reset();
+        self.menu_view.reset();
+    }
     fn panel_rtl(&mut self, ui: &mut Ui) {
-        let settings = self.settings.borrow();
-        let toasts = self.toasts.borrow_mut();
-        let weave = self.weave.lock();
+        let mut weave = self.weave.lock();
+
+        if let Some(weave) = weave.as_mut() {
+            let settings = self.settings.borrow();
+            let mut toasts = self.toasts.borrow_mut();
+            self.menu_view
+                .render_rtl_panel(ui, weave, &settings, &mut toasts);
+        }
     }
 }
 
 impl Behavior<Pane> for EditorTilingBehavior {
-    fn pane_ui(&mut self, ui: &mut Ui, tile_id: TileId, pane: &mut Pane) -> UiResponse {
-        let settings = self.settings.borrow();
-        let toasts = self.toasts.borrow_mut();
-        let weave = self.weave.lock();
+    fn pane_ui(&mut self, ui: &mut Ui, _tile_id: TileId, pane: &mut Pane) -> UiResponse {
+        let mut weave = self.weave.lock();
 
-        // TODO
+        if let Some(weave) = weave.as_mut() {
+            let settings = self.settings.borrow();
+            let mut toasts = self.toasts.borrow_mut();
+
+            match pane {
+                Pane::Canvas => self.canvas_view.render(ui, weave, &settings, &mut toasts),
+                Pane::Graph => self.graph_view.render(ui, weave, &settings, &mut toasts),
+                Pane::TreeList => self
+                    .tree_list_view
+                    .render(ui, weave, &settings, &mut toasts),
+                Pane::List => self.list_view.render(ui, weave, &settings, &mut toasts),
+                Pane::TextEdit => self
+                    .text_edit_view
+                    .render(ui, weave, &settings, &mut toasts),
+                Pane::Menu => self.menu_view.render(ui, weave, &settings, &mut toasts),
+            }
+        }
 
         UiResponse::None
     }
