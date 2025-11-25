@@ -16,7 +16,7 @@ pub struct UISettings {}
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DocumentSettings {
     pub location: PathBuf,
-    pub autosave_interval: Duration,
+    pub save_interval: Duration,
 }
 
 impl Default for DocumentSettings {
@@ -25,7 +25,7 @@ impl Default for DocumentSettings {
             location: dirs_next::document_dir()
                 .unwrap_or_default()
                 .join("Tapestry Loom"),
-            autosave_interval: Duration::from_secs(30),
+            save_interval: Duration::from_secs(30),
         }
     }
 }

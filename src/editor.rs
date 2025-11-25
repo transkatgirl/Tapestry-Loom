@@ -2,12 +2,13 @@ use std::{
     cell::RefCell,
     collections::HashSet,
     fs,
-    path::{Path, PathBuf},
+    path::PathBuf,
     rc::Rc,
     sync::{
         Arc, Barrier,
         mpsc::{self, Receiver, Sender},
     },
+    time::Instant,
 };
 
 use eframe::egui::{Spinner, Ui};
@@ -34,6 +35,8 @@ pub struct Editor {
     old_path: Option<PathBuf>,
     weave: Arc<Mutex<Option<TapestryWeave>>>,
     error_channel: (Arc<Sender<String>>, Receiver<String>),
+    last_save: Instant,
+    closing: bool,
 }
 
 impl Editor {
@@ -62,6 +65,8 @@ impl Editor {
             old_path: path,
             weave: Arc::new(Mutex::new(None)),
             error_channel: (Arc::new(sender), receiver),
+            last_save: Instant::now(),
+            closing: false,
         }
     }
     pub fn render(&mut self, ui: &mut Ui) {
@@ -162,6 +167,11 @@ impl Editor {
 
         ui.label("weave loaded");
         ui.label(format!("{:#?}", path));
+
+        if self.last_save.elapsed() > settings.documents.save_interval {
+            self.last_save = Instant::now();
+            self.save(false);
+        }
     }
     fn save(&self, unload: bool) {
         let weave = self.weave.clone();
@@ -194,12 +204,25 @@ impl Editor {
     }
     pub fn close(&mut self) -> bool {
         self.save(true);
+        self.closing = true;
 
         if let Some(path) = &self.path.lock().as_ref() {
             self.open_documents.borrow_mut().remove(*path);
         }
 
         true
+    }
+}
+
+impl Drop for Editor {
+    fn drop(&mut self) {
+        if !self.closing
+            && let Some(weave) = self.weave.lock().as_ref()
+            && let Some(path) = self.path.lock().as_ref()
+            && let Ok(bytes) = weave.to_versioned_bytes()
+        {
+            let _ = fs::write(path, bytes);
+        }
     }
 }
 
