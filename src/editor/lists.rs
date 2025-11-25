@@ -1,8 +1,8 @@
-use std::{collections::HashSet, sync::Arc};
+use std::collections::HashSet;
 
 use eframe::egui::{
-    self, Align, Button, Color32, FontFamily, Layout, Margin, RichText, ScrollArea, Sense, Ui,
-    UiBuilder, Vec2, WidgetText, collapsing_header::CollapsingState,
+    Align, Button, Color32, FontFamily, Layout, RichText, ScrollArea, Sense, Ui, UiBuilder,
+    collapsing_header::CollapsingState,
 };
 use egui_notify::Toasts;
 use tapestry_weave::{
@@ -25,22 +25,26 @@ impl ListView {
         &mut self,
         ui: &mut Ui,
         weave: &mut TapestryWeave,
-        settings: &Settings,
-        toasts: &mut Toasts,
+        _settings: &Settings,
+        _toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
-        /*let items: Vec<Ulid> = weave.get_bookmarks().collect();
+        let items: Vec<Ulid> = weave
+            .get_active_thread()
+            .last()
+            .iter()
+            .flat_map(|node| node.to.iter().cloned())
+            .map(Ulid)
+            .collect();
         let row_height = ui.spacing().interact_size.y;
-        ScrollArea::vertical().auto_shrink(false).animated(false).show_rows(
-            ui,
-            row_height,
-            items.len(),
-            |ui, range| {
+        ScrollArea::vertical()
+            .auto_shrink(false)
+            .animated(false)
+            .show_rows(ui, row_height, items.len(), |ui, range| {
                 for item in &items[range] {
-                    self.render_bookmark(weave, ui, item);
+                    self.render_item(weave, ui, item);
                 }
-            },
-        );*/
+            });
     }
     fn render_item(&mut self, weave: &mut TapestryWeave, ui: &mut Ui, item: &Ulid) {
         // TODO: Add inference
@@ -137,9 +141,9 @@ impl BookmarkListView {
         &mut self,
         ui: &mut Ui,
         weave: &mut TapestryWeave,
-        settings: &Settings,
-        toasts: &mut Toasts,
-        state: &mut SharedState,
+        _settings: &Settings,
+        _toasts: &mut Toasts,
+        _state: &mut SharedState,
     ) {
         let items: Vec<Ulid> = weave.get_bookmarks().collect();
         let row_height = ui.spacing().interact_size.y;
