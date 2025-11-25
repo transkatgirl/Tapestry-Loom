@@ -494,6 +494,7 @@ impl EditorTilingBehavior {
         if let Some(weave) = weave.as_mut() {
             let settings = self.settings.borrow();
             let mut toasts = self.toasts.borrow_mut();
+            self.shared_state.update(weave, &settings, &mut toasts);
             self.menu_view.render_rtl_panel(
                 ui,
                 weave,

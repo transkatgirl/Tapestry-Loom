@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
-use tapestry_weave::ulid::Ulid;
+use egui_notify::Toasts;
+use tapestry_weave::{ulid::Ulid, v0::TapestryWeave};
 use tokio::runtime::Runtime;
+
+use crate::settings::Settings;
 
 #[derive(Debug)]
 pub struct SharedState {
@@ -16,5 +19,13 @@ impl SharedState {
             runtime,
         }
     }
+    pub fn update(&mut self, weave: &mut TapestryWeave, settings: &Settings, toasts: &mut Toasts) {}
     pub fn reset(&mut self) {}
+    pub fn run_inference(
+        &mut self,
+        weave: &mut TapestryWeave,
+        parent: Option<Ulid>,
+        settings: &Settings,
+    ) {
+    }
 }
