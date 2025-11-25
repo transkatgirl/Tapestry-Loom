@@ -207,13 +207,13 @@ impl Editor {
                             if ui.button("Cancel").clicked() {
                                 ui.close();
                             }
-                            if ui.button("Save").clicked() {
-                                let new_path = settings
-                                    .documents
-                                    .location
-                                    .join(self.save_as_input_box.clone());
-                                self.title = generate_title(&Some(new_path.clone()));
-                                *path = Some(new_path);
+                            if ui.button("Save").clicked() && !self.save_as_input_box.is_empty() {
+                                *path = Some(
+                                    settings
+                                        .documents
+                                        .location
+                                        .join(self.save_as_input_box.clone()),
+                                );
                                 ui.close();
                             }
                         },
@@ -269,6 +269,7 @@ impl Editor {
                     Ok(bytes) => {
                         if let Err(error) = write_bytes(path, &bytes) {
                             let _ = error_sender.send(format!("Filesystem error: {error:#?}"));
+                            *path_lock = None;
                         } else if unload {
                             *weave_lock = None;
                             *path_lock = None;
