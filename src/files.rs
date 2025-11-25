@@ -26,8 +26,6 @@ use walkdir::WalkDir;
 
 use crate::{editor::blank_weave_bytes, settings::Settings};
 
-// TODO: Add duplicate button
-
 pub struct FileManager {
     settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
@@ -237,8 +235,17 @@ impl FileManager {
                                 }
                             }
 
+                            if item.r#type == ScannedItemType::File
+                                && ui.button("\u{E09E}").clicked()
+                            {
+                                *self.modal.borrow_mut() = ModalType::CopyFile((
+                                    item.path.clone(),
+                                    item.path.to_string_lossy().to_string(),
+                                ));
+                            };
+
                             if ui.button("\u{E4F0}").clicked() {
-                                *self.modal.borrow_mut() = ModalType::RenameFile((
+                                *self.modal.borrow_mut() = ModalType::RenameItem((
                                     item.path.clone(),
                                     item.path.to_string_lossy().to_string(),
                                 ));
@@ -308,7 +315,7 @@ impl FileManager {
                     *modal = ModalType::None;
                 };
             }
-            ModalType::RenameFile((from, to)) => {
+            ModalType::RenameItem((from, to)) => {
                 if Modal::new("filemanager-rename-item-modal".into())
                     .show(ui.ctx(), |ui| {
                         ui.set_width(280.0);
@@ -323,11 +330,40 @@ impl FileManager {
                                     ui.close();
                                 }
                                 if ui.button("Save").clicked() {
-                                    self.move_item(
-                                        self.path.join(from),
-                                        self.path.join(PathBuf::from(to.clone())),
-                                    );
+                                    let to = PathBuf::from(to.clone());
+                                    if from != &to {
+                                        self.move_item(self.path.join(from), self.path.join(to));
+                                        ui.close();
+                                    }
+                                }
+                            },
+                        );
+                    })
+                    .should_close()
+                {
+                    *modal = ModalType::None;
+                };
+            }
+            ModalType::CopyFile((from, to)) => {
+                if Modal::new("filemanager-copy-file-modal".into())
+                    .show(ui.ctx(), |ui| {
+                        ui.set_width(280.0);
+                        ui.heading("Copy File");
+                        let label = ui.label("New Path:");
+                        ui.text_edit_singleline(to).labelled_by(label.id);
+                        Sides::new().show(
+                            ui,
+                            |_ui| {},
+                            |ui| {
+                                if ui.button("Cancel").clicked() {
                                     ui.close();
+                                }
+                                if ui.button("Save").clicked() {
+                                    let to = PathBuf::from(to.clone());
+                                    if from != &to {
+                                        self.copy_file(self.path.join(from), self.path.join(to));
+                                        ui.close();
+                                    }
                                 }
                             },
                         );
@@ -474,6 +510,24 @@ impl FileManager {
                             let _ = tx.send(Err(format!("{error:?}")));
                         }
                     }
+                }
+                Err(error) => {
+                    let _ = tx.send(Err(format!("{error:?}")));
+                }
+            });
+    }
+    fn copy_file(&self, item: PathBuf, to: PathBuf) {
+        let from = self.path.join(item);
+        let to = self.path.join(to);
+        let tx = self.channel.0.clone();
+
+        self.action_threadpool
+            .execute(move || match fs::copy(&from, &to) {
+                Ok(_) => {
+                    let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
+                        path: to.clone(),
+                        r#type: ScannedItemType::File,
+                    })));
                 }
                 Err(error) => {
                     let _ = tx.send(Err(format!("{error:?}")));
@@ -734,7 +788,8 @@ enum ScannedItemType {
 enum ModalType {
     CreateWeave(String),
     CreateDirectory(String),
-    RenameFile((PathBuf, String)),
+    RenameItem((PathBuf, String)),
+    CopyFile((PathBuf, String)),
     None,
 }
 
