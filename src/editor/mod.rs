@@ -242,8 +242,6 @@ impl Editor {
             self.old_path = path.clone();
         }
 
-        self.tree.ui(&mut self.behavior, ui);
-
         if self.show_modal
             && Modal::new(self.modal_identifier.clone().into())
                 .show(ui.ctx(), |ui| {
@@ -299,6 +297,8 @@ impl Editor {
                 });
             },
         );
+
+        self.tree.ui(&mut self.behavior, ui);
 
         if self.last_save.elapsed() > settings.documents.save_interval {
             self.last_save = Instant::now();
