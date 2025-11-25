@@ -163,52 +163,57 @@ impl TreeListView {
 
                                 if ui.rect_contains_pointer(ui.max_rect()) {
                                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                        ui.add_space(ui.spacing().icon_spacing);
-                                        if ui.button(regular::ERASER).clicked() {
-                                            weave.remove_node(&Ulid(node.id));
-                                        };
-                                        let bookmark_label =
-                                            WidgetText::RichText(if node.bookmarked {
-                                                self.unbookmark_icon.clone()
-                                            } else {
-                                                self.bookmark_icon.clone()
-                                            });
-                                        if ui.button(bookmark_label).clicked() {
-                                            weave.set_node_bookmarked_status(
-                                                &Ulid(node.id),
-                                                !node.bookmarked,
-                                            );
-                                        };
-                                        if ui.button(regular::CHAT_TEXT).clicked() {
-                                            weave.add_node(DependentNode {
-                                                id: Ulid::new().0,
-                                                from: Some(node.id),
-                                                to: IndexSet::default(),
-                                                active: false,
-                                                bookmarked: false,
-                                                contents: NodeContent {
-                                                    content: InnerNodeContent::Snippet(vec![]),
-                                                    metadata: IndexMap::new(),
-                                                    model: None,
-                                                },
-                                            });
-                                        };
-                                        if ui.button(regular::SPARKLE).clicked() {
-                                            todo!()
-                                        };
-                                        if weave.is_mergeable_with_parent(&Ulid(node.id))
-                                            && ui.button(regular::GIT_MERGE).clicked()
-                                        {
-                                            weave.merge_with_parent(&Ulid(node.id));
-                                        };
+                                        ui.scope_builder(
+                                            UiBuilder::new().sense(Sense::click()),
+                                            |ui| {
+                                                ui.add_space(ui.spacing().icon_spacing);
+                                                if ui.button(regular::ERASER).clicked() {
+                                                    weave.remove_node(&Ulid(node.id));
+                                                };
+                                                let bookmark_label =
+                                                    WidgetText::RichText(if node.bookmarked {
+                                                        self.unbookmark_icon.clone()
+                                                    } else {
+                                                        self.bookmark_icon.clone()
+                                                    });
+                                                if ui.button(bookmark_label).clicked() {
+                                                    weave.set_node_bookmarked_status(
+                                                        &Ulid(node.id),
+                                                        !node.bookmarked,
+                                                    );
+                                                };
+                                                if ui.button(regular::CHAT_TEXT).clicked() {
+                                                    weave.add_node(DependentNode {
+                                                        id: Ulid::new().0,
+                                                        from: Some(node.id),
+                                                        to: IndexSet::default(),
+                                                        active: false,
+                                                        bookmarked: false,
+                                                        contents: NodeContent {
+                                                            content: InnerNodeContent::Snippet(
+                                                                vec![],
+                                                            ),
+                                                            metadata: IndexMap::new(),
+                                                            model: None,
+                                                        },
+                                                    });
+                                                };
+                                                if ui.button(regular::SPARKLE).clicked() {
+                                                    todo!()
+                                                };
+                                                if weave.is_mergeable_with_parent(&Ulid(node.id))
+                                                    && ui.button(regular::GIT_MERGE).clicked()
+                                                {
+                                                    weave.merge_with_parent(&Ulid(node.id));
+                                                };
+                                                ui.add_space(ui.spacing().icon_spacing);
+                                            },
+                                        );
+                                        ui.add_space(0.0);
                                     });
                                 }
                             })
                             .response;
-
-                        /*if response.hovered() {
-                            response.
-                        }*/
 
                         if response.clicked() {
                             weave.set_node_active_status(&Ulid(node.id), !node.active);
