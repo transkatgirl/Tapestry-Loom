@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use eframe::egui::{
-    self, Align, Button, Color32, FontFamily, Layout, Margin, RichText, Sense, Ui, UiBuilder, Vec2,
-    WidgetText, collapsing_header::CollapsingState,
+    self, Align, Button, Color32, FontFamily, Layout, Margin, RichText, ScrollArea, Sense, Ui,
+    UiBuilder, Vec2, WidgetText, collapsing_header::CollapsingState,
 };
 use egui_notify::Toasts;
 use egui_phosphor::{fill, regular};
@@ -69,30 +69,34 @@ impl TreeListView {
         state: &mut SharedState,
     ) {
         let roots: Vec<Ulid> = weave.get_roots().collect();
-        render_weave_node_tree(
-            weave,
-            ui,
-            state.identifier,
-            roots,
-            4,
-            &self.bookmark_icon,
-            &self.unbookmark_icon,
-        );
+        ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
+            render_weave_node_tree(
+                weave,
+                ui,
+                state.identifier,
+                roots,
+                settings.interface.max_tree_depth,
+                &self.bookmark_icon,
+                &self.unbookmark_icon,
+            );
 
-        if ui.button("test").clicked() {
-            weave.add_node(DependentNode {
-                id: Ulid::new().0,
-                from: None,
-                to: IndexSet::default(),
-                active: false,
-                bookmarked: false,
-                contents: NodeContent {
-                    content: InnerNodeContent::Snippet(Ulid::new().to_string().as_bytes().to_vec()),
-                    metadata: IndexMap::new(),
-                    model: None,
-                },
-            });
-        }
+            if ui.button("test").clicked() {
+                weave.add_node(DependentNode {
+                    id: Ulid::new().0,
+                    from: None,
+                    to: IndexSet::default(),
+                    active: false,
+                    bookmarked: false,
+                    contents: NodeContent {
+                        content: InnerNodeContent::Snippet(
+                            Ulid::new().to_string().as_bytes().to_vec(),
+                        ),
+                        metadata: IndexMap::new(),
+                        model: None,
+                    },
+                });
+            }
+        });
     }
 }
 

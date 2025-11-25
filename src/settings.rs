@@ -10,8 +10,16 @@ pub struct Settings {
     pub inference: InferenceSettings,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
-pub struct UISettings {}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UISettings {
+    pub max_tree_depth: usize,
+}
+
+impl Default for UISettings {
+    fn default() -> Self {
+        Self { max_tree_depth: 4 }
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DocumentSettings {
