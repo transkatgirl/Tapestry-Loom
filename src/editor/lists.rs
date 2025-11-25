@@ -141,6 +141,7 @@ fn render_weave_node_tree(
 
                     if ui.rect_contains_pointer(ui.max_rect()) {
                         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                            ui.add_space(ui.spacing().icon_spacing);
                             if ui.button(regular::ERASER).clicked() {
                                 weave.remove_node(&Ulid(node.id));
                             };
