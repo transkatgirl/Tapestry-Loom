@@ -5,8 +5,8 @@ use std::{cell::RefCell, collections::HashSet, path::PathBuf, rc::Rc, sync::Arc}
 use eframe::{
     App, CreationContext, Frame, NativeOptions,
     egui::{
-        self, CentralPanel, Context, FontData, FontDefinitions, FontFamily, IconData, Ui,
-        ViewportBuilder, WidgetText,
+        self, CentralPanel, Context, FontData, FontDefinitions, IconData, Ui, ViewportBuilder,
+        WidgetText,
     },
 };
 use egui_notify::Toasts;
