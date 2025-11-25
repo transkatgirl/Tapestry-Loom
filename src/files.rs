@@ -130,7 +130,6 @@ impl FileManager {
         let items = self.item_list.clone();
 
         let text_style = TextStyle::Monospace;
-        //let row_height = (*ui).text_style_height(&text_style);
         let row_height = ui.spacing().interact_size.y;
         let ch = ui.fonts_mut(|f| f.glyph_width(&text_style.resolve(ui.style()), ' '));
         let file_extension_normal = OsString::from(VERSIONED_WEAVE_FILE_EXTENSION);
@@ -172,7 +171,6 @@ impl FileManager {
 
                     let full_path = self.path.join(item.path.clone());
 
-                    //let padding = (0..(padding)).map(|_| " ").collect::<String>();
                     let (icon, suffix) = match item.r#type {
                         ScannedItemType::File => ("📄", ""),
                         ScannedItemType::Directory => ("📂", MAIN_SEPARATOR_STR),

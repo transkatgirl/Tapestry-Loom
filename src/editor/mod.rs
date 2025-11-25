@@ -437,6 +437,8 @@ struct EditorTilingBehavior {
     runtime: Arc<Runtime>,
 }
 
+// TODO: Set drag_preview_color, tab_bar_color, and tab_bg_color
+
 impl EditorTilingBehavior {
     fn panel_rtl(&mut self, ui: &mut Ui) {
         let settings = self.settings.borrow();
