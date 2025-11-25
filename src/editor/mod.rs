@@ -85,6 +85,8 @@ impl Editor {
 
         let root = tiles.insert_tab_tile(tabs);
 
+        let weave = Arc::new(Mutex::new(None));
+
         Self {
             settings,
             toasts,
@@ -93,7 +95,7 @@ impl Editor {
             title: generate_title(&path),
             path: Arc::new(Mutex::new(path.clone())),
             old_path: path,
-            weave: Arc::new(Mutex::new(None)),
+            weave: weave.clone(),
             error_channel: (Arc::new(sender), receiver),
             last_save: Instant::now(),
             closing: false,
@@ -103,6 +105,7 @@ impl Editor {
             save_as_input_box: ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION].concat(),
             tree: Tree::new(["editor-", &identifier, "-tree"].concat(), root, tiles),
             behavior: EditorTilingBehavior {
+                weave,
                 runtime,
                 canvas_title: Arc::new(
                     RichText::new([fill::TREE_STRUCTURE, " Canvas"].concat())
@@ -134,8 +137,9 @@ impl Editor {
     pub fn render(&mut self, ui: &mut Ui) {
         if let Some(mut weave) = self.weave.clone().try_lock() {
             match weave.as_mut() {
-                Some(weave) => {
-                    self.render_weave(ui, weave);
+                Some(_) => {
+                    drop(weave);
+                    self.render_weave(ui);
 
                     let mut toasts = self.toasts.borrow_mut();
                     while let Ok(message) = self.error_channel.1.try_recv() {
@@ -227,7 +231,7 @@ impl Editor {
             toasts.error(message);
         }
     }
-    fn render_weave(&mut self, ui: &mut Ui, weave: &mut TapestryWeave) {
+    fn render_weave(&mut self, ui: &mut Ui) {
         let settings = self.settings.borrow();
         let mut path = self.path.lock();
 
@@ -241,6 +245,29 @@ impl Editor {
             }
             self.old_path = path.clone();
         }
+
+        TopBottomPanel::bottom(self.panel_identifier.clone()).show_animated_inside(
+            ui,
+            true,
+            |ui| {
+                ui.horizontal(|ui| {
+                    ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                        if let Some(path) = path.as_ref() {
+                            if let Ok(path) = path.strip_prefix(&settings.documents.location) {
+                                ui.label(path.to_string_lossy());
+                            } else {
+                                ui.label(path.to_string_lossy());
+                            }
+                        } else if ui.button("Save As...").clicked() {
+                            self.show_modal = true;
+                        }
+                    });
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {});
+                });
+            },
+        );
+
+        self.tree.ui(&mut self.behavior, ui);
 
         if self.show_modal
             && Modal::new(self.modal_identifier.clone().into())
@@ -273,32 +300,14 @@ impl Editor {
         {
             self.show_modal = false;
             if path.is_some() {
+                drop(path);
                 self.save(false);
+            } else {
+                drop(path);
             }
+        } else {
+            drop(path);
         }
-
-        TopBottomPanel::bottom(self.panel_identifier.clone()).show_animated_inside(
-            ui,
-            true,
-            |ui| {
-                ui.horizontal(|ui| {
-                    ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                        if let Some(path) = path.as_ref() {
-                            if let Ok(path) = path.strip_prefix(&settings.documents.location) {
-                                ui.label(path.to_string_lossy());
-                            } else {
-                                ui.label(path.to_string_lossy());
-                            }
-                        } else if ui.button("Save As...").clicked() {
-                            self.show_modal = true;
-                        }
-                    });
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {});
-                });
-            },
-        );
-
-        self.tree.ui(&mut self.behavior, ui);
 
         if self.last_save.elapsed() > settings.documents.save_interval {
             self.last_save = Instant::now();
@@ -309,10 +318,13 @@ impl Editor {
         let weave = self.weave.clone();
         let path = self.path.clone();
         let error_sender = self.error_channel.0.clone();
+        let barrier = Arc::new(Barrier::new(2));
+        let thread_barrier = barrier.clone();
 
         self.threadpool.execute(move || {
-            let mut path_lock = path.lock();
             let mut weave_lock = weave.lock();
+            let mut path_lock = path.lock();
+            thread_barrier.wait();
 
             if let Some(path) = path_lock.as_ref()
                 && let Some(weave) = weave_lock.as_ref()
@@ -334,14 +346,15 @@ impl Editor {
                 }
             }
         });
+        barrier.wait();
     }
     pub fn close(&mut self) -> bool {
-        self.save(true);
-        self.closing = true;
-
         if let Some(path) = &self.path.lock().as_ref() {
             self.open_documents.borrow_mut().remove(*path);
         }
+
+        self.save(true);
+        self.closing = true;
 
         true
     }
@@ -414,11 +427,14 @@ struct EditorTilingBehavior {
     list_title: Arc<RichText>,
     text_edit_title: Arc<RichText>,
     menu_title: Arc<RichText>,
+    weave: Arc<Mutex<Option<TapestryWeave>>>,
     runtime: Arc<Runtime>,
 }
 
 impl Behavior<Pane> for EditorTilingBehavior {
     fn pane_ui(&mut self, ui: &mut Ui, tile_id: TileId, pane: &mut Pane) -> UiResponse {
+        let weave = self.weave.lock();
+
         // TODO
 
         UiResponse::None
