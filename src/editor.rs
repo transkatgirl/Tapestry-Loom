@@ -2,7 +2,7 @@ use std::{
     cell::RefCell,
     collections::HashSet,
     fs,
-    path::PathBuf,
+    path::{Path, PathBuf},
     rc::Rc,
     sync::{
         Arc, Barrier,
@@ -31,6 +31,7 @@ pub struct Editor {
     runtime: Arc<Runtime>,
     pub title: String,
     path: Arc<Mutex<Option<PathBuf>>>,
+    old_path: Option<PathBuf>,
     weave: Arc<Mutex<Option<TapestryWeave>>>,
     error_channel: (Arc<Sender<String>>, Receiver<String>),
 }
@@ -56,8 +57,9 @@ impl Editor {
             threadpool,
             open_documents,
             runtime,
-            title: "Editor".to_string(),
-            path: Arc::new(Mutex::new(path)),
+            title: generate_title(&path),
+            path: Arc::new(Mutex::new(path.clone())),
+            old_path: path,
             weave: Arc::new(Mutex::new(None)),
             error_channel: (Arc::new(sender), receiver),
         }
@@ -134,7 +136,7 @@ impl Editor {
         } else {
             ui.horizontal(|ui| {
                 ui.add(Spinner::new());
-                ui.label("Loading document...");
+                ui.label("Loading weave...");
             });
         }
 
@@ -146,6 +148,17 @@ impl Editor {
     fn render_weave(&mut self, ui: &mut Ui, weave: &mut TapestryWeave) {
         let settings = self.settings.borrow();
         let path = self.path.lock();
+
+        if self.old_path != *path {
+            self.title = generate_title(&path);
+            if let Some(path) = &self.old_path {
+                self.open_documents.borrow_mut().remove(path);
+            }
+            if let Some(path) = path.as_ref() {
+                self.open_documents.borrow_mut().insert(path.clone());
+            }
+            self.old_path = path.clone();
+        }
 
         ui.label("weave loaded");
         ui.label(format!("{:#?}", path));
@@ -181,6 +194,19 @@ impl Editor {
         }
 
         true
+    }
+}
+
+fn generate_title(path: &Option<PathBuf>) -> String {
+    match path {
+        Some(path) => {
+            if let Some(filename) = path.file_stem() {
+                filename.to_string_lossy().to_string()
+            } else {
+                "Editor".to_string()
+            }
+        }
+        None => "New Weave".to_string(),
     }
 }
 
