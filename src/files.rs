@@ -697,39 +697,41 @@ impl FileManager {
         let path = self.path.join(item);
         let tx = self.channel.0.clone();
 
-        self.action_threadpool.execute(move || {
-            /*match path.metadata() {
-                Ok(metadata) => {
-                    if metadata.is_dir() {
-                        match fs::remove_dir_all(path) {
-                            Ok(_) => {}
-                            Err(error) => {
-                                let _ = tx.send(Err(format!("{error:?}")));
-                            }
-                        }
-                    } else {
-                        match fs::remove_file(path) {
-                            Ok(_) => {}
-                            Err(error) => {
-                                let _ = tx.send(Err(format!("{error:?}")));
-                            }
-                        }
-                    }
-
-                }
-                Err(error) => {
-                    let _ = tx.send(Err(format!("{error:?}")));
-                }
-            }*/
-            match trash::delete(&path) {
+        self.action_threadpool
+            .execute(move || match trash::delete(&path) {
                 Ok(_) => {
                     let _ = tx.send(Ok(ItemScanEvent::Delete(path)));
                 }
                 Err(error) => {
                     let _ = tx.send(Err(format!("{error:?}")));
+                    match path.metadata() {
+                        Ok(metadata) => {
+                            if metadata.is_dir() {
+                                match fs::remove_dir_all(&path) {
+                                    Ok(_) => {
+                                        let _ = tx.send(Ok(ItemScanEvent::Delete(path)));
+                                    }
+                                    Err(error) => {
+                                        let _ = tx.send(Err(format!("{error:?}")));
+                                    }
+                                }
+                            } else {
+                                match fs::remove_file(&path) {
+                                    Ok(_) => {
+                                        let _ = tx.send(Ok(ItemScanEvent::Delete(path)));
+                                    }
+                                    Err(error) => {
+                                        let _ = tx.send(Err(format!("{error:?}")));
+                                    }
+                                }
+                            }
+                        }
+                        Err(error) => {
+                            let _ = tx.send(Err(format!("{error:?}")));
+                        }
+                    }
                 }
-            }
-        });
+            });
     }
     fn update_items(&mut self) {
         let mut has_changed = false;
