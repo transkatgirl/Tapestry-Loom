@@ -1,6 +1,6 @@
 use std::{path::PathBuf, time::Duration};
 
-use eframe::egui::{Frame, Ui};
+use eframe::egui::{Frame, Slider, SliderClamping, Ui};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
@@ -12,17 +12,34 @@ pub struct Settings {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UISettings {
+    pub show_model_colors: bool,
+    pub show_token_probabilities: bool,
     pub max_tree_depth: usize,
 }
 
 impl Default for UISettings {
     fn default() -> Self {
-        Self { max_tree_depth: 4 }
+        Self {
+            show_model_colors: true,
+            show_token_probabilities: true,
+            max_tree_depth: 4,
+        }
     }
 }
 
 impl UISettings {
-    fn render(&mut self, ui: &mut Ui) {}
+    fn render(&mut self, ui: &mut Ui) {
+        ui.checkbox(&mut self.show_model_colors, "Show model colors");
+        ui.checkbox(
+            &mut self.show_token_probabilities,
+            "Show token probabilities",
+        );
+        ui.add(
+            Slider::new(&mut self.max_tree_depth, 1..=32)
+                .clamping(SliderClamping::Never)
+                .text("Maximum tree list depth"),
+        );
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -44,10 +61,29 @@ impl Default for DocumentSettings {
 
 impl DocumentSettings {
     fn render(&mut self, ui: &mut Ui) {
+        let location_label = ui.label("Root location:");
         let mut document_location = self.location.to_string_lossy().to_string();
 
-        if ui.text_edit_singleline(&mut document_location).changed() {
+        if ui
+            .text_edit_singleline(&mut document_location)
+            .labelled_by(location_label.id)
+            .changed()
+        {
             self.location = PathBuf::from(document_location);
+        }
+
+        let mut save_interval = self.save_interval.as_secs_f32();
+        if ui
+            .add(
+                Slider::new(&mut save_interval, 1.0..=600.0)
+                    .clamping(SliderClamping::Never)
+                    .logarithmic(true)
+                    .suffix("s")
+                    .text("Autosave interval"),
+            )
+            .changed()
+        {
+            self.save_interval = Duration::from_secs_f32(save_interval);
         }
     }
 }
