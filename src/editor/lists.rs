@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use eframe::egui::{
-    Align, Button, Color32, FontFamily, Layout, RichText, ScrollArea, Sense, Ui, UiBuilder,
+    Align, Button, Color32, FontFamily, Frame, Layout, RichText, ScrollArea, Sense, Ui, UiBuilder,
     collapsing_header::CollapsingState,
 };
 use egui_notify::Toasts;
@@ -14,7 +14,7 @@ use tapestry_weave::{
     v0::{InnerNodeContent, NodeContent, TapestryWeave},
 };
 
-use crate::{editor::shared::SharedState, settings::Settings};
+use crate::{editor::shared::SharedState, listing_margin, settings::Settings};
 
 // TODO: Hover tooltips, right click menus, finish TreeListView
 
@@ -41,9 +41,13 @@ impl ListView {
                 .auto_shrink(false)
                 .animated(false)
                 .show_rows(ui, row_height, items.len(), |ui, range| {
-                    for item in &items[range] {
-                        self.render_item(weave, ui, item);
-                    }
+                    Frame::new()
+                        .outer_margin(listing_margin(ui))
+                        .show(ui, |ui| {
+                            for item in &items[range] {
+                                self.render_item(weave, ui, item);
+                            }
+                        });
                 });
         }
     }
@@ -78,9 +82,13 @@ impl BookmarkListView {
             .auto_shrink(false)
             .animated(false)
             .show_rows(ui, row_height, items.len(), |ui, range| {
-                for item in &items[range] {
-                    self.render_bookmark(weave, ui, item);
-                }
+                Frame::new()
+                    .outer_margin(listing_margin(ui))
+                    .show(ui, |ui| {
+                        for item in &items[range] {
+                            self.render_bookmark(weave, ui, item);
+                        }
+                    });
             });
     }
     fn render_bookmark(&mut self, weave: &mut TapestryWeave, ui: &mut Ui, item: &Ulid) {
@@ -157,31 +165,35 @@ impl TreeListView {
             .auto_shrink(false)
             .animated(false)
             .show(ui, |ui| {
-                self.render_node_tree(
-                    weave,
-                    ui,
-                    state.identifier,
-                    roots,
-                    &active_set,
-                    settings.interface.max_tree_depth,
-                );
+                Frame::new()
+                    .outer_margin(listing_margin(ui))
+                    .show(ui, |ui| {
+                        self.render_node_tree(
+                            weave,
+                            ui,
+                            state.identifier,
+                            roots,
+                            &active_set,
+                            settings.interface.max_tree_depth,
+                        );
 
-                /*if ui.button("test").clicked() {
-                    weave.add_node(DependentNode {
-                        id: Ulid::new().0,
-                        from: None,
-                        to: IndexSet::default(),
-                        active: false,
-                        bookmarked: false,
-                        contents: NodeContent {
-                            content: InnerNodeContent::Snippet(
-                                Ulid::new().to_string().as_bytes().to_vec(),
-                            ),
-                            metadata: IndexMap::new(),
-                            model: None,
-                        },
+                        /*if ui.button("test").clicked() {
+                            weave.add_node(DependentNode {
+                                id: Ulid::new().0,
+                                from: None,
+                                to: IndexSet::default(),
+                                active: false,
+                                bookmarked: false,
+                                contents: NodeContent {
+                                    content: InnerNodeContent::Snippet(
+                                        Ulid::new().to_string().as_bytes().to_vec(),
+                                    ),
+                                    metadata: IndexMap::new(),
+                                    model: None,
+                                },
+                            });
+                        }*/
                     });
-                }*/
             });
     }
     fn render_node_tree(

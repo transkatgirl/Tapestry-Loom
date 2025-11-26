@@ -8,6 +8,7 @@ use eframe::{
         self, CentralPanel, Context, FontData, FontDefinitions, IconData, Modal, Sides, Ui,
         ViewportBuilder, WidgetText,
     },
+    epaint::MarginF32,
 };
 use egui_notify::Toasts;
 use egui_tiles::{Behavior, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse};
@@ -390,4 +391,8 @@ impl Behavior<Pane> for TapestryLoomBehavior {
 
         true
     }
+}
+
+pub fn listing_margin(ui: &mut Ui) -> MarginF32 {
+    MarginF32::same(ui.style().spacing.menu_spacing)
 }
