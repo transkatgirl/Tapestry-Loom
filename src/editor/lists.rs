@@ -16,6 +16,8 @@ use tapestry_weave::{
 
 use crate::{editor::shared::SharedState, settings::Settings};
 
+// TODO: Hover tooltips, right click menus, finish TreeListView
+
 #[derive(Default, Debug)]
 pub struct ListView {}
 
