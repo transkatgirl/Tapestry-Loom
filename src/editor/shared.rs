@@ -32,7 +32,7 @@ impl SharedState {
     pub fn reset(&mut self) {
         self.cursor_node = None;
     }
-    pub fn run_inference(
+    pub fn generate_children(
         &mut self,
         weave: &mut TapestryWeave,
         parent: Option<Ulid>,

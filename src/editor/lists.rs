@@ -29,7 +29,7 @@ use crate::{
 pub struct ListView {}
 
 impl ListView {
-    pub fn reset(&mut self) {}
+    //pub fn reset(&mut self) {}
     pub fn render(
         &mut self,
         ui: &mut Ui,
@@ -52,7 +52,7 @@ impl ListView {
                         .outer_margin(listing_margin(ui))
                         .show(ui, |ui| {
                             for item in &items[range] {
-                                self.render_item(weave, settings, ui, item);
+                                self.render_item(weave, settings, state, ui, item);
                             }
                         });
                 });
@@ -62,17 +62,23 @@ impl ListView {
         &mut self,
         weave: &mut TapestryWeave,
         settings: &Settings,
+        state: &mut SharedState,
         ui: &mut Ui,
         item: &Ulid,
     ) {
-        // TODO: Add inference
-
         if let Some(node) = weave.get_node(item).cloned() {
             ui.horizontal(|ui| {
                 ui.add_space(ui.spacing().icon_spacing);
-                render_horizontal_node_label(ui, settings, weave, &node, |ui, weave, node| {
-                    render_horizontal_node_label_buttons_rtl(ui, weave, node);
-                });
+                render_horizontal_node_label(
+                    ui,
+                    settings,
+                    state,
+                    weave,
+                    &node,
+                    |ui, settings, state, weave, node| {
+                        render_horizontal_node_label_buttons_rtl(ui, settings, state, weave, node);
+                    },
+                );
             });
         }
     }
@@ -82,14 +88,14 @@ impl ListView {
 pub struct BookmarkListView {}
 
 impl BookmarkListView {
-    pub fn reset(&mut self) {}
+    //pub fn reset(&mut self) {}
     pub fn render(
         &mut self,
         ui: &mut Ui,
         weave: &mut TapestryWeave,
         settings: &Settings,
         _toasts: &mut Toasts,
-        _state: &mut SharedState,
+        state: &mut SharedState,
     ) {
         let items: Vec<Ulid> = weave.get_bookmarks().collect();
         let row_height = ui.spacing().interact_size.y;
@@ -101,7 +107,7 @@ impl BookmarkListView {
                     .outer_margin(listing_margin(ui))
                     .show(ui, |ui| {
                         for item in &items[range] {
-                            self.render_bookmark(weave, settings, ui, item);
+                            self.render_bookmark(weave, settings, state, ui, item);
                         }
                     });
             });
@@ -110,6 +116,7 @@ impl BookmarkListView {
         &mut self,
         weave: &mut TapestryWeave,
         settings: &Settings,
+        state: &mut SharedState,
         ui: &mut Ui,
         item: &Ulid,
     ) {
@@ -118,15 +125,22 @@ impl BookmarkListView {
                 ui.add_space(ui.spacing().icon_spacing);
                 ui.label("\u{E060}");
 
-                render_horizontal_node_label(ui, settings, weave, &node, |ui, weave, node| {
-                    if ui
-                        .button("\u{E23C}")
-                        .on_hover_text("Remove bookmark")
-                        .clicked()
-                    {
-                        weave.set_node_bookmarked_status(&Ulid(node.id), false);
-                    };
-                });
+                render_horizontal_node_label(
+                    ui,
+                    settings,
+                    state,
+                    weave,
+                    &node,
+                    |ui, _settings, _state, weave, node| {
+                        if ui
+                            .button("\u{E23C}")
+                            .on_hover_text("Remove bookmark")
+                            .clicked()
+                        {
+                            weave.set_node_bookmarked_status(&Ulid(node.id), false);
+                        };
+                    },
+                );
             });
         }
     }
@@ -163,9 +177,10 @@ impl TreeListView {
                 Frame::new()
                     .outer_margin(listing_margin(ui))
                     .show(ui, |ui| {
-                        self.render_node_tree(
+                        render_node_tree(
                             weave,
                             settings,
+                            state,
                             ui,
                             state.identifier,
                             roots,
@@ -192,67 +207,73 @@ impl TreeListView {
                     });
             });
     }
-    fn render_node_tree(
-        &self,
-        weave: &mut TapestryWeave,
-        settings: &Settings,
-        ui: &mut Ui,
-        editor_id: Ulid,
-        items: impl IntoIterator<Item = Ulid>,
-        active_items: &HashSet<Ulid>,
-        max_depth: usize,
-    ) {
-        // TODO: Test node activation handling, add inference
+}
 
-        if max_depth == 0 {
-            return;
-        }
+#[allow(clippy::too_many_arguments)]
+fn render_node_tree(
+    weave: &mut TapestryWeave,
+    settings: &Settings,
+    state: &mut SharedState,
+    ui: &mut Ui,
+    editor_id: Ulid,
+    items: impl IntoIterator<Item = Ulid>,
+    active_items: &HashSet<Ulid>,
+    max_depth: usize,
+) {
+    // TODO: Test node activation handling, add inference
 
-        let indent_compensation = ui.spacing().icon_width + ui.spacing().icon_spacing;
+    if max_depth == 0 {
+        return;
+    }
 
-        for item in items {
-            if let Some(node) = weave.get_node(&item).cloned() {
-                let mut render_label = |ui: &mut Ui| {
-                    ui.horizontal(|ui| {
-                        if node.to.is_empty() {
-                            ui.add_space(indent_compensation);
-                        }
-                        render_horizontal_node_label(
-                            ui,
-                            settings,
-                            weave,
-                            &node,
-                            |ui, weave, node| {
-                                render_horizontal_node_label_buttons_rtl(ui, weave, node);
-                            },
-                        );
-                    });
-                };
+    let indent_compensation = ui.spacing().icon_width + ui.spacing().icon_spacing;
 
-                if node.to.is_empty() {
+    for item in items {
+        if let Some(node) = weave.get_node(&item).cloned() {
+            let mut render_label = |ui: &mut Ui| {
+                ui.horizontal(|ui| {
+                    if node.to.is_empty() {
+                        ui.add_space(indent_compensation);
+                    }
+                    render_horizontal_node_label(
+                        ui,
+                        settings,
+                        state,
+                        weave,
+                        &node,
+                        |ui, settings, state, weave, node| {
+                            render_horizontal_node_label_buttons_rtl(
+                                ui, settings, state, weave, node,
+                            );
+                        },
+                    );
+                });
+            };
+
+            if node.to.is_empty() {
+                render_label(ui);
+            } else {
+                let id = ui.make_persistent_id([editor_id.0, node.id, 0]);
+                CollapsingState::load_with_default_open(
+                    ui.ctx(),
+                    id,
+                    active_items.contains(&Ulid(node.id)),
+                )
+                .show_header(ui, |ui| {
                     render_label(ui);
-                } else {
-                    let id = ui.make_persistent_id([editor_id.0, node.id, 0]);
-                    CollapsingState::load_with_default_open(
-                        ui.ctx(),
-                        id,
-                        active_items.contains(&Ulid(node.id)),
-                    )
-                    .show_header(ui, |ui| {
-                        render_label(ui);
-                    })
-                    .body(|ui| {
-                        self.render_node_tree(
-                            weave,
-                            settings,
-                            ui,
-                            editor_id,
-                            node.to.into_iter().map(Ulid),
-                            active_items,
-                            max_depth - 1,
-                        );
-                    });
-                }
+                })
+                .body(|ui| {
+                    render_node_tree(
+                        weave,
+                        settings,
+                        state,
+                        ui,
+                        editor_id,
+                        node.to.into_iter().map(Ulid),
+                        active_items,
+                        max_depth - 1,
+                    );
+                });
             }
         }
     }
@@ -260,6 +281,8 @@ impl TreeListView {
 
 fn render_horizontal_node_label_buttons_rtl(
     ui: &mut Ui,
+    settings: &Settings,
+    state: &mut SharedState,
     weave: &mut TapestryWeave,
     node: &DependentNode<NodeContent>,
 ) {
@@ -302,7 +325,7 @@ fn render_horizontal_node_label_buttons_rtl(
         .on_hover_text("Generate completions")
         .clicked()
     {
-        todo!()
+        state.generate_children(weave, Some(Ulid(node.id)), settings);
     };
     if weave.is_mergeable_with_parent(&Ulid(node.id))
         && ui
@@ -317,9 +340,16 @@ fn render_horizontal_node_label_buttons_rtl(
 fn render_horizontal_node_label(
     ui: &mut Ui,
     settings: &Settings,
+    state: &mut SharedState,
     weave: &mut TapestryWeave,
     node: &DependentNode<NodeContent>,
-    buttons: impl Fn(&mut Ui, &mut TapestryWeave, &DependentNode<NodeContent>),
+    buttons: impl Fn(
+        &mut Ui,
+        &Settings,
+        &mut SharedState,
+        &mut TapestryWeave,
+        &DependentNode<NodeContent>,
+    ),
 ) {
     let response = ui
         .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
@@ -344,6 +374,10 @@ fn render_horizontal_node_label(
 
             let mut label_button_response = ui.add(label_button);
 
+            label_button_response.context_menu(|ui| {
+                render_node_context_menu(ui, state, weave, node);
+            });
+
             if should_render_node_metadata_tooltip(node) {
                 label_button_response =
                     label_button_response.on_hover_ui(|ui| render_node_metadata_tooltip(ui, node));
@@ -357,7 +391,7 @@ fn render_horizontal_node_label(
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
                         ui.add_space(ui.spacing().icon_spacing);
-                        buttons(ui, weave, node);
+                        buttons(ui, settings, state, weave, node);
                         ui.add_space(ui.spacing().icon_spacing);
                     });
                     ui.add_space(0.0);
@@ -377,4 +411,10 @@ fn render_horizontal_node_label(
     }
 }
 
-fn render_node_right_click_menu(ui: &mut Ui, weave: &mut TapestryWeave, node: &Ulid) {}
+fn render_node_context_menu(
+    ui: &mut Ui,
+    state: &mut SharedState,
+    weave: &mut TapestryWeave,
+    node: &DependentNode<NodeContent>,
+) {
+}
