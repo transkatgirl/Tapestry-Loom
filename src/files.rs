@@ -169,7 +169,7 @@ impl FileManager {
                         (0, item.path.to_string_lossy())
                     };
 
-                    let full_path = self.path.join(item.path.clone());
+                    let full_path = self.path.join(&item.path);
 
                     let (icon, suffix) = match item.r#type {
                         ScannedItemType::File => ("📄", ""),

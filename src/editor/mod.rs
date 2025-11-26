@@ -12,7 +12,6 @@ use std::{
     time::Instant,
 };
 
-// TODO: Prevent editor conflicts via renaming
 // TODO: Abort tab closing on error
 // TODO: Prompt on closing if weave does not have a save directory
 
@@ -248,7 +247,7 @@ impl Editor {
                 self.open_documents.borrow_mut().insert(path.clone());
             }
             self.old_path = path.clone();
-            self.behavior.reset();
+            //self.behavior.reset();
         }
 
         TopBottomPanel::bottom(self.panel_identifier.clone()).show_animated_inside(
@@ -258,8 +257,9 @@ impl Editor {
                 ui.horizontal(|ui| {
                     ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                         if let Some(path) = path.as_ref() {
-                            if let Ok(path) = path.strip_prefix(&settings.documents.location) {
-                                ui.label(path.to_string_lossy());
+                            if let Ok(short_path) = path.strip_prefix(&settings.documents.location)
+                            {
+                                ui.label(short_path.to_string_lossy());
                             } else {
                                 ui.label(path.to_string_lossy());
                             }
@@ -292,13 +292,12 @@ impl Editor {
                                 ui.close();
                             }
                             if ui.button("Save").clicked() && !self.save_as_input_box.is_empty() {
-                                *path = Some(
-                                    settings
-                                        .documents
-                                        .location
-                                        .join(self.save_as_input_box.clone()),
-                                );
-                                ui.close();
+                                let new_path =
+                                    settings.documents.location.join(&self.save_as_input_box);
+                                if !self.open_documents.borrow().contains(&new_path) {
+                                    *path = Some(new_path);
+                                    ui.close();
+                                }
                             }
                         },
                     );
@@ -444,7 +443,7 @@ struct EditorTilingBehavior {
 // TODO: Set drag_preview_color, tab_bar_color, and tab_bg_color
 
 impl EditorTilingBehavior {
-    fn reset(&mut self) {
+    /*fn reset(&mut self) {
         self.shared_state.reset();
         self.canvas_view.reset();
         self.graph_view.reset();
@@ -453,7 +452,7 @@ impl EditorTilingBehavior {
         self.bookmark_list_view.reset();
         self.text_edit_view.reset();
         self.menu_view.reset();
-    }
+    }*/
     fn panel_rtl(&mut self, ui: &mut Ui) {
         let mut weave = self.weave.lock();
 
