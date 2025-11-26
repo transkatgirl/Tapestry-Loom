@@ -13,7 +13,6 @@ use std::{
 };
 
 // TODO: Abort tab closing on error
-// TODO: Prompt on closing if weave does not have a save directory
 
 mod canvas;
 mod graph;
@@ -65,6 +64,8 @@ pub struct Editor {
     save_as_input_box: String,
     tree: Tree<Pane>,
     behavior: EditorTilingBehavior,
+    show_confirmation: bool,
+    allow_close: bool,
 }
 
 impl Editor {
@@ -135,9 +136,37 @@ impl Editor {
                 text_edit_view: TextEditorView::default(),
                 menu_view: MenuView::default(),
             },
+            allow_close: false,
+            show_confirmation: false,
         }
     }
-    pub fn render(&mut self, ui: &mut Ui) {
+    pub fn render(&mut self, ui: &mut Ui, mut close_callback: impl FnMut()) {
+        if self.show_confirmation
+            && Modal::new("global-close-modal".into())
+                .show(ui.ctx(), |ui| {
+                    ui.heading("Do you want to close this weave without saving?");
+                    ui.add_space(ui.style().spacing.menu_spacing);
+                    Sides::new().show(
+                        ui,
+                        |_ui| {},
+                        |ui| {
+                            if ui.button("Yes").clicked() {
+                                self.allow_close = true;
+                                close_callback();
+                                ui.close();
+                            }
+                            if ui.button("No").clicked() {
+                                self.allow_close = false;
+                                ui.close();
+                            }
+                        },
+                    );
+                })
+                .should_close()
+        {
+            self.show_confirmation = false;
+        }
+
         if let Some(mut weave) = self.weave.clone().try_lock() {
             match weave.as_mut() {
                 Some(_) => {
@@ -359,6 +388,9 @@ impl Editor {
     pub fn close(&mut self) -> bool {
         if let Some(path) = &self.path.lock().as_ref() {
             self.open_documents.borrow_mut().remove(*path);
+        } else if !self.allow_close {
+            self.show_confirmation = true;
+            return false;
         }
 
         self.save(true);

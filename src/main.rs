@@ -140,6 +140,7 @@ impl TapestryLoomApp {
             ),
             unsaved_settings_changes: false,
             new_editor_queue: Vec::with_capacity(16),
+            close_queue: Vec::with_capacity(16),
             settings,
             toasts,
             runtime: Arc::new(
@@ -213,6 +214,10 @@ impl App for TapestryLoomApp {
                 if self.behavior.unsaved_settings_changes {
                     self.save_settings(frame);
                     self.behavior.unsaved_settings_changes = false;
+                }
+
+                for tile in self.behavior.close_queue.drain(..) {
+                    self.tree.remove_recursively(tile);
                 }
 
                 if !self.behavior.new_editor_queue.is_empty() {
@@ -309,6 +314,7 @@ struct TapestryLoomBehavior {
     settings: Rc<RefCell<Settings>>,
     unsaved_settings_changes: bool,
     new_editor_queue: Vec<(Option<PathBuf>, Option<TileId>)>,
+    close_queue: Vec<TileId>,
     file_manager: FileManager,
     toasts: Rc<RefCell<Toasts>>,
     threadpool: Rc<ThreadPool>,
@@ -330,7 +336,7 @@ impl Behavior<Pane> for TapestryLoomBehavior {
             Pane::Editor(editor) => WidgetText::Text(editor.title.clone()),
         }
     }
-    fn pane_ui(&mut self, ui: &mut Ui, _tile_id: TileId, pane: &mut Pane) -> UiResponse {
+    fn pane_ui(&mut self, ui: &mut Ui, tile_id: TileId, pane: &mut Pane) -> UiResponse {
         match pane {
             Pane::Settings => {
                 if self.settings.borrow_mut().render(ui) {
@@ -342,7 +348,9 @@ impl Behavior<Pane> for TapestryLoomBehavior {
                     self.new_editor_queue.push((Some(path), None));
                 }
             }
-            Pane::Editor(editor) => editor.render(ui),
+            Pane::Editor(editor) => editor.render(ui, || {
+                self.close_queue.push(tile_id);
+            }),
         }
 
         UiResponse::None
