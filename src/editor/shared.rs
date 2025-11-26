@@ -41,7 +41,13 @@ impl SharedState {
     }
 }
 
+pub fn should_render_node_metadata_tooltip(node: &DependentNode<NodeContent>) -> bool {
+    !(node.contents.metadata.is_empty() && node.contents.model.is_none())
+}
+
 pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &DependentNode<NodeContent>) {
+    ui.set_max_width(ui.spacing().tooltip_width);
+
     if let Some(model) = &node.contents.model {
         if let Some(color) = model
             .metadata
@@ -83,24 +89,22 @@ pub fn get_token_color(
         } else {
             Some(color)
         }
-    } else {
-        if settings.interface.show_token_probabilities
-            && let Some(probability) = token_metadata
-                .get("key")
-                .and_then(|p| p.parse::<f32>().ok())
-        {
-            // TODO: Perform color blending in perceptual color space
-            let probability = probability.clamp(0.0, 1.0);
-            let (r, g, b) = if probability > 0.5 {
-                ((1.0 - ((probability - 0.5) * 2.0)) * 255.0, 255.0, 0.0)
-            } else {
-                (255.0, (probability * 2.0) * 255.0, 0.0)
-            };
-
-            Some(Color32::from(Rgba::from_rgb(r, g, b)))
+    } else if settings.interface.show_token_probabilities
+        && let Some(probability) = token_metadata
+            .get("key")
+            .and_then(|p| p.parse::<f32>().ok())
+    {
+        // TODO: Perform color blending in perceptual color space
+        let probability = probability.clamp(0.0, 1.0);
+        let (r, g, b) = if probability > 0.5 {
+            ((1.0 - ((probability - 0.5) * 2.0)) * 255.0, 255.0, 0.0)
         } else {
-            None
-        }
+            (255.0, (probability * 2.0) * 255.0, 0.0)
+        };
+
+        Some(Color32::from(Rgba::from_rgb(r, g, b)))
+    } else {
+        None
     }
 }
 
