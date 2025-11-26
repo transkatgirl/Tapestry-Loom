@@ -168,6 +168,17 @@ impl TapestryLoomApp {
             allow_close: false,
         }
     }
+    fn allow_close(&self) -> bool {
+        for tile in self.tree.tiles.tiles() {
+            if let Tile::Pane(Pane::Editor(editor)) = tile
+                && editor.unsaved()
+            {
+                return false;
+            }
+        }
+
+        true
+    }
     fn save_settings(&self, frame: &mut Frame) {
         if let Some(storage) = frame.storage_mut() {
             match ron::to_string(&self.behavior.settings) {
@@ -260,7 +271,7 @@ impl App for TapestryLoomApp {
         self.behavior.toasts.borrow_mut().show(ctx);
 
         if ctx.input(|i| i.viewport().close_requested())
-            && !(self.allow_close || self.behavior.allow_close())
+            && !(self.allow_close || self.allow_close())
         {
             ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
             self.show_confirmation = true;
@@ -303,12 +314,6 @@ struct TapestryLoomBehavior {
     threadpool: Rc<ThreadPool>,
     runtime: Arc<Runtime>,
     open_documents: Rc<RefCell<HashSet<PathBuf>>>,
-}
-
-impl TapestryLoomBehavior {
-    fn allow_close(&self) -> bool {
-        true
-    }
 }
 
 enum Pane {

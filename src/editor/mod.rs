@@ -353,6 +353,9 @@ impl Editor {
         });
         barrier.wait();
     }
+    pub fn unsaved(&self) -> bool {
+        self.path.lock().is_none()
+    }
     pub fn close(&mut self) -> bool {
         if let Some(path) = &self.path.lock().as_ref() {
             self.open_documents.borrow_mut().remove(*path);
