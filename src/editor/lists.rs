@@ -41,22 +41,22 @@ impl ListView {
         let items = weave
             .get_active_thread()
             .next()
-            .map(|node| node.to.iter().cloned().map(Ulid).collect::<Vec<Ulid>>());
-        if let Some(items) = items {
-            let row_height = ui.spacing().interact_size.y;
-            ScrollArea::vertical()
-                .auto_shrink(false)
-                .animated(false)
-                .show_rows(ui, row_height, items.len(), |ui, range| {
-                    Frame::new()
-                        .outer_margin(listing_margin(ui))
-                        .show(ui, |ui| {
-                            for item in &items[range] {
-                                self.render_item(weave, settings, state, ui, item);
-                            }
-                        });
-                });
-        }
+            .map(|node| node.to.iter().cloned().map(Ulid).collect::<Vec<Ulid>>())
+            .unwrap_or_else(|| weave.get_roots().collect());
+
+        let row_height = ui.spacing().interact_size.y;
+        ScrollArea::vertical()
+            .auto_shrink(false)
+            .animated(false)
+            .show_rows(ui, row_height, items.len(), |ui, range| {
+                Frame::new()
+                    .outer_margin(listing_margin(ui))
+                    .show(ui, |ui| {
+                        for item in &items[range] {
+                            self.render_item(weave, settings, state, ui, item);
+                        }
+                    });
+            });
     }
     fn render_item(
         &mut self,
@@ -161,13 +161,13 @@ impl TreeListView {
         _toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
-        // TODO: hoisting using cursor node, hover tooltips, right click menu
+        // TODO: hoisting using cursor node, hover tooltips, right click menu, improve collapsing handling
         let roots: Vec<Ulid> = weave.get_roots().collect();
         let active: Vec<Ulid> = weave
             .get_active_thread()
             .map(|node| Ulid(node.id))
             .collect();
-        let active_set = HashSet::from_iter(active.clone());
+        let opened_set = HashSet::from_iter(active.clone());
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
@@ -182,7 +182,7 @@ impl TreeListView {
                             ui,
                             state.identifier,
                             roots,
-                            &active_set,
+                            &opened_set,
                             settings.interface.max_tree_depth,
                         );
 
@@ -215,11 +215,9 @@ fn render_node_tree(
     ui: &mut Ui,
     editor_id: Ulid,
     items: impl IntoIterator<Item = Ulid>,
-    active_items: &HashSet<Ulid>,
+    opened_items: &HashSet<Ulid>,
     max_depth: usize,
 ) {
-    // TODO: Test node activation handling, add inference
-
     if max_depth == 0 {
         return;
     }
@@ -253,26 +251,27 @@ fn render_node_tree(
                 render_label(ui);
             } else {
                 let id = ui.make_persistent_id([editor_id.0, node.id, 0]);
-                CollapsingState::load_with_default_open(
-                    ui.ctx(),
-                    id,
-                    active_items.contains(&Ulid(node.id)),
-                )
-                .show_header(ui, |ui| {
-                    render_label(ui);
-                })
-                .body(|ui| {
-                    render_node_tree(
-                        weave,
-                        settings,
-                        state,
-                        ui,
-                        editor_id,
-                        node.to.into_iter().map(Ulid),
-                        active_items,
-                        max_depth - 1,
-                    );
-                });
+                let mut collapsing_state =
+                    CollapsingState::load_with_default_open(ui.ctx(), id, false);
+                if opened_items.contains(&Ulid(node.id)) {
+                    collapsing_state.set_open(true);
+                }
+                collapsing_state
+                    .show_header(ui, |ui| {
+                        render_label(ui);
+                    })
+                    .body(|ui| {
+                        render_node_tree(
+                            weave,
+                            settings,
+                            state,
+                            ui,
+                            editor_id,
+                            node.to.into_iter().map(Ulid),
+                            opened_items,
+                            max_depth - 1,
+                        );
+                    });
             }
         }
     }
