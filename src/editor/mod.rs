@@ -144,7 +144,9 @@ impl Editor {
         if self.show_confirmation
             && Modal::new("global-close-modal".into())
                 .show(ui.ctx(), |ui| {
+                    ui.set_width(210.0);
                     ui.heading("Do you want to close this weave without saving?");
+                    ui.label("All changes made will be lost.");
                     ui.add_space(ui.style().spacing.menu_spacing);
                     Sides::new().show(
                         ui,
