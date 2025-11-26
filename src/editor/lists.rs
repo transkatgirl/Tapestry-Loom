@@ -53,81 +53,7 @@ impl ListView {
         if let Some(node) = weave.get_node(item).cloned() {
             ui.horizontal(|ui| {
                 ui.add_space(ui.spacing().icon_spacing);
-
-                let response = ui
-                    .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
-                        let label = RichText::new(String::from_utf8_lossy(
-                            &node.contents.content.as_bytes().to_vec(),
-                        ))
-                        .family(FontFamily::Monospace);
-
-                        let label_button = if node.active {
-                            Button::new(label).selected(true)
-                        } else {
-                            Button::new(label).fill(Color32::TRANSPARENT)
-                        };
-
-                        if ui.add(label_button).clicked() {
-                            weave.set_node_active_status(&Ulid(node.id), !node.active);
-                        }
-
-                        if ui.rect_contains_pointer(ui.max_rect()) {
-                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
-                                    ui.add_space(ui.spacing().icon_spacing);
-                                    if ui.button("\u{E28F}").clicked() {
-                                        weave.remove_node(&Ulid(node.id));
-                                    };
-                                    let bookmark_label = if node.bookmarked {
-                                        "\u{E23C}"
-                                    } else {
-                                        "\u{E23d}"
-                                    };
-                                    if ui.button(bookmark_label).clicked() {
-                                        weave.set_node_bookmarked_status(
-                                            &Ulid(node.id),
-                                            !node.bookmarked,
-                                        );
-                                    };
-                                    if ui.button("\u{E40C}").clicked() {
-                                        weave.add_node(DependentNode {
-                                            id: Ulid::new().0,
-                                            from: Some(node.id),
-                                            to: IndexSet::default(),
-                                            active: false,
-                                            bookmarked: false,
-                                            contents: NodeContent {
-                                                content: InnerNodeContent::Snippet(vec![]),
-                                                metadata: IndexMap::new(),
-                                                model: None,
-                                            },
-                                        });
-                                    };
-                                    if ui.button("\u{E5CE}").clicked() {
-                                        todo!()
-                                    };
-                                    if weave.is_mergeable_with_parent(&Ulid(node.id))
-                                        && ui.button("\u{E43F}").clicked()
-                                    {
-                                        weave.merge_with_parent(&Ulid(node.id));
-                                    };
-                                    ui.add_space(ui.spacing().icon_spacing);
-                                });
-                                ui.add_space(0.0);
-                            });
-                        } else if node.bookmarked {
-                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                ui.add_space(ui.spacing().icon_spacing);
-                                ui.label("\u{E060}");
-                                ui.add_space(ui.spacing().icon_spacing);
-                            });
-                        }
-                    })
-                    .response;
-
-                if response.clicked() {
-                    weave.set_node_active_status(&Ulid(node.id), !node.active);
-                }
+                render_horizontal_node_label(ui, weave, &node);
             });
         }
     }
@@ -282,86 +208,7 @@ impl TreeListView {
                         if node.to.is_empty() {
                             ui.add_space(indent_compensation);
                         }
-
-                        let response = ui
-                            .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
-                                let label = RichText::new(String::from_utf8_lossy(
-                                    &node.contents.content.as_bytes().to_vec(),
-                                ))
-                                .family(FontFamily::Monospace);
-
-                                let label_button = if node.active {
-                                    Button::new(label).selected(true)
-                                } else {
-                                    Button::new(label).fill(Color32::TRANSPARENT)
-                                };
-
-                                if ui.add(label_button).clicked() {
-                                    weave.set_node_active_status(&Ulid(node.id), !node.active);
-                                }
-
-                                if ui.rect_contains_pointer(ui.max_rect()) {
-                                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                        ui.scope_builder(
-                                            UiBuilder::new().sense(Sense::click()),
-                                            |ui| {
-                                                ui.add_space(ui.spacing().icon_spacing);
-                                                if ui.button("\u{E28F}").clicked() {
-                                                    weave.remove_node(&Ulid(node.id));
-                                                };
-                                                let bookmark_label = if node.bookmarked {
-                                                    "\u{E23C}"
-                                                } else {
-                                                    "\u{E23d}"
-                                                };
-                                                if ui.button(bookmark_label).clicked() {
-                                                    weave.set_node_bookmarked_status(
-                                                        &Ulid(node.id),
-                                                        !node.bookmarked,
-                                                    );
-                                                };
-                                                if ui.button("\u{E40C}").clicked() {
-                                                    weave.add_node(DependentNode {
-                                                        id: Ulid::new().0,
-                                                        from: Some(node.id),
-                                                        to: IndexSet::default(),
-                                                        active: false,
-                                                        bookmarked: false,
-                                                        contents: NodeContent {
-                                                            content: InnerNodeContent::Snippet(
-                                                                vec![],
-                                                            ),
-                                                            metadata: IndexMap::new(),
-                                                            model: None,
-                                                        },
-                                                    });
-                                                };
-                                                if ui.button("\u{E5CE}").clicked() {
-                                                    todo!()
-                                                };
-                                                if weave.is_mergeable_with_parent(&Ulid(node.id))
-                                                    && ui.button("\u{E43F}").clicked()
-                                                {
-                                                    weave.merge_with_parent(&Ulid(node.id));
-                                                };
-                                                ui.add_space(ui.spacing().icon_spacing);
-                                            },
-                                        );
-                                        ui.add_space(0.0);
-                                    });
-                                } else if node.bookmarked {
-                                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                        ui.add_space(ui.spacing().icon_spacing);
-                                        ui.label("\u{E060}");
-                                        ui.add_space(ui.spacing().icon_spacing);
-                                    });
-                                }
-                            })
-                            .response;
-
-                        if response.clicked() {
-                            weave.set_node_active_status(&Ulid(node.id), !node.active);
-                        }
+                        render_horizontal_node_label(ui, weave, &node);
                     });
                 };
 
@@ -392,3 +239,83 @@ impl TreeListView {
         }
     }
 }
+
+fn render_horizontal_node_label(
+    ui: &mut Ui,
+    weave: &mut TapestryWeave,
+    node: &DependentNode<NodeContent>,
+) {
+    let response = ui
+        .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+            let label = RichText::new(String::from_utf8_lossy(
+                &node.contents.content.as_bytes().to_vec(),
+            ))
+            .family(FontFamily::Monospace);
+
+            let label_button = if node.active {
+                Button::new(label).selected(true)
+            } else {
+                Button::new(label).fill(Color32::TRANSPARENT)
+            };
+
+            if ui.add(label_button).clicked() {
+                weave.set_node_active_status(&Ulid(node.id), !node.active);
+            }
+
+            if ui.rect_contains_pointer(ui.max_rect()) {
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                        ui.add_space(ui.spacing().icon_spacing);
+                        if ui.button("\u{E28F}").clicked() {
+                            weave.remove_node(&Ulid(node.id));
+                        };
+                        let bookmark_label = if node.bookmarked {
+                            "\u{E23C}"
+                        } else {
+                            "\u{E23d}"
+                        };
+                        if ui.button(bookmark_label).clicked() {
+                            weave.set_node_bookmarked_status(&Ulid(node.id), !node.bookmarked);
+                        };
+                        if ui.button("\u{E40C}").clicked() {
+                            weave.add_node(DependentNode {
+                                id: Ulid::new().0,
+                                from: Some(node.id),
+                                to: IndexSet::default(),
+                                active: false,
+                                bookmarked: false,
+                                contents: NodeContent {
+                                    content: InnerNodeContent::Snippet(vec![]),
+                                    metadata: IndexMap::new(),
+                                    model: None,
+                                },
+                            });
+                        };
+                        if ui.button("\u{E5CE}").clicked() {
+                            todo!()
+                        };
+                        if weave.is_mergeable_with_parent(&Ulid(node.id))
+                            && ui.button("\u{E43F}").clicked()
+                        {
+                            weave.merge_with_parent(&Ulid(node.id));
+                        };
+                        ui.add_space(ui.spacing().icon_spacing);
+                    });
+                    ui.add_space(0.0);
+                });
+            } else if node.bookmarked {
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    ui.add_space(ui.spacing().icon_spacing);
+                    ui.label("\u{E060}");
+                    ui.add_space(ui.spacing().icon_spacing);
+                });
+            }
+        })
+        .response;
+
+    if response.clicked() {
+        weave.set_node_active_status(&Ulid(node.id), !node.active);
+    }
+}
+
+fn render_node_right_click_menu(ui: &mut Ui, weave: &mut TapestryWeave, node: &Ulid) {}
