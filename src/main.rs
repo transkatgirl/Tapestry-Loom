@@ -280,8 +280,8 @@ impl App for TapestryLoomApp {
         if self.show_confirmation
             && Modal::new("global-close-modal".into())
                 .show(ctx, |ui| {
-                    ui.set_width(280.0);
                     ui.heading("Do you want to quit without saving?");
+                    ui.add_space(ui.style().spacing.menu_spacing);
                     Sides::new().show(
                         ui,
                         |_ui| {},
