@@ -1,6 +1,6 @@
 use std::{path::PathBuf, time::Duration};
 
-use eframe::egui::{Frame, Slider, SliderClamping, Ui};
+use eframe::egui::{Frame, ScrollArea, Slider, SliderClamping, Ui};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
@@ -97,17 +97,22 @@ impl InferenceSettings {
 
 impl Settings {
     pub fn render(&mut self, ui: &mut Ui) {
-        Frame::new()
-            .outer_margin(ui.style().spacing.menu_margin)
+        ScrollArea::vertical()
+            .auto_shrink(false)
+            .animated(false)
             .show(ui, |ui| {
-                ui.heading("Interface");
-                self.interface.render(ui);
-                ui.separator();
-                ui.heading("Document");
-                self.documents.render(ui);
-                ui.separator();
-                ui.heading("Inference");
-                self.inference.render(ui);
+                Frame::new()
+                    .outer_margin(ui.style().spacing.menu_margin)
+                    .show(ui, |ui| {
+                        ui.heading("Interface");
+                        self.interface.render(ui);
+                        ui.separator();
+                        ui.heading("Document");
+                        self.documents.render(ui);
+                        ui.separator();
+                        ui.heading("Inference");
+                        self.inference.render(ui);
+                    });
             });
     }
 }
