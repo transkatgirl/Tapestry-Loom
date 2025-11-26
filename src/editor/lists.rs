@@ -374,7 +374,7 @@ fn render_horizontal_node_label(
             let mut label_button_response = ui.add(label_button);
 
             label_button_response.context_menu(|ui| {
-                render_node_context_menu(ui, state, weave, node);
+                render_node_context_menu(ui, settings, state, weave, node);
             });
 
             if should_render_node_metadata_tooltip(node) {
@@ -412,8 +412,97 @@ fn render_horizontal_node_label(
 
 fn render_node_context_menu(
     ui: &mut Ui,
+    settings: &Settings,
     state: &mut SharedState,
     weave: &mut TapestryWeave,
     node: &DependentNode<NodeContent>,
 ) {
+    if ui.button("Generate completions").clicked() {
+        state.generate_children(weave, Some(Ulid(node.id)), settings);
+    }
+
+    let bookmark_label = if node.bookmarked {
+        "Remove bookmark"
+    } else {
+        "Bookmark"
+    };
+    if ui.button(bookmark_label).clicked() {
+        weave.set_node_bookmarked_status(&Ulid(node.id), !node.bookmarked);
+    }
+
+    ui.separator();
+
+    if ui.button("Create child").clicked() {
+        weave.add_node(DependentNode {
+            id: Ulid::new().0,
+            from: Some(node.id),
+            to: IndexSet::default(),
+            active: false,
+            bookmarked: false,
+            contents: NodeContent {
+                content: InnerNodeContent::Snippet(vec![]),
+                metadata: IndexMap::new(),
+                model: None,
+            },
+        });
+    }
+
+    if ui.button("Create sibling").clicked() {
+        weave.add_node(DependentNode {
+            id: Ulid::new().0,
+            from: node.from,
+            to: IndexSet::default(),
+            active: false,
+            bookmarked: false,
+            contents: NodeContent {
+                content: InnerNodeContent::Snippet(vec![]),
+                metadata: IndexMap::new(),
+                model: None,
+            },
+        });
+    }
+
+    if !node.to.is_empty() || node.from.is_some() {
+        ui.separator();
+    }
+
+    if !node.to.is_empty() {
+        // TODO: Collapse all children, expand all children
+
+        //ui.separator();
+
+        if ui.button("Delete all children").clicked() {
+            for child in node.to.iter().copied() {
+                weave.remove_node(&Ulid(child));
+            }
+        }
+    }
+
+    if node.from.is_some() {
+        if ui.button("Delete all siblings").clicked() {
+            let parent = weave.get_node(&Ulid(node.from.unwrap()));
+            let siblings: Vec<Ulid> = parent
+                .iter()
+                .flat_map(|parent| parent.to.iter().copied().filter(|id| *id != node.id))
+                .map(Ulid)
+                .collect();
+
+            for child in siblings {
+                weave.remove_node(&child);
+            }
+        }
+
+        if weave.is_mergeable_with_parent(&Ulid(node.id))
+            && ui.button("Merge with parent").clicked()
+        {
+            ui.separator();
+            weave.merge_with_parent(&Ulid(node.id));
+        }
+    }
+
+    ui.separator();
+
+    if ui.button("Delete").clicked() {
+        weave.remove_node(&Ulid(node.id));
+    }
 }
