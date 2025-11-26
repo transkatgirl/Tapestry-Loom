@@ -3,9 +3,9 @@ use std::{
     cell::RefCell,
     collections::{BTreeMap, BTreeSet, HashSet},
     ffi::OsString,
-    fs,
+    fs, io,
     ops::DerefMut,
-    path::{MAIN_SEPARATOR_STR, PathBuf},
+    path::{MAIN_SEPARATOR_STR, Path, PathBuf},
     rc::Rc,
     sync::{
         Arc,
@@ -221,26 +221,25 @@ impl FileManager {
                                         );
                                     }
                                     ui.separator();
-                                } else if item.r#type == ScannedItemType::File {
-                                    if item.path.extension() == Some(&file_extension_normal)
-                                        || item.path.extension() == Some(&file_extension_treeless)
-                                    {
-                                        if ui.button("Open weave").clicked() {
-                                            selected_items.push(full_path.clone());
-                                        }
-                                        ui.separator();
+                                } else if item.r#type == ScannedItemType::File
+                                    && (item.path.extension() == Some(&file_extension_normal)
+                                        || item.path.extension() == Some(&file_extension_treeless))
+                                {
+                                    if ui.button("Open weave").clicked() {
+                                        selected_items.push(full_path.clone());
                                     }
-
-                                    if ui.button("Copy file").clicked() {
-                                        *self.modal.borrow_mut() = ModalType::CopyFile((
-                                            item.path.clone(),
-                                            item.path.to_string_lossy().to_string(),
-                                        ));
-                                    }
+                                    ui.separator();
                                 };
 
+                                if ui.button("Copy item").clicked() {
+                                    *self.modal.borrow_mut() = ModalType::Copy((
+                                        item.path.clone(),
+                                        item.path.to_string_lossy().to_string(),
+                                    ));
+                                }
+
                                 if ui.button("Rename item").clicked() {
-                                    *self.modal.borrow_mut() = ModalType::RenameItem((
+                                    *self.modal.borrow_mut() = ModalType::Rename((
                                         item.path.clone(),
                                         item.path.to_string_lossy().to_string(),
                                     ));
@@ -292,17 +291,15 @@ impl FileManager {
                                 }
                             }
 
-                            if item.r#type == ScannedItemType::File
-                                && ui.button("\u{E09E}").on_hover_text("Copy file").clicked()
-                            {
-                                *self.modal.borrow_mut() = ModalType::CopyFile((
+                            if ui.button("\u{E09E}").on_hover_text("Copy item").clicked() {
+                                *self.modal.borrow_mut() = ModalType::Copy((
                                     item.path.clone(),
                                     item.path.to_string_lossy().to_string(),
                                 ));
                             };
 
                             if ui.button("\u{E4F0}").on_hover_text("Rename item").clicked() {
-                                *self.modal.borrow_mut() = ModalType::RenameItem((
+                                *self.modal.borrow_mut() = ModalType::Rename((
                                     item.path.clone(),
                                     item.path.to_string_lossy().to_string(),
                                 ));
@@ -384,7 +381,7 @@ impl FileManager {
                     *modal = ModalType::None;
                 };
             }
-            ModalType::RenameItem((from, to)) => {
+            ModalType::Rename((from, to)) => {
                 if Modal::new("filemanager-rename-item-modal".into())
                     .show(ui.ctx(), |ui| {
                         ui.set_width(280.0);
@@ -418,11 +415,11 @@ impl FileManager {
                     *modal = ModalType::None;
                 };
             }
-            ModalType::CopyFile((from, to)) => {
-                if Modal::new("filemanager-copy-file-modal".into())
+            ModalType::Copy((from, to)) => {
+                if Modal::new("filemanager-copy-item-modal".into())
                     .show(ui.ctx(), |ui| {
                         ui.set_width(280.0);
-                        ui.heading("Copy File");
+                        ui.heading("Copy Item");
                         let label = ui.label("New Path:");
                         ui.text_edit_singleline(to).labelled_by(label.id);
                         Sides::new().show(
@@ -440,7 +437,7 @@ impl FileManager {
                                             .borrow()
                                             .contains(&self.path.join(&to))
                                     {
-                                        self.copy_file(from.clone(), to);
+                                        self.copy_item(from.clone(), to);
                                         ui.close();
                                     }
                                 }
@@ -547,7 +544,7 @@ impl FileManager {
         let tx = self.channel.0.clone();
 
         self.action_threadpool
-            .execute(move || match fs::create_dir_all(&path) {
+            .execute(move || match fs::create_dir(&path) {
                 Ok(_) => {
                     let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
                         path,
@@ -584,7 +581,6 @@ impl FileManager {
                             if metadata.is_dir() {
                                 for entry in WalkDir::new(&to) {
                                     if stop_scanning.load(Ordering::SeqCst) {
-                                        stop_scanning.store(false, Ordering::SeqCst);
                                         break;
                                     }
 
@@ -621,18 +617,76 @@ impl FileManager {
                 }
             });
     }
-    fn copy_file(&self, item: PathBuf, to: PathBuf) {
+    fn copy_item(&self, item: PathBuf, to: PathBuf) {
         let from = self.path.join(item);
         let to = self.path.join(to);
         let tx = self.channel.0.clone();
+        let stop_scanning = self.stop_scanning.clone();
 
         self.action_threadpool
-            .execute(move || match fs::copy(&from, &to) {
-                Ok(_) => {
-                    let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
-                        path: to.clone(),
-                        r#type: ScannedItemType::File,
-                    })));
+            .execute(move || match from.metadata() {
+                Ok(metadata) => {
+                    if metadata.is_dir() {
+                        match copy_dir_all(&from, &to) {
+                            Ok(_) => {
+                                let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
+                                    path: to.clone(),
+                                    r#type: if metadata.is_dir() {
+                                        ScannedItemType::Directory
+                                    } else if metadata.is_file() {
+                                        ScannedItemType::File
+                                    } else {
+                                        ScannedItemType::Other
+                                    },
+                                })));
+                                for entry in WalkDir::new(&to) {
+                                    if stop_scanning.load(Ordering::SeqCst) {
+                                        break;
+                                    }
+
+                                    match entry {
+                                        Ok(entry) => {
+                                            let filetype = entry.file_type();
+
+                                            let _ =
+                                                tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
+                                                    path: entry.path().to_path_buf(),
+                                                    r#type: if filetype.is_file() {
+                                                        ScannedItemType::File
+                                                    } else if filetype.is_dir() {
+                                                        ScannedItemType::Directory
+                                                    } else {
+                                                        ScannedItemType::Other
+                                                    },
+                                                })));
+                                        }
+                                        Err(error) => {
+                                            let _ = tx.send(Err(format!("{error:?}")));
+                                        }
+                                    }
+                                }
+                            }
+                            Err(error) => {
+                                let _ = tx.send(Err(format!("{error:?}")));
+                            }
+                        }
+                    } else {
+                        match fs::copy(&from, &to) {
+                            Ok(_) => {
+                                let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
+                                    path: to.clone(),
+                                    r#type: if metadata.is_file() {
+                                        ScannedItemType::File
+                                    } else {
+                                        ScannedItemType::Other
+                                    },
+                                })));
+                            }
+                            Err(error) => {
+                                let _ = tx.send(Err(format!("{error:?}")));
+                            }
+                        }
+                    }
                 }
                 Err(error) => {
                     let _ = tx.send(Err(format!("{error:?}")));
@@ -703,8 +757,8 @@ impl FileManager {
             self.folder_count = 0;
             self.stop_scanning.store(true, Ordering::SeqCst);
             self.scan_threadpool.join();
-            self.stop_scanning.store(false, Ordering::SeqCst);
             while self.channel.1.try_recv().is_ok() {}
+            self.stop_scanning.store(false, Ordering::SeqCst);
             let tx = self.channel.0.clone();
             let path = self.path.clone();
             let stop_scanning = self.stop_scanning.clone();
@@ -726,7 +780,6 @@ impl FileManager {
 
                 for entry in WalkDir::new(&path) {
                     if stop_scanning.load(Ordering::SeqCst) {
-                        stop_scanning.store(false, Ordering::SeqCst);
                         break;
                     }
 
@@ -893,8 +946,8 @@ enum ScannedItemType {
 enum ModalType {
     CreateWeave(String),
     CreateDirectory(String),
-    RenameItem((PathBuf, String)),
-    CopyFile((PathBuf, String)),
+    Rename((PathBuf, String)),
+    Copy((PathBuf, String)),
     Delete(PathBuf),
     None,
 }
@@ -914,4 +967,18 @@ impl TreeItem {
             Self::Other(path) => path,
         }
     }
+}
+
+fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> {
+    fs::create_dir_all(&dst)?;
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        if ty.is_dir() {
+            copy_dir_all(entry.path(), dst.as_ref().join(entry.file_name()))?;
+        } else {
+            fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
+        }
+    }
+    Ok(())
 }
