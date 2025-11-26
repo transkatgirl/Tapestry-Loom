@@ -1,7 +1,7 @@
 use std::{
     cell::RefCell,
     collections::HashSet,
-    fs::{self, File},
+    fs::File,
     io::{self, Read, Write},
     path::{Path, PathBuf},
     rc::Rc,
@@ -22,6 +22,7 @@ mod textedit;
 use eframe::egui::{Align, Layout, Modal, Sides, Spinner, TopBottomPanel, Ui, WidgetText};
 use egui_notify::Toasts;
 use egui_tiles::{Behavior, SimplificationOptions, TileId, Tiles, Tree, UiResponse};
+use log::debug;
 use parking_lot::Mutex;
 use tapestry_weave::{
     VERSIONED_WEAVE_FILE_EXTENSION, VersionedWeave,
@@ -55,7 +56,6 @@ pub struct Editor {
     weave: Arc<Mutex<Option<TapestryWeave>>>,
     error_channel: (Arc<Sender<String>>, Receiver<String>),
     last_save: Instant,
-    closing: bool,
     panel_identifier: String,
     modal_identifier: String,
     show_modal: bool,
@@ -111,7 +111,6 @@ impl Editor {
             weave: weave.clone(),
             error_channel: (Arc::new(sender), receiver),
             last_save: Instant::now(),
-            closing: false,
             panel_identifier: ["editor-", &identifier_string, "-bottom-panel"].concat(),
             modal_identifier: ["editor-", &identifier_string, "-modal"].concat(),
             show_modal: false,
@@ -369,9 +368,12 @@ impl Editor {
                         if let Err(error) = write_bytes(path, &bytes) {
                             let _ = error_sender.send(format!("Filesystem error: {error:?}"));
                             *path_lock = None;
-                        } else if unload {
-                            *weave_lock = None;
-                            *path_lock = None;
+                        } else {
+                            debug!("Saved weave {} to disk", path.to_string_lossy());
+                            if unload {
+                                *weave_lock = None;
+                                *path_lock = None;
+                            }
                         }
                     }
                     Err(error) => {
@@ -394,21 +396,7 @@ impl Editor {
         }
 
         self.save(true);
-        self.closing = true;
-
         true
-    }
-}
-
-impl Drop for Editor {
-    fn drop(&mut self) {
-        if !self.closing
-            && let Some(weave) = self.weave.lock().as_ref()
-            && let Some(path) = self.path.lock().as_ref()
-            && let Ok(bytes) = weave.to_versioned_bytes()
-        {
-            let _ = fs::write(path, bytes);
-        }
     }
 }
 

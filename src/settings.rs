@@ -42,7 +42,7 @@ impl Default for DocumentSettings {
 pub struct InferenceSettings {}
 
 impl Settings {
-    pub fn render(&mut self, ui: &mut Ui) -> bool {
+    pub fn render(&mut self, ui: &mut Ui) {
         ui.heading("Settings");
 
         let mut document_location = self.documents.location.to_string_lossy().to_string();
@@ -50,7 +50,5 @@ impl Settings {
         if ui.text_edit_singleline(&mut document_location).changed() {
             self.documents.location = PathBuf::from(document_location);
         }
-
-        false
     }
 }

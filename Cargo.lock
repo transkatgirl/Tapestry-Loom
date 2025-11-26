@@ -3715,6 +3715,7 @@ dependencies = [
  "egui-notify",
  "egui_tiles",
  "env_logger",
+ "log",
  "mimalloc",
  "parking_lot",
  "poll-promise",

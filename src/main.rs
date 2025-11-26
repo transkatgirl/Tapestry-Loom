@@ -11,6 +11,7 @@ use eframe::{
 };
 use egui_notify::Toasts;
 use egui_tiles::{Behavior, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse};
+use log::debug;
 use mimalloc::MiMalloc;
 use threadpool::ThreadPool;
 use tokio::runtime::Runtime;
@@ -138,7 +139,6 @@ impl TapestryLoomApp {
                 threadpool.clone(),
                 open_documents.clone(),
             ),
-            unsaved_settings_changes: false,
             new_editor_queue: Vec::with_capacity(16),
             close_queue: Vec::with_capacity(16),
             settings,
@@ -180,41 +180,16 @@ impl TapestryLoomApp {
 
         true
     }
-    fn save_settings(&self, frame: &mut Frame) {
-        if let Some(storage) = frame.storage_mut() {
-            match ron::to_string(&self.behavior.settings) {
-                Ok(data) => {
-                    storage.set_string("settings", data);
-                }
-                Err(error) => {
-                    self.behavior
-                        .toasts
-                        .borrow_mut()
-                        .error(format!("Settings serialization failed: {error:?}"));
-                }
-            }
-        } else {
-            self.behavior
-                .toasts
-                .borrow_mut()
-                .error("Unable to open settings storage");
-        }
-    }
 }
 
 impl App for TapestryLoomApp {
-    fn update(&mut self, ctx: &Context, frame: &mut Frame) {
+    fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         CentralPanel::default()
             .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0.0))
             .show(ctx, |ui| {
                 ctx.style_mut(|style| style.animation_time = 0.0);
 
                 self.tree.ui(&mut self.behavior, ui);
-
-                if self.behavior.unsaved_settings_changes {
-                    self.save_settings(frame);
-                    self.behavior.unsaved_settings_changes = false;
-                }
 
                 for tile in self.behavior.close_queue.drain(..) {
                     self.tree.remove_recursively(tile);
@@ -310,11 +285,34 @@ impl App for TapestryLoomApp {
             self.show_confirmation = false;
         }
     }
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        match ron::to_string(&self.behavior.settings) {
+            Ok(data) => {
+                debug!("Saved settings to disk");
+                storage.set_string("settings", data);
+            }
+            Err(error) => {
+                self.behavior
+                    .toasts
+                    .borrow_mut()
+                    .error(format!("Settings serialization failed: {error:?}"));
+            }
+        }
+    }
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        for tile in self.tree.tiles.tiles_mut() {
+            if let Tile::Pane(Pane::Editor(editor)) = tile {
+                editor.close();
+            }
+        }
+
+        debug!("Waiting for IO threads to terminate...");
+        self.behavior.threadpool.join();
+    }
 }
 
 struct TapestryLoomBehavior {
     settings: Rc<RefCell<Settings>>,
-    unsaved_settings_changes: bool,
     new_editor_queue: Vec<(Option<PathBuf>, Option<TileId>)>,
     close_queue: Vec<TileId>,
     file_manager: FileManager,
@@ -340,11 +338,7 @@ impl Behavior<Pane> for TapestryLoomBehavior {
     }
     fn pane_ui(&mut self, ui: &mut Ui, tile_id: TileId, pane: &mut Pane) -> UiResponse {
         match pane {
-            Pane::Settings => {
-                if self.settings.borrow_mut().render(ui) {
-                    self.unsaved_settings_changes = true;
-                }
-            }
+            Pane::Settings => self.settings.borrow_mut().render(ui),
             Pane::FileManager => {
                 for path in self.file_manager.render(ui) {
                     self.new_editor_queue.push((Some(path), None));
@@ -395,11 +389,5 @@ impl Behavior<Pane> for TapestryLoomBehavior {
         }
 
         true
-    }
-}
-
-impl Drop for TapestryLoomBehavior {
-    fn drop(&mut self) {
-        self.threadpool.join();
     }
 }
