@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 use std::collections::HashSet;
 
 use eframe::egui::{
@@ -78,6 +80,9 @@ impl ListView {
                     |ui, settings, state, weave, node| {
                         render_horizontal_node_label_buttons_rtl(ui, settings, state, weave, node);
                     },
+                    |ui, settings, state, weave, node| {
+                        render_node_context_menu(ui, settings, state, weave, node);
+                    },
                     true,
                 );
             });
@@ -141,6 +146,9 @@ impl BookmarkListView {
                             weave.set_node_bookmarked_status(&Ulid(node.id), false);
                         };
                     },
+                    |ui, settings, state, weave, node| {
+                        render_node_context_menu(ui, settings, state, weave, node);
+                    },
                     false,
                 );
             });
@@ -148,11 +156,23 @@ impl BookmarkListView {
     }
 }
 
-#[derive(Default, Debug)]
-pub struct TreeListView {}
+#[derive(Debug)]
+pub struct TreeListView {
+    opened_set: HashSet<Ulid>,
+}
+
+impl Default for TreeListView {
+    fn default() -> Self {
+        Self {
+            opened_set: HashSet::with_capacity(1024),
+        }
+    }
+}
 
 impl TreeListView {
-    //pub fn reset(&mut self) {}
+    /*pub fn reset(&mut self) {
+        self.opened_set.clear();
+    }*/
     pub fn render(
         &mut self,
         ui: &mut Ui,
@@ -161,7 +181,7 @@ impl TreeListView {
         _toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
-        // TODO: hoisting using cursor node, hover tooltips, right click menu, improve collapsing handling
+        // TODO: hoisting using cursor node, improve collapsing handling
         let roots: Vec<Ulid> = weave.get_roots().collect();
         let active: Vec<Ulid> = weave
             .get_active_thread()
@@ -204,10 +224,10 @@ impl TreeListView {
                         }*/
                     });
             });
+        self.opened_set.clear();
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn render_node_tree(
     weave: &mut TapestryWeave,
     settings: &Settings,
@@ -241,6 +261,9 @@ fn render_node_tree(
                             render_horizontal_node_label_buttons_rtl(
                                 ui, settings, state, weave, node,
                             );
+                        },
+                        |ui, settings, state, weave, node| {
+                            render_node_context_menu(ui, settings, state, weave, node);
                         },
                         true,
                     );
@@ -348,6 +371,13 @@ fn render_horizontal_node_label(
         &mut TapestryWeave,
         &DependentNode<NodeContent>,
     ),
+    context_menu: impl Fn(
+        &mut Ui,
+        &Settings,
+        &mut SharedState,
+        &mut TapestryWeave,
+        &DependentNode<NodeContent>,
+    ),
     show_bookmarks_icon: bool,
 ) {
     let response = ui
@@ -371,10 +401,14 @@ fn render_horizontal_node_label(
                 Button::new(label).fill(Color32::TRANSPARENT)
             };
 
+            if state.last_hovered_node == Some(Ulid(node.id)) {
+                // TODO
+            }
+
             let mut label_button_response = ui.add(label_button);
 
             label_button_response.context_menu(|ui| {
-                render_node_context_menu(ui, settings, state, weave, node);
+                context_menu(ui, settings, state, weave, node);
             });
 
             if should_render_node_metadata_tooltip(node) {
@@ -384,6 +418,7 @@ fn render_horizontal_node_label(
 
             if label_button_response.clicked() {
                 weave.set_node_active_status(&Ulid(node.id), !node.active);
+                state.cursor_node = Some(Ulid(node.id));
             }
 
             if ui.rect_contains_pointer(ui.max_rect()) {
@@ -407,6 +442,11 @@ fn render_horizontal_node_label(
 
     if response.clicked() {
         weave.set_node_active_status(&Ulid(node.id), !node.active);
+        state.cursor_node = Some(Ulid(node.id));
+    }
+
+    if response.hovered() {
+        state.hovered_node = Some(Ulid(node.id));
     }
 }
 

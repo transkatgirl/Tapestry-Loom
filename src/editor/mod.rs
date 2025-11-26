@@ -19,6 +19,8 @@ mod menus;
 mod shared;
 mod textedit;
 
+// TODO: Improve handling of non-focused tab close modals
+
 use eframe::egui::{Align, Layout, Modal, Sides, Spinner, TopBottomPanel, Ui, WidgetText};
 use egui_notify::Toasts;
 use egui_tiles::{Behavior, SimplificationOptions, TileId, Tiles, Tree, UiResponse};
