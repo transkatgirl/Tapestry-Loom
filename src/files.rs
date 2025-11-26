@@ -196,6 +196,7 @@ impl FileManager {
                                         enabled = false;
                                     }
                                 } else if self.open_folders.contains(&item.path) {
+                                    //button = button.selected(true);
                                     button = button.fill(ui.style().visuals.extreme_bg_color);
                                 }
 

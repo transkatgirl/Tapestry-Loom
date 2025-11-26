@@ -16,6 +16,8 @@ pub struct SharedState {
     pub identifier: Ulid,
     pub runtime: Arc<Runtime>,
     pub cursor_node: Option<Ulid>,
+    pub hovered_node: Option<Ulid>,
+    pub last_hovered_node: Option<Ulid>,
 }
 
 impl SharedState {
@@ -24,13 +26,18 @@ impl SharedState {
             identifier,
             runtime,
             cursor_node: None,
+            hovered_node: None,
+            last_hovered_node: None,
         }
     }
     pub fn update(&mut self, weave: &mut TapestryWeave, settings: &Settings, toasts: &mut Toasts) {
-        self.cursor_node = None;
+        self.last_hovered_node = self.hovered_node;
+        self.hovered_node = None;
     }
     pub fn reset(&mut self) {
         self.cursor_node = None;
+        self.hovered_node = None;
+        self.last_hovered_node = None;
     }
     pub fn generate_children(
         &mut self,

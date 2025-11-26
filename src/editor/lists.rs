@@ -158,7 +158,7 @@ impl TreeListView {
         ui: &mut Ui,
         weave: &mut TapestryWeave,
         settings: &Settings,
-        toasts: &mut Toasts,
+        _toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
         // TODO: hoisting using cursor node, hover tooltips, right click menu
