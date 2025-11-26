@@ -301,6 +301,7 @@ impl App for TapestryLoomApp {
         }
     }
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        debug!("Closing editors...");
         for tile in self.tree.tiles.tiles_mut() {
             if let Tile::Pane(Pane::Editor(editor)) = tile {
                 editor.close();
