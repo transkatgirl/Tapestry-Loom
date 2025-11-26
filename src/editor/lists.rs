@@ -147,14 +147,10 @@ impl BookmarkListView {
 }
 
 #[derive(Default, Debug)]
-pub struct TreeListView {
-    hoist: Option<Ulid>,
-}
+pub struct TreeListView {}
 
 impl TreeListView {
-    pub fn reset(&mut self) {
-        self.hoist = None;
-    }
+    //pub fn reset(&mut self) {}
     pub fn render(
         &mut self,
         ui: &mut Ui,
@@ -163,7 +159,7 @@ impl TreeListView {
         toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
-        // TODO: hoisting, hover tooltips, right click menu
+        // TODO: hoisting using cursor node, hover tooltips, right click menu
         let roots: Vec<Ulid> = weave.get_roots().collect();
         let active: Vec<Ulid> = weave
             .get_active_thread()
