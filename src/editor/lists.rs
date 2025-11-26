@@ -78,6 +78,7 @@ impl ListView {
                     |ui, settings, state, weave, node| {
                         render_horizontal_node_label_buttons_rtl(ui, settings, state, weave, node);
                     },
+                    true,
                 );
             });
         }
@@ -140,6 +141,7 @@ impl BookmarkListView {
                             weave.set_node_bookmarked_status(&Ulid(node.id), false);
                         };
                     },
+                    false,
                 );
             });
         }
@@ -242,6 +244,7 @@ fn render_node_tree(
                                 ui, settings, state, weave, node,
                             );
                         },
+                        true,
                     );
                 });
             };
@@ -346,6 +349,7 @@ fn render_horizontal_node_label(
         &mut TapestryWeave,
         &DependentNode<NodeContent>,
     ),
+    show_bookmarks_icon: bool,
 ) {
     let response = ui
         .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
@@ -392,7 +396,7 @@ fn render_horizontal_node_label(
                     });
                     ui.add_space(0.0);
                 });
-            } else if node.bookmarked {
+            } else if node.bookmarked && show_bookmarks_icon {
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     ui.add_space(ui.spacing().icon_spacing);
                     ui.label("\u{E060}");
