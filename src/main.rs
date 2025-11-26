@@ -5,8 +5,8 @@ use std::{cell::RefCell, collections::HashSet, path::PathBuf, rc::Rc, sync::Arc}
 use eframe::{
     App, CreationContext, Frame, NativeOptions,
     egui::{
-        self, CentralPanel, Context, FontData, FontDefinitions, IconData, Ui, ViewportBuilder,
-        WidgetText,
+        self, CentralPanel, Context, FontData, FontDefinitions, IconData, Modal, Sides, Ui,
+        ViewportBuilder, WidgetText,
     },
 };
 use egui_notify::Toasts;
@@ -47,6 +47,8 @@ fn main() -> eframe::Result {
 struct TapestryLoomApp {
     behavior: TapestryLoomBehavior,
     tree: Tree<Pane>,
+    show_confirmation: bool,
+    allow_close: bool,
 }
 
 impl TapestryLoomApp {
@@ -162,6 +164,8 @@ impl TapestryLoomApp {
         Self {
             behavior,
             tree: Tree::new("global-tree", root, tiles),
+            show_confirmation: false,
+            allow_close: false,
         }
     }
     fn save_settings(&self, frame: &mut Frame) {
@@ -254,6 +258,39 @@ impl App for TapestryLoomApp {
                 }
             });
         self.behavior.toasts.borrow_mut().show(ctx);
+
+        if ctx.input(|i| i.viewport().close_requested())
+            && !(self.allow_close || self.behavior.allow_close())
+        {
+            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            self.show_confirmation = true;
+        }
+
+        if self.show_confirmation
+            && Modal::new("global-close-modal".into())
+                .show(ctx, |ui| {
+                    ui.set_width(280.0);
+                    ui.heading("Do you want to quit without saving?");
+                    Sides::new().show(
+                        ui,
+                        |_ui| {},
+                        |ui| {
+                            if ui.button("Yes").clicked() {
+                                self.allow_close = true;
+                                ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+                                ui.close();
+                            }
+                            if ui.button("No").clicked() {
+                                self.allow_close = false;
+                                ui.close();
+                            }
+                        },
+                    );
+                })
+                .should_close()
+        {
+            self.show_confirmation = false;
+        }
     }
 }
 
@@ -266,6 +303,12 @@ struct TapestryLoomBehavior {
     threadpool: Rc<ThreadPool>,
     runtime: Arc<Runtime>,
     open_documents: Rc<RefCell<HashSet<PathBuf>>>,
+}
+
+impl TapestryLoomBehavior {
+    fn allow_close(&self) -> bool {
+        true
+    }
 }
 
 enum Pane {
