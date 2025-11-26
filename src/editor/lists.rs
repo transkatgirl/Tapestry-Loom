@@ -416,8 +416,8 @@ fn render_horizontal_node_label(
                     label_button_response.on_hover_ui(|ui| render_node_metadata_tooltip(ui, node));
             }
 
-            if label_button_response.clicked() {
-                weave.set_node_active_status(&Ulid(node.id), !node.active);
+            if label_button_response.clicked() && !node.active {
+                weave.set_node_active_status(&Ulid(node.id), true);
                 state.cursor_node = Some(Ulid(node.id));
             }
 
@@ -440,8 +440,8 @@ fn render_horizontal_node_label(
         })
         .response;
 
-    if response.clicked() {
-        weave.set_node_active_status(&Ulid(node.id), !node.active);
+    if response.clicked() && !node.active {
+        weave.set_node_active_status(&Ulid(node.id), true);
         state.cursor_node = Some(Ulid(node.id));
     }
 
