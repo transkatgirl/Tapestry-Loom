@@ -405,7 +405,7 @@ fn render_omitted_chidren_tree_node_label(
                     state.hovered_node = Some(first_child);
                 }
 
-                if label_button_response.clicked() && !node.active {
+                if label_button_response.clicked() {
                     weave.set_node_active_status(&Ulid(node.id), true);
                     state.cursor_node = Some(Ulid(node.id));
                 }
@@ -417,7 +417,7 @@ fn render_omitted_chidren_tree_node_label(
         })
         .response;
 
-    if response.clicked() && !node.active {
+    if response.clicked() {
         weave.set_node_active_status(&Ulid(node.id), true);
         state.cursor_node = Some(Ulid(node.id));
     }
@@ -502,7 +502,7 @@ fn render_horizontal_node_label(
                     state.hovered_node = Some(Ulid(node.id));
                 }
 
-                if label_button_response.clicked() && !node.active {
+                if label_button_response.clicked() {
                     weave.set_node_active_status(&Ulid(node.id), true);
                     state.cursor_node = Some(Ulid(node.id));
                 }
@@ -533,7 +533,7 @@ fn render_horizontal_node_label(
         context_menu(ui, settings, state, weave, node);
     });
 
-    if response.clicked() && !node.active {
+    if response.clicked() {
         weave.set_node_active_status(&Ulid(node.id), true);
         state.cursor_node = Some(Ulid(node.id));
     }
