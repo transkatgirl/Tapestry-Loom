@@ -173,13 +173,10 @@ impl TreeListView {
         _toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
-        // TODO: hoisting using cursor node
-        let roots: Vec<Ulid> = weave.get_roots().collect();
-
         if self.last_seen_cursor_node != state.cursor_node {
             if let Some(cursor_node) = state.cursor_node {
                 // FIXME
-                // This is a hack which currently works because the cursor node is currently always equal to the active note, but will likely break in the future.
+                // This is a hack which currently works because the cursor node is currently always equal to the active node, but will likely break in the future.
                 let active: Vec<Ulid> = weave
                     .get_active_thread()
                     .map(|node| Ulid(node.id))
@@ -192,6 +189,21 @@ impl TreeListView {
             }
             self.last_seen_cursor_node = state.cursor_node;
         }
+
+        let tree_roots: Vec<Ulid> = if let Some(cursor_node) =
+            state.cursor_node.and_then(|id| weave.get_node(&id))
+            && let Some(cursor_node_parent) =
+                cursor_node.from.and_then(|id| weave.get_node(&Ulid(id)))
+            && let Some(cursor_node_parent_parent) = cursor_node_parent.from
+        {
+            if !cursor_node.to.is_empty() {
+                vec![Ulid(cursor_node_parent_parent)]
+            } else {
+                vec![Ulid(cursor_node_parent.id)]
+            }
+        } else {
+            weave.get_roots().collect()
+        };
 
         ScrollArea::vertical()
             .auto_shrink(false)
@@ -206,7 +218,7 @@ impl TreeListView {
                             state,
                             ui,
                             state.identifier,
-                            roots,
+                            tree_roots,
                             settings.interface.max_tree_depth,
                         );
                     });
