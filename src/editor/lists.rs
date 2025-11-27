@@ -372,18 +372,22 @@ fn render_horizontal_node_label_buttons_rtl(
         weave.set_node_bookmarked_status(&Ulid(node.id), !node.bookmarked);
     };
     if ui.button("\u{E40C}").on_hover_text("Add node").clicked() {
-        weave.add_node(DependentNode {
-            id: Ulid::new().0,
+        let identifier = Ulid::new().0;
+        if weave.add_node(DependentNode {
+            id: identifier,
             from: Some(node.id),
             to: IndexSet::default(),
-            active: false,
+            active: node.active,
             bookmarked: false,
             contents: NodeContent {
                 content: InnerNodeContent::Snippet(vec![]),
                 metadata: IndexMap::new(),
                 model: None,
             },
-        });
+        }) && node.active
+        {
+            state.cursor_node = Some(Ulid(identifier));
+        }
     };
     if ui
         .button("\u{E5CE}")
@@ -594,33 +598,41 @@ fn render_node_context_menu(
     ui.separator();
 
     if ui.button("Create child").clicked() {
-        weave.add_node(DependentNode {
-            id: Ulid::new().0,
+        let identifier = Ulid::new().0;
+        if weave.add_node(DependentNode {
+            id: identifier,
             from: Some(node.id),
             to: IndexSet::default(),
-            active: false,
+            active: node.active,
             bookmarked: false,
             contents: NodeContent {
                 content: InnerNodeContent::Snippet(vec![]),
                 metadata: IndexMap::new(),
                 model: None,
             },
-        });
+        }) && node.active
+        {
+            state.cursor_node = Some(Ulid(identifier));
+        }
     }
 
     if ui.button("Create sibling").clicked() {
-        weave.add_node(DependentNode {
-            id: Ulid::new().0,
+        let identifier = Ulid::new().0;
+        if weave.add_node(DependentNode {
+            id: identifier,
             from: node.from,
             to: IndexSet::default(),
-            active: false,
+            active: node.active,
             bookmarked: false,
             contents: NodeContent {
                 content: InnerNodeContent::Snippet(vec![]),
                 metadata: IndexMap::new(),
                 model: None,
             },
-        });
+        }) && node.active
+        {
+            state.cursor_node = Some(Ulid(identifier));
+        }
     }
 
     if !node.to.is_empty() || node.from.is_some() {
@@ -686,33 +698,41 @@ fn render_node_tree_context_menu(
     ui.separator();
 
     if ui.button("Create child").clicked() {
-        weave.add_node(DependentNode {
-            id: Ulid::new().0,
+        let identifier = Ulid::new().0;
+        if weave.add_node(DependentNode {
+            id: identifier,
             from: Some(node.id),
             to: IndexSet::default(),
-            active: false,
+            active: node.active,
             bookmarked: false,
             contents: NodeContent {
                 content: InnerNodeContent::Snippet(vec![]),
                 metadata: IndexMap::new(),
                 model: None,
             },
-        });
+        }) && node.active
+        {
+            state.cursor_node = Some(Ulid(identifier));
+        }
     }
 
     if ui.button("Create sibling").clicked() {
-        weave.add_node(DependentNode {
-            id: Ulid::new().0,
+        let identifier = Ulid::new().0;
+        if weave.add_node(DependentNode {
+            id: identifier,
             from: node.from,
             to: IndexSet::default(),
-            active: false,
+            active: node.active,
             bookmarked: false,
             contents: NodeContent {
                 content: InnerNodeContent::Snippet(vec![]),
                 metadata: IndexMap::new(),
                 model: None,
             },
-        });
+        }) && node.active
+        {
+            state.cursor_node = Some(Ulid(identifier));
+        }
     }
 
     if !node.to.is_empty() || node.from.is_some() {
