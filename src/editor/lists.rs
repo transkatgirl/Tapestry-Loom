@@ -3,8 +3,8 @@
 use std::collections::HashSet;
 
 use eframe::egui::{
-    Align, Button, Color32, FontFamily, Frame, Layout, RichText, ScrollArea, Sense, Ui, UiBuilder,
-    collapsing_header::CollapsingState,
+    Align, Button, Color32, FontFamily, Frame, Id, Layout, RichText, ScrollArea, Sense, Ui,
+    UiBuilder, collapsing_header::CollapsingState,
 };
 use egui_notify::Toasts;
 use tapestry_weave::{
@@ -187,7 +187,10 @@ impl TreeListView {
             .get_active_thread()
             .map(|node| Ulid(node.id))
             .collect();
-        let opened_set = HashSet::from_iter(active.clone());
+        for item in active {
+            set_node_tree_item_open_status(ui, state.identifier, item, true);
+        }
+
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
@@ -202,7 +205,6 @@ impl TreeListView {
                             ui,
                             state.identifier,
                             roots,
-                            &opened_set,
                             settings.interface.max_tree_depth,
                         );
 
@@ -235,7 +237,6 @@ fn render_node_tree(
     ui: &mut Ui,
     editor_id: Ulid,
     items: impl IntoIterator<Item = Ulid>,
-    opened_items: &HashSet<Ulid>,
     max_depth: usize,
 ) {
     let indent_compensation = ui.spacing().icon_width + ui.spacing().icon_spacing;
@@ -259,7 +260,9 @@ fn render_node_tree(
                             );
                         },
                         |ui, settings, state, weave, node| {
-                            render_node_context_menu(ui, settings, state, weave, node);
+                            render_node_tree_context_menu(
+                                ui, settings, state, editor_id, weave, node,
+                            );
                         },
                         true,
                     );
@@ -269,13 +272,8 @@ fn render_node_tree(
             if node.to.is_empty() {
                 render_label(ui);
             } else {
-                let id = ui.make_persistent_id([editor_id.0, node.id, 0]);
-                let mut collapsing_state =
-                    CollapsingState::load_with_default_open(ui.ctx(), id, false);
-                if opened_items.contains(&Ulid(node.id)) {
-                    collapsing_state.set_open(true);
-                }
-                collapsing_state
+                let id = Id::new([editor_id.0, node.id, 0]);
+                CollapsingState::load_with_default_open(ui.ctx(), id, false)
                     .show_header(ui, |ui| {
                         render_label(ui);
                     })
@@ -288,7 +286,6 @@ fn render_node_tree(
                                 ui,
                                 editor_id,
                                 node.to.into_iter().map(Ulid),
-                                opened_items,
                                 max_depth - 1,
                             );
                         } else {
@@ -307,6 +304,13 @@ fn render_node_tree(
             }
         }
     }
+}
+
+fn set_node_tree_item_open_status(ui: &mut Ui, editor_id: Ulid, item_id: Ulid, status: bool) {
+    let id = Id::new([editor_id.0, item_id.0, 0]);
+    let mut collapsing_state = CollapsingState::load_with_default_open(ui.ctx(), id, false);
+    collapsing_state.set_open(status);
+    collapsing_state.store(ui.ctx());
 }
 
 fn render_horizontal_node_label_buttons_rtl(
@@ -588,10 +592,112 @@ fn render_node_context_menu(
         ui.separator();
     }
 
-    if !node.to.is_empty() {
-        // TODO: Collapse all children, expand all children
+    if !node.to.is_empty() && ui.button("Delete all children").clicked() {
+        for child in node.to.iter().copied() {
+            weave.remove_node(&Ulid(child));
+        }
+    }
 
-        //ui.separator();
+    if node.from.is_some() {
+        if ui.button("Delete all siblings").clicked() {
+            let parent = weave.get_node(&Ulid(node.from.unwrap()));
+            let siblings: Vec<Ulid> = parent
+                .iter()
+                .flat_map(|parent| parent.to.iter().copied().filter(|id| *id != node.id))
+                .map(Ulid)
+                .collect();
+
+            for child in siblings {
+                weave.remove_node(&child);
+            }
+        }
+
+        if weave.is_mergeable_with_parent(&Ulid(node.id))
+            && ui.button("Merge with parent").clicked()
+        {
+            ui.separator();
+            weave.merge_with_parent(&Ulid(node.id));
+        }
+    }
+
+    ui.separator();
+
+    if ui.button("Delete").clicked() {
+        weave.remove_node(&Ulid(node.id));
+    }
+}
+
+fn render_node_tree_context_menu(
+    ui: &mut Ui,
+    settings: &Settings,
+    state: &mut SharedState,
+    editor_id: Ulid,
+    weave: &mut TapestryWeave,
+    node: &DependentNode<NodeContent>,
+) {
+    if ui.button("Generate completions").clicked() {
+        state.generate_children(weave, Some(Ulid(node.id)), settings);
+    }
+
+    let bookmark_label = if node.bookmarked {
+        "Remove bookmark"
+    } else {
+        "Bookmark"
+    };
+    if ui.button(bookmark_label).clicked() {
+        weave.set_node_bookmarked_status(&Ulid(node.id), !node.bookmarked);
+    }
+
+    ui.separator();
+
+    if ui.button("Create child").clicked() {
+        weave.add_node(DependentNode {
+            id: Ulid::new().0,
+            from: Some(node.id),
+            to: IndexSet::default(),
+            active: false,
+            bookmarked: false,
+            contents: NodeContent {
+                content: InnerNodeContent::Snippet(vec![]),
+                metadata: IndexMap::new(),
+                model: None,
+            },
+        });
+    }
+
+    if ui.button("Create sibling").clicked() {
+        weave.add_node(DependentNode {
+            id: Ulid::new().0,
+            from: node.from,
+            to: IndexSet::default(),
+            active: false,
+            bookmarked: false,
+            contents: NodeContent {
+                content: InnerNodeContent::Snippet(vec![]),
+                metadata: IndexMap::new(),
+                model: None,
+            },
+        });
+    }
+
+    if !node.to.is_empty() || node.from.is_some() {
+        ui.separator();
+    }
+
+    if !node.to.is_empty() {
+        if ui.button("Collapse all children").clicked() {
+            for child in node.to.iter().copied() {
+                set_node_tree_item_open_status(ui, editor_id, Ulid(child), false);
+            }
+        }
+
+        if ui.button("Expand all children").clicked() {
+            for child in node.to.iter().copied() {
+                set_node_tree_item_open_status(ui, editor_id, Ulid(child), true);
+            }
+        }
+
+        ui.separator();
 
         if ui.button("Delete all children").clicked() {
             for child in node.to.iter().copied() {
