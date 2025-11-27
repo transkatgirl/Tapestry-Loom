@@ -238,10 +238,6 @@ fn render_node_tree(
     opened_items: &HashSet<Ulid>,
     max_depth: usize,
 ) {
-    if max_depth == 0 {
-        return;
-    }
-
     let indent_compensation = ui.spacing().icon_width + ui.spacing().icon_spacing;
 
     for item in items {
@@ -284,16 +280,27 @@ fn render_node_tree(
                         render_label(ui);
                     })
                     .body(|ui| {
-                        render_node_tree(
-                            weave,
-                            settings,
-                            state,
-                            ui,
-                            editor_id,
-                            node.to.into_iter().map(Ulid),
-                            opened_items,
-                            max_depth - 1,
-                        );
+                        if max_depth > 0 {
+                            render_node_tree(
+                                weave,
+                                settings,
+                                state,
+                                ui,
+                                editor_id,
+                                node.to.into_iter().map(Ulid),
+                                opened_items,
+                                max_depth - 1,
+                            );
+                        } else {
+                            let first_child = node.to.first().copied().map(Ulid).unwrap();
+                            render_omitted_chidren_tree_node_label(
+                                ui,
+                                state,
+                                weave,
+                                &node,
+                                first_child,
+                            );
+                        }
                     });
             }
         }
@@ -356,6 +363,60 @@ fn render_horizontal_node_label_buttons_rtl(
     {
         weave.merge_with_parent(&Ulid(node.id));
     };
+}
+
+fn render_omitted_chidren_tree_node_label(
+    ui: &mut Ui,
+    state: &mut SharedState,
+    weave: &mut TapestryWeave,
+    node: &DependentNode<NodeContent>,
+    first_child: Ulid,
+) {
+    let response = ui
+        .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+            let mut frame = Frame::new();
+
+            let is_hovered = state.last_hovered_node == Some(first_child);
+
+            if is_hovered {
+                frame = frame.fill(ui.style().visuals.widgets.hovered.weak_bg_fill);
+            }
+
+            frame.show(ui, |ui| {
+                let mut label =
+                    RichText::new("\u{E04A} Show more").family(FontFamily::Proportional);
+
+                if is_hovered {
+                    label = label.color(ui.style().visuals.widgets.hovered.text_color());
+                }
+
+                let label_button_response =
+                    ui.add(Button::new(label).frame(false).fill(Color32::TRANSPARENT));
+
+                if label_button_response.hovered() {
+                    state.hovered_node = Some(first_child);
+                }
+
+                if label_button_response.clicked() && !node.active {
+                    weave.set_node_active_status(&Ulid(node.id), true);
+                    state.cursor_node = Some(Ulid(node.id));
+                }
+
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    ui.add_space(0.0);
+                });
+            })
+        })
+        .response;
+
+    if response.clicked() && !node.active {
+        weave.set_node_active_status(&Ulid(node.id), true);
+        state.cursor_node = Some(Ulid(node.id));
+    }
+
+    if response.hovered() {
+        state.hovered_node = Some(first_child);
+    }
 }
 
 fn render_horizontal_node_label(
