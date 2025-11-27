@@ -78,7 +78,6 @@ impl TextEditorView {
 
         // TODO: Display node metadata on hover
         // TODO: Display node colors & node/token boundaries
-        // TODO: Update state.cursor_node based on textedit cursor position
 
         ScrollArea::vertical()
             .auto_shrink(false)
