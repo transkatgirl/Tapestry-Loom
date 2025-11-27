@@ -82,6 +82,12 @@ impl TextEditorView {
 
                 if textedit.response.changed() {
                     self.update_weave(weave);
+                    if let Some(active) = weave.get_active_thread().next().map(|node| Ulid(node.id))
+                    {
+                        state.cursor_node = Some(active);
+                    } else {
+                        state.cursor_node = None;
+                    }
                     //self.update_cache(weave, settings, ui.visuals().widgets.inactive.text_color());
                 }
 
