@@ -3,7 +3,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use eframe::egui::{Color32, ScrollArea, TextBuffer, TextEdit, TextStyle, Ui, text::CCursor};
+use eframe::egui::{Color32, Pos2, ScrollArea, TextBuffer, TextEdit, TextStyle, Ui, text::CCursor};
 use egui_notify::Toasts;
 use tapestry_weave::{
     ulid::Ulid,
@@ -24,6 +24,8 @@ pub struct TextEditorView {
     snippets: Vec<(usize, Ulid, Color32)>,
     last_seen_cursor_node: Option<Ulid>,
     last_text_edit_cursor: Option<CCursor>,
+    last_text_edit_hover: Option<Pos2>,
+    last_text_edit_hover_node: Option<Ulid>,
 }
 
 const SUBSTITUTION_CHAR: char = '␚';
@@ -38,6 +40,8 @@ impl Default for TextEditorView {
             snippets: Vec::with_capacity(65536),
             last_seen_cursor_node: None,
             last_text_edit_cursor: None,
+            last_text_edit_hover: None,
+            last_text_edit_hover_node: None,
         }
     }
 }
@@ -50,6 +54,8 @@ impl TextEditorView {
         self.snippets.clear();
         self.last_seen_cursor_node = None;
         self.last_text_edit_cursor = None;
+        self.last_text_edit_hover = None;
+        self.last_text_edit_hover_node = None;
     }
     pub fn render(
         &mut self,
@@ -96,7 +102,7 @@ impl TextEditorView {
                         state.cursor_node = None;
                     }*/
                     let position = textedit.cursor_range.map(|c| c.sorted_cursors()[0]);
-                    self.update_cursor(weave, state, position.map(|p| p.index));
+                    state.cursor_node = self.calculate_cursor(weave, position.map(|p| p.index));
                     self.last_text_edit_cursor = position;
 
                     self.update_snippet_cache(
@@ -108,14 +114,31 @@ impl TextEditorView {
                 } else {
                     let position = textedit.cursor_range.map(|c| c.sorted_cursors()[0]);
                     if position != self.last_text_edit_cursor {
-                        self.update_cursor(weave, state, position.map(|p| p.index));
+                        state.cursor_node = self.calculate_cursor(weave, position.map(|p| p.index));
                         self.last_text_edit_cursor = position;
                     }
                 }
 
-                if textedit.response.hovered() {
-                    // TODO: Calculate the "hover cursor"
-                    state.hovered_node = state.cursor_node;
+                let hover_position = textedit.response.hover_pos();
+
+                if hover_position != self.last_text_edit_hover {
+                    if let Some(hover_position) = hover_position.map(|p| {
+                        textedit
+                            .galley
+                            .cursor_from_pos(p - textedit.text_clip_rect.left_top())
+                            .index
+                    }) {
+                        self.last_text_edit_hover_node =
+                            self.calculate_cursor(weave, Some(hover_position));
+                    } else {
+                        self.last_text_edit_hover_node = None;
+                    }
+
+                    self.last_text_edit_hover = hover_position;
+                }
+
+                if let Some(hover_node) = self.last_text_edit_hover_node {
+                    state.hovered_node = Some(hover_node);
                 }
             });
     }
@@ -207,12 +230,13 @@ impl TextEditorView {
             }
         }
     }
-    fn update_cursor(
+    fn calculate_cursor(
         &mut self,
         weave: &mut TapestryWeave,
-        state: &mut SharedState,
         char_position: Option<usize>,
-    ) {
+    ) -> Option<Ulid> {
+        let mut cursor_node = None;
+
         if let Some(char_index) = char_position {
             let index = self.cached_text.byte_index_from_char_index(char_index);
 
@@ -221,17 +245,19 @@ impl TextEditorView {
             for (length, node, _) in &self.snippets {
                 offset += length;
                 if offset >= index {
-                    state.cursor_node = Some(*node);
+                    cursor_node = Some(*node);
                     if offset > index {
                         break;
                     }
                 }
             }
         } else if let Some(active) = weave.get_active_thread().next().map(|node| Ulid(node.id)) {
-            state.cursor_node = Some(active);
+            cursor_node = Some(active);
         } else {
-            state.cursor_node = None;
+            cursor_node = None;
         }
+
+        cursor_node
     }
     fn update_weave(&mut self, weave: &mut TapestryWeave) {
         self.byte_buffer.clear();
