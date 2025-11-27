@@ -3735,6 +3735,7 @@ dependencies = [
 name = "tapestry-weave"
 version = "0.0.0"
 dependencies = [
+ "contracts",
  "rkyv",
  "serde",
  "ulid",

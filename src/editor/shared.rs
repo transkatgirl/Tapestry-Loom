@@ -57,12 +57,21 @@ impl SharedState {
     }
 }
 
+#[cfg(debug_assertions)]
+pub fn should_render_node_metadata_tooltip(_node: &DependentNode<NodeContent>) -> bool {
+    true
+}
+
+#[cfg(not(debug_assertions))]
 pub fn should_render_node_metadata_tooltip(node: &DependentNode<NodeContent>) -> bool {
     !(node.contents.metadata.is_empty() && node.contents.model.is_none())
 }
 
 pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &DependentNode<NodeContent>) {
     ui.set_max_width(ui.spacing().tooltip_width);
+
+    #[cfg(debug_assertions)]
+    ui.label(Ulid(node.id).to_string());
 
     if let Some(model) = &node.contents.model {
         if let Some(color) = model
