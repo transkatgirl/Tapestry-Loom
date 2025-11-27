@@ -454,6 +454,7 @@ fn render_horizontal_node_label(
             let mut frame = Frame::new();
 
             let is_hovered = state.last_hovered_node == Some(Ulid(node.id));
+            let is_cursor = state.cursor_node == Some(Ulid(node.id));
 
             if is_hovered {
                 frame = frame.fill(ui.style().visuals.widgets.hovered.weak_bg_fill);
@@ -481,7 +482,7 @@ fn render_horizontal_node_label(
                     Button::new(label).fill(Color32::TRANSPARENT)
                 };
 
-                if is_hovered {
+                if is_hovered || is_cursor {
                     label_button =
                         label_button.stroke(ui.style().visuals.widgets.hovered.bg_stroke);
                 }
