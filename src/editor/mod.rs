@@ -200,8 +200,8 @@ impl Editor {
                                     Some(Ok(weave)) => {
                                         let mut weave = weave.into_latest();
 
-                                        if weave.capacity() < 16384 {
-                                            weave.reserve(16384 - weave.capacity());
+                                        if weave.capacity() < 65536 {
+                                            weave.reserve(65536 - weave.capacity());
                                         }
 
                                         *weave_dest = Some(weave);
@@ -212,7 +212,7 @@ impl Editor {
                                         ));
                                         *path = None;
                                         *weave_dest = Some(TapestryWeave::with_capacity(
-                                            16384,
+                                            65536,
                                             IndexMap::default(),
                                         ));
                                     }
@@ -221,7 +221,7 @@ impl Editor {
                                             error_sender.send("Invalid weave header".to_string());
                                         *path = None;
                                         *weave_dest = Some(TapestryWeave::with_capacity(
-                                            16384,
+                                            65536,
                                             IndexMap::default(),
                                         ));
                                     }
@@ -231,14 +231,14 @@ impl Editor {
                                         error_sender.send(format!("Filesystem error: {error:?}"));
                                     *path = None;
                                     *weave_dest = Some(TapestryWeave::with_capacity(
-                                        16384,
+                                        65536,
                                         IndexMap::default(),
                                     ));
                                 }
                             }
                         } else {
                             *weave_dest =
-                                Some(TapestryWeave::with_capacity(16384, IndexMap::default()));
+                                Some(TapestryWeave::with_capacity(65536, IndexMap::default()));
                         }
                     });
                     barrier.wait();
