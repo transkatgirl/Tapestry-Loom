@@ -113,7 +113,10 @@ impl TextEditorView {
                 } else {
                     let position = textedit.cursor_range.map(|c| c.sorted_cursors()[0]);
                     if position != self.last_text_edit_cursor {
-                        state.cursor_node = self.calculate_cursor(weave, position.map(|p| p.index));
+                        if position.is_some() {
+                            state.cursor_node =
+                                self.calculate_cursor(weave, position.map(|p| p.index));
+                        }
                         self.last_text_edit_cursor = position;
                     }
                 }
