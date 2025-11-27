@@ -67,6 +67,10 @@ impl TextEditorView {
             ui.fonts_mut(|f| f.layout_job(layout_job))
         };*/
 
+        // TODO: Display node metadata on hover
+        // TODO: Display node colors & node/token boundaries
+        // TODO: Update state.cursor_node based on textedit cursor position
+
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
