@@ -292,14 +292,16 @@ fn render_node_tree(
                                 max_depth - 1,
                             );
                         } else {
-                            let first_child = node.to.first().copied().map(Ulid).unwrap();
-                            render_omitted_chidren_tree_node_label(
-                                ui,
-                                state,
-                                weave,
-                                &node,
-                                first_child,
-                            );
+                            ui.horizontal(|ui| {
+                                let first_child = node.to.first().copied().map(Ulid).unwrap();
+                                render_omitted_chidren_tree_node_label(
+                                    ui,
+                                    state,
+                                    weave,
+                                    &node,
+                                    first_child,
+                                );
+                            });
                         }
                     });
             }
