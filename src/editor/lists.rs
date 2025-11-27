@@ -156,22 +156,14 @@ impl BookmarkListView {
     }
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct TreeListView {
-    opened_set: HashSet<Ulid>,
-}
-
-impl Default for TreeListView {
-    fn default() -> Self {
-        Self {
-            opened_set: HashSet::with_capacity(1024),
-        }
-    }
+    last_seen_cursor_node: Option<Ulid>,
 }
 
 impl TreeListView {
     /*pub fn reset(&mut self) {
-        self.opened_set.clear();
+        self.last_seen_cursor_node = None;
     }*/
     pub fn render(
         &mut self,
@@ -181,14 +173,24 @@ impl TreeListView {
         _toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
-        // TODO: hoisting using cursor node, improve collapsing handling
+        // TODO: hoisting using cursor node
         let roots: Vec<Ulid> = weave.get_roots().collect();
-        let active: Vec<Ulid> = weave
-            .get_active_thread()
-            .map(|node| Ulid(node.id))
-            .collect();
-        for item in active {
-            set_node_tree_item_open_status(ui, state.identifier, item, true);
+
+        if self.last_seen_cursor_node != state.cursor_node {
+            if let Some(cursor_node) = state.cursor_node {
+                // FIXME
+                // This is a hack which currently works because the cursor node is currently always equal to the active note, but will likely break in the future.
+                let active: Vec<Ulid> = weave
+                    .get_active_thread()
+                    .map(|node| Ulid(node.id))
+                    .collect();
+                assert_eq!(cursor_node, active.first().cloned().unwrap());
+
+                for item in active {
+                    set_node_tree_item_open_status(ui, state.identifier, item, true);
+                }
+            }
+            self.last_seen_cursor_node = state.cursor_node;
         }
 
         ScrollArea::vertical()
@@ -207,26 +209,8 @@ impl TreeListView {
                             roots,
                             settings.interface.max_tree_depth,
                         );
-
-                        /*if ui.button("test").clicked() {
-                            weave.add_node(DependentNode {
-                                id: Ulid::new().0,
-                                from: None,
-                                to: IndexSet::default(),
-                                active: false,
-                                bookmarked: false,
-                                contents: NodeContent {
-                                    content: InnerNodeContent::Snippet(
-                                        Ulid::new().to_string().as_bytes().to_vec(),
-                                    ),
-                                    metadata: IndexMap::new(),
-                                    model: None,
-                                },
-                            });
-                        }*/
                     });
             });
-        self.opened_set.clear();
     }
 }
 
