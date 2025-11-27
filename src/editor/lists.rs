@@ -1,7 +1,5 @@
 #![allow(clippy::too_many_arguments)]
 
-use std::collections::HashSet;
-
 use eframe::egui::{
     Align, Button, Color32, FontFamily, Frame, Id, Layout, RichText, ScrollArea, Sense, Ui,
     UiBuilder, collapsing_header::CollapsingState,
@@ -10,6 +8,7 @@ use egui_notify::Toasts;
 use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{
+        Weave,
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
@@ -25,8 +24,6 @@ use crate::{
     settings::Settings,
 };
 
-// TODO: finish TreeListView
-
 #[derive(Default, Debug)]
 pub struct ListView {}
 
@@ -40,25 +37,25 @@ impl ListView {
         _toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
-        let items = weave
-            .get_active_thread()
-            .next()
-            .map(|node| node.to.iter().cloned().map(Ulid).collect::<Vec<Ulid>>())
-            .unwrap_or_else(|| weave.get_roots().collect());
-
-        let row_height = ui.spacing().interact_size.y;
-        ScrollArea::vertical()
-            .auto_shrink(false)
-            .animated(false)
-            .show_rows(ui, row_height, items.len(), |ui, range| {
-                Frame::new()
-                    .outer_margin(listing_margin(ui))
-                    .show(ui, |ui| {
-                        for item in &items[range] {
-                            self.render_item(weave, settings, state, ui, item);
-                        }
-                    });
-            });
+        if let Some(items) = state.cursor_node.and_then(|id| {
+            weave
+                .get_node(&id)
+                .map(|node| node.to.iter().cloned().map(Ulid).collect::<Vec<Ulid>>())
+        }) {
+            let row_height = ui.spacing().interact_size.y;
+            ScrollArea::vertical()
+                .auto_shrink(false)
+                .animated(false)
+                .show_rows(ui, row_height, items.len(), |ui, range| {
+                    Frame::new()
+                        .outer_margin(listing_margin(ui))
+                        .show(ui, |ui| {
+                            for item in &items[range] {
+                                self.render_item(weave, settings, state, ui, item);
+                            }
+                        });
+                });
+        }
     }
     fn render_item(
         &mut self,
@@ -175,13 +172,12 @@ impl TreeListView {
     ) {
         if self.last_seen_cursor_node != state.cursor_node {
             if let Some(cursor_node) = state.cursor_node {
-                // FIXME
-                // This is a hack which currently works because the cursor node is currently always equal to the active node, but will likely break in the future.
-                let active: Vec<Ulid> = weave
-                    .get_active_thread()
-                    .map(|node| Ulid(node.id))
-                    .collect();
-                assert_eq!(cursor_node, active.first().cloned().unwrap());
+                let active = weave
+                    .weave
+                    .get_thread_from(&cursor_node.0)
+                    .iter()
+                    .copied()
+                    .map(Ulid);
 
                 for item in active {
                     set_node_tree_item_open_status(ui, state.identifier, item, true);
