@@ -100,20 +100,30 @@ impl BookmarkListView {
         _toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
-        let items: Vec<Ulid> = weave.get_bookmarks().collect();
         let row_height = ui.spacing().interact_size.y;
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
-            .show_rows(ui, row_height, items.len(), |ui, range| {
-                Frame::new()
-                    .outer_margin(listing_margin(ui))
-                    .show(ui, |ui| {
-                        for item in &items[range] {
-                            self.render_bookmark(weave, settings, state, ui, item);
-                        }
-                    });
-            });
+            .show_rows(
+                ui,
+                row_height,
+                weave.weave.get_bookmarks().len(),
+                |ui, range| {
+                    Frame::new()
+                        .outer_margin(listing_margin(ui))
+                        .show(ui, |ui| {
+                            let items: Vec<Ulid> = weave.weave.get_bookmarks()[range]
+                                .iter()
+                                .copied()
+                                .map(Ulid)
+                                .collect();
+
+                            for item in items {
+                                self.render_bookmark(weave, settings, state, ui, &item);
+                            }
+                        });
+                },
+            );
     }
     fn render_bookmark(
         &mut self,
