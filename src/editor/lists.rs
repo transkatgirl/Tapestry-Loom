@@ -37,12 +37,13 @@ impl ListView {
         _toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
+        let row_height = ui.spacing().interact_size.y;
+
         if let Some(items) = state.cursor_node.and_then(|id| {
             weave
                 .get_node(&id)
                 .map(|node| node.to.iter().cloned().map(Ulid).collect::<Vec<Ulid>>())
         }) {
-            let row_height = ui.spacing().interact_size.y;
             ScrollArea::vertical()
                 .auto_shrink(false)
                 .animated(false)
@@ -60,7 +61,6 @@ impl ListView {
             .map(|id| weave.contains(&id))
             .unwrap_or(false))
         {
-            let row_height = ui.spacing().interact_size.y;
             ScrollArea::vertical()
                 .auto_shrink(false)
                 .animated(false)
