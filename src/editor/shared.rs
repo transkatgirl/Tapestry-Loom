@@ -4,7 +4,7 @@ use eframe::egui::{Color32, Rgba, Ui};
 use egui_notify::Toasts;
 use tapestry_weave::{
     ulid::Ulid,
-    universal_weave::dependent::DependentNode,
+    universal_weave::{dependent::DependentNode, indexmap::IndexMap},
     v0::{NodeContent, TapestryWeave},
 };
 use tokio::runtime::Runtime;
@@ -92,7 +92,7 @@ pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &DependentNode<NodeConten
 
 pub fn get_token_color(
     node_color: Option<Color32>,
-    token_metadata: HashMap<String, String>,
+    token_metadata: &IndexMap<String, String>,
     settings: &Settings,
 ) -> Option<Color32> {
     if let Some(color) = node_color {
