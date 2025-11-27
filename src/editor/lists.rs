@@ -518,6 +518,10 @@ fn render_horizontal_node_label(
         })
         .response;
 
+    response.context_menu(|ui| {
+        context_menu(ui, settings, state, weave, node);
+    });
+
     if response.clicked() && !node.active {
         weave.set_node_active_status(&Ulid(node.id), true);
         state.cursor_node = Some(Ulid(node.id));
