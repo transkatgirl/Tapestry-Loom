@@ -37,54 +37,25 @@ impl ListView {
         _toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
-        let row_height = ui.spacing().interact_size.y;
+        let items: Vec<Ulid> =
+            if let Some(cursor_node) = state.cursor_node.and_then(|id| weave.get_node(&id)) {
+                cursor_node.to.iter().cloned().map(Ulid).collect()
+            } else {
+                weave.weave.get_roots().iter().copied().map(Ulid).collect()
+            };
 
-        if let Some(items) = state.cursor_node.and_then(|id| {
-            weave
-                .get_node(&id)
-                .map(|node| node.to.iter().cloned().map(Ulid).collect::<Vec<Ulid>>())
-        }) {
-            ScrollArea::vertical()
-                .auto_shrink(false)
-                .animated(false)
-                .show_rows(ui, row_height, items.len(), |ui, range| {
-                    Frame::new()
-                        .outer_margin(listing_margin(ui))
-                        .show(ui, |ui| {
-                            for item in &items[range] {
-                                self.render_item(weave, settings, state, ui, item);
-                            }
-                        });
-                });
-        } else if !(state
-            .cursor_node
-            .map(|id| weave.contains(&id))
-            .unwrap_or(false))
-        {
-            ScrollArea::vertical()
-                .auto_shrink(false)
-                .animated(false)
-                .show_rows(
-                    ui,
-                    row_height,
-                    weave.weave.get_roots().len(),
-                    |ui, range| {
-                        Frame::new()
-                            .outer_margin(listing_margin(ui))
-                            .show(ui, |ui| {
-                                let items: Vec<Ulid> = weave.weave.get_roots()[range]
-                                    .iter()
-                                    .copied()
-                                    .map(Ulid)
-                                    .collect();
-
-                                for item in items {
-                                    self.render_item(weave, settings, state, ui, &item);
-                                }
-                            });
-                    },
-                );
-        }
+        ScrollArea::vertical()
+            .auto_shrink(false)
+            .animated(false)
+            .show(ui, |ui| {
+                Frame::new()
+                    .outer_margin(listing_margin(ui))
+                    .show(ui, |ui| {
+                        for item in items {
+                            self.render_item(weave, settings, state, ui, &item);
+                        }
+                    });
+            });
     }
     fn render_item(
         &mut self,
@@ -129,30 +100,26 @@ impl BookmarkListView {
         _toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
-        let row_height = ui.spacing().interact_size.y;
+        let items: Vec<Ulid> = weave
+            .weave
+            .get_bookmarks()
+            .iter()
+            .copied()
+            .map(Ulid)
+            .collect();
+
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
-            .show_rows(
-                ui,
-                row_height,
-                weave.weave.get_bookmarks().len(),
-                |ui, range| {
-                    Frame::new()
-                        .outer_margin(listing_margin(ui))
-                        .show(ui, |ui| {
-                            let items: Vec<Ulid> = weave.weave.get_bookmarks()[range]
-                                .iter()
-                                .copied()
-                                .map(Ulid)
-                                .collect();
-
-                            for item in items {
-                                self.render_bookmark(weave, settings, state, ui, &item);
-                            }
-                        });
-                },
-            );
+            .show(ui, |ui| {
+                Frame::new()
+                    .outer_margin(listing_margin(ui))
+                    .show(ui, |ui| {
+                        for item in items {
+                            self.render_bookmark(weave, settings, state, ui, &item);
+                        }
+                    });
+            });
     }
     fn render_bookmark(
         &mut self,
