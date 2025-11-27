@@ -382,61 +382,80 @@ fn render_horizontal_node_label(
 ) {
     let response = ui
         .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
-            let mut label = RichText::new(String::from_utf8_lossy(
-                &node.contents.content.as_bytes().to_vec(),
-            ))
-            .family(FontFamily::Monospace);
-            let label_color = get_node_color(node, settings);
+            let mut frame = Frame::new();
 
-            let label_button = if node.active {
-                if let Some(label_color) = label_color {
-                    Button::new(label).fill(label_color).selected(true)
+            let is_hovered = state.last_hovered_node == Some(Ulid(node.id));
+
+            if is_hovered {
+                frame = frame.fill(ui.style().visuals.widgets.hovered.weak_bg_fill);
+            }
+
+            frame.show(ui, |ui| {
+                let mut label = RichText::new(String::from_utf8_lossy(
+                    &node.contents.content.as_bytes().to_vec(),
+                ))
+                .family(FontFamily::Monospace);
+                let label_color = get_node_color(node, settings);
+
+                let mut label_button = if node.active {
+                    if let Some(label_color) = label_color {
+                        Button::new(label).fill(label_color).selected(true)
+                    } else {
+                        Button::new(label).selected(true)
+                    }
                 } else {
-                    Button::new(label).selected(true)
-                }
-            } else {
-                if let Some(label_color) = label_color {
-                    label = label.color(label_color);
+                    if let Some(label_color) = label_color {
+                        label = label.color(label_color);
+                    } else if is_hovered {
+                        label = label.color(ui.style().visuals.widgets.hovered.text_color());
+                    }
+                    Button::new(label).fill(Color32::TRANSPARENT)
                 };
-                Button::new(label).fill(Color32::TRANSPARENT)
-            };
 
-            if state.last_hovered_node == Some(Ulid(node.id)) {
-                // TODO
-            }
+                if is_hovered {
+                    label_button =
+                        label_button.stroke(ui.style().visuals.widgets.hovered.bg_stroke);
+                }
 
-            let mut label_button_response = ui.add(label_button);
+                let mut label_button_response = ui.add(label_button);
 
-            label_button_response.context_menu(|ui| {
-                context_menu(ui, settings, state, weave, node);
-            });
-
-            if should_render_node_metadata_tooltip(node) {
-                label_button_response =
-                    label_button_response.on_hover_ui(|ui| render_node_metadata_tooltip(ui, node));
-            }
-
-            if label_button_response.clicked() && !node.active {
-                weave.set_node_active_status(&Ulid(node.id), true);
-                state.cursor_node = Some(Ulid(node.id));
-            }
-
-            if ui.rect_contains_pointer(ui.max_rect()) {
-                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
-                        ui.add_space(ui.spacing().icon_spacing);
-                        buttons(ui, settings, state, weave, node);
-                        ui.add_space(ui.spacing().icon_spacing);
-                    });
-                    ui.add_space(0.0);
+                label_button_response.context_menu(|ui| {
+                    context_menu(ui, settings, state, weave, node);
                 });
-            } else if node.bookmarked && show_bookmarks_icon {
+
+                if should_render_node_metadata_tooltip(node) {
+                    label_button_response = label_button_response
+                        .on_hover_ui(|ui| render_node_metadata_tooltip(ui, node));
+                }
+
+                if label_button_response.hovered() {
+                    state.hovered_node = Some(Ulid(node.id));
+                }
+
+                if label_button_response.clicked() && !node.active {
+                    weave.set_node_active_status(&Ulid(node.id), true);
+                    state.cursor_node = Some(Ulid(node.id));
+                }
+
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    ui.add_space(ui.spacing().icon_spacing);
-                    ui.label("\u{E060}");
-                    ui.add_space(ui.spacing().icon_spacing);
+                    if ui.rect_contains_pointer(ui.max_rect()) {
+                        ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                            ui.add_space(ui.spacing().icon_spacing);
+                            buttons(ui, settings, state, weave, node);
+                            ui.add_space(ui.spacing().icon_spacing);
+
+                            ui.add_space(0.0);
+                        });
+                        state.hovered_node = Some(Ulid(node.id));
+                    } else if node.bookmarked && show_bookmarks_icon {
+                        ui.add_space(ui.spacing().icon_spacing);
+                        ui.label("\u{E060}");
+                        ui.add_space(ui.spacing().icon_spacing);
+                    } else {
+                        ui.add_space(0.0);
+                    }
                 });
-            }
+            })
         })
         .response;
 

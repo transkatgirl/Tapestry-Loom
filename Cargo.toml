@@ -13,8 +13,15 @@ tapestry-weave = { path = "universal-weave/tapestry-weave", features = [
 	"serde",
 ] }
 eframe = { version = "0.33.2", features = [
+	"accesskit",
 	"persistence",
 ] }
+#egui = { version = "*", features = [
+#	"accesskit",
+#	"bytemuck",
+#	"persistence",
+#	"rayon",
+#] }
 env_logger = { version = "0.11.8", features = [
 	"auto-color",
 	"humantime",
@@ -69,4 +76,4 @@ ctrlc = "3.5.1"
 #egui_alignments = "0.3.4"
 
 [profile.dev]
-opt-level = 2
+opt-level = 3
