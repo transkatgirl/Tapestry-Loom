@@ -560,7 +560,7 @@ impl Behavior<Pane> for EditorTilingBehavior {
             Pane::TreeList => WidgetText::Text("\u{E408} Tree".to_string()),
             Pane::List => WidgetText::Text("\u{E106} List".to_string()),
             Pane::BookmarkList => WidgetText::Text("\u{E060} Bookmarks".to_string()),
-            Pane::TextEdit => WidgetText::Text("\u{E265} Text Editor".to_string()),
+            Pane::TextEdit => WidgetText::Text("\u{E265} Editor".to_string()),
             Pane::Menu => WidgetText::Text("\u{E1B1} Menu".to_string()),
         }
     }

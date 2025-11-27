@@ -55,6 +55,35 @@ impl ListView {
                             }
                         });
                 });
+        } else if !(state
+            .cursor_node
+            .map(|id| weave.contains(&id))
+            .unwrap_or(false))
+        {
+            let row_height = ui.spacing().interact_size.y;
+            ScrollArea::vertical()
+                .auto_shrink(false)
+                .animated(false)
+                .show_rows(
+                    ui,
+                    row_height,
+                    weave.weave.get_roots().len(),
+                    |ui, range| {
+                        Frame::new()
+                            .outer_margin(listing_margin(ui))
+                            .show(ui, |ui| {
+                                let items: Vec<Ulid> = weave.weave.get_roots()[range]
+                                    .iter()
+                                    .copied()
+                                    .map(Ulid)
+                                    .collect();
+
+                                for item in items {
+                                    self.render_item(weave, settings, state, ui, &item);
+                                }
+                            });
+                    },
+                );
         }
     }
     fn render_item(
