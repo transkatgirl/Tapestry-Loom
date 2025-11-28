@@ -27,9 +27,10 @@ pub struct TextEditorView {
     byte_buffer: Vec<u8>,
     snippets: Rc<RefCell<Vec<Snippet>>>,
     last_seen_cursor_node: Option<Ulid>,
+    last_seen_hovered_node: Option<Ulid>,
     last_text_edit_cursor: Option<CCursor>,
     last_text_edit_hover: Option<Pos2>,
-    last_text_edit_hover_node: Option<(Ulid, usize)>,
+    last_text_edit_highlighting_hover: HighlightingHover,
 }
 
 type Snippet = (usize, Ulid, Color32);
@@ -45,9 +46,10 @@ impl Default for TextEditorView {
             byte_buffer: Vec::with_capacity(262144),
             snippets: Rc::new(RefCell::new(Vec::with_capacity(65536))),
             last_seen_cursor_node: None,
+            last_seen_hovered_node: None,
             last_text_edit_cursor: None,
             last_text_edit_hover: None,
-            last_text_edit_hover_node: None,
+            last_text_edit_highlighting_hover: HighlightingHover::None,
         }
     }
 }
@@ -59,9 +61,10 @@ impl TextEditorView {
         self.byte_buffer.clear();
         self.snippets.borrow_mut().clear();
         self.last_seen_cursor_node = None;
+        self.last_seen_hovered_node = None;
         self.last_text_edit_cursor = None;
         self.last_text_edit_hover = None;
-        self.last_text_edit_hover_node = None;
+        self.last_text_edit_highlighting_hover = HighlightingHover::None;
     }
     pub fn render(
         &mut self,
@@ -77,7 +80,7 @@ impl TextEditorView {
         }
 
         let snippets = self.snippets.clone();
-        let last_hover = self.last_text_edit_hover_node;
+        let last_hover = self.last_text_edit_highlighting_hover;
 
         let mut layouter = |ui: &Ui, buf: &dyn TextBuffer, wrap_width: f32| {
             let default_color = ui.visuals().widgets.inactive.text_color();
@@ -164,18 +167,30 @@ impl TextEditorView {
                             .cursor_from_pos(p - textedit.text_clip_rect.left_top())
                             .index
                     }) {
-                        self.last_text_edit_hover_node =
-                            self.calculate_cursor(weave, Some(hover_position));
+                        self.last_text_edit_highlighting_hover = self
+                            .calculate_cursor(weave, Some(hover_position))
+                            .map(|(id, i)| HighlightingHover::Position((id, i)))
+                            .unwrap_or(HighlightingHover::None);
                     } else {
-                        self.last_text_edit_hover_node = None;
+                        self.last_text_edit_highlighting_hover = HighlightingHover::None;
                     }
 
                     self.last_text_edit_hover = hover_position;
                 }
 
-                if let Some((hover_node, hover_index)) = self.last_text_edit_hover_node {
+                if let HighlightingHover::Position((hover_node, hover_index)) =
+                    self.last_text_edit_highlighting_hover
+                {
                     // TODO: Display node metadata on hover
                     state.hovered_node = Some(hover_node);
+                    self.last_seen_hovered_node = Some(hover_node);
+                } else if self.last_seen_hovered_node != state.hovered_node {
+                    //self.update_cache(weave, settings, ui.visuals().widgets.inactive.text_color());
+                    self.last_text_edit_highlighting_hover = state
+                        .hovered_node
+                        .map(HighlightingHover::Node)
+                        .unwrap_or(HighlightingHover::None);
+                    self.last_seen_hovered_node = state.hovered_node;
                 }
             });
     }
@@ -321,7 +336,7 @@ fn calculate_highlighting(
     snippets: &[Snippet],
     length: usize,
     default_color: Color32,
-    hover: Option<(Ulid, usize)>,
+    hover: HighlightingHover,
 ) -> Vec<LayoutSection> {
     let font_id = ui
         .style()
@@ -344,16 +359,19 @@ fn calculate_highlighting(
 
         let byte_range = (index - snippet_length)..index;
 
-        if let Some(hover) = hover {
-            /*if hover.0 == node {
-                format.background = ui.style().visuals.widgets.hovered.weak_bg_fill;
-            }*/
-            if byte_range.contains(&hover.1) {
-                format.background = ui.style().visuals.widgets.hovered.weak_bg_fill;
+        match hover {
+            HighlightingHover::Position((_, hover_position)) => {
+                if byte_range.contains(&hover_position) {
+                    format.background = ui.style().visuals.widgets.hovered.weak_bg_fill;
+                }
             }
+            HighlightingHover::Node(hover_node) => {
+                if hover_node == node {
+                    format.background = ui.style().visuals.widgets.hovered.weak_bg_fill;
+                }
+            }
+            HighlightingHover::None => {}
         }
-
-        // TODO: Display hovered node/token
 
         sections.push(LayoutSection {
             leading_space: 0.0,
@@ -371,4 +389,11 @@ fn calculate_highlighting(
     }
 
     sections
+}
+
+#[derive(Debug, Clone, Copy)]
+enum HighlightingHover {
+    Position((Ulid, usize)),
+    Node(Ulid),
+    None,
 }
