@@ -32,7 +32,7 @@ pub struct TextEditorView {
     last_text_edit_hover_node: Option<(Ulid, usize)>,
 }
 
-type Snippet = (usize, Ulid, usize, Color32);
+type Snippet = (usize, Ulid, Color32);
 
 const SUBSTITUTION_CHAR: char = '␚';
 const SUBSTITUTION_BYTE: u8 = "␚".as_bytes()[0];
@@ -114,6 +114,8 @@ impl TextEditorView {
                     .layouter(&mut layouter)
                     .show(ui);
 
+                // TODO: Node boundary highlighting using textedit.galley
+
                 if textedit.response.changed() {
                     self.update_weave(weave);
                     /*if let Some(active) = weave.get_active_thread().next().map(|node| Ulid(node.id))
@@ -171,7 +173,7 @@ impl TextEditorView {
                     self.last_text_edit_hover = hover_position;
                 }
 
-                if let Some((hover_node, hover_node_index)) = self.last_text_edit_hover_node {
+                if let Some((hover_node, hover_index)) = self.last_text_edit_hover_node {
                     // TODO: Display node metadata on hover
                     state.hovered_node = Some(hover_node);
                 }
@@ -200,26 +202,17 @@ impl TextEditorView {
             match &node.contents.content {
                 InnerNodeContent::Snippet(snippet) => {
                     self.cached_bytes.extend_from_slice(snippet);
-                    snippets.push((
-                        snippet.len(),
-                        Ulid(node.id),
-                        0,
-                        color.unwrap_or(default_color),
-                    ));
+                    snippets.push((snippet.len(), Ulid(node.id), color.unwrap_or(default_color)));
                 }
                 InnerNodeContent::Tokens(tokens) => {
-                    let mut node_offset = 0;
-
                     for (token, token_metadata) in tokens {
                         self.cached_bytes.extend_from_slice(token);
                         snippets.push((
                             token.len(),
                             Ulid(node.id),
-                            node_offset,
                             get_token_color(color, token_metadata, settings)
                                 .unwrap_or(default_color),
                         ));
-                        node_offset += token.len();
                     }
                 }
             }
@@ -253,25 +246,16 @@ impl TextEditorView {
 
             match &node.contents.content {
                 InnerNodeContent::Snippet(snippet) => {
-                    snippets.push((
-                        snippet.len(),
-                        Ulid(node.id),
-                        0,
-                        color.unwrap_or(default_color),
-                    ));
+                    snippets.push((snippet.len(), Ulid(node.id), color.unwrap_or(default_color)));
                 }
                 InnerNodeContent::Tokens(tokens) => {
-                    let mut node_offset = 0;
-
                     for (token, token_metadata) in tokens {
                         snippets.push((
                             token.len(),
                             Ulid(node.id),
-                            node_offset,
                             get_token_color(color, token_metadata, settings)
                                 .unwrap_or(default_color),
                         ));
-                        node_offset += token.len();
                     }
                 }
             }
@@ -289,17 +273,17 @@ impl TextEditorView {
 
             let mut offset = 0;
 
-            for (length, node, node_offset, _) in self.snippets.borrow().iter() {
+            for (length, node, _) in self.snippets.borrow().iter() {
                 offset += length;
                 if offset >= index {
-                    cursor_node = Some((*node, index - node_offset));
+                    cursor_node = Some((*node, index));
                     if offset > index {
                         break;
                     }
                 }
             }
         } else if let Some(active) = weave.get_active_thread().next().map(|node| Ulid(node.id)) {
-            cursor_node = Some((active, 0));
+            cursor_node = Some((active, self.cached_text.len()));
         } else {
             cursor_node = None;
         }
@@ -348,7 +332,7 @@ fn calculate_highlighting(
     let mut sections = Vec::with_capacity(snippets.len() + 1);
     let mut index = 0;
 
-    for (length, node, node_offset, color) in snippets.iter().copied() {
+    for (length, node, color) in snippets.iter().copied() {
         index += length;
 
         if index > length {
@@ -358,11 +342,22 @@ fn calculate_highlighting(
 
         let mut format = TextFormat::simple(font_id.clone(), color);
 
-        // TODO: Display node/token boundaries on hover
+        let byte_range = (index - length)..index;
+
+        if let Some(hover) = hover {
+            /*if hover.0 == node {
+                format.background = ui.style().visuals.widgets.hovered.weak_bg_fill;
+            }*/
+            if byte_range.contains(&hover.1) {
+                format.background = ui.style().visuals.widgets.hovered.weak_bg_fill;
+            }
+        }
+
+        // TODO: Display hovered node/token
 
         sections.push(LayoutSection {
             leading_space: 0.0,
-            byte_range: (index - length)..index,
+            byte_range,
             format,
         });
     }
