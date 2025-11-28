@@ -112,6 +112,17 @@ impl Settings {
                         ui.separator();
                         ui.heading("Inference");
                         self.inference.render(ui);
+
+                        #[cfg(debug_assertions)]
+                        {
+                            ui.separator();
+                            ui.collapsing("Debug", |ui| {
+                                ui.ctx().clone().settings_ui(ui);
+                                //ui.ctx().clone().inspection_ui(ui);
+                                ui.ctx().clone().texture_ui(ui);
+                                ui.ctx().clone().memory_ui(ui);
+                            });
+                        }
                     });
             });
     }

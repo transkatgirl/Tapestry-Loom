@@ -66,9 +66,6 @@ impl SharedState {
 pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &DependentNode<NodeContent>) {
     ui.set_max_width(ui.spacing().tooltip_width);
 
-    /*#[cfg(debug_assertions)]
-    ui.label(Ulid(node.id).to_string());*/
-
     if let Some(model) = &node.contents.model {
         if let Some(color) = model
             .metadata
@@ -88,6 +85,9 @@ pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &DependentNode<NodeConten
     let datetime: DateTime<offset::Local> = DateTime::from(Ulid(node.id).datetime());
 
     ui.label(format!("{}", datetime.format("%x %r")));
+
+    #[cfg(debug_assertions)]
+    ui.label(Ulid(node.id).to_string());
 }
 
 pub fn render_token_metadata_tooltip(ui: &mut Ui, token_metadata: &IndexMap<String, String>) {
