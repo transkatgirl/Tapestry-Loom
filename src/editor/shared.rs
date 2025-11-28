@@ -36,6 +36,11 @@ impl SharedState {
     pub fn update(&mut self, weave: &mut TapestryWeave, settings: &Settings, toasts: &mut Toasts) {
         self.last_hovered_node = self.hovered_node;
         self.hovered_node = None;
+        if let Some(cursor_node) = self.cursor_node
+            && !weave.contains(&cursor_node)
+        {
+            self.cursor_node = None;
+        }
         if self.cursor_node.is_none()
             && let Some(active) = weave.get_active_thread().next().map(|node| Ulid(node.id))
         {
