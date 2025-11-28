@@ -1,9 +1,9 @@
-use std::{
-    ops::Range,
-    time::{Duration, SystemTime},
-};
+use std::time::{Duration, SystemTime};
 
-use eframe::egui::{Color32, Pos2, ScrollArea, TextBuffer, TextEdit, TextStyle, Ui, text::CCursor};
+use eframe::egui::{
+    Color32, Pos2, ScrollArea, TextBuffer, TextEdit, TextFormat, TextStyle, Ui,
+    text::{CCursor, LayoutJob, LayoutSection, TextWrapping},
+};
 use egui_notify::Toasts;
 use tapestry_weave::{
     ulid::Ulid,
@@ -26,6 +26,7 @@ pub struct TextEditorView {
     last_text_edit_cursor: Option<CCursor>,
     last_text_edit_hover: Option<Pos2>,
     last_text_edit_hover_node: Option<Ulid>,
+    last_text_edit_hover_node_index: Option<usize>,
 }
 
 const SUBSTITUTION_CHAR: char = '␚';
@@ -42,6 +43,7 @@ impl Default for TextEditorView {
             last_text_edit_cursor: None,
             last_text_edit_hover: None,
             last_text_edit_hover_node: None,
+            last_text_edit_hover_node_index: None,
         }
     }
 }
@@ -56,6 +58,7 @@ impl TextEditorView {
         self.last_text_edit_cursor = None;
         self.last_text_edit_hover = None;
         self.last_text_edit_hover_node = None;
+        self.last_text_edit_hover_node_index = None;
     }
     pub fn render(
         &mut self,
@@ -70,14 +73,32 @@ impl TextEditorView {
             self.last_seen_cursor_node = state.cursor_node;
         }
 
-        /*let mut layouter = |ui: &Ui, buf: &dyn TextBuffer, wrap_width: f32| {
-            let mut layout_job: egui::text::LayoutJob = my_memoized_highlighter(buf.as_str());
-            layout_job.wrap.max_width = wrap_width;
-            ui.fonts_mut(|f| f.layout_job(layout_job))
-        };*/
+        let mut layouter = |ui: &Ui, buf: &dyn TextBuffer, wrap_width: f32| {
+            let font_id = ui
+                .style()
+                .override_font_id
+                .clone()
+                .unwrap_or_else(|| TextStyle::Monospace.resolve(ui.style()));
+            let text_color = ui.visuals().widgets.inactive.text_color();
 
-        // TODO: Display node metadata on hover
-        // TODO: Display node colors & node/token boundaries
+            // TODO: Display node colors & node/token boundaries
+
+            let layout_job = LayoutJob {
+                sections: vec![LayoutSection {
+                    leading_space: 0.0,
+                    byte_range: 0..buf.as_str().len(),
+                    format: TextFormat::simple(font_id, text_color),
+                }],
+                text: buf.as_str().to_string(),
+                wrap: TextWrapping {
+                    max_width: wrap_width,
+                    ..Default::default()
+                },
+                break_on_newline: true,
+                ..Default::default()
+            };
+            ui.fonts_mut(|f| f.layout_job(layout_job))
+        };
 
         ScrollArea::vertical()
             .auto_shrink(false)
@@ -89,7 +110,7 @@ impl TextEditorView {
                     .min_size(ui.available_size())
                     .desired_width(ui.available_size().x)
                     .code_editor()
-                    //.layouter(&mut layouter)
+                    .layouter(&mut layouter)
                     .show(ui);
 
                 if textedit.response.changed() {
@@ -101,7 +122,12 @@ impl TextEditorView {
                         state.cursor_node = None;
                     }*/
                     let position = textedit.cursor_range.map(|c| c.sorted_cursors()[0]);
-                    state.cursor_node = self.calculate_cursor(weave, position.map(|p| p.index));
+                    if let Some((node, _)) = self.calculate_cursor(weave, position.map(|p| p.index))
+                    {
+                        state.cursor_node = Some(node);
+                    } else {
+                        state.cursor_node = None;
+                    }
                     self.last_text_edit_cursor = position;
 
                     self.update_snippet_cache(
@@ -114,8 +140,13 @@ impl TextEditorView {
                     let position = textedit.cursor_range.map(|c| c.sorted_cursors()[0]);
                     if position != self.last_text_edit_cursor {
                         if position.is_some() {
-                            state.cursor_node =
-                                self.calculate_cursor(weave, position.map(|p| p.index));
+                            if let Some((node, _)) =
+                                self.calculate_cursor(weave, position.map(|p| p.index))
+                            {
+                                state.cursor_node = Some(node);
+                            } else {
+                                state.cursor_node = None;
+                            }
                         }
                         self.last_text_edit_cursor = position;
                     }
@@ -130,16 +161,28 @@ impl TextEditorView {
                             .cursor_from_pos(p - textedit.text_clip_rect.left_top())
                             .index
                     }) {
-                        self.last_text_edit_hover_node =
-                            self.calculate_cursor(weave, Some(hover_position));
+                        if let Some((node, index)) =
+                            self.calculate_cursor(weave, Some(hover_position))
+                        {
+                            self.last_text_edit_hover_node = Some(node);
+                            self.last_text_edit_hover_node_index = Some(index);
+                        } else {
+                            self.last_text_edit_hover_node = None;
+                            self.last_text_edit_hover_node_index = None;
+                        }
                     } else {
                         self.last_text_edit_hover_node = None;
+                        self.last_text_edit_hover_node_index = None;
                     }
 
                     self.last_text_edit_hover = hover_position;
                 }
 
-                if let Some(hover_node) = self.last_text_edit_hover_node {
+                if let (Some(hover_node), Some(hover_node_index)) = (
+                    self.last_text_edit_hover_node,
+                    self.last_text_edit_hover_node_index,
+                ) {
+                    // TODO: Display node metadata on hover
                     state.hovered_node = Some(hover_node);
                 }
             });
@@ -236,7 +279,7 @@ impl TextEditorView {
         &mut self,
         weave: &mut TapestryWeave,
         char_position: Option<usize>,
-    ) -> Option<Ulid> {
+    ) -> Option<(Ulid, usize)> {
         let mut cursor_node = None;
 
         if let Some(char_index) = char_position {
@@ -247,14 +290,14 @@ impl TextEditorView {
             for (length, node, _) in &self.snippets {
                 offset += length;
                 if offset >= index {
-                    cursor_node = Some(*node);
+                    cursor_node = Some((*node, index - (offset - length)));
                     if offset > index {
                         break;
                     }
                 }
             }
         } else if let Some(active) = weave.get_active_thread().next().map(|node| Ulid(node.id)) {
-            cursor_node = Some(active);
+            cursor_node = Some((active, 0));
         } else {
             cursor_node = None;
         }
