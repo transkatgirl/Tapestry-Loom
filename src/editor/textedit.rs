@@ -26,8 +26,7 @@ pub struct TextEditorView {
     text: String,
     bytes: Vec<u8>,
     buffer: Vec<u8>,
-    snippets: Vec<Snippet>,
-    highlighting: Rc<RefCell<Vec<LayoutSection>>>,
+    snippets: Rc<RefCell<Vec<Snippet>>>,
     last_seen_cursor_node: Option<Ulid>,
     last_seen_hovered_node: Option<Ulid>,
     last_text_edit_cursor: Option<CCursor>,
@@ -35,7 +34,7 @@ pub struct TextEditorView {
     last_text_edit_highlighting_hover: HighlightingHover,
 }
 
-type Snippet = (usize, Ulid, usize);
+type Snippet = (usize, Ulid, Color32, usize);
 
 const SUBSTITUTION_CHAR: char = '␚'; //Must be 1 UTF-8 byte in length
 const SUBSTITUTION_BYTE: u8 = "␚".as_bytes()[0];
@@ -46,8 +45,7 @@ impl Default for TextEditorView {
             text: String::with_capacity(262144),
             bytes: Vec::with_capacity(262144),
             buffer: Vec::with_capacity(262144),
-            snippets: Vec::with_capacity(65536),
-            highlighting: Rc::new(RefCell::new(Vec::with_capacity(65536))),
+            snippets: Rc::new(RefCell::new(Vec::with_capacity(65536))),
             last_seen_cursor_node: None,
             last_seen_hovered_node: None,
             last_text_edit_cursor: None,
@@ -62,7 +60,6 @@ impl TextEditorView {
         self.text.clear();
         self.bytes.clear();
         self.buffer.clear();
-        self.snippets.clear();
         self.last_seen_cursor_node = None;
         self.last_seen_hovered_node = None;
         self.last_text_edit_cursor = None;
@@ -92,11 +89,18 @@ impl TextEditorView {
             self.last_seen_cursor_node = state.cursor_node;
         }
 
-        let sections = self.highlighting.clone();
+        let snippets = self.snippets.clone();
+        let hover = self.last_text_edit_highlighting_hover;
 
         let mut layouter = |ui: &Ui, buf: &dyn TextBuffer, wrap_width: f32| {
             let layout_job = LayoutJob {
-                sections: sections.borrow().clone(),
+                sections: calculate_highlighting(
+                    ui,
+                    &snippets.borrow(),
+                    buf.as_str().len(),
+                    ui.visuals().widgets.inactive.text_color(),
+                    hover,
+                ),
                 text: buf.as_str().to_string(),
                 wrap: TextWrapping {
                     max_width: wrap_width,
@@ -123,7 +127,7 @@ impl TextEditorView {
 
                 let top_left = textedit.text_clip_rect.left_top();
 
-                render_boundaries(ui, &self.snippets, top_left, &textedit.galley);
+                render_boundaries(ui, &self.snippets.borrow(), top_left, &textedit.galley);
 
                 if textedit.response.changed() {
                     self.update_weave(weave);
@@ -184,11 +188,10 @@ impl TextEditorView {
         hover_bg: Color32,
         font_id: FontId,
     ) {
-        let mut highlighting = self.highlighting.borrow_mut();
+        let mut snippets = self.snippets.borrow_mut();
         self.text.clear();
         self.bytes.clear();
-        self.snippets.clear();
-        highlighting.clear();
+        snippets.clear();
 
         let active: Vec<u128> = weave.weave.get_active_thread().iter().copied().collect();
 
@@ -199,48 +202,21 @@ impl TextEditorView {
             .rev()
             .filter_map(|id| weave.weave.get_node(&id))
         {
-            let color = get_node_color(node, settings);
+            let color = get_node_color(node, settings).unwrap_or(default_color);
 
             match &node.contents.content {
                 InnerNodeContent::Snippet(snippet) => {
-                    let byte_range = index..(index + snippet.len());
-
                     self.bytes.extend_from_slice(snippet);
-                    self.snippets.push((snippet.len(), Ulid(node.id), index));
-                    highlighting.push(LayoutSection {
-                        leading_space: 0.0,
-                        byte_range: byte_range.clone(),
-                        format: calculate_text_format(
-                            Ulid(node.id),
-                            byte_range,
-                            color.unwrap_or(default_color),
-                            hover_bg,
-                            font_id.clone(),
-                            self.last_text_edit_highlighting_hover,
-                        ),
-                    });
+                    snippets.push((snippet.len(), Ulid(node.id), color, index));
                     index += snippet.len();
                 }
                 InnerNodeContent::Tokens(tokens) => {
                     for (token, token_metadata) in tokens {
-                        let byte_range = index..(index + token.len());
-                        let color = get_token_color(color, token_metadata, settings)
+                        let color = get_token_color(Some(color), token_metadata, settings)
                             .unwrap_or(default_color);
 
                         self.bytes.extend_from_slice(token);
-                        self.snippets.push((token.len(), Ulid(node.id), index));
-                        highlighting.push(LayoutSection {
-                            leading_space: 0.0,
-                            byte_range: byte_range.clone(),
-                            format: calculate_text_format(
-                                Ulid(node.id),
-                                byte_range,
-                                color,
-                                hover_bg,
-                                font_id.clone(),
-                                self.last_text_edit_highlighting_hover,
-                            ),
-                        });
+                        snippets.push((token.len(), Ulid(node.id), color, index));
                         index += token.len();
                     }
                 }
@@ -267,7 +243,7 @@ impl TextEditorView {
 
             let mut offset = 0;
 
-            for (length, node, _) in self.snippets.iter() {
+            for (length, node, _, _) in self.snippets.borrow().iter() {
                 offset += length;
                 if offset >= index {
                     cursor_node = Some((*node, index));
@@ -294,7 +270,7 @@ impl TextEditorView {
             }
         }
 
-        weave.set_active_content(&self.bytes, IndexMap::default(), |timestamp| {
+        weave.set_active_content(&self.buffer, IndexMap::default(), |timestamp| {
             if let Some(timestamp) = timestamp {
                 Ulid::from_datetime(SystemTime::UNIX_EPOCH + Duration::from_millis(timestamp))
             } else {
@@ -329,6 +305,66 @@ fn calculate_text_format(
     }
 
     format
+}
+
+fn calculate_highlighting(
+    ui: &Ui,
+    snippets: &[Snippet],
+    length: usize,
+    default_color: Color32,
+    hover: HighlightingHover,
+) -> Vec<LayoutSection> {
+    let font_id = ui
+        .style()
+        .override_font_id
+        .clone()
+        .unwrap_or_else(|| TextStyle::Monospace.resolve(ui.style()));
+
+    let mut sections = Vec::with_capacity(snippets.len() + 1);
+    let mut index = 0;
+
+    for (snippet_length, node, color, _) in snippets {
+        index += snippet_length;
+
+        if index > length {
+            index -= snippet_length;
+            break;
+        }
+
+        let mut format = TextFormat::simple(font_id.clone(), *color);
+
+        let byte_range = (index - snippet_length)..index;
+
+        match hover {
+            HighlightingHover::Position((_, hover_position)) => {
+                if byte_range.contains(&hover_position) {
+                    format.background = ui.style().visuals.widgets.hovered.weak_bg_fill;
+                }
+            }
+            HighlightingHover::Node(hover_node) => {
+                if hover_node == *node {
+                    format.background = ui.style().visuals.widgets.hovered.weak_bg_fill;
+                }
+            }
+            HighlightingHover::None => {}
+        }
+
+        sections.push(LayoutSection {
+            leading_space: 0.0,
+            byte_range,
+            format,
+        });
+    }
+
+    if index < length {
+        sections.push(LayoutSection {
+            leading_space: 0.0,
+            byte_range: index..length,
+            format: TextFormat::simple(font_id, default_color),
+        });
+    }
+
+    sections
 }
 
 fn render_boundaries(ui: &Ui, snippets: &[Snippet], top_left: Pos2, galley: &Galley) {
