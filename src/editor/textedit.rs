@@ -34,7 +34,7 @@ pub struct TextEditorView {
     last_text_edit_highlighting_hover: HighlightingHover,
 }
 
-type Snippet = (usize, Ulid, Color32, usize);
+type Snippet = (usize, Ulid, Color32, Option<usize>);
 
 const SUBSTITUTION_CHAR: char = '␚'; //Must be 1 UTF-8 byte in length
 const SUBSTITUTION_BYTE: u8 = "␚".as_bytes()[0];
@@ -74,16 +74,7 @@ impl TextEditorView {
         _toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
-        self.update(
-            weave,
-            settings,
-            ui.visuals().widgets.inactive.text_color(),
-            ui.style().visuals.widgets.hovered.weak_bg_fill,
-            ui.style()
-                .override_font_id
-                .clone()
-                .unwrap_or_else(|| TextStyle::Monospace.resolve(ui.style())),
-        );
+        self.update(weave, settings, ui.visuals().widgets.inactive.text_color());
 
         if self.last_seen_cursor_node != state.cursor_node {
             self.last_seen_cursor_node = state.cursor_node;
@@ -180,22 +171,13 @@ impl TextEditorView {
                 }
             });
     }
-    fn update(
-        &mut self,
-        weave: &mut TapestryWeave,
-        settings: &Settings,
-        default_color: Color32,
-        hover_bg: Color32,
-        font_id: FontId,
-    ) {
+    fn update(&mut self, weave: &mut TapestryWeave, settings: &Settings, default_color: Color32) {
         let mut snippets = self.snippets.borrow_mut();
         self.text.clear();
         self.bytes.clear();
         snippets.clear();
 
         let active: Vec<u128> = weave.weave.get_active_thread().iter().copied().collect();
-
-        let mut index = 0;
 
         for node in active
             .into_iter()
@@ -207,17 +189,18 @@ impl TextEditorView {
             match &node.contents.content {
                 InnerNodeContent::Snippet(snippet) => {
                     self.bytes.extend_from_slice(snippet);
-                    snippets.push((snippet.len(), Ulid(node.id), color, index));
-                    index += snippet.len();
+                    snippets.push((snippet.len(), Ulid(node.id), color, None));
                 }
                 InnerNodeContent::Tokens(tokens) => {
+                    let mut token_index = 0;
+
                     for (token, token_metadata) in tokens {
                         let color = get_token_color(Some(color), token_metadata, settings)
                             .unwrap_or(default_color);
 
                         self.bytes.extend_from_slice(token);
-                        snippets.push((token.len(), Ulid(node.id), color, index));
-                        index += token.len();
+                        snippets.push((token.len(), Ulid(node.id), color, Some(token_index)));
+                        token_index += token.len();
                     }
                 }
             }
@@ -323,7 +306,7 @@ fn calculate_highlighting(
     let mut sections = Vec::with_capacity(snippets.len() + 1);
     let mut index = 0;
 
-    for (snippet_length, node, color, _) in snippets {
+    for (snippet_length, node, color, token_index) in snippets {
         index += snippet_length;
 
         if index > length {
@@ -336,9 +319,13 @@ fn calculate_highlighting(
         let byte_range = (index - snippet_length)..index;
 
         match hover {
-            HighlightingHover::Position((_, hover_position)) => {
-                if byte_range.contains(&hover_position) {
+            HighlightingHover::Position((hover_node, hover_position)) => {
+                if hover_node == *node {
                     format.background = ui.style().visuals.widgets.hovered.weak_bg_fill;
+
+                    if byte_range.contains(&hover_position) && token_index.is_some() {
+                        format.underline = ui.style().visuals.widgets.hovered.bg_stroke;
+                    }
                 }
             }
             HighlightingHover::Node(hover_node) => {
@@ -368,6 +355,12 @@ fn calculate_highlighting(
 }
 
 fn render_boundaries(ui: &Ui, snippets: &[Snippet], top_left: Pos2, galley: &Galley) {
+    let mut index = 0;
+
+    for row in &galley.rows {
+        index += row.char_count_including_newline();
+    }
+
     // TODO: Node boundary highlighting using textedit.galley
 }
 
