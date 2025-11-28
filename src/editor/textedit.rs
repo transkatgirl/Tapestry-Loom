@@ -5,7 +5,7 @@ use std::{
 };
 
 use eframe::egui::{
-    Color32, Pos2, ScrollArea, TextBuffer, TextEdit, TextFormat, TextStyle, Ui,
+    Color32, Galley, Pos2, ScrollArea, TextBuffer, TextEdit, TextFormat, TextStyle, Ui,
     text::{CCursor, LayoutJob, LayoutSection, TextWrapping},
 };
 use egui_notify::Toasts;
@@ -117,16 +117,19 @@ impl TextEditorView {
                     .layouter(&mut layouter)
                     .show(ui);
 
-                // TODO: Node boundary highlighting using textedit.galley
+                let top_left = textedit.text_clip_rect.left_top();
+
+                render_boundaries(ui, &self.snippets.borrow(), top_left, &textedit.galley);
 
                 if textedit.response.changed() {
                     self.update_weave(weave);
-                    /*if let Some(active) = weave.get_active_thread().next().map(|node| Ulid(node.id))
-                    {
-                        state.cursor_node = Some(active);
-                    } else {
-                        state.cursor_node = None;
-                    }*/
+                    //self.update_cache(weave, settings, ui.visuals().widgets.inactive.text_color());
+                    self.update_snippet_cache(
+                        weave,
+                        settings,
+                        ui.visuals().widgets.inactive.text_color(),
+                    );
+
                     let position = textedit.cursor_range.map(|c| c.sorted_cursors()[0]);
                     if let Some((node, _)) = self.calculate_cursor(weave, position.map(|p| p.index))
                     {
@@ -135,13 +138,6 @@ impl TextEditorView {
                         state.cursor_node = None;
                     }
                     self.last_text_edit_cursor = position;
-
-                    self.update_snippet_cache(
-                        weave,
-                        settings,
-                        ui.visuals().widgets.inactive.text_color(),
-                    );
-                    //self.update_cache(weave, settings, ui.visuals().widgets.inactive.text_color());
                 } else {
                     let position = textedit.cursor_range.map(|c| c.sorted_cursors()[0]);
                     if position != self.last_text_edit_cursor {
@@ -161,12 +157,9 @@ impl TextEditorView {
                 let hover_position = textedit.response.hover_pos();
 
                 if hover_position != self.last_text_edit_hover {
-                    if let Some(hover_position) = hover_position.map(|p| {
-                        textedit
-                            .galley
-                            .cursor_from_pos(p - textedit.text_clip_rect.left_top())
-                            .index
-                    }) {
+                    if let Some(hover_position) =
+                        hover_position.map(|p| textedit.galley.cursor_from_pos(p - top_left).index)
+                    {
                         self.last_text_edit_highlighting_hover = self
                             .calculate_cursor(weave, Some(hover_position))
                             .map(|(id, i)| HighlightingHover::Position((id, i)))
@@ -185,7 +178,6 @@ impl TextEditorView {
                     state.hovered_node = Some(hover_node);
                     self.last_seen_hovered_node = Some(hover_node);
                 } else if self.last_seen_hovered_node != state.hovered_node {
-                    //self.update_cache(weave, settings, ui.visuals().widgets.inactive.text_color());
                     self.last_text_edit_highlighting_hover = state
                         .hovered_node
                         .map(HighlightingHover::Node)
@@ -389,6 +381,10 @@ fn calculate_highlighting(
     }
 
     sections
+}
+
+fn render_boundaries(ui: &Ui, snippets: &[Snippet], top_left: Pos2, galley: &Galley) {
+    // TODO: Node boundary highlighting using textedit.galley
 }
 
 #[derive(Debug, Clone, Copy)]
