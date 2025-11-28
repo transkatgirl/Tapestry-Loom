@@ -1,4 +1,8 @@
-use std::time::{Duration, SystemTime};
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    time::{Duration, SystemTime},
+};
 
 use eframe::egui::{
     Color32, Pos2, ScrollArea, TextBuffer, TextEdit, TextFormat, TextStyle, Ui,
@@ -21,13 +25,14 @@ pub struct TextEditorView {
     cached_text: String,
     cached_bytes: Vec<u8>,
     byte_buffer: Vec<u8>,
-    snippets: Vec<(usize, Ulid, Color32)>,
+    snippets: Rc<RefCell<Vec<Snippet>>>,
     last_seen_cursor_node: Option<Ulid>,
     last_text_edit_cursor: Option<CCursor>,
     last_text_edit_hover: Option<Pos2>,
-    last_text_edit_hover_node: Option<Ulid>,
-    last_text_edit_hover_node_index: Option<usize>,
+    last_text_edit_hover_node: Option<(Ulid, usize)>,
 }
+
+type Snippet = (usize, Ulid, usize, Color32);
 
 const SUBSTITUTION_CHAR: char = '␚';
 const SUBSTITUTION_BYTE: u8 = "␚".as_bytes()[0];
@@ -38,12 +43,11 @@ impl Default for TextEditorView {
             cached_text: String::with_capacity(262144),
             cached_bytes: Vec::with_capacity(262144),
             byte_buffer: Vec::with_capacity(262144),
-            snippets: Vec::with_capacity(65536),
+            snippets: Rc::new(RefCell::new(Vec::with_capacity(65536))),
             last_seen_cursor_node: None,
             last_text_edit_cursor: None,
             last_text_edit_hover: None,
             last_text_edit_hover_node: None,
-            last_text_edit_hover_node_index: None,
         }
     }
 }
@@ -53,12 +57,11 @@ impl TextEditorView {
         self.cached_text.clear();
         self.cached_bytes.clear();
         self.byte_buffer.clear();
-        self.snippets.clear();
+        self.snippets.borrow_mut().clear();
         self.last_seen_cursor_node = None;
         self.last_text_edit_cursor = None;
         self.last_text_edit_hover = None;
         self.last_text_edit_hover_node = None;
-        self.last_text_edit_hover_node_index = None;
     }
     pub fn render(
         &mut self,
@@ -73,22 +76,20 @@ impl TextEditorView {
             self.last_seen_cursor_node = state.cursor_node;
         }
 
-        let mut layouter = |ui: &Ui, buf: &dyn TextBuffer, wrap_width: f32| {
-            let font_id = ui
-                .style()
-                .override_font_id
-                .clone()
-                .unwrap_or_else(|| TextStyle::Monospace.resolve(ui.style()));
-            let text_color = ui.visuals().widgets.inactive.text_color();
+        let snippets = self.snippets.clone();
+        let last_hover = self.last_text_edit_hover_node;
 
-            // TODO: Display node colors & node/token boundaries
+        let mut layouter = |ui: &Ui, buf: &dyn TextBuffer, wrap_width: f32| {
+            let default_color = ui.visuals().widgets.inactive.text_color();
 
             let layout_job = LayoutJob {
-                sections: vec![LayoutSection {
-                    leading_space: 0.0,
-                    byte_range: 0..buf.as_str().len(),
-                    format: TextFormat::simple(font_id, text_color),
-                }],
+                sections: calculate_highlighting(
+                    ui,
+                    &snippets.borrow(),
+                    buf.as_str().len(),
+                    default_color,
+                    last_hover,
+                ),
                 text: buf.as_str().to_string(),
                 wrap: TextWrapping {
                     max_width: wrap_width,
@@ -161,27 +162,16 @@ impl TextEditorView {
                             .cursor_from_pos(p - textedit.text_clip_rect.left_top())
                             .index
                     }) {
-                        if let Some((node, index)) =
-                            self.calculate_cursor(weave, Some(hover_position))
-                        {
-                            self.last_text_edit_hover_node = Some(node);
-                            self.last_text_edit_hover_node_index = Some(index);
-                        } else {
-                            self.last_text_edit_hover_node = None;
-                            self.last_text_edit_hover_node_index = None;
-                        }
+                        self.last_text_edit_hover_node =
+                            self.calculate_cursor(weave, Some(hover_position));
                     } else {
                         self.last_text_edit_hover_node = None;
-                        self.last_text_edit_hover_node_index = None;
                     }
 
                     self.last_text_edit_hover = hover_position;
                 }
 
-                if let (Some(hover_node), Some(hover_node_index)) = (
-                    self.last_text_edit_hover_node,
-                    self.last_text_edit_hover_node_index,
-                ) {
+                if let Some((hover_node, hover_node_index)) = self.last_text_edit_hover_node {
                     // TODO: Display node metadata on hover
                     state.hovered_node = Some(hover_node);
                 }
@@ -193,9 +183,10 @@ impl TextEditorView {
         settings: &Settings,
         default_color: Color32,
     ) {
+        let mut snippets = self.snippets.borrow_mut();
         self.cached_text.clear();
         self.cached_bytes.clear();
-        self.snippets.clear();
+        snippets.clear();
 
         let active: Vec<u128> = weave.weave.get_active_thread().iter().copied().collect();
 
@@ -209,21 +200,26 @@ impl TextEditorView {
             match &node.contents.content {
                 InnerNodeContent::Snippet(snippet) => {
                     self.cached_bytes.extend_from_slice(snippet);
-                    self.snippets.push((
+                    snippets.push((
                         snippet.len(),
                         Ulid(node.id),
+                        0,
                         color.unwrap_or(default_color),
                     ));
                 }
                 InnerNodeContent::Tokens(tokens) => {
+                    let mut node_offset = 0;
+
                     for (token, token_metadata) in tokens {
                         self.cached_bytes.extend_from_slice(token);
-                        self.snippets.push((
+                        snippets.push((
                             token.len(),
                             Ulid(node.id),
+                            node_offset,
                             get_token_color(color, token_metadata, settings)
                                 .unwrap_or(default_color),
                         ));
+                        node_offset += token.len();
                     }
                 }
             }
@@ -243,7 +239,8 @@ impl TextEditorView {
         settings: &Settings,
         default_color: Color32,
     ) {
-        self.snippets.clear();
+        let mut snippets = self.snippets.borrow_mut();
+        snippets.clear();
 
         let active: Vec<u128> = weave.weave.get_active_thread().iter().copied().collect();
 
@@ -256,20 +253,25 @@ impl TextEditorView {
 
             match &node.contents.content {
                 InnerNodeContent::Snippet(snippet) => {
-                    self.snippets.push((
+                    snippets.push((
                         snippet.len(),
                         Ulid(node.id),
+                        0,
                         color.unwrap_or(default_color),
                     ));
                 }
                 InnerNodeContent::Tokens(tokens) => {
+                    let mut node_offset = 0;
+
                     for (token, token_metadata) in tokens {
-                        self.snippets.push((
+                        snippets.push((
                             token.len(),
                             Ulid(node.id),
+                            node_offset,
                             get_token_color(color, token_metadata, settings)
                                 .unwrap_or(default_color),
                         ));
+                        node_offset += token.len();
                     }
                 }
             }
@@ -287,10 +289,10 @@ impl TextEditorView {
 
             let mut offset = 0;
 
-            for (length, node, _) in &self.snippets {
+            for (length, node, node_offset, _) in self.snippets.borrow().iter() {
                 offset += length;
                 if offset >= index {
-                    cursor_node = Some((*node, index - (offset - length)));
+                    cursor_node = Some((*node, index - node_offset));
                     if offset > index {
                         break;
                     }
@@ -328,4 +330,50 @@ impl TextEditorView {
             }
         });
     }
+}
+
+fn calculate_highlighting(
+    ui: &Ui,
+    snippets: &[Snippet],
+    length: usize,
+    default_color: Color32,
+    hover: Option<(Ulid, usize)>,
+) -> Vec<LayoutSection> {
+    let font_id = ui
+        .style()
+        .override_font_id
+        .clone()
+        .unwrap_or_else(|| TextStyle::Monospace.resolve(ui.style()));
+
+    let mut sections = Vec::with_capacity(snippets.len() + 1);
+    let mut index = 0;
+
+    for (length, node, node_offset, color) in snippets.iter().copied() {
+        index += length;
+
+        if index > length {
+            index -= length;
+            break;
+        }
+
+        let mut format = TextFormat::simple(font_id.clone(), color);
+
+        // TODO: Display node/token boundaries on hover
+
+        sections.push(LayoutSection {
+            leading_space: 0.0,
+            byte_range: (index - length)..index,
+            format,
+        });
+    }
+
+    if index < length {
+        sections.push(LayoutSection {
+            leading_space: 0.0,
+            byte_range: index..length,
+            format: TextFormat::simple(font_id, default_color),
+        });
+    }
+
+    sections
 }
