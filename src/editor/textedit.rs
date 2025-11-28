@@ -332,17 +332,17 @@ fn calculate_highlighting(
     let mut sections = Vec::with_capacity(snippets.len() + 1);
     let mut index = 0;
 
-    for (length, node, color) in snippets.iter().copied() {
-        index += length;
+    for (snippet_length, node, color) in snippets.iter().copied() {
+        index += snippet_length;
 
         if index > length {
-            index -= length;
+            index -= snippet_length;
             break;
         }
 
         let mut format = TextFormat::simple(font_id.clone(), color);
 
-        let byte_range = (index - length)..index;
+        let byte_range = (index - snippet_length)..index;
 
         if let Some(hover) = hover {
             /*if hover.0 == node {
