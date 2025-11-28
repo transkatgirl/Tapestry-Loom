@@ -16,10 +16,7 @@ use tapestry_weave::{
 };
 
 use crate::{
-    editor::shared::{
-        SharedState, get_node_color, render_node_metadata_tooltip,
-        should_render_node_metadata_tooltip,
-    },
+    editor::shared::{SharedState, get_node_color, render_node_metadata_tooltip},
     listing_margin,
     settings::Settings,
 };
@@ -487,16 +484,13 @@ fn render_horizontal_node_label(
                         label_button.stroke(ui.style().visuals.widgets.hovered.bg_stroke);
                 }
 
-                let mut label_button_response = ui.add(label_button);
+                let label_button_response = ui
+                    .add(label_button)
+                    .on_hover_ui(|ui| render_node_metadata_tooltip(ui, node));
 
                 label_button_response.context_menu(|ui| {
                     context_menu(ui, settings, state, weave, node);
                 });
-
-                if should_render_node_metadata_tooltip(node) {
-                    label_button_response = label_button_response
-                        .on_hover_ui(|ui| render_node_metadata_tooltip(ui, node));
-                }
 
                 if label_button_response.hovered() {
                     state.hovered_node = Some(Ulid(node.id));

@@ -1,5 +1,6 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
+use chrono::{DateTime, offset};
 use eframe::egui::{Color32, Rgba, Ui};
 use egui_notify::Toasts;
 use tapestry_weave::{
@@ -57,21 +58,11 @@ impl SharedState {
     }
 }
 
-#[cfg(debug_assertions)]
-pub fn should_render_node_metadata_tooltip(_node: &DependentNode<NodeContent>) -> bool {
-    true
-}
-
-#[cfg(not(debug_assertions))]
-pub fn should_render_node_metadata_tooltip(node: &DependentNode<NodeContent>) -> bool {
-    !(node.contents.metadata.is_empty() && node.contents.model.is_none())
-}
-
 pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &DependentNode<NodeContent>) {
     ui.set_max_width(ui.spacing().tooltip_width);
 
-    #[cfg(debug_assertions)]
-    ui.label(Ulid(node.id).to_string());
+    /*#[cfg(debug_assertions)]
+    ui.label(Ulid(node.id).to_string());*/
 
     if let Some(model) = &node.contents.model {
         if let Some(color) = model
@@ -88,6 +79,10 @@ pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &DependentNode<NodeConten
     for (key, value) in &node.contents.metadata {
         ui.label(format!("{key}: {value}"));
     }
+
+    let datetime: DateTime<offset::Local> = DateTime::from(Ulid(node.id).datetime());
+
+    ui.label(format!("{}", datetime.format("%x %r")));
 }
 
 pub fn get_token_color(

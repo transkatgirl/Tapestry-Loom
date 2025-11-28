@@ -64,6 +64,7 @@ poll-promise = { version = "0.3.0", features = [
 	"tokio",
 ] }
 ctrlc = "3.5.1"
+chrono = "0.4.42"
 #egui-keybind = { version = "0.8.0", features = ["serde"] }
 #egui-graph-edit = "0.7.1"
 #egui_nodes = "0.1.3"
