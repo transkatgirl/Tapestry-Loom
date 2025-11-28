@@ -85,6 +85,18 @@ pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &DependentNode<NodeConten
     ui.label(format!("{}", datetime.format("%x %r")));
 }
 
+pub fn render_token_metadata_tooltip(ui: &mut Ui, token_metadata: &IndexMap<String, String>) {
+    for (key, value) in token_metadata {
+        if key == "probability"
+            && let Ok(probability) = value.parse::<f32>()
+        {
+            ui.label(format!("probability: {}%", probability * 100.0));
+        } else {
+            ui.label(format!("{key}: {value}"));
+        }
+    }
+}
+
 pub fn get_token_color(
     node_color: Option<Color32>,
     token_metadata: &IndexMap<String, String>,

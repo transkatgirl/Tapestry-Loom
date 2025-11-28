@@ -444,7 +444,7 @@ fn render_horizontal_node_label(
         &mut TapestryWeave,
         &DependentNode<NodeContent>,
     ),
-    show_bookmarks_icon: bool,
+    show_node_info: bool,
 ) {
     let response = ui
         .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
@@ -511,10 +511,21 @@ fn render_horizontal_node_label(
                             ui.add_space(0.0);
                         });
                         state.hovered_node = Some(Ulid(node.id));
-                    } else if node.bookmarked && show_bookmarks_icon {
+                    } else if show_node_info {
                         ui.add_space(ui.spacing().icon_spacing);
-                        ui.label("\u{E060}");
-                        ui.add_space(ui.spacing().icon_spacing);
+                        if node.bookmarked {
+                            ui.label("\u{E060}");
+                            ui.add_space(ui.spacing().icon_spacing);
+                        }
+                        if let InnerNodeContent::Tokens(tokens) = &node.contents.content
+                            && tokens.len() == 1
+                            && let Some(token) = tokens.first()
+                            && let Some(probability) = token.1.get("probability")
+                            && let Ok(probability) = probability.parse::<f32>()
+                        {
+                            ui.label(format!("{}%", probability * 100.0));
+                            ui.add_space(ui.spacing().icon_spacing);
+                        }
                     } else {
                         ui.add_space(0.0);
                     }
