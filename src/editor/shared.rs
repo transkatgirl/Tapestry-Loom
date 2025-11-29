@@ -16,10 +16,10 @@ use crate::settings::Settings;
 pub struct SharedState {
     pub identifier: Ulid,
     pub runtime: Arc<Runtime>,
-    pub cursor_node: Option<Ulid>,
-    pub last_cursor_node: Option<Ulid>,
-    pub hovered_node: Option<Ulid>,
-    pub last_hovered_node: Option<Ulid>,
+    cursor_node: Option<Ulid>,
+    last_cursor_node: Option<Ulid>,
+    hovered_node: Option<Ulid>,
+    last_hovered_node: Option<Ulid>,
 }
 
 impl SharedState {
@@ -53,6 +53,18 @@ impl SharedState {
         self.last_cursor_node = None;
         self.hovered_node = None;
         self.last_hovered_node = None;
+    }
+    pub fn get_cursor_node(&self) -> Option<Ulid> {
+        self.last_cursor_node
+    }
+    pub fn get_hovered_node(&self) -> Option<Ulid> {
+        self.last_hovered_node
+    }
+    pub fn set_cursor_node(&mut self, value: Option<Ulid>) {
+        self.cursor_node = value;
+    }
+    pub fn set_hovered_node(&mut self, value: Option<Ulid>) {
+        self.hovered_node = value;
     }
     pub fn generate_children(
         &mut self,

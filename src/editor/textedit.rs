@@ -80,9 +80,9 @@ impl TextEditorView {
     ) {
         self.update(weave, settings, ui.visuals().widgets.inactive.text_color());
 
-        if self.last_seen_cursor_node != state.last_cursor_node {
+        if self.last_seen_cursor_node != state.get_cursor_node() {
             // TODO
-            self.last_seen_cursor_node = state.last_cursor_node;
+            self.last_seen_cursor_node = state.get_cursor_node();
         }
 
         let snippets = self.snippets.clone();
@@ -135,9 +135,9 @@ impl TextEditorView {
                             if let Some((node, _)) =
                                 self.calculate_cursor(weave, position.map(|p| p.index))
                             {
-                                state.cursor_node = Some(node);
+                                state.set_cursor_node(Some(node));
                             } else {
-                                state.cursor_node = None;
+                                state.set_cursor_node(None);
                             }
                         }
                         self.last_text_edit_cursor = position;
@@ -165,14 +165,14 @@ impl TextEditorView {
                     self.last_text_edit_highlighting_hover
                 {
                     // TODO: Display node metadata on hover
-                    state.hovered_node = Some(hover_node);
+                    state.set_hovered_node(Some(hover_node));
                     self.last_seen_hovered_node = Some(hover_node);
-                } else if self.last_seen_hovered_node != state.last_hovered_node {
+                } else if self.last_seen_hovered_node != state.get_hovered_node() {
                     self.last_text_edit_highlighting_hover = state
-                        .last_hovered_node
+                        .get_hovered_node()
                         .map(HighlightingHover::Node)
                         .unwrap_or(HighlightingHover::None);
-                    self.last_seen_hovered_node = state.last_hovered_node;
+                    self.last_seen_hovered_node = state.get_hovered_node();
                 }
             });
     }
