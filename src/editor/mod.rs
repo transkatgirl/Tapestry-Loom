@@ -66,6 +66,7 @@ pub struct Editor {
     behavior: EditorTilingBehavior,
     show_confirmation: bool,
     allow_close: bool,
+    new_path_callback: Box<dyn FnMut(&PathBuf)>,
 }
 
 impl Editor {
@@ -76,6 +77,7 @@ impl Editor {
         open_documents: Rc<RefCell<HashSet<PathBuf>>>,
         runtime: Arc<Runtime>,
         path: Option<PathBuf>,
+        new_path_callback: Box<dyn FnMut(&PathBuf)>,
     ) -> Self {
         if let Some(path) = &path {
             open_documents.borrow_mut().insert(path.clone());
@@ -137,6 +139,7 @@ impl Editor {
             },
             allow_close: false,
             show_confirmation: false,
+            new_path_callback,
         }
     }
     pub fn render(&mut self, ui: &mut Ui, mut close_callback: impl FnMut()) {
@@ -275,6 +278,7 @@ impl Editor {
             }
             if let Some(path) = path.as_ref() {
                 self.open_documents.borrow_mut().insert(path.clone());
+                (self.new_path_callback)(path);
             }
             self.old_path = path.clone();
             //self.behavior.reset();

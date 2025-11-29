@@ -91,6 +91,9 @@ impl FileManager {
             modal: RefCell::new(ModalType::None),
         }
     }
+    pub fn update(&mut self) {
+        self.scanned = false;
+    }
     pub fn render(&mut self, ui: &mut Ui) -> Vec<PathBuf> {
         self.update_items();
 

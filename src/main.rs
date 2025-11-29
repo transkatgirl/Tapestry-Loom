@@ -134,12 +134,12 @@ impl TapestryLoomApp {
         let threadpool = Rc::new(ThreadPool::new(16));
         let open_documents = Rc::new(RefCell::new(HashSet::with_capacity(64)));
         let behavior = TapestryLoomBehavior {
-            file_manager: FileManager::new(
+            file_manager: Rc::new(RefCell::new(FileManager::new(
                 settings.clone(),
                 toasts.clone(),
                 threadpool.clone(),
                 open_documents.clone(),
-            ),
+            ))),
             new_editor_queue: Vec::with_capacity(16),
             close_queue: Vec::with_capacity(16),
             settings,
@@ -206,6 +206,8 @@ impl App for TapestryLoomApp {
                             continue;
                         }
 
+                        let file_manager = self.behavior.file_manager.clone();
+
                         let identifier =
                             self.tree
                                 .tiles
@@ -216,6 +218,9 @@ impl App for TapestryLoomApp {
                                     self.behavior.open_documents.clone(),
                                     self.behavior.runtime.clone(),
                                     path,
+                                    Box::new(move |_| {
+                                        file_manager.borrow_mut().update();
+                                    }),
                                 ))));
 
                         if let Some(Tile::Container(parent)) =
@@ -317,7 +322,7 @@ struct TapestryLoomBehavior {
     settings: Rc<RefCell<Settings>>,
     new_editor_queue: Vec<(Option<PathBuf>, Option<TileId>)>,
     close_queue: Vec<TileId>,
-    file_manager: FileManager,
+    file_manager: Rc<RefCell<FileManager>>,
     toasts: Rc<RefCell<Toasts>>,
     threadpool: Rc<ThreadPool>,
     runtime: Arc<Runtime>,
@@ -342,7 +347,7 @@ impl Behavior<Pane> for TapestryLoomBehavior {
         match pane {
             Pane::Settings => self.settings.borrow_mut().render(ui),
             Pane::FileManager => {
-                for path in self.file_manager.render(ui) {
+                for path in self.file_manager.borrow_mut().render(ui) {
                     self.new_editor_queue.push((Some(path), None));
                 }
             }
