@@ -479,7 +479,9 @@ fn render_horizontal_node_label(
                     Button::new(label).fill(Color32::TRANSPARENT)
                 };
 
-                if is_hovered || is_cursor {
+                if
+                /*is_hovered ||*/
+                is_cursor {
                     label_button =
                         label_button.stroke(ui.style().visuals.widgets.hovered.bg_stroke);
                 }
