@@ -37,7 +37,7 @@ pub struct TextEditorView {
     snippets: Rc<RefCell<Vec<Snippet>>>,
     node_snippets: HashMap<Ulid, Vec<Range<usize>>>,
     rects: Vec<(Rect, Color32)>,
-    //last_seen_cursor_node: Option<Ulid>,
+    last_seen_cursor_node: Option<Ulid>,
     last_seen_hovered_node: Option<Ulid>,
     last_text_edit_cursor: Option<CCursor>,
     last_text_edit_hover: Option<Vec2>,
@@ -59,7 +59,7 @@ impl Default for TextEditorView {
             snippets: Rc::new(RefCell::new(Vec::with_capacity(65536))),
             node_snippets: HashMap::with_capacity(65536),
             rects: Vec::with_capacity(65536),
-            //last_seen_cursor_node: None,
+            last_seen_cursor_node: None,
             last_seen_hovered_node: None,
             last_text_edit_cursor: None,
             last_text_edit_hover: None,
@@ -77,7 +77,7 @@ impl TextEditorView {
         self.snippets.borrow_mut().clear();
         self.node_snippets.clear();
         self.rects.clear();
-        //self.last_seen_cursor_node = None;
+        self.last_seen_cursor_node = None;
         self.last_seen_hovered_node = None;
         self.last_text_edit_cursor = None;
         self.last_text_edit_hover = None;
@@ -93,11 +93,6 @@ impl TextEditorView {
         state: &mut SharedState,
     ) {
         self.update(weave, settings, ui.visuals().widgets.inactive.text_color());
-
-        /*if self.last_seen_cursor_node != state.get_cursor_node() {
-            // TODO: Add handling of cursor node changes
-            self.last_seen_cursor_node = state.get_cursor_node();
-        }*/
 
         let snippets = self.snippets.clone();
         let hover = self.last_text_edit_highlighting_hover;
@@ -128,7 +123,7 @@ impl TextEditorView {
             .show(ui, |ui| {
                 render_rects(ui, &mut self.rects);
 
-                let textedit = TextEdit::multiline(&mut self.text)
+                let mut textedit = TextEdit::multiline(&mut self.text)
                     .frame(false)
                     .text_color(ui.visuals().widgets.inactive.text_color())
                     .min_size(ui.available_size())
@@ -136,6 +131,14 @@ impl TextEditorView {
                     .code_editor()
                     .layouter(&mut layouter)
                     .show(ui);
+
+                if self.last_seen_cursor_node != state.get_cursor_node() {
+                    if !textedit.response.changed() {
+                        textedit.state.cursor.set_char_range(None);
+                        textedit.state.store(ui.ctx(), textedit.response.id);
+                    }
+                    self.last_seen_cursor_node = state.get_cursor_node();
+                }
 
                 let top_left = textedit.text_clip_rect.left_top();
 
