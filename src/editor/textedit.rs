@@ -37,7 +37,7 @@ pub struct TextEditorView {
     snippets: Rc<RefCell<Vec<Snippet>>>,
     node_snippets: HashMap<Ulid, Vec<Range<usize>>>,
     rects: Vec<(Rect, Color32)>,
-    last_seen_cursor_node: Option<Ulid>,
+    //last_seen_cursor_node: Option<Ulid>,
     last_seen_hovered_node: Option<Ulid>,
     last_text_edit_cursor: Option<CCursor>,
     last_text_edit_hover: Option<Vec2>,
@@ -59,7 +59,7 @@ impl Default for TextEditorView {
             snippets: Rc::new(RefCell::new(Vec::with_capacity(65536))),
             node_snippets: HashMap::with_capacity(65536),
             rects: Vec::with_capacity(65536),
-            last_seen_cursor_node: None,
+            //last_seen_cursor_node: None,
             last_seen_hovered_node: None,
             last_text_edit_cursor: None,
             last_text_edit_hover: None,
@@ -70,20 +70,20 @@ impl Default for TextEditorView {
 }
 
 impl TextEditorView {
-    pub fn reset(&mut self) {
+    /*pub fn reset(&mut self) {
         self.text.clear();
         self.bytes.clear();
         self.buffer.clear();
         self.snippets.borrow_mut().clear();
         self.node_snippets.clear();
         self.rects.clear();
-        self.last_seen_cursor_node = None;
+        //self.last_seen_cursor_node = None;
         self.last_seen_hovered_node = None;
         self.last_text_edit_cursor = None;
         self.last_text_edit_hover = None;
         self.last_text_edit_highlighting_hover = HighlightingHover::None;
         self.last_text_edit_highlighting_hover_update = Instant::now();
-    }
+    }*/
     pub fn render(
         &mut self,
         ui: &mut Ui,
@@ -94,10 +94,10 @@ impl TextEditorView {
     ) {
         self.update(weave, settings, ui.visuals().widgets.inactive.text_color());
 
-        if self.last_seen_cursor_node != state.get_cursor_node() {
-            // TODO
+        /*if self.last_seen_cursor_node != state.get_cursor_node() {
+            // TODO: Add handling of cursor node changes
             self.last_seen_cursor_node = state.get_cursor_node();
-        }
+        }*/
 
         let snippets = self.snippets.clone();
         let hover = self.last_text_edit_highlighting_hover;
