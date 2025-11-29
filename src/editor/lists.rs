@@ -35,7 +35,7 @@ impl ListView {
         state: &mut SharedState,
     ) {
         let items: Vec<Ulid> =
-            if let Some(cursor_node) = state.cursor_node.and_then(|id| weave.get_node(&id)) {
+            if let Some(cursor_node) = state.last_cursor_node.and_then(|id| weave.get_node(&id)) {
                 cursor_node.to.iter().cloned().map(Ulid).collect()
             } else {
                 weave.weave.get_roots().iter().copied().map(Ulid).collect()
@@ -173,8 +173,8 @@ impl TreeListView {
         _toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
-        if self.last_seen_cursor_node != state.cursor_node {
-            if let Some(cursor_node) = state.cursor_node {
+        if self.last_seen_cursor_node != state.last_cursor_node {
+            if let Some(cursor_node) = state.last_cursor_node {
                 let active = weave
                     .weave
                     .get_thread_from(&cursor_node.0)
@@ -186,11 +186,11 @@ impl TreeListView {
                     set_node_tree_item_open_status(ui, state.identifier, item, true);
                 }
             }
-            self.last_seen_cursor_node = state.cursor_node;
+            self.last_seen_cursor_node = state.last_cursor_node;
         }
 
         let tree_roots: Vec<Ulid> = if let Some(cursor_node) =
-            state.cursor_node.and_then(|id| weave.get_node(&id))
+            state.last_cursor_node.and_then(|id| weave.get_node(&id))
             && let Some(cursor_node_parent) =
                 cursor_node.from.and_then(|id| weave.get_node(&Ulid(id)))
             && let Some(cursor_node_parent_parent) = cursor_node_parent.from
@@ -451,7 +451,7 @@ fn render_horizontal_node_label(
             let mut frame = Frame::new();
 
             let is_hovered = state.last_hovered_node == Some(Ulid(node.id));
-            let is_cursor = state.cursor_node == Some(Ulid(node.id));
+            let is_cursor = state.last_cursor_node == Some(Ulid(node.id));
 
             if is_hovered {
                 frame = frame.fill(ui.style().visuals.widgets.hovered.weak_bg_fill);

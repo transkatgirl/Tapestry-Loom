@@ -80,8 +80,9 @@ impl TextEditorView {
     ) {
         self.update(weave, settings, ui.visuals().widgets.inactive.text_color());
 
-        if self.last_seen_cursor_node != state.cursor_node {
-            self.last_seen_cursor_node = state.cursor_node;
+        if self.last_seen_cursor_node != state.last_cursor_node {
+            // TODO
+            self.last_seen_cursor_node = state.last_cursor_node;
         }
 
         let snippets = self.snippets.clone();
@@ -166,12 +167,12 @@ impl TextEditorView {
                     // TODO: Display node metadata on hover
                     state.hovered_node = Some(hover_node);
                     self.last_seen_hovered_node = Some(hover_node);
-                } else if self.last_seen_hovered_node != state.hovered_node {
+                } else if self.last_seen_hovered_node != state.last_hovered_node {
                     self.last_text_edit_highlighting_hover = state
-                        .hovered_node
+                        .last_hovered_node
                         .map(HighlightingHover::Node)
                         .unwrap_or(HighlightingHover::None);
-                    self.last_seen_hovered_node = state.hovered_node;
+                    self.last_seen_hovered_node = state.last_hovered_node;
                 }
             });
     }
@@ -267,33 +268,6 @@ impl TextEditorView {
     }
 }
 
-fn calculate_text_format(
-    node: Ulid,
-    byte_range: Range<usize>,
-    color: Color32,
-    hover_bg: Color32,
-    font_id: FontId,
-    hover: HighlightingHover,
-) -> TextFormat {
-    let mut format = TextFormat::simple(font_id, color);
-
-    match hover {
-        HighlightingHover::Position((_, hover_position)) => {
-            if byte_range.contains(&hover_position) {
-                format.background = hover_bg;
-            }
-        }
-        HighlightingHover::Node(hover_node) => {
-            if hover_node == node {
-                format.background = hover_bg;
-            }
-        }
-        HighlightingHover::None => {}
-    }
-
-    format
-}
-
 fn calculate_highlighting(
     ui: &Ui,
     snippets: &[Snippet],
@@ -309,6 +283,8 @@ fn calculate_highlighting(
 
     let mut sections = Vec::with_capacity(snippets.len() + 1);
     let mut index = 0;
+
+    let hover_bg = ui.style().visuals.widgets.hovered.weak_bg_fill;
 
     for (snippet_length, node, color, token_index) in snippets {
         index += snippet_length;
@@ -327,7 +303,7 @@ fn calculate_highlighting(
                 // TODO: Improve handling of multi-token nodes
 
                 if hover_node == *node {
-                    format.background = ui.style().visuals.widgets.hovered.weak_bg_fill;
+                    format.background = hover_bg;
 
                     if byte_range.contains(&hover_position) && token_index.is_some() {
                         format.underline = ui.style().visuals.widgets.hovered.bg_stroke;
@@ -336,7 +312,7 @@ fn calculate_highlighting(
             }
             HighlightingHover::Node(hover_node) => {
                 if hover_node == *node {
-                    format.background = ui.style().visuals.widgets.hovered.weak_bg_fill;
+                    format.background = hover_bg;
                 }
             }
             HighlightingHover::None => {}
