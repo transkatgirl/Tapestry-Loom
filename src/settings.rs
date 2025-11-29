@@ -1,8 +1,8 @@
-use std::{path::PathBuf, time::Duration};
+use std::{fmt::Display, path::PathBuf, time::Duration};
 
 use eframe::egui::{
-    Event, Frame, InputState, Key, KeyboardShortcut, Modifiers, ScrollArea, Slider, SliderClamping,
-    Ui,
+    ComboBox, Event, Frame, InputState, Key, KeyboardShortcut, Modifiers, ScrollArea, Slider,
+    SliderClamping, TextStyle, Ui, Visuals,
 };
 use egui_keybind::Keybind;
 use flagset::{FlagSet, flags};
@@ -59,8 +59,20 @@ impl KeyboardShortcuts {
                 .with_reset_key(Some(Key::Escape)),
         );*/
     }
-    fn get_pressed(&self, input: &mut InputState) -> FlagSet<Shortcuts> {
+    pub fn get_pressed(&self, input: &mut InputState) -> FlagSet<Shortcuts> {
         let mut flags = FlagSet::<Shortcuts>::empty();
+
+        if let Some(shortcut) = &self.generate_at_cursor
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::GenerateAtCursor;
+        }
+
+        if let Some(shortcut) = &self.toggle_node_bookmarked
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::ToggleNodeBookmarked;
+        }
 
         if let Some(shortcut) = &self.add_child
             && consume_shortcut(input, shortcut)
@@ -68,7 +80,127 @@ impl KeyboardShortcuts {
             flags |= Shortcuts::AddChild;
         }
 
-        todo!()
+        if let Some(shortcut) = &self.add_sibling
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::AddSibling;
+        }
+
+        if let Some(shortcut) = &self.delete_current
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::DeleteCurrent;
+        }
+
+        if let Some(shortcut) = &self.delete_children
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::DeleteChildren;
+        }
+
+        if let Some(shortcut) = &self.delete_siblings
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::DeleteSiblings;
+        }
+
+        if let Some(shortcut) = &self.delete_siblings_and_current
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::DeleteSiblingsAndCurrent;
+        }
+
+        if let Some(shortcut) = &self.merge_with_parent
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::MergeWithParent;
+        }
+
+        if let Some(shortcut) = &self.split_at_cursor
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::SplitAtCursor;
+        }
+
+        if let Some(shortcut) = &self.move_to_parent
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::MoveToParent;
+        }
+
+        if let Some(shortcut) = &self.move_to_child
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::MoveToChild;
+        }
+
+        if let Some(shortcut) = &self.move_to_previous_sibling
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::MoveToPreviousSibling;
+        }
+
+        if let Some(shortcut) = &self.move_to_next_sibling
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::MoveToNextSibling;
+        }
+
+        if let Some(shortcut) = &self.reset_parameters
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::ResetParameters;
+        }
+
+        if let Some(shortcut) = &self.toggle_colors
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::ToggleColors;
+        }
+
+        if let Some(shortcut) = &self.toggle_node_collapsed
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::ToggleNodeCollapsed;
+        }
+
+        if let Some(shortcut) = &self.collapse_all_visible_inactive
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::CollapseAllVisibleInactive;
+        }
+
+        if let Some(shortcut) = &self.collapse_children
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::CollapseChildren;
+        }
+
+        if let Some(shortcut) = &self.expand_all_visible_inactive
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::ExpandAllVisibleInactive;
+        }
+
+        if let Some(shortcut) = &self.expand_children
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::ExpandChildren;
+        }
+
+        if let Some(shortcut) = &self.fit_to_cursor
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::FitToCursor;
+        }
+
+        if let Some(shortcut) = &self.fit_to_weave
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::FitToWeave;
+        }
+
+        flags
     }
 }
 
@@ -108,6 +240,9 @@ flags! {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UISettings {
+    pub ui_scale: f32,
+    pub ui_theme: UITheme,
+    pub displayed_ui_scale: f32,
     pub show_model_colors: bool,
     pub show_token_probabilities: bool,
     pub max_tree_depth: usize,
@@ -116,15 +251,65 @@ pub struct UISettings {
 impl Default for UISettings {
     fn default() -> Self {
         Self {
+            ui_scale: 1.25,
+            ui_theme: UITheme::Dark,
+            displayed_ui_scale: 1.25,
             show_model_colors: true,
             show_token_probabilities: true,
-            max_tree_depth: 4,
+            max_tree_depth: 8,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub enum UITheme {
+    Dark,
+    Light,
+}
+
+impl Display for UITheme {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Dark => f.write_str("Dark"),
+            Self::Light => f.write_str("Light"),
+        }
+    }
+}
+
+impl UITheme {
+    pub fn get_visuals(&self) -> Visuals {
+        match &self {
+            Self::Dark => Visuals::dark(),
+            Self::Light => Visuals::light(),
         }
     }
 }
 
 impl UISettings {
     fn render(&mut self, ui: &mut Ui) {
+        let ui_slider = ui.add(
+            Slider::new(&mut self.displayed_ui_scale, 0.5..=2.0)
+                .logarithmic(true)
+                .clamping(SliderClamping::Never)
+                .text("Scale")
+                .suffix("x"),
+        );
+        if !(ui_slider.has_focus() || ui_slider.hovered()) {
+            self.ui_scale = self.displayed_ui_scale;
+        };
+        ComboBox::from_label("Theme")
+            .selected_text(format!("{:?}", self.ui_theme))
+            .show_ui(ui, |ui| {
+                ui.selectable_value(&mut self.ui_theme, UITheme::Dark, UITheme::Dark.to_string());
+                ui.selectable_value(
+                    &mut self.ui_theme,
+                    UITheme::Light,
+                    UITheme::Light.to_string(),
+                );
+            });
+
+        ui.add_space(ui.text_style_height(&TextStyle::Body));
+
         ui.checkbox(&mut self.show_model_colors, "Show model colors");
         ui.checkbox(
             &mut self.show_token_probabilities,

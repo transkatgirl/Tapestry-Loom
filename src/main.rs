@@ -14,12 +14,17 @@ use egui_notify::Toasts;
 use egui_tiles::{
     Behavior, Container, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse,
 };
+use flagset::FlagSet;
 use log::debug;
 use mimalloc::MiMalloc;
 use threadpool::ThreadPool;
 use tokio::runtime::Runtime;
 
-use crate::{editor::Editor, files::FileManager, settings::Settings};
+use crate::{
+    editor::Editor,
+    files::FileManager,
+    settings::{Settings, Shortcuts},
+};
 
 mod editor;
 mod files;
@@ -155,6 +160,7 @@ impl TapestryLoomApp {
             ),
             threadpool,
             open_documents,
+            pressed_shortcuts: FlagSet::empty(),
         };
 
         let mut tiles = Tiles::default();
@@ -165,6 +171,8 @@ impl TapestryLoomApp {
         ];
 
         let root = tiles.insert_tab_tile(tabs);
+
+        cc.egui_ctx.style_mut(|style| style.animation_time = 0.0);
 
         Self {
             behavior,
@@ -191,8 +199,6 @@ impl App for TapestryLoomApp {
         CentralPanel::default()
             .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0.0))
             .show(ctx, |ui| {
-                ctx.style_mut(|style| style.animation_time = 0.0);
-
                 self.tree.ui(&mut self.behavior, ui);
 
                 for tile in self.behavior.close_queue.drain(..) {
@@ -297,6 +303,20 @@ impl App for TapestryLoomApp {
         {
             self.show_confirmation = false;
         }
+
+        ctx.set_zoom_factor(self.behavior.settings.borrow().interface.ui_scale);
+        ctx.set_visuals(
+            self.behavior
+                .settings
+                .borrow()
+                .interface
+                .ui_theme
+                .get_visuals(),
+        );
+        ctx.input_mut(|input| {
+            self.behavior.pressed_shortcuts =
+                self.behavior.settings.borrow().shortcuts.get_pressed(input);
+        });
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         match ron::to_string(&self.behavior.settings) {
@@ -335,6 +355,7 @@ struct TapestryLoomBehavior {
     threadpool: Rc<ThreadPool>,
     runtime: Arc<Runtime>,
     open_documents: Rc<RefCell<HashSet<PathBuf>>>,
+    pressed_shortcuts: FlagSet<Shortcuts>,
 }
 
 enum Pane {
