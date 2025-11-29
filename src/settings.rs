@@ -293,16 +293,6 @@ impl UISettings {
         ctx.set_visuals(self.ui_theme.get_visuals());
     }
     fn render(&mut self, ui: &mut Ui) {
-        let ui_slider = ui.add(
-            Slider::new(&mut self.displayed_ui_scale, 0.5..=2.0)
-                .logarithmic(true)
-                .clamping(SliderClamping::Never)
-                .text("Scale")
-                .suffix("x"),
-        );
-        if !(ui_slider.has_focus() || ui_slider.hovered()) {
-            self.ui_scale = self.displayed_ui_scale;
-        };
         ComboBox::from_label("Theme")
             .selected_text(format!("{:?}", self.ui_theme))
             .show_ui(ui, |ui| {
@@ -313,8 +303,18 @@ impl UISettings {
                     UITheme::Light.to_string(),
                 );
             });
+        let ui_slider = ui.add(
+            Slider::new(&mut self.displayed_ui_scale, 0.5..=2.0)
+                .logarithmic(true)
+                .clamping(SliderClamping::Never)
+                .text("Scale")
+                .suffix("x"),
+        );
+        if !(ui_slider.has_focus() || ui_slider.hovered()) {
+            self.ui_scale = self.displayed_ui_scale;
+        }
 
-        ui.add_space(ui.text_style_height(&TextStyle::Body));
+        ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
 
         ui.checkbox(&mut self.show_model_colors, "Show model colors");
         ui.checkbox(
