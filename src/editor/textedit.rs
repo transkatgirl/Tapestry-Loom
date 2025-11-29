@@ -360,6 +360,7 @@ fn calculate_highlighting(
     sections
 }
 
+// TODO: Render token boundaries underneath text / cursors / highlighting
 fn render_boundaries(ui: &Ui, snippets: &[Snippet], top_left: Pos2, galley: &Galley) {
     if snippets.len() < 2 {
         return;
