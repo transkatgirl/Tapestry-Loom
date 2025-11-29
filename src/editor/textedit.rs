@@ -34,7 +34,7 @@ pub struct TextEditorView {
     last_seen_cursor_node: Option<Ulid>,
     last_seen_hovered_node: Option<Ulid>,
     last_text_edit_cursor: Option<CCursor>,
-    last_text_edit_hover: Option<Pos2>,
+    last_text_edit_hover: Option<Vec2>,
     last_text_edit_highlighting_hover: HighlightingHover,
 }
 
@@ -144,11 +144,11 @@ impl TextEditorView {
                     }
                 }
 
-                let hover_position = textedit.response.hover_pos();
+                let hover_position = textedit.response.hover_pos().map(|p| p - top_left);
 
                 if hover_position != self.last_text_edit_hover {
                     if let Some(hover_position) =
-                        hover_position.map(|p| textedit.galley.cursor_from_pos(p - top_left).index)
+                        hover_position.map(|p| textedit.galley.cursor_from_pos(p).index)
                     {
                         self.last_text_edit_highlighting_hover = self
                             .calculate_cursor(weave, Some(hover_position))
