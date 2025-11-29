@@ -17,6 +17,7 @@ impl MenuView {
         toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
+        ui.heading("Unimplemented");
     }
     pub fn render_rtl_panel(
         &mut self,

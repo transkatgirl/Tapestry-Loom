@@ -17,5 +17,6 @@ impl CanvasView {
         toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
+        ui.heading("Unimplemented");
     }
 }
