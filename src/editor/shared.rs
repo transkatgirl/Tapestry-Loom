@@ -20,6 +20,7 @@ pub struct SharedState {
     last_cursor_node: Option<Ulid>,
     hovered_node: Option<Ulid>,
     last_hovered_node: Option<Ulid>,
+    triggered_unimplemented: bool,
 }
 
 impl SharedState {
@@ -31,6 +32,7 @@ impl SharedState {
             last_cursor_node: None,
             hovered_node: None,
             last_hovered_node: None,
+            triggered_unimplemented: false,
         }
     }
     pub fn update(&mut self, weave: &mut TapestryWeave, settings: &Settings, toasts: &mut Toasts) {
@@ -47,6 +49,10 @@ impl SharedState {
             self.cursor_node = Some(active);
         }
         self.last_cursor_node = self.cursor_node;
+        if self.triggered_unimplemented {
+            toasts.info("Unimplemented");
+            self.triggered_unimplemented = false;
+        }
     }
     pub fn reset(&mut self) {
         self.cursor_node = None;
@@ -72,6 +78,7 @@ impl SharedState {
         parent: Option<Ulid>,
         settings: &Settings,
     ) {
+        self.triggered_unimplemented = true;
     }
 }
 

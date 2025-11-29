@@ -16,12 +16,6 @@ eframe = { version = "0.33.2", features = [
 	"accesskit",
 	"persistence",
 ] }
-#egui = { version = "*", features = [
-#	"accesskit",
-#	"bytemuck",
-#	"persistence",
-#	"rayon",
-#] }
 env_logger = { version = "0.11.8", features = [
 	"auto-color",
 	"humantime",
@@ -65,7 +59,9 @@ poll-promise = { version = "0.3.0", features = [
 ] }
 ctrlc = "3.5.1"
 chrono = "0.4.42"
-#egui-keybind = { version = "0.8.0", features = ["serde"] }
+egui-keybind = { version = "0.8.0", features = [
+	"serde",
+] }
 #egui-graph-edit = "0.7.1"
 #egui_nodes = "0.1.3"
 #egui-snarl = "0.9.0"
