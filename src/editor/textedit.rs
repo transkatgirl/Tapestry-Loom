@@ -467,9 +467,9 @@ fn calculate_boundaries(
                         draw_row_index(row_position, row.size, row_chars, i, false);
                     }
                     last_node = Some(snippets[snippet_index].1);
-                } else if hover == Some(snippets[snippet_index].1) {
-                    draw_row_index(row_position, row.size, row_chars, i, true);
-                }
+                } /*else if hover == Some(snippets[snippet_index].1) {
+                draw_row_index(row_position, row.size, row_chars, i, true);
+                }*/
 
                 snippet_offset += snippets[snippet_index].0;
                 snippet_index += 1;
@@ -590,6 +590,8 @@ fn render_tooltip(
                         .enumerate()
                         .find(|(_, range)| range.contains(&index))
                         .map(|(i, _)| i)
+                } else if tokens.len() == 1 {
+                    Some(0)
                 } else {
                     None
                 };
