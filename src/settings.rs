@@ -1,13 +1,109 @@
 use std::{path::PathBuf, time::Duration};
 
-use eframe::egui::{Frame, ScrollArea, Slider, SliderClamping, Ui};
+use eframe::egui::{
+    Event, Frame, InputState, Key, KeyboardShortcut, Modifiers, ScrollArea, Slider, SliderClamping,
+    Ui,
+};
+use egui_keybind::Keybind;
+use flagset::{FlagSet, flags};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Settings {
     pub interface: UISettings,
+    pub shortcuts: KeyboardShortcuts,
     pub documents: DocumentSettings,
     pub inference: InferenceSettings,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+pub struct KeyboardShortcuts {
+    generate_at_cursor: Option<KeyboardShortcut>,
+    toggle_node_bookmarked: Option<KeyboardShortcut>,
+
+    add_child: Option<KeyboardShortcut>,
+    add_sibling: Option<KeyboardShortcut>,
+    delete_current: Option<KeyboardShortcut>,
+    delete_children: Option<KeyboardShortcut>,
+    delete_siblings: Option<KeyboardShortcut>,
+    delete_siblings_and_current: Option<KeyboardShortcut>,
+    merge_with_parent: Option<KeyboardShortcut>,
+    split_at_cursor: Option<KeyboardShortcut>,
+
+    move_to_parent: Option<KeyboardShortcut>,
+    move_to_child: Option<KeyboardShortcut>,
+    move_to_previous_sibling: Option<KeyboardShortcut>,
+    move_to_next_sibling: Option<KeyboardShortcut>,
+
+    reset_parameters: Option<KeyboardShortcut>,
+    toggle_colors: Option<KeyboardShortcut>,
+
+    toggle_node_collapsed: Option<KeyboardShortcut>,
+    collapse_all_visible_inactive: Option<KeyboardShortcut>,
+    collapse_children: Option<KeyboardShortcut>,
+    expand_all_visible_inactive: Option<KeyboardShortcut>,
+    expand_children: Option<KeyboardShortcut>,
+
+    fit_to_cursor: Option<KeyboardShortcut>,
+    fit_to_weave: Option<KeyboardShortcut>,
+}
+
+impl KeyboardShortcuts {
+    fn render(&mut self, ui: &mut Ui) {
+        ui.label("Pressing escape while modifying a keybind resets it to its default value.");
+
+        /*ui.add(
+            Keybind::new(&mut self.add_child, "keybind-add-child")
+                .with_text("TODO")
+                .with_reset(KeyboardShortcuts::default().add_child)
+                .with_reset_key(Some(Key::Escape)),
+        );*/
+    }
+    fn get_pressed(&self, input: &mut InputState) -> FlagSet<Shortcuts> {
+        let mut flags = FlagSet::<Shortcuts>::empty();
+
+        if let Some(shortcut) = &self.add_child
+            && consume_shortcut(input, shortcut)
+        {
+            flags |= Shortcuts::AddChild;
+        }
+
+        todo!()
+    }
+}
+
+flags! {
+    pub enum Shortcuts: u32 {
+        GenerateAtCursor,
+        ToggleNodeBookmarked,
+
+        AddChild,
+        AddSibling,
+        DeleteCurrent,
+        DeleteChildren,
+        DeleteSiblings,
+        DeleteSiblingsAndCurrent,
+        MergeWithParent,
+        SplitAtCursor,
+
+
+        MoveToParent,
+        MoveToChild,
+        MoveToPreviousSibling,
+        MoveToNextSibling,
+
+        ResetParameters,
+        ToggleColors,
+
+        ToggleNodeCollapsed,
+        CollapseAllVisibleInactive,
+        CollapseChildren,
+        ExpandAllVisibleInactive,
+        ExpandChildren,
+
+        FitToCursor,
+        FitToWeave,
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -32,7 +128,7 @@ impl UISettings {
         ui.checkbox(&mut self.show_model_colors, "Show model colors");
         ui.checkbox(
             &mut self.show_token_probabilities,
-            "Show token probabilities",
+            "Show token probabilities in editor",
         );
         ui.add(
             Slider::new(&mut self.max_tree_depth, 1..=32)
@@ -109,6 +205,9 @@ impl Settings {
                         ui.heading("Interface");
                         self.interface.render(ui);
                         ui.separator();
+                        ui.heading("Shortcuts");
+                        self.shortcuts.render(ui);
+                        ui.separator();
                         ui.heading("Document");
                         self.documents.render(ui);
                         ui.separator();
@@ -128,4 +227,36 @@ impl Settings {
                     });
             });
     }
+}
+
+// Copied from egui source code and modified to use Modifiers::matches_exact()
+fn count_and_consume_key(input: &mut InputState, modifiers: Modifiers, logical_key: Key) -> usize {
+    let mut count = 0usize;
+
+    input.events.retain(|event| {
+        let is_match = matches!(
+            event,
+            Event::Key {
+                key: ev_key,
+                modifiers: ev_mods,
+                pressed: true,
+                ..
+            } if *ev_key == logical_key && ev_mods.matches_exact(modifiers)
+        );
+
+        count += is_match as usize;
+
+        !is_match
+    });
+
+    count
+}
+
+// Copied from egui source code
+fn consume_shortcut(input: &mut InputState, shortcut: &KeyboardShortcut) -> bool {
+    let KeyboardShortcut {
+        modifiers,
+        logical_key,
+    } = *shortcut;
+    count_and_consume_key(input, modifiers, logical_key) > 0
 }
