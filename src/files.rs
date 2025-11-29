@@ -19,12 +19,17 @@ use eframe::egui::{
     TextStyle, TopBottomPanel, Ui,
 };
 use egui_notify::Toasts;
+use flagset::FlagSet;
 use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, treeless::FILE_EXTENSION};
 use threadpool::ThreadPool;
 use unicode_segmentation::UnicodeSegmentation;
 use walkdir::WalkDir;
 
-use crate::{editor::blank_weave_bytes, listing_margin, settings::Settings};
+use crate::{
+    editor::blank_weave_bytes,
+    listing_margin,
+    settings::{Settings, Shortcuts},
+};
 
 pub struct FileManager {
     settings: Rc<RefCell<Settings>>,
@@ -94,7 +99,7 @@ impl FileManager {
     pub fn update(&mut self) {
         self.scanned = false;
     }
-    pub fn render(&mut self, ui: &mut Ui) -> Vec<PathBuf> {
+    pub fn render(&mut self, ui: &mut Ui, _shortcuts: &FlagSet<Shortcuts>) -> Vec<PathBuf> {
         self.update_items();
 
         TopBottomPanel::bottom("filemanager-bottom-panel").show_animated_inside(ui, true, |ui| {

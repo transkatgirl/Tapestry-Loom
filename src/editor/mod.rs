@@ -24,6 +24,7 @@ mod textedit;
 use eframe::egui::{Align, Layout, Modal, Sides, Spinner, TopBottomPanel, Ui, WidgetText};
 use egui_notify::Toasts;
 use egui_tiles::{Behavior, SimplificationOptions, TileId, Tiles, Tree, UiResponse};
+use flagset::FlagSet;
 use log::debug;
 use parking_lot::Mutex;
 use tapestry_weave::{
@@ -44,7 +45,7 @@ use crate::{
         shared::SharedState,
         textedit::TextEditorView,
     },
-    settings::Settings,
+    settings::{Settings, Shortcuts},
 };
 
 pub struct Editor {
@@ -142,7 +143,12 @@ impl Editor {
             new_path_callback,
         }
     }
-    pub fn render(&mut self, ui: &mut Ui, mut close_callback: impl FnMut()) {
+    pub fn render(
+        &mut self,
+        ui: &mut Ui,
+        mut close_callback: impl FnMut(),
+        shortcuts: &FlagSet<Shortcuts>,
+    ) {
         if self.show_confirmation
             && Modal::new("global-close-modal".into())
                 .show(ui.ctx(), |ui| {

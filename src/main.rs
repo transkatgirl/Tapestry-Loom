@@ -375,13 +375,21 @@ impl Behavior<Pane> for TapestryLoomBehavior {
         match pane {
             Pane::Settings => self.settings.borrow_mut().render(ui),
             Pane::FileManager => {
-                for path in self.file_manager.borrow_mut().render(ui) {
+                for path in self
+                    .file_manager
+                    .borrow_mut()
+                    .render(ui, &self.pressed_shortcuts)
+                {
                     self.new_editor_queue.push((Some(path), None));
                 }
             }
-            Pane::Editor(editor) => editor.render(ui, || {
-                self.close_queue.push(tile_id);
-            }),
+            Pane::Editor(editor) => editor.render(
+                ui,
+                || {
+                    self.close_queue.push(tile_id);
+                },
+                &self.pressed_shortcuts,
+            ),
         }
 
         UiResponse::None
