@@ -5,9 +5,13 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use eframe::egui::{
-    Color32, FontId, Galley, Pos2, ScrollArea, TextBuffer, TextEdit, TextFormat, TextStyle, Ui,
-    text::{CCursor, LayoutJob, LayoutSection, TextWrapping},
+use eframe::{
+    egui::{
+        Color32, FontId, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit, TextFormat,
+        TextStyle, Ui, Vec2,
+        text::{CCursor, LayoutJob, LayoutSection, TextWrapping},
+    },
+    epaint::{Vertex, WHITE_UV},
 };
 use egui_notify::Toasts;
 use tapestry_weave::{
@@ -355,13 +359,118 @@ fn calculate_highlighting(
 }
 
 fn render_boundaries(ui: &Ui, snippets: &[Snippet], top_left: Pos2, galley: &Galley) {
-    let mut index = 0;
-
-    for row in &galley.rows {
-        index += row.char_count_including_newline();
+    if snippets.len() < 2 {
+        return;
     }
 
-    // TODO: Node boundary highlighting using textedit.galley
+    let mut offset = 0;
+    let mut snippet_index = 0;
+    let mut snippet_offset = 0;
+
+    let boundary_color = ui.style().visuals.widgets.hovered.weak_bg_fill;
+    let boundary_width = ui.style().visuals.widgets.hovered.fg_stroke.width;
+
+    let mut mesh = Mesh::default();
+    mesh.reserve_triangles(snippets.len() * 2 * 2);
+    mesh.reserve_vertices(snippets.len() * 4 * 2);
+
+    let mut vertices = 0;
+
+    let mut draw_rect = |rect: Rect, color| {
+        mesh.indices.extend_from_slice(&[
+            vertices,
+            vertices + 1,
+            vertices + 2,
+            vertices + 2,
+            vertices + 1,
+            vertices + 3,
+        ]);
+        mesh.vertices.extend_from_slice(&[
+            Vertex {
+                pos: rect.left_top(),
+                uv: WHITE_UV,
+                color,
+            },
+            Vertex {
+                pos: rect.right_top(),
+                uv: WHITE_UV,
+                color,
+            },
+            Vertex {
+                pos: rect.left_bottom(),
+                uv: WHITE_UV,
+                color,
+            },
+            Vertex {
+                pos: rect.right_bottom(),
+                uv: WHITE_UV,
+                color,
+            },
+        ]);
+        vertices += 4;
+    };
+
+    let mut draw_row_index = |pos: Pos2, size: Vec2, len: usize, index: usize| {
+        let x = pos.x + ((size.x / len as f32) * index as f32);
+
+        let rect = Rect {
+            min: Pos2 {
+                x: (x - (boundary_width / 2.0)),
+                y: pos.y,
+            },
+            max: Pos2 {
+                x: (x + (boundary_width / 2.0)),
+                y: pos.y + size.y,
+            },
+        };
+
+        draw_rect(rect, boundary_color)
+    };
+
+    for row in &galley.rows {
+        if snippet_index > snippets.len() {
+            break;
+        }
+
+        let row_chars = row.char_count_excluding_newline();
+
+        let row_position = Pos2 {
+            x: row.pos.x + top_left.x,
+            y: row.pos.y + top_left.y,
+        };
+
+        for (i, char) in row.glyphs.iter().enumerate() {
+            let char_len = char.chr.len_utf8();
+
+            if snippet_index >= snippets.len() {
+                break;
+            } else if offset >= snippet_offset {
+                if offset > 0 {
+                    draw_row_index(row_position, row.size, row_chars, i);
+                }
+                snippet_offset += snippets[snippet_index].0;
+                snippet_index += 1;
+            }
+
+            offset += char_len;
+        }
+
+        if row.ends_with_newline {
+            if snippet_index >= snippets.len() {
+                break;
+            } else if offset >= snippet_offset {
+                if offset > 0 {
+                    draw_row_index(row_position, row.size, row_chars, row_chars);
+                }
+                snippet_offset += snippets[snippet_index].0;
+                snippet_index += 1;
+            }
+
+            offset += 1;
+        }
+    }
+
+    ui.painter().add(mesh);
 }
 
 #[derive(Debug, Clone, Copy)]
