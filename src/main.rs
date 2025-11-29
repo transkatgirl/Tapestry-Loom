@@ -11,7 +11,9 @@ use eframe::{
     epaint::MarginF32,
 };
 use egui_notify::Toasts;
-use egui_tiles::{Behavior, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse};
+use egui_tiles::{
+    Behavior, Container, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse,
+};
 use log::debug;
 use mimalloc::MiMalloc;
 use threadpool::ThreadPool;
@@ -141,6 +143,7 @@ impl TapestryLoomApp {
                 open_documents.clone(),
             ))),
             new_editor_queue: Vec::with_capacity(16),
+            focus_queue: Vec::with_capacity(16),
             close_queue: Vec::with_capacity(16),
             settings,
             toasts,
@@ -194,6 +197,10 @@ impl App for TapestryLoomApp {
 
                 for tile in self.behavior.close_queue.drain(..) {
                     self.tree.remove_recursively(tile);
+                }
+
+                for tile in self.behavior.focus_queue.drain(..) {
+                    focus_tile(&mut self.tree.tiles, tile);
                 }
 
                 if !self.behavior.new_editor_queue.is_empty() {
@@ -321,6 +328,7 @@ impl App for TapestryLoomApp {
 struct TapestryLoomBehavior {
     settings: Rc<RefCell<Settings>>,
     new_editor_queue: Vec<(Option<PathBuf>, Option<TileId>)>,
+    focus_queue: Vec<TileId>,
     close_queue: Vec<TileId>,
     file_manager: Rc<RefCell<FileManager>>,
     toasts: Rc<RefCell<Toasts>>,
@@ -392,7 +400,12 @@ impl Behavior<Pane> for TapestryLoomBehavior {
     }
     fn on_tab_close(&mut self, tiles: &mut Tiles<Pane>, tile_id: TileId) -> bool {
         if let Some(Tile::Pane(Pane::Editor(editor))) = tiles.get_mut(tile_id) {
-            return editor.close();
+            return if editor.close() {
+                true
+            } else {
+                self.focus_queue.push(tile_id);
+                false
+            };
         }
 
         true
@@ -401,4 +414,12 @@ impl Behavior<Pane> for TapestryLoomBehavior {
 
 pub fn listing_margin(ui: &mut Ui) -> MarginF32 {
     MarginF32::same(ui.style().spacing.menu_spacing)
+}
+
+fn focus_tile(tiles: &mut Tiles<Pane>, tile_id: TileId) {
+    if let Some(parent_id) = tiles.parent_of(tile_id)
+        && let Some(Tile::Container(Container::Tabs(tabs))) = tiles.get_mut(parent_id)
+    {
+        tabs.set_active(tile_id);
+    }
 }
