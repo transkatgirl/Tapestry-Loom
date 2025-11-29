@@ -1,13 +1,13 @@
 use std::{
     cell::RefCell,
     rc::Rc,
-    time::{Duration, SystemTime},
+    time::{Duration, Instant, SystemTime},
 };
 
 use eframe::{
     egui::{
         Color32, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit, TextFormat, TextStyle,
-        Ui, Vec2,
+        Tooltip, Ui, Vec2,
         text::{CCursor, LayoutJob, LayoutSection, TextWrapping},
     },
     epaint::{Vertex, WHITE_UV},
@@ -36,6 +36,7 @@ pub struct TextEditorView {
     last_text_edit_cursor: Option<CCursor>,
     last_text_edit_hover: Option<Vec2>,
     last_text_edit_highlighting_hover: HighlightingHover,
+    last_text_edit_highlighting_hover_update: Instant,
 }
 
 type Snippet = (usize, Ulid, Color32, Option<usize>);
@@ -56,6 +57,7 @@ impl Default for TextEditorView {
             last_text_edit_cursor: None,
             last_text_edit_hover: None,
             last_text_edit_highlighting_hover: HighlightingHover::None,
+            last_text_edit_highlighting_hover_update: Instant::now(),
         }
     }
 }
@@ -72,6 +74,7 @@ impl TextEditorView {
         self.last_text_edit_cursor = None;
         self.last_text_edit_hover = None;
         self.last_text_edit_highlighting_hover = HighlightingHover::None;
+        self.last_text_edit_highlighting_hover_update = Instant::now();
     }
     pub fn render(
         &mut self,
@@ -163,13 +166,19 @@ impl TextEditorView {
                 let hover_position = textedit.response.hover_pos().map(|p| p - top_left);
 
                 if hover_position != self.last_text_edit_hover {
-                    if let Some(hover_position) =
-                        hover_position.map(|p| textedit.galley.cursor_from_pos(p).index)
+                    if let Some(hover_position) = hover_position
+                        && cursor_is_within_galley(&textedit.galley, hover_position.to_pos2())
                     {
-                        self.last_text_edit_highlighting_hover = self
-                            .calculate_cursor(weave, Some(hover_position))
+                        let hover_index = textedit.galley.cursor_from_pos(hover_position).index;
+                        let highlighting_hover = self
+                            .calculate_cursor(weave, Some(hover_index))
                             .map(|(id, i)| HighlightingHover::Position((id, i)))
                             .unwrap_or(HighlightingHover::None);
+
+                        if highlighting_hover != self.last_text_edit_highlighting_hover {
+                            self.last_text_edit_highlighting_hover = highlighting_hover;
+                            self.last_text_edit_highlighting_hover_update = Instant::now();
+                        }
                     } else {
                         self.last_text_edit_highlighting_hover = HighlightingHover::None;
                     }
@@ -180,7 +189,26 @@ impl TextEditorView {
                 if let HighlightingHover::Position((hover_node, hover_index)) =
                     self.last_text_edit_highlighting_hover
                 {
-                    // TODO: Display node metadata on hover
+                    let since_last_update = self
+                        .last_text_edit_highlighting_hover_update
+                        .elapsed()
+                        .as_secs_f32();
+                    let show_tooltip = since_last_update >= ui.style().interaction.tooltip_delay;
+
+                    if !show_tooltip {
+                        ui.ctx().request_repaint_after(Duration::from_secs_f32(
+                            (ui.style().interaction.tooltip_delay - since_last_update)
+                                + (1.0 / 15.0),
+                        ));
+                    }
+
+                    let mut tooltip = Tooltip::for_widget(&textedit.response).at_pointer();
+                    tooltip.popup = tooltip.popup.open(show_tooltip);
+                    tooltip.show(|ui| {
+                        ui.label("TODO");
+                        // TODO: Display node metadata on hover
+                    });
+
                     state.set_hovered_node(Some(hover_node));
                     self.last_seen_hovered_node = Some(hover_node);
                 } else if self.last_seen_hovered_node != state.get_hovered_node() {
@@ -454,6 +482,16 @@ fn calculate_boundaries(
     }
 }
 
+fn cursor_is_within_galley(galley: &Galley, cursor: Pos2) -> bool {
+    for row in &galley.rows {
+        if row.rect().contains(cursor) {
+            return true;
+        }
+    }
+
+    false
+}
+
 fn render_rects(ui: &Ui, rects: &mut Vec<(Rect, Color32)>) {
     if rects.is_empty() {
         return;
@@ -502,7 +540,7 @@ fn render_rects(ui: &Ui, rects: &mut Vec<(Rect, Color32)>) {
     ui.painter().add(mesh);
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum HighlightingHover {
     Position((Ulid, usize)),
     Node(Ulid),

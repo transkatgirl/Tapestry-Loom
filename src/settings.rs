@@ -39,6 +39,8 @@ impl UISettings {
                 .clamping(SliderClamping::Never)
                 .text("Maximum tree list depth"),
         );
+
+        // TODO: Add editor layout presets
     }
 }
 
