@@ -1,5 +1,7 @@
 use std::{
     cell::RefCell,
+    collections::HashMap,
+    ops::Range,
     rc::Rc,
     time::{Duration, Instant, SystemTime},
 };
@@ -20,7 +22,10 @@ use tapestry_weave::{
 };
 
 use crate::{
-    editor::shared::{SharedState, get_node_color, get_token_color},
+    editor::shared::{
+        SharedState, get_node_color, get_token_color, render_node_metadata_tooltip,
+        render_token_metadata_tooltip,
+    },
     settings::Settings,
 };
 
@@ -30,6 +35,7 @@ pub struct TextEditorView {
     bytes: Vec<u8>,
     buffer: Vec<u8>,
     snippets: Rc<RefCell<Vec<Snippet>>>,
+    node_snippets: HashMap<Ulid, Vec<Range<usize>>>,
     rects: Vec<(Rect, Color32)>,
     last_seen_cursor_node: Option<Ulid>,
     last_seen_hovered_node: Option<Ulid>,
@@ -51,6 +57,7 @@ impl Default for TextEditorView {
             bytes: Vec::with_capacity(262144),
             buffer: Vec::with_capacity(262144),
             snippets: Rc::new(RefCell::new(Vec::with_capacity(65536))),
+            node_snippets: HashMap::with_capacity(65536),
             rects: Vec::with_capacity(65536),
             last_seen_cursor_node: None,
             last_seen_hovered_node: None,
@@ -68,6 +75,7 @@ impl TextEditorView {
         self.bytes.clear();
         self.buffer.clear();
         self.snippets.borrow_mut().clear();
+        self.node_snippets.clear();
         self.rects.clear();
         self.last_seen_cursor_node = None;
         self.last_seen_hovered_node = None;
@@ -206,8 +214,7 @@ impl TextEditorView {
                     let mut tooltip = Tooltip::for_widget(&textedit.response).at_pointer();
                     tooltip.popup = tooltip.popup.open(show_tooltip);
                     tooltip.show(|ui| {
-                        ui.label("TODO");
-                        // TODO: Display node metadata on hover
+                        render_tooltip(ui, weave, &self.node_snippets, hover_node, hover_index);
                     });
 
                     state.set_hovered_node(Some(hover_node));
@@ -226,8 +233,11 @@ impl TextEditorView {
         self.text.clear();
         self.bytes.clear();
         snippets.clear();
+        self.node_snippets.clear();
 
         let active: Vec<u128> = weave.weave.get_active_thread().iter().copied().collect();
+
+        let mut offset = 0;
 
         for node in active
             .into_iter()
@@ -240,9 +250,14 @@ impl TextEditorView {
                 InnerNodeContent::Snippet(snippet) => {
                     self.bytes.extend_from_slice(snippet);
                     snippets.push((snippet.len(), Ulid(node.id), color, None));
+                    #[allow(clippy::single_range_in_vec_init)]
+                    self.node_snippets
+                        .insert(Ulid(node.id), vec![offset..offset + snippet.len()]);
+                    offset += snippet.len();
                 }
                 InnerNodeContent::Tokens(tokens) => {
                     let mut token_index = 0;
+                    let mut token_indices = Vec::with_capacity(tokens.len());
 
                     for (token, token_metadata) in tokens {
                         let color = get_token_color(Some(color), token_metadata, settings)
@@ -250,8 +265,12 @@ impl TextEditorView {
 
                         self.bytes.extend_from_slice(token);
                         snippets.push((token.len(), Ulid(node.id), color, Some(token_index)));
+                        token_indices.push(offset..offset + token.len());
                         token_index += token.len();
+                        offset += token.len();
                     }
+
+                    self.node_snippets.insert(Ulid(node.id), token_indices);
                 }
             }
         }
@@ -345,8 +364,6 @@ fn calculate_highlighting(
 
         match hover {
             HighlightingHover::Position((hover_node, hover_position)) => {
-                // TODO: Improve handling of multi-token nodes
-
                 if hover_node == *node {
                     format.background = hover_bg;
 
@@ -546,4 +563,43 @@ enum HighlightingHover {
     Position((Ulid, usize)),
     Node(Ulid),
     None,
+}
+
+fn render_tooltip(
+    ui: &mut Ui,
+    weave: &TapestryWeave,
+    node_snippets: &HashMap<Ulid, Vec<Range<usize>>>,
+    node: Ulid,
+    index: usize,
+) {
+    if let Some(node) = weave.get_node(&node) {
+        match &node.contents.content {
+            InnerNodeContent::Snippet(_) => {
+                render_node_metadata_tooltip(ui, node);
+            }
+            InnerNodeContent::Tokens(tokens) => {
+                render_node_metadata_tooltip(ui, node);
+
+                let token_offset: Option<usize> = if let Some(ranges) =
+                    node_snippets.get(&Ulid(node.id))
+                    && !ranges.is_empty()
+                    && ranges.len() == tokens.len()
+                {
+                    ranges
+                        .iter()
+                        .enumerate()
+                        .find(|(_, range)| range.contains(&index))
+                        .map(|(i, _)| i)
+                } else {
+                    None
+                };
+
+                if let Some((_, token_metadata)) = token_offset.and_then(|index| tokens.get(index))
+                {
+                    ui.separator();
+                    render_token_metadata_tooltip(ui, token_metadata);
+                }
+            }
+        }
+    }
 }
