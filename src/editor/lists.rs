@@ -515,7 +515,6 @@ fn render_horizontal_node_label(
                         ui.add_space(ui.spacing().icon_spacing);
                         if node.bookmarked {
                             ui.label("\u{E060}");
-                            ui.add_space(ui.spacing().icon_spacing);
                         }
                         if let InnerNodeContent::Tokens(tokens) = &node.contents.content
                             && tokens.len() == 1
@@ -524,8 +523,8 @@ fn render_horizontal_node_label(
                             && let Ok(probability) = probability.parse::<f32>()
                         {
                             ui.label(format!("{}%", probability * 100.0));
-                            ui.add_space(ui.spacing().icon_spacing);
                         }
+                        ui.add_space(ui.spacing().icon_spacing);
                     } else {
                         ui.add_space(0.0);
                     }
