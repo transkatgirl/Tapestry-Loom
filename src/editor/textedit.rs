@@ -167,8 +167,10 @@ impl TextEditorView {
                                 self.calculate_cursor(weave, position.map(|p| p.index))
                             {
                                 state.set_cursor_node(Some(node));
+                                self.last_seen_cursor_node = Some(node);
                             } else {
                                 state.set_cursor_node(None);
+                                self.last_seen_cursor_node = None;
                             }
                         }
                         self.last_text_edit_cursor = position;
