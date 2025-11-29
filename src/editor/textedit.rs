@@ -1,14 +1,13 @@
 use std::{
     cell::RefCell,
-    ops::Range,
     rc::Rc,
     time::{Duration, SystemTime},
 };
 
 use eframe::{
     egui::{
-        Color32, FontId, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit, TextFormat,
-        TextStyle, Ui, Vec2,
+        Color32, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit, TextFormat, TextStyle,
+        Ui, Vec2,
         text::{CCursor, LayoutJob, LayoutSection, TextWrapping},
     },
     epaint::{Vertex, WHITE_UV},
@@ -31,6 +30,7 @@ pub struct TextEditorView {
     bytes: Vec<u8>,
     buffer: Vec<u8>,
     snippets: Rc<RefCell<Vec<Snippet>>>,
+    rects: Vec<(Rect, Color32)>,
     last_seen_cursor_node: Option<Ulid>,
     last_seen_hovered_node: Option<Ulid>,
     last_text_edit_cursor: Option<CCursor>,
@@ -50,6 +50,7 @@ impl Default for TextEditorView {
             bytes: Vec::with_capacity(262144),
             buffer: Vec::with_capacity(262144),
             snippets: Rc::new(RefCell::new(Vec::with_capacity(65536))),
+            rects: Vec::with_capacity(65536),
             last_seen_cursor_node: None,
             last_seen_hovered_node: None,
             last_text_edit_cursor: None,
@@ -64,6 +65,8 @@ impl TextEditorView {
         self.text.clear();
         self.bytes.clear();
         self.buffer.clear();
+        self.snippets.borrow_mut().clear();
+        self.rects.clear();
         self.last_seen_cursor_node = None;
         self.last_seen_hovered_node = None;
         self.last_text_edit_cursor = None;
@@ -112,6 +115,8 @@ impl TextEditorView {
             .auto_shrink(false)
             .animated(false)
             .show(ui, |ui| {
+                render_rects(ui, &mut self.rects);
+
                 let textedit = TextEdit::multiline(&mut self.text)
                     .frame(false)
                     .text_color(ui.visuals().widgets.inactive.text_color())
@@ -123,7 +128,7 @@ impl TextEditorView {
 
                 let top_left = textedit.text_clip_rect.left_top();
 
-                render_boundaries(
+                calculate_boundaries(
                     ui,
                     &self.snippets.borrow(),
                     top_left,
@@ -133,6 +138,7 @@ impl TextEditorView {
                         HighlightingHover::Node(node) => Some(node),
                         HighlightingHover::None => None,
                     },
+                    &mut self.rects,
                 );
 
                 if textedit.response.changed() {
@@ -346,13 +352,13 @@ fn calculate_highlighting(
     sections
 }
 
-// TODO: Render token boundaries underneath text / cursors / highlighting
-fn render_boundaries(
+fn calculate_boundaries(
     ui: &Ui,
     snippets: &[Snippet],
     top_left: Pos2,
     galley: &Galley,
     hover: Option<Ulid>,
+    output: &mut Vec<(Rect, Color32)>,
 ) {
     if snippets.len() < 2 {
         return;
@@ -365,46 +371,6 @@ fn render_boundaries(
     let boundary_color = ui.style().visuals.widgets.inactive.bg_fill;
     let boundary_color_strong = ui.style().visuals.widgets.inactive.fg_stroke.color;
     let boundary_width = ui.style().visuals.widgets.hovered.fg_stroke.width;
-
-    let mut mesh = Mesh::default();
-    mesh.reserve_triangles(snippets.len() * 2 * 2);
-    mesh.reserve_vertices(snippets.len() * 4 * 2);
-
-    let mut vertices = 0;
-
-    let mut draw_rect = |rect: Rect, color| {
-        mesh.indices.extend_from_slice(&[
-            vertices,
-            vertices + 1,
-            vertices + 2,
-            vertices + 2,
-            vertices + 1,
-            vertices + 3,
-        ]);
-        mesh.vertices.extend_from_slice(&[
-            Vertex {
-                pos: rect.left_top(),
-                uv: WHITE_UV,
-                color,
-            },
-            Vertex {
-                pos: rect.right_top(),
-                uv: WHITE_UV,
-                color,
-            },
-            Vertex {
-                pos: rect.left_bottom(),
-                uv: WHITE_UV,
-                color,
-            },
-            Vertex {
-                pos: rect.right_bottom(),
-                uv: WHITE_UV,
-                color,
-            },
-        ]);
-        vertices += 4;
-    };
 
     let mut draw_row_index = |pos: Pos2, size: Vec2, len: usize, index: usize, is_token: bool| {
         let x = pos.x + ((size.x / len as f32) * index as f32);
@@ -420,14 +386,14 @@ fn render_boundaries(
             },
         };
 
-        draw_rect(
+        output.push((
             rect,
             if is_token {
                 boundary_color_strong
             } else {
                 boundary_color
             },
-        )
+        ))
     };
 
     let mut last_node = None;
@@ -485,6 +451,52 @@ fn render_boundaries(
 
             offset += 1;
         }
+    }
+}
+
+fn render_rects(ui: &Ui, rects: &mut Vec<(Rect, Color32)>) {
+    if rects.is_empty() {
+        return;
+    }
+
+    let mut mesh = Mesh::default();
+    mesh.reserve_triangles(rects.len() * 2 * 2);
+    mesh.reserve_vertices(rects.len() * 4 * 2);
+
+    let mut vertices = 0;
+
+    for (rect, color) in rects.drain(..) {
+        mesh.indices.extend_from_slice(&[
+            vertices,
+            vertices + 1,
+            vertices + 2,
+            vertices + 2,
+            vertices + 1,
+            vertices + 3,
+        ]);
+        mesh.vertices.extend_from_slice(&[
+            Vertex {
+                pos: rect.left_top(),
+                uv: WHITE_UV,
+                color,
+            },
+            Vertex {
+                pos: rect.right_top(),
+                uv: WHITE_UV,
+                color,
+            },
+            Vertex {
+                pos: rect.left_bottom(),
+                uv: WHITE_UV,
+                color,
+            },
+            Vertex {
+                pos: rect.right_bottom(),
+                uv: WHITE_UV,
+                color,
+            },
+        ]);
+        vertices += 4
     }
 
     ui.painter().add(mesh);
