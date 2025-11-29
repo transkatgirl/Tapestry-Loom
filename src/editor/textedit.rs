@@ -580,7 +580,7 @@ fn render_tooltip(
             InnerNodeContent::Tokens(tokens) => {
                 render_node_metadata_tooltip(ui, node);
 
-                let token_offset: Option<usize> = if let Some(ranges) =
+                let mut token_offset: Option<usize> = if let Some(ranges) =
                     node_snippets.get(&Ulid(node.id))
                     && !ranges.is_empty()
                     && ranges.len() == tokens.len()
@@ -590,11 +590,13 @@ fn render_tooltip(
                         .enumerate()
                         .find(|(_, range)| range.contains(&index))
                         .map(|(i, _)| i)
-                } else if tokens.len() == 1 {
-                    Some(0)
                 } else {
                     None
                 };
+
+                if tokens.len() == 1 && token_offset.is_none() {
+                    token_offset = Some(0);
+                }
 
                 if let Some((_, token_metadata)) = token_offset.and_then(|index| tokens.get(index))
                 {
