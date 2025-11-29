@@ -324,6 +324,8 @@ fn calculate_highlighting(
 
         match hover {
             HighlightingHover::Position((hover_node, hover_position)) => {
+                // TODO: Improve handling of multi-token nodes
+
                 if hover_node == *node {
                     format.background = ui.style().visuals.widgets.hovered.weak_bg_fill;
 
@@ -363,11 +365,13 @@ fn render_boundaries(ui: &Ui, snippets: &[Snippet], top_left: Pos2, galley: &Gal
         return;
     }
 
+    // TODO: Only show token boundaries on hover
+
     let mut offset = 0;
     let mut snippet_index = 0;
     let mut snippet_offset = 0;
 
-    let boundary_color = ui.style().visuals.widgets.hovered.weak_bg_fill;
+    let boundary_color = ui.style().visuals.widgets.inactive.weak_bg_fill;
     let boundary_width = ui.style().visuals.widgets.hovered.fg_stroke.width;
 
     let mut mesh = Mesh::default();
