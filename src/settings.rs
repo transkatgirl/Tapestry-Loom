@@ -1,8 +1,8 @@
 use std::{fmt::Display, path::PathBuf, time::Duration};
 
 use eframe::egui::{
-    ComboBox, Event, Frame, InputState, Key, KeyboardShortcut, Modifiers, ScrollArea, Slider,
-    SliderClamping, TextStyle, Ui, Visuals,
+    ComboBox, Context, Event, Frame, InputState, Key, KeyboardShortcut, Modifiers, ScrollArea,
+    Slider, SliderClamping, TextStyle, Ui, Visuals,
 };
 use egui_keybind::Keybind;
 use flagset::{FlagSet, flags};
@@ -59,146 +59,148 @@ impl KeyboardShortcuts {
                 .with_reset_key(Some(Key::Escape)),
         );*/
     }
-    pub fn get_pressed(&self, input: &mut InputState) -> FlagSet<Shortcuts> {
+    pub fn get_pressed(&self, ctx: &Context) -> FlagSet<Shortcuts> {
         let mut flags = FlagSet::<Shortcuts>::empty();
 
-        if let Some(shortcut) = &self.generate_at_cursor
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::GenerateAtCursor;
-        }
+        ctx.input_mut(|input| {
+            if let Some(shortcut) = &self.generate_at_cursor
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::GenerateAtCursor;
+            }
 
-        if let Some(shortcut) = &self.toggle_node_bookmarked
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::ToggleNodeBookmarked;
-        }
+            if let Some(shortcut) = &self.toggle_node_bookmarked
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ToggleNodeBookmarked;
+            }
 
-        if let Some(shortcut) = &self.add_child
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::AddChild;
-        }
+            if let Some(shortcut) = &self.add_child
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::AddChild;
+            }
 
-        if let Some(shortcut) = &self.add_sibling
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::AddSibling;
-        }
+            if let Some(shortcut) = &self.add_sibling
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::AddSibling;
+            }
 
-        if let Some(shortcut) = &self.delete_current
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::DeleteCurrent;
-        }
+            if let Some(shortcut) = &self.delete_current
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::DeleteCurrent;
+            }
 
-        if let Some(shortcut) = &self.delete_children
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::DeleteChildren;
-        }
+            if let Some(shortcut) = &self.delete_children
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::DeleteChildren;
+            }
 
-        if let Some(shortcut) = &self.delete_siblings
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::DeleteSiblings;
-        }
+            if let Some(shortcut) = &self.delete_siblings
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::DeleteSiblings;
+            }
 
-        if let Some(shortcut) = &self.delete_siblings_and_current
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::DeleteSiblingsAndCurrent;
-        }
+            if let Some(shortcut) = &self.delete_siblings_and_current
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::DeleteSiblingsAndCurrent;
+            }
 
-        if let Some(shortcut) = &self.merge_with_parent
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::MergeWithParent;
-        }
+            if let Some(shortcut) = &self.merge_with_parent
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::MergeWithParent;
+            }
 
-        if let Some(shortcut) = &self.split_at_cursor
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::SplitAtCursor;
-        }
+            if let Some(shortcut) = &self.split_at_cursor
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::SplitAtCursor;
+            }
 
-        if let Some(shortcut) = &self.move_to_parent
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::MoveToParent;
-        }
+            if let Some(shortcut) = &self.move_to_parent
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::MoveToParent;
+            }
 
-        if let Some(shortcut) = &self.move_to_child
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::MoveToChild;
-        }
+            if let Some(shortcut) = &self.move_to_child
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::MoveToChild;
+            }
 
-        if let Some(shortcut) = &self.move_to_previous_sibling
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::MoveToPreviousSibling;
-        }
+            if let Some(shortcut) = &self.move_to_previous_sibling
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::MoveToPreviousSibling;
+            }
 
-        if let Some(shortcut) = &self.move_to_next_sibling
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::MoveToNextSibling;
-        }
+            if let Some(shortcut) = &self.move_to_next_sibling
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::MoveToNextSibling;
+            }
 
-        if let Some(shortcut) = &self.reset_parameters
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::ResetParameters;
-        }
+            if let Some(shortcut) = &self.reset_parameters
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ResetParameters;
+            }
 
-        if let Some(shortcut) = &self.toggle_colors
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::ToggleColors;
-        }
+            if let Some(shortcut) = &self.toggle_colors
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ToggleColors;
+            }
 
-        if let Some(shortcut) = &self.toggle_node_collapsed
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::ToggleNodeCollapsed;
-        }
+            if let Some(shortcut) = &self.toggle_node_collapsed
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ToggleNodeCollapsed;
+            }
 
-        if let Some(shortcut) = &self.collapse_all_visible_inactive
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::CollapseAllVisibleInactive;
-        }
+            if let Some(shortcut) = &self.collapse_all_visible_inactive
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::CollapseAllVisibleInactive;
+            }
 
-        if let Some(shortcut) = &self.collapse_children
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::CollapseChildren;
-        }
+            if let Some(shortcut) = &self.collapse_children
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::CollapseChildren;
+            }
 
-        if let Some(shortcut) = &self.expand_all_visible_inactive
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::ExpandAllVisibleInactive;
-        }
+            if let Some(shortcut) = &self.expand_all_visible_inactive
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ExpandAllVisibleInactive;
+            }
 
-        if let Some(shortcut) = &self.expand_children
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::ExpandChildren;
-        }
+            if let Some(shortcut) = &self.expand_children
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ExpandChildren;
+            }
 
-        if let Some(shortcut) = &self.fit_to_cursor
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::FitToCursor;
-        }
+            if let Some(shortcut) = &self.fit_to_cursor
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::FitToCursor;
+            }
 
-        if let Some(shortcut) = &self.fit_to_weave
-            && consume_shortcut(input, shortcut)
-        {
-            flags |= Shortcuts::FitToWeave;
-        }
+            if let Some(shortcut) = &self.fit_to_weave
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::FitToWeave;
+            }
+        });
 
         flags
     }
@@ -238,7 +240,7 @@ flags! {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub struct UISettings {
     pub ui_scale: f32,
     pub ui_theme: UITheme,
@@ -261,7 +263,7 @@ impl Default for UISettings {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UITheme {
     Dark,
     Light,
@@ -277,7 +279,7 @@ impl Display for UITheme {
 }
 
 impl UITheme {
-    pub fn get_visuals(&self) -> Visuals {
+    fn get_visuals(&self) -> Visuals {
         match &self {
             Self::Dark => Visuals::dark(),
             Self::Light => Visuals::light(),
@@ -286,6 +288,10 @@ impl UITheme {
 }
 
 impl UISettings {
+    pub fn apply(&self, ctx: &Context) {
+        ctx.set_zoom_factor(self.ui_scale);
+        ctx.set_visuals(self.ui_theme.get_visuals());
+    }
     fn render(&mut self, ui: &mut Ui) {
         let ui_slider = ui.add(
             Slider::new(&mut self.displayed_ui_scale, 0.5..=2.0)

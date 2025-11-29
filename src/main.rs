@@ -23,7 +23,7 @@ use tokio::runtime::Runtime;
 use crate::{
     editor::Editor,
     files::FileManager,
-    settings::{Settings, Shortcuts},
+    settings::{Settings, Shortcuts, UISettings},
 };
 
 mod editor;
@@ -58,6 +58,7 @@ struct TapestryLoomApp {
     tree: Tree<Pane>,
     show_confirmation: bool,
     allow_close: bool,
+    last_ui_settings: UISettings,
 }
 
 impl TapestryLoomApp {
@@ -173,12 +174,16 @@ impl TapestryLoomApp {
         let root = tiles.insert_tab_tile(tabs);
 
         cc.egui_ctx.style_mut(|style| style.animation_time = 0.0);
+        behavior.settings.borrow().interface.apply(&cc.egui_ctx);
+
+        let last_ui_settings = behavior.settings.borrow().interface;
 
         Self {
             behavior,
             tree: Tree::new("global-tree", root, tiles),
             show_confirmation: false,
             allow_close: false,
+            last_ui_settings,
         }
     }
     fn allow_close(&self) -> bool {
@@ -304,19 +309,13 @@ impl App for TapestryLoomApp {
             self.show_confirmation = false;
         }
 
-        ctx.set_zoom_factor(self.behavior.settings.borrow().interface.ui_scale);
-        ctx.set_visuals(
-            self.behavior
-                .settings
-                .borrow()
-                .interface
-                .ui_theme
-                .get_visuals(),
-        );
-        ctx.input_mut(|input| {
-            self.behavior.pressed_shortcuts =
-                self.behavior.settings.borrow().shortcuts.get_pressed(input);
-        });
+        let settings = self.behavior.settings.borrow();
+
+        if settings.interface != self.last_ui_settings {
+            settings.interface.apply(ctx);
+            self.last_ui_settings = settings.interface;
+        }
+        self.behavior.pressed_shortcuts = settings.shortcuts.get_pressed(ctx);
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         match ron::to_string(&self.behavior.settings) {
