@@ -123,7 +123,17 @@ impl TextEditorView {
 
                 let top_left = textedit.text_clip_rect.left_top();
 
-                render_boundaries(ui, &self.snippets.borrow(), top_left, &textedit.galley);
+                render_boundaries(
+                    ui,
+                    &self.snippets.borrow(),
+                    top_left,
+                    &textedit.galley,
+                    match self.last_text_edit_highlighting_hover {
+                        HighlightingHover::Position((node, _)) => Some(node),
+                        HighlightingHover::Node(node) => Some(node),
+                        HighlightingHover::None => None,
+                    },
+                );
 
                 if textedit.response.changed() {
                     self.update_weave(weave);
@@ -337,18 +347,23 @@ fn calculate_highlighting(
 }
 
 // TODO: Render token boundaries underneath text / cursors / highlighting
-fn render_boundaries(ui: &Ui, snippets: &[Snippet], top_left: Pos2, galley: &Galley) {
+fn render_boundaries(
+    ui: &Ui,
+    snippets: &[Snippet],
+    top_left: Pos2,
+    galley: &Galley,
+    hover: Option<Ulid>,
+) {
     if snippets.len() < 2 {
         return;
     }
-
-    // TODO: Only show token boundaries on hover
 
     let mut offset = 0;
     let mut snippet_index = 0;
     let mut snippet_offset = 0;
 
-    let boundary_color = ui.style().visuals.widgets.inactive.weak_bg_fill;
+    let boundary_color = ui.style().visuals.widgets.inactive.bg_fill;
+    let boundary_color_strong = ui.style().visuals.widgets.inactive.fg_stroke.color;
     let boundary_width = ui.style().visuals.widgets.hovered.fg_stroke.width;
 
     let mut mesh = Mesh::default();
@@ -391,7 +406,7 @@ fn render_boundaries(ui: &Ui, snippets: &[Snippet], top_left: Pos2, galley: &Gal
         vertices += 4;
     };
 
-    let mut draw_row_index = |pos: Pos2, size: Vec2, len: usize, index: usize| {
+    let mut draw_row_index = |pos: Pos2, size: Vec2, len: usize, index: usize, is_token: bool| {
         let x = pos.x + ((size.x / len as f32) * index as f32);
 
         let rect = Rect {
@@ -405,8 +420,17 @@ fn render_boundaries(ui: &Ui, snippets: &[Snippet], top_left: Pos2, galley: &Gal
             },
         };
 
-        draw_rect(rect, boundary_color)
+        draw_rect(
+            rect,
+            if is_token {
+                boundary_color_strong
+            } else {
+                boundary_color
+            },
+        )
     };
+
+    let mut last_node = None;
 
     for row in &galley.rows {
         if snippet_index > snippets.len() {
@@ -426,9 +450,15 @@ fn render_boundaries(ui: &Ui, snippets: &[Snippet], top_left: Pos2, galley: &Gal
             if snippet_index >= snippets.len() {
                 break;
             } else if offset >= snippet_offset {
-                if offset > 0 {
-                    draw_row_index(row_position, row.size, row_chars, i);
+                if last_node != Some(snippets[snippet_index].1) {
+                    if offset > 0 {
+                        draw_row_index(row_position, row.size, row_chars, i, false);
+                    }
+                    last_node = Some(snippets[snippet_index].1);
+                } else if hover == Some(snippets[snippet_index].1) {
+                    draw_row_index(row_position, row.size, row_chars, i, true);
                 }
+
                 snippet_offset += snippets[snippet_index].0;
                 snippet_index += 1;
             }
@@ -440,9 +470,15 @@ fn render_boundaries(ui: &Ui, snippets: &[Snippet], top_left: Pos2, galley: &Gal
             if snippet_index >= snippets.len() {
                 break;
             } else if offset >= snippet_offset {
-                if offset > 0 {
-                    draw_row_index(row_position, row.size, row_chars, row_chars);
+                if last_node != Some(snippets[snippet_index].1) {
+                    if offset > 0 {
+                        draw_row_index(row_position, row.size, row_chars, row_chars, false);
+                    }
+                    last_node = Some(snippets[snippet_index].1);
+                } else if hover == Some(snippets[snippet_index].1) {
+                    draw_row_index(row_position, row.size, row_chars, row_chars, true);
                 }
+
                 snippet_offset += snippets[snippet_index].0;
                 snippet_index += 1;
             }
