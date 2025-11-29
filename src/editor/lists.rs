@@ -522,7 +522,7 @@ fn render_horizontal_node_label(
                             && let Some(probability) = token.1.get("probability")
                             && let Ok(probability) = probability.parse::<f32>()
                         {
-                            ui.label(format!("{}%", probability * 100.0));
+                            ui.label(format!("{:.1}%", probability * 100.0));
                         }
                         ui.add_space(ui.spacing().icon_spacing);
                     } else {

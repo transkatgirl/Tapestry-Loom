@@ -107,7 +107,7 @@ pub fn render_token_metadata_tooltip(ui: &mut Ui, token_metadata: &IndexMap<Stri
         if key == "probability"
             && let Ok(probability) = value.parse::<f32>()
         {
-            ui.label(format!("probability: {}%", probability * 100.0));
+            ui.label(format!("probability: {:.2}%", probability * 100.0));
         } else {
             ui.label(format!("{key}: {value}"));
         }
