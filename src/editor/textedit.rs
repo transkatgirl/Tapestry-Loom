@@ -147,6 +147,7 @@ impl TextEditorView {
                 if textedit.response.changed() {
                     self.update_weave(weave);
                     self.last_text_edit_cursor = None;
+                    self.last_text_edit_highlighting_hover_update = Instant::now();
                 } else {
                     let position = textedit.cursor_range.map(|c| c.sorted_cursors()[0]);
                     if position != self.last_text_edit_cursor {
