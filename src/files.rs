@@ -15,8 +15,8 @@ use std::{
 };
 
 use eframe::egui::{
-    Align, Button, Frame, Layout, Modal, RichText, ScrollArea, Sides, Spinner, TextStyle,
-    TopBottomPanel, Ui,
+    Align, Button, Frame, Layout, Modal, OutputCommand, RichText, ScrollArea, Sides, Spinner,
+    TextStyle, TopBottomPanel, Ui,
 };
 use egui_notify::Toasts;
 use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, treeless::FILE_EXTENSION};
@@ -241,7 +241,20 @@ impl FileManager {
                                             ui.separator();
                                         };
 
-                                        if ui.button("Copy item").clicked() {
+                                        if ui.button("Copy item path").clicked() {
+                                            ui.output_mut(|o| {
+                                                o.commands.push(OutputCommand::CopyText(
+                                                    self.path
+                                                        .join(&item.path)
+                                                        .to_string_lossy()
+                                                        .to_string(),
+                                                ))
+                                            });
+                                        };
+
+                                        ui.separator();
+
+                                        if ui.button("Duplicate item").clicked() {
                                             *self.modal.borrow_mut() = ModalType::Copy((
                                                 item.path.clone(),
                                                 item.path.to_string_lossy().to_string(),
@@ -313,7 +326,26 @@ impl FileManager {
                                         }
                                     }
 
-                                    if ui.button("\u{E09E}").on_hover_text("Copy item").clicked() {
+                                    /*if ui
+                                        .button("\u{E225}")
+                                        .on_hover_text("Copy item path")
+                                        .clicked()
+                                    {
+                                        ui.output_mut(|o| {
+                                            o.commands.push(OutputCommand::CopyText(
+                                                self.path
+                                                    .join(&item.path)
+                                                    .to_string_lossy()
+                                                    .to_string(),
+                                            ))
+                                        });
+                                    };*/
+
+                                    if ui
+                                        .button("\u{E09E}")
+                                        .on_hover_text("Duplicate item")
+                                        .clicked()
+                                    {
                                         *self.modal.borrow_mut() = ModalType::Copy((
                                             item.path.clone(),
                                             item.path.to_string_lossy().to_string(),
@@ -445,7 +477,7 @@ impl FileManager {
                 if Modal::new("filemanager-copy-item-modal".into())
                     .show(ui.ctx(), |ui| {
                         ui.set_width(280.0);
-                        ui.heading("Copy Item");
+                        ui.heading("Duplicate Item");
                         let label = ui.label("New Path:");
                         ui.text_edit_singleline(to).labelled_by(label.id);
                         Sides::new().show(
