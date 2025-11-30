@@ -137,6 +137,7 @@ impl Editor {
                 bookmark_list_view: BookmarkListView::default(),
                 text_edit_view: TextEditorView::default(),
                 menu_view: MenuView::default(),
+                shortcuts: FlagSet::default(),
             },
             allow_close: false,
             show_confirmation: false,
@@ -149,6 +150,8 @@ impl Editor {
         mut close_callback: impl FnMut(),
         shortcuts: &FlagSet<Shortcuts>,
     ) {
+        self.behavior.shortcuts = *shortcuts;
+
         if self.show_confirmation
             && Modal::new("global-close-modal".into())
                 .show(ui.ctx(), |ui| {
@@ -473,6 +476,7 @@ struct EditorTilingBehavior {
     settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
     weave: Arc<Mutex<Option<TapestryWeave>>>,
+    shortcuts: FlagSet<Shortcuts>,
 }
 
 // TODO: Set drag_preview_color, tab_bar_color, and tab_bg_color
@@ -494,7 +498,8 @@ impl EditorTilingBehavior {
         if let Some(weave) = weave.as_mut() {
             let settings = self.settings.borrow();
             let mut toasts = self.toasts.borrow_mut();
-            self.shared_state.update(weave, &settings, &mut toasts);
+            self.shared_state
+                .update(weave, &settings, &mut toasts, self.shortcuts);
             self.menu_view.render_rtl_panel(
                 ui,
                 weave,

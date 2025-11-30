@@ -3,6 +3,7 @@ use std::sync::Arc;
 use chrono::{DateTime, offset};
 use eframe::egui::{Color32, Rgba, Ui};
 use egui_notify::Toasts;
+use flagset::FlagSet;
 use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{dependent::DependentNode, indexmap::IndexMap},
@@ -10,7 +11,7 @@ use tapestry_weave::{
 };
 use tokio::runtime::Runtime;
 
-use crate::settings::Settings;
+use crate::settings::{Settings, Shortcuts};
 
 #[derive(Debug)]
 pub struct SharedState {
@@ -35,7 +36,13 @@ impl SharedState {
             triggered_unimplemented: false,
         }
     }
-    pub fn update(&mut self, weave: &mut TapestryWeave, settings: &Settings, toasts: &mut Toasts) {
+    pub fn update(
+        &mut self,
+        weave: &mut TapestryWeave,
+        settings: &Settings,
+        toasts: &mut Toasts,
+        shortcuts: FlagSet<Shortcuts>,
+    ) {
         self.last_hovered_node = self.hovered_node;
         self.hovered_node = None;
         if let Some(cursor_node) = self.cursor_node
@@ -49,7 +56,7 @@ impl SharedState {
             self.cursor_node = Some(active);
         }
         self.last_cursor_node = self.cursor_node;
-        if self.triggered_unimplemented {
+        if self.triggered_unimplemented || !shortcuts.is_empty() {
             toasts.info("Unimplemented");
             self.triggered_unimplemented = false;
         }
