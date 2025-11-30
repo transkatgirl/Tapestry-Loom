@@ -53,7 +53,7 @@ pub struct FileManager {
     modal: RefCell<ModalType>,
 }
 
-type ScanResult = Result<ItemScanEvent, String>;
+type ScanResult = Result<ItemScanEvent, anyhow::Error>;
 
 impl FileManager {
     pub fn new(
@@ -598,11 +598,11 @@ impl FileManager {
                         })));
                     }
                     Err(error) => {
-                        let _ = tx.send(Err(format!("{error:?}")));
+                        let _ = tx.send(Err(error.into()));
                     }
                 },
                 Err(error) => {
-                    let _ = tx.send(Err(format!("{error:?}")));
+                    let _ = tx.send(Err(error.into()));
                 }
             });
     }
@@ -619,7 +619,7 @@ impl FileManager {
                     })));
                 }
                 Err(error) => {
-                    let _ = tx.send(Err(format!("{error:?}")));
+                    let _ = tx.send(Err(error.into()));
                 }
             });
     }
@@ -668,19 +668,19 @@ impl FileManager {
                                                 })));
                                         }
                                         Err(error) => {
-                                            let _ = tx.send(Err(format!("{error:?}")));
+                                            let _ = tx.send(Err(error.into()));
                                         }
                                     }
                                 }
                             }
                         }
                         Err(error) => {
-                            let _ = tx.send(Err(format!("{error:?}")));
+                            let _ = tx.send(Err(error.into()));
                         }
                     }
                 }
                 Err(error) => {
-                    let _ = tx.send(Err(format!("{error:?}")));
+                    let _ = tx.send(Err(error.into()));
                 }
             });
     }
@@ -728,13 +728,13 @@ impl FileManager {
                                                 })));
                                         }
                                         Err(error) => {
-                                            let _ = tx.send(Err(format!("{error:?}")));
+                                            let _ = tx.send(Err(error.into()));
                                         }
                                     }
                                 }
                             }
                             Err(error) => {
-                                let _ = tx.send(Err(format!("{error:?}")));
+                                let _ = tx.send(Err(error.into()));
                             }
                         }
                     } else {
@@ -750,13 +750,13 @@ impl FileManager {
                                 })));
                             }
                             Err(error) => {
-                                let _ = tx.send(Err(format!("{error:?}")));
+                                let _ = tx.send(Err(error.into()));
                             }
                         }
                     }
                 }
                 Err(error) => {
-                    let _ = tx.send(Err(format!("{error:?}")));
+                    let _ = tx.send(Err(error.into()));
                 }
             });
     }
@@ -770,7 +770,7 @@ impl FileManager {
                     let _ = tx.send(Ok(ItemScanEvent::Delete(path)));
                 }
                 Err(error) => {
-                    let _ = tx.send(Err(format!("{error:?}")));
+                    let _ = tx.send(Err(error.into()));
                     match path.metadata() {
                         Ok(metadata) => {
                             if metadata.is_dir() {
@@ -779,7 +779,7 @@ impl FileManager {
                                         let _ = tx.send(Ok(ItemScanEvent::Delete(path)));
                                     }
                                     Err(error) => {
-                                        let _ = tx.send(Err(format!("{error:?}")));
+                                        let _ = tx.send(Err(error.into()));
                                     }
                                 }
                             } else {
@@ -788,13 +788,13 @@ impl FileManager {
                                         let _ = tx.send(Ok(ItemScanEvent::Delete(path)));
                                     }
                                     Err(error) => {
-                                        let _ = tx.send(Err(format!("{error:?}")));
+                                        let _ = tx.send(Err(error.into()));
                                     }
                                 }
                             }
                         }
                         Err(error) => {
-                            let _ = tx.send(Err(format!("{error:?}")));
+                            let _ = tx.send(Err(error.into()));
                         }
                     }
                 }
@@ -836,14 +836,14 @@ impl FileManager {
                     Ok(exists) => {
                         if !exists {
                             if let Err(error) = fs::create_dir_all(&path) {
-                                let _ = tx.send(Err(format!("{error:?}")));
+                                let _ = tx.send(Err(error.into()));
                             } else {
                                 return;
                             }
                         }
                     }
                     Err(error) => {
-                        let _ = tx.send(Err(format!("{error:?}")));
+                        let _ = tx.send(Err(error.into()));
                     }
                 }
 
@@ -868,7 +868,7 @@ impl FileManager {
                             })));
                         }
                         Err(error) => {
-                            let _ = tx.send(Err(format!("{error:?}")));
+                            let _ = tx.send(Err(error.into()));
                         }
                     }
                 }
@@ -958,7 +958,7 @@ impl FileManager {
                     }
                 },
                 Err(error) => {
-                    toasts.warning(format!("Filesystem error: {error:?}"));
+                    toasts.warning(format!("Filesystem error: {}", error));
                     warn!("Filesystem error: {error:#?}")
                 }
             }

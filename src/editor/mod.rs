@@ -242,8 +242,7 @@ impl Editor {
                                     }
                                 },
                                 Err(error) => {
-                                    let _ =
-                                        error_sender.send(format!("Filesystem error: {error:?}"));
+                                    let _ = error_sender.send(format!("Filesystem error: {error}"));
                                     error!("Filesystem error: {:#?}", error);
                                     *path = None;
                                     *weave_dest = Some(TapestryWeave::with_capacity(
@@ -395,7 +394,7 @@ impl Editor {
                 match weave.to_versioned_bytes() {
                     Ok(bytes) => {
                         if let Err(error) = write_bytes(path, &bytes) {
-                            let _ = error_sender.send(format!("Filesystem error: {error:?}"));
+                            let _ = error_sender.send(format!("Filesystem error: {error}"));
                             error!("Filesystem error: {:#?}", error);
                             *path_lock = None;
                         } else {

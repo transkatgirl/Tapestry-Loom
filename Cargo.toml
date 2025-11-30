@@ -43,7 +43,7 @@ reqwest = { version = "0.12", features = [
 parking_lot = { version = "0.12.5", features = [
 	"serde",
 ] }
-#anyhow = "1.0.100"
+anyhow = "1.0.100"
 dirs-next = "2.0.0"
 egui_tiles = "0.14.0"
 egui-notify = "0.21.0"
