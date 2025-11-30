@@ -8,8 +8,8 @@ use std::{
 
 use eframe::{
     egui::{
-        Color32, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit, TextFormat, TextStyle,
-        Tooltip, Ui, Vec2,
+        Color32, FontFamily, FontId, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit,
+        TextFormat, TextStyle, Tooltip, Ui, Vec2,
         text::{CCursor, LayoutJob, LayoutSection, TextWrapping},
     },
     epaint::{Vertex, WHITE_UV},
@@ -121,6 +121,8 @@ impl TextEditorView {
             .auto_shrink(false)
             .animated(false)
             .show(ui, |ui| {
+                ui.style_mut().override_font_id = Some(FontId::new(15.0, FontFamily::Monospace));
+
                 render_rects(ui, &mut self.rects);
 
                 let mut textedit = TextEdit::multiline(&mut self.text)
@@ -199,6 +201,8 @@ impl TextEditorView {
 
                     self.last_text_edit_hover = hover_position;
                 }
+
+                ui.style_mut().override_font_id = None;
 
                 if let HighlightingHover::Position((hover_node, hover_index)) =
                     self.last_text_edit_highlighting_hover
