@@ -6,8 +6,12 @@ use eframe::egui::{
 use flagset::FlagSet;
 use serde::{Deserialize, Serialize};
 
-use crate::settings::shortcuts::{KeyboardShortcuts, Shortcuts};
+use crate::settings::{
+    inference::InferenceSettings,
+    shortcuts::{KeyboardShortcuts, Shortcuts},
+};
 
+pub mod inference;
 pub mod shortcuts;
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
@@ -32,7 +36,7 @@ impl Default for UISettings {
     fn default() -> Self {
         Self {
             ui_scale: 1.25,
-            ui_theme: UITheme::Dark,
+            ui_theme: UITheme::Light,
             displayed_ui_scale: 1.25,
             show_model_colors: true,
             show_token_probabilities: true,
@@ -153,13 +157,6 @@ impl DocumentSettings {
             self.save_interval = Duration::from_secs_f32(save_interval);
         }
     }
-}
-
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
-pub struct InferenceSettings {}
-
-impl InferenceSettings {
-    fn render(&mut self, ui: &mut Ui) {}
 }
 
 impl Settings {
