@@ -17,11 +17,35 @@ use crate::settings::{Settings, Shortcuts};
 pub struct SharedState {
     pub identifier: Ulid,
     pub runtime: Arc<Runtime>,
-    cursor_node: Option<Ulid>,
-    last_cursor_node: Option<Ulid>,
-    hovered_node: Option<Ulid>,
-    last_hovered_node: Option<Ulid>,
+    cursor_node: NodeIndex,
+    last_cursor_node: NodeIndex,
+    hovered_node: NodeIndex,
+    last_hovered_node: NodeIndex,
     triggered_unimplemented: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NodeIndex {
+    WithinNode(Ulid, usize),
+    Node(Ulid),
+    None,
+}
+
+impl NodeIndex {
+    pub fn into_node(self) -> Option<Ulid> {
+        match self {
+            Self::WithinNode(node, _) => Some(node),
+            Self::Node(node) => Some(node),
+            Self::None => None,
+        }
+    }
+    pub fn has_node(&self) -> bool {
+        match self {
+            Self::WithinNode(_, _) => true,
+            Self::Node(_) => true,
+            Self::None => false,
+        }
+    }
 }
 
 impl SharedState {
@@ -29,10 +53,10 @@ impl SharedState {
         Self {
             identifier,
             runtime,
-            cursor_node: None,
-            last_cursor_node: None,
-            hovered_node: None,
-            last_hovered_node: None,
+            cursor_node: NodeIndex::None,
+            last_cursor_node: NodeIndex::None,
+            hovered_node: NodeIndex::None,
+            last_hovered_node: NodeIndex::None,
             triggered_unimplemented: false,
         }
     }
@@ -44,16 +68,16 @@ impl SharedState {
         shortcuts: FlagSet<Shortcuts>,
     ) {
         self.last_hovered_node = self.hovered_node;
-        self.hovered_node = None;
-        if let Some(cursor_node) = self.cursor_node
+        self.hovered_node = NodeIndex::None;
+        if let Some(cursor_node) = self.cursor_node.into_node()
             && !weave.contains(&cursor_node)
         {
-            self.cursor_node = None;
+            self.cursor_node = NodeIndex::None;
         }
-        if self.cursor_node.is_none()
+        if !self.cursor_node.has_node()
             && let Some(active) = weave.get_active_thread().next().map(|node| Ulid(node.id))
         {
-            self.cursor_node = Some(active);
+            self.cursor_node = NodeIndex::Node(active);
         }
         self.last_cursor_node = self.cursor_node;
         if self.triggered_unimplemented || !shortcuts.is_empty() {
@@ -62,21 +86,21 @@ impl SharedState {
         }
     }
     pub fn reset(&mut self) {
-        self.cursor_node = None;
-        self.last_cursor_node = None;
-        self.hovered_node = None;
-        self.last_hovered_node = None;
+        self.cursor_node = NodeIndex::None;
+        self.last_cursor_node = NodeIndex::None;
+        self.hovered_node = NodeIndex::None;
+        self.last_hovered_node = NodeIndex::None;
     }
-    pub fn get_cursor_node(&self) -> Option<Ulid> {
+    pub fn get_cursor_node(&self) -> NodeIndex {
         self.last_cursor_node
     }
-    pub fn get_hovered_node(&self) -> Option<Ulid> {
+    pub fn get_hovered_node(&self) -> NodeIndex {
         self.last_hovered_node
     }
-    pub fn set_cursor_node(&mut self, value: Option<Ulid>) {
+    pub fn set_cursor_node(&mut self, value: NodeIndex) {
         self.cursor_node = value;
     }
-    pub fn set_hovered_node(&mut self, value: Option<Ulid>) {
+    pub fn set_hovered_node(&mut self, value: NodeIndex) {
         self.hovered_node = value;
     }
     pub fn generate_children(

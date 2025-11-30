@@ -23,7 +23,7 @@ use tapestry_weave::{
 
 use crate::{
     editor::shared::{
-        SharedState, get_node_color, get_token_color, render_node_metadata_tooltip,
+        NodeIndex, SharedState, get_node_color, get_token_color, render_node_metadata_tooltip,
         render_token_metadata_tooltip,
     },
     settings::Settings,
@@ -37,9 +37,8 @@ pub struct TextEditorView {
     snippets: Rc<RefCell<Vec<Snippet>>>,
     node_snippets: HashMap<Ulid, Vec<Range<usize>>>,
     rects: Vec<(Rect, Color32)>,
-    last_seen_cursor_node: Option<Ulid>,
-    last_cursor_index: Option<usize>,
-    last_seen_hovered_node: Option<Ulid>,
+    last_seen_cursor_node: NodeIndex,
+    last_seen_hovered_node: NodeIndex,
     last_text_edit_cursor: Option<CCursor>,
     last_text_edit_hover: Option<Vec2>,
     last_text_edit_highlighting_hover: HighlightingHover,
@@ -60,9 +59,8 @@ impl Default for TextEditorView {
             snippets: Rc::new(RefCell::new(Vec::with_capacity(65536))),
             node_snippets: HashMap::with_capacity(65536),
             rects: Vec::with_capacity(65536),
-            last_seen_cursor_node: None,
-            last_cursor_index: None,
-            last_seen_hovered_node: None,
+            last_seen_cursor_node: NodeIndex::None,
+            last_seen_hovered_node: NodeIndex::None,
             last_text_edit_cursor: None,
             last_text_edit_hover: None,
             last_text_edit_highlighting_hover: HighlightingHover::None,
@@ -79,31 +77,13 @@ impl TextEditorView {
         self.snippets.borrow_mut().clear();
         self.node_snippets.clear();
         self.rects.clear();
-        self.last_seen_cursor_node = None;
-        self.last_cursor_index = None;
-        self.last_seen_hovered_node = None;
+        self.last_seen_cursor_node = NodeIndex::None;
+        self.last_seen_hovered_node = NodeIndex::None;
         self.last_text_edit_cursor = None;
         self.last_text_edit_hover = None;
         self.last_text_edit_highlighting_hover = HighlightingHover::None;
         self.last_text_edit_highlighting_hover_update = Instant::now();
     }*/
-    pub fn get_cursor_index(&self) -> Option<(Ulid, usize)> {
-        if let Some(cursor_node) = self.last_seen_cursor_node
-            && let Some(cursor_index) = self.last_cursor_index
-            && let Some(ranges) = self.node_snippets.get(&cursor_node)
-        {
-            if ranges.is_empty() {
-                Some((cursor_node, 0))
-            } else {
-                Some((
-                    cursor_node,
-                    (cursor_index - ranges.first().unwrap().start).min(ranges.last().unwrap().end),
-                ))
-            }
-        } else {
-            None
-        }
-    }
     pub fn render(
         &mut self,
         ui: &mut Ui,
@@ -157,6 +137,7 @@ impl TextEditorView {
                     .show(ui);
 
                 if self.last_seen_cursor_node != state.get_cursor_node() {
+                    // TODO: Rewrite this to properly change the cursor position
                     if !textedit.response.changed() {
                         let index = self.text.chars().count();
                         textedit.state.cursor.set_char_range(Some(CCursorRange {
@@ -173,7 +154,6 @@ impl TextEditorView {
                         textedit.state.store(ui.ctx(), textedit.response.id);
                     }
                     self.last_seen_cursor_node = state.get_cursor_node();
-                    self.last_cursor_index = None;
                 }
 
                 let top_left = textedit.text_clip_rect.left_top();
@@ -191,10 +171,6 @@ impl TextEditorView {
                     &mut self.rects,
                 );
 
-                if !textedit.response.has_focus() {
-                    self.last_cursor_index = None;
-                }
-
                 if textedit.response.changed() {
                     self.update_weave(weave);
                     self.last_text_edit_cursor = None;
@@ -203,16 +179,27 @@ impl TextEditorView {
                     let position = textedit.cursor_range.map(|c| c.sorted_cursors()[0]);
                     if position != self.last_text_edit_cursor {
                         if position.is_some() {
-                            if let Some((cursor_node, cursor_index)) =
+                            if let Some((cursor_node, raw_cursor_index)) =
                                 self.calculate_cursor(weave, position.map(|p| p.index))
                             {
-                                state.set_cursor_node(Some(cursor_node));
-                                self.last_seen_cursor_node = Some(cursor_node);
-                                self.last_cursor_index = Some(cursor_index);
+                                if let Some(cursor_index) = calculate_cursor_index(
+                                    cursor_node,
+                                    raw_cursor_index,
+                                    &self.node_snippets,
+                                ) {
+                                    state.set_cursor_node(NodeIndex::WithinNode(
+                                        cursor_node,
+                                        cursor_index,
+                                    ));
+                                    self.last_seen_cursor_node =
+                                        NodeIndex::WithinNode(cursor_node, cursor_index);
+                                } else {
+                                    state.set_cursor_node(NodeIndex::Node(cursor_node));
+                                    self.last_seen_cursor_node = NodeIndex::Node(cursor_node);
+                                }
                             } else {
-                                state.set_cursor_node(None);
-                                self.last_seen_cursor_node = None;
-                                self.last_cursor_index = None;
+                                state.set_cursor_node(NodeIndex::None);
+                                self.last_seen_cursor_node = NodeIndex::None;
                             }
                         }
                         self.last_text_edit_cursor = position;
@@ -266,11 +253,23 @@ impl TextEditorView {
                         render_tooltip(ui, weave, &self.node_snippets, hover_node, hover_index);
                     });
 
-                    state.set_hovered_node(Some(hover_node));
-                    self.last_seen_hovered_node = Some(hover_node);
+                    if let Some(corrected_hover_index) =
+                        calculate_cursor_index(hover_node, hover_index, &self.node_snippets)
+                    {
+                        state.set_hovered_node(NodeIndex::WithinNode(
+                            hover_node,
+                            corrected_hover_index,
+                        ));
+                        self.last_seen_hovered_node =
+                            NodeIndex::WithinNode(hover_node, corrected_hover_index);
+                    } else {
+                        state.set_hovered_node(NodeIndex::Node(hover_node));
+                        self.last_seen_hovered_node = NodeIndex::Node(hover_node);
+                    }
                 } else if self.last_seen_hovered_node != state.get_hovered_node() {
                     self.last_text_edit_highlighting_hover = state
                         .get_hovered_node()
+                        .into_node()
                         .map(HighlightingHover::Node)
                         .unwrap_or(HighlightingHover::None);
                     self.last_seen_hovered_node = state.get_hovered_node();
@@ -612,6 +611,20 @@ enum HighlightingHover {
     Position((Ulid, usize)),
     Node(Ulid),
     None,
+}
+
+fn calculate_cursor_index(
+    node: Ulid,
+    index: usize,
+    node_snippets: &HashMap<Ulid, Vec<Range<usize>>>,
+) -> Option<usize> {
+    if let Some(ranges) = node_snippets.get(&node)
+        && !ranges.is_empty()
+    {
+        Some((index - ranges.first().unwrap().start).min(ranges.last().unwrap().end))
+    } else {
+        None
+    }
 }
 
 fn render_tooltip(

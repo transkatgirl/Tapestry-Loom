@@ -16,7 +16,7 @@ use tapestry_weave::{
 };
 
 use crate::{
-    editor::shared::{SharedState, get_node_color, render_node_metadata_tooltip},
+    editor::shared::{NodeIndex, SharedState, get_node_color, render_node_metadata_tooltip},
     listing_margin,
     settings::Settings,
 };
@@ -34,12 +34,15 @@ impl ListView {
         _toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
-        let items: Vec<Ulid> =
-            if let Some(cursor_node) = state.get_cursor_node().and_then(|id| weave.get_node(&id)) {
-                cursor_node.to.iter().cloned().map(Ulid).collect()
-            } else {
-                weave.weave.get_roots().iter().copied().map(Ulid).collect()
-            };
+        let items: Vec<Ulid> = if let Some(cursor_node) = state
+            .get_cursor_node()
+            .into_node()
+            .and_then(|id| weave.get_node(&id))
+        {
+            cursor_node.to.iter().cloned().map(Ulid).collect()
+        } else {
+            weave.weave.get_roots().iter().copied().map(Ulid).collect()
+        };
 
         ScrollArea::vertical()
             .auto_shrink(false)
@@ -173,8 +176,8 @@ impl TreeListView {
         _toasts: &mut Toasts,
         state: &mut SharedState,
     ) {
-        if self.last_seen_cursor_node != state.get_cursor_node() {
-            if let Some(cursor_node) = state.get_cursor_node() {
+        if self.last_seen_cursor_node != state.get_cursor_node().into_node() {
+            if let Some(cursor_node) = state.get_cursor_node().into_node() {
                 let active = weave
                     .weave
                     .get_thread_from(&cursor_node.0)
@@ -186,11 +189,13 @@ impl TreeListView {
                     set_node_tree_item_open_status(ui, state.identifier, item, true);
                 }
             }
-            self.last_seen_cursor_node = state.get_cursor_node();
+            self.last_seen_cursor_node = state.get_cursor_node().into_node();
         }
 
-        let tree_roots: Vec<Ulid> = if let Some(cursor_node) =
-            state.get_cursor_node().and_then(|id| weave.get_node(&id))
+        let tree_roots: Vec<Ulid> = if let Some(cursor_node) = state
+            .get_cursor_node()
+            .into_node()
+            .and_then(|id| weave.get_node(&id))
             && let Some(cursor_node_parent) =
                 cursor_node.from.and_then(|id| weave.get_node(&Ulid(id)))
             && let Some(cursor_node_parent_parent) = cursor_node_parent.from
@@ -350,7 +355,7 @@ fn render_horizontal_node_label_buttons_rtl(
             },
         }) && node.active
         {
-            state.set_cursor_node(Some(Ulid(identifier)));
+            state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
         }
     };
     if ui
@@ -381,7 +386,7 @@ fn render_omitted_chidren_tree_node_label(
         .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
             let mut frame = Frame::new();
 
-            let is_hovered = state.get_hovered_node() == Some(first_child);
+            let is_hovered = state.get_hovered_node() == NodeIndex::Node(first_child);
 
             if is_hovered {
                 frame = frame.fill(ui.style().visuals.widgets.hovered.weak_bg_fill);
@@ -399,12 +404,12 @@ fn render_omitted_chidren_tree_node_label(
                     ui.add(Button::new(label).frame(false).fill(Color32::TRANSPARENT));
 
                 if label_button_response.hovered() {
-                    state.set_hovered_node(Some(first_child));
+                    state.set_hovered_node(NodeIndex::Node(first_child));
                 }
 
                 if label_button_response.clicked() {
                     weave.set_node_active_status(&Ulid(node.id), true);
-                    state.set_cursor_node(Some(Ulid(node.id)));
+                    state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
                 }
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -416,11 +421,11 @@ fn render_omitted_chidren_tree_node_label(
 
     if response.clicked() {
         weave.set_node_active_status(&Ulid(node.id), true);
-        state.set_cursor_node(Some(Ulid(node.id)));
+        state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
     }
 
     if response.hovered() {
-        state.set_hovered_node(Some(first_child));
+        state.set_hovered_node(NodeIndex::Node(first_child));
     }
 }
 
@@ -450,8 +455,8 @@ fn render_horizontal_node_label(
         .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
             let mut frame = Frame::new();
 
-            let is_hovered = state.get_hovered_node() == Some(Ulid(node.id));
-            let is_cursor = state.get_cursor_node() == Some(Ulid(node.id));
+            let is_hovered = state.get_hovered_node().into_node() == Some(Ulid(node.id));
+            let is_cursor = state.get_cursor_node().into_node() == Some(Ulid(node.id));
 
             if is_hovered {
                 frame = frame.fill(ui.style().visuals.widgets.hovered.weak_bg_fill);
@@ -495,12 +500,12 @@ fn render_horizontal_node_label(
                 });
 
                 if label_button_response.hovered() {
-                    state.set_hovered_node(Some(Ulid(node.id)));
+                    state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
                 }
 
                 if label_button_response.clicked() {
                     weave.set_node_active_status(&Ulid(node.id), true);
-                    state.set_cursor_node(Some(Ulid(node.id)));
+                    state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
                 }
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -512,7 +517,7 @@ fn render_horizontal_node_label(
 
                             ui.add_space(0.0);
                         });
-                        state.set_hovered_node(Some(Ulid(node.id)));
+                        state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
                     } else if show_node_info {
                         ui.add_space(ui.spacing().icon_spacing);
                         if node.bookmarked {
@@ -541,11 +546,11 @@ fn render_horizontal_node_label(
 
     if response.clicked() {
         weave.set_node_active_status(&Ulid(node.id), true);
-        state.set_cursor_node(Some(Ulid(node.id)));
+        state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
     }
 
     if response.hovered() {
-        state.set_hovered_node(Some(Ulid(node.id)));
+        state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
     }
 }
 
@@ -586,7 +591,7 @@ fn render_node_context_menu(
             },
         }) && node.active
         {
-            state.set_cursor_node(Some(Ulid(identifier)));
+            state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
         }
     }
 
@@ -605,7 +610,7 @@ fn render_node_context_menu(
             },
         }) && node.active
         {
-            state.set_cursor_node(Some(Ulid(identifier)));
+            state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
         }
     }
 
@@ -686,7 +691,7 @@ fn render_node_tree_context_menu(
             },
         }) && node.active
         {
-            state.set_cursor_node(Some(Ulid(identifier)));
+            state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
         }
     }
 
@@ -705,7 +710,7 @@ fn render_node_tree_context_menu(
             },
         }) && node.active
         {
-            state.set_cursor_node(Some(Ulid(identifier)));
+            state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
         }
     }
 
