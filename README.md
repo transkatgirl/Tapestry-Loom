@@ -9,7 +9,7 @@ The plans for the rewrite are the following:
 	- [ ] Implement conversion from the old Weave format to the new one
 	- [ ] Implement all functionality supported by the original Obsidian plugin
 - [ ] Full UI redesign
-	- [ ] Resizable, dragable, scrollable, and collapsible settings
+	- [x] Resizable, dragable, scrollable, and collapsible settings
 	- [ ] Selection = generation mode, similar to [inkstream](https://inkstream.ai)
 	- [ ] Three user-switchable UIs:
 		- [ ] Interactive canvas + textbox, similar to [wool](https://github.com/lyramakesmusic/wool)
@@ -18,7 +18,7 @@ The plans for the rewrite are the following:
 				- [ ] Implement canvas node left click
 				- [ ] Implement canvas node right click
 			- [ ] Implement canvas actions
-			- [ ] Implement resizable & dragable textbox
+			- [x] Implement resizable & dragable textbox
 				- [ ] Show node siblings on hover
 			- [ ] Automatically adjust canvas position & highlighting based on textbox cursor location
 			- [ ] Automatically scroll textbox based on canvas cursor
@@ -29,13 +29,8 @@ The plans for the rewrite are the following:
 				- [ ] Implement tree node content display on hover
 				- [ ] Implement tree node left click
 				- [ ] Implement tree node right click
-			- [ ] Implement resizable & scrollable treelist
-				- [ ] Implement automatic hoisting
-				- [ ] Implement manual hoisting
-				- [ ] Implement treelist action display on hover
-				- [ ] Implement treelist item left click
-				- [ ] Implement treelist item right click
-			- [ ] Implement resizable and scrollable textbox
+			- [x] Implement resizable & scrollable treelist
+			- [x] Implement resizable and scrollable textbox
 				- [ ] Show node siblings on hover
 			- [ ] Automatically adjust tree position & highlighting based on textbox cursor location
 			- [ ] Automatically scroll textbox based on tree cursor location
@@ -46,11 +41,8 @@ The plans for the rewrite are the following:
 				- [ ] Implement tree node content display on hover
 				- [ ] Implement tree node left click
 				- [ ] Implement tree node right click
-			- [ ] Implement resizable and scrollable node child list
-				- [ ] Implement list action display on hover
-				- [ ] Implement list item left click
-				- [ ] Implement list item right click
-			- [ ] Implement resizable and scrollable textbox
+			- [x] Implement resizable and scrollable node child list
+			- [x] Implement resizable and scrollable textbox
 				- [ ] Show node siblings on hover
 			- [ ] Automatically adjust tree position & highlighting based on textbox cursor location
 			- [ ] Automatically scroll textbox based on tree cursor location

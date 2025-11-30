@@ -161,7 +161,7 @@ impl DocumentSettings {
 
 impl Settings {
     pub fn render(&mut self, ui: &mut Ui) {
-        ScrollArea::vertical()
+        ScrollArea::both()
             .auto_shrink(false)
             .animated(false)
             .show(ui, |ui| {
