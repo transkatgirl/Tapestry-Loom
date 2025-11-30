@@ -56,14 +56,14 @@ The plans for the rewrite are the following:
 		- [ ] Applying colors to background instead of text
 		- [ ] Implement multi-token multi-logprob generations as chains of single token nodes, inspired by [loom](https://github.com/socketteer/loom) and [logitloom](https://github.com/vgel/logitloom)
 - [ ] Keyboard shortcut implementation
-	- [ ] Automatically adapt keyboards shortcuts based on OS (such as Mac vs Windows/Linux)
-	- [ ] Repeat keypresses when a keyboard be cut is held down
+	- [x] Automatically adapt keyboards shortcuts based on OS (such as Mac vs Windows/Linux)
+	- [x] Repeat keypresses when a keyboard be cut is held down
 	- [ ] Support shortcuts for all aspects of the UI, not just the weave editor
 	- [ ] Multiple presets
 		- [ ] [loomsidian](https://github.com/cosmicoptima/loom)-like
 		- [ ] [exoloom](https://exoloom.io)-like
 		- [ ] Tapestry Loom
-	- [ ] Allows saving loading custom presets
+	- [ ] Allows saving & loading custom presets
 	- [ ] Allow importing and exporting custom presets
 - [ ] UI improvements
 - [ ] Better documentation & onboarding
