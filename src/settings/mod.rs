@@ -104,7 +104,7 @@ impl UISettings {
             "Show token probabilities in editor",
         );
         ui.add(
-            Slider::new(&mut self.max_tree_depth, 1..=32)
+            Slider::new(&mut self.max_tree_depth, 3..=32)
                 .clamping(SliderClamping::Never)
                 .text("Maximum tree list depth"),
         );
