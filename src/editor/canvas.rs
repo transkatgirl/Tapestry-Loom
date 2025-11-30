@@ -23,5 +23,13 @@ impl CanvasView {
         shortcuts: FlagSet<Shortcuts>,
     ) {
         ui.heading("Unimplemented");
+
+        /*if shortcuts.contains(Shortcuts::FitToCursor) {
+            // TODO
+        }
+
+        if shortcuts.contains(Shortcuts::FitToWeave) {
+            // TODO
+        }*/
     }
 }

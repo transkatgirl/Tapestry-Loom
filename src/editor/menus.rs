@@ -33,5 +33,8 @@ impl MenuView {
         state: &mut SharedState,
         shortcuts: FlagSet<Shortcuts>,
     ) {
+        if shortcuts.contains(Shortcuts::ResetParameters) {
+            // TODO
+        }
     }
 }

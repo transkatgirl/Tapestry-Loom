@@ -50,12 +50,10 @@ pub struct KeyboardShortcuts {
 
 impl KeyboardShortcuts {
     fn render(&mut self, ui: &mut Ui) {
-        ui.label("Pressing escape while modifying a keybind resets it to its default value.");
-
         ui.add(
             Keybind::new(&mut self.generate_at_cursor, "keybind-generate_at_cursor")
                 .with_text("Generate completions at cursor")
-                .with_reset(KeyboardShortcuts::default().generate_at_cursor)
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
 
@@ -65,7 +63,7 @@ impl KeyboardShortcuts {
                 "keybind-toggle_node_bookmarked",
             )
             .with_text("Toggle bookmarked")
-            .with_reset(KeyboardShortcuts::default().toggle_node_bookmarked)
+            .with_reset(None)
             .with_reset_key(Some(Key::Escape)),
         );
 
@@ -74,35 +72,35 @@ impl KeyboardShortcuts {
         ui.add(
             Keybind::new(&mut self.add_child, "keybind-add_child")
                 .with_text("Create child")
-                .with_reset(KeyboardShortcuts::default().add_child)
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
 
         ui.add(
             Keybind::new(&mut self.add_sibling, "keybind-add_sibling")
                 .with_text("Create sibling")
-                .with_reset(KeyboardShortcuts::default().add_sibling)
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
 
         ui.add(
             Keybind::new(&mut self.delete_current, "keybind-delete_current")
                 .with_text("Delete current node")
-                .with_reset(KeyboardShortcuts::default().delete_current)
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
 
         ui.add(
             Keybind::new(&mut self.delete_children, "keybind-delete_children")
                 .with_text("Delete all children")
-                .with_reset(KeyboardShortcuts::default().delete_children)
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
 
         ui.add(
             Keybind::new(&mut self.delete_siblings, "keybind-delete_siblings")
                 .with_text("Delete all siblings")
-                .with_reset(KeyboardShortcuts::default().delete_siblings)
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
 
@@ -112,21 +110,21 @@ impl KeyboardShortcuts {
                 "keybind-delete_siblings_and_current",
             )
             .with_text("Delete current node & all siblings")
-            .with_reset(KeyboardShortcuts::default().delete_siblings_and_current)
+            .with_reset(None)
             .with_reset_key(Some(Key::Escape)),
         );
 
         ui.add(
             Keybind::new(&mut self.merge_with_parent, "keybind-merge_with_parent")
                 .with_text("Merge with parent")
-                .with_reset(KeyboardShortcuts::default().merge_with_parent)
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
 
         ui.add(
             Keybind::new(&mut self.split_at_cursor, "keybind-split_at_cursor")
                 .with_text("Split node at cursor")
-                .with_reset(KeyboardShortcuts::default().split_at_cursor)
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
 
@@ -135,14 +133,14 @@ impl KeyboardShortcuts {
         ui.add(
             Keybind::new(&mut self.move_to_parent, "keybind-move_to_parent")
                 .with_text("Move to parent")
-                .with_reset(KeyboardShortcuts::default().move_to_parent)
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
 
         ui.add(
             Keybind::new(&mut self.move_to_child, "keybind-move_to_child")
                 .with_text("Move to child")
-                .with_reset(KeyboardShortcuts::default().move_to_child)
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
 
@@ -152,7 +150,7 @@ impl KeyboardShortcuts {
                 "keybind-move_to_previous_sibling",
             )
             .with_text("Move to previous sibling")
-            .with_reset(KeyboardShortcuts::default().move_to_previous_sibling)
+            .with_reset(None)
             .with_reset_key(Some(Key::Escape)),
         );
 
@@ -162,7 +160,7 @@ impl KeyboardShortcuts {
                 "keybind-move_to_next_sibling",
             )
             .with_text("Move to next sibling")
-            .with_reset(KeyboardShortcuts::default().move_to_next_sibling)
+            .with_reset(None)
             .with_reset_key(Some(Key::Escape)),
         );
 
@@ -171,14 +169,14 @@ impl KeyboardShortcuts {
         ui.add(
             Keybind::new(&mut self.reset_parameters, "keybind-reset_parameters")
                 .with_text("Reset editor parameters")
-                .with_reset(KeyboardShortcuts::default().reset_parameters)
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
 
         ui.add(
             Keybind::new(&mut self.toggle_colors, "keybind-toggle_colors")
-                .with_text("Toggle editor colors")
-                .with_reset(KeyboardShortcuts::default().toggle_colors)
+                .with_text("Toggle model colors")
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
 
@@ -190,7 +188,7 @@ impl KeyboardShortcuts {
                 "keybind-toggle_node_collapsed",
             )
             .with_text("Toggle collapsed")
-            .with_reset(KeyboardShortcuts::default().toggle_node_collapsed)
+            .with_reset(None)
             .with_reset_key(Some(Key::Escape)),
         );
 
@@ -200,28 +198,28 @@ impl KeyboardShortcuts {
                 "keybind-collapse_all_visible_inactive",
             )
             .with_text("Collapse all inactive + visible")
-            .with_reset(KeyboardShortcuts::default().collapse_all_visible_inactive)
+            .with_reset(None)
             .with_reset_key(Some(Key::Escape)),
         );
 
         ui.add(
             Keybind::new(&mut self.collapse_children, "keybind-collapse_children")
                 .with_text("Collapse all children")
-                .with_reset(KeyboardShortcuts::default().collapse_children)
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
 
         ui.add(
             Keybind::new(&mut self.expand_all_visible, "keybind-expand_all_visible")
                 .with_text("Expand all visible")
-                .with_reset(KeyboardShortcuts::default().expand_all_visible)
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
 
         ui.add(
             Keybind::new(&mut self.expand_children, "keybind-expand_children")
                 .with_text("Expand all children")
-                .with_reset(KeyboardShortcuts::default().expand_children)
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
 
@@ -230,14 +228,14 @@ impl KeyboardShortcuts {
         ui.add(
             Keybind::new(&mut self.fit_to_cursor, "keybind-fit_to_cursor")
                 .with_text("Fit view automatically")
-                .with_reset(KeyboardShortcuts::default().fit_to_cursor)
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
 
         ui.add(
             Keybind::new(&mut self.fit_to_weave, "keybind-fit_to_weave")
                 .with_text("Fit view to weave")
-                .with_reset(KeyboardShortcuts::default().fit_to_weave)
+                .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
     }

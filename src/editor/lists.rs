@@ -1,5 +1,7 @@
 #![allow(clippy::too_many_arguments)]
 
+use std::collections::HashSet;
+
 use eframe::egui::{
     Align, Button, Color32, FontFamily, Frame, Id, Layout, RichText, ScrollArea, Sense, Ui,
     UiBuilder, collapsing_header::CollapsingState,
@@ -162,9 +164,19 @@ impl BookmarkListView {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct TreeListView {
     last_seen_cursor_node: Option<Ulid>,
+    last_rendered_nodes: HashSet<Ulid>,
+}
+
+impl Default for TreeListView {
+    fn default() -> Self {
+        Self {
+            last_seen_cursor_node: None,
+            last_rendered_nodes: HashSet::with_capacity(65536),
+        }
+    }
 }
 
 impl TreeListView {
@@ -213,6 +225,8 @@ impl TreeListView {
             weave.get_roots().collect()
         };
 
+        self.last_rendered_nodes.clear();
+
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
@@ -228,6 +242,7 @@ impl TreeListView {
                             state.identifier,
                             tree_roots,
                             settings.interface.max_tree_depth,
+                            &mut self.last_rendered_nodes,
                         );
                     });
             });
@@ -242,11 +257,13 @@ fn render_node_tree(
     editor_id: Ulid,
     items: impl IntoIterator<Item = Ulid>,
     max_depth: usize,
+    rendered_items: &mut HashSet<Ulid>,
 ) {
     let indent_compensation = ui.spacing().icon_width + ui.spacing().icon_spacing;
 
     for item in items {
         if let Some(node) = weave.get_node(&item).cloned() {
+            rendered_items.insert(item);
             let mut render_label = |ui: &mut Ui| {
                 ui.horizontal(|ui| {
                     if node.to.is_empty() {
@@ -291,6 +308,7 @@ fn render_node_tree(
                                 editor_id,
                                 node.to.into_iter().map(Ulid),
                                 max_depth - 1,
+                                rendered_items,
                             );
                         } else {
                             ui.horizontal(|ui| {
