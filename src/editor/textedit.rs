@@ -8,9 +8,9 @@ use std::{
 
 use eframe::{
     egui::{
-        Color32, FontFamily, FontId, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit,
-        TextFormat, TextStyle, Tooltip, Ui, Vec2,
-        text::{CCursor, LayoutJob, LayoutSection, TextWrapping},
+        Color32, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit, TextFormat, TextStyle,
+        Tooltip, Ui, Vec2,
+        text::{CCursor, CCursorRange, LayoutJob, LayoutSection, TextWrapping},
     },
     epaint::{Vertex, WHITE_UV},
 };
@@ -38,6 +38,7 @@ pub struct TextEditorView {
     node_snippets: HashMap<Ulid, Vec<Range<usize>>>,
     rects: Vec<(Rect, Color32)>,
     last_seen_cursor_node: Option<Ulid>,
+    last_cursor_index: Option<usize>,
     last_seen_hovered_node: Option<Ulid>,
     last_text_edit_cursor: Option<CCursor>,
     last_text_edit_hover: Option<Vec2>,
@@ -60,6 +61,7 @@ impl Default for TextEditorView {
             node_snippets: HashMap::with_capacity(65536),
             rects: Vec::with_capacity(65536),
             last_seen_cursor_node: None,
+            last_cursor_index: None,
             last_seen_hovered_node: None,
             last_text_edit_cursor: None,
             last_text_edit_hover: None,
@@ -78,12 +80,30 @@ impl TextEditorView {
         self.node_snippets.clear();
         self.rects.clear();
         self.last_seen_cursor_node = None;
+        self.last_cursor_index = None;
         self.last_seen_hovered_node = None;
         self.last_text_edit_cursor = None;
         self.last_text_edit_hover = None;
         self.last_text_edit_highlighting_hover = HighlightingHover::None;
         self.last_text_edit_highlighting_hover_update = Instant::now();
     }*/
+    pub fn get_cursor_index(&self) -> Option<(Ulid, usize)> {
+        if let Some(cursor_node) = self.last_seen_cursor_node
+            && let Some(cursor_index) = self.last_cursor_index
+            && let Some(ranges) = self.node_snippets.get(&cursor_node)
+        {
+            if ranges.is_empty() {
+                Some((cursor_node, 0))
+            } else {
+                Some((
+                    cursor_node,
+                    (cursor_index - ranges.first().unwrap().start).min(ranges.last().unwrap().end),
+                ))
+            }
+        } else {
+            None
+        }
+    }
     pub fn render(
         &mut self,
         ui: &mut Ui,
@@ -138,10 +158,22 @@ impl TextEditorView {
 
                 if self.last_seen_cursor_node != state.get_cursor_node() {
                     if !textedit.response.changed() {
-                        textedit.state.cursor.set_char_range(None);
+                        let index = self.text.chars().count();
+                        textedit.state.cursor.set_char_range(Some(CCursorRange {
+                            primary: CCursor {
+                                index,
+                                prefer_next_row: true,
+                            },
+                            secondary: CCursor {
+                                index,
+                                prefer_next_row: true,
+                            },
+                            h_pos: None,
+                        }));
                         textedit.state.store(ui.ctx(), textedit.response.id);
                     }
                     self.last_seen_cursor_node = state.get_cursor_node();
+                    self.last_cursor_index = None;
                 }
 
                 let top_left = textedit.text_clip_rect.left_top();
@@ -159,6 +191,10 @@ impl TextEditorView {
                     &mut self.rects,
                 );
 
+                if !textedit.response.has_focus() {
+                    self.last_cursor_index = None;
+                }
+
                 if textedit.response.changed() {
                     self.update_weave(weave);
                     self.last_text_edit_cursor = None;
@@ -167,14 +203,16 @@ impl TextEditorView {
                     let position = textedit.cursor_range.map(|c| c.sorted_cursors()[0]);
                     if position != self.last_text_edit_cursor {
                         if position.is_some() {
-                            if let Some((node, _)) =
+                            if let Some((cursor_node, cursor_index)) =
                                 self.calculate_cursor(weave, position.map(|p| p.index))
                             {
-                                state.set_cursor_node(Some(node));
-                                self.last_seen_cursor_node = Some(node);
+                                state.set_cursor_node(Some(cursor_node));
+                                self.last_seen_cursor_node = Some(cursor_node);
+                                self.last_cursor_index = Some(cursor_index);
                             } else {
                                 state.set_cursor_node(None);
                                 self.last_seen_cursor_node = None;
+                                self.last_cursor_index = None;
                             }
                         }
                         self.last_text_edit_cursor = position;
