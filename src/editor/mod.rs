@@ -45,7 +45,7 @@ use crate::{
         shared::SharedState,
         textedit::TextEditorView,
     },
-    settings::{Settings, Shortcuts},
+    settings::{Settings, shortcuts::Shortcuts},
 };
 
 pub struct Editor {

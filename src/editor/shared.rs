@@ -17,7 +17,7 @@ use tapestry_weave::{
 };
 use tokio::runtime::Runtime;
 
-use crate::settings::{Settings, Shortcuts};
+use crate::settings::{Settings, shortcuts::Shortcuts};
 
 #[derive(Debug)]
 pub struct SharedState {

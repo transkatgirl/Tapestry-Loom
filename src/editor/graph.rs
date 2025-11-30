@@ -5,7 +5,7 @@ use tapestry_weave::v0::TapestryWeave;
 
 use crate::{
     editor::shared::SharedState,
-    settings::{Settings, Shortcuts},
+    settings::{Settings, shortcuts::Shortcuts},
 };
 
 #[derive(Default, Debug)]

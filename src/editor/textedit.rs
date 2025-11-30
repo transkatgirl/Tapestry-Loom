@@ -27,7 +27,7 @@ use crate::{
         NodeIndex, SharedState, get_node_color, get_token_color, render_node_metadata_tooltip,
         render_token_metadata_tooltip,
     },
-    settings::{Settings, Shortcuts},
+    settings::{Settings, shortcuts::Shortcuts},
 };
 
 #[derive(Debug)]

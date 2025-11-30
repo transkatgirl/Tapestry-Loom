@@ -21,7 +21,7 @@ use tapestry_weave::{
 use crate::{
     editor::shared::{NodeIndex, SharedState, get_node_color, render_node_metadata_tooltip},
     listing_margin,
-    settings::{Settings, Shortcuts},
+    settings::{Settings, shortcuts::Shortcuts},
 };
 
 #[derive(Default, Debug)]

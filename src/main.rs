@@ -23,7 +23,7 @@ use tokio::runtime::Runtime;
 use crate::{
     editor::Editor,
     files::FileManager,
-    settings::{Settings, Shortcuts, UISettings},
+    settings::{Settings, UISettings, shortcuts::Shortcuts},
 };
 
 mod editor;

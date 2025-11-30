@@ -28,7 +28,7 @@ use walkdir::WalkDir;
 use crate::{
     editor::blank_weave_bytes,
     listing_margin,
-    settings::{Settings, Shortcuts},
+    settings::{Settings, shortcuts::Shortcuts},
 };
 
 pub struct FileManager {
