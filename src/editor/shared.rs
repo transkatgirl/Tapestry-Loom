@@ -85,33 +85,65 @@ impl SharedState {
             self.triggered_unimplemented = false;
         }
 
-        if shortcuts.contains(Shortcuts::GenerateAtCursor) {}
+        if shortcuts.contains(Shortcuts::GenerateAtCursor) {
+            match self.last_cursor_node {
+                NodeIndex::WithinNode(node, index) => {}
+                NodeIndex::Node(node) => {}
+                NodeIndex::None => {}
+            }
+        }
 
-        if shortcuts.contains(Shortcuts::ToggleNodeBookmarked) {}
+        if shortcuts.contains(Shortcuts::ToggleNodeBookmarked)
+            && let Some(node) = self.last_cursor_node.into_node()
+        {}
 
-        if shortcuts.contains(Shortcuts::AddChild) {}
+        if shortcuts.contains(Shortcuts::AddChild)
+            && let Some(node) = self.last_cursor_node.into_node()
+        {}
 
-        if shortcuts.contains(Shortcuts::AddSibling) {}
+        if shortcuts.contains(Shortcuts::AddSibling)
+            && let Some(node) = self.last_cursor_node.into_node()
+        {}
 
-        if shortcuts.contains(Shortcuts::DeleteCurrent) {}
+        if shortcuts.contains(Shortcuts::DeleteCurrent)
+            && let Some(node) = self.last_cursor_node.into_node()
+        {}
 
-        if shortcuts.contains(Shortcuts::DeleteChildren) {}
+        if shortcuts.contains(Shortcuts::DeleteChildren)
+            && let Some(node) = self.last_cursor_node.into_node()
+        {}
 
-        if shortcuts.contains(Shortcuts::DeleteSiblings) {}
+        if shortcuts.contains(Shortcuts::DeleteSiblings)
+            && let Some(node) = self.last_cursor_node.into_node()
+        {}
 
-        if shortcuts.contains(Shortcuts::DeleteSiblingsAndCurrent) {}
+        if shortcuts.contains(Shortcuts::DeleteSiblingsAndCurrent)
+            && let Some(node) = self.last_cursor_node.into_node()
+        {}
 
-        if shortcuts.contains(Shortcuts::MergeWithParent) {}
+        if shortcuts.contains(Shortcuts::MergeWithParent)
+            && let Some(node) = self.last_cursor_node.into_node()
+        {}
 
-        if shortcuts.contains(Shortcuts::SplitAtCursor) {}
+        if shortcuts.contains(Shortcuts::SplitAtCursor)
+            && let NodeIndex::WithinNode(node, index) = self.last_cursor_node
+        {}
 
-        if shortcuts.contains(Shortcuts::MoveToParent) {}
+        if shortcuts.contains(Shortcuts::MoveToParent)
+            && let Some(node) = self.last_cursor_node.into_node()
+        {}
 
-        if shortcuts.contains(Shortcuts::MoveToChild) {}
+        if shortcuts.contains(Shortcuts::MoveToChild)
+            && let Some(node) = self.last_cursor_node.into_node()
+        {}
 
-        if shortcuts.contains(Shortcuts::MoveToPreviousSibling) {}
+        if shortcuts.contains(Shortcuts::MoveToPreviousSibling)
+            && let Some(node) = self.last_cursor_node.into_node()
+        {}
 
-        if shortcuts.contains(Shortcuts::MoveToNextSibling) {}
+        if shortcuts.contains(Shortcuts::MoveToNextSibling)
+            && let Some(node) = self.last_cursor_node.into_node()
+        {}
     }
     pub fn reset(&mut self) {
         self.cursor_node = NodeIndex::None;

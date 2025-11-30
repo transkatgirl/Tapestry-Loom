@@ -167,6 +167,7 @@ impl BookmarkListView {
 #[derive(Debug)]
 pub struct TreeListView {
     last_seen_cursor_node: Option<Ulid>,
+    last_active_nodes: HashSet<Ulid>,
     last_rendered_nodes: HashSet<Ulid>,
 }
 
@@ -174,6 +175,7 @@ impl Default for TreeListView {
     fn default() -> Self {
         Self {
             last_seen_cursor_node: None,
+            last_active_nodes: HashSet::with_capacity(65536),
             last_rendered_nodes: HashSet::with_capacity(65536),
         }
     }
@@ -182,6 +184,8 @@ impl Default for TreeListView {
 impl TreeListView {
     /*pub fn reset(&mut self) {
         self.last_seen_cursor_node = None;
+        self.last_active_nodes.clear();
+        self.last_rendered_nodes.clear();
     }*/
     pub fn render(
         &mut self,
@@ -193,6 +197,8 @@ impl TreeListView {
         shortcuts: FlagSet<Shortcuts>,
     ) {
         if self.last_seen_cursor_node != state.get_cursor_node().into_node() {
+            self.last_active_nodes.clear();
+
             if let Some(cursor_node) = state.get_cursor_node().into_node() {
                 let active = weave
                     .weave
@@ -202,21 +208,54 @@ impl TreeListView {
                     .map(Ulid);
 
                 for item in active {
+                    self.last_active_nodes.insert(item);
                     set_node_tree_item_open_status(ui, state.identifier, item, true);
                 }
             }
             self.last_seen_cursor_node = state.get_cursor_node().into_node();
         }
 
-        if shortcuts.contains(Shortcuts::ToggleNodeCollapsed) {}
+        if shortcuts.contains(Shortcuts::ToggleNodeCollapsed)
+            && let Some(item) = state.get_cursor_node().into_node()
+        {
+            toggle_node_tree_item_open_status(ui, state.identifier, item);
+        }
 
-        if shortcuts.contains(Shortcuts::CollapseAllVisibleInactive) {}
+        if shortcuts.contains(Shortcuts::CollapseAllVisibleInactive) {
+            for item in self.last_rendered_nodes.iter().copied() {
+                if !self.last_active_nodes.contains(&item) {
+                    set_node_tree_item_open_status(ui, state.identifier, item, false);
+                }
+            }
+        }
 
-        if shortcuts.contains(Shortcuts::CollapseChildren) {}
+        if shortcuts.contains(Shortcuts::CollapseChildren)
+            && let Some(node) = state
+                .get_cursor_node()
+                .into_node()
+                .and_then(|id| weave.get_node(&id))
+        {
+            for item in node.to.iter().cloned().map(Ulid) {
+                set_node_tree_item_open_status(ui, state.identifier, item, false);
+            }
+        }
 
-        if shortcuts.contains(Shortcuts::ExpandAllVisible) {}
+        if shortcuts.contains(Shortcuts::ExpandAllVisible) {
+            for item in self.last_rendered_nodes.iter().copied() {
+                set_node_tree_item_open_status(ui, state.identifier, item, true);
+            }
+        }
 
-        if shortcuts.contains(Shortcuts::ExpandChildren) {}
+        if shortcuts.contains(Shortcuts::ExpandChildren)
+            && let Some(node) = state
+                .get_cursor_node()
+                .into_node()
+                .and_then(|id| weave.get_node(&id))
+        {
+            for item in node.to.iter().cloned().map(Ulid) {
+                set_node_tree_item_open_status(ui, state.identifier, item, true);
+            }
+        }
 
         let tree_roots: Vec<Ulid> = if let Some(cursor_node) = state
             .get_cursor_node()
@@ -342,6 +381,13 @@ fn set_node_tree_item_open_status(ui: &mut Ui, editor_id: Ulid, item_id: Ulid, s
     let id = Id::new([editor_id.0, item_id.0, 0]);
     let mut collapsing_state = CollapsingState::load_with_default_open(ui.ctx(), id, false);
     collapsing_state.set_open(status);
+    collapsing_state.store(ui.ctx());
+}
+
+fn toggle_node_tree_item_open_status(ui: &mut Ui, editor_id: Ulid, item_id: Ulid) {
+    let id = Id::new([editor_id.0, item_id.0, 0]);
+    let mut collapsing_state = CollapsingState::load_with_default_open(ui.ctx(), id, false);
+    collapsing_state.set_open(!collapsing_state.is_open());
     collapsing_state.store(ui.ctx());
 }
 
