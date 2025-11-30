@@ -70,7 +70,7 @@ impl ListView {
         item: &Ulid,
     ) {
         if let Some(node) = weave.get_node(item).cloned() {
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 ui.add_space(ui.spacing().icon_spacing);
                 render_horizontal_node_label(
                     ui,
@@ -135,7 +135,7 @@ impl BookmarkListView {
         item: &Ulid,
     ) {
         if let Some(node) = weave.get_node(item).cloned() {
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 ui.add_space(ui.spacing().icon_spacing);
                 ui.label("\u{E060}");
 
@@ -314,7 +314,7 @@ fn render_node_tree(
         if let Some(node) = weave.get_node(&item).cloned() {
             rendered_items.insert(item);
             let mut render_label = |ui: &mut Ui| {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     if node.to.is_empty() {
                         ui.add_space(indent_compensation);
                     }
@@ -360,7 +360,7 @@ fn render_node_tree(
                                 rendered_items,
                             );
                         } else {
-                            ui.horizontal(|ui| {
+                            ui.horizontal_wrapped(|ui| {
                                 let first_child = node.to.first().copied().map(Ulid).unwrap();
                                 render_omitted_chidren_tree_node_label(
                                     ui,
