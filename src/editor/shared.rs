@@ -9,8 +9,11 @@ use egui_notify::Toasts;
 use flagset::FlagSet;
 use tapestry_weave::{
     ulid::Ulid,
-    universal_weave::{dependent::DependentNode, indexmap::IndexMap},
-    v0::{NodeContent, TapestryWeave},
+    universal_weave::{
+        dependent::DependentNode,
+        indexmap::{IndexMap, IndexSet},
+    },
+    v0::{InnerNodeContent, NodeContent, TapestryWeave},
 };
 use tokio::runtime::Runtime;
 
@@ -90,7 +93,19 @@ impl SharedState {
 
         if shortcuts.contains(Shortcuts::GenerateAtCursor) {
             match self.last_cursor_node {
-                NodeIndex::WithinNode(node, index) => {}
+                NodeIndex::WithinNode(node, index) => {
+                    if index == 0 {
+                        let parent = weave.get_node(&node).and_then(|node| node.from.map(Ulid));
+                        self.generate_children(weave, parent, settings);
+                    } else {
+                        weave.split_node(&node, index, |timestamp| {
+                            Ulid::from_datetime(
+                                SystemTime::UNIX_EPOCH + Duration::from_millis(timestamp),
+                            )
+                        });
+                        self.generate_children(weave, Some(node), settings);
+                    }
+                }
                 NodeIndex::Node(node) => {
                     self.generate_children(weave, Some(node), settings);
                 }
@@ -108,12 +123,52 @@ impl SharedState {
         }
 
         if shortcuts.contains(Shortcuts::AddChild)
-            && let Some(node) = self.last_cursor_node.into_node()
-        {}
+            && let Some(node) = self
+                .last_cursor_node
+                .into_node()
+                .and_then(|id| weave.get_node(&id).cloned())
+        {
+            let identifier = Ulid::new().0;
+            if weave.add_node(DependentNode {
+                id: identifier,
+                from: Some(node.id),
+                to: IndexSet::default(),
+                active: node.active,
+                bookmarked: false,
+                contents: NodeContent {
+                    content: InnerNodeContent::Snippet(vec![]),
+                    metadata: IndexMap::new(),
+                    model: None,
+                },
+            }) && node.active
+            {
+                self.cursor_node = NodeIndex::Node(Ulid(identifier));
+            }
+        }
 
         if shortcuts.contains(Shortcuts::AddSibling)
-            && let Some(node) = self.last_cursor_node.into_node()
-        {}
+            && let Some(node) = self
+                .last_cursor_node
+                .into_node()
+                .and_then(|id| weave.get_node(&id).cloned())
+        {
+            let identifier = Ulid::new().0;
+            if weave.add_node(DependentNode {
+                id: identifier,
+                from: node.from,
+                to: IndexSet::default(),
+                active: node.active,
+                bookmarked: false,
+                contents: NodeContent {
+                    content: InnerNodeContent::Snippet(vec![]),
+                    metadata: IndexMap::new(),
+                    model: None,
+                },
+            }) && node.active
+            {
+                self.cursor_node = NodeIndex::Node(Ulid(identifier));
+            }
+        }
 
         if shortcuts.contains(Shortcuts::DeleteCurrent)
             && let Some(node) = self.last_cursor_node.into_node()
