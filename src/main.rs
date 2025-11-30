@@ -15,7 +15,7 @@ use egui_tiles::{
     Behavior, Container, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse,
 };
 use flagset::FlagSet;
-use log::debug;
+use log::{debug, error};
 use mimalloc::MiMalloc;
 use threadpool::ThreadPool;
 use tokio::runtime::Runtime;
@@ -70,7 +70,8 @@ impl TapestryLoomApp {
                 match ron::from_str(&data) {
                     Ok(settings) => settings,
                     Err(error) => {
-                        toasts.error(format!("Settings deserialization failed: {error:?}"));
+                        toasts.error("Settings deserialization failed");
+                        error!("Settings deserialization failed: {error:#?}");
                         Settings::default()
                     }
                 }
@@ -79,6 +80,7 @@ impl TapestryLoomApp {
             }
         } else {
             toasts.error("Unable to open settings storage");
+            error!("Settings storage not found");
             Settings::default()
         };
         let settings = Rc::new(RefCell::new(settings));
@@ -276,6 +278,7 @@ impl App for TapestryLoomApp {
                             .toasts
                             .borrow_mut()
                             .error("Unable to find window root");
+                        error!("Unable to find window root");
                     }
                 }
             });
@@ -340,7 +343,8 @@ impl App for TapestryLoomApp {
                 self.behavior
                     .toasts
                     .borrow_mut()
-                    .error(format!("Settings serialization failed: {error:?}"));
+                    .error("Settings serialization failed");
+                error!("Settings serialization failed: {error:#?}")
             }
         }
     }

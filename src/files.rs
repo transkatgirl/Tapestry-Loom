@@ -20,6 +20,7 @@ use eframe::egui::{
 };
 use egui_notify::Toasts;
 use flagset::FlagSet;
+use log::warn;
 use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, treeless::FILE_EXTENSION};
 use threadpool::ThreadPool;
 use unicode_segmentation::UnicodeSegmentation;
@@ -958,6 +959,7 @@ impl FileManager {
                 },
                 Err(error) => {
                     toasts.warning(format!("Filesystem error: {error:?}"));
+                    warn!("Filesystem error: {error:#?}")
                 }
             }
             handled_messages += 1;

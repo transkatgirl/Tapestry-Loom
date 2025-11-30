@@ -27,7 +27,7 @@ use eframe::egui::{
 use egui_notify::Toasts;
 use egui_tiles::{Behavior, SimplificationOptions, TileId, Tiles, Tree, UiResponse};
 use flagset::FlagSet;
-use log::debug;
+use log::{debug, error};
 use parking_lot::Mutex;
 use tapestry_weave::{
     VERSIONED_WEAVE_FILE_EXTENSION, VersionedWeave,
@@ -221,9 +221,9 @@ impl Editor {
                                         *weave_dest = Some(weave);
                                     }
                                     Some(Err(error)) => {
-                                        let _ = error_sender.send(format!(
-                                            "Weave deserialization failed: {error:?}"
-                                        ));
+                                        let _ = error_sender
+                                            .send("Weave deserialization failed".to_string());
+                                        error!("Weave deserialization failed: {:#?}", error);
                                         *path = None;
                                         *weave_dest = Some(TapestryWeave::with_capacity(
                                             65536,
@@ -233,6 +233,7 @@ impl Editor {
                                     None => {
                                         let _ =
                                             error_sender.send("Invalid weave header".to_string());
+                                        error!("Invalid weave header");
                                         *path = None;
                                         *weave_dest = Some(TapestryWeave::with_capacity(
                                             65536,
@@ -243,6 +244,7 @@ impl Editor {
                                 Err(error) => {
                                     let _ =
                                         error_sender.send(format!("Filesystem error: {error:?}"));
+                                    error!("Filesystem error: {:#?}", error);
                                     *path = None;
                                     *weave_dest = Some(TapestryWeave::with_capacity(
                                         65536,
@@ -394,6 +396,7 @@ impl Editor {
                     Ok(bytes) => {
                         if let Err(error) = write_bytes(path, &bytes) {
                             let _ = error_sender.send(format!("Filesystem error: {error:?}"));
+                            error!("Filesystem error: {:#?}", error);
                             *path_lock = None;
                         } else {
                             debug!("Saved weave {} to disk", path.to_string_lossy());
@@ -404,7 +407,8 @@ impl Editor {
                         }
                     }
                     Err(error) => {
-                        let _ = error_sender.send(format!("Weave serialization failed: {error:?}"));
+                        let _ = error_sender.send("Weave serialization failed".to_string());
+                        error!("Weave serialization failed: {:#?}", error);
                     }
                 }
             }
