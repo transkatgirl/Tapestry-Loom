@@ -80,10 +80,38 @@ impl SharedState {
             self.cursor_node = NodeIndex::Node(active);
         }
         self.last_cursor_node = self.cursor_node;
-        if self.triggered_unimplemented || !shortcuts.is_empty() {
+        if self.triggered_unimplemented {
             toasts.info("Unimplemented");
             self.triggered_unimplemented = false;
         }
+
+        if shortcuts.contains(Shortcuts::GenerateAtCursor) {}
+
+        if shortcuts.contains(Shortcuts::ToggleNodeBookmarked) {}
+
+        if shortcuts.contains(Shortcuts::AddChild) {}
+
+        if shortcuts.contains(Shortcuts::AddSibling) {}
+
+        if shortcuts.contains(Shortcuts::DeleteCurrent) {}
+
+        if shortcuts.contains(Shortcuts::DeleteChildren) {}
+
+        if shortcuts.contains(Shortcuts::DeleteSiblings) {}
+
+        if shortcuts.contains(Shortcuts::DeleteSiblingsAndCurrent) {}
+
+        if shortcuts.contains(Shortcuts::MergeWithParent) {}
+
+        if shortcuts.contains(Shortcuts::SplitAtCursor) {}
+
+        if shortcuts.contains(Shortcuts::MoveToParent) {}
+
+        if shortcuts.contains(Shortcuts::MoveToChild) {}
+
+        if shortcuts.contains(Shortcuts::MoveToPreviousSibling) {}
+
+        if shortcuts.contains(Shortcuts::MoveToNextSibling) {}
     }
     pub fn reset(&mut self) {
         self.cursor_node = NodeIndex::None;

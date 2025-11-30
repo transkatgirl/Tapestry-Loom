@@ -208,6 +208,16 @@ impl TreeListView {
             self.last_seen_cursor_node = state.get_cursor_node().into_node();
         }
 
+        if shortcuts.contains(Shortcuts::ToggleNodeCollapsed) {}
+
+        if shortcuts.contains(Shortcuts::CollapseAllVisibleInactive) {}
+
+        if shortcuts.contains(Shortcuts::CollapseChildren) {}
+
+        if shortcuts.contains(Shortcuts::ExpandAllVisible) {}
+
+        if shortcuts.contains(Shortcuts::ExpandChildren) {}
+
         let tree_roots: Vec<Ulid> = if let Some(cursor_node) = state
             .get_cursor_node()
             .into_node()
