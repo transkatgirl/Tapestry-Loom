@@ -541,10 +541,14 @@ fn render_horizontal_node_label(
             }
 
             frame.show(ui, |ui| {
-                let mut label = RichText::new(String::from_utf8_lossy(
-                    &node.contents.content.as_bytes().to_vec(),
-                ))
-                .family(FontFamily::Monospace);
+                let node_content =
+                    String::from_utf8_lossy(&node.contents.content.as_bytes().to_vec()).to_string();
+
+                let mut label = if node_content.is_empty() {
+                    RichText::new("No text").family(FontFamily::Proportional)
+                } else {
+                    RichText::new(node_content).family(FontFamily::Monospace)
+                };
                 let label_color = get_node_color(node, settings);
 
                 let mut label_button = if node.active {
