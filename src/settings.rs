@@ -16,6 +16,8 @@ pub struct Settings {
     pub inference: InferenceSettings,
 }
 
+// TODO: Specify default shortcuts
+
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct KeyboardShortcuts {
     generate_at_cursor: Option<KeyboardShortcut>,

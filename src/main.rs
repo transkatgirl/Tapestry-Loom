@@ -162,6 +162,8 @@ impl TapestryLoomApp {
             threadpool,
             open_documents,
             pressed_shortcuts: FlagSet::empty(),
+            settings_visible: false,
+            settings_last_visible: false,
         };
 
         let mut tiles = Tiles::default();
@@ -201,6 +203,11 @@ impl TapestryLoomApp {
 
 impl App for TapestryLoomApp {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
+        if !self.behavior.settings_last_visible {
+            self.behavior.pressed_shortcuts =
+                self.behavior.settings.borrow().shortcuts.get_pressed(ctx);
+        }
+
         CentralPanel::default()
             .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0.0))
             .show(ctx, |ui| {
@@ -315,8 +322,13 @@ impl App for TapestryLoomApp {
             settings.interface.apply(ctx);
             self.last_ui_settings = settings.interface;
         }
-        self.behavior.pressed_shortcuts = settings.shortcuts.get_pressed(ctx);
+        if self.behavior.settings_last_visible {
+            self.behavior.pressed_shortcuts = settings.shortcuts.get_pressed(ctx);
+        }
         settings.handle_shortcuts(self.behavior.pressed_shortcuts);
+
+        self.behavior.settings_last_visible = self.behavior.settings_visible;
+        self.behavior.settings_visible = false;
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         match ron::to_string(&self.behavior.settings) {
@@ -356,6 +368,8 @@ struct TapestryLoomBehavior {
     runtime: Arc<Runtime>,
     open_documents: Rc<RefCell<HashSet<PathBuf>>>,
     pressed_shortcuts: FlagSet<Shortcuts>,
+    settings_visible: bool,
+    settings_last_visible: bool,
 }
 
 enum Pane {
@@ -374,7 +388,10 @@ impl Behavior<Pane> for TapestryLoomBehavior {
     }
     fn pane_ui(&mut self, ui: &mut Ui, tile_id: TileId, pane: &mut Pane) -> UiResponse {
         match pane {
-            Pane::Settings => self.settings.borrow_mut().render(ui),
+            Pane::Settings => {
+                self.settings_visible = true;
+                self.settings.borrow_mut().render(ui)
+            }
             Pane::FileManager => {
                 for path in self
                     .file_manager
