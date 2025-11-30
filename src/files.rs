@@ -99,7 +99,7 @@ impl FileManager {
     pub fn update(&mut self) {
         self.scanned = false;
     }
-    pub fn render(&mut self, ui: &mut Ui, _shortcuts: &FlagSet<Shortcuts>) -> Vec<PathBuf> {
+    pub fn render(&mut self, ui: &mut Ui, _shortcuts: FlagSet<Shortcuts>) -> Vec<PathBuf> {
         self.update_items();
 
         TopBottomPanel::bottom("filemanager-bottom-panel").show_animated_inside(ui, true, |ui| {

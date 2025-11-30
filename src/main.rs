@@ -309,13 +309,14 @@ impl App for TapestryLoomApp {
             self.show_confirmation = false;
         }
 
-        let settings = self.behavior.settings.borrow();
+        let mut settings = self.behavior.settings.borrow_mut();
 
         if settings.interface != self.last_ui_settings {
             settings.interface.apply(ctx);
             self.last_ui_settings = settings.interface;
         }
         self.behavior.pressed_shortcuts = settings.shortcuts.get_pressed(ctx);
+        settings.handle_shortcuts(self.behavior.pressed_shortcuts);
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         match ron::to_string(&self.behavior.settings) {
@@ -378,7 +379,7 @@ impl Behavior<Pane> for TapestryLoomBehavior {
                 for path in self
                     .file_manager
                     .borrow_mut()
-                    .render(ui, &self.pressed_shortcuts)
+                    .render(ui, self.pressed_shortcuts)
                 {
                     self.new_editor_queue.push((Some(path), None));
                 }
@@ -388,7 +389,7 @@ impl Behavior<Pane> for TapestryLoomBehavior {
                 || {
                     self.close_queue.push(tile_id);
                 },
-                &self.pressed_shortcuts,
+                self.pressed_shortcuts,
             ),
         }
 

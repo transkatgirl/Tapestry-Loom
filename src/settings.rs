@@ -402,7 +402,6 @@ flags! {
         MergeWithParent,
         SplitAtCursor,
 
-
         MoveToParent,
         MoveToChild,
         MoveToPreviousSibling,
@@ -599,6 +598,11 @@ impl Settings {
                         }
                     });
             });
+    }
+    pub fn handle_shortcuts(&mut self, shortcuts: FlagSet<Shortcuts>) {
+        if shortcuts.contains(Shortcuts::ToggleColors) {
+            self.interface.show_model_colors = !self.interface.show_model_colors;
+        }
     }
 }
 

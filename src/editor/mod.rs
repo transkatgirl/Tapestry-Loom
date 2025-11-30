@@ -148,9 +148,9 @@ impl Editor {
         &mut self,
         ui: &mut Ui,
         mut close_callback: impl FnMut(),
-        shortcuts: &FlagSet<Shortcuts>,
+        shortcuts: FlagSet<Shortcuts>,
     ) {
-        self.behavior.shortcuts = *shortcuts;
+        self.behavior.shortcuts = shortcuts;
 
         if self.show_confirmation
             && Modal::new("global-close-modal".into())
