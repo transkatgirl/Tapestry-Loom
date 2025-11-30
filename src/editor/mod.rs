@@ -19,9 +19,9 @@ mod menus;
 mod shared;
 mod textedit;
 
-// TODO: Improve handling of non-focused tab close modals
-
-use eframe::egui::{Align, Layout, Modal, Sides, Spinner, TopBottomPanel, Ui, WidgetText};
+use eframe::egui::{
+    Align, Layout, Modal, OutputCommand, Sides, Spinner, TopBottomPanel, Ui, WidgetText,
+};
 use egui_notify::Toasts;
 use egui_tiles::{Behavior, SimplificationOptions, TileId, Tiles, Tree, UiResponse};
 use flagset::FlagSet;
@@ -300,12 +300,22 @@ impl Editor {
                 ui.horizontal(|ui| {
                     ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                         if let Some(path) = path.as_ref() {
-                            if let Ok(short_path) = path.strip_prefix(&settings.documents.location)
+                            let label = if let Ok(short_path) =
+                                path.strip_prefix(&settings.documents.location)
                             {
-                                ui.label(short_path.to_string_lossy());
+                                ui.label(short_path.to_string_lossy())
                             } else {
-                                ui.label(path.to_string_lossy());
-                            }
+                                ui.label(path.to_string_lossy())
+                            };
+                            label.context_menu(|ui| {
+                                if ui.button("Copy path").clicked() {
+                                    ui.output_mut(|o| {
+                                        o.commands.push(OutputCommand::CopyText(
+                                            path.to_string_lossy().to_string(),
+                                        ))
+                                    });
+                                };
+                            });
                         } else if ui.button("Save As...").clicked() {
                             self.show_modal = true;
                         }
