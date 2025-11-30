@@ -19,6 +19,8 @@ mod menus;
 mod shared;
 mod textedit;
 
+// TODO: Implement node search
+
 use eframe::egui::{
     Align, Layout, Modal, OutputCommand, Sides, Spinner, TopBottomPanel, Ui, WidgetText,
 };

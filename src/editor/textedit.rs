@@ -49,6 +49,8 @@ pub struct TextEditorView {
 // TODO: Implement a context menu on the TextEdit
 // Currently stuck on lacking APIs in egui; see https://github.com/emilk/egui/issues/4393
 
+// TODO: Implement Ctrl+F in TextEdit
+
 type Snippet = (usize, Ulid, Color32, Option<usize>);
 
 const SUBSTITUTION_CHAR: char = '␚'; //Must be 1 UTF-8 byte in length
