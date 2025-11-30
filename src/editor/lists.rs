@@ -5,6 +5,7 @@ use eframe::egui::{
     UiBuilder, collapsing_header::CollapsingState,
 };
 use egui_notify::Toasts;
+use flagset::FlagSet;
 use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{
@@ -18,7 +19,7 @@ use tapestry_weave::{
 use crate::{
     editor::shared::{NodeIndex, SharedState, get_node_color, render_node_metadata_tooltip},
     listing_margin,
-    settings::Settings,
+    settings::{Settings, Shortcuts},
 };
 
 #[derive(Default, Debug)]
@@ -33,6 +34,7 @@ impl ListView {
         settings: &Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
+        _shortcuts: FlagSet<Shortcuts>,
     ) {
         let items: Vec<Ulid> = if let Some(cursor_node) = state
             .get_cursor_node()
@@ -99,6 +101,7 @@ impl BookmarkListView {
         settings: &Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
+        _shortcuts: FlagSet<Shortcuts>,
     ) {
         let items: Vec<Ulid> = weave
             .weave
@@ -175,6 +178,7 @@ impl TreeListView {
         settings: &Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
+        shortcuts: FlagSet<Shortcuts>,
     ) {
         if self.last_seen_cursor_node != state.get_cursor_node().into_node() {
             if let Some(cursor_node) = state.get_cursor_node().into_node() {

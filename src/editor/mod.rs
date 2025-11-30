@@ -506,6 +506,7 @@ impl EditorTilingBehavior {
                 &settings,
                 &mut toasts,
                 &mut self.shared_state,
+                self.shortcuts,
             );
         }
     }
@@ -526,6 +527,7 @@ impl Behavior<Pane> for EditorTilingBehavior {
                     &settings,
                     &mut toasts,
                     &mut self.shared_state,
+                    self.shortcuts,
                 ),
                 Pane::Graph => self.graph_view.render(
                     ui,
@@ -533,6 +535,7 @@ impl Behavior<Pane> for EditorTilingBehavior {
                     &settings,
                     &mut toasts,
                     &mut self.shared_state,
+                    self.shortcuts,
                 ),
                 Pane::TreeList => self.tree_list_view.render(
                     ui,
@@ -540,17 +543,23 @@ impl Behavior<Pane> for EditorTilingBehavior {
                     &settings,
                     &mut toasts,
                     &mut self.shared_state,
+                    self.shortcuts,
                 ),
-                Pane::List => {
-                    self.list_view
-                        .render(ui, weave, &settings, &mut toasts, &mut self.shared_state)
-                }
+                Pane::List => self.list_view.render(
+                    ui,
+                    weave,
+                    &settings,
+                    &mut toasts,
+                    &mut self.shared_state,
+                    self.shortcuts,
+                ),
                 Pane::BookmarkList => self.bookmark_list_view.render(
                     ui,
                     weave,
                     &settings,
                     &mut toasts,
                     &mut self.shared_state,
+                    self.shortcuts,
                 ),
                 Pane::TextEdit => self.text_edit_view.render(
                     ui,
@@ -558,11 +567,16 @@ impl Behavior<Pane> for EditorTilingBehavior {
                     &settings,
                     &mut toasts,
                     &mut self.shared_state,
+                    self.shortcuts,
                 ),
-                Pane::Menu => {
-                    self.menu_view
-                        .render(ui, weave, &settings, &mut toasts, &mut self.shared_state)
-                }
+                Pane::Menu => self.menu_view.render(
+                    ui,
+                    weave,
+                    &settings,
+                    &mut toasts,
+                    &mut self.shared_state,
+                    self.shortcuts,
+                ),
             }
         }
 

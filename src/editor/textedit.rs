@@ -15,6 +15,7 @@ use eframe::{
     epaint::{Vertex, WHITE_UV},
 };
 use egui_notify::Toasts;
+use flagset::FlagSet;
 use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{Weave, indexmap::IndexMap},
@@ -26,7 +27,7 @@ use crate::{
         NodeIndex, SharedState, get_node_color, get_token_color, render_node_metadata_tooltip,
         render_token_metadata_tooltip,
     },
-    settings::Settings,
+    settings::{Settings, Shortcuts},
 };
 
 #[derive(Debug)]
@@ -91,6 +92,7 @@ impl TextEditorView {
         settings: &Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
+        _shortcuts: FlagSet<Shortcuts>,
     ) {
         self.update(weave, settings, ui.visuals().widgets.inactive.text_color());
 

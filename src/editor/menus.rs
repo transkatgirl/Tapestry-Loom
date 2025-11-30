@@ -1,8 +1,12 @@
 use eframe::egui::Ui;
 use egui_notify::Toasts;
+use flagset::FlagSet;
 use tapestry_weave::v0::TapestryWeave;
 
-use crate::{editor::shared::SharedState, settings::Settings};
+use crate::{
+    editor::shared::SharedState,
+    settings::{Settings, Shortcuts},
+};
 
 #[derive(Default, Debug)]
 pub struct MenuView {}
@@ -16,6 +20,7 @@ impl MenuView {
         settings: &Settings,
         toasts: &mut Toasts,
         state: &mut SharedState,
+        shortcuts: FlagSet<Shortcuts>,
     ) {
         ui.heading("Unimplemented");
     }
@@ -26,6 +31,7 @@ impl MenuView {
         settings: &Settings,
         toasts: &mut Toasts,
         state: &mut SharedState,
+        shortcuts: FlagSet<Shortcuts>,
     ) {
     }
 }
