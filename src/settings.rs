@@ -52,12 +52,197 @@ impl KeyboardShortcuts {
     fn render(&mut self, ui: &mut Ui) {
         ui.label("Pressing escape while modifying a keybind resets it to its default value.");
 
-        /*ui.add(
-            Keybind::new(&mut self.add_child, "keybind-add-child")
+        ui.add(
+            Keybind::new(&mut self.generate_at_cursor, "keybind-generate_at_cursor")
+                .with_text("TODO")
+                .with_reset(KeyboardShortcuts::default().generate_at_cursor)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(
+                &mut self.toggle_node_bookmarked,
+                "keybind-toggle_node_bookmarked",
+            )
+            .with_text("TODO")
+            .with_reset(KeyboardShortcuts::default().toggle_node_bookmarked)
+            .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.5);
+
+        ui.add(
+            Keybind::new(&mut self.add_child, "keybind-add_child")
                 .with_text("TODO")
                 .with_reset(KeyboardShortcuts::default().add_child)
                 .with_reset_key(Some(Key::Escape)),
-        );*/
+        );
+
+        ui.add(
+            Keybind::new(&mut self.add_sibling, "keybind-add_sibling")
+                .with_text("TODO")
+                .with_reset(KeyboardShortcuts::default().add_sibling)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.delete_current, "keybind-delete_current")
+                .with_text("TODO")
+                .with_reset(KeyboardShortcuts::default().delete_current)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.delete_children, "keybind-delete_children")
+                .with_text("TODO")
+                .with_reset(KeyboardShortcuts::default().delete_children)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.delete_siblings, "keybind-delete_siblings")
+                .with_text("TODO")
+                .with_reset(KeyboardShortcuts::default().delete_siblings)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(
+                &mut self.delete_siblings_and_current,
+                "keybind-delete_siblings_and_current",
+            )
+            .with_text("TODO")
+            .with_reset(KeyboardShortcuts::default().delete_siblings_and_current)
+            .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.merge_with_parent, "keybind-merge_with_parent")
+                .with_text("TODO")
+                .with_reset(KeyboardShortcuts::default().merge_with_parent)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.split_at_cursor, "keybind-split_at_cursor")
+                .with_text("TODO")
+                .with_reset(KeyboardShortcuts::default().split_at_cursor)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.5);
+
+        ui.add(
+            Keybind::new(&mut self.move_to_parent, "keybind-move_to_parent")
+                .with_text("TODO")
+                .with_reset(KeyboardShortcuts::default().move_to_parent)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.move_to_child, "keybind-move_to_child")
+                .with_text("TODO")
+                .with_reset(KeyboardShortcuts::default().move_to_child)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(
+                &mut self.move_to_previous_sibling,
+                "keybind-move_to_previous_sibling",
+            )
+            .with_text("TODO")
+            .with_reset(KeyboardShortcuts::default().move_to_previous_sibling)
+            .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(
+                &mut self.move_to_next_sibling,
+                "keybind-move_to_next_sibling",
+            )
+            .with_text("TODO")
+            .with_reset(KeyboardShortcuts::default().move_to_next_sibling)
+            .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.5);
+
+        ui.add(
+            Keybind::new(&mut self.reset_parameters, "keybind-reset_parameters")
+                .with_text("TODO")
+                .with_reset(KeyboardShortcuts::default().reset_parameters)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.toggle_colors, "keybind-toggle_colors")
+                .with_text("TODO")
+                .with_reset(KeyboardShortcuts::default().toggle_colors)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.5);
+
+        ui.add(
+            Keybind::new(
+                &mut self.toggle_node_collapsed,
+                "keybind-toggle_node_collapsed",
+            )
+            .with_text("TODO")
+            .with_reset(KeyboardShortcuts::default().toggle_node_collapsed)
+            .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(
+                &mut self.collapse_all_visible_inactive,
+                "keybind-collapse_all_visible_inactive",
+            )
+            .with_text("TODO")
+            .with_reset(KeyboardShortcuts::default().collapse_all_visible_inactive)
+            .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.collapse_children, "keybind-collapse_children")
+                .with_text("TODO")
+                .with_reset(KeyboardShortcuts::default().collapse_children)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(
+                &mut self.expand_all_visible_inactive,
+                "keybind-expand_all_visible_inactive",
+            )
+            .with_text("TODO")
+            .with_reset(KeyboardShortcuts::default().expand_all_visible_inactive)
+            .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.expand_children, "keybind-expand_children")
+                .with_text("TODO")
+                .with_reset(KeyboardShortcuts::default().expand_children)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.5);
+
+        ui.add(
+            Keybind::new(&mut self.fit_to_cursor, "keybind-fit_to_cursor")
+                .with_text("TODO")
+                .with_reset(KeyboardShortcuts::default().fit_to_cursor)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.fit_to_weave, "keybind-fit_to_weave")
+                .with_text("TODO")
+                .with_reset(KeyboardShortcuts::default().fit_to_weave)
+                .with_reset_key(Some(Key::Escape)),
+        );
     }
     pub fn get_pressed(&self, ctx: &Context) -> FlagSet<Shortcuts> {
         let mut flags = FlagSet::<Shortcuts>::empty();
@@ -304,7 +489,7 @@ impl UISettings {
                 );
             });
         let ui_slider = ui.add(
-            Slider::new(&mut self.displayed_ui_scale, 0.5..=3.0)
+            Slider::new(&mut self.displayed_ui_scale, 0.5..=4.0)
                 .logarithmic(true)
                 .clamping(SliderClamping::Never)
                 .text("Scale")
