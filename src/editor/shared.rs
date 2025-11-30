@@ -201,28 +201,60 @@ impl SharedState {
                 .last_cursor_node
                 .into_node()
                 .and_then(|id| weave.get_node(&id))
-        {}
+            && let Some(parent) = node.from.map(Ulid)
+        {
+            self.cursor_node = NodeIndex::Node(parent);
+            weave.set_node_active_status(&parent, true);
+        }
 
         if shortcuts.contains(Shortcuts::MoveToChild)
             && let Some(node) = self
                 .last_cursor_node
                 .into_node()
                 .and_then(|id| weave.get_node(&id))
-        {}
+            && let Some(child) = node.to.first().copied().map(Ulid)
+        {
+            self.cursor_node = NodeIndex::Node(child);
+            weave.set_node_active_status(&child, true);
+        }
 
         if shortcuts.contains(Shortcuts::MoveToPreviousSibling)
             && let Some(node) = self
                 .last_cursor_node
                 .into_node()
                 .and_then(|id| weave.get_node(&id))
-        {}
+            && let Some(parent_children) = node
+                .from
+                .and_then(|id| weave.get_node(&Ulid(id)))
+                .map(|parent| &parent.to)
+            && let Some(current_index) = parent_children.get_index_of(&node.id)
+            && let Some(previous_sibling) = parent_children
+                .get_index(current_index.saturating_sub(1))
+                .copied()
+                .map(Ulid)
+        {
+            self.cursor_node = NodeIndex::Node(previous_sibling);
+            weave.set_node_active_status(&previous_sibling, true);
+        }
 
         if shortcuts.contains(Shortcuts::MoveToNextSibling)
             && let Some(node) = self
                 .last_cursor_node
                 .into_node()
                 .and_then(|id| weave.get_node(&id))
-        {}
+            && let Some(parent_children) = node
+                .from
+                .and_then(|id| weave.get_node(&Ulid(id)))
+                .map(|parent| &parent.to)
+            && let Some(current_index) = parent_children.get_index_of(&node.id)
+            && let Some(next_sibling) = parent_children
+                .get_index(current_index + 1)
+                .copied()
+                .map(Ulid)
+        {
+            self.cursor_node = NodeIndex::Node(next_sibling);
+            weave.set_node_active_status(&next_sibling, true);
+        }
     }
     pub fn reset(&mut self) {
         self.cursor_node = NodeIndex::None;
