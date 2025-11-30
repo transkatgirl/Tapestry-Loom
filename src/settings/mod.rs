@@ -92,7 +92,7 @@ impl UISettings {
                 .text("Scale")
                 .suffix("x"),
         );
-        if !(ui_slider.has_focus() || ui_slider.hovered()) {
+        if !(ui_slider.has_focus() || ui_slider.contains_pointer()) {
             self.ui_scale = self.displayed_ui_scale;
         }
 

@@ -481,7 +481,7 @@ fn render_omitted_chidren_tree_node_label(
                 let label_button_response =
                     ui.add(Button::new(label).frame(false).fill(Color32::TRANSPARENT));
 
-                if label_button_response.hovered() {
+                if label_button_response.contains_pointer() {
                     state.set_hovered_node(NodeIndex::Node(first_child));
                 }
 
@@ -502,7 +502,7 @@ fn render_omitted_chidren_tree_node_label(
         state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
     }
 
-    if response.hovered() {
+    if response.contains_pointer() {
         state.set_hovered_node(NodeIndex::Node(first_child));
     }
 }
@@ -529,6 +529,8 @@ fn render_horizontal_node_label(
     ),
     show_node_info: bool,
 ) {
+    let mut mouse_hovered = false;
+
     let response = ui
         .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
             let mut frame = Frame::new();
@@ -581,7 +583,8 @@ fn render_horizontal_node_label(
                     context_menu(ui, settings, state, weave, node);
                 });
 
-                if label_button_response.hovered() {
+                if label_button_response.contains_pointer() {
+                    mouse_hovered = true;
                     state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
                 }
 
@@ -592,6 +595,11 @@ fn render_horizontal_node_label(
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if ui.rect_contains_pointer(ui.max_rect()) {
+                        state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
+                        mouse_hovered = true;
+                    }
+
+                    if mouse_hovered {
                         ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
                             ui.add_space(ui.spacing().icon_spacing);
                             buttons(ui, settings, state, weave, node);
@@ -599,7 +607,6 @@ fn render_horizontal_node_label(
 
                             ui.add_space(0.0);
                         });
-                        state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
                     } else if show_node_info {
                         ui.add_space(ui.spacing().icon_spacing);
                         if node.bookmarked {
@@ -631,7 +638,7 @@ fn render_horizontal_node_label(
         state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
     }
 
-    if response.hovered() {
+    if response.contains_pointer() {
         state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
     }
 }
