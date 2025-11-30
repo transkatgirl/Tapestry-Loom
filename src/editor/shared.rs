@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::{
+    sync::Arc,
+    time::{Duration, SystemTime},
+};
 
 use chrono::{DateTime, offset};
 use eframe::egui::{Color32, Rgba, Ui};
@@ -88,14 +91,21 @@ impl SharedState {
         if shortcuts.contains(Shortcuts::GenerateAtCursor) {
             match self.last_cursor_node {
                 NodeIndex::WithinNode(node, index) => {}
-                NodeIndex::Node(node) => {}
+                NodeIndex::Node(node) => {
+                    self.generate_children(weave, Some(node), settings);
+                }
                 NodeIndex::None => {}
             }
         }
 
         if shortcuts.contains(Shortcuts::ToggleNodeBookmarked)
-            && let Some(node) = self.last_cursor_node.into_node()
-        {}
+            && let Some(node) = self
+                .last_cursor_node
+                .into_node()
+                .and_then(|id| weave.get_node(&id))
+        {
+            weave.set_node_bookmarked_status(&Ulid(node.id), !node.bookmarked);
+        }
 
         if shortcuts.contains(Shortcuts::AddChild)
             && let Some(node) = self.last_cursor_node.into_node()
@@ -107,42 +117,111 @@ impl SharedState {
 
         if shortcuts.contains(Shortcuts::DeleteCurrent)
             && let Some(node) = self.last_cursor_node.into_node()
-        {}
+        {
+            let parent = weave.get_node(&node).and_then(|node| node.from).map(Ulid);
+
+            if weave.remove_node(&node).is_some()
+                && let Some(parent) = parent
+            {
+                self.cursor_node = NodeIndex::Node(parent);
+            }
+        }
 
         if shortcuts.contains(Shortcuts::DeleteChildren)
-            && let Some(node) = self.last_cursor_node.into_node()
-        {}
+            && let Some(node) = self
+                .last_cursor_node
+                .into_node()
+                .and_then(|id| weave.get_node(&id))
+        {
+            let children: Vec<Ulid> = node.to.iter().copied().map(Ulid).collect();
+
+            for child in children {
+                weave.remove_node(&child);
+            }
+        }
 
         if shortcuts.contains(Shortcuts::DeleteSiblings)
-            && let Some(node) = self.last_cursor_node.into_node()
-        {}
+            && let Some(node) = self
+                .last_cursor_node
+                .into_node()
+                .and_then(|id| weave.get_node(&id))
+            && let Some(parent) = node.from.map(Ulid).and_then(|id| weave.get_node(&id))
+        {
+            let siblings: Vec<Ulid> = parent
+                .to
+                .iter()
+                .copied()
+                .filter(|id| *id != node.id)
+                .map(Ulid)
+                .collect();
+
+            for sibling in siblings {
+                weave.remove_node(&sibling);
+            }
+        }
 
         if shortcuts.contains(Shortcuts::DeleteSiblingsAndCurrent)
-            && let Some(node) = self.last_cursor_node.into_node()
-        {}
+            && let Some(node) = self
+                .last_cursor_node
+                .into_node()
+                .and_then(|id| weave.get_node(&id))
+            && let Some(parent) = node.from.map(Ulid).and_then(|id| weave.get_node(&id))
+        {
+            self.cursor_node = NodeIndex::Node(Ulid(parent.id));
+
+            let parent_children: Vec<Ulid> = parent.to.iter().copied().map(Ulid).collect();
+
+            for item in parent_children {
+                weave.remove_node(&item);
+            }
+        }
 
         if shortcuts.contains(Shortcuts::MergeWithParent)
             && let Some(node) = self.last_cursor_node.into_node()
-        {}
+        {
+            let parent = weave.get_node(&node).and_then(|node| node.from).map(Ulid);
+
+            if weave.merge_with_parent(&node)
+                && let Some(parent) = parent
+            {
+                self.cursor_node = NodeIndex::Node(parent);
+            }
+        }
 
         if shortcuts.contains(Shortcuts::SplitAtCursor)
             && let NodeIndex::WithinNode(node, index) = self.last_cursor_node
-        {}
+        {
+            weave.split_node(&node, index, |timestamp| {
+                Ulid::from_datetime(SystemTime::UNIX_EPOCH + Duration::from_millis(timestamp))
+            });
+        }
 
         if shortcuts.contains(Shortcuts::MoveToParent)
-            && let Some(node) = self.last_cursor_node.into_node()
+            && let Some(node) = self
+                .last_cursor_node
+                .into_node()
+                .and_then(|id| weave.get_node(&id))
         {}
 
         if shortcuts.contains(Shortcuts::MoveToChild)
-            && let Some(node) = self.last_cursor_node.into_node()
+            && let Some(node) = self
+                .last_cursor_node
+                .into_node()
+                .and_then(|id| weave.get_node(&id))
         {}
 
         if shortcuts.contains(Shortcuts::MoveToPreviousSibling)
-            && let Some(node) = self.last_cursor_node.into_node()
+            && let Some(node) = self
+                .last_cursor_node
+                .into_node()
+                .and_then(|id| weave.get_node(&id))
         {}
 
         if shortcuts.contains(Shortcuts::MoveToNextSibling)
-            && let Some(node) = self.last_cursor_node.into_node()
+            && let Some(node) = self
+                .last_cursor_node
+                .into_node()
+                .and_then(|id| weave.get_node(&id))
         {}
     }
     pub fn reset(&mut self) {
