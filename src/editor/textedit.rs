@@ -121,7 +121,9 @@ impl TextEditorView {
             .auto_shrink(false)
             .animated(false)
             .show(ui, |ui| {
-                ui.style_mut().override_font_id = Some(FontId::new(15.0, FontFamily::Monospace));
+                let mut font_id = TextStyle::Monospace.resolve(ui.style());
+                font_id.size *= 1.1;
+                ui.style_mut().override_font_id = Some(font_id);
 
                 render_rects(ui, &mut self.rects);
 
