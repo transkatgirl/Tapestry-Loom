@@ -435,6 +435,12 @@ impl Editor {
     }
     pub fn unsaved(&self) -> bool {
         self.path.lock().is_none()
+            && self
+                .weave
+                .try_lock()
+                .and_then(|weave| weave.as_ref().map(|weave| weave.len()))
+                .unwrap_or(1)
+                != 0
     }
     pub fn close(&mut self) -> bool {
         if let Some(path) = &self.path.lock().as_ref() {
