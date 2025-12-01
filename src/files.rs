@@ -109,8 +109,18 @@ impl FileManager {
                     if !self.finished {
                         ui.add(Spinner::new());
                     }
+                    let file_label = if self.file_count == 1 {
+                        "file"
+                    } else {
+                        "files"
+                    };
+                    let folder_label = if self.folder_count.saturating_sub(1) == 1 {
+                        "folder"
+                    } else {
+                        "folders"
+                    };
                     ui.label(format!(
-                        "{} files, {} folders",
+                        "{} {file_label}, {} {folder_label}",
                         self.file_count,
                         self.folder_count.saturating_sub(1)
                     ))

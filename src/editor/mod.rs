@@ -7,6 +7,7 @@ use std::{
     rc::Rc,
     sync::{
         Arc, Barrier,
+        atomic::{AtomicUsize, Ordering},
         mpsc::{self, Receiver, Sender},
     },
     time::Instant,
@@ -61,6 +62,7 @@ pub struct Editor {
     weave: Arc<Mutex<Option<TapestryWeave>>>,
     error_channel: (Arc<Sender<String>>, Receiver<String>),
     last_save: Instant,
+    last_filesize: Arc<AtomicUsize>,
     panel_identifier: String,
     modal_identifier: String,
     show_modal: bool,
@@ -118,6 +120,7 @@ impl Editor {
             weave: weave.clone(),
             error_channel: (Arc::new(sender), receiver),
             last_save: Instant::now(),
+            last_filesize: Arc::new(AtomicUsize::new(0)),
             panel_identifier: ["editor-", &identifier_string, "-bottom-panel"].concat(),
             modal_identifier: ["editor-", &identifier_string, "-modal"].concat(),
             show_modal: false,
@@ -202,6 +205,7 @@ impl Editor {
                     let thread_barrier = barrier.clone();
                     let path = self.path.clone();
                     let error_sender = self.error_channel.0.clone();
+                    let file_size = self.last_filesize.clone();
 
                     self.threadpool.execute(move || {
                         let mut weave_dest = weave.lock();
@@ -212,6 +216,7 @@ impl Editor {
                             match read_bytes(filepath) {
                                 Ok(bytes) => match VersionedWeave::from_bytes(&bytes) {
                                     Some(Ok(weave)) => {
+                                        file_size.store(bytes.len(), Ordering::SeqCst);
                                         let mut weave = weave.into_latest();
 
                                         if weave.capacity() < 65536 {
@@ -221,6 +226,7 @@ impl Editor {
                                         *weave_dest = Some(weave);
                                     }
                                     Some(Err(error)) => {
+                                        file_size.store(0, Ordering::SeqCst);
                                         let _ = error_sender
                                             .send("Weave deserialization failed".to_string());
                                         error!("Weave deserialization failed: {:#?}", error);
@@ -231,6 +237,7 @@ impl Editor {
                                         ));
                                     }
                                     None => {
+                                        file_size.store(0, Ordering::SeqCst);
                                         let _ =
                                             error_sender.send("Invalid weave header".to_string());
                                         error!("Invalid weave header");
@@ -242,6 +249,7 @@ impl Editor {
                                     }
                                 },
                                 Err(error) => {
+                                    file_size.store(0, Ordering::SeqCst);
                                     let _ = error_sender.send(format!("Filesystem error: {error}"));
                                     error!("Filesystem error: {:#?}", error);
                                     *path = None;
@@ -293,6 +301,7 @@ impl Editor {
                 (self.new_path_callback)(path);
             }
             self.old_path = path.clone();
+            //self.last_filesize.store(0, Ordering::SeqCst);
             //self.behavior.reset();
         }
 
@@ -324,7 +333,8 @@ impl Editor {
                         }
                     });
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        self.behavior.panel_rtl(ui);
+                        self.behavior
+                            .panel_rtl(ui, self.last_filesize.load(Ordering::Relaxed));
                     });
                 });
             },
@@ -382,6 +392,7 @@ impl Editor {
         let error_sender = self.error_channel.0.clone();
         let barrier = Arc::new(Barrier::new(2));
         let thread_barrier = barrier.clone();
+        let file_size = self.last_filesize.clone();
 
         self.threadpool.execute(move || {
             let mut weave_lock = weave.lock();
@@ -394,10 +405,12 @@ impl Editor {
                 match weave.to_versioned_bytes() {
                     Ok(bytes) => {
                         if let Err(error) = write_bytes(path, &bytes) {
+                            file_size.store(0, Ordering::SeqCst);
                             let _ = error_sender.send(format!("Filesystem error: {error}"));
                             error!("Filesystem error: {:#?}", error);
                             *path_lock = None;
                         } else {
+                            file_size.store(bytes.len(), Ordering::SeqCst);
                             debug!("Saved weave {} to disk", path.to_string_lossy());
                             if unload {
                                 *weave_lock = None;
@@ -406,6 +419,7 @@ impl Editor {
                         }
                     }
                     Err(error) => {
+                        file_size.store(0, Ordering::SeqCst);
                         let _ = error_sender.send("Weave serialization failed".to_string());
                         error!("Weave serialization failed: {:#?}", error);
                     }
@@ -420,7 +434,14 @@ impl Editor {
     pub fn close(&mut self) -> bool {
         if let Some(path) = &self.path.lock().as_ref() {
             self.open_documents.borrow_mut().remove(*path);
-        } else if !self.allow_close {
+        } else if !self.allow_close
+            && self
+                .weave
+                .try_lock()
+                .and_then(|weave| weave.as_ref().map(|weave| weave.len()))
+                .unwrap_or(1)
+                != 0
+        {
             self.show_confirmation = true;
             return false;
         }
@@ -507,7 +528,7 @@ impl EditorTilingBehavior {
         self.text_edit_view.reset();
         self.menu_view.reset();
     }*/
-    fn panel_rtl(&mut self, ui: &mut Ui) {
+    fn panel_rtl(&mut self, ui: &mut Ui, file_size: usize) {
         let mut weave = self.weave.lock();
 
         if let Some(weave) = weave.as_mut() {
@@ -522,6 +543,7 @@ impl EditorTilingBehavior {
                 &mut toasts,
                 &mut self.shared_state,
                 self.shortcuts,
+                file_size,
             );
         }
     }

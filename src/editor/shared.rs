@@ -337,6 +337,9 @@ impl SharedState {
     ) {
         self.triggered_unimplemented = true;
     }
+    pub fn get_request_count(&self) -> usize {
+        0 // TODO
+    }
 }
 
 pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &DependentNode<NodeContent>) {
