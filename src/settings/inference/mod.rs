@@ -207,17 +207,17 @@ impl InferenceModel {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct InferenceParameters {
-    pub models: IndexMap<Ulid, ModelInferenceParameters>,
-    pub timeout_min: f32,
     pub recursion_depth: usize,
+    pub timeout_min: f32,
+    pub models: IndexMap<Ulid, ModelInferenceParameters>,
 }
 
 impl Default for InferenceParameters {
     fn default() -> Self {
         Self {
-            models: IndexMap::new(),
+            recursion_depth: 0,
             timeout_min: 15.0,
-            recursion_depth: 1,
+            models: IndexMap::new(),
         }
     }
 }
@@ -257,16 +257,17 @@ impl InferenceParameters {
     }
     fn render_internal(&mut self, models: &IndexMap<Ulid, InferenceModel>, ui: &mut Ui) {
         ui.add(
+            Slider::new(&mut self.recursion_depth, 0..=4)
+                .clamping(SliderClamping::Never)
+                .text("Recursion")
+                .suffix(" layers"),
+        );
+        ui.add(
             Slider::new(&mut self.timeout_min, 1.0..=1440.0)
                 .logarithmic(true)
                 .clamping(SliderClamping::Never)
                 .text("Request timeout")
                 .suffix(" minutes"),
-        );
-        ui.add(
-            Slider::new(&mut self.recursion_depth, 1..=5)
-                .clamping(SliderClamping::Never)
-                .text("Recursion depth"),
         );
 
         ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
