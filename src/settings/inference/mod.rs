@@ -149,10 +149,10 @@ impl InferenceSettings {
             self.models.shift_remove(&delete);
         }
 
-        ui.group(|ui| {
-            ui.label("Default inference parameters");
-            self.default_parameters.render_internal(&self.models, ui);
-        });
+        ui.separator();
+
+        ui.heading("Editor inference defaults");
+        self.default_parameters.render_internal(&self.models, ui);
     }
 }
 
