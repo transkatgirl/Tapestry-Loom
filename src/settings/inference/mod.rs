@@ -26,23 +26,19 @@ pub struct InferenceSettings {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ClientConfig {
     accept_invalid_tls: bool,
-    user_agent: String,
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for ClientConfig {
     fn default() -> Self {
         Self {
             accept_invalid_tls: false,
-            user_agent: "Tapestry Loom".to_string(),
         }
     }
 }
 
 impl ClientConfig {
     fn render(&mut self, ui: &mut Ui) {
-        let user_agent_label = ui.label("User Agent:");
-        ui.text_edit_singleline(&mut self.user_agent)
-            .labelled_by(user_agent_label.id);
         let accept_invalid_tls_label = if self.accept_invalid_tls {
             RichText::new("Accept invalid TLS (dangerous)").color(ui.style().visuals.warn_fg_color)
         } else {
@@ -55,7 +51,6 @@ impl ClientConfig {
             .connect_timeout(Duration::from_secs(15))
             .danger_accept_invalid_certs(self.accept_invalid_tls)
             .danger_accept_invalid_hostnames(self.accept_invalid_tls)
-            .user_agent(&self.user_agent)
             .build()
     }
 }
@@ -262,10 +257,13 @@ impl EndpointTemplate {
         match self {
             Self::None => None,
             Self::OpenAICompletions(template) => {
-                let endpoint = template.clone().build();
-                *self = EndpointTemplate::None;
+                if let Some(endpoint) = template.clone().build() {
+                    *self = EndpointTemplate::None;
 
-                Some(EndpointConfig::OpenAICompletions(endpoint))
+                    Some(EndpointConfig::OpenAICompletions(endpoint))
+                } else {
+                    None
+                }
             }
         }
     }
@@ -275,7 +273,7 @@ impl Display for EndpointTemplate {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::None => f.write_str("Choose Template..."),
-            Self::OpenAICompletions(_) => f.write_str("OpenAI Completions"),
+            Self::OpenAICompletions(_) => f.write_str("OpenAI-like Completions"),
         }
     }
 }
@@ -341,7 +339,7 @@ where
     T: Endpoint,
 {
     fn render(&mut self, ui: &mut Ui);
-    fn build(self) -> T;
+    fn build(self) -> Option<T>;
 }
 
 fn render_config_map(ui: &mut Ui, value: &mut Vec<(String, String)>) {

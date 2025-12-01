@@ -32,8 +32,8 @@ impl Template<OpenAICompletionsConfig> for OpenAICompletionsTemplate {
                 .on_hover_text("API key");
         });
     }
-    fn build(mut self) -> OpenAICompletionsConfig {
-        OpenAICompletionsConfig {
+    fn build(mut self) -> Option<OpenAICompletionsConfig> {
+        Some(OpenAICompletionsConfig {
             endpoint: if self.endpoint.is_empty() {
                 "https://api.openai.com/v1/completions".to_string()
             } else {
@@ -49,14 +49,29 @@ impl Template<OpenAICompletionsConfig> for OpenAICompletionsTemplate {
                 vec![("model".to_string(), self.model)]
             },
             headers: if self.api_key.is_empty() {
-                Vec::new()
+                vec![
+                    ("User-Agent".to_string(), "TapestryLoom".to_string()),
+                    (
+                        "HTTP-Referer".to_string(),
+                        "https://github.com/transkatgirl/Tapestry-Loom".to_string(),
+                    ),
+                    ("X-Title".to_string(), "Tapestry Loom".to_string()),
+                ]
             } else {
-                vec![(
-                    "Authorization".to_string(),
-                    ["Bearer ", &self.api_key].concat(),
-                )]
+                vec![
+                    (
+                        "Authorization".to_string(),
+                        ["Bearer ", &self.api_key].concat(),
+                    ),
+                    ("User-Agent".to_string(), "TapestryLoom".to_string()),
+                    (
+                        "HTTP-Referer".to_string(),
+                        "https://github.com/transkatgirl/Tapestry-Loom".to_string(),
+                    ),
+                    ("X-Title".to_string(), "Tapestry Loom".to_string()),
+                ]
             },
-        }
+        })
     }
 }
 
