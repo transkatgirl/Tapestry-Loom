@@ -17,10 +17,10 @@ impl Template<OpenAICompletionsConfig> for OpenAICompletionsTemplate {
     fn render(&mut self, ui: &mut Ui) {
         ui.horizontal_wrapped(|ui| {
             TextEdit::singleline(&mut self.endpoint)
-                .hint_text("Endpoint URL")
+                .hint_text("https://api.openai.com/v1/completions")
                 .ui(ui);
             TextEdit::singleline(&mut self.model)
-                .hint_text("Model identifier (optional)")
+                .hint_text("Model (optional)")
                 .desired_width(ui.spacing().text_edit_width / 1.5)
                 .ui(ui);
             TextEdit::singleline(&mut self.api_key)
@@ -50,7 +50,7 @@ impl Template<OpenAICompletionsConfig> for OpenAICompletionsTemplate {
             } else {
                 vec![(
                     "Authorization".to_string(),
-                    ["Bearer", &self.api_key].concat(),
+                    ["Bearer ", &self.api_key].concat(),
                 )]
             },
         }
