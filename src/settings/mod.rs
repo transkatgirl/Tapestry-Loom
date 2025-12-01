@@ -76,7 +76,7 @@ impl UISettings {
     }
     fn render(&mut self, ui: &mut Ui) {
         ComboBox::from_label("Theme")
-            .selected_text(format!("{:?}", self.ui_theme))
+            .selected_text(format!("{}", self.ui_theme))
             .show_ui(ui, |ui| {
                 ui.selectable_value(&mut self.ui_theme, UITheme::Dark, UITheme::Dark.to_string());
                 ui.selectable_value(

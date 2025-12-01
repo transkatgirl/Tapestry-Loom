@@ -24,7 +24,7 @@ use tokio::runtime::Runtime;
 use crate::{
     editor::Editor,
     files::FileManager,
-    settings::{Settings, UISettings, inference::InferenceSettings, shortcuts::Shortcuts},
+    settings::{Settings, UISettings, inference::ClientConfig, shortcuts::Shortcuts},
 };
 
 mod editor;
@@ -60,7 +60,7 @@ struct TapestryLoomApp {
     show_confirmation: bool,
     allow_close: bool,
     last_ui_settings: UISettings,
-    last_inference_settings: InferenceSettings,
+    last_client_settings: ClientConfig,
 }
 
 impl TapestryLoomApp {
@@ -142,7 +142,7 @@ impl TapestryLoomApp {
 
         cc.egui_ctx.set_fonts(fonts);
 
-        let client = match settings.borrow().inference.build_client() {
+        let client = match settings.borrow().inference.client.build() {
             Ok(client) => Some(client),
             Err(error) => {
                 toasts.error("Failed to initialize HTTP client");
@@ -194,7 +194,7 @@ impl TapestryLoomApp {
         behavior.settings.borrow().interface.apply(&cc.egui_ctx);
 
         let last_ui_settings = behavior.settings.borrow().interface;
-        let last_inference_settings = behavior.settings.borrow().inference.clone();
+        let last_client_settings = behavior.settings.borrow().inference.client.clone();
 
         Self {
             behavior,
@@ -202,7 +202,7 @@ impl TapestryLoomApp {
             show_confirmation: false,
             allow_close: false,
             last_ui_settings,
-            last_inference_settings,
+            last_client_settings,
         }
     }
     fn allow_close(&self) -> bool {
@@ -341,8 +341,8 @@ impl App for TapestryLoomApp {
             settings.interface.apply(ctx);
             self.last_ui_settings = settings.interface;
         }
-        if settings.inference != self.last_inference_settings {
-            *self.behavior.client.borrow_mut() = match settings.inference.build_client() {
+        if settings.inference.client != self.last_client_settings {
+            *self.behavior.client.borrow_mut() = match settings.inference.client.build() {
                 Ok(client) => Some(client),
                 Err(error) => {
                     self.behavior
@@ -353,7 +353,7 @@ impl App for TapestryLoomApp {
                     None
                 }
             };
-            self.last_inference_settings = settings.inference.clone();
+            self.last_client_settings = settings.inference.client.clone();
         }
         if self.behavior.settings_last_visible {
             self.behavior.pressed_shortcuts = settings.shortcuts.get_pressed(ctx);
