@@ -1,8 +1,8 @@
 use std::{collections::HashSet, fmt::Display, iter, path::PathBuf, sync::Arc, time::Duration};
 
 use eframe::egui::{
-    ComboBox, Context, Frame, RichText, ScrollArea, Slider, SliderClamping, TextEdit, TextStyle,
-    Ui, Visuals, Widget, WidgetText,
+    Color32, ComboBox, Context, Frame, RichText, ScrollArea, Slider, SliderClamping, TextEdit,
+    TextStyle, Ui, Visuals, Widget, WidgetText,
 };
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
@@ -20,7 +20,7 @@ mod openai;
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct InferenceSettings {
     pub client: ClientConfig,
-    models: IndexMap<Ulid, EndpointConfig>,
+    models: IndexMap<Ulid, InferenceModel>,
 
     #[serde(skip)]
     template: EndpointTemplate,
@@ -69,16 +69,118 @@ impl InferenceSettings {
         ui.group(|ui| {
             self.template.render(ui);
             if ui.button("Add model").clicked()
-                && let Some(model) = self.template.build()
+                && let Some(endpoint) = self.template.build()
             {
-                self.models.insert(Ulid::new(), model);
+                self.models.insert(
+                    Ulid::new(),
+                    InferenceModel {
+                        label: String::new(),
+                        color: None,
+                        endpoint,
+                    },
+                );
             }
         });
-        for (_, model) in &mut self.models {
+        let mut move_up = None;
+        let mut move_down = None;
+        let mut copy = None;
+        let mut delete = None;
+
+        let length = self.models.len();
+        for (index, (id, model)) in &mut self.models.iter_mut().enumerate() {
             ui.group(|ui| {
-                model.render_settings(ui);
+                model.render(ui);
+
+                ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
+
+                ui.horizontal_wrapped(|ui| {
+                    if index != 0
+                        && ui
+                            .button("\u{E44E}")
+                            .on_hover_text("Move model up")
+                            .clicked()
+                    {
+                        move_up = Some(*id);
+                    }
+
+                    if index != length.saturating_sub(1)
+                        && ui
+                            .button("\u{E44D}")
+                            .on_hover_text("Move model down")
+                            .clicked()
+                    {
+                        move_down = Some(*id);
+                    }
+
+                    if ui.button("\u{E09E}").on_hover_text("Copy model").clicked() {
+                        copy = Some(*id);
+                    }
+
+                    if ui
+                        .button("\u{E18E}")
+                        .on_hover_text("Delete model")
+                        .clicked()
+                    {
+                        delete = Some(*id);
+                    }
+                });
             });
         }
+
+        if let Some(index) = move_up.and_then(|id| self.models.get_index_of(&id))
+            && index > 0
+        {
+            self.models.swap_indices(index, index - 1);
+        }
+
+        if let Some(index) = move_down.and_then(|id| self.models.get_index_of(&id))
+            && index < self.models.len() - 1
+        {
+            self.models.swap_indices(index, index + 1);
+        }
+
+        if let Some(copy) = copy.and_then(|id| self.models.get(&id)).cloned() {
+            self.models.insert(Ulid::new(), copy);
+        }
+
+        if let Some(delete) = delete {
+            self.models.shift_remove(&delete);
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct InferenceModel {
+    label: String,
+    color: Option<Color32>,
+    endpoint: EndpointConfig,
+}
+
+impl InferenceModel {
+    fn render(&mut self, ui: &mut Ui) {
+        ui.horizontal_wrapped(|ui| {
+            let textedit_label = ui.label("Label:");
+
+            TextEdit::singleline(&mut self.label)
+                .hint_text(self.endpoint.label())
+                .ui(ui)
+                .labelled_by(textedit_label.id);
+
+            if let Some(color) = &mut self.color {
+                ui.color_edit_button_srgba(color);
+            } else if ui
+                .button("\u{E1DD}")
+                .on_hover_text("Add label color")
+                .clicked()
+            {
+                self.color = Some(ui.style().visuals.hyperlink_color);
+            }
+        });
+
+        ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
+        ui.label(["Endpoint Type: ", self.endpoint.endpoint_type()].concat());
+
+        self.endpoint.render_settings(ui);
     }
 }
 
@@ -176,10 +278,23 @@ enum EndpointConfig {
     OpenAICompletions(OpenAICompletionsConfig),
 }
 
+impl EndpointConfig {
+    fn endpoint_type(&self) -> &'static str {
+        match self {
+            Self::OpenAICompletions(_) => "OpenAI-like Completions",
+        }
+    }
+}
+
 impl Endpoint for EndpointConfig {
     fn render_settings(&mut self, ui: &mut Ui) {
         match self {
             Self::OpenAICompletions(endpoint) => endpoint.render_settings(ui),
+        }
+    }
+    fn label(&self) -> &str {
+        match self {
+            Self::OpenAICompletions(endpoint) => endpoint.label(),
         }
     }
     fn perform_request(
@@ -205,6 +320,7 @@ struct EndpointResponse {
 
 trait Endpoint: Serialize + DeserializeOwned + Clone {
     fn render_settings(&mut self, ui: &mut Ui);
+    fn label(&self) -> &str;
     async fn perform_request(
         &self,
         client: &Client,

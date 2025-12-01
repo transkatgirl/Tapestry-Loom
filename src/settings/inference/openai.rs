@@ -67,6 +67,7 @@ pub(super) struct OpenAICompletionsConfig {
 impl Endpoint for OpenAICompletionsConfig {
     fn render_settings(&mut self, ui: &mut Ui) {
         TextEdit::singleline(&mut self.endpoint)
+            .hint_text("Endpoint URL")
             .desired_width(ui.spacing().text_edit_width * 2.0)
             .ui(ui);
 
@@ -79,6 +80,15 @@ impl Endpoint for OpenAICompletionsConfig {
             ui.label("Request headers:");
             render_config_map(ui, &mut self.headers);
         });
+    }
+    fn label(&self) -> &str {
+        for (key, value) in &self.parameters {
+            if key == "model" && !value.is_empty() {
+                return value;
+            }
+        }
+
+        &self.endpoint
     }
     async fn perform_request(
         &self,
