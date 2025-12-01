@@ -10,7 +10,7 @@ use chrono::{DateTime, offset};
 use eframe::egui::{Color32, Rgba, Ui};
 use egui_notify::Toasts;
 use flagset::FlagSet;
-use log::warn;
+use log::{debug, warn};
 use reqwest::Client;
 use tapestry_weave::{
     ulid::Ulid,
@@ -126,8 +126,7 @@ impl SharedState {
             match response {
                 Ok(node) => {
                     if !weave.add_node(node) {
-                        toasts.warning("Failed to add node to weave");
-                        warn!("Failed to add node to weave");
+                        debug!("Failed to add node to weave");
                     }
                 }
                 Err(error) => {
