@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 // TODO: Specify default shortcuts
 
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct KeyboardShortcuts {
     generate_at_cursor: Option<KeyboardShortcut>,
     toggle_node_bookmarked: Option<KeyboardShortcut>,

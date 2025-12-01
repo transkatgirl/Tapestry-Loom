@@ -14,7 +14,7 @@ use crate::settings::{
 pub mod inference;
 pub mod shortcuts;
 
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Settings {
     pub interface: UISettings,
     pub shortcuts: KeyboardShortcuts,
@@ -76,7 +76,7 @@ impl UISettings {
     }
     fn render(&mut self, ui: &mut Ui) {
         ComboBox::from_label("Theme")
-            .selected_text(format!("{}", self.ui_theme))
+            .selected_text(self.ui_theme.to_string())
             .show_ui(ui, |ui| {
                 ui.selectable_value(&mut self.ui_theme, UITheme::Dark, UITheme::Dark.to_string());
                 ui.selectable_value(

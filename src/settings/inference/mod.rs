@@ -4,7 +4,7 @@ use eframe::egui::{
     ComboBox, Context, Frame, RichText, ScrollArea, Slider, SliderClamping, TextEdit, TextStyle,
     Ui, Visuals, Widget, WidgetText,
 };
-use reqwest::{Client, ClientBuilder, Request, Response};
+use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tapestry_weave::{
     ulid::Ulid,
@@ -13,13 +13,17 @@ use tapestry_weave::{
 };
 use tokio::{runtime::Runtime, task::JoinHandle};
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+use crate::settings::inference::openai::{OpenAICompletionsConfig, OpenAICompletionsTemplate};
+
+mod openai;
+
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct InferenceSettings {
     pub client: ClientConfig,
     models: IndexMap<Ulid, EndpointConfig>,
 
     #[serde(skip)]
-    new_model: EndpointTemplate,
+    template: EndpointTemplate,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -62,51 +66,18 @@ impl ClientConfig {
 impl InferenceSettings {
     pub(super) fn render(&mut self, ui: &mut Ui) {
         self.client.render(ui);
-        /*ui.group(|ui| {
-            ui.horizontal_wrapped(|ui| {
-                TextEdit::singleline(&mut self.new_model_scratchpad.0)
-                    .hint_text("Endpoint URL")
-                    .ui(ui);
-                ComboBox::from_id_salt("inference_settings.new_model_scratchpad")
-                    .selected_text(format!("{}", self.new_model_scratchpad.1))
-                    .show_ui(ui, |ui| {
-                        ui.selectable_value(
-                            &mut self.new_model_scratchpad.1,
-                            EndpointType::OpenAICompletions,
-                            EndpointType::OpenAICompletions.to_string(),
-                        );
-                    });
-                TextEdit::singleline(&mut self.new_model_scratchpad.2)
-                    .hint_text("Model identifier (optional)")
-                    .desired_width(ui.spacing().text_edit_width / 1.5)
-                    .ui(ui);
-                TextEdit::singleline(&mut self.new_model_scratchpad.3)
-                    .hint_text("API key (optional)")
-                    .desired_width(ui.spacing().text_edit_width / 1.5)
-                    .ui(ui);
-                if ui.button("Add model").clicked() {
-                    // TODO
-                };
-            });
-        });*/
+        ui.group(|ui| {
+            self.template.render(ui);
+            if ui.button("Add model").clicked()
+                && let Some(model) = self.template.build()
+            {
+                self.models.insert(Ulid::new(), model);
+            }
+        });
         for (_, model) in &mut self.models {
             ui.group(|ui| {
                 model.render_settings(ui);
             });
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Default, Clone, Copy, PartialEq)]
-enum EndpointTemplate {
-    #[default]
-    OpenAICompletions,
-}
-
-impl Display for EndpointTemplate {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::OpenAICompletions => f.write_str("OpenAI Completions"),
         }
     }
 }
@@ -135,16 +106,65 @@ impl InferenceParameters {
     }
 }
 
+#[derive(Default, Debug, PartialEq)]
+enum EndpointTemplate {
+    #[default]
+    None,
+    OpenAICompletions(OpenAICompletionsTemplate),
+}
+
+impl EndpointTemplate {
+    fn render(&mut self, ui: &mut Ui) {
+        ui.horizontal_wrapped(|ui| {
+            let combobox_label = ui.label("Template:");
+            ComboBox::from_id_salt("endpoint_template_chooser")
+                .selected_text(format!("{}", self))
+                .show_ui(ui, |ui| {
+                    let templates = vec![
+                        Self::None,
+                        Self::OpenAICompletions(OpenAICompletionsTemplate::default()),
+                    ];
+
+                    for template in templates {
+                        let template_label = template.to_string();
+                        ui.selectable_value(self, template, template_label);
+                    }
+                })
+                .response
+                .labelled_by(combobox_label.id);
+        });
+
+        match self {
+            Self::None => {}
+            Self::OpenAICompletions(template) => template.render(ui),
+        }
+    }
+    fn build(&mut self) -> Option<EndpointConfig> {
+        match self {
+            Self::None => None,
+            Self::OpenAICompletions(template) => {
+                let endpoint = template.clone().build();
+                *self = EndpointTemplate::None;
+
+                Some(EndpointConfig::OpenAICompletions(endpoint))
+            }
+        }
+    }
+}
+
+impl Display for EndpointTemplate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::None => f.write_str("Choose Template..."),
+            Self::OpenAICompletions(_) => f.write_str("OpenAI Completions"),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 
 enum EndpointConfig {
     OpenAICompletions(OpenAICompletionsConfig),
-}
-
-impl Default for EndpointConfig {
-    fn default() -> Self {
-        unimplemented!()
-    }
 }
 
 impl Endpoint for EndpointConfig {
@@ -174,7 +194,7 @@ struct EndpointResponse {
     metadata: IndexMap<String, String>,
 }
 
-trait Endpoint: Serialize + DeserializeOwned + Clone + Default {
+trait Endpoint: Serialize + DeserializeOwned + Clone {
     fn render_settings(&mut self, ui: &mut Ui);
     async fn perform_request(
         &self,
@@ -183,38 +203,10 @@ trait Endpoint: Serialize + DeserializeOwned + Clone + Default {
     ) -> Result<EndpointResponse, anyhow::Error>;
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct OpenAICompletionsConfig {
-    endpoint: String,
-    headers: IndexMap<String, String>,
-    parameters: IndexMap<String, String>,
-}
-
-impl Default for OpenAICompletionsConfig {
-    fn default() -> Self {
-        Self {
-            endpoint: "https://api.openai.com/v1/completions".to_string(),
-            headers: IndexMap::from_iter(iter::once((
-                "Authorization".to_string(),
-                "Bearer YOUR_API_KEY".to_string(),
-            ))),
-            parameters: IndexMap::from_iter(iter::once((
-                "model".to_string(),
-                "code-davinci-002".to_string(),
-            ))),
-        }
-    }
-}
-
-impl Endpoint for OpenAICompletionsConfig {
-    fn render_settings(&mut self, ui: &mut Ui) {
-        todo!()
-    }
-    async fn perform_request(
-        &self,
-        client: &Client,
-        request: EndpointRequest,
-    ) -> Result<EndpointResponse, anyhow::Error> {
-        todo!()
-    }
+trait Template<T>: Default + Clone
+where
+    T: Endpoint,
+{
+    fn render(&mut self, ui: &mut Ui);
+    fn build(self) -> T;
 }
