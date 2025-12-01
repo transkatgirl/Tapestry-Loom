@@ -175,7 +175,7 @@ impl InferenceModel {
         if let Some(color) = self.color {
             WidgetText::RichText(Arc::new(RichText::new(self.label()).color(color)))
         } else {
-            WidgetText::Text(self.label.to_string())
+            WidgetText::Text(self.label().to_string())
         }
     }
     fn render(&mut self, ui: &mut Ui) {
@@ -217,8 +217,9 @@ pub struct InferenceParameters {
     pub recursion_depth: usize,
     pub timeout_min: f32,
     pub models: Vec<ModelInferenceParameters>,
-    //#[serde(skip)]
-    //new_model: Ulid,
+
+    #[serde(skip)]
+    new_model: Ulid,
 }
 
 impl Default for InferenceParameters {
@@ -227,6 +228,7 @@ impl Default for InferenceParameters {
             recursion_depth: 0,
             timeout_min: 15.0,
             models: Vec::new(),
+            new_model: Ulid(0),
         }
     }
 }
@@ -246,7 +248,7 @@ impl ModelInferenceParameters {
             WidgetText::Text("Invalid model".to_string())
         };
 
-        ComboBox::from_label("Model")
+        ComboBox::new(ui.next_auto_id(), "Model")
             .selected_text(selected)
             .show_ui(ui, |ui| {
                 for (id, model) in models {
@@ -293,10 +295,6 @@ impl InferenceParameters {
                 .suffix(" minutes"),
         );
 
-        ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
-
-        ui.label("Models:");
-
         let mut move_up = None;
         let mut move_down = None;
         let mut copy = None;
@@ -314,11 +312,6 @@ impl InferenceParameters {
             .enumerate()
         {
             ui.group(|ui| {
-                if let Some(color) = inference_model.color {
-                    ui.colored_label(color, inference_model.label());
-                } else {
-                    ui.label(inference_model.label());
-                }
                 parameter_model.render(ui, models);
 
                 ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
@@ -381,7 +374,32 @@ impl InferenceParameters {
             self.models.remove(delete);
         }
 
-        ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
+        let selected = if let Some(model) = models.get(&self.new_model) {
+            model.widget_text()
+        } else if self.new_model == Ulid(0) {
+            WidgetText::Text("Choose model...".to_string())
+        } else {
+            WidgetText::Text("Invalid model".to_string())
+        };
+
+        ComboBox::from_id_salt(ui.next_auto_id())
+            .selected_text(selected)
+            .show_ui(ui, |ui| {
+                ui.selectable_value(&mut self.new_model, Ulid(0), "Choose model...");
+
+                for (id, model) in models {
+                    ui.selectable_value(&mut self.new_model, *id, model.widget_text());
+                }
+            });
+
+        if self.new_model != Ulid(0) {
+            self.models.push(ModelInferenceParameters {
+                model: self.new_model,
+                requests: 5,
+                parameters: vec![("temperature".to_string(), "1".to_string())],
+            });
+            self.new_model = Ulid(0);
+        }
     }
     pub fn perform_request(
         &mut self,
@@ -445,7 +463,7 @@ impl EndpointTemplate {
 impl Display for EndpointTemplate {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::None => f.write_str("Choose Template..."),
+            Self::None => f.write_str("Choose template..."),
             Self::OpenAICompletions(_) => f.write_str("OpenAI-like Completions"),
         }
     }
