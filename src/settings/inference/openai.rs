@@ -17,7 +17,7 @@ impl Template<OpenAICompletionsConfig> for OpenAICompletionsTemplate {
     fn render(&mut self, ui: &mut Ui) {
         ui.horizontal_wrapped(|ui| {
             TextEdit::singleline(&mut self.endpoint)
-                .hint_text("https://api.openai.com/v1/completions")
+                .hint_text("https://openrouter.ai/api/v1/completions")
                 .ui(ui)
                 .on_hover_text("Endpoint URL");
             TextEdit::singleline(&mut self.model)
@@ -35,7 +35,7 @@ impl Template<OpenAICompletionsConfig> for OpenAICompletionsTemplate {
     fn build(mut self) -> Option<OpenAICompletionsConfig> {
         Some(OpenAICompletionsConfig {
             endpoint: if self.endpoint.is_empty() {
-                "https://api.openai.com/v1/completions".to_string()
+                "https://openrouter.ai/api/v1/completions".to_string()
             } else {
                 if !self.endpoint.ends_with("/v1/completions") {
                     self.endpoint.push_str("/v1/completions");
