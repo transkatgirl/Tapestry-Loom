@@ -279,7 +279,7 @@ impl ModelInferenceParameters {
         });
 
         ui.label("Request parameters:");
-        render_config_map_small(ui, &mut self.parameters, 0.5);
+        render_config_map_small(ui, &mut self.parameters, 0.55, 0.45);
     }
 }
 
@@ -392,7 +392,8 @@ impl InferenceParameters {
         settings: &InferenceSettings,
         runtime: Arc<Runtime>,
         parent_node: Option<Ulid>,
-    ) -> HashSet<Ulid, JoinHandle<Result<DependentNode<NodeContent>, anyhow::Error>>> {
+        output: &mut HashSet<Ulid, JoinHandle<Result<DependentNode<NodeContent>, anyhow::Error>>>,
+    ) {
         todo!()
     }
 }
@@ -519,20 +520,26 @@ where
     fn build(self) -> Option<T>;
 }
 
-fn render_config_map(ui: &mut Ui, value: &mut Vec<(String, String)>, width: f32) {
+fn render_config_map(
+    ui: &mut Ui,
+    value: &mut Vec<(String, String)>,
+    key_width: f32,
+    value_width: f32,
+) {
     let mut remove = None;
 
-    let width = ui.spacing().text_edit_width * width;
+    let key_width = ui.spacing().text_edit_width * key_width;
+    let value_width = ui.spacing().text_edit_width * value_width;
 
     for (index, (key, value)) in value.iter_mut().enumerate() {
         ui.horizontal_wrapped(|ui| {
             TextEdit::singleline(key)
                 .hint_text("key")
-                .desired_width(width)
+                .desired_width(key_width)
                 .ui(ui);
             TextEdit::singleline(value)
                 .hint_text("value")
-                .desired_width(width)
+                .desired_width(value_width)
                 .ui(ui);
             if ui.button("\u{E28F}").on_hover_text("Remove item").clicked() {
                 remove = Some(index);
@@ -549,21 +556,27 @@ fn render_config_map(ui: &mut Ui, value: &mut Vec<(String, String)>, width: f32)
     }
 }
 
-fn render_config_map_small(ui: &mut Ui, value: &mut Vec<(String, String)>, width: f32) {
+fn render_config_map_small(
+    ui: &mut Ui,
+    value: &mut Vec<(String, String)>,
+    key_width: f32,
+    value_width: f32,
+) {
     let mut remove = None;
 
-    let width = ui.spacing().text_edit_width * width;
+    let key_width = ui.spacing().text_edit_width * key_width;
+    let value_width = ui.spacing().text_edit_width * value_width;
 
     for (index, (key, value)) in value.iter_mut().enumerate() {
         ui.horizontal_wrapped(|ui| {
             TextEdit::singleline(key)
                 .hint_text("key")
-                .desired_width(width)
+                .desired_width(key_width)
                 .clip_text(false)
                 .ui(ui);
             TextEdit::singleline(value)
                 .hint_text("value")
-                .desired_width(width)
+                .desired_width(value_width)
                 .clip_text(false)
                 .ui(ui);
             if ui.button("\u{E28F}").on_hover_text("Remove item").clicked() {
