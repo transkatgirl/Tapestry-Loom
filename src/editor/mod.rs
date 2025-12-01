@@ -322,15 +322,17 @@ impl Editor {
                             } else {
                                 ui.label(path.to_string_lossy())
                             };
-                            label.context_menu(|ui| {
-                                if ui.button("Copy path").clicked() {
-                                    ui.output_mut(|o| {
-                                        o.commands.push(OutputCommand::CopyText(
-                                            path.to_string_lossy().to_string(),
-                                        ))
-                                    });
-                                };
-                            });
+                            label
+                                .on_hover_text(path.to_string_lossy())
+                                .context_menu(|ui| {
+                                    if ui.button("Copy path").clicked() {
+                                        ui.output_mut(|o| {
+                                            o.commands.push(OutputCommand::CopyText(
+                                                path.to_string_lossy().to_string(),
+                                            ))
+                                        });
+                                    };
+                                });
                         } else if ui.button("Save As...").clicked() {
                             self.show_modal = true;
                         }
