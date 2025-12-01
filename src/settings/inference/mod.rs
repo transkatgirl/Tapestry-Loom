@@ -60,7 +60,8 @@ impl InferenceSettings {
         self.client.render(ui);
         ui.group(|ui| {
             self.template.render(ui);
-            if ui.button("Add model").clicked()
+            if self.template != EndpointTemplate::None
+                && ui.button("Add model").clicked()
                 && let Some(endpoint) = self.template.build()
             {
                 self.models.insert(
