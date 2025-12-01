@@ -30,6 +30,7 @@ pub struct InferenceSettings {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ClientConfig {
     accept_invalid_tls: bool,
+    timeout_minutes: f32,
 }
 
 #[allow(clippy::derivable_impls)]
@@ -37,6 +38,7 @@ impl Default for ClientConfig {
     fn default() -> Self {
         Self {
             accept_invalid_tls: false,
+            timeout_minutes: 15.0,
         }
     }
 }
@@ -49,12 +51,20 @@ impl ClientConfig {
             RichText::new("Accept invalid TLS")
         };
         ui.checkbox(&mut self.accept_invalid_tls, accept_invalid_tls_label);
+        ui.add(
+            Slider::new(&mut self.timeout_minutes, 1.0..=1440.0)
+                .logarithmic(true)
+                .clamping(SliderClamping::Never)
+                .text("Request timeout")
+                .suffix(" minutes"),
+        );
     }
     pub fn build(&self) -> Result<Client, reqwest::Error> {
         ClientBuilder::new()
             .connect_timeout(Duration::from_secs(15))
             .danger_accept_invalid_certs(self.accept_invalid_tls)
             .danger_accept_invalid_hostnames(self.accept_invalid_tls)
+            .timeout(Duration::from_secs_f32(self.timeout_minutes * 60.0))
             .build()
     }
 }
@@ -215,7 +225,6 @@ impl InferenceModel {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct InferenceParameters {
     pub recursion_depth: usize,
-    pub timeout_min: f32,
     pub models: Vec<ModelInferenceParameters>,
 
     #[serde(skip)]
@@ -226,7 +235,6 @@ impl Default for InferenceParameters {
     fn default() -> Self {
         Self {
             recursion_depth: 0,
-            timeout_min: 15.0,
             models: Vec::new(),
             new_model: Ulid(0),
         }
@@ -275,15 +283,6 @@ impl ModelInferenceParameters {
     }
 }
 
-/*impl Default for ModelInferenceParameters {
-    fn default() -> Self {
-        Self {
-            requests: 10,
-            parameters: vec![("temperature".to_string(), "1".to_string())],
-        }
-    }
-}*/
-
 impl InferenceParameters {
     pub fn reset(&mut self, settings: &InferenceSettings) {
         *self = settings.default_parameters.clone();
@@ -297,13 +296,6 @@ impl InferenceParameters {
                 .clamping(SliderClamping::Never)
                 .text("Recursion")
                 .suffix(" layers"),
-        );
-        ui.add(
-            Slider::new(&mut self.timeout_min, 1.0..=1440.0)
-                .logarithmic(true)
-                .clamping(SliderClamping::Never)
-                .text("Request timeout")
-                .suffix(" minutes"),
         );
 
         let mut move_up = None;
