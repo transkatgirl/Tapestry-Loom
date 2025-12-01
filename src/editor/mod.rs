@@ -30,6 +30,7 @@ use egui_tiles::{Behavior, SimplificationOptions, TileId, Tiles, Tree, UiRespons
 use flagset::FlagSet;
 use log::{debug, error};
 use parking_lot::Mutex;
+use reqwest::Client;
 use tapestry_weave::{
     VERSIONED_WEAVE_FILE_EXTENSION, VersionedWeave,
     ulid::Ulid,
@@ -75,12 +76,14 @@ pub struct Editor {
 }
 
 impl Editor {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         settings: Rc<RefCell<Settings>>,
         toasts: Rc<RefCell<Toasts>>,
         threadpool: Rc<ThreadPool>,
         open_documents: Rc<RefCell<HashSet<PathBuf>>>,
         runtime: Arc<Runtime>,
+        client: Rc<RefCell<Option<Client>>>,
         path: Option<PathBuf>,
         new_path_callback: Box<dyn FnMut(&PathBuf)>,
     ) -> Self {
@@ -134,7 +137,7 @@ impl Editor {
                 settings,
                 toasts,
                 weave,
-                shared_state: SharedState::new(identifier, runtime),
+                shared_state: SharedState::new(identifier, runtime, client),
                 canvas_view: CanvasView::default(),
                 graph_view: GraphView::default(),
                 tree_list_view: TreeListView::default(),

@@ -1,4 +1,6 @@
 use std::{
+    cell::RefCell,
+    rc::Rc,
     sync::Arc,
     time::{Duration, SystemTime},
 };
@@ -7,6 +9,7 @@ use chrono::{DateTime, offset};
 use eframe::egui::{Color32, Rgba, Ui};
 use egui_notify::Toasts;
 use flagset::FlagSet;
+use reqwest::Client;
 use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{
@@ -24,6 +27,7 @@ use crate::settings::{Settings, shortcuts::Shortcuts};
 pub struct SharedState {
     pub identifier: Ulid,
     pub runtime: Arc<Runtime>,
+    pub client: Rc<RefCell<Option<Client>>>,
     cursor_node: NodeIndex,
     last_cursor_node: NodeIndex,
     hovered_node: NodeIndex,
@@ -56,10 +60,15 @@ impl NodeIndex {
 }
 
 impl SharedState {
-    pub fn new(identifier: Ulid, runtime: Arc<Runtime>) -> Self {
+    pub fn new(
+        identifier: Ulid,
+        runtime: Arc<Runtime>,
+        client: Rc<RefCell<Option<Client>>>,
+    ) -> Self {
         Self {
             identifier,
             runtime,
+            client,
             cursor_node: NodeIndex::None,
             last_cursor_node: NodeIndex::None,
             hovered_node: NodeIndex::None,

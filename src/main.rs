@@ -17,13 +17,14 @@ use egui_tiles::{
 use flagset::FlagSet;
 use log::{debug, error};
 use mimalloc::MiMalloc;
+use reqwest::Client;
 use threadpool::ThreadPool;
 use tokio::runtime::Runtime;
 
 use crate::{
     editor::Editor,
     files::FileManager,
-    settings::{Settings, UISettings, shortcuts::Shortcuts},
+    settings::{Settings, UISettings, inference::InferenceSettings, shortcuts::Shortcuts},
 };
 
 mod editor;
@@ -59,6 +60,7 @@ struct TapestryLoomApp {
     show_confirmation: bool,
     allow_close: bool,
     last_ui_settings: UISettings,
+    last_inference_settings: InferenceSettings,
 }
 
 impl TapestryLoomApp {
@@ -140,9 +142,19 @@ impl TapestryLoomApp {
 
         cc.egui_ctx.set_fonts(fonts);
 
+        let client = match settings.borrow().inference.build_client() {
+            Ok(client) => Some(client),
+            Err(error) => {
+                toasts.error("Failed to initialize HTTP client");
+                error!("Reqwest client initialization failed: {error:#?}");
+                None
+            }
+        };
+
         let toasts = Rc::new(RefCell::new(toasts));
         let threadpool = Rc::new(ThreadPool::new(16));
         let open_documents = Rc::new(RefCell::new(HashSet::with_capacity(64)));
+
         let behavior = TapestryLoomBehavior {
             file_manager: Rc::new(RefCell::new(FileManager::new(
                 settings.clone(),
@@ -154,6 +166,7 @@ impl TapestryLoomApp {
             focus_queue: Vec::with_capacity(16),
             close_queue: Vec::with_capacity(16),
             settings,
+            client: Rc::new(RefCell::new(client)),
             toasts,
             runtime: Arc::new(
                 tokio::runtime::Builder::new_multi_thread()
@@ -181,6 +194,7 @@ impl TapestryLoomApp {
         behavior.settings.borrow().interface.apply(&cc.egui_ctx);
 
         let last_ui_settings = behavior.settings.borrow().interface;
+        let last_inference_settings = behavior.settings.borrow().inference.clone();
 
         Self {
             behavior,
@@ -188,6 +202,7 @@ impl TapestryLoomApp {
             show_confirmation: false,
             allow_close: false,
             last_ui_settings,
+            last_inference_settings,
         }
     }
     fn allow_close(&self) -> bool {
@@ -244,6 +259,7 @@ impl App for TapestryLoomApp {
                                     self.behavior.threadpool.clone(),
                                     self.behavior.open_documents.clone(),
                                     self.behavior.runtime.clone(),
+                                    self.behavior.client.clone(),
                                     path,
                                     Box::new(move |_| {
                                         file_manager.borrow_mut().update();
@@ -325,6 +341,20 @@ impl App for TapestryLoomApp {
             settings.interface.apply(ctx);
             self.last_ui_settings = settings.interface;
         }
+        if settings.inference != self.last_inference_settings {
+            *self.behavior.client.borrow_mut() = match settings.inference.build_client() {
+                Ok(client) => Some(client),
+                Err(error) => {
+                    self.behavior
+                        .toasts
+                        .borrow_mut()
+                        .error("Failed to initialize HTTP client");
+                    error!("Reqwest client initialization failed: {error:#?}");
+                    None
+                }
+            };
+            self.last_inference_settings = settings.inference.clone();
+        }
         if self.behavior.settings_last_visible {
             self.behavior.pressed_shortcuts = settings.shortcuts.get_pressed(ctx);
         }
@@ -363,6 +393,7 @@ impl App for TapestryLoomApp {
 
 struct TapestryLoomBehavior {
     settings: Rc<RefCell<Settings>>,
+    client: Rc<RefCell<Option<Client>>>,
     new_editor_queue: Vec<(Option<PathBuf>, Option<TileId>)>,
     focus_queue: Vec<TileId>,
     close_queue: Vec<TileId>,
