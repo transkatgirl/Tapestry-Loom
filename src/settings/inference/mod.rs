@@ -276,7 +276,9 @@ impl ModelInferenceParameters {
 }*/
 
 impl InferenceParameters {
-    pub fn reset(&mut self, settings: &InferenceSettings) {}
+    pub fn reset(&mut self, settings: &InferenceSettings) {
+        *self = settings.default_parameters.clone();
+    }
     pub fn render(&mut self, settings: &InferenceSettings, ui: &mut Ui) {
         self.render_internal(&settings.models, ui);
     }
@@ -301,18 +303,9 @@ impl InferenceParameters {
         let mut delete = None;
 
         let length = self.models.len();
-        for (index, (parameter_model, inference_model)) in &mut self
-            .models
-            .iter_mut()
-            .filter_map(|params| {
-                models
-                    .get(&params.model)
-                    .map(|inference_model| (params, inference_model))
-            })
-            .enumerate()
-        {
+        for (index, model) in &mut self.models.iter_mut().enumerate() {
             ui.group(|ui| {
-                parameter_model.render(ui, models);
+                model.render(ui, models);
 
                 ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
 
