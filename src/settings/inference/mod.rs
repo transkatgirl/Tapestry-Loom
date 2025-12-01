@@ -2,7 +2,7 @@ use std::{collections::HashSet, fmt::Display, sync::Arc, time::Duration};
 
 use eframe::egui::{
     Align, Color32, ComboBox, Layout, RichText, Slider, SliderClamping, TextEdit, TextStyle, Ui,
-    Widget,
+    Widget, WidgetText,
 };
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
@@ -171,6 +171,13 @@ impl InferenceModel {
             &self.label
         }
     }
+    fn widget_text(&self) -> WidgetText {
+        if let Some(color) = self.color {
+            WidgetText::RichText(Arc::new(RichText::new(self.label()).color(color)))
+        } else {
+            WidgetText::Text(self.label.to_string())
+        }
+    }
     fn render(&mut self, ui: &mut Ui) {
         ui.horizontal_wrapped(|ui| {
             let textedit_label = ui.label("Label:");
@@ -209,7 +216,9 @@ impl InferenceModel {
 pub struct InferenceParameters {
     pub recursion_depth: usize,
     pub timeout_min: f32,
-    pub models: IndexMap<Ulid, ModelInferenceParameters>,
+    pub models: Vec<ModelInferenceParameters>,
+    //#[serde(skip)]
+    //new_model: Ulid,
 }
 
 impl Default for InferenceParameters {
@@ -217,19 +226,33 @@ impl Default for InferenceParameters {
         Self {
             recursion_depth: 0,
             timeout_min: 15.0,
-            models: IndexMap::new(),
+            models: Vec::new(),
         }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModelInferenceParameters {
+    pub model: Ulid,
     pub requests: usize,
     pub parameters: Vec<(String, String)>,
 }
 
 impl ModelInferenceParameters {
-    fn render(&mut self, ui: &mut Ui) {
+    fn render(&mut self, ui: &mut Ui, models: &IndexMap<Ulid, InferenceModel>) {
+        let selected = if let Some(model) = models.get(&self.model) {
+            model.widget_text()
+        } else {
+            WidgetText::Text("Invalid model".to_string())
+        };
+
+        ComboBox::from_label("Model")
+            .selected_text(selected)
+            .show_ui(ui, |ui| {
+                for (id, model) in models {
+                    ui.selectable_value(&mut self.model, *id, model.widget_text());
+                }
+            });
         ui.add(
             Slider::new(&mut self.requests, 1..=100)
                 .logarithmic(true)
@@ -241,14 +264,14 @@ impl ModelInferenceParameters {
     }
 }
 
-impl Default for ModelInferenceParameters {
+/*impl Default for ModelInferenceParameters {
     fn default() -> Self {
         Self {
             requests: 10,
             parameters: vec![("temperature".to_string(), "1".to_string())],
         }
     }
-}
+}*/
 
 impl InferenceParameters {
     pub fn reset(&mut self, settings: &InferenceSettings) {}
@@ -280,13 +303,13 @@ impl InferenceParameters {
         let mut delete = None;
 
         let length = self.models.len();
-        for (index, (id, parameter_model, inference_model)) in &mut self
+        for (index, (parameter_model, inference_model)) in &mut self
             .models
             .iter_mut()
-            .filter_map(|(id, model)| {
+            .filter_map(|params| {
                 models
-                    .get(id)
-                    .map(|inference_model| (id, model, inference_model))
+                    .get(&params.model)
+                    .map(|inference_model| (params, inference_model))
             })
             .enumerate()
         {
@@ -296,7 +319,7 @@ impl InferenceParameters {
                 } else {
                     ui.label(inference_model.label());
                 }
-                parameter_model.render(ui);
+                parameter_model.render(ui, models);
 
                 ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
 
@@ -309,11 +332,11 @@ impl InferenceParameters {
                             .on_hover_text("Delete model")
                             .clicked()
                         {
-                            delete = Some(*id);
+                            delete = Some(index);
                         }
 
                         if ui.button("\u{E09E}").on_hover_text("Copy model").clicked() {
-                            copy = Some(*id);
+                            copy = Some(index);
                         }
 
                         if index != length.saturating_sub(1)
@@ -322,7 +345,7 @@ impl InferenceParameters {
                                 .on_hover_text("Move model down")
                                 .clicked()
                         {
-                            move_down = Some(*id);
+                            move_down = Some(index);
                         }
 
                         if index != 0
@@ -331,31 +354,31 @@ impl InferenceParameters {
                                 .on_hover_text("Move model up")
                                 .clicked()
                         {
-                            move_up = Some(*id);
+                            move_up = Some(index);
                         }
                     });
                 });
             });
         }
 
-        if let Some(index) = move_up.and_then(|id| self.models.get_index_of(&id))
+        if let Some(index) = move_up
             && index > 0
         {
-            self.models.swap_indices(index, index - 1);
+            self.models.swap(index, index - 1);
         }
 
-        if let Some(index) = move_down.and_then(|id| self.models.get_index_of(&id))
+        if let Some(index) = move_down
             && index < self.models.len() - 1
         {
-            self.models.swap_indices(index, index + 1);
+            self.models.swap(index, index + 1);
         }
 
-        if let Some(copy) = copy.and_then(|id| self.models.get(&id)).cloned() {
-            self.models.insert(Ulid::new(), copy);
+        if let Some(copy) = copy.and_then(|index| self.models.get(index)).cloned() {
+            self.models.push(copy);
         }
 
         if let Some(delete) = delete {
-            self.models.shift_remove(&delete);
+            self.models.remove(delete);
         }
 
         ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
