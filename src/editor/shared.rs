@@ -1,5 +1,6 @@
 use std::{
     cell::RefCell,
+    collections::HashMap,
     rc::Rc,
     sync::Arc,
     time::{Duration, SystemTime},
@@ -9,6 +10,7 @@ use chrono::{DateTime, offset};
 use eframe::egui::{Color32, Rgba, Ui};
 use egui_notify::Toasts;
 use flagset::FlagSet;
+use log::warn;
 use reqwest::Client;
 use tapestry_weave::{
     ulid::Ulid,
@@ -21,9 +23,12 @@ use tapestry_weave::{
 };
 use tokio::runtime::Runtime;
 
-use crate::settings::{Settings, inference::InferenceParameters, shortcuts::Shortcuts};
+use crate::settings::{
+    Settings,
+    inference::{InferenceHandle, InferenceParameters},
+    shortcuts::Shortcuts,
+};
 
-#[derive(Debug)]
 pub struct SharedState {
     pub identifier: Ulid,
     pub runtime: Arc<Runtime>,
@@ -33,7 +38,8 @@ pub struct SharedState {
     last_cursor_node: NodeIndex,
     hovered_node: NodeIndex,
     last_hovered_node: NodeIndex,
-    triggered_unimplemented: bool,
+    requests: HashMap<Ulid, InferenceHandle>,
+    responses: Vec<Result<DependentNode<NodeContent>, anyhow::Error>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -76,9 +82,18 @@ impl SharedState {
             last_cursor_node: NodeIndex::None,
             hovered_node: NodeIndex::None,
             last_hovered_node: NodeIndex::None,
-            triggered_unimplemented: false,
+            requests: HashMap::with_capacity(128),
+            responses: Vec::with_capacity(128),
         }
     }
+    /*pub fn reset(&mut self) {
+        self.cursor_node = NodeIndex::None;
+        self.last_cursor_node = NodeIndex::None;
+        self.hovered_node = NodeIndex::None;
+        self.last_hovered_node = NodeIndex::None;
+        self.requests.clear();
+        self.responses.clear();
+    }*/
     pub fn update(
         &mut self,
         weave: &mut TapestryWeave,
@@ -99,9 +114,27 @@ impl SharedState {
             self.cursor_node = NodeIndex::Node(active);
         }
         self.last_cursor_node = self.cursor_node;
-        if self.triggered_unimplemented {
-            toasts.info("Unimplemented");
-            self.triggered_unimplemented = false;
+
+        InferenceParameters::get_responses(
+            &self.runtime,
+            self.client.borrow().as_ref(),
+            &mut self.requests,
+            &mut self.responses,
+        );
+
+        for response in self.responses.drain(..) {
+            match response {
+                Ok(node) => {
+                    if !weave.add_node(node) {
+                        toasts.warning("Failed to add node to weave");
+                        warn!("Failed to add node to weave");
+                    }
+                }
+                Err(error) => {
+                    toasts.error(format!("Inference failed: {error:?}"));
+                    warn!("Inference failed: {error:#?}");
+                }
+            }
         }
 
         if shortcuts.contains(Shortcuts::GenerateAtCursor) {
@@ -343,12 +376,6 @@ impl SharedState {
             weave.set_node_active_status(&next_sibling, true);
         }
     }
-    pub fn reset(&mut self) {
-        self.cursor_node = NodeIndex::None;
-        self.last_cursor_node = NodeIndex::None;
-        self.hovered_node = NodeIndex::None;
-        self.last_hovered_node = NodeIndex::None;
-    }
     pub fn get_cursor_node(&self) -> NodeIndex {
         self.last_cursor_node
     }
@@ -367,10 +394,39 @@ impl SharedState {
         parent: Option<Ulid>,
         settings: &Settings,
     ) {
-        self.triggered_unimplemented = true;
+        let content: Vec<u8> = if let Some(parent) = parent {
+            let thread: Vec<u128> = weave
+                .weave
+                .get_thread_from(&parent.0)
+                .iter()
+                .copied()
+                .collect();
+
+            thread
+                .into_iter()
+                .filter_map(|id| weave.weave.get_node(&id))
+                .flat_map(|node| node.contents.content.as_bytes().into_owned().into_iter())
+                .collect()
+        } else {
+            vec![]
+        };
+
+        if let Some(client) = self.client.borrow().as_ref() {
+            self.inference.create_request(
+                &settings.inference,
+                &self.runtime,
+                client,
+                parent,
+                content,
+                &mut self.requests,
+            );
+        } else {
+            self.responses
+                .push(Err(anyhow::Error::msg("Client is not initialized")));
+        }
     }
     pub fn get_request_count(&self) -> usize {
-        0 // TODO
+        self.requests.len()
     }
 }
 

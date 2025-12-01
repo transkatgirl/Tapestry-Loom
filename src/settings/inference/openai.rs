@@ -114,6 +114,6 @@ impl Endpoint for OpenAICompletionsConfig {
         client: &Client,
         request: EndpointRequest,
     ) -> Result<EndpointResponse, anyhow::Error> {
-        todo!()
+        Err(anyhow::Error::msg("Unimplemented"))
     }
 }

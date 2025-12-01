@@ -1,12 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::Display,
-    future::Future,
-    rc::Rc,
-    sync::Arc,
-    task::Poll,
-    time::Duration,
-};
+use std::{collections::HashMap, fmt::Display, future::Future, rc::Rc, sync::Arc, time::Duration};
 
 use bytes::{Bytes, BytesMut};
 use eframe::egui::{
@@ -24,7 +16,7 @@ use tapestry_weave::{
     },
     v0::{InnerNodeContent, Model, NodeContent},
 };
-use tokio::{runtime::Runtime, task::JoinHandle};
+use tokio::runtime::Runtime;
 
 use crate::settings::inference::openai::{OpenAICompletionsConfig, OpenAICompletionsTemplate};
 
@@ -415,7 +407,7 @@ impl InferenceParameters {
         settings: &InferenceSettings,
         runtime: &Runtime,
         client: &Client,
-        parent_node: Option<Ulid>,
+        parent: Option<Ulid>,
         content: Vec<u8>,
         output: &mut HashMap<Ulid, InferenceHandle>,
     ) {
@@ -423,7 +415,7 @@ impl InferenceParameters {
             Rc::new(settings.models.clone()),
             runtime,
             client,
-            parent_node,
+            parent,
             Bytes::from(content),
             output,
         );
@@ -479,7 +471,7 @@ impl InferenceParameters {
     }
     pub fn get_responses(
         runtime: &Runtime,
-        client: &Client,
+        client: Option<&Client>,
         input: &mut HashMap<Ulid, InferenceHandle>,
         output: &mut Vec<Result<DependentNode<NodeContent>, anyhow::Error>>,
     ) {
@@ -499,6 +491,7 @@ impl InferenceParameters {
 
                 if value.parameters.recursion_depth > 0
                     && let Ok(content) = &result
+                    && let Some(client) = client
                 {
                     let mut parameters = value.parameters.as_ref().clone();
                     parameters.recursion_depth -= 1;
