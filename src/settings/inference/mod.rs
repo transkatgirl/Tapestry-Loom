@@ -1,6 +1,9 @@
 use std::{collections::HashSet, fmt::Display, sync::Arc, time::Duration};
 
-use eframe::egui::{Align, Color32, ComboBox, Layout, RichText, TextEdit, TextStyle, Ui, Widget};
+use eframe::egui::{
+    Align, Color32, ComboBox, Layout, RichText, Slider, SliderClamping, TextEdit, TextStyle, Ui,
+    Widget,
+};
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tapestry_weave::{
@@ -18,6 +21,7 @@ mod openai;
 pub struct InferenceSettings {
     pub client: ClientConfig,
     models: IndexMap<Ulid, InferenceModel>,
+    default_parameters: InferenceParameters,
 
     #[serde(skip)]
     template: EndpointTemplate,
@@ -74,6 +78,7 @@ impl InferenceSettings {
                 );
             }
         });
+
         let mut move_up = None;
         let mut move_down = None;
         let mut copy = None;
@@ -143,6 +148,11 @@ impl InferenceSettings {
         if let Some(delete) = delete {
             self.models.shift_remove(&delete);
         }
+
+        ui.group(|ui| {
+            ui.label("Default inference parameters");
+            self.default_parameters.render_internal(&self.models, ui);
+        });
     }
 }
 
@@ -154,6 +164,13 @@ struct InferenceModel {
 }
 
 impl InferenceModel {
+    fn label(&self) -> &str {
+        if self.label.is_empty() {
+            self.endpoint.label()
+        } else {
+            &self.label
+        }
+    }
     fn render(&mut self, ui: &mut Ui) {
         ui.horizontal_wrapped(|ui| {
             let textedit_label = ui.label("Label:");
@@ -182,21 +199,46 @@ impl InferenceModel {
         });
 
         ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
-        ui.label(["Endpoint Type: ", self.endpoint.endpoint_type()].concat());
+        ui.label(["Endpoint Mode: ", &self.endpoint.to_string()].concat());
 
         self.endpoint.render_settings(ui);
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct InferenceParameters {
     pub models: IndexMap<Ulid, ModelInferenceParameters>,
-    pub read_timeout_secs: f32,
+    pub timeout_min: f32,
     pub recursion_depth: usize,
 }
 
+impl Default for InferenceParameters {
+    fn default() -> Self {
+        Self {
+            models: IndexMap::new(),
+            timeout_min: 15.0,
+            recursion_depth: 1,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModelInferenceParameters {
     pub requests: usize,
     pub parameters: Vec<(String, String)>,
+}
+
+impl ModelInferenceParameters {
+    fn render(&mut self, ui: &mut Ui) {
+        ui.add(
+            Slider::new(&mut self.requests, 1..=100)
+                .logarithmic(true)
+                .clamping(SliderClamping::Never)
+                .text("Requests"),
+        );
+        ui.label("Request parameters:");
+        render_config_map(ui, &mut self.parameters);
+    }
 }
 
 impl Default for ModelInferenceParameters {
@@ -210,7 +252,113 @@ impl Default for ModelInferenceParameters {
 
 impl InferenceParameters {
     pub fn reset(&mut self, settings: &InferenceSettings) {}
-    pub fn render(&mut self, settings: &InferenceSettings) {}
+    pub fn render(&mut self, settings: &InferenceSettings, ui: &mut Ui) {
+        self.render_internal(&settings.models, ui);
+    }
+    fn render_internal(&mut self, models: &IndexMap<Ulid, InferenceModel>, ui: &mut Ui) {
+        ui.add(
+            Slider::new(&mut self.timeout_min, 1.0..=1440.0)
+                .logarithmic(true)
+                .clamping(SliderClamping::Never)
+                .text("Request timeout")
+                .suffix(" minutes"),
+        );
+        ui.add(
+            Slider::new(&mut self.recursion_depth, 1..=5)
+                .clamping(SliderClamping::Never)
+                .text("Recursion depth"),
+        );
+
+        ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
+
+        ui.label("Models:");
+
+        let mut move_up = None;
+        let mut move_down = None;
+        let mut copy = None;
+        let mut delete = None;
+
+        let length = self.models.len();
+        for (index, (id, parameter_model, inference_model)) in &mut self
+            .models
+            .iter_mut()
+            .filter_map(|(id, model)| {
+                models
+                    .get(id)
+                    .map(|inference_model| (id, model, inference_model))
+            })
+            .enumerate()
+        {
+            ui.group(|ui| {
+                if let Some(color) = inference_model.color {
+                    ui.colored_label(color, inference_model.label());
+                } else {
+                    ui.label(inference_model.label());
+                }
+                parameter_model.render(ui);
+
+                ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
+
+                ui.set_max_width(ui.min_rect().width());
+
+                ui.horizontal_wrapped(|ui| {
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        if ui
+                            .button("\u{E18E}")
+                            .on_hover_text("Delete model")
+                            .clicked()
+                        {
+                            delete = Some(*id);
+                        }
+
+                        if ui.button("\u{E09E}").on_hover_text("Copy model").clicked() {
+                            copy = Some(*id);
+                        }
+
+                        if index != length.saturating_sub(1)
+                            && ui
+                                .button("\u{E44D}")
+                                .on_hover_text("Move model down")
+                                .clicked()
+                        {
+                            move_down = Some(*id);
+                        }
+
+                        if index != 0
+                            && ui
+                                .button("\u{E44E}")
+                                .on_hover_text("Move model up")
+                                .clicked()
+                        {
+                            move_up = Some(*id);
+                        }
+                    });
+                });
+            });
+        }
+
+        if let Some(index) = move_up.and_then(|id| self.models.get_index_of(&id))
+            && index > 0
+        {
+            self.models.swap_indices(index, index - 1);
+        }
+
+        if let Some(index) = move_down.and_then(|id| self.models.get_index_of(&id))
+            && index < self.models.len() - 1
+        {
+            self.models.swap_indices(index, index + 1);
+        }
+
+        if let Some(copy) = copy.and_then(|id| self.models.get(&id)).cloned() {
+            self.models.insert(Ulid::new(), copy);
+        }
+
+        if let Some(delete) = delete {
+            self.models.shift_remove(&delete);
+        }
+
+        ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
+    }
     pub fn perform_request(
         &mut self,
         settings: &InferenceSettings,
@@ -285,10 +433,10 @@ enum EndpointConfig {
     OpenAICompletions(OpenAICompletionsConfig),
 }
 
-impl EndpointConfig {
-    fn endpoint_type(&self) -> &'static str {
+impl Display for EndpointConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::OpenAICompletions(_) => "OpenAI-like Completions",
+            Self::OpenAICompletions(_) => f.write_str("OpenAI-like Completions"),
         }
     }
 }
