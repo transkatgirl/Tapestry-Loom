@@ -64,6 +64,12 @@ The plans for the rewrite are the following:
 		- [ ] Tapestry Loom
 	- [ ] Allows saving & loading custom presets
 	- [ ] Allow importing and exporting custom presets
+- [ ] Multiple inference backends
+	- [ ] OpenAI-compatible Completions
+	- [ ] OpenAI-compatible ChatCompletions
+	- [ ] llama-server native
+	- [ ] vLLM native
+	- [ ] SGLang native
 - [ ] UI improvements
 - [ ] Better documentation & onboarding
 
