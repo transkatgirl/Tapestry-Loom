@@ -124,7 +124,16 @@ impl FileManager {
                         self.file_count,
                         self.folder_count.saturating_sub(1)
                     ))
-                    .on_hover_text(self.path.to_string_lossy());
+                    .on_hover_text(self.path.to_string_lossy())
+                    .context_menu(|ui| {
+                        if ui.button("Copy path").clicked() {
+                            ui.output_mut(|o| {
+                                o.commands.push(OutputCommand::CopyText(
+                                    self.path.to_string_lossy().to_string(),
+                                ))
+                            });
+                        };
+                    });
                 });
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if ui.button("\u{E145}").on_hover_text("Refresh").clicked() {
