@@ -112,6 +112,8 @@ impl Editor {
 
         let weave = Arc::new(Mutex::new(None));
 
+        let shared_state = SharedState::new(identifier, runtime, client, &settings.borrow());
+
         Self {
             settings: settings.clone(),
             toasts: toasts.clone(),
@@ -137,7 +139,7 @@ impl Editor {
                 settings,
                 toasts,
                 weave,
-                shared_state: SharedState::new(identifier, runtime, client),
+                shared_state,
                 canvas_view: CanvasView::default(),
                 graph_view: GraphView::default(),
                 tree_list_view: TreeListView::default(),

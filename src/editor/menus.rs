@@ -1,4 +1,4 @@
-use eframe::egui::{Spinner, Ui};
+use eframe::egui::{Frame, ScrollArea, Spinner, Ui};
 use egui_notify::Toasts;
 use flagset::FlagSet;
 use tapestry_weave::{universal_weave::Weave, v0::TapestryWeave};
@@ -22,7 +22,16 @@ impl MenuView {
         state: &mut SharedState,
         shortcuts: FlagSet<Shortcuts>,
     ) {
-        ui.heading("Unimplemented");
+        ScrollArea::vertical()
+            .auto_shrink(false)
+            .animated(false)
+            .show(ui, |ui| {
+                Frame::new()
+                    .outer_margin(ui.style().spacing.menu_margin)
+                    .show(ui, |ui| {
+                        state.inference.render(&settings.inference, ui);
+                    });
+            });
     }
     #[allow(clippy::too_many_arguments)]
     pub fn render_rtl_panel(
@@ -85,7 +94,7 @@ impl MenuView {
         }
 
         if shortcuts.contains(Shortcuts::ResetParameters) {
-            // TODO
+            state.inference.reset(&settings.inference);
         }
     }
 }

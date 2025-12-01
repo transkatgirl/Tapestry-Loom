@@ -21,7 +21,7 @@ mod openai;
 pub struct InferenceSettings {
     pub client: ClientConfig,
     models: IndexMap<Ulid, InferenceModel>,
-    default_parameters: InferenceParameters,
+    pub default_parameters: InferenceParameters,
 
     #[serde(skip)]
     template: EndpointTemplate,
@@ -262,7 +262,7 @@ impl ModelInferenceParameters {
                 .text("Requests"),
         );
         ui.label("Request parameters:");
-        render_config_map(ui, &mut self.parameters);
+        render_config_map(ui, &mut self.parameters, 2.0 / 3.0);
     }
 }
 
@@ -526,13 +526,21 @@ where
     fn build(self) -> Option<T>;
 }
 
-fn render_config_map(ui: &mut Ui, value: &mut Vec<(String, String)>) {
+fn render_config_map(ui: &mut Ui, value: &mut Vec<(String, String)>, width: f32) {
     let mut remove = None;
+
+    let width = ui.spacing().text_edit_width * width;
 
     for (index, (key, value)) in value.iter_mut().enumerate() {
         ui.horizontal_wrapped(|ui| {
-            TextEdit::singleline(key).hint_text("key").ui(ui);
-            TextEdit::singleline(value).hint_text("value").ui(ui);
+            TextEdit::singleline(key)
+                .hint_text("key")
+                .desired_width(width)
+                .ui(ui);
+            TextEdit::singleline(value)
+                .hint_text("value")
+                .desired_width(width)
+                .ui(ui);
             if ui.button("\u{E28F}").on_hover_text("Remove item").clicked() {
                 remove = Some(index);
             }

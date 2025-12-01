@@ -92,12 +92,12 @@ impl Endpoint for OpenAICompletionsConfig {
 
         ui.group(|ui| {
             ui.label("Request parameters:");
-            render_config_map(ui, &mut self.parameters);
+            render_config_map(ui, &mut self.parameters, 1.0);
         });
 
         ui.group(|ui| {
             ui.label("Request headers:");
-            render_config_map(ui, &mut self.headers);
+            render_config_map(ui, &mut self.headers, 1.0);
         });
     }
     fn label(&self) -> &str {

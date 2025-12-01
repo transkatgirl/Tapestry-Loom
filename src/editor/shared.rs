@@ -21,13 +21,14 @@ use tapestry_weave::{
 };
 use tokio::runtime::Runtime;
 
-use crate::settings::{Settings, shortcuts::Shortcuts};
+use crate::settings::{Settings, inference::InferenceParameters, shortcuts::Shortcuts};
 
 #[derive(Debug)]
 pub struct SharedState {
     pub identifier: Ulid,
     pub runtime: Arc<Runtime>,
     pub client: Rc<RefCell<Option<Client>>>,
+    pub inference: InferenceParameters,
     cursor_node: NodeIndex,
     last_cursor_node: NodeIndex,
     hovered_node: NodeIndex,
@@ -64,11 +65,13 @@ impl SharedState {
         identifier: Ulid,
         runtime: Arc<Runtime>,
         client: Rc<RefCell<Option<Client>>>,
+        settings: &Settings,
     ) -> Self {
         Self {
             identifier,
             runtime,
             client,
+            inference: settings.inference.default_parameters.clone(),
             cursor_node: NodeIndex::None,
             last_cursor_node: NodeIndex::None,
             hovered_node: NodeIndex::None,
