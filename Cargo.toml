@@ -39,6 +39,10 @@ ron = { version = "0.12.0", features = [
 ] }
 reqwest = { version = "0.12", features = [
 	"json",
+	"gzip",
+	"brotli",
+	"zstd",
+	"deflate",
 ] }
 parking_lot = { version = "0.12.5", features = [
 	"serde",

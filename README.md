@@ -10,7 +10,6 @@ The plans for the rewrite are the following:
 	- [ ] Implement all functionality supported by the original Obsidian plugin
 - [ ] Full UI redesign
 	- [x] Resizable, dragable, scrollable, and collapsible settings
-	- [ ] Selection = generation mode, similar to [inkstream](https://inkstream.ai)
 	- [ ] Three user-switchable UIs:
 		- [ ] Interactive canvas + textbox, similar to [wool](https://github.com/lyramakesmusic/wool)
 			- [ ] Implement dragable and scrollable canvas
@@ -70,6 +69,7 @@ The plans for the rewrite are the following:
 
 In addition, below are the tentative plans for Tapestry Loom v2:
 
+<!--
 - [ ] Server-client, multi-user WebUI
 	- [ ] Support collaborating on Weaves
 	- [ ] User authentication
@@ -81,14 +81,18 @@ In addition, below are the tentative plans for Tapestry Loom v2:
 - [ ] Compression support
 	- [ ] Brotli compression for static assets
 	- [ ] LZ4 compression for websocket data
-- [ ] Mobile support
+-->
+
 - [ ] Support for DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- [ ] FIM completions
+		- [ ] Selected text is used to determine FIM location
 	- [ ] Node copying & moving
 	- [ ] Perform heavy testing of data structures and/or formal verification to prevent bugs that could result in data loss
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
+- [ ] Mobile support
+- [ ] Collaborative weave editing
 - [ ] Adaptive looming using token entropy or [confidence](https://arxiv.org/pdf/2508.15260)
 - [ ] Token streaming and display of nodes being generated
 - [ ] Prefix-based duplication
