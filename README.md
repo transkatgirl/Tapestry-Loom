@@ -92,6 +92,7 @@ In addition, below are the tentative plans for Tapestry Loom v2:
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Mobile support
+- [ ] Optimize rendering performance
 - [ ] Collaborative weave editing
 - [ ] Adaptive looming using token entropy or [confidence](https://arxiv.org/pdf/2508.15260)
 - [ ] Token streaming and display of nodes being generated

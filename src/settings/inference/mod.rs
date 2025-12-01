@@ -1,14 +1,26 @@
-use std::{collections::HashSet, fmt::Display, sync::Arc, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Display,
+    future::Future,
+    rc::Rc,
+    sync::Arc,
+    task::Poll,
+    time::Duration,
+};
 
 use eframe::egui::{
     Align, Color32, ComboBox, DragValue, Layout, RichText, Slider, SliderClamping, TextEdit,
     TextStyle, Ui, Widget, WidgetText,
 };
+use poll_promise::Promise;
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tapestry_weave::{
     ulid::Ulid,
-    universal_weave::{dependent::DependentNode, indexmap::IndexMap},
+    universal_weave::{
+        dependent::DependentNode,
+        indexmap::{IndexMap, IndexSet},
+    },
     v0::{InnerNodeContent, NodeContent},
 };
 use tokio::{runtime::Runtime, task::JoinHandle};
@@ -387,15 +399,72 @@ impl InferenceParameters {
             self.new_model = Ulid(0);
         }
     }
-    pub fn perform_request(
-        &mut self,
+    pub fn create_request(
+        &self,
         settings: &InferenceSettings,
-        runtime: Arc<Runtime>,
+        runtime: &Runtime,
         parent_node: Option<Ulid>,
-        output: &mut HashSet<Ulid, JoinHandle<Result<DependentNode<NodeContent>, anyhow::Error>>>,
+        content: Arc<Vec<u8>>,
+        output: &mut HashMap<Ulid, InferenceHandle>,
     ) {
         todo!()
     }
+    pub fn get_responses(
+        runtime: &Runtime,
+        input: &mut HashMap<Ulid, InferenceHandle>,
+        output: &mut Vec<Result<DependentNode<NodeContent>, anyhow::Error>>,
+    ) {
+        let keys: Vec<Ulid> = input.keys().cloned().collect();
+
+        for key in keys {
+            let mut is_ready = false;
+
+            if let Some(value) = input.get(&key)
+                && value.handle.ready().is_some()
+            {
+                is_ready = true;
+            }
+
+            if is_ready && let Some(value) = input.remove(&key) {
+                let result = value.handle.block_and_take();
+
+                if value.parameters.recursion_depth > 0
+                    && let Ok(content) = &result
+                {
+                    let mut parameters = value.parameters.as_ref().clone();
+                    parameters.recursion_depth -= 1;
+
+                    let mut parent_content = value.parent_content.as_ref().clone();
+                    parent_content.extend_from_slice(&content.content.as_bytes());
+
+                    parameters.create_request(
+                        &value.settings,
+                        runtime,
+                        Some(key),
+                        Arc::new(parent_content),
+                        input,
+                    );
+                }
+
+                output.push(result.map(|content| DependentNode {
+                    id: key.0,
+                    from: value.parent.map(|id| id.0),
+                    to: IndexSet::default(),
+                    active: false,
+                    bookmarked: false,
+                    contents: content,
+                }));
+            }
+        }
+    }
+}
+
+pub struct InferenceHandle {
+    parent: Option<Ulid>,
+    parent_content: Arc<Vec<u8>>,
+    settings: Rc<InferenceSettings>,
+    parameters: Rc<InferenceParameters>,
+    handle: Promise<Result<NodeContent, anyhow::Error>>,
 }
 
 #[derive(Default, Debug, PartialEq)]
