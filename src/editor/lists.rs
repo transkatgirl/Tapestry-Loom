@@ -703,9 +703,7 @@ fn render_node_context_menu(
         }
     }
 
-    if !node.to.is_empty() || node.from.is_some() {
-        ui.separator();
-    }
+    ui.separator();
 
     if !node.to.is_empty() && ui.button("Delete all children").clicked() {
         for child in node.to.iter().copied() {
@@ -713,39 +711,38 @@ fn render_node_context_menu(
         }
     }
 
-    if node.from.is_some() {
-        if ui.button("Delete all siblings").clicked() {
-            let siblings: Vec<Ulid> =
-                if let Some(parent) = node.from.and_then(|id| weave.get_node(&Ulid(id))) {
-                    parent
-                        .to
-                        .iter()
-                        .copied()
-                        .filter(|id| *id != node.id)
-                        .map(Ulid)
-                        .collect()
-                } else {
-                    weave
-                        .weave
-                        .get_roots()
-                        .iter()
-                        .copied()
-                        .filter(|id| *id != node.id)
-                        .map(Ulid)
-                        .collect()
-                };
+    if ui.button("Delete all siblings").clicked() {
+        let siblings: Vec<Ulid> =
+            if let Some(parent) = node.from.and_then(|id| weave.get_node(&Ulid(id))) {
+                parent
+                    .to
+                    .iter()
+                    .copied()
+                    .filter(|id| *id != node.id)
+                    .map(Ulid)
+                    .collect()
+            } else {
+                weave
+                    .weave
+                    .get_roots()
+                    .iter()
+                    .copied()
+                    .filter(|id| *id != node.id)
+                    .map(Ulid)
+                    .collect()
+            };
 
-            for sibling in siblings {
-                weave.remove_node(&sibling);
-            }
+        for sibling in siblings {
+            weave.remove_node(&sibling);
         }
+    }
 
-        if weave.is_mergeable_with_parent(&Ulid(node.id))
-            && ui.button("Merge with parent").clicked()
-        {
-            ui.separator();
-            weave.merge_with_parent(&Ulid(node.id));
-        }
+    if node.from.is_some()
+        && weave.is_mergeable_with_parent(&Ulid(node.id))
+        && ui.button("Merge with parent").clicked()
+    {
+        ui.separator();
+        weave.merge_with_parent(&Ulid(node.id));
     }
 
     ui.separator();
@@ -816,9 +813,7 @@ fn render_node_tree_context_menu(
         }
     }
 
-    if !node.to.is_empty() || node.from.is_some() {
-        ui.separator();
-    }
+    ui.separator();
 
     if !node.to.is_empty() {
         if ui.button("Collapse all children").clicked() {
@@ -842,39 +837,38 @@ fn render_node_tree_context_menu(
         }
     }
 
-    if node.from.is_some() {
-        if ui.button("Delete all siblings").clicked() {
-            let siblings: Vec<Ulid> =
-                if let Some(parent) = node.from.and_then(|id| weave.get_node(&Ulid(id))) {
-                    parent
-                        .to
-                        .iter()
-                        .copied()
-                        .filter(|id| *id != node.id)
-                        .map(Ulid)
-                        .collect()
-                } else {
-                    weave
-                        .weave
-                        .get_roots()
-                        .iter()
-                        .copied()
-                        .filter(|id| *id != node.id)
-                        .map(Ulid)
-                        .collect()
-                };
+    if ui.button("Delete all siblings").clicked() {
+        let siblings: Vec<Ulid> =
+            if let Some(parent) = node.from.and_then(|id| weave.get_node(&Ulid(id))) {
+                parent
+                    .to
+                    .iter()
+                    .copied()
+                    .filter(|id| *id != node.id)
+                    .map(Ulid)
+                    .collect()
+            } else {
+                weave
+                    .weave
+                    .get_roots()
+                    .iter()
+                    .copied()
+                    .filter(|id| *id != node.id)
+                    .map(Ulid)
+                    .collect()
+            };
 
-            for sibling in siblings {
-                weave.remove_node(&sibling);
-            }
+        for sibling in siblings {
+            weave.remove_node(&sibling);
         }
+    }
 
-        if weave.is_mergeable_with_parent(&Ulid(node.id))
-            && ui.button("Merge with parent").clicked()
-        {
-            ui.separator();
-            weave.merge_with_parent(&Ulid(node.id));
-        }
+    if node.from.is_some()
+        && weave.is_mergeable_with_parent(&Ulid(node.id))
+        && ui.button("Merge with parent").clicked()
+    {
+        ui.separator();
+        weave.merge_with_parent(&Ulid(node.id));
     }
 
     ui.separator();
