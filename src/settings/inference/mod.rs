@@ -261,6 +261,7 @@ impl ModelInferenceParameters {
             );
             ComboBox::from_id_salt(ui.next_auto_id())
                 .selected_text(selected)
+                .width(ui.spacing().text_edit_width * 0.6)
                 .show_ui(ui, |ui| {
                     for (id, model) in models {
                         ui.selectable_value(&mut self.model, *id, model.widget_text());
