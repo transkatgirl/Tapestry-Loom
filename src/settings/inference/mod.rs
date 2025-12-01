@@ -90,7 +90,16 @@ pub struct InferenceParameters {
 
 pub struct ModelInferenceParameters {
     pub requests: usize,
-    pub parameters: IndexMap<String, String>,
+    pub parameters: Vec<(String, String)>,
+}
+
+impl Default for ModelInferenceParameters {
+    fn default() -> Self {
+        Self {
+            requests: 10,
+            parameters: vec![("temperature".to_string(), "1".to_string())],
+        }
+    }
 }
 
 impl InferenceParameters {
@@ -186,12 +195,12 @@ impl Endpoint for EndpointConfig {
 
 struct EndpointRequest {
     content: Vec<u8>,
-    parameters: IndexMap<String, String>,
+    parameters: Vec<(String, String)>,
 }
 
 struct EndpointResponse {
     content: InnerNodeContent,
-    metadata: IndexMap<String, String>,
+    metadata: Vec<(String, String)>,
 }
 
 trait Endpoint: Serialize + DeserializeOwned + Clone {
@@ -209,4 +218,26 @@ where
 {
     fn render(&mut self, ui: &mut Ui);
     fn build(self) -> T;
+}
+
+fn render_config_map(ui: &mut Ui, value: &mut Vec<(String, String)>) {
+    let mut remove = None;
+
+    for (index, (key, value)) in value.iter_mut().enumerate() {
+        ui.horizontal_wrapped(|ui| {
+            TextEdit::singleline(key).hint_text("key").ui(ui);
+            TextEdit::singleline(value).hint_text("value").ui(ui);
+            if ui.button("\u{E28F}").on_hover_text("Remove item").clicked() {
+                remove = Some(index);
+            }
+        });
+    }
+
+    if let Some(remove) = remove {
+        value.remove(remove);
+    }
+
+    if ui.button("\u{E13D}").on_hover_text("Add item").clicked() {
+        value.push((String::new(), String::new()));
+    }
 }
