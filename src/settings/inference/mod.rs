@@ -1,8 +1,8 @@
 use std::{collections::HashSet, fmt::Display, sync::Arc, time::Duration};
 
 use eframe::egui::{
-    Align, Color32, ComboBox, Layout, RichText, Slider, SliderClamping, TextEdit, TextStyle, Ui,
-    Widget, WidgetText,
+    Align, Color32, ComboBox, DragValue, Layout, RichText, Slider, SliderClamping, TextEdit,
+    TextStyle, Ui, Widget, WidgetText,
 };
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
@@ -241,28 +241,36 @@ pub struct ModelInferenceParameters {
 }
 
 impl ModelInferenceParameters {
-    fn render(&mut self, ui: &mut Ui, models: &IndexMap<Ulid, InferenceModel>) {
+    fn render(
+        &mut self,
+        ui: &mut Ui,
+        models: &IndexMap<Ulid, InferenceModel>,
+        buttons: impl FnOnce(&mut Ui),
+    ) {
         let selected = if let Some(model) = models.get(&self.model) {
             model.widget_text()
         } else {
             WidgetText::Text("Invalid model".to_string())
         };
 
-        ComboBox::new(ui.next_auto_id(), "Model")
-            .selected_text(selected)
-            .show_ui(ui, |ui| {
-                for (id, model) in models {
-                    ui.selectable_value(&mut self.model, *id, model.widget_text());
-                }
-            });
-        ui.add(
-            Slider::new(&mut self.requests, 1..=100)
-                .logarithmic(true)
-                .clamping(SliderClamping::Never)
-                .text("Requests"),
-        );
+        ui.horizontal_wrapped(|ui| {
+            ui.add(
+                DragValue::new(&mut self.requests)
+                    .suffix("x")
+                    .range(1..=usize::MAX),
+            );
+            ComboBox::from_id_salt(ui.next_auto_id())
+                .selected_text(selected)
+                .show_ui(ui, |ui| {
+                    for (id, model) in models {
+                        ui.selectable_value(&mut self.model, *id, model.widget_text());
+                    }
+                });
+            buttons(ui);
+        });
+
         ui.label("Request parameters:");
-        render_config_map(ui, &mut self.parameters, 2.0 / 3.0);
+        render_config_map_small(ui, &mut self.parameters, 0.5);
     }
 }
 
@@ -305,44 +313,36 @@ impl InferenceParameters {
         let length = self.models.len();
         for (index, model) in &mut self.models.iter_mut().enumerate() {
             ui.group(|ui| {
-                model.render(ui, models);
-
-                ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
-
-                ui.set_max_width(ui.min_rect().width());
-
-                ui.horizontal_wrapped(|ui| {
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        if ui
-                            .button("\u{E18E}")
-                            .on_hover_text("Delete model")
+                model.render(ui, models, |ui| {
+                    if index != 0
+                        && ui
+                            .button("\u{E44E}")
+                            .on_hover_text("Move model up")
                             .clicked()
-                        {
-                            delete = Some(index);
-                        }
+                    {
+                        move_up = Some(index);
+                    }
 
-                        if ui.button("\u{E09E}").on_hover_text("Copy model").clicked() {
-                            copy = Some(index);
-                        }
+                    if index != length.saturating_sub(1)
+                        && ui
+                            .button("\u{E44D}")
+                            .on_hover_text("Move model down")
+                            .clicked()
+                    {
+                        move_down = Some(index);
+                    }
 
-                        if index != length.saturating_sub(1)
-                            && ui
-                                .button("\u{E44D}")
-                                .on_hover_text("Move model down")
-                                .clicked()
-                        {
-                            move_down = Some(index);
-                        }
+                    if ui.button("\u{E09E}").on_hover_text("Copy model").clicked() {
+                        copy = Some(index);
+                    }
 
-                        if index != 0
-                            && ui
-                                .button("\u{E44E}")
-                                .on_hover_text("Move model up")
-                                .clicked()
-                        {
-                            move_up = Some(index);
-                        }
-                    });
+                    if ui
+                        .button("\u{E18E}")
+                        .on_hover_text("Delete model")
+                        .clicked()
+                    {
+                        delete = Some(index);
+                    }
                 });
             });
         }
@@ -540,6 +540,38 @@ fn render_config_map(ui: &mut Ui, value: &mut Vec<(String, String)>, width: f32)
             TextEdit::singleline(value)
                 .hint_text("value")
                 .desired_width(width)
+                .ui(ui);
+            if ui.button("\u{E28F}").on_hover_text("Remove item").clicked() {
+                remove = Some(index);
+            }
+        });
+    }
+
+    if let Some(remove) = remove {
+        value.remove(remove);
+    }
+
+    if ui.button("\u{E13D}").on_hover_text("Add item").clicked() {
+        value.push((String::new(), String::new()));
+    }
+}
+
+fn render_config_map_small(ui: &mut Ui, value: &mut Vec<(String, String)>, width: f32) {
+    let mut remove = None;
+
+    let width = ui.spacing().text_edit_width * width;
+
+    for (index, (key, value)) in value.iter_mut().enumerate() {
+        ui.horizontal_wrapped(|ui| {
+            TextEdit::singleline(key)
+                .hint_text("key")
+                .desired_width(width)
+                .clip_text(false)
+                .ui(ui);
+            TextEdit::singleline(value)
+                .hint_text("value")
+                .desired_width(width)
+                .clip_text(false)
                 .ui(ui);
             if ui.button("\u{E28F}").on_hover_text("Remove item").clicked() {
                 remove = Some(index);
