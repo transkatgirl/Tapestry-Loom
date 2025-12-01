@@ -8,6 +8,7 @@ use std::{
     time::Duration,
 };
 
+use bytes::{Bytes, BytesMut};
 use eframe::egui::{
     Align, Color32, ComboBox, DragValue, Layout, RichText, Slider, SliderClamping, TextEdit,
     TextStyle, Ui, Widget, WidgetText,
@@ -21,7 +22,7 @@ use tapestry_weave::{
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
-    v0::{InnerNodeContent, NodeContent},
+    v0::{InnerNodeContent, Model, NodeContent},
 };
 use tokio::{runtime::Runtime, task::JoinHandle};
 
@@ -198,6 +199,16 @@ impl InferenceModel {
             WidgetText::RichText(Arc::new(RichText::new(self.label()).color(color)))
         } else {
             WidgetText::Text(self.label().to_string())
+        }
+    }
+    fn content_model(&self) -> Model {
+        Model {
+            label: self.label().to_string(),
+            metadata: if let Some(color) = self.color {
+                IndexMap::from_iter([("color".to_string(), color.to_hex())])
+            } else {
+                IndexMap::default()
+            },
         }
     }
     fn render(&mut self, ui: &mut Ui) {
@@ -403,15 +414,17 @@ impl InferenceParameters {
         &self,
         settings: &InferenceSettings,
         runtime: &Runtime,
+        client: &Client,
         parent_node: Option<Ulid>,
-        content: Arc<Vec<u8>>,
+        content: Vec<u8>,
         output: &mut HashMap<Ulid, InferenceHandle>,
     ) {
         self.create_request_inner(
             Rc::new(settings.models.clone()),
             runtime,
+            client,
             parent_node,
-            content,
+            Bytes::from(content),
             output,
         );
     }
@@ -419,28 +432,54 @@ impl InferenceParameters {
         &self,
         models: Rc<IndexMap<Ulid, InferenceModel>>,
         runtime: &Runtime,
+        client: &Client,
         parent_node: Option<Ulid>,
-        content: Arc<Vec<u8>>,
+        content: Bytes,
         output: &mut HashMap<Ulid, InferenceHandle>,
     ) {
         let parameters = Rc::new(self.clone());
         let _guard = runtime.enter();
 
         for model in &self.models {
-            output.insert(
-                Ulid::new(),
-                InferenceHandle {
-                    parent: parent_node,
-                    parent_content: content.clone(),
-                    models: models.clone(),
-                    parameters: parameters.clone(),
-                    handle: Promise::spawn_async(async move { todo!() }),
-                },
-            );
+            if let Some(inference_model) = models.get(&model.model) {
+                let content_model = inference_model.content_model();
+                let request = EndpointRequest {
+                    content: content.clone(),
+                    parameters: Arc::new(model.parameters.clone()),
+                };
+                let endpoint = Arc::new(inference_model.endpoint.clone());
+
+                for _ in 0..model.requests {
+                    let content_model = content_model.clone();
+                    let request = request.clone();
+                    let endpoint = endpoint.clone();
+                    let client = client.clone();
+                    output.insert(
+                        Ulid::new(),
+                        InferenceHandle {
+                            parent: parent_node,
+                            parent_content: content.clone(),
+                            models: models.clone(),
+                            parameters: parameters.clone(),
+                            handle: Promise::spawn_async(async move {
+                                let response =
+                                    endpoint.as_ref().perform_request(&client, request).await?;
+
+                                Ok(NodeContent {
+                                    content: response.content,
+                                    metadata: IndexMap::from_iter(response.metadata),
+                                    model: Some(content_model),
+                                })
+                            }),
+                        },
+                    );
+                }
+            }
         }
     }
     pub fn get_responses(
         runtime: &Runtime,
+        client: &Client,
         input: &mut HashMap<Ulid, InferenceHandle>,
         output: &mut Vec<Result<DependentNode<NodeContent>, anyhow::Error>>,
     ) {
@@ -464,14 +503,15 @@ impl InferenceParameters {
                     let mut parameters = value.parameters.as_ref().clone();
                     parameters.recursion_depth -= 1;
 
-                    let mut parent_content = value.parent_content.as_ref().clone();
+                    let mut parent_content = BytesMut::from(value.parent_content);
                     parent_content.extend_from_slice(&content.content.as_bytes());
 
                     parameters.create_request_inner(
                         value.models.clone(),
                         runtime,
+                        client,
                         Some(key),
-                        Arc::new(parent_content),
+                        parent_content.into(),
                         input,
                     );
                 }
@@ -491,7 +531,7 @@ impl InferenceParameters {
 
 pub struct InferenceHandle {
     parent: Option<Ulid>,
-    parent_content: Arc<Vec<u8>>,
+    parent_content: Bytes,
     models: Rc<IndexMap<Ulid, InferenceModel>>,
     parameters: Rc<InferenceParameters>,
     handle: Promise<Result<NodeContent, anyhow::Error>>,
@@ -591,9 +631,10 @@ impl Endpoint for EndpointConfig {
     }
 }
 
+#[derive(Debug, Clone)]
 struct EndpointRequest {
-    content: Vec<u8>,
-    parameters: Vec<(String, String)>,
+    content: Bytes,
+    parameters: Arc<Vec<(String, String)>>,
 }
 
 struct EndpointResponse {
