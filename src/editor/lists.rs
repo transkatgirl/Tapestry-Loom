@@ -715,15 +715,28 @@ fn render_node_context_menu(
 
     if node.from.is_some() {
         if ui.button("Delete all siblings").clicked() {
-            let parent = weave.get_node(&Ulid(node.from.unwrap()));
-            let siblings: Vec<Ulid> = parent
-                .iter()
-                .flat_map(|parent| parent.to.iter().copied().filter(|id| *id != node.id))
-                .map(Ulid)
-                .collect();
+            let siblings: Vec<Ulid> =
+                if let Some(parent) = node.from.and_then(|id| weave.get_node(&Ulid(id))) {
+                    parent
+                        .to
+                        .iter()
+                        .copied()
+                        .filter(|id| *id != node.id)
+                        .map(Ulid)
+                        .collect()
+                } else {
+                    weave
+                        .weave
+                        .get_roots()
+                        .iter()
+                        .copied()
+                        .filter(|id| *id != node.id)
+                        .map(Ulid)
+                        .collect()
+                };
 
-            for child in siblings {
-                weave.remove_node(&child);
+            for sibling in siblings {
+                weave.remove_node(&sibling);
             }
         }
 
@@ -831,15 +844,28 @@ fn render_node_tree_context_menu(
 
     if node.from.is_some() {
         if ui.button("Delete all siblings").clicked() {
-            let parent = weave.get_node(&Ulid(node.from.unwrap()));
-            let siblings: Vec<Ulid> = parent
-                .iter()
-                .flat_map(|parent| parent.to.iter().copied().filter(|id| *id != node.id))
-                .map(Ulid)
-                .collect();
+            let siblings: Vec<Ulid> =
+                if let Some(parent) = node.from.and_then(|id| weave.get_node(&Ulid(id))) {
+                    parent
+                        .to
+                        .iter()
+                        .copied()
+                        .filter(|id| *id != node.id)
+                        .map(Ulid)
+                        .collect()
+                } else {
+                    weave
+                        .weave
+                        .get_roots()
+                        .iter()
+                        .copied()
+                        .filter(|id| *id != node.id)
+                        .map(Ulid)
+                        .collect()
+                };
 
-            for child in siblings {
-                weave.remove_node(&child);
+            for sibling in siblings {
+                weave.remove_node(&sibling);
             }
         }
 

@@ -10,6 +10,7 @@ use flagset::FlagSet;
 use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{
+        Weave,
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
@@ -200,15 +201,26 @@ impl SharedState {
                 .last_cursor_node
                 .into_node()
                 .and_then(|id| weave.get_node(&id))
-            && let Some(parent) = node.from.map(Ulid).and_then(|id| weave.get_node(&id))
         {
-            let siblings: Vec<Ulid> = parent
-                .to
-                .iter()
-                .copied()
-                .filter(|id| *id != node.id)
-                .map(Ulid)
-                .collect();
+            let siblings: Vec<Ulid> =
+                if let Some(parent) = node.from.and_then(|id| weave.get_node(&Ulid(id))) {
+                    parent
+                        .to
+                        .iter()
+                        .copied()
+                        .filter(|id| *id != node.id)
+                        .map(Ulid)
+                        .collect()
+                } else {
+                    weave
+                        .weave
+                        .get_roots()
+                        .iter()
+                        .copied()
+                        .filter(|id| *id != node.id)
+                        .map(Ulid)
+                        .collect()
+                };
 
             for sibling in siblings {
                 weave.remove_node(&sibling);
@@ -220,13 +232,19 @@ impl SharedState {
                 .last_cursor_node
                 .into_node()
                 .and_then(|id| weave.get_node(&id))
-            && let Some(parent) = node.from.map(Ulid).and_then(|id| weave.get_node(&id))
         {
-            self.cursor_node = NodeIndex::Node(Ulid(parent.id));
+            if let Some(parent) = node.from {
+                self.cursor_node = NodeIndex::Node(Ulid(parent));
+            }
 
-            let parent_children: Vec<Ulid> = parent.to.iter().copied().map(Ulid).collect();
+            let siblings_and_current: Vec<Ulid> =
+                if let Some(parent) = node.from.and_then(|id| weave.get_node(&Ulid(id))) {
+                    parent.to.iter().copied().map(Ulid).collect()
+                } else {
+                    weave.weave.get_roots().iter().copied().map(Ulid).collect()
+                };
 
-            for item in parent_children {
+            for item in siblings_and_current {
                 weave.remove_node(&item);
             }
         }
@@ -278,10 +296,11 @@ impl SharedState {
                 .last_cursor_node
                 .into_node()
                 .and_then(|id| weave.get_node(&id))
-            && let Some(parent_children) = node
+            && let parent_children = node
                 .from
                 .and_then(|id| weave.get_node(&Ulid(id)))
                 .map(|parent| &parent.to)
+                .unwrap_or(weave.weave.get_roots())
             && let Some(current_index) = parent_children.get_index_of(&node.id)
             && let Some(previous_sibling) = parent_children
                 .get_index(current_index.saturating_sub(1))
@@ -297,10 +316,11 @@ impl SharedState {
                 .last_cursor_node
                 .into_node()
                 .and_then(|id| weave.get_node(&id))
-            && let Some(parent_children) = node
+            && let parent_children = node
                 .from
                 .and_then(|id| weave.get_node(&Ulid(id)))
                 .map(|parent| &parent.to)
+                .unwrap_or(weave.weave.get_roots())
             && let Some(current_index) = parent_children.get_index_of(&node.id)
             && let Some(next_sibling) = parent_children
                 .get_index(current_index + 1)
