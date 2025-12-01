@@ -1,6 +1,10 @@
 use eframe::egui::{TextEdit, Ui, Widget};
-use reqwest::Client;
+use reqwest::{
+    Client, Method, RequestBuilder, Url,
+    header::{HeaderMap, HeaderName, HeaderValue},
+};
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 
 use crate::settings::inference::{
     Endpoint, EndpointRequest, EndpointResponse, Template, render_config_map,
@@ -114,6 +118,41 @@ impl Endpoint for OpenAICompletionsConfig {
         client: &Client,
         request: EndpointRequest,
     ) -> Result<EndpointResponse, anyhow::Error> {
+        let mut headers = HeaderMap::with_capacity(self.headers.len());
+
+        for (key, value) in &self.headers {
+            headers.insert(
+                HeaderName::from_bytes(key.as_bytes())?,
+                HeaderValue::from_str(value)?,
+            );
+        }
+
+        let mut body = Map::with_capacity(1 + request.parameters.len() + self.parameters.len());
+
+        build_json_object(&mut body, self.parameters.clone());
+        build_json_object(&mut body, request.parameters.as_ref().clone());
+
+        body.insert(
+            "prompt".to_string(),
+            Value::String(String::from_utf8_lossy(&request.content).to_string()),
+        );
+
+        let request = client
+            .request(Method::POST, Url::parse(&self.endpoint)?)
+            .headers(headers)
+            .json(&Value::Object(body))
+            .build()?;
+
         Err(anyhow::Error::msg("Unimplemented"))
+    }
+}
+
+fn build_json_object(map: &mut Map<String, Value>, parameters: Vec<(String, String)>) {
+    for (key, value) in parameters {
+        if let Ok(value) = serde_json::from_str(&value) {
+            map.insert(key, value);
+        } else {
+            map.insert(key, Value::String(value));
+        }
     }
 }
