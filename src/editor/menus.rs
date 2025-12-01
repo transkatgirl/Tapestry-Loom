@@ -1,7 +1,7 @@
 use eframe::egui::{Spinner, Ui};
 use egui_notify::Toasts;
 use flagset::FlagSet;
-use tapestry_weave::v0::TapestryWeave;
+use tapestry_weave::{universal_weave::Weave, v0::TapestryWeave};
 
 use crate::{
     editor::shared::SharedState,
@@ -66,7 +66,22 @@ impl MenuView {
             } else {
                 format!("{} nodes", node_count)
             };
-            ui.label(format!("{node_count_label}{file_size_label}"));
+            ui.label(format!("{node_count_label}{file_size_label}"))
+                .on_hover_ui(|ui| {
+                    let active_node_count = weave.weave.get_active_thread().len();
+                    ui.label(if active_node_count >= 1_000_000 {
+                        format!(
+                            "{:.1}M nodes active",
+                            active_node_count as f32 / 1_000_000.0
+                        )
+                    } else if active_node_count >= 1_000 {
+                        format!("{:.1}k nodes active", active_node_count as f32 / 1_000.0)
+                    } else if active_node_count == 1 {
+                        "1 node active".to_string()
+                    } else {
+                        format!("{} nodes active", active_node_count)
+                    });
+                });
         }
 
         if shortcuts.contains(Shortcuts::ResetParameters) {
