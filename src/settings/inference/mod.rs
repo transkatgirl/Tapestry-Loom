@@ -1,9 +1,6 @@
-use std::{collections::HashSet, fmt::Display, iter, path::PathBuf, sync::Arc, time::Duration};
+use std::{collections::HashSet, fmt::Display, sync::Arc, time::Duration};
 
-use eframe::egui::{
-    Color32, ComboBox, Context, Frame, RichText, ScrollArea, Slider, SliderClamping, TextEdit,
-    TextStyle, Ui, Visuals, Widget, WidgetText,
-};
+use eframe::egui::{Align, Color32, ComboBox, Layout, RichText, TextEdit, TextStyle, Ui, Widget};
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tapestry_weave::{
@@ -93,36 +90,40 @@ impl InferenceSettings {
 
                 ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
 
+                ui.set_max_width(ui.min_rect().width());
+
                 ui.horizontal_wrapped(|ui| {
-                    if index != 0
-                        && ui
-                            .button("\u{E44E}")
-                            .on_hover_text("Move model up")
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        if ui
+                            .button("\u{E18E}")
+                            .on_hover_text("Delete model")
                             .clicked()
-                    {
-                        move_up = Some(*id);
-                    }
+                        {
+                            delete = Some(*id);
+                        }
 
-                    if index != length.saturating_sub(1)
-                        && ui
-                            .button("\u{E44D}")
-                            .on_hover_text("Move model down")
-                            .clicked()
-                    {
-                        move_down = Some(*id);
-                    }
+                        if ui.button("\u{E09E}").on_hover_text("Copy model").clicked() {
+                            copy = Some(*id);
+                        }
 
-                    if ui.button("\u{E09E}").on_hover_text("Copy model").clicked() {
-                        copy = Some(*id);
-                    }
+                        if index != length.saturating_sub(1)
+                            && ui
+                                .button("\u{E44D}")
+                                .on_hover_text("Move model down")
+                                .clicked()
+                        {
+                            move_down = Some(*id);
+                        }
 
-                    if ui
-                        .button("\u{E18E}")
-                        .on_hover_text("Delete model")
-                        .clicked()
-                    {
-                        delete = Some(*id);
-                    }
+                        if index != 0
+                            && ui
+                                .button("\u{E44E}")
+                                .on_hover_text("Move model up")
+                                .clicked()
+                        {
+                            move_up = Some(*id);
+                        }
+                    });
                 });
             });
         }
@@ -168,6 +169,13 @@ impl InferenceModel {
 
             if let Some(color) = &mut self.color {
                 ui.color_edit_button_srgba(color);
+                if ui
+                    .button("\u{E148}")
+                    .on_hover_text("Remove label color")
+                    .clicked()
+                {
+                    self.color = None;
+                }
             } else if ui
                 .button("\u{E1DD}")
                 .on_hover_text("Add label color")

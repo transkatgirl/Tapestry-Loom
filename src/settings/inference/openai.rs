@@ -18,15 +18,18 @@ impl Template<OpenAICompletionsConfig> for OpenAICompletionsTemplate {
         ui.horizontal_wrapped(|ui| {
             TextEdit::singleline(&mut self.endpoint)
                 .hint_text("https://api.openai.com/v1/completions")
-                .ui(ui);
+                .ui(ui)
+                .on_hover_text("Endpoint URL");
             TextEdit::singleline(&mut self.model)
                 .hint_text("Model (optional)")
                 .desired_width(ui.spacing().text_edit_width / 1.5)
-                .ui(ui);
+                .ui(ui)
+                .on_hover_text("Model");
             TextEdit::singleline(&mut self.api_key)
                 .hint_text("API key (optional)")
                 .desired_width(ui.spacing().text_edit_width / 1.5)
-                .ui(ui);
+                .ui(ui)
+                .on_hover_text("API key");
         });
     }
     fn build(mut self) -> OpenAICompletionsConfig {
@@ -69,7 +72,8 @@ impl Endpoint for OpenAICompletionsConfig {
         TextEdit::singleline(&mut self.endpoint)
             .hint_text("Endpoint URL")
             .desired_width(ui.spacing().text_edit_width * 2.0)
-            .ui(ui);
+            .ui(ui)
+            .on_hover_text("Endpoint URL");
 
         ui.group(|ui| {
             ui.label("Request parameters:");
