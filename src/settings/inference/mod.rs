@@ -174,7 +174,7 @@ impl InferenceSettings {
         ui.separator();
 
         ui.heading("Editor inference defaults");
-        self.default_parameters.render_internal(&self.models, ui);
+        self.default_parameters.render_inner(&self.models, ui);
     }
 }
 
@@ -300,9 +300,9 @@ impl InferenceParameters {
         *self = settings.default_parameters.clone();
     }
     pub fn render(&mut self, settings: &InferenceSettings, ui: &mut Ui) {
-        self.render_internal(&settings.models, ui);
+        self.render_inner(&settings.models, ui);
     }
-    fn render_internal(&mut self, models: &IndexMap<Ulid, InferenceModel>, ui: &mut Ui) {
+    fn render_inner(&mut self, models: &IndexMap<Ulid, InferenceModel>, ui: &mut Ui) {
         ui.add(
             Slider::new(&mut self.recursion_depth, 0..=4)
                 .clamping(SliderClamping::Never)
@@ -407,7 +407,37 @@ impl InferenceParameters {
         content: Arc<Vec<u8>>,
         output: &mut HashMap<Ulid, InferenceHandle>,
     ) {
-        todo!()
+        self.create_request_inner(
+            Rc::new(settings.models.clone()),
+            runtime,
+            parent_node,
+            content,
+            output,
+        );
+    }
+    fn create_request_inner(
+        &self,
+        models: Rc<IndexMap<Ulid, InferenceModel>>,
+        runtime: &Runtime,
+        parent_node: Option<Ulid>,
+        content: Arc<Vec<u8>>,
+        output: &mut HashMap<Ulid, InferenceHandle>,
+    ) {
+        let parameters = Rc::new(self.clone());
+        let _guard = runtime.enter();
+
+        for model in &self.models {
+            output.insert(
+                Ulid::new(),
+                InferenceHandle {
+                    parent: parent_node,
+                    parent_content: content.clone(),
+                    models: models.clone(),
+                    parameters: parameters.clone(),
+                    handle: Promise::spawn_async(async move { todo!() }),
+                },
+            );
+        }
     }
     pub fn get_responses(
         runtime: &Runtime,
@@ -437,8 +467,8 @@ impl InferenceParameters {
                     let mut parent_content = value.parent_content.as_ref().clone();
                     parent_content.extend_from_slice(&content.content.as_bytes());
 
-                    parameters.create_request(
-                        &value.settings,
+                    parameters.create_request_inner(
+                        value.models.clone(),
                         runtime,
                         Some(key),
                         Arc::new(parent_content),
@@ -462,7 +492,7 @@ impl InferenceParameters {
 pub struct InferenceHandle {
     parent: Option<Ulid>,
     parent_content: Arc<Vec<u8>>,
-    settings: Rc<InferenceSettings>,
+    models: Rc<IndexMap<Ulid, InferenceModel>>,
     parameters: Rc<InferenceParameters>,
     handle: Promise<Result<NodeContent, anyhow::Error>>,
 }
