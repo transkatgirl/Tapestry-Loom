@@ -131,7 +131,7 @@ impl SharedState {
                     }
                 }
                 Err(error) => {
-                    toasts.error(format!("Inference failed: {error:?}"));
+                    toasts.error(format!("Inference failed: {error}"));
                     warn!("Inference failed: {error:#?}");
                 }
             }
