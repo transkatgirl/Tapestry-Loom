@@ -57,12 +57,16 @@ impl MenuView {
             } else {
                 String::new()
             };
-
-            if node_count == 1 {
-                ui.label(format!("1 node{file_size_label}"));
+            let node_count_label = if node_count >= 1_000_000 {
+                format!("{:.1}M nodes", node_count as f32 / 1_000_000.0)
+            } else if node_count >= 1_000 {
+                format!("{:.1}k nodes", node_count as f32 / 1_000.0)
+            } else if node_count == 1 {
+                "1 node".to_string()
             } else {
-                ui.label(format!("{node_count} nodes{file_size_label}"));
-            }
+                format!("{} nodes", node_count)
+            };
+            ui.label(format!("{node_count_label}{file_size_label}"));
         }
 
         if shortcuts.contains(Shortcuts::ResetParameters) {
