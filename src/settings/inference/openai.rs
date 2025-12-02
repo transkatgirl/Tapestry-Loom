@@ -223,30 +223,25 @@ impl Endpoint for OpenAICompletionsConfig {
                                                 {
                                                     tokens.push((
                                                         token,
-                                                        (logprob.exp() * 10000.0).round() / 10000.0,
+                                                        (logprob.exp() * 1000.0).round() / 1000.0,
                                                     ));
                                                 }
                                             }
                                         }
 
-                                        tokens.sort_unstable_by(|a, b| a.1.total_cmp(&b.1));
+                                        tokens.sort_unstable_by(|a, b| b.1.total_cmp(&a.1));
 
                                         contents.reserve(tokens.len());
 
-                                        contents.push(InnerNodeContent::Tokens(
-                                            tokens
-                                                .into_iter()
-                                                .map(|(token, prob)| {
-                                                    (
-                                                        token,
-                                                        IndexMap::from_iter([(
-                                                            "probability".to_string(),
-                                                            prob.to_string(),
-                                                        )]),
-                                                    )
-                                                })
-                                                .collect(),
-                                        ));
+                                        for (token, prob) in tokens {
+                                            contents.push(InnerNodeContent::Tokens(vec![(
+                                                token,
+                                                IndexMap::from_iter([(
+                                                    "probability".to_string(),
+                                                    prob.to_string(),
+                                                )]),
+                                            )]));
+                                        }
                                     }
 
                                     if let Some(token) = token
@@ -256,7 +251,7 @@ impl Endpoint for OpenAICompletionsConfig {
                                     {
                                         tokens.push((
                                             token,
-                                            (logprob.exp() * 10000.0).round() / 10000.0,
+                                            (logprob.exp() * 1000.0).round() / 1000.0,
                                         ));
                                     }
                                 }
