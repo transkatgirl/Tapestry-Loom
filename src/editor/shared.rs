@@ -398,6 +398,7 @@ impl SharedState {
                 .weave
                 .get_thread_from(&parent.0)
                 .iter()
+                .rev()
                 .copied()
                 .collect();
 
