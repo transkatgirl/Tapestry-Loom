@@ -458,7 +458,7 @@ pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &DependentNode<NodeConten
 }
 
 pub fn render_token_tooltip(ui: &mut Ui, token: &[u8], token_metadata: &IndexMap<String, String>) {
-    ui.label(format!("{:#?}", String::from_utf8_lossy(token)));
+    ui.label(format!("{:#?}", escaped_string_from_utf8(token)));
 
     for (key, value) in token_metadata {
         if key == "probability"
@@ -525,4 +525,18 @@ pub fn get_node_color(node: &DependentNode<NodeContent>, settings: &Settings) ->
     } else {
         None
     }
+}
+
+pub fn escaped_string_from_utf8(bytes: &[u8]) -> String {
+    let mut string = String::with_capacity(bytes.len());
+
+    for chunk in bytes.utf8_chunks() {
+        string.push_str(chunk.valid());
+
+        for invalid in chunk.invalid() {
+            string.push_str(&format!("\\x{invalid:X}"));
+        }
+    }
+
+    string
 }

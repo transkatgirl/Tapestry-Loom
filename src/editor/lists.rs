@@ -19,7 +19,10 @@ use tapestry_weave::{
 };
 
 use crate::{
-    editor::shared::{NodeIndex, SharedState, get_node_color, render_node_metadata_tooltip},
+    editor::shared::{
+        NodeIndex, SharedState, escaped_string_from_utf8, get_node_color,
+        render_node_metadata_tooltip,
+    },
     listing_margin,
     settings::{Settings, shortcuts::Shortcuts},
 };
@@ -544,7 +547,7 @@ fn render_horizontal_node_label(
 
             frame.show(ui, |ui| {
                 let node_content =
-                    String::from_utf8_lossy(&node.contents.content.as_bytes().to_vec()).to_string();
+                    escaped_string_from_utf8(&node.contents.content.as_bytes().to_vec());
 
                 let mut label = if node_content.is_empty() {
                     RichText::new("No text").family(FontFamily::Proportional)

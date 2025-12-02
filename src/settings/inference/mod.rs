@@ -772,3 +772,17 @@ fn render_config_map_small(
         value.push((String::new(), String::new()));
     }
 }
+
+pub fn escaped_string_from_utf8(bytes: &[u8]) -> String {
+    let mut string = String::with_capacity(bytes.len());
+
+    for chunk in bytes.utf8_chunks() {
+        string.push_str(chunk.valid());
+
+        for invalid in chunk.invalid() {
+            string.push_str(&format!("\\x{invalid:X}"));
+        }
+    }
+
+    string
+}
