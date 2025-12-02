@@ -1,10 +1,12 @@
 use eframe::egui::{TextEdit, Ui, Widget};
+use log::debug;
 use reqwest::{
-    Client, Method, RequestBuilder, Url,
+    Client, Method, Url,
     header::{HeaderMap, HeaderName, HeaderValue},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use tapestry_weave::v0::InnerNodeContent;
 
 use crate::settings::inference::{
     Endpoint, EndpointRequest, EndpointResponse, Template, render_config_map,
@@ -143,11 +145,47 @@ impl Endpoint for OpenAICompletionsConfig {
             Value::String(String::from_utf8_lossy(&request.content).to_string()),
         );
 
-        let request = client
+        debug!("{}", String::from_utf8_lossy(&request.content));
+
+        let mut response: Map<String, Value> = client
             .request(Method::POST, Url::parse(&self.endpoint)?)
             .headers(headers)
             .json(&Value::Object(body))
-            .build()?;
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+
+        let mut metadata = request.parameters.as_ref().clone();
+
+        if let Some(Value::String(text)) = response.remove("text") {
+            return Ok(EndpointResponse {
+                content: vec![InnerNodeContent::Snippet(text.into_bytes())],
+                metadata,
+            });
+        }
+
+        if let Some(Value::Array(choices)) = response.remove("choices") {
+            let mut contents = Vec::with_capacity(choices.len());
+
+            for choice in choices {
+                if let Value::Object(mut choice) = choice {
+                    //if let Some(Value::Array(logprobs)) = choice.remove("logprobs") {}
+
+                    if let Some(Value::String(text)) = choice.remove("text") {
+                        contents.push(InnerNodeContent::Snippet(text.into_bytes()));
+                    }
+                }
+            }
+
+            if !contents.is_empty() {
+                return Ok(EndpointResponse {
+                    content: contents,
+                    metadata,
+                });
+            }
+        }
 
         Err(anyhow::Error::msg("Unimplemented"))
     }
@@ -161,4 +199,11 @@ fn build_json_object(map: &mut Map<String, Value>, parameters: Vec<(String, Stri
             map.insert(key, Value::String(value));
         }
     }
+}
+
+fn parse_openai_response(
+    response: Map<String, Value>,
+    metadata: &mut Vec<(String, String)>,
+) -> Vec<InnerNodeContent> {
+    todo!()
 }
