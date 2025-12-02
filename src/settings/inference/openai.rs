@@ -6,7 +6,7 @@ use reqwest::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use tapestry_weave::v0::InnerNodeContent;
+use tapestry_weave::{universal_weave::indexmap::IndexMap, v0::InnerNodeContent};
 
 use crate::settings::inference::{
     Endpoint, EndpointRequest, EndpointResponse, Template, render_config_map,
@@ -145,8 +145,6 @@ impl Endpoint for OpenAICompletionsConfig {
             Value::String(String::from_utf8_lossy(&request.content).to_string()),
         );
 
-        debug!("{}", String::from_utf8_lossy(&request.content));
-
         let mut response: Map<String, Value> = client
             .request(Method::POST, Url::parse(&self.endpoint)?)
             .headers(headers)
@@ -158,6 +156,8 @@ impl Endpoint for OpenAICompletionsConfig {
             .await?;
 
         let mut metadata = request.parameters.as_ref().clone();
+
+        //debug!("{:#?}", response);
 
         if let Some(Value::String(text)) = response.remove("text") {
             return Ok(EndpointResponse {
@@ -171,9 +171,54 @@ impl Endpoint for OpenAICompletionsConfig {
 
             for choice in choices {
                 if let Value::Object(mut choice) = choice {
-                    //if let Some(Value::Array(logprobs)) = choice.remove("logprobs") {}
+                    let mut tokens = Vec::new();
 
-                    if let Some(Value::String(text)) = choice.remove("text") {
+                    if let Some(Value::Object(mut logprobs)) = choice.remove("logprobs") {
+                        debug!("{}", serde_json::to_string_pretty(&logprobs).unwrap());
+
+                        if let Some(Value::Array(logprobs_content)) = logprobs.remove("content") {
+                            tokens.reserve(logprobs_content.len());
+
+                            for (i, logprob_item) in logprobs_content.into_iter().enumerate() {
+                                if let Value::Object(mut logprob_item) = logprob_item {
+                                    if let Some(Value::String(token)) = logprob_item.remove("token")
+                                        && let Some(Value::Number(logprob)) =
+                                            logprob_item.remove("logprob")
+                                        && let Some(logprob) = logprob.as_f64()
+                                    {
+                                        tokens.push((token, logprob.exp()));
+                                    }
+
+                                    if i == 0
+                                        && let Some(Value::Array(logprobs_content)) =
+                                            logprob_item.remove("top_logprobs")
+                                    {
+                                        contents.reserve(logprobs_content.len());
+                                        // TODO
+                                    }
+                                }
+                            }
+                        } else {
+                            // TODO
+                        }
+                    }
+
+                    if !tokens.is_empty() {
+                        contents.push(InnerNodeContent::Tokens(
+                            tokens
+                                .into_iter()
+                                .map(|(token, prob)| {
+                                    (
+                                        token.into_bytes(),
+                                        IndexMap::from_iter([(
+                                            "probability".to_string(),
+                                            prob.to_string(),
+                                        )]),
+                                    )
+                                })
+                                .collect(),
+                        ));
+                    } else if let Some(Value::String(text)) = choice.remove("text") {
                         contents.push(InnerNodeContent::Snippet(text.into_bytes()));
                     }
                 }
