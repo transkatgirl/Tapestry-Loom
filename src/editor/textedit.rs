@@ -8,8 +8,8 @@ use std::{
 
 use eframe::{
     egui::{
-        Color32, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit, TextFormat, TextStyle,
-        Tooltip, Ui, Vec2,
+        Color32, Frame, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit, TextFormat,
+        TextStyle, Tooltip, Ui, Vec2,
         text::{CCursor, CCursorRange, LayoutJob, LayoutSection, TextWrapping},
     },
     epaint::{Vertex, WHITE_UV},
@@ -27,6 +27,7 @@ use crate::{
         NodeIndex, SharedState, get_node_color, get_token_color, render_node_metadata_tooltip,
         render_token_metadata_tooltip,
     },
+    listing_margin,
     settings::{Settings, shortcuts::Shortcuts},
 };
 
@@ -128,159 +129,175 @@ impl TextEditorView {
             .auto_shrink(false)
             .animated(false)
             .show(ui, |ui| {
-                let mut font_id = TextStyle::Monospace.resolve(ui.style());
-                font_id.size *= 1.1;
-                ui.style_mut().override_font_id = Some(font_id);
+                Frame::new()
+                    .outer_margin(listing_margin(ui))
+                    .show(ui, |ui| {
+                        let mut font_id = TextStyle::Monospace.resolve(ui.style());
+                        font_id.size *= 1.1;
+                        ui.style_mut().override_font_id = Some(font_id);
 
-                render_rects(ui, &mut self.rects);
+                        render_rects(ui, &mut self.rects);
 
-                let mut textedit = TextEdit::multiline(&mut self.text)
-                    .frame(false)
-                    .text_color(ui.visuals().widgets.inactive.text_color())
-                    .min_size(ui.available_size())
-                    .desired_width(ui.available_size().x)
-                    .code_editor()
-                    .layouter(&mut layouter)
-                    .show(ui);
+                        let mut textedit = TextEdit::multiline(&mut self.text)
+                            .frame(false)
+                            .text_color(ui.visuals().widgets.inactive.text_color())
+                            .min_size(ui.available_size())
+                            .desired_width(ui.available_size().x)
+                            .code_editor()
+                            .layouter(&mut layouter)
+                            .show(ui);
 
-                if self.last_seen_cursor_node != state.get_cursor_node() {
-                    // TODO: Rewrite this to properly change the cursor position
-                    if !textedit.response.changed() {
-                        let index = self.text.chars().count();
-                        textedit.state.cursor.set_char_range(Some(CCursorRange {
-                            primary: CCursor {
-                                index,
-                                prefer_next_row: true,
+                        if self.last_seen_cursor_node != state.get_cursor_node() {
+                            // TODO: Rewrite this to properly change the cursor position
+                            if !textedit.response.changed() {
+                                let index = self.text.chars().count();
+                                textedit.state.cursor.set_char_range(Some(CCursorRange {
+                                    primary: CCursor {
+                                        index,
+                                        prefer_next_row: true,
+                                    },
+                                    secondary: CCursor {
+                                        index,
+                                        prefer_next_row: true,
+                                    },
+                                    h_pos: None,
+                                }));
+                                textedit.state.store(ui.ctx(), textedit.response.id);
+                            }
+                            self.last_seen_cursor_node = state.get_cursor_node();
+                        }
+
+                        let top_left = textedit.text_clip_rect.left_top();
+
+                        calculate_boundaries(
+                            ui,
+                            &self.snippets.borrow(),
+                            top_left,
+                            &textedit.galley,
+                            match self.last_text_edit_highlighting_hover {
+                                HighlightingHover::Position((node, _)) => Some(node),
+                                HighlightingHover::Node(node) => Some(node),
+                                HighlightingHover::None => None,
                             },
-                            secondary: CCursor {
-                                index,
-                                prefer_next_row: true,
-                            },
-                            h_pos: None,
-                        }));
-                        textedit.state.store(ui.ctx(), textedit.response.id);
-                    }
-                    self.last_seen_cursor_node = state.get_cursor_node();
-                }
+                            &mut self.rects,
+                        );
 
-                let top_left = textedit.text_clip_rect.left_top();
-
-                calculate_boundaries(
-                    ui,
-                    &self.snippets.borrow(),
-                    top_left,
-                    &textedit.galley,
-                    match self.last_text_edit_highlighting_hover {
-                        HighlightingHover::Position((node, _)) => Some(node),
-                        HighlightingHover::Node(node) => Some(node),
-                        HighlightingHover::None => None,
-                    },
-                    &mut self.rects,
-                );
-
-                if textedit.response.changed() {
-                    self.update_weave(weave);
-                    self.last_text_edit_cursor = None;
-                    self.last_text_edit_highlighting_hover_update = Instant::now();
-                } else {
-                    let position = textedit.cursor_range.map(|c| c.sorted_cursors()[0]);
-                    if position != self.last_text_edit_cursor {
-                        if position.is_some() {
-                            if let Some((cursor_node, raw_cursor_index)) =
-                                self.calculate_cursor(weave, position.map(|p| p.index))
-                            {
-                                if let Some(cursor_index) = calculate_cursor_index(
-                                    cursor_node,
-                                    raw_cursor_index,
-                                    &self.node_snippets,
-                                ) {
-                                    state.set_cursor_node(NodeIndex::WithinNode(
-                                        cursor_node,
-                                        cursor_index,
-                                    ));
-                                    self.last_seen_cursor_node =
-                                        NodeIndex::WithinNode(cursor_node, cursor_index);
-                                } else {
-                                    state.set_cursor_node(NodeIndex::Node(cursor_node));
-                                    self.last_seen_cursor_node = NodeIndex::Node(cursor_node);
+                        if textedit.response.changed() {
+                            self.update_weave(weave);
+                            self.last_text_edit_cursor = None;
+                            self.last_text_edit_highlighting_hover_update = Instant::now();
+                        } else {
+                            let position = textedit.cursor_range.map(|c| c.sorted_cursors()[0]);
+                            if position != self.last_text_edit_cursor {
+                                if position.is_some() {
+                                    if let Some((cursor_node, raw_cursor_index)) =
+                                        self.calculate_cursor(weave, position.map(|p| p.index))
+                                    {
+                                        if let Some(cursor_index) = calculate_cursor_index(
+                                            cursor_node,
+                                            raw_cursor_index,
+                                            &self.node_snippets,
+                                        ) {
+                                            state.set_cursor_node(NodeIndex::WithinNode(
+                                                cursor_node,
+                                                cursor_index,
+                                            ));
+                                            self.last_seen_cursor_node =
+                                                NodeIndex::WithinNode(cursor_node, cursor_index);
+                                        } else {
+                                            state.set_cursor_node(NodeIndex::Node(cursor_node));
+                                            self.last_seen_cursor_node =
+                                                NodeIndex::Node(cursor_node);
+                                        }
+                                    } else {
+                                        state.set_cursor_node(NodeIndex::None);
+                                        self.last_seen_cursor_node = NodeIndex::None;
+                                    }
                                 }
-                            } else {
-                                state.set_cursor_node(NodeIndex::None);
-                                self.last_seen_cursor_node = NodeIndex::None;
+                                self.last_text_edit_cursor = position;
                             }
                         }
-                        self.last_text_edit_cursor = position;
-                    }
-                }
 
-                let hover_position = textedit.response.hover_pos().map(|p| p - top_left);
+                        let hover_position = textedit.response.hover_pos().map(|p| p - top_left);
 
-                if hover_position != self.last_text_edit_hover {
-                    if let Some(hover_position) = hover_position
-                        && cursor_is_within_galley(&textedit.galley, hover_position.to_pos2())
-                    {
-                        let hover_index = textedit.galley.cursor_from_pos(hover_position).index;
-                        let highlighting_hover = self
-                            .calculate_cursor(weave, Some(hover_index))
-                            .map(|(id, i)| HighlightingHover::Position((id, i)))
-                            .unwrap_or(HighlightingHover::None);
+                        if hover_position != self.last_text_edit_hover {
+                            if let Some(hover_position) = hover_position
+                                && cursor_is_within_galley(
+                                    &textedit.galley,
+                                    hover_position.to_pos2(),
+                                )
+                            {
+                                let hover_index =
+                                    textedit.galley.cursor_from_pos(hover_position).index;
+                                let highlighting_hover = self
+                                    .calculate_cursor(weave, Some(hover_index))
+                                    .map(|(id, i)| HighlightingHover::Position((id, i)))
+                                    .unwrap_or(HighlightingHover::None);
 
-                        if highlighting_hover != self.last_text_edit_highlighting_hover {
-                            self.last_text_edit_highlighting_hover = highlighting_hover;
-                            self.last_text_edit_highlighting_hover_update = Instant::now();
+                                if highlighting_hover != self.last_text_edit_highlighting_hover {
+                                    self.last_text_edit_highlighting_hover = highlighting_hover;
+                                    self.last_text_edit_highlighting_hover_update = Instant::now();
+                                }
+                            } else {
+                                self.last_text_edit_highlighting_hover = HighlightingHover::None;
+                            }
+
+                            self.last_text_edit_hover = hover_position;
                         }
-                    } else {
-                        self.last_text_edit_highlighting_hover = HighlightingHover::None;
-                    }
 
-                    self.last_text_edit_hover = hover_position;
-                }
+                        ui.style_mut().override_font_id = None;
 
-                ui.style_mut().override_font_id = None;
+                        if let HighlightingHover::Position((hover_node, hover_index)) =
+                            self.last_text_edit_highlighting_hover
+                        {
+                            let since_last_update = self
+                                .last_text_edit_highlighting_hover_update
+                                .elapsed()
+                                .as_secs_f32();
+                            let show_tooltip =
+                                since_last_update >= ui.style().interaction.tooltip_delay;
 
-                if let HighlightingHover::Position((hover_node, hover_index)) =
-                    self.last_text_edit_highlighting_hover
-                {
-                    let since_last_update = self
-                        .last_text_edit_highlighting_hover_update
-                        .elapsed()
-                        .as_secs_f32();
-                    let show_tooltip = since_last_update >= ui.style().interaction.tooltip_delay;
+                            if !show_tooltip {
+                                ui.ctx().request_repaint_after(Duration::from_secs_f32(
+                                    (ui.style().interaction.tooltip_delay - since_last_update)
+                                        + (1.0 / 15.0),
+                                ));
+                            }
 
-                    if !show_tooltip {
-                        ui.ctx().request_repaint_after(Duration::from_secs_f32(
-                            (ui.style().interaction.tooltip_delay - since_last_update)
-                                + (1.0 / 15.0),
-                        ));
-                    }
+                            let mut tooltip = Tooltip::for_widget(&textedit.response).at_pointer();
+                            tooltip.popup = tooltip.popup.open(show_tooltip);
+                            tooltip.show(|ui| {
+                                render_tooltip(
+                                    ui,
+                                    weave,
+                                    &self.node_snippets,
+                                    hover_node,
+                                    hover_index,
+                                );
+                            });
 
-                    let mut tooltip = Tooltip::for_widget(&textedit.response).at_pointer();
-                    tooltip.popup = tooltip.popup.open(show_tooltip);
-                    tooltip.show(|ui| {
-                        render_tooltip(ui, weave, &self.node_snippets, hover_node, hover_index);
+                            if let Some(corrected_hover_index) =
+                                calculate_cursor_index(hover_node, hover_index, &self.node_snippets)
+                            {
+                                state.set_hovered_node(NodeIndex::WithinNode(
+                                    hover_node,
+                                    corrected_hover_index,
+                                ));
+                                self.last_seen_hovered_node =
+                                    NodeIndex::WithinNode(hover_node, corrected_hover_index);
+                            } else {
+                                state.set_hovered_node(NodeIndex::Node(hover_node));
+                                self.last_seen_hovered_node = NodeIndex::Node(hover_node);
+                            }
+                        } else if self.last_seen_hovered_node != state.get_hovered_node() {
+                            self.last_text_edit_highlighting_hover = state
+                                .get_hovered_node()
+                                .into_node()
+                                .map(HighlightingHover::Node)
+                                .unwrap_or(HighlightingHover::None);
+                            self.last_seen_hovered_node = state.get_hovered_node();
+                        }
                     });
-
-                    if let Some(corrected_hover_index) =
-                        calculate_cursor_index(hover_node, hover_index, &self.node_snippets)
-                    {
-                        state.set_hovered_node(NodeIndex::WithinNode(
-                            hover_node,
-                            corrected_hover_index,
-                        ));
-                        self.last_seen_hovered_node =
-                            NodeIndex::WithinNode(hover_node, corrected_hover_index);
-                    } else {
-                        state.set_hovered_node(NodeIndex::Node(hover_node));
-                        self.last_seen_hovered_node = NodeIndex::Node(hover_node);
-                    }
-                } else if self.last_seen_hovered_node != state.get_hovered_node() {
-                    self.last_text_edit_highlighting_hover = state
-                        .get_hovered_node()
-                        .into_node()
-                        .map(HighlightingHover::Node)
-                        .unwrap_or(HighlightingHover::None);
-                    self.last_seen_hovered_node = state.get_hovered_node();
-                }
             });
     }
     fn update(&mut self, weave: &mut TapestryWeave, settings: &Settings, default_color: Color32) {
@@ -458,7 +475,7 @@ fn calculate_boundaries(
     snippets: &[Snippet],
     top_left: Pos2,
     galley: &Galley,
-    hover: Option<Ulid>,
+    _hover: Option<Ulid>,
     output: &mut Vec<(Rect, Color32)>,
 ) {
     if snippets.len() < 2 {
