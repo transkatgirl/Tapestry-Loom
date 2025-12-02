@@ -174,8 +174,6 @@ impl Endpoint for OpenAICompletionsConfig {
                     let mut tokens = Vec::new();
 
                     if let Some(Value::Object(mut logprobs)) = choice.remove("logprobs") {
-                        debug!("{}", serde_json::to_string_pretty(&logprobs).unwrap());
-
                         if let Some(Value::Array(logprobs_content)) = logprobs.remove("content") {
                             tokens.reserve(logprobs_content.len());
 

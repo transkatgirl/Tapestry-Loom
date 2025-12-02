@@ -524,7 +524,7 @@ impl InferenceParameters {
                     Ok(contents) => {
                         for content in contents {
                             output.push(Ok(DependentNode {
-                                id: key.0,
+                                id: Ulid::from_datetime(key.datetime()).0,
                                 from: value.parent.map(|id| id.0),
                                 to: IndexSet::default(),
                                 active: false,
