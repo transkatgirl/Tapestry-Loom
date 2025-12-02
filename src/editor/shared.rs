@@ -477,12 +477,12 @@ pub fn get_token_color(
     if let Some(color) = node_color {
         if settings.interface.show_token_probabilities
             && let Some(probability) = token_metadata
-                .get("key")
+                .get("probability")
                 .and_then(|p| p.parse::<f32>().ok())
         {
             let probability = probability.clamp(0.0, 1.0);
             let rgba = Rgba::from(color).to_opaque();
-            let opacity = (1.0 - (f32::log10(1.0 / probability)) / 4.0).min(0.3);
+            let opacity = (1.0 - (f32::log10(1.0 / probability)) / 4.0).max(0.3);
 
             Some(Color32::from(Rgba::from_rgba_unmultiplied(
                 rgba.r(),
@@ -495,7 +495,7 @@ pub fn get_token_color(
         }
     } else if settings.interface.show_token_probabilities
         && let Some(probability) = token_metadata
-            .get("key")
+            .get("probability")
             .and_then(|p| p.parse::<f32>().ok())
     {
         // TODO: Perform color blending in perceptual color space
