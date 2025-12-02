@@ -236,6 +236,7 @@ fn parse_openai_response(
                             }
                         }
                     } else {
+
                         // TODO
                     }
                 }
@@ -267,12 +268,63 @@ fn parse_openai_response(
                         content: InnerNodeContent::Snippet(text.into_bytes()),
                         metadata,
                     });
+                } else if let Some(Value::Object(mut message)) = choice.remove("message")
+                    && let Some(Value::String(content)) = message.remove("content")
+                {
+                    if let Some(Value::String(role)) = message.remove("role")
+                        && role != "assistant"
+                    {
+                        metadata.push(("role".to_string(), role));
+                    }
+
+                    responses.push(EndpointResponse {
+                        content: InnerNodeContent::Snippet(content.into_bytes()),
+                        metadata,
+                    });
                 }
             }
         }
 
         if !responses.is_empty() {
             return responses;
+        }
+    } else if let Some(Value::Array(outputs)) = response.remove("output") {
+        for output in outputs {
+            if let Value::Object(mut output) = output
+                && let Some(Value::String(output_type)) = output.remove("type")
+                && output_type == "message"
+            {
+                let mut metadata = metadata.clone();
+
+                if let Some(Value::String(status)) = output.remove("status")
+                    && status != "completed"
+                {
+                    metadata.push(("status".to_string(), status));
+                }
+
+                let mut has_text = false;
+                let mut bytes = Vec::with_capacity(512);
+
+                if let Some(Value::Array(content)) = output.remove("content") {
+                    for content_item in content {
+                        if let Value::Object(mut content_item) = content_item
+                            && let Some(Value::String(content_type)) = content_item.remove("type")
+                            && content_type == "output_text"
+                            && let Some(Value::String(text)) = content_item.remove("text")
+                        {
+                            bytes.extend(text.into_bytes());
+                            has_text = true;
+                        }
+                    }
+                }
+
+                if has_text {
+                    return vec![EndpointResponse {
+                        content: InnerNodeContent::Snippet(bytes),
+                        metadata,
+                    }];
+                }
+            }
         }
     }
 
@@ -283,6 +335,7 @@ fn parse_openai_logprob(mut logprob: Map<String, Value>, output: &mut Vec<(Vec<u
     let token = if let Some(bytes) = logprob
         .remove("bytes")
         .and_then(|v| serde_json::from_value::<Vec<u8>>(v).ok())
+        && !bytes.is_empty()
     {
         Some(bytes)
     } else if let Some(Value::String(token)) = logprob.remove("token") {
