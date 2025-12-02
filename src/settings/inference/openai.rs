@@ -113,6 +113,12 @@ impl Endpoint for OpenAICompletionsConfig {
 
         &self.endpoint
     }
+    fn default_parameters(&self) -> Vec<(String, String)> {
+        vec![
+            ("temperature".to_string(), "1".to_string()),
+            ("max_tokens".to_string(), "10".to_string()),
+        ]
+    }
     async fn perform_request(
         &self,
         client: &Client,

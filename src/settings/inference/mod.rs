@@ -393,11 +393,13 @@ impl InferenceParameters {
                 }
             });
 
-        if self.new_model != Ulid(0) {
+        if self.new_model != Ulid(0)
+            && let Some(model) = models.get(&self.new_model)
+        {
             self.models.push(ModelInferenceParameters {
                 model: self.new_model,
                 requests: 5,
-                parameters: vec![("temperature".to_string(), "1".to_string())],
+                parameters: model.endpoint.default_parameters(),
             });
             self.new_model = Ulid(0);
         }
@@ -613,6 +615,11 @@ impl Endpoint for EndpointConfig {
             Self::OpenAICompletions(endpoint) => endpoint.label(),
         }
     }
+    fn default_parameters(&self) -> Vec<(String, String)> {
+        match self {
+            Self::OpenAICompletions(endpoint) => endpoint.default_parameters(),
+        }
+    }
     fn perform_request(
         &self,
         client: &Client,
@@ -638,6 +645,7 @@ struct EndpointResponse {
 trait Endpoint: Serialize + DeserializeOwned + Clone {
     fn render_settings(&mut self, ui: &mut Ui);
     fn label(&self) -> &str;
+    fn default_parameters(&self) -> Vec<(String, String)>;
     async fn perform_request(
         &self,
         client: &Client,
