@@ -469,8 +469,8 @@ fn calculate_boundaries(
     let mut snippet_index = 0;
     let mut snippet_offset = 0;
 
-    let boundary_color = ui.style().visuals.widgets.active.bg_fill;
-    let boundary_color_strong = ui.style().visuals.widgets.active.fg_stroke.color;
+    let boundary_color = ui.style().visuals.widgets.inactive.bg_fill;
+    let boundary_color_strong = ui.style().visuals.widgets.inactive.fg_stroke.color;
     let boundary_width = ui.style().visuals.widgets.hovered.fg_stroke.width;
 
     let mut draw_row_index = |pos: Pos2, size: Vec2, len: usize, index: usize, is_token: bool| {
