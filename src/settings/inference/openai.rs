@@ -236,8 +236,64 @@ fn parse_openai_response(
                             }
                         }
                     } else {
+                        if let Some(Value::Array(mut top_logprobs)) =
+                            logprobs.remove("top_logprobs")
+                            && !top_logprobs.is_empty()
+                            && let Value::Object(top_logprobs) = top_logprobs.swap_remove(0)
+                            && top_logprobs.len() > 1
+                        {
+                            let mut tokens = Vec::with_capacity(top_logprobs.len());
 
-                        // TODO
+                            for (token, logprob) in top_logprobs {
+                                if let Value::Number(logprob) = logprob
+                                    && let Some(logprob) = logprob.as_f64()
+                                {
+                                    tokens.push((
+                                        token.into_bytes(),
+                                        (logprob.exp() * 1000.0).round() / 1000.0,
+                                    ));
+                                }
+                            }
+
+                            tokens.sort_unstable_by(|a, b| b.1.total_cmp(&a.1));
+
+                            responses.reserve(tokens.len());
+
+                            for (token, prob) in tokens {
+                                responses.push(EndpointResponse {
+                                    content: InnerNodeContent::Tokens(vec![(
+                                        token,
+                                        IndexMap::from_iter([(
+                                            "probability".to_string(),
+                                            prob.to_string(),
+                                        )]),
+                                    )]),
+                                    metadata: metadata.clone(),
+                                });
+                            }
+                        }
+
+                        let output = &mut tokens;
+
+                        if let Some(Value::Array(mut tokens)) = logprobs.remove("tokens")
+                            && let Some(Value::Array(mut token_logprobs)) =
+                                logprobs.remove("token_logprobs")
+                            && tokens.len() == token_logprobs.len()
+                        {
+                            output.reserve(tokens.len());
+
+                            for (token, logprob) in tokens.drain(..).zip(token_logprobs.drain(..)) {
+                                if let Value::String(token) = token
+                                    && let Value::Number(logprob) = logprob
+                                    && let Some(logprob) = logprob.as_f64()
+                                {
+                                    output.push((
+                                        token.into_bytes(),
+                                        (logprob.exp() * 1000.0).round() / 1000.0,
+                                    ));
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -300,6 +356,12 @@ fn parse_openai_response(
                     && status != "completed"
                 {
                     metadata.push(("status".to_string(), status));
+                }
+
+                if let Some(Value::String(role)) = output.remove("role")
+                    && role != "assistant"
+                {
+                    metadata.push(("role".to_string(), role));
                 }
 
                 let mut has_text = false;
