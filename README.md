@@ -67,9 +67,7 @@ The plans for the rewrite are the following:
 - [ ] Multiple inference backends
 	- [x] OpenAI-compatible Completions
 	- [x] OpenAI-compatible ChatCompletions
-	- [ ] llama-server native
-	- [ ] vLLM native
-	- [ ] SGLang native
+	- [ ] llama-server native API
 - [ ] UI improvements
 - [ ] Better documentation & onboarding
 

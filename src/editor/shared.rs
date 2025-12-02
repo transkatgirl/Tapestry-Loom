@@ -457,7 +457,9 @@ pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &DependentNode<NodeConten
     ui.label(Ulid(node.id).to_string());
 }
 
-pub fn render_token_metadata_tooltip(ui: &mut Ui, token_metadata: &IndexMap<String, String>) {
+pub fn render_token_tooltip(ui: &mut Ui, token: &[u8], token_metadata: &IndexMap<String, String>) {
+    ui.label(format!("{:#?}", String::from_utf8_lossy(token)));
+
     for (key, value) in token_metadata {
         if key == "probability"
             && let Ok(probability) = value.parse::<f32>()

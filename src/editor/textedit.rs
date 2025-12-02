@@ -25,7 +25,7 @@ use tapestry_weave::{
 use crate::{
     editor::shared::{
         NodeIndex, SharedState, get_node_color, get_token_color, render_node_metadata_tooltip,
-        render_token_metadata_tooltip,
+        render_token_tooltip,
     },
     settings::{Settings, shortcuts::Shortcuts},
 };
@@ -683,10 +683,11 @@ fn render_tooltip(
                     token_offset = Some(0);
                 }
 
-                if let Some((_, token_metadata)) = token_offset.and_then(|index| tokens.get(index))
+                if let Some((token, token_metadata)) =
+                    token_offset.and_then(|index| tokens.get(index))
                 {
                     ui.separator();
-                    render_token_metadata_tooltip(ui, token_metadata);
+                    render_token_tooltip(ui, token, token_metadata);
                 }
             }
         }
