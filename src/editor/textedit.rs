@@ -12,7 +12,7 @@ use eframe::{
         TextStyle, Tooltip, Ui, Vec2,
         text::{CCursor, CCursorRange, LayoutJob, LayoutSection, TextWrapping},
     },
-    epaint::{Vertex, WHITE_UV},
+    epaint::{MarginF32, Vertex, WHITE_UV},
 };
 use egui_notify::Toasts;
 use flagset::FlagSet;
@@ -130,7 +130,7 @@ impl TextEditorView {
             .animated(false)
             .show(ui, |ui| {
                 Frame::new()
-                    .outer_margin(listing_margin(ui))
+                    .outer_margin(MarginF32::same(ui.style().spacing.menu_spacing / 2.0))
                     .show(ui, |ui| {
                         let mut font_id = TextStyle::Monospace.resolve(ui.style());
                         font_id.size *= 1.1;
