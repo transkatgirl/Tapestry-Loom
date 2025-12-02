@@ -36,7 +36,7 @@ impl Default for UISettings {
     fn default() -> Self {
         Self {
             ui_scale: 1.25,
-            ui_theme: UITheme::Light,
+            ui_theme: UITheme::Dark,
             displayed_ui_scale: 1.25,
             show_model_colors: true,
             show_token_probabilities: true,

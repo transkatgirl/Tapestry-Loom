@@ -65,8 +65,8 @@ The plans for the rewrite are the following:
 	- [ ] Allows saving & loading custom presets
 	- [ ] Allow importing and exporting custom presets
 - [ ] Multiple inference backends
-	- [ ] OpenAI-compatible Completions
-	- [ ] OpenAI-compatible ChatCompletions
+	- [x] OpenAI-compatible Completions
+	- [x] OpenAI-compatible ChatCompletions
 	- [ ] llama-server native
 	- [ ] vLLM native
 	- [ ] SGLang native
