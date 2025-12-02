@@ -1,4 +1,5 @@
 use eframe::egui::{TextEdit, Ui, Widget};
+use log::trace;
 use reqwest::{
     Client, Method, Url,
     header::{HeaderMap, HeaderName, HeaderValue},
@@ -148,6 +149,8 @@ impl Endpoint for OpenAICompletionsConfig {
             Value::String(String::from_utf8_lossy(&request.content).to_string()),
         );
 
+        trace!("{:#?}", &body);
+
         let response: Map<String, Value> = client
             .request(Method::POST, Url::parse(&self.endpoint)?)
             .headers(headers)
@@ -184,6 +187,8 @@ fn parse_openai_response(
     mut response: Map<String, Value>,
     metadata: Vec<(String, String)>,
 ) -> Vec<EndpointResponse> {
+    trace!("{:#?}", &response);
+
     if let Some(Value::String(text)) = response.remove("text") {
         return vec![EndpointResponse {
             content: InnerNodeContent::Snippet(text.into_bytes()),
