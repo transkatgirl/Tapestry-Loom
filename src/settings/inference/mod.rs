@@ -307,7 +307,7 @@ impl InferenceParameters {
     }
     fn render_inner(&mut self, models: &IndexMap<Ulid, InferenceModel>, ui: &mut Ui) {
         ui.add(
-            Slider::new(&mut self.recursion_depth, 0..=4)
+            Slider::new(&mut self.recursion_depth, 0..=3)
                 .clamping(SliderClamping::Never)
                 .text("Recursion")
                 .suffix(" layers"),
