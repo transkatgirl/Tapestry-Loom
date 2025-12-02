@@ -53,11 +53,17 @@ pub struct TextEditorView {
 
 type Snippet = (usize, Ulid, Color32, Option<usize>);
 
-const SUBSTITUTION_CHAR: char = '␚'; //Must be 1 UTF-8 byte in length
-const SUBSTITUTION_BYTE: u8 = "␚".as_bytes()[0];
+const SUBSTITUTION_CHAR: char = '\u{1A}'; //Must be 1 UTF-8 byte in length
+const SUBSTITUTION_BYTE: u8 = "\u{1A}".as_bytes()[0];
 
 impl Default for TextEditorView {
     fn default() -> Self {
+        debug_assert_eq!(SUBSTITUTION_CHAR.to_string().len(), 1);
+        debug_assert_eq!(
+            SUBSTITUTION_CHAR.to_string().as_bytes()[0],
+            SUBSTITUTION_BYTE
+        );
+
         Self {
             text: String::with_capacity(262144),
             bytes: Vec::with_capacity(262144),
