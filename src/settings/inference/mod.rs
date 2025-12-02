@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, future::Future, rc::Rc, sync::Arc, time::Duration};
+use std::{collections::HashMap, fmt::Display, rc::Rc, sync::Arc, time::Duration};
 
 use bytes::{Bytes, BytesMut};
 use eframe::egui::{
@@ -18,7 +18,10 @@ use tapestry_weave::{
 };
 use tokio::runtime::Runtime;
 
-use crate::settings::inference::openai::{OpenAICompletionsConfig, OpenAICompletionsTemplate};
+use crate::settings::inference::openai::{
+    OpenAIChatCompletionsConfig, OpenAIChatCompletionsTemplate, OpenAICompletionsConfig,
+    OpenAICompletionsTemplate,
+};
 
 mod openai;
 
@@ -551,6 +554,7 @@ enum EndpointTemplate {
     #[default]
     None,
     OpenAICompletions(OpenAICompletionsTemplate),
+    OpenAIChatCompletions(OpenAIChatCompletionsTemplate),
 }
 
 impl EndpointTemplate {
@@ -563,6 +567,7 @@ impl EndpointTemplate {
                     let templates = vec![
                         Self::None,
                         Self::OpenAICompletions(OpenAICompletionsTemplate::default()),
+                        Self::OpenAIChatCompletions(OpenAIChatCompletionsTemplate::default()),
                     ];
 
                     for template in templates {
@@ -577,6 +582,7 @@ impl EndpointTemplate {
         match self {
             Self::None => {}
             Self::OpenAICompletions(template) => template.render(ui),
+            Self::OpenAIChatCompletions(template) => template.render(ui),
         }
     }
     fn build(&mut self) -> Option<EndpointConfig> {
@@ -591,6 +597,15 @@ impl EndpointTemplate {
                     None
                 }
             }
+            Self::OpenAIChatCompletions(template) => {
+                if let Some(endpoint) = template.clone().build() {
+                    *self = EndpointTemplate::None;
+
+                    Some(EndpointConfig::OpenAIChatCompletions(endpoint))
+                } else {
+                    None
+                }
+            }
         }
     }
 }
@@ -600,6 +615,7 @@ impl Display for EndpointTemplate {
         match self {
             Self::None => f.write_str("Choose template..."),
             Self::OpenAICompletions(_) => f.write_str("OpenAI-like Completions"),
+            Self::OpenAIChatCompletions(_) => f.write_str("OpenAI-like ChatCompletions"),
         }
     }
 }
@@ -608,12 +624,14 @@ impl Display for EndpointTemplate {
 
 enum EndpointConfig {
     OpenAICompletions(OpenAICompletionsConfig),
+    OpenAIChatCompletions(OpenAIChatCompletionsConfig),
 }
 
 impl Display for EndpointConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::OpenAICompletions(_) => f.write_str("OpenAI-like Completions"),
+            Self::OpenAIChatCompletions(_) => f.write_str("OpenAI-like ChatCompletions"),
         }
     }
 }
@@ -622,25 +640,31 @@ impl Endpoint for EndpointConfig {
     fn render_settings(&mut self, ui: &mut Ui) {
         match self {
             Self::OpenAICompletions(endpoint) => endpoint.render_settings(ui),
+            Self::OpenAIChatCompletions(endpoint) => endpoint.render_settings(ui),
         }
     }
     fn label(&self) -> &str {
         match self {
             Self::OpenAICompletions(endpoint) => endpoint.label(),
+            Self::OpenAIChatCompletions(endpoint) => endpoint.label(),
         }
     }
     fn default_parameters(&self) -> Vec<(String, String)> {
         match self {
             Self::OpenAICompletions(endpoint) => endpoint.default_parameters(),
+            Self::OpenAIChatCompletions(endpoint) => endpoint.default_parameters(),
         }
     }
-    fn perform_request(
+    async fn perform_request(
         &self,
         client: &Client,
         request: EndpointRequest,
-    ) -> impl Future<Output = Result<Vec<EndpointResponse>, anyhow::Error>> {
+    ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
         match self {
-            Self::OpenAICompletions(endpoint) => endpoint.perform_request(client, request),
+            Self::OpenAICompletions(endpoint) => endpoint.perform_request(client, request).await,
+            Self::OpenAIChatCompletions(endpoint) => {
+                endpoint.perform_request(client, request).await
+            }
         }
     }
 }

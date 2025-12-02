@@ -81,6 +81,75 @@ impl Template<OpenAICompletionsConfig> for OpenAICompletionsTemplate {
     }
 }
 
+#[derive(Default, Debug, Clone, PartialEq)]
+pub(super) struct OpenAIChatCompletionsTemplate {
+    endpoint: String,
+    model: String,
+    api_key: String,
+}
+
+impl Template<OpenAIChatCompletionsConfig> for OpenAIChatCompletionsTemplate {
+    fn render(&mut self, ui: &mut Ui) {
+        ui.horizontal_wrapped(|ui| {
+            TextEdit::singleline(&mut self.endpoint)
+                .hint_text("https://openrouter.ai/api/v1/chat/completions")
+                .ui(ui)
+                .on_hover_text("Endpoint URL");
+            TextEdit::singleline(&mut self.model)
+                .hint_text("Model (optional)")
+                .desired_width(ui.spacing().text_edit_width / 1.5)
+                .ui(ui)
+                .on_hover_text("Model");
+            TextEdit::singleline(&mut self.api_key)
+                .hint_text("API key (optional)")
+                .desired_width(ui.spacing().text_edit_width / 1.5)
+                .ui(ui)
+                .on_hover_text("API key");
+        });
+    }
+    fn build(mut self) -> Option<OpenAIChatCompletionsConfig> {
+        Some(OpenAIChatCompletionsConfig {
+            endpoint: if self.endpoint.is_empty() {
+                "https://openrouter.ai/api/v1/chat/completions".to_string()
+            } else {
+                if !self.endpoint.ends_with("/v1/chat/completions") {
+                    self.endpoint.push_str("/v1/chat/completions");
+                }
+
+                self.endpoint
+            },
+            parameters: if self.model.is_empty() {
+                Vec::new()
+            } else {
+                vec![("model".to_string(), self.model)]
+            },
+            headers: if self.api_key.is_empty() {
+                vec![
+                    ("User-Agent".to_string(), "TapestryLoom".to_string()),
+                    (
+                        "HTTP-Referer".to_string(),
+                        "https://github.com/transkatgirl/Tapestry-Loom".to_string(),
+                    ),
+                    ("X-Title".to_string(), "Tapestry Loom".to_string()),
+                ]
+            } else {
+                vec![
+                    (
+                        "Authorization".to_string(),
+                        ["Bearer ", &self.api_key].concat(),
+                    ),
+                    ("User-Agent".to_string(), "TapestryLoom".to_string()),
+                    (
+                        "HTTP-Referer".to_string(),
+                        "https://github.com/transkatgirl/Tapestry-Loom".to_string(),
+                    ),
+                    ("X-Title".to_string(), "Tapestry Loom".to_string()),
+                ]
+            },
+        })
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(super) struct OpenAICompletionsConfig {
     endpoint: String,
@@ -119,6 +188,7 @@ impl Endpoint for OpenAICompletionsConfig {
         vec![
             ("temperature".to_string(), "1".to_string()),
             ("max_tokens".to_string(), "10".to_string()),
+            ("logprobs".to_string(), "1".to_string()),
         ]
     }
     async fn perform_request(
@@ -147,6 +217,106 @@ impl Endpoint for OpenAICompletionsConfig {
         body.insert(
             "prompt".to_string(),
             Value::String(String::from_utf8_lossy(&request.content).to_string()),
+        );
+
+        trace!("{:#?}", &body);
+
+        let response: Map<String, Value> = client
+            .request(Method::POST, Url::parse(&self.endpoint)?)
+            .headers(headers)
+            .json(&Value::Object(body))
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+
+        let metadata = request.parameters.as_ref().clone();
+
+        let endpoint_response = parse_openai_response(response, metadata);
+
+        if !endpoint_response.is_empty() {
+            Ok(endpoint_response)
+        } else {
+            Err(anyhow::Error::msg("Response does not match API schema"))
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub(super) struct OpenAIChatCompletionsConfig {
+    endpoint: String,
+    parameters: Vec<(String, String)>,
+    headers: Vec<(String, String)>,
+}
+
+impl Endpoint for OpenAIChatCompletionsConfig {
+    fn render_settings(&mut self, ui: &mut Ui) {
+        TextEdit::singleline(&mut self.endpoint)
+            .hint_text("Endpoint URL")
+            .desired_width(ui.spacing().text_edit_width * 2.0)
+            .ui(ui)
+            .on_hover_text("Endpoint URL");
+
+        ui.group(|ui| {
+            ui.label("Request parameters:");
+            render_config_map(ui, &mut self.parameters, 0.9, 1.1);
+        });
+
+        ui.group(|ui| {
+            ui.label("Request headers:");
+            render_config_map(ui, &mut self.headers, 0.9, 1.1);
+        });
+    }
+    fn label(&self) -> &str {
+        for (key, value) in &self.parameters {
+            if key == "model" && !value.is_empty() {
+                return value;
+            }
+        }
+
+        &self.endpoint
+    }
+    fn default_parameters(&self) -> Vec<(String, String)> {
+        vec![
+            ("temperature".to_string(), "1".to_string()),
+            ("max_tokens".to_string(), "10".to_string()),
+            ("logprobs".to_string(), "true".to_string()),
+            ("top_logprobs".to_string(), "1".to_string()),
+        ]
+    }
+    async fn perform_request(
+        &self,
+        client: &Client,
+        request: EndpointRequest,
+    ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
+        let mut headers = HeaderMap::with_capacity(self.headers.len());
+
+        for (key, value) in &self.headers {
+            headers.insert(
+                HeaderName::from_bytes(key.as_bytes())?,
+                HeaderValue::from_str(value)?,
+            );
+        }
+
+        let mut body = Map::with_capacity(1 + request.parameters.len() + self.parameters.len());
+
+        build_json_object(&mut body, self.parameters.clone());
+        build_json_object(&mut body, request.parameters.as_ref().clone());
+
+        if body.remove("stream").is_some() {
+            body.insert("stream".to_string(), Value::Bool(false));
+        };
+
+        body.insert(
+            "messages".to_string(),
+            Value::Array(vec![Value::Object(Map::from_iter([
+                ("role".to_string(), Value::String("assistant".to_string())),
+                (
+                    "content".to_string(),
+                    Value::String(String::from_utf8_lossy(&request.content).to_string()),
+                ),
+            ]))]),
         );
 
         trace!("{:#?}", &body);
