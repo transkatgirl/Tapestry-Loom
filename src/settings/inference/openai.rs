@@ -218,7 +218,7 @@ impl Endpoint for OpenAICompletionsConfig {
 
                                                 if let Some(token) = token
                                                     && let Some(Value::Number(logprob)) =
-                                                        logprob_item.remove("logprob")
+                                                        top_logprob.remove("logprob")
                                                     && let Some(logprob) = logprob.as_f64()
                                                 {
                                                     tokens.push((
