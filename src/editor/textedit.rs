@@ -422,6 +422,8 @@ fn calculate_highlighting(
     let hover_bg = ui.style().visuals.widgets.hovered.weak_bg_fill;
 
     for (snippet_length, node, color, token_index) in snippets {
+        let byte_range = index..(index + snippet_length);
+
         index += snippet_length;
 
         if index > length {
@@ -430,8 +432,6 @@ fn calculate_highlighting(
         }
 
         let mut format = TextFormat::simple(font_id.clone(), *color);
-
-        let byte_range = (index - snippet_length)..index;
 
         match hover {
             HighlightingHover::Position((hover_node, hover_position)) => {
