@@ -469,8 +469,8 @@ fn calculate_boundaries(
     let mut snippet_index = 0;
     let mut snippet_offset = 0;
 
-    let boundary_color = ui.style().visuals.widgets.inactive.bg_fill;
-    let boundary_color_strong = ui.style().visuals.widgets.inactive.fg_stroke.color;
+    let boundary_color = ui.style().visuals.widgets.active.bg_fill;
+    let boundary_color_strong = ui.style().visuals.widgets.active.fg_stroke.color;
     let boundary_width = ui.style().visuals.widgets.hovered.fg_stroke.width;
 
     let mut draw_row_index = |pos: Pos2, size: Vec2, len: usize, index: usize, is_token: bool| {
@@ -542,9 +542,9 @@ fn calculate_boundaries(
                         draw_row_index(row_position, row.size, row_chars, row_chars, false);
                     }
                     last_node = Some(snippets[snippet_index].1);
-                } else if hover == Some(snippets[snippet_index].1) {
-                    draw_row_index(row_position, row.size, row_chars, row_chars, true);
-                }
+                } /*else if hover == Some(snippets[snippet_index].1) {
+                draw_row_index(row_position, row.size, row_chars, row_chars, true);
+                }*/
 
                 snippet_offset += snippets[snippet_index].0;
                 snippet_index += 1;
