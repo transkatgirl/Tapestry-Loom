@@ -139,6 +139,10 @@ impl Endpoint for OpenAICompletionsConfig {
         build_json_object(&mut body, self.parameters.clone());
         build_json_object(&mut body, request.parameters.as_ref().clone());
 
+        if body.remove("stream").is_some() {
+            body.insert("stream".to_string(), Value::Bool(false));
+        };
+
         body.insert(
             "prompt".to_string(),
             Value::String(String::from_utf8_lossy(&request.content).to_string()),
