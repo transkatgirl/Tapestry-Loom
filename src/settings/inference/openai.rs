@@ -155,7 +155,7 @@ impl Endpoint for OpenAICompletionsConfig {
             .json()
             .await?;
 
-        let mut metadata = request.parameters.as_ref().clone();
+        let metadata = request.parameters.as_ref().clone();
 
         //debug!("{:#?}", response);
 
@@ -181,7 +181,75 @@ impl Endpoint for OpenAICompletionsConfig {
 
                             for (i, logprob_item) in logprobs_content.into_iter().enumerate() {
                                 if let Value::Object(mut logprob_item) = logprob_item {
-                                    if let Some(Value::String(token)) = logprob_item.remove("token")
+                                    let token = if let Some(bytes) = logprob_item
+                                        .remove("bytes")
+                                        .and_then(|v| serde_json::from_value::<Vec<u8>>(v).ok())
+                                    {
+                                        Some(bytes)
+                                    } else if let Some(Value::String(token)) =
+                                        logprob_item.remove("token")
+                                    {
+                                        Some(token.into_bytes())
+                                    } else {
+                                        None
+                                    };
+
+                                    if i == 0
+                                        && let Some(Value::Array(top_logprobs)) =
+                                            logprob_item.remove("top_logprobs")
+                                        && top_logprobs.len() > 1
+                                    {
+                                        let mut tokens = Vec::with_capacity(top_logprobs.len());
+
+                                        for top_logprob in top_logprobs {
+                                            if let Value::Object(mut top_logprob) = top_logprob {
+                                                let token = if let Some(bytes) =
+                                                    top_logprob.remove("bytes").and_then(|v| {
+                                                        serde_json::from_value::<Vec<u8>>(v).ok()
+                                                    }) {
+                                                    Some(bytes)
+                                                } else if let Some(Value::String(token)) =
+                                                    top_logprob.remove("token")
+                                                {
+                                                    Some(token.into_bytes())
+                                                } else {
+                                                    None
+                                                };
+
+                                                if let Some(token) = token
+                                                    && let Some(Value::Number(logprob)) =
+                                                        logprob_item.remove("logprob")
+                                                    && let Some(logprob) = logprob.as_f64()
+                                                {
+                                                    tokens.push((
+                                                        token,
+                                                        (logprob.exp() * 10000.0).round() / 10000.0,
+                                                    ));
+                                                }
+                                            }
+                                        }
+
+                                        tokens.sort_unstable_by(|a, b| a.1.total_cmp(&b.1));
+
+                                        contents.reserve(tokens.len());
+
+                                        contents.push(InnerNodeContent::Tokens(
+                                            tokens
+                                                .into_iter()
+                                                .map(|(token, prob)| {
+                                                    (
+                                                        token,
+                                                        IndexMap::from_iter([(
+                                                            "probability".to_string(),
+                                                            prob.to_string(),
+                                                        )]),
+                                                    )
+                                                })
+                                                .collect(),
+                                        ));
+                                    }
+
+                                    if let Some(token) = token
                                         && let Some(Value::Number(logprob)) =
                                             logprob_item.remove("logprob")
                                         && let Some(logprob) = logprob.as_f64()
@@ -190,14 +258,6 @@ impl Endpoint for OpenAICompletionsConfig {
                                             token,
                                             (logprob.exp() * 10000.0).round() / 10000.0,
                                         ));
-                                    }
-
-                                    if i == 0
-                                        && let Some(Value::Array(logprobs_content)) =
-                                            logprob_item.remove("top_logprobs")
-                                    {
-                                        contents.reserve(logprobs_content.len());
-                                        // TODO
                                     }
                                 }
                             }
@@ -212,7 +272,7 @@ impl Endpoint for OpenAICompletionsConfig {
                                 .into_iter()
                                 .map(|(token, prob)| {
                                     (
-                                        token.into_bytes(),
+                                        token,
                                         IndexMap::from_iter([(
                                             "probability".to_string(),
                                             prob.to_string(),
