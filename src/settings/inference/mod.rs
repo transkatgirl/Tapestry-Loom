@@ -43,7 +43,7 @@ impl Default for ClientConfig {
     fn default() -> Self {
         Self {
             accept_invalid_tls: false,
-            timeout_minutes: 15.0,
+            timeout_minutes: 5.0,
         }
     }
 }
@@ -458,12 +458,19 @@ impl InferenceParameters {
                             handle: Promise::spawn_async(async move {
                                 let response =
                                     endpoint.as_ref().perform_request(&client, request).await?;
+                                let metadata = IndexMap::from_iter(response.metadata);
 
-                                Ok(NodeContent {
-                                    content: response.content,
-                                    metadata: IndexMap::from_iter(response.metadata),
-                                    model: Some(content_model),
-                                })
+                                response
+                                    .content
+                                    .into_iter()
+                                    .map(|content| {
+                                        Ok(NodeContent {
+                                            content,
+                                            metadata: metadata.clone(),
+                                            model: Some(content_model.clone()),
+                                        })
+                                    })
+                                    .collect()
                             }),
                         },
                     );
@@ -498,27 +505,36 @@ impl InferenceParameters {
                     let mut parameters = value.parameters.as_ref().clone();
                     parameters.recursion_depth -= 1;
 
-                    let mut parent_content = BytesMut::from(value.parent_content);
-                    parent_content.extend_from_slice(&content.content.as_bytes());
+                    for item in content {
+                        let mut parent_content = BytesMut::from(value.parent_content.clone());
+                        parent_content.extend_from_slice(&item.content.as_bytes());
 
-                    parameters.create_request_inner(
-                        value.models.clone(),
-                        runtime,
-                        client,
-                        Some(key),
-                        parent_content.into(),
-                        input,
-                    );
+                        parameters.create_request_inner(
+                            value.models.clone(),
+                            runtime,
+                            client,
+                            Some(key),
+                            parent_content.into(),
+                            input,
+                        );
+                    }
                 }
 
-                output.push(result.map(|content| DependentNode {
-                    id: key.0,
-                    from: value.parent.map(|id| id.0),
-                    to: IndexSet::default(),
-                    active: false,
-                    bookmarked: false,
-                    contents: content,
-                }));
+                match result {
+                    Ok(contents) => {
+                        for content in contents {
+                            output.push(Ok(DependentNode {
+                                id: key.0,
+                                from: value.parent.map(|id| id.0),
+                                to: IndexSet::default(),
+                                active: false,
+                                bookmarked: false,
+                                contents: content,
+                            }));
+                        }
+                    }
+                    Err(error) => output.push(Err(error)),
+                }
             }
         }
     }
@@ -529,7 +545,7 @@ pub struct InferenceHandle {
     parent_content: Bytes,
     models: Rc<IndexMap<Ulid, InferenceModel>>,
     parameters: Rc<InferenceParameters>,
-    handle: Promise<Result<NodeContent, anyhow::Error>>,
+    handle: Promise<Result<Vec<NodeContent>, anyhow::Error>>,
 }
 
 #[derive(Default, Debug, PartialEq)]
@@ -638,7 +654,7 @@ struct EndpointRequest {
 }
 
 struct EndpointResponse {
-    content: InnerNodeContent,
+    content: Vec<InnerNodeContent>,
     metadata: Vec<(String, String)>,
 }
 
