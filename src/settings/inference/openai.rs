@@ -186,7 +186,10 @@ impl Endpoint for OpenAICompletionsConfig {
                                             logprob_item.remove("logprob")
                                         && let Some(logprob) = logprob.as_f64()
                                     {
-                                        tokens.push((token, logprob.exp()));
+                                        tokens.push((
+                                            token,
+                                            (logprob.exp() * 10000.0).round() / 10000.0,
+                                        ));
                                     }
 
                                     if i == 0
