@@ -1,5 +1,4 @@
 use eframe::egui::{TextEdit, Ui, Widget};
-use log::debug;
 use reqwest::{
     Client, Method, Url,
     header::{HeaderMap, HeaderName, HeaderValue},
@@ -145,7 +144,7 @@ impl Endpoint for OpenAICompletionsConfig {
             Value::String(String::from_utf8_lossy(&request.content).to_string()),
         );
 
-        let mut response: Map<String, Value> = client
+        let response: Map<String, Value> = client
             .request(Method::POST, Url::parse(&self.endpoint)?)
             .headers(headers)
             .json(&Value::Object(body))
@@ -157,138 +156,8 @@ impl Endpoint for OpenAICompletionsConfig {
 
         let metadata = request.parameters.as_ref().clone();
 
-        //debug!("{:#?}", response);
-
-        if let Some(Value::String(text)) = response.remove("text") {
-            return Ok(EndpointResponse {
-                content: vec![InnerNodeContent::Snippet(text.into_bytes())],
-                metadata,
-            });
-        }
-
-        if let Some(Value::Array(choices)) = response.remove("choices") {
-            let mut contents = Vec::with_capacity(choices.len());
-
-            for choice in choices {
-                if let Value::Object(mut choice) = choice {
-                    let mut tokens = Vec::new();
-
-                    if let Some(Value::Object(mut logprobs)) = choice.remove("logprobs") {
-                        if let Some(Value::Array(logprobs_content)) = logprobs.remove("content") {
-                            tokens.reserve(logprobs_content.len());
-
-                            for (i, logprob_item) in logprobs_content.into_iter().enumerate() {
-                                if let Value::Object(mut logprob_item) = logprob_item {
-                                    let token = if let Some(bytes) = logprob_item
-                                        .remove("bytes")
-                                        .and_then(|v| serde_json::from_value::<Vec<u8>>(v).ok())
-                                    {
-                                        Some(bytes)
-                                    } else if let Some(Value::String(token)) =
-                                        logprob_item.remove("token")
-                                    {
-                                        Some(token.into_bytes())
-                                    } else {
-                                        None
-                                    };
-
-                                    if i == 0
-                                        && let Some(Value::Array(top_logprobs)) =
-                                            logprob_item.remove("top_logprobs")
-                                        && top_logprobs.len() > 1
-                                    {
-                                        let mut tokens = Vec::with_capacity(top_logprobs.len());
-
-                                        for top_logprob in top_logprobs {
-                                            if let Value::Object(mut top_logprob) = top_logprob {
-                                                let token = if let Some(bytes) =
-                                                    top_logprob.remove("bytes").and_then(|v| {
-                                                        serde_json::from_value::<Vec<u8>>(v).ok()
-                                                    }) {
-                                                    Some(bytes)
-                                                } else if let Some(Value::String(token)) =
-                                                    top_logprob.remove("token")
-                                                {
-                                                    Some(token.into_bytes())
-                                                } else {
-                                                    None
-                                                };
-
-                                                if let Some(token) = token
-                                                    && let Some(Value::Number(logprob)) =
-                                                        top_logprob.remove("logprob")
-                                                    && let Some(logprob) = logprob.as_f64()
-                                                {
-                                                    tokens.push((
-                                                        token,
-                                                        (logprob.exp() * 1000.0).round() / 1000.0,
-                                                    ));
-                                                }
-                                            }
-                                        }
-
-                                        tokens.sort_unstable_by(|a, b| b.1.total_cmp(&a.1));
-
-                                        contents.reserve(tokens.len());
-
-                                        for (token, prob) in tokens {
-                                            contents.push(InnerNodeContent::Tokens(vec![(
-                                                token,
-                                                IndexMap::from_iter([(
-                                                    "probability".to_string(),
-                                                    prob.to_string(),
-                                                )]),
-                                            )]));
-                                        }
-                                    }
-
-                                    if let Some(token) = token
-                                        && let Some(Value::Number(logprob)) =
-                                            logprob_item.remove("logprob")
-                                        && let Some(logprob) = logprob.as_f64()
-                                    {
-                                        tokens.push((
-                                            token,
-                                            (logprob.exp() * 1000.0).round() / 1000.0,
-                                        ));
-                                    }
-                                }
-                            }
-                        } else {
-                            // TODO
-                        }
-                    }
-
-                    if !tokens.is_empty() {
-                        contents.push(InnerNodeContent::Tokens(
-                            tokens
-                                .into_iter()
-                                .map(|(token, prob)| {
-                                    (
-                                        token,
-                                        IndexMap::from_iter([(
-                                            "probability".to_string(),
-                                            prob.to_string(),
-                                        )]),
-                                    )
-                                })
-                                .collect(),
-                        ));
-                    } else if let Some(Value::String(text)) = choice.remove("text") {
-                        contents.push(InnerNodeContent::Snippet(text.into_bytes()));
-                    }
-                }
-            }
-
-            if !contents.is_empty() {
-                return Ok(EndpointResponse {
-                    content: contents,
-                    metadata,
-                });
-            }
-        }
-
-        Err(anyhow::Error::msg("Unimplemented"))
+        parse_openai_response(response, metadata)
+            .ok_or(anyhow::Error::msg("Response does not match API schema"))
     }
 }
 
@@ -303,8 +172,113 @@ fn build_json_object(map: &mut Map<String, Value>, parameters: Vec<(String, Stri
 }
 
 fn parse_openai_response(
-    response: Map<String, Value>,
-    metadata: &mut Vec<(String, String)>,
-) -> Vec<InnerNodeContent> {
-    todo!()
+    mut response: Map<String, Value>,
+    metadata: Vec<(String, String)>,
+) -> Option<EndpointResponse> {
+    if let Some(Value::String(text)) = response.remove("text") {
+        return Some(EndpointResponse {
+            content: vec![InnerNodeContent::Snippet(text.into_bytes())],
+            metadata,
+        });
+    }
+
+    if let Some(Value::Array(choices)) = response.remove("choices") {
+        let mut contents = Vec::with_capacity(choices.len());
+
+        for choice in choices {
+            if let Value::Object(mut choice) = choice {
+                let mut tokens = Vec::new();
+
+                if let Some(Value::Object(mut logprobs)) = choice.remove("logprobs") {
+                    if let Some(Value::Array(logprobs_content)) = logprobs.remove("content") {
+                        tokens.reserve(logprobs_content.len());
+
+                        for (i, logprob_item) in logprobs_content.into_iter().enumerate() {
+                            if let Value::Object(mut logprob_item) = logprob_item {
+                                if i == 0
+                                    && let Some(Value::Array(top_logprobs)) =
+                                        logprob_item.remove("top_logprobs")
+                                    && top_logprobs.len() > 1
+                                {
+                                    let mut tokens = Vec::with_capacity(top_logprobs.len());
+
+                                    for top_logprob in top_logprobs {
+                                        if let Value::Object(top_logprob) = top_logprob {
+                                            parse_openai_logprob(top_logprob, &mut tokens);
+                                        }
+                                    }
+
+                                    tokens.sort_unstable_by(|a, b| b.1.total_cmp(&a.1));
+
+                                    contents.reserve(tokens.len());
+
+                                    for (token, prob) in tokens {
+                                        contents.push(InnerNodeContent::Tokens(vec![(
+                                            token,
+                                            IndexMap::from_iter([(
+                                                "probability".to_string(),
+                                                prob.to_string(),
+                                            )]),
+                                        )]));
+                                    }
+                                }
+
+                                parse_openai_logprob(logprob_item, &mut tokens);
+                            }
+                        }
+                    } else {
+                        // TODO
+                    }
+                }
+
+                if !tokens.is_empty() {
+                    contents.push(InnerNodeContent::Tokens(
+                        tokens
+                            .into_iter()
+                            .map(|(token, prob)| {
+                                (
+                                    token,
+                                    IndexMap::from_iter([(
+                                        "probability".to_string(),
+                                        prob.to_string(),
+                                    )]),
+                                )
+                            })
+                            .collect(),
+                    ));
+                } else if let Some(Value::String(text)) = choice.remove("text") {
+                    contents.push(InnerNodeContent::Snippet(text.into_bytes()));
+                }
+            }
+        }
+
+        if !contents.is_empty() {
+            return Some(EndpointResponse {
+                content: contents,
+                metadata,
+            });
+        }
+    }
+
+    None
+}
+
+fn parse_openai_logprob(mut logprob: Map<String, Value>, output: &mut Vec<(Vec<u8>, f64)>) {
+    let token = if let Some(bytes) = logprob
+        .remove("bytes")
+        .and_then(|v| serde_json::from_value::<Vec<u8>>(v).ok())
+    {
+        Some(bytes)
+    } else if let Some(Value::String(token)) = logprob.remove("token") {
+        Some(token.into_bytes())
+    } else {
+        None
+    };
+
+    if let Some(token) = token
+        && let Some(Value::Number(logprob)) = logprob.remove("logprob")
+        && let Some(logprob) = logprob.as_f64()
+    {
+        output.push((token, (logprob.exp() * 1000.0).round() / 1000.0));
+    }
 }
