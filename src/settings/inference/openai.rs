@@ -124,7 +124,7 @@ impl Endpoint for OpenAICompletionsConfig {
         &self,
         client: &Client,
         request: EndpointRequest,
-    ) -> Result<EndpointResponse, anyhow::Error> {
+    ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
         let mut headers = HeaderMap::with_capacity(self.headers.len());
 
         for (key, value) in &self.headers {
@@ -156,8 +156,13 @@ impl Endpoint for OpenAICompletionsConfig {
 
         let metadata = request.parameters.as_ref().clone();
 
-        parse_openai_response(response, metadata)
-            .ok_or(anyhow::Error::msg("Response does not match API schema"))
+        let endpoint_response = parse_openai_response(response, metadata);
+
+        if !endpoint_response.is_empty() {
+            Ok(endpoint_response)
+        } else {
+            Err(anyhow::Error::msg("Response does not match API schema"))
+        }
     }
 }
 
@@ -174,20 +179,21 @@ fn build_json_object(map: &mut Map<String, Value>, parameters: Vec<(String, Stri
 fn parse_openai_response(
     mut response: Map<String, Value>,
     metadata: Vec<(String, String)>,
-) -> Option<EndpointResponse> {
+) -> Vec<EndpointResponse> {
     if let Some(Value::String(text)) = response.remove("text") {
-        return Some(EndpointResponse {
-            content: vec![InnerNodeContent::Snippet(text.into_bytes())],
+        return vec![EndpointResponse {
+            content: InnerNodeContent::Snippet(text.into_bytes()),
             metadata,
-        });
+        }];
     }
 
     if let Some(Value::Array(choices)) = response.remove("choices") {
-        let mut contents = Vec::with_capacity(choices.len());
+        let mut responses = Vec::with_capacity(choices.len());
 
         for choice in choices {
             if let Value::Object(mut choice) = choice {
                 let mut tokens = Vec::new();
+                let mut metadata = metadata.clone();
 
                 if let Some(Value::Object(mut logprobs)) = choice.remove("logprobs") {
                     if let Some(Value::Array(logprobs_content)) = logprobs.remove("content") {
@@ -210,16 +216,19 @@ fn parse_openai_response(
 
                                     tokens.sort_unstable_by(|a, b| b.1.total_cmp(&a.1));
 
-                                    contents.reserve(tokens.len());
+                                    responses.reserve(tokens.len());
 
                                     for (token, prob) in tokens {
-                                        contents.push(InnerNodeContent::Tokens(vec![(
-                                            token,
-                                            IndexMap::from_iter([(
-                                                "probability".to_string(),
-                                                prob.to_string(),
+                                        responses.push(EndpointResponse {
+                                            content: InnerNodeContent::Tokens(vec![(
+                                                token,
+                                                IndexMap::from_iter([(
+                                                    "probability".to_string(),
+                                                    prob.to_string(),
+                                                )]),
                                             )]),
-                                        )]));
+                                            metadata: metadata.clone(),
+                                        });
                                     }
                                 }
 
@@ -231,36 +240,43 @@ fn parse_openai_response(
                     }
                 }
 
+                if let Some(Value::String(finish_reason)) = choice.remove("finish_reason") {
+                    metadata.push(("finish_reason".to_string(), finish_reason));
+                }
+
                 if !tokens.is_empty() {
-                    contents.push(InnerNodeContent::Tokens(
-                        tokens
-                            .into_iter()
-                            .map(|(token, prob)| {
-                                (
-                                    token,
-                                    IndexMap::from_iter([(
-                                        "probability".to_string(),
-                                        prob.to_string(),
-                                    )]),
-                                )
-                            })
-                            .collect(),
-                    ));
+                    responses.push(EndpointResponse {
+                        content: InnerNodeContent::Tokens(
+                            tokens
+                                .into_iter()
+                                .map(|(token, prob)| {
+                                    (
+                                        token,
+                                        IndexMap::from_iter([(
+                                            "probability".to_string(),
+                                            prob.to_string(),
+                                        )]),
+                                    )
+                                })
+                                .collect(),
+                        ),
+                        metadata,
+                    });
                 } else if let Some(Value::String(text)) = choice.remove("text") {
-                    contents.push(InnerNodeContent::Snippet(text.into_bytes()));
+                    responses.push(EndpointResponse {
+                        content: InnerNodeContent::Snippet(text.into_bytes()),
+                        metadata,
+                    });
                 }
             }
         }
 
-        if !contents.is_empty() {
-            return Some(EndpointResponse {
-                content: contents,
-                metadata,
-            });
+        if !responses.is_empty() {
+            return responses;
         }
     }
 
-    None
+    vec![]
 }
 
 fn parse_openai_logprob(mut logprob: Map<String, Value>, output: &mut Vec<(Vec<u8>, f64)>) {

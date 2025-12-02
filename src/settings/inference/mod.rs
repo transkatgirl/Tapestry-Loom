@@ -456,17 +456,15 @@ impl InferenceParameters {
                             models: models.clone(),
                             parameters: parameters.clone(),
                             handle: Promise::spawn_async(async move {
-                                let response =
+                                let responses =
                                     endpoint.as_ref().perform_request(&client, request).await?;
-                                let metadata = IndexMap::from_iter(response.metadata);
 
-                                response
-                                    .content
+                                responses
                                     .into_iter()
-                                    .map(|content| {
+                                    .map(|response| {
                                         Ok(NodeContent {
-                                            content,
-                                            metadata: metadata.clone(),
+                                            content: response.content,
+                                            metadata: IndexMap::from_iter(response.metadata),
                                             model: Some(content_model.clone()),
                                         })
                                     })
@@ -640,7 +638,7 @@ impl Endpoint for EndpointConfig {
         &self,
         client: &Client,
         request: EndpointRequest,
-    ) -> impl Future<Output = Result<EndpointResponse, anyhow::Error>> {
+    ) -> impl Future<Output = Result<Vec<EndpointResponse>, anyhow::Error>> {
         match self {
             Self::OpenAICompletions(endpoint) => endpoint.perform_request(client, request),
         }
@@ -654,7 +652,7 @@ struct EndpointRequest {
 }
 
 struct EndpointResponse {
-    content: Vec<InnerNodeContent>,
+    content: InnerNodeContent,
     metadata: Vec<(String, String)>,
 }
 
@@ -666,7 +664,7 @@ trait Endpoint: Serialize + DeserializeOwned + Clone {
         &self,
         client: &Client,
         request: EndpointRequest,
-    ) -> Result<EndpointResponse, anyhow::Error>;
+    ) -> Result<Vec<EndpointResponse>, anyhow::Error>;
 }
 
 trait Template<T>: Default + Clone
