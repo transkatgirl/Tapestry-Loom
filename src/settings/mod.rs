@@ -31,6 +31,7 @@ pub struct UISettings {
     pub displayed_ui_scale: f32,
     pub show_model_colors: bool,
     pub show_token_probabilities: bool,
+    pub minimum_token_opacity: f32,
     pub max_tree_depth: usize,
 
     #[serde(skip)]
@@ -47,6 +48,7 @@ impl Default for UISettings {
             displayed_ui_scale: 1.25,
             show_model_colors: true,
             show_token_probabilities: true,
+            minimum_token_opacity: 65.0,
             max_tree_depth: 8,
             fonts_changed: false,
         }
@@ -169,6 +171,13 @@ impl UISettings {
             &mut self.show_token_probabilities,
             "Show token probabilities in editor",
         );
+        if self.show_token_probabilities {
+            ui.add(
+                Slider::new(&mut self.minimum_token_opacity, 0.20..=100.0)
+                    .suffix("%")
+                    .text("Minimum token opacity"),
+            );
+        }
         ui.add(
             Slider::new(&mut self.max_tree_depth, 3..=32)
                 .clamping(SliderClamping::Never)
