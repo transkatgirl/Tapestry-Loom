@@ -495,17 +495,17 @@ fn calculate_boundaries(
     let boundary_color_strong = ui.style().visuals.widgets.inactive.fg_stroke.color;
     let boundary_width = ui.style().visuals.widgets.hovered.fg_stroke.width;
 
-    let mut draw_row_index = |pos: Pos2, size: Vec2, len: usize, index: usize, is_token: bool| {
-        let x = pos.x + ((size.x / len as f32) * index as f32);
+    let mut draw_row_boundary = |row_pos: Pos2, row_size: Vec2, x: f32, is_token: bool| {
+        let x = row_pos.x + x;
 
         let rect = Rect {
             min: Pos2 {
                 x: (x - (boundary_width / 2.0)),
-                y: pos.y,
+                y: row_pos.y,
             },
             max: Pos2 {
                 x: (x + (boundary_width / 2.0)),
-                y: pos.y + size.y,
+                y: row_pos.y + row_size.y,
             },
         };
 
@@ -526,8 +526,6 @@ fn calculate_boundaries(
             break;
         }
 
-        let row_chars = row.char_count_excluding_newline();
-
         let row_position = Pos2 {
             x: row.pos.x + top_left.x,
             y: row.pos.y + top_left.y,
@@ -541,11 +539,11 @@ fn calculate_boundaries(
             } else if offset >= snippet_offset {
                 if last_node != Some(snippets[snippet_index].1) {
                     if offset > 0 {
-                        draw_row_index(row_position, row.size, row_chars, i, false);
+                        draw_row_boundary(row_position, row.size, char.pos.x, false);
                     }
                     last_node = Some(snippets[snippet_index].1);
                 } /*else if hover == Some(snippets[snippet_index].1) {
-                draw_row_index(row_position, row.size, row_chars, i, true);
+                draw_row_boundary(row_position, row.size, char.pos.x, true);
                 }*/
 
                 snippet_offset += snippets[snippet_index].0;
@@ -561,11 +559,11 @@ fn calculate_boundaries(
             } else if offset >= snippet_offset {
                 if last_node != Some(snippets[snippet_index].1) {
                     if offset > 0 {
-                        draw_row_index(row_position, row.size, row_chars, row_chars, false);
+                        draw_row_boundary(row_position, row.size, row.size.x, false);
                     }
                     last_node = Some(snippets[snippet_index].1);
                 } /*else if hover == Some(snippets[snippet_index].1) {
-                draw_row_index(row_position, row.size, row_chars, row_chars, true);
+                draw_row_boundary(row_position, row.size, row.size.x, true);
                 }*/
 
                 snippet_offset += snippets[snippet_index].0;
