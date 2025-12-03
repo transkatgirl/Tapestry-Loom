@@ -534,20 +534,6 @@ pub fn get_node_color(node: &DependentNode<NodeContent>, settings: &Settings) ->
     }
 }
 
-fn escaped_string_from_utf8(bytes: &[u8]) -> String {
-    let mut string = String::with_capacity(bytes.len());
-
-    for chunk in bytes.utf8_chunks() {
-        string.push_str(chunk.valid());
-
-        for invalid in chunk.invalid() {
-            string.push_str(&format!("\\x{invalid:X}"));
-        }
-    }
-
-    string
-}
-
 pub fn render_node_text(
     ui: &Ui,
     node: &DependentNode<NodeContent>,
@@ -571,7 +557,7 @@ pub fn render_node_text(
             for (token, token_metadata) in tokens {
                 let color = get_token_color(Some(color), token_metadata, settings)
                     .unwrap_or(ui.visuals().widgets.inactive.text_color());
-                let token_text = escaped_string_from_utf8(token);
+                let token_text = String::from_utf8_lossy(token);
 
                 sections.push(LayoutSection {
                     leading_space: 0.0,
@@ -595,7 +581,7 @@ pub fn render_node_text(
             }
         }
         InnerNodeContent::Snippet(snippet) => {
-            let text = escaped_string_from_utf8(snippet);
+            let text = String::from_utf8_lossy(snippet).to_string();
             let text_length = text.len();
 
             LayoutJob {
