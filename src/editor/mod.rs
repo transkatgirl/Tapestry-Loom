@@ -365,8 +365,11 @@ impl Editor {
                                 ui.close();
                             }
                             if ui.button("Save").clicked() && !self.save_as_input_box.is_empty() {
-                                let new_path =
+                                let mut new_path =
                                     settings.documents.location.join(&self.save_as_input_box);
+                                if new_path.extension().is_none() {
+                                    new_path.set_extension("tapestry");
+                                }
                                 if !self.open_documents.borrow().contains(&new_path) {
                                     *path = Some(new_path);
                                     ui.close();
