@@ -33,6 +33,9 @@ use crate::settings::{
     shortcuts::Shortcuts,
 };
 
+pub(super) mod layout;
+pub(super) mod weave;
+
 pub struct SharedState {
     pub identifier: Ulid,
     pub runtime: Arc<Runtime>,

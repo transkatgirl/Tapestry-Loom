@@ -15,7 +15,6 @@ use std::{
 
 mod canvas;
 mod graph;
-mod layout;
 mod lists;
 mod menus;
 mod shared;
