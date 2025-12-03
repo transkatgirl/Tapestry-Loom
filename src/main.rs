@@ -144,6 +144,8 @@ impl TapestryLoomApp {
         );*/
 
         if settings.borrow().interface.ui_use_system_fonts {
+            debug!("Loading system monospace font");
+
             match SystemSource::new()
                 .select_best_match(&[FamilyName::Monospace], &Properties::new())
             {
@@ -179,6 +181,8 @@ impl TapestryLoomApp {
                     warn!("Failed to select system monospace font: {error:#?}")
                 }
             }
+
+            debug!("Loading system sans-serif font");
 
             match SystemSource::new()
                 .select_best_match(&[FamilyName::SansSerif], &Properties::new())
