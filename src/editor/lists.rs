@@ -1,10 +1,10 @@
 #![allow(clippy::too_many_arguments)]
 
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::Arc};
 
 use eframe::egui::{
     Align, Button, Color32, FontFamily, Frame, Id, Layout, RichText, ScrollArea, Sense, Ui,
-    UiBuilder, collapsing_header::CollapsingState,
+    UiBuilder, WidgetText, collapsing_header::CollapsingState,
 };
 use egui_notify::Toasts;
 use flagset::FlagSet;
@@ -20,8 +20,7 @@ use tapestry_weave::{
 
 use crate::{
     editor::shared::{
-        NodeIndex, SharedState, escaped_string_from_utf8, get_node_color,
-        render_node_metadata_tooltip,
+        NodeIndex, SharedState, get_node_color, render_node_metadata_tooltip, render_node_text,
     },
     listing_margin,
     settings::{Settings, shortcuts::Shortcuts},
@@ -546,13 +545,10 @@ fn render_horizontal_node_label(
             }
 
             frame.show(ui, |ui| {
-                let node_content =
-                    escaped_string_from_utf8(&node.contents.content.as_bytes().to_vec());
-
-                let mut label = if node_content.is_empty() {
-                    RichText::new("No text").family(FontFamily::Proportional)
+                let mut label = if node.contents.content.as_bytes().is_empty() {
+                    WidgetText::Text("No text".to_string())
                 } else {
-                    RichText::new(node_content).family(FontFamily::Monospace)
+                    WidgetText::LayoutJob(Arc::new(render_node_text(ui, node, settings)))
                 };
                 let label_color = get_node_color(node, settings);
 

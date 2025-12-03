@@ -7,7 +7,10 @@ use std::{
 };
 
 use chrono::{DateTime, offset};
-use eframe::egui::{Color32, FontId, Rgba, RichText, TextStyle, Ui, WidgetText, text::LayoutJob};
+use eframe::egui::{
+    Color32, Rgba, RichText, TextFormat, TextStyle, Ui,
+    text::{LayoutJob, LayoutSection},
+};
 use egui_notify::Toasts;
 use flagset::FlagSet;
 use log::{debug, warn};
@@ -531,7 +534,7 @@ pub fn get_node_color(node: &DependentNode<NodeContent>, settings: &Settings) ->
     }
 }
 
-pub fn escaped_string_from_utf8(bytes: &[u8]) -> String {
+fn escaped_string_from_utf8(bytes: &[u8]) -> String {
     let mut string = String::with_capacity(bytes.len());
 
     for chunk in bytes.utf8_chunks() {
@@ -543,4 +546,69 @@ pub fn escaped_string_from_utf8(bytes: &[u8]) -> String {
     }
 
     string
+}
+
+pub fn render_node_text(
+    ui: &Ui,
+    node: &DependentNode<NodeContent>,
+    settings: &Settings,
+) -> LayoutJob {
+    let color =
+        get_node_color(node, settings).unwrap_or(ui.visuals().widgets.inactive.text_color());
+    let font_id = TextStyle::Monospace.resolve(ui.style());
+
+    match &node.contents.content {
+        InnerNodeContent::Tokens(tokens) => {
+            let mut text = String::with_capacity(tokens.iter().map(|(t, _)| t.len()).sum());
+            let mut offset = 0;
+
+            let mut sections = Vec::with_capacity(tokens.len());
+
+            for (token, token_metadata) in tokens {
+                let color = get_token_color(Some(color), token_metadata, settings)
+                    .unwrap_or(ui.visuals().widgets.inactive.text_color());
+                let token_text = escaped_string_from_utf8(token);
+
+                sections.push(LayoutSection {
+                    leading_space: 0.0,
+                    byte_range: offset..(offset + token_text.len()),
+                    format: TextFormat {
+                        font_id: font_id.clone(),
+                        color,
+                        valign: ui.text_valign(),
+                        ..Default::default()
+                    },
+                });
+                offset += token_text.len();
+                text.push_str(&token_text);
+            }
+
+            LayoutJob {
+                text,
+                sections,
+                break_on_newline: true,
+                ..Default::default()
+            }
+        }
+        InnerNodeContent::Snippet(snippet) => {
+            let text = escaped_string_from_utf8(snippet);
+            let text_length = text.len();
+
+            LayoutJob {
+                text,
+                sections: vec![LayoutSection {
+                    leading_space: 0.0,
+                    byte_range: 0..text_length,
+                    format: TextFormat {
+                        font_id,
+                        color,
+                        valign: ui.text_valign(),
+                        ..Default::default()
+                    },
+                }],
+                break_on_newline: true,
+                ..Default::default()
+            }
+        }
+    }
 }
