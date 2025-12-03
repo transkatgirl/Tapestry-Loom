@@ -5,7 +5,7 @@ This branch contains is where work on Tapestry Loom's Version 1 rewrite is takin
 ## Plans
 
 The plans for the rewrite are the following:
-- [ ] Migrate to a desktop app rather than an Obsidian plugin
+- [x] Migrate to a desktop app rather than an Obsidian plugin
 	- [ ] Implement conversion from the old Weave format to the new one
 	- [ ] Implement all functionality supported by the original Obsidian plugin
 - [ ] Full UI redesign
@@ -47,10 +47,7 @@ The plans for the rewrite are the following:
 			- [ ] Automatically scroll textbox based on tree cursor location
 			- [ ] Scroll newly generated nodes into view
 	- [ ] Node finding
-	- [ ] Better error handling
-		- [ ] Make UI operation failures visible
-		- [ ] Make configuration errors visible
-		- [ ] Trim trailing white space from nodes before generation
+	- [x] Better error handling
 	- [ ] Experiments to try (may or may not end up being implemented):
 		- [ ] Applying colors to background instead of text
 		- [ ] Implement multi-token multi-logprob generations as chains of single token nodes, inspired by [loom](https://github.com/socketteer/loom) and [logitloom](https://github.com/vgel/logitloom)

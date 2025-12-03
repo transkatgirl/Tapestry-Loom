@@ -397,6 +397,12 @@ impl SharedState {
         parent: Option<Ulid>,
         settings: &Settings,
     ) {
+        if self.inference.models.is_empty() {
+            self.responses
+                .push(Err(anyhow::Error::msg("No models loaded")));
+            return;
+        }
+
         let content: Vec<u8> = if let Some(parent) = parent {
             let thread: Vec<u128> = weave
                 .weave
