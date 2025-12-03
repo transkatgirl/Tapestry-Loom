@@ -138,7 +138,13 @@ impl SharedState {
         for response in self.responses.drain(..) {
             match response {
                 Ok(node) => {
-                    if !weave.add_node(node) {
+                    let identifier = node.id;
+
+                    if weave.add_node(node) {
+                        if self.last_changed_node.is_none() {
+                            self.last_changed_node = Some(Ulid(identifier));
+                        }
+                    } else {
                         debug!("Failed to add node to weave");
                     }
                 }

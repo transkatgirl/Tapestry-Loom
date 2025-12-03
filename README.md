@@ -33,7 +33,7 @@ The plans for the rewrite are the following:
 				- [ ] Show node siblings on hover
 			- [x] Automatically adjust tree position & highlighting based on textbox cursor location
 			- [x] Automatically scroll textbox based on tree cursor location
-			- [ ] Scroll newly generated nodes into view
+			- [x] Scroll newly generated nodes into view
 		- [ ] Compact tree + node child list + textbox, similar to [exoloom](https://exoloom.io)
 			- [ ] Implement resizable, dragable & scrollable tree
 			- [ ] Implement tree nodes
@@ -45,7 +45,7 @@ The plans for the rewrite are the following:
 				- [ ] Show node siblings on hover
 			- [x] Automatically adjust tree position & highlighting based on textbox cursor location
 			- [x] Automatically scroll textbox based on tree cursor location
-			- [ ] Scroll newly generated nodes into view
+			- [x] Scroll newly generated nodes into view
 	- [ ] Node finding
 	- [x] Better error handling
 	- [ ] Experiments to try (may or may not end up being implemented):
