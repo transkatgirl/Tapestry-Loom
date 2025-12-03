@@ -498,7 +498,7 @@ pub fn get_token_color(
         {
             let probability = probability.clamp(0.0, 1.0);
             let rgba = Rgba::from(color).to_opaque();
-            let opacity = (1.0 - (f32::log10(0.75 / probability)) / 4.0).clamp(0.66, 1.0);
+            let opacity = (1.0 - (f32::ln(1.0 / probability)) / 10.0).clamp(0.55, 1.0);
 
             Some(Color32::from(Rgba::from_rgba_unmultiplied(
                 rgba.r(),
