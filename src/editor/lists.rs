@@ -548,7 +548,16 @@ fn render_horizontal_node_label(
                 let mut label = if node.contents.content.as_bytes().is_empty() {
                     WidgetText::Text("No text".to_string())
                 } else {
-                    WidgetText::LayoutJob(Arc::new(render_node_text(ui, node, settings)))
+                    WidgetText::LayoutJob(Arc::new(render_node_text(
+                        ui,
+                        node,
+                        settings,
+                        if node.active {
+                            Some(ui.visuals().widgets.active.text_color())
+                        } else {
+                            None
+                        },
+                    )))
                 };
                 let label_color = get_node_color(node, settings);
 

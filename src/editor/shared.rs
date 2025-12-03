@@ -552,9 +552,13 @@ pub fn render_node_text(
     ui: &Ui,
     node: &DependentNode<NodeContent>,
     settings: &Settings,
+    override_color: Option<Color32>,
 ) -> LayoutJob {
-    let color =
-        get_node_color(node, settings).unwrap_or(ui.visuals().widgets.inactive.text_color());
+    let color = if let Some(override_color) = override_color {
+        override_color
+    } else {
+        get_node_color(node, settings).unwrap_or(ui.visuals().widgets.inactive.text_color())
+    };
     let font_id = TextStyle::Monospace.resolve(ui.style());
 
     match &node.contents.content {
