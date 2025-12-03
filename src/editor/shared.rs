@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     cell::RefCell,
     collections::HashMap,
     rc::Rc,
@@ -557,7 +558,7 @@ pub fn render_node_text(
             for (token, token_metadata) in tokens {
                 let color = get_token_color(Some(color), token_metadata, settings)
                     .unwrap_or(ui.visuals().widgets.inactive.text_color());
-                let token_text = String::from_utf8_lossy(token);
+                let token_text = from_utf8_lossy(token);
 
                 sections.push(LayoutSection {
                     leading_space: 0.0,
@@ -581,7 +582,7 @@ pub fn render_node_text(
             }
         }
         InnerNodeContent::Snippet(snippet) => {
-            let text = String::from_utf8_lossy(snippet).to_string();
+            let text = from_utf8_lossy(snippet).to_string();
             let text_length = text.len();
 
             LayoutJob {
@@ -601,4 +602,34 @@ pub fn render_node_text(
             }
         }
     }
+}
+
+// Modified version of String::from_utf8_lossy()
+fn from_utf8_lossy(v: &[u8]) -> Cow<'_, str> {
+    let mut iter = v.utf8_chunks();
+
+    let first_valid = if let Some(chunk) = iter.next() {
+        let valid = chunk.valid();
+        if chunk.invalid().is_empty() {
+            return Cow::Borrowed(valid);
+        }
+        valid
+    } else {
+        return Cow::Borrowed("");
+    };
+
+    const REPLACEMENT: &str = "\u{1A}";
+
+    let mut res = String::with_capacity(v.len());
+    res.push_str(first_valid);
+    res.push_str(REPLACEMENT);
+
+    for chunk in iter {
+        res.push_str(chunk.valid());
+        if !chunk.invalid().is_empty() {
+            res.push_str(REPLACEMENT);
+        }
+    }
+
+    Cow::Owned(res)
 }
