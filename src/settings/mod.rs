@@ -173,7 +173,7 @@ impl UISettings {
         );
         if self.show_token_probabilities {
             ui.add(
-                Slider::new(&mut self.minimum_token_opacity, 20.0..=100.0)
+                Slider::new(&mut self.minimum_token_opacity, 20.0..=80.0)
                     .suffix("%")
                     .text("Minimum token opacity"),
             );
