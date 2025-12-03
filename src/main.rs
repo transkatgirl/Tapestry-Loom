@@ -27,7 +27,7 @@ use tokio::runtime::Runtime;
 use crate::{
     editor::Editor,
     files::FileManager,
-    settings::{Settings, UISettings, inference::ClientConfig, shortcuts::Shortcuts},
+    settings::{Settings, UIFonts, UISettings, inference::ClientConfig, shortcuts::Shortcuts},
 };
 
 mod editor;
@@ -151,7 +151,7 @@ impl TapestryLoomApp {
             vec!["Ubuntu-Light".into(), "phosphor-fill".into()],
         );*/
 
-        if settings.borrow().interface.ui_use_system_fonts {
+        if settings.borrow().interface.ui_fonts == UIFonts::System {
             debug!("Loading system monospace font");
 
             match SystemSource::new()
@@ -228,7 +228,7 @@ impl TapestryLoomApp {
                     warn!("Failed to select system sans-serif font: {error:#?}")
                 }
             }
-        } else if settings.borrow().interface.ui_use_unifont {
+        } else if settings.borrow().interface.ui_fonts == UIFonts::UnifontEX {
             if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Monospace) {
                 font_keys.insert(0, "unifontex".into());
             }

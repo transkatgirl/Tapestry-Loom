@@ -26,8 +26,7 @@ pub struct Settings {
 pub struct UISettings {
     pub ui_scale: f32,
     pub ui_theme: UITheme,
-    pub ui_use_system_fonts: bool,
-    pub ui_use_unifont: bool,
+    pub ui_fonts: UIFonts,
 
     pub displayed_ui_scale: f32,
     pub show_model_colors: bool,
@@ -43,8 +42,7 @@ impl Default for UISettings {
         Self {
             ui_scale: 1.25,
             ui_theme: UITheme::Dark,
-            ui_use_system_fonts: false,
-            ui_use_unifont: false,
+            ui_fonts: UIFonts::Default,
 
             displayed_ui_scale: 1.25,
             show_model_colors: true,
@@ -64,8 +62,8 @@ pub enum UITheme {
 impl Display for UITheme {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Dark => f.write_str("Dark"),
-            Self::Light => f.write_str("Light"),
+            Self::Dark => f.write_str("egui Dark"),
+            Self::Light => f.write_str("egui Light"),
         }
     }
 }
@@ -75,6 +73,23 @@ impl UITheme {
         match &self {
             Self::Dark => Visuals::dark(),
             Self::Light => Visuals::light(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UIFonts {
+    Default,
+    System,
+    UnifontEX,
+}
+
+impl Display for UIFonts {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Default => f.write_str("egui Default"),
+            Self::System => f.write_str("System"),
+            Self::UnifontEX => f.write_str("UnifontEX"),
         }
     }
 }
@@ -105,21 +120,46 @@ impl UISettings {
         if !(ui_slider.has_focus() || ui_slider.contains_pointer()) {
             self.ui_scale = self.displayed_ui_scale;
         }
-        if ui
-            .checkbox(&mut self.ui_use_system_fonts, "Use system fonts")
-            .changed()
-        {
-            self.fonts_changed = true;
-        };
-        if !self.ui_use_system_fonts
-            && ui
-                .checkbox(&mut self.ui_use_unifont, "Use UnifontEX")
-                .changed()
-        {
-            self.fonts_changed = true;
-        };
+        ComboBox::from_label("Fonts")
+            .selected_text(self.ui_fonts.to_string())
+            .show_ui(ui, |ui| {
+                if ui
+                    .selectable_value(
+                        &mut self.ui_fonts,
+                        UIFonts::Default,
+                        UIFonts::Default.to_string(),
+                    )
+                    .clicked()
+                {
+                    self.fonts_changed = true;
+                };
+                if ui
+                    .selectable_value(
+                        &mut self.ui_fonts,
+                        UIFonts::System,
+                        UIFonts::System.to_string(),
+                    )
+                    .clicked()
+                {
+                    self.fonts_changed = true;
+                };
+                if ui
+                    .selectable_value(
+                        &mut self.ui_fonts,
+                        UIFonts::UnifontEX,
+                        UIFonts::UnifontEX.to_string(),
+                    )
+                    .clicked()
+                {
+                    self.fonts_changed = true;
+                };
+            });
+
         if self.fonts_changed {
-            ui.label("Font changes require the app to be restarted to take effect.");
+            ui.colored_label(
+                ui.style().visuals.warn_fg_color,
+                "Font changes require the app to be restarted to take effect.",
+            );
         }
 
         ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
