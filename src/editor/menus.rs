@@ -12,15 +12,15 @@ use crate::{
 pub struct MenuView {}
 
 impl MenuView {
-    pub fn reset(&mut self) {}
+    //pub fn reset(&mut self) {}
     pub fn render(
         &mut self,
         ui: &mut Ui,
-        weave: &mut TapestryWeave,
+        _weave: &mut TapestryWeave,
         settings: &Settings,
-        toasts: &mut Toasts,
+        _toasts: &mut Toasts,
         state: &mut SharedState,
-        shortcuts: FlagSet<Shortcuts>,
+        _shortcuts: FlagSet<Shortcuts>,
     ) {
         ScrollArea::vertical()
             .auto_shrink(false)
@@ -39,7 +39,7 @@ impl MenuView {
         ui: &mut Ui,
         weave: &mut TapestryWeave,
         settings: &Settings,
-        toasts: &mut Toasts,
+        _toasts: &mut Toasts,
         state: &mut SharedState,
         shortcuts: FlagSet<Shortcuts>,
         file_size: usize,
