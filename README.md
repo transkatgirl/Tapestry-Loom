@@ -31,8 +31,8 @@ The plans for the rewrite are the following:
 			- [x] Implement resizable & scrollable treelist
 			- [x] Implement resizable and scrollable textbox
 				- [ ] Show node siblings on hover
-			- [ ] Automatically adjust tree position & highlighting based on textbox cursor location
-			- [ ] Automatically scroll textbox based on tree cursor location
+			- [x] Automatically adjust tree position & highlighting based on textbox cursor location
+			- [x] Automatically scroll textbox based on tree cursor location
 			- [ ] Scroll newly generated nodes into view
 		- [ ] Compact tree + node child list + textbox, similar to [exoloom](https://exoloom.io)
 			- [ ] Implement resizable, dragable & scrollable tree
@@ -43,8 +43,8 @@ The plans for the rewrite are the following:
 			- [x] Implement resizable and scrollable node child list
 			- [x] Implement resizable and scrollable textbox
 				- [ ] Show node siblings on hover
-			- [ ] Automatically adjust tree position & highlighting based on textbox cursor location
-			- [ ] Automatically scroll textbox based on tree cursor location
+			- [x] Automatically adjust tree position & highlighting based on textbox cursor location
+			- [x] Automatically scroll textbox based on tree cursor location
 			- [ ] Scroll newly generated nodes into view
 	- [ ] Node finding
 	- [x] Better error handling
