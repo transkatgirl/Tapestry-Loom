@@ -72,6 +72,7 @@ flagset = { version = "0.4.7", features = [
 bytes = "1.11.0"
 font-kit = "0.14.3"
 egui_solarized = "0.33.0"
+egui_virtual_list = "0.9.0"
 rust-sugiyama = "0.4.0"
 #llama_cpp = "0.3.2"
 #egui_dnd = "0.14.0"

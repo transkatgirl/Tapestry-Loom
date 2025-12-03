@@ -1236,6 +1236,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_virtual_list"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b81f88c8461c55ffba77f9f5ae8b97ed8b55fbef93bb8dd64a619a6632228138"
+dependencies = [
+ "egui",
+ "web-time",
+]
+
+[[package]]
 name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4002,6 +4012,7 @@ dependencies = [
  "egui-notify",
  "egui_solarized",
  "egui_tiles",
+ "egui_virtual_list",
  "env_logger",
  "flagset",
  "font-kit",
