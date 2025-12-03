@@ -430,7 +430,7 @@ fn parse_openai_response(
                                 {
                                     tokens.push((
                                         token.into_bytes(),
-                                        (logprob.exp() * 1000.0).round() / 1000.0,
+                                        (logprob.exp() * 10000.0).round() / 10000.0,
                                     ));
                                 }
                             }
@@ -469,7 +469,7 @@ fn parse_openai_response(
                                 {
                                     output.push((
                                         token.into_bytes(),
-                                        (logprob.exp() * 1000.0).round() / 1000.0,
+                                        (logprob.exp() * 10000.0).round() / 10000.0,
                                     ));
                                 }
                             }
@@ -590,6 +590,6 @@ fn parse_openai_logprob(mut logprob: Map<String, Value>, output: &mut Vec<(Vec<u
         && let Some(Value::Number(logprob)) = logprob.remove("logprob")
         && let Some(logprob) = logprob.as_f64()
     {
-        output.push((token, (logprob.exp() * 1000.0).round() / 1000.0));
+        output.push((token, (logprob.exp() * 10000.0).round() / 10000.0));
     }
 }
