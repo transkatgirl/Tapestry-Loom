@@ -93,7 +93,15 @@ impl TapestryLoomApp {
         let mut fonts = FontDefinitions::default();
         fonts.font_data.insert(
             "lucide".into(),
-            Arc::new(FontData::from_static(include_bytes!("../icons/Lucide.ttf"))),
+            Arc::new(FontData::from_static(include_bytes!(
+                "../fonts/icons/Lucide.ttf"
+            ))),
+        );
+        fonts.font_data.insert(
+            "unifontex".into(),
+            Arc::new(FontData::from_static(include_bytes!(
+                "../fonts/UnifontExMono.ttf"
+            ))),
         );
         /*fonts.font_data.insert(
             "phosphor".into(),
@@ -219,6 +227,13 @@ impl TapestryLoomApp {
                     toasts.warning("Failed to load system sans-serif font");
                     warn!("Failed to select system sans-serif font: {error:#?}")
                 }
+            }
+        } else if settings.borrow().interface.ui_use_unifont {
+            if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Monospace) {
+                font_keys.insert(0, "unifontex".into());
+            }
+            if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Proportional) {
+                font_keys.insert(0, "unifontex".into());
             }
         }
 

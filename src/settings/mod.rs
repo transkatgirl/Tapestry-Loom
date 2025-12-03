@@ -27,11 +27,15 @@ pub struct UISettings {
     pub ui_scale: f32,
     pub ui_theme: UITheme,
     pub ui_use_system_fonts: bool,
+    pub ui_use_unifont: bool,
 
     pub displayed_ui_scale: f32,
     pub show_model_colors: bool,
     pub show_token_probabilities: bool,
     pub max_tree_depth: usize,
+
+    #[serde(skip)]
+    fonts_changed: bool,
 }
 
 impl Default for UISettings {
@@ -40,11 +44,13 @@ impl Default for UISettings {
             ui_scale: 1.25,
             ui_theme: UITheme::Dark,
             ui_use_system_fonts: false,
+            ui_use_unifont: false,
 
             displayed_ui_scale: 1.25,
             show_model_colors: true,
             show_token_probabilities: true,
             max_tree_depth: 8,
+            fonts_changed: false,
         }
     }
 }
@@ -99,10 +105,22 @@ impl UISettings {
         if !(ui_slider.has_focus() || ui_slider.contains_pointer()) {
             self.ui_scale = self.displayed_ui_scale;
         }
-        ui.checkbox(
-            &mut self.ui_use_system_fonts,
-            "Use system fonts (requires app restart)",
-        );
+        if ui
+            .checkbox(&mut self.ui_use_system_fonts, "Use system fonts")
+            .changed()
+        {
+            self.fonts_changed = true;
+        };
+        if !self.ui_use_system_fonts
+            && ui
+                .checkbox(&mut self.ui_use_unifont, "Use UnifontEX")
+                .changed()
+        {
+            self.fonts_changed = true;
+        };
+        if self.fonts_changed {
+            ui.label("Font changes require the app to be restarted to take effect.");
+        }
 
         ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
 
