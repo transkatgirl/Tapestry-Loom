@@ -33,6 +33,7 @@ pub struct UISettings {
     pub show_token_probabilities: bool,
     pub minimum_token_opacity: f32,
     pub max_tree_depth: usize,
+    pub auto_scroll: bool,
 
     #[serde(skip)]
     fonts_changed: bool,
@@ -49,7 +50,9 @@ impl Default for UISettings {
             show_model_colors: true,
             show_token_probabilities: true,
             minimum_token_opacity: 65.0,
-            max_tree_depth: 8,
+            max_tree_depth: 10,
+            auto_scroll: true,
+
             fonts_changed: false,
         }
     }
@@ -182,6 +185,10 @@ impl UISettings {
             Slider::new(&mut self.max_tree_depth, 3..=32)
                 .clamping(SliderClamping::Never)
                 .text("Maximum tree list depth"),
+        );
+        ui.checkbox(
+            &mut self.auto_scroll,
+            "Automatically adjust scroll position",
         );
 
         // TODO: Add editor layout presets
