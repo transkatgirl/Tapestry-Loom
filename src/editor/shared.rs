@@ -42,6 +42,7 @@ pub struct SharedState {
     last_cursor_node: NodeIndex,
     hovered_node: NodeIndex,
     last_hovered_node: NodeIndex,
+    last_changed_node: Option<Ulid>,
     requests: HashMap<Ulid, InferenceHandle>,
     responses: Vec<Result<DependentNode<NodeContent>, anyhow::Error>>,
 }
@@ -86,6 +87,7 @@ impl SharedState {
             last_cursor_node: NodeIndex::None,
             hovered_node: NodeIndex::None,
             last_hovered_node: NodeIndex::None,
+            last_changed_node: None,
             requests: HashMap::with_capacity(128),
             responses: Vec::with_capacity(128),
         }
@@ -105,7 +107,11 @@ impl SharedState {
         toasts: &mut Toasts,
         shortcuts: FlagSet<Shortcuts>,
     ) {
-        self.last_hovered_node = self.hovered_node;
+        self.last_changed_node = None;
+        if self.last_hovered_node != self.hovered_node && self.hovered_node != NodeIndex::None {
+            self.last_changed_node = self.hovered_node.into_node();
+            self.last_hovered_node = self.hovered_node;
+        }
         self.hovered_node = NodeIndex::None;
         if let Some(cursor_node) = self.cursor_node.into_node()
             && !weave.contains(&cursor_node)
@@ -117,7 +123,10 @@ impl SharedState {
         {
             self.cursor_node = NodeIndex::Node(active);
         }
-        self.last_cursor_node = self.cursor_node;
+        if self.last_cursor_node != self.cursor_node {
+            self.last_changed_node = self.cursor_node.into_node();
+            self.last_cursor_node = self.cursor_node;
+        }
 
         InferenceParameters::get_responses(
             &self.runtime,
@@ -384,6 +393,9 @@ impl SharedState {
     }
     pub fn get_hovered_node(&self) -> NodeIndex {
         self.last_hovered_node
+    }
+    pub fn get_changed_node(&self) -> Option<Ulid> {
+        self.last_changed_node
     }
     pub fn set_cursor_node(&mut self, value: NodeIndex) {
         self.cursor_node = value;

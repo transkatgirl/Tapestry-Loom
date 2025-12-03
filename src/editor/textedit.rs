@@ -174,7 +174,7 @@ impl TextEditorView {
 
                         let top_left = textedit.text_clip_rect.left_top();
 
-                        calculate_boundaries(
+                        calculate_boundaries_and_update_scroll(
                             ui,
                             &self.snippets.borrow(),
                             top_left,
@@ -183,6 +183,11 @@ impl TextEditorView {
                                 HighlightingHover::Position((node, _)) => Some(node),
                                 HighlightingHover::Node(node) => Some(node),
                                 HighlightingHover::None => None,
+                            },
+                            if settings.interface.auto_scroll {
+                                state.get_changed_node()
+                            } else {
+                                None
                             },
                             &mut self.rects,
                         );
@@ -475,12 +480,13 @@ fn calculate_highlighting(
     sections
 }
 
-fn calculate_boundaries(
-    ui: &Ui,
+fn calculate_boundaries_and_update_scroll(
+    ui: &mut Ui,
     snippets: &[Snippet],
     top_left: Pos2,
     galley: &Galley,
     _hover: Option<Ulid>,
+    changed: Option<Ulid>,
     output: &mut Vec<(Rect, Color32)>,
 ) {
     if snippets.len() < 2 {
@@ -519,6 +525,20 @@ fn calculate_boundaries(
         ))
     };
 
+    let scroll_boundary_into_view = |row_pos: Pos2, row_size: Vec2, x: f32| {
+        let x = row_pos.x + x;
+
+        let rect = Rect {
+            min: Pos2 { x, y: row_pos.y },
+            max: Pos2 {
+                x,
+                y: row_pos.y + row_size.y,
+            },
+        };
+
+        ui.scroll_to_rect(rect, None);
+    };
+
     let mut last_node = None;
 
     for row in &galley.rows {
@@ -546,6 +566,10 @@ fn calculate_boundaries(
                 draw_row_boundary(row_position, row.size, char.pos.x, true);
                 }*/
 
+                if changed == Some(snippets[snippet_index].1) || changed == last_node {
+                    scroll_boundary_into_view(row_position, row.size, char.pos.x);
+                }
+
                 snippet_offset += snippets[snippet_index].0;
                 snippet_index += 1;
             }
@@ -565,6 +589,10 @@ fn calculate_boundaries(
                 } /*else if hover == Some(snippets[snippet_index].1) {
                 draw_row_boundary(row_position, row.size, row.size.x, true);
                 }*/
+
+                if changed == Some(snippets[snippet_index].1) || changed == last_node {
+                    scroll_boundary_into_view(row_position, row.size, row.size.x);
+                }
 
                 snippet_offset += snippets[snippet_index].0;
                 snippet_index += 1;

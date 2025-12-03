@@ -539,6 +539,7 @@ fn render_horizontal_node_label(
 
             let is_hovered = state.get_hovered_node().into_node() == Some(Ulid(node.id));
             let is_cursor = state.get_cursor_node().into_node() == Some(Ulid(node.id));
+            let is_changed = state.get_changed_node() == Some(Ulid(node.id));
 
             if is_hovered {
                 frame = frame.fill(ui.style().visuals.widgets.hovered.weak_bg_fill);
@@ -586,6 +587,10 @@ fn render_horizontal_node_label(
                 let label_button_response = ui
                     .add(label_button)
                     .on_hover_ui(|ui| render_node_metadata_tooltip(ui, node));
+
+                if settings.interface.auto_scroll && is_changed {
+                    label_button_response.scroll_to_me(None);
+                }
 
                 label_button_response.context_menu(|ui| {
                     context_menu(ui, settings, state, weave, node);
