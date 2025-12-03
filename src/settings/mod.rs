@@ -172,7 +172,7 @@ impl UISettings {
         ui.checkbox(&mut self.show_model_colors, "Show model colors");
         ui.checkbox(
             &mut self.show_token_probabilities,
-            "Show token probabilities in editor",
+            "Show token probabilities",
         );
         if self.show_token_probabilities {
             ui.add(
