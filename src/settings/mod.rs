@@ -62,6 +62,8 @@ impl Default for UISettings {
 pub enum UITheme {
     Dark,
     Light,
+    SolarizedDark,
+    SolarizedLight,
 }
 
 impl Display for UITheme {
@@ -69,6 +71,8 @@ impl Display for UITheme {
         match self {
             Self::Dark => f.write_str("egui Dark"),
             Self::Light => f.write_str("egui Light"),
+            Self::SolarizedDark => f.write_str("Solarized Dark"),
+            Self::SolarizedLight => f.write_str("Solarized Light"),
         }
     }
 }
@@ -78,6 +82,8 @@ impl UITheme {
         match &self {
             Self::Dark => Visuals::dark(),
             Self::Light => Visuals::light(),
+            Self::SolarizedDark => egui_solarized::Theme::solarized_dark().into(),
+            Self::SolarizedLight => egui_solarized::Theme::solarized_light().into(),
         }
     }
 }
@@ -113,6 +119,16 @@ impl UISettings {
                     &mut self.ui_theme,
                     UITheme::Light,
                     UITheme::Light.to_string(),
+                );
+                ui.selectable_value(
+                    &mut self.ui_theme,
+                    UITheme::SolarizedDark,
+                    UITheme::SolarizedDark.to_string(),
+                );
+                ui.selectable_value(
+                    &mut self.ui_theme,
+                    UITheme::SolarizedLight,
+                    UITheme::SolarizedLight.to_string(),
                 );
             });
         let ui_slider = ui.add(

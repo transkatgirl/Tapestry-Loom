@@ -1214,6 +1214,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_solarized"
+version = "0.33.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3c2f03dd060243bade88e703c93eccb78c1bbb9a6945475481cf9a20413b522"
+dependencies = [
+ "egui",
+]
+
+[[package]]
 name = "egui_tiles"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3963,6 +3972,7 @@ dependencies = [
  "eframe",
  "egui-keybind",
  "egui-notify",
+ "egui_solarized",
  "egui_tiles",
  "env_logger",
  "flagset",
