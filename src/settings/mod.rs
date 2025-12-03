@@ -120,7 +120,7 @@ impl UISettings {
         if !(ui_slider.has_focus() || ui_slider.contains_pointer()) {
             self.ui_scale = self.displayed_ui_scale;
         }
-        ComboBox::from_label("Fonts")
+        ComboBox::from_label("Primary Font")
             .selected_text(self.ui_fonts.to_string())
             .show_ui(ui, |ui| {
                 if ui

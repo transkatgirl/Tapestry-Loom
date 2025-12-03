@@ -531,7 +531,7 @@ fn calculate_boundaries(
             y: row.pos.y + top_left.y,
         };
 
-        for (i, char) in row.glyphs.iter().enumerate() {
+        for char in row.glyphs.iter() {
             let char_len = char.chr.len_utf8();
 
             if snippet_index >= snippets.len() {

@@ -150,6 +150,12 @@ impl TapestryLoomApp {
             FontFamily::Name("phosphor-fill".into()),
             vec!["Ubuntu-Light".into(), "phosphor-fill".into()],
         );*/
+        if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Monospace) {
+            font_keys.push("unifontex".into());
+        }
+        if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Proportional) {
+            font_keys.push("unifontex".into());
+        }
 
         if settings.borrow().interface.ui_fonts == UIFonts::System {
             debug!("Loading system monospace font");
