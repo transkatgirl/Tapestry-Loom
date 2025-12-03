@@ -7,7 +7,7 @@ use std::{
 };
 
 use chrono::{DateTime, offset};
-use eframe::egui::{Color32, Rgba, Ui};
+use eframe::egui::{Color32, FontId, Rgba, RichText, TextStyle, Ui, WidgetText, text::LayoutJob};
 use egui_notify::Toasts;
 use flagset::FlagSet;
 use log::{debug, warn};
@@ -458,7 +458,11 @@ pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &DependentNode<NodeConten
 }
 
 pub fn render_token_tooltip(ui: &mut Ui, token: &[u8], token_metadata: &IndexMap<String, String>) {
-    ui.label(format!("{:#?}", escaped_string_from_utf8(token)));
+    if let Ok(string) = str::from_utf8(token) {
+        ui.label(RichText::new(format!("{string:#?}")).monospace());
+    } else {
+        ui.label(RichText::new(format!("{token:?}")).monospace());
+    }
 
     for (key, value) in token_metadata {
         if key == "probability"
