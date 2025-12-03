@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{cell::RefCell, collections::HashSet, path::PathBuf, rc::Rc, sync::Arc};
+use std::{cell::RefCell, collections::HashSet, fs, path::PathBuf, rc::Rc, sync::Arc};
 
 use eframe::{
     App, CreationContext, Frame, NativeOptions,
@@ -15,7 +15,10 @@ use egui_tiles::{
     Behavior, Container, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse,
 };
 use flagset::FlagSet;
-use log::{debug, error};
+use font_kit::{
+    family_name::FamilyName, handle::Handle, properties::Properties, source::SystemSource,
+};
+use log::{debug, error, warn};
 use mimalloc::MiMalloc;
 use reqwest::Client;
 use threadpool::ThreadPool;
@@ -139,6 +142,44 @@ impl TapestryLoomApp {
             FontFamily::Name("phosphor-fill".into()),
             vec!["Ubuntu-Light".into(), "phosphor-fill".into()],
         );*/
+
+        if settings.borrow().interface.ui_prefer_system_monospace_font {
+            match SystemSource::new()
+                .select_best_match(&[FamilyName::Monospace], &Properties::new())
+            {
+                Ok(Handle::Memory { bytes, .. }) => {
+                    fonts.font_data.insert(
+                        "system-monospace".into(),
+                        Arc::new(FontData::from_owned(bytes.to_vec())),
+                    );
+                    if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Monospace) {
+                        font_keys.insert(0, "system-monospace".into());
+                    }
+                }
+
+                Ok(Handle::Path { path, .. }) => match fs::read(path) {
+                    Ok(bytes) => {
+                        fonts.font_data.insert(
+                            "system-monospace".into(),
+                            Arc::new(FontData::from_owned(bytes)),
+                        );
+                        if let Some(font_keys) =
+                            fonts.families.get_mut(&egui::FontFamily::Monospace)
+                        {
+                            font_keys.insert(0, "system-monospace".into());
+                        }
+                    }
+                    Err(error) => {
+                        toasts.warning("Failed to load system fonts");
+                        warn!("Failed to load system monospace font: {error:#?}")
+                    }
+                },
+                Err(error) => {
+                    toasts.warning("Failed to load system fonts");
+                    warn!("Failed to select system monospace font: {error:#?}")
+                }
+            }
+        }
 
         cc.egui_ctx.set_fonts(fonts);
 

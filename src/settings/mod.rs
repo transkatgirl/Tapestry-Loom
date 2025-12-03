@@ -26,6 +26,8 @@ pub struct Settings {
 pub struct UISettings {
     pub ui_scale: f32,
     pub ui_theme: UITheme,
+    pub ui_prefer_system_monospace_font: bool,
+
     pub displayed_ui_scale: f32,
     pub show_model_colors: bool,
     pub show_token_probabilities: bool,
@@ -37,6 +39,8 @@ impl Default for UISettings {
         Self {
             ui_scale: 1.25,
             ui_theme: UITheme::Dark,
+            ui_prefer_system_monospace_font: false,
+
             displayed_ui_scale: 1.25,
             show_model_colors: true,
             show_token_probabilities: true,
@@ -95,6 +99,10 @@ impl UISettings {
         if !(ui_slider.has_focus() || ui_slider.contains_pointer()) {
             self.ui_scale = self.displayed_ui_scale;
         }
+        ui.checkbox(
+            &mut self.ui_prefer_system_monospace_font,
+            "Prefer system monospace font (requires app restart)",
+        );
 
         ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
 

@@ -70,6 +70,7 @@ flagset = { version = "0.4.7", features = [
 	"std",
 ] }
 bytes = "1.11.0"
+font-kit = "0.14.3"
 #llama_cpp = "0.3.2"
 #egui-graph-edit = "0.7.1"
 #egui_nodes = "0.1.3"
