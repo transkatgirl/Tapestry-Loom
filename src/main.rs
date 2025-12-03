@@ -143,7 +143,7 @@ impl TapestryLoomApp {
             vec!["Ubuntu-Light".into(), "phosphor-fill".into()],
         );*/
 
-        if settings.borrow().interface.ui_prefer_system_monospace_font {
+        if settings.borrow().interface.ui_use_system_fonts {
             match SystemSource::new()
                 .select_best_match(&[FamilyName::Monospace], &Properties::new())
             {
@@ -170,13 +170,50 @@ impl TapestryLoomApp {
                         }
                     }
                     Err(error) => {
-                        toasts.warning("Failed to load system fonts");
+                        toasts.warning("Failed to load system monospace font");
                         warn!("Failed to load system monospace font: {error:#?}")
                     }
                 },
                 Err(error) => {
-                    toasts.warning("Failed to load system fonts");
+                    toasts.warning("Failed to load system monospace font");
                     warn!("Failed to select system monospace font: {error:#?}")
+                }
+            }
+
+            match SystemSource::new()
+                .select_best_match(&[FamilyName::SansSerif], &Properties::new())
+            {
+                Ok(Handle::Memory { bytes, .. }) => {
+                    fonts.font_data.insert(
+                        "system-sans-serif".into(),
+                        Arc::new(FontData::from_owned(bytes.to_vec())),
+                    );
+                    if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Proportional)
+                    {
+                        font_keys.insert(0, "system-sans-serif".into());
+                    }
+                }
+
+                Ok(Handle::Path { path, .. }) => match fs::read(path) {
+                    Ok(bytes) => {
+                        fonts.font_data.insert(
+                            "system-sans-serif".into(),
+                            Arc::new(FontData::from_owned(bytes)),
+                        );
+                        if let Some(font_keys) =
+                            fonts.families.get_mut(&egui::FontFamily::Proportional)
+                        {
+                            font_keys.insert(0, "system-sans-serif".into());
+                        }
+                    }
+                    Err(error) => {
+                        toasts.warning("Failed to load system sans-serif font");
+                        warn!("Failed to load system sans-serif font: {error:#?}")
+                    }
+                },
+                Err(error) => {
+                    toasts.warning("Failed to load system sans-serif font");
+                    warn!("Failed to select system sans-serif font: {error:#?}")
                 }
             }
         }

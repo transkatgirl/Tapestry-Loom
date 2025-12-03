@@ -26,7 +26,7 @@ pub struct Settings {
 pub struct UISettings {
     pub ui_scale: f32,
     pub ui_theme: UITheme,
-    pub ui_prefer_system_monospace_font: bool,
+    pub ui_use_system_fonts: bool,
 
     pub displayed_ui_scale: f32,
     pub show_model_colors: bool,
@@ -39,7 +39,7 @@ impl Default for UISettings {
         Self {
             ui_scale: 1.25,
             ui_theme: UITheme::Dark,
-            ui_prefer_system_monospace_font: false,
+            ui_use_system_fonts: false,
 
             displayed_ui_scale: 1.25,
             show_model_colors: true,
@@ -100,8 +100,8 @@ impl UISettings {
             self.ui_scale = self.displayed_ui_scale;
         }
         ui.checkbox(
-            &mut self.ui_prefer_system_monospace_font,
-            "Prefer system monospace font (requires app restart)",
+            &mut self.ui_use_system_fonts,
+            "Use system fonts (requires app restart)",
         );
 
         ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
