@@ -257,9 +257,9 @@ impl TreeListView {
             && let Some(cursor_node_parent_parent) = cursor_node_parent.from
         {
             if !cursor_node.to.is_empty() {
-                vec![Ulid(cursor_node_parent_parent)]
-            } else {
                 vec![Ulid(cursor_node_parent.id)]
+            } else {
+                vec![Ulid(cursor_node_parent_parent)]
             }
         } else {
             weave.get_roots().collect()
