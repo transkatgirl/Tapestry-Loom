@@ -40,6 +40,7 @@ pub struct TextEditorView {
     last_text_edit_hover: Option<Vec2>,
     last_text_edit_highlighting_hover: HighlightingHover,
     last_text_edit_highlighting_hover_update: Instant,
+    last_text_edit_rect: Rect,
 }
 
 // TODO: Implement a context menu on the TextEdit
@@ -73,6 +74,10 @@ impl Default for TextEditorView {
             last_text_edit_hover: None,
             last_text_edit_highlighting_hover: HighlightingHover::None,
             last_text_edit_highlighting_hover_update: Instant::now(),
+            last_text_edit_rect: Rect {
+                min: Pos2::ZERO,
+                max: Pos2::ZERO,
+            },
         }
     }
 }
@@ -139,7 +144,7 @@ impl TextEditorView {
                         font_id.size *= 1.1;
                         ui.style_mut().override_font_id = Some(font_id);
 
-                        render_rects(ui, &mut self.rects);
+                        render_rects(ui, &self.rects);
 
                         let mut textedit = TextEdit::multiline(&mut self.text)
                             .frame(false)
@@ -172,23 +177,31 @@ impl TextEditorView {
 
                         let top_left = textedit.text_clip_rect.left_top();
 
-                        calculate_boundaries_and_update_scroll(
-                            ui,
-                            &self.snippets.borrow(),
-                            top_left,
-                            &textedit.galley,
-                            match self.last_text_edit_highlighting_hover {
-                                HighlightingHover::Position((node, _)) => Some(node),
-                                HighlightingHover::Node(node) => Some(node),
-                                HighlightingHover::None => None,
-                            },
-                            if settings.interface.auto_scroll {
-                                state.get_changed_node()
-                            } else {
-                                None
-                            },
-                            &mut self.rects,
-                        );
+                        if textedit.response.changed()
+                            || (state.has_weave_changed || self.text.is_empty())
+                            || state.has_hover_node_changed
+                            || textedit.response.rect != self.last_text_edit_rect
+                        {
+                            self.rects.clear();
+                            calculate_boundaries_and_update_scroll(
+                                ui,
+                                &self.snippets.borrow(),
+                                top_left,
+                                &textedit.galley,
+                                match self.last_text_edit_highlighting_hover {
+                                    HighlightingHover::Position((node, _)) => Some(node),
+                                    HighlightingHover::Node(node) => Some(node),
+                                    HighlightingHover::None => None,
+                                },
+                                if settings.interface.auto_scroll {
+                                    state.get_changed_node()
+                                } else {
+                                    None
+                                },
+                                &mut self.rects,
+                            );
+                            self.last_text_edit_rect = textedit.response.rect;
+                        }
 
                         if textedit.response.changed() {
                             self.update_weave(weave);
@@ -609,7 +622,7 @@ fn cursor_is_within_galley(galley: &Galley, cursor: Pos2) -> bool {
     false
 }
 
-fn render_rects(ui: &Ui, rects: &mut Vec<(Rect, Color32)>) {
+fn render_rects(ui: &Ui, rects: &[(Rect, Color32)]) {
     if rects.is_empty() {
         return;
     }
@@ -620,7 +633,7 @@ fn render_rects(ui: &Ui, rects: &mut Vec<(Rect, Color32)>) {
 
     let mut vertices = 0;
 
-    for (rect, color) in rects.drain(..) {
+    for (rect, color) in rects.iter().copied() {
         mesh.indices.extend_from_slice(&[
             vertices,
             vertices + 1,
