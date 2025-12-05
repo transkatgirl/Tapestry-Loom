@@ -209,7 +209,6 @@ impl BookmarkListView {
 
 #[derive(Debug)]
 pub struct TreeListView {
-    last_seen_cursor_node: Option<Ulid>,
     last_active_nodes: HashSet<Ulid>,
     last_rendered_nodes: HashSet<Ulid>,
 }
@@ -217,7 +216,6 @@ pub struct TreeListView {
 impl Default for TreeListView {
     fn default() -> Self {
         Self {
-            last_seen_cursor_node: None,
             last_active_nodes: HashSet::with_capacity(65536),
             last_rendered_nodes: HashSet::with_capacity(65536),
         }
@@ -226,7 +224,6 @@ impl Default for TreeListView {
 
 impl TreeListView {
     /*pub fn reset(&mut self) {
-        self.last_seen_cursor_node = None;
         self.last_active_nodes.clear();
         self.last_rendered_nodes.clear();
     }*/
@@ -239,7 +236,7 @@ impl TreeListView {
         state: &mut SharedState,
         shortcuts: FlagSet<Shortcuts>,
     ) {
-        if self.last_seen_cursor_node != state.get_cursor_node().into_node() {
+        if state.has_cursor_node_changed {
             self.last_active_nodes.clear();
 
             if let Some(cursor_node) = state.get_cursor_node().into_node() {
@@ -250,7 +247,6 @@ impl TreeListView {
                     set_node_tree_item_open_status(ui, state.identifier, item, true);
                 }
             }
-            self.last_seen_cursor_node = state.get_cursor_node().into_node();
         }
 
         if shortcuts.contains(Shortcuts::ToggleNodeCollapsed)

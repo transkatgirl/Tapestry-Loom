@@ -8,10 +8,14 @@ use crate::{
 };
 
 #[derive(Default, Debug)]
-pub struct MenuView {}
+pub struct MenuView {
+    active_node_count: usize,
+}
 
 impl MenuView {
-    //pub fn reset(&mut self) {}
+    /*pub fn reset(&mut self) {
+        self.active_node_count = 0;
+    }*/
     pub fn render(
         &mut self,
         ui: &mut Ui,
@@ -45,6 +49,10 @@ impl MenuView {
     ) {
         let request_count = state.get_request_count();
 
+        if state.has_weave_changed || self.active_node_count == 0 {
+            self.active_node_count = weave.get_active_thread_len();
+        }
+
         if request_count > 0 {
             ui.add(Spinner::new());
             if request_count > 1 {
@@ -54,17 +62,6 @@ impl MenuView {
             }
         } else {
             let node_count = weave.len();
-            let file_size_label = if file_size >= 1_000_000_000 {
-                format!(", {:.1} GB", file_size as f32 / 1_000_000_000.0)
-            } else if file_size >= 1_000_000 {
-                format!(", {:.1} MB", file_size as f32 / 1_000_000.0)
-            } else if file_size >= 1_000 {
-                format!(", {:.1} kB", file_size as f32 / 1_000.0)
-            } else if file_size > 0 {
-                format!(", {} bytes", file_size)
-            } else {
-                String::new()
-            };
             let node_count_label = if node_count >= 1_000_000 {
                 format!("{:.1}M nodes", node_count as f32 / 1_000_000.0)
             } else if node_count >= 1_000 {
@@ -74,21 +71,30 @@ impl MenuView {
             } else {
                 format!("{} nodes", node_count)
             };
-            ui.label(format!("{node_count_label}{file_size_label}"))
+            let active_node_count_label = if self.active_node_count >= 1_000_000 {
+                format!("{:.1}M active", self.active_node_count as f32 / 1_000_000.0)
+            } else if self.active_node_count >= 1_000 {
+                format!("{:.1}k active", self.active_node_count as f32 / 1_000.0)
+            } else if self.active_node_count == 1 {
+                "1 active".to_string()
+            } else {
+                format!("{} active", self.active_node_count)
+            };
+            ui.label(format!("{node_count_label}, {active_node_count_label}"))
                 .on_hover_ui(|ui| {
-                    let active_node_count = weave.get_active_thread_len();
-                    ui.label(if active_node_count >= 1_000_000 {
-                        format!(
-                            "{:.1}M nodes active",
-                            active_node_count as f32 / 1_000_000.0
-                        )
-                    } else if active_node_count >= 1_000 {
-                        format!("{:.1}k nodes active", active_node_count as f32 / 1_000.0)
-                    } else if active_node_count == 1 {
-                        "1 node active".to_string()
+                    let file_size_label = if file_size >= 1_000_000_000 {
+                        format!("{:.1} GB", file_size as f32 / 1_000_000_000.0)
+                    } else if file_size >= 1_000_000 {
+                        format!("{:.1} MB", file_size as f32 / 1_000_000.0)
+                    } else if file_size >= 1_000 {
+                        format!("{:.1} kB", file_size as f32 / 1_000.0)
+                    } else if file_size > 0 {
+                        format!("{} bytes", file_size)
                     } else {
-                        format!("{} nodes active", active_node_count)
-                    });
+                        String::new()
+                    };
+
+                    ui.label(file_size_label);
                 });
         }
 
