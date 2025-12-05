@@ -589,7 +589,7 @@ fn calculate_boundaries_and_update_scroll(
             if snippet_index >= snippets.len() {
                 break;
             } else {
-                while offset >= snippet_offset {
+                while offset >= snippet_offset && snippet_index < snippets.len() {
                     if last_node != Some(snippets[snippet_index].1) {
                         if offset > 0 {
                             draw_row_boundary(row_position, row.size, char.pos.x, false);
@@ -615,7 +615,7 @@ fn calculate_boundaries_and_update_scroll(
             if snippet_index >= snippets.len() {
                 break;
             } else {
-                while offset >= snippet_offset {
+                while offset >= snippet_offset && snippet_index < snippets.len() {
                     if last_node != Some(snippets[snippet_index].1) {
                         if offset > 0 {
                             draw_row_boundary(row_position, row.size, row.size.x, false);
