@@ -1,7 +1,9 @@
 use std::collections::{HashMap, hash_map::Entry};
 
 use rust_sugiyama::{configure::Config, from_vertices_and_edges};
-use tapestry_weave::{ulid::Ulid, v0::TapestryWeave};
+use tapestry_weave::ulid::Ulid;
+
+use crate::editor::shared::weave::WeaveWrapper;
 
 pub struct WeaveLayout {
     identifier_map: HashMap<Ulid, u32>,
@@ -21,7 +23,7 @@ impl WeaveLayout {
             id_counter: 0,
         }
     }
-    pub fn load_weave(&mut self, weave: TapestryWeave, node_sizes: HashMap<Ulid, (f64, f64)>) {
+    pub fn load_weave(&mut self, weave: WeaveWrapper, node_sizes: HashMap<Ulid, (f64, f64)>) {
         self.identifier_map.clear();
         self.identifier_unmap.clear();
         self.vertices.clear();

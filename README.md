@@ -133,3 +133,15 @@ See also: the [original v1 plans](https://github.com/transkatgirl/Tapestry-Loom/
 Note: This project is a work in progress. Missing features and major bugs are a certainty.
 
 Make sure to clone the repository with submodules!
+
+### Run in debug mode w/ logging
+
+```bash
+RUST_LOG=debug,tapestry_loom=trace cargo run
+```
+
+### Run in release mode w/ logging
+
+```bash
+RUST_LOG=debug cargo run --release
+```
