@@ -248,7 +248,7 @@ impl Default for TreeListView {
             last_rendered_nodes: HashSet::with_capacity(65536),
             lists: HashMap::with_capacity(256),
             needs_list_refresh: false,
-            last_max_depth: 4,
+            last_max_depth: Settings::default().interface.max_tree_depth,
         }
     }
 }
