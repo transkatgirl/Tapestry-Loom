@@ -400,7 +400,7 @@ impl TreeListView {
                             ui,
                             state.identifier,
                             Ulid::nil(),
-                            tree_roots,
+                            tree_roots.into_iter(),
                             settings.interface.max_tree_depth,
                             &mut self.last_rendered_nodes,
                             &mut self.lists,
@@ -418,7 +418,7 @@ fn render_node_tree(
     ui: &mut Ui,
     editor_id: Ulid,
     branch_identifier: Ulid,
-    items: impl IntoIterator<Item = Ulid>,
+    items: impl ExactSizeIterator<Item = Ulid>,
     max_depth: usize,
     rendered_items: &mut HashSet<Ulid>,
     virtual_lists: &mut HashMap<Ulid, Rc<RefCell<VirtualList>>>,
@@ -442,7 +442,7 @@ fn render_node_tree(
                 needs_list_refresh,
             );
         }
-    } else {
+    } else if items.len() > 0 {
         let virtual_list = match virtual_lists.entry(branch_identifier) {
             Entry::Occupied(occupied) => occupied,
             Entry::Vacant(vacant) => {
