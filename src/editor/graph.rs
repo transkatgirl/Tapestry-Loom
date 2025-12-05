@@ -40,9 +40,20 @@ impl GraphView {
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
     ) {
-        if state.has_weave_layout_changed
-            || (self.arranged.width == 0.0 && self.arranged.height == 0.0)
-        {
+        if state.has_weave_layout_changed {
+            self.arranged = ArrangedWeave::default();
+        }
+    }
+    pub fn render(
+        &mut self,
+        ui: &mut Ui,
+        weave: &mut WeaveWrapper,
+        settings: &Settings,
+        toasts: &mut Toasts,
+        state: &mut SharedState,
+        shortcuts: FlagSet<Shortcuts>,
+    ) {
+        if self.arranged.width == 0.0 && self.arranged.height == 0.0 {
             self.layout.load_weave(
                 weave,
                 weave
@@ -59,16 +70,7 @@ impl GraphView {
                 transpose: false,
             })
         }
-    }
-    pub fn render(
-        &mut self,
-        ui: &mut Ui,
-        weave: &mut WeaveWrapper,
-        settings: &Settings,
-        toasts: &mut Toasts,
-        state: &mut SharedState,
-        shortcuts: FlagSet<Shortcuts>,
-    ) {
+
         let default_color = ui.visuals().widgets.inactive.text_color();
 
         ScrollArea::both()
