@@ -11,16 +11,16 @@ use flagset::FlagSet;
 use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{
-        Weave,
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
-    v0::{InnerNodeContent, NodeContent, TapestryWeave},
+    v0::{InnerNodeContent, NodeContent},
 };
 
 use crate::{
     editor::shared::{
         NodeIndex, SharedState, get_node_color, render_node_metadata_tooltip, render_node_text,
+        weave::WeaveWrapper,
     },
     listing_margin,
     settings::{Settings, shortcuts::Shortcuts},
@@ -34,7 +34,7 @@ impl ListView {
     pub fn render(
         &mut self,
         ui: &mut Ui,
-        weave: &mut TapestryWeave,
+        weave: &mut WeaveWrapper,
         settings: &Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
@@ -47,7 +47,7 @@ impl ListView {
         {
             cursor_node.to.iter().cloned().map(Ulid).collect()
         } else {
-            weave.weave.get_roots().iter().copied().map(Ulid).collect()
+            weave.get_roots().collect()
         };
 
         ScrollArea::vertical()
@@ -65,7 +65,7 @@ impl ListView {
     }
     fn render_item(
         &mut self,
-        weave: &mut TapestryWeave,
+        weave: &mut WeaveWrapper,
         settings: &Settings,
         state: &mut SharedState,
         ui: &mut Ui,
@@ -101,19 +101,13 @@ impl BookmarkListView {
     pub fn render(
         &mut self,
         ui: &mut Ui,
-        weave: &mut TapestryWeave,
+        weave: &mut WeaveWrapper,
         settings: &Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
     ) {
-        let items: Vec<Ulid> = weave
-            .weave
-            .get_bookmarks()
-            .iter()
-            .copied()
-            .map(Ulid)
-            .collect();
+        let items: Vec<Ulid> = weave.get_bookmarks().collect();
 
         ScrollArea::vertical()
             .auto_shrink(false)
@@ -130,7 +124,7 @@ impl BookmarkListView {
     }
     fn render_bookmark(
         &mut self,
-        weave: &mut TapestryWeave,
+        weave: &mut WeaveWrapper,
         settings: &Settings,
         state: &mut SharedState,
         ui: &mut Ui,
@@ -153,7 +147,7 @@ impl BookmarkListView {
                             .on_hover_text("Remove bookmark")
                             .clicked()
                         {
-                            weave.set_node_bookmarked_status(&Ulid(node.id), false);
+                            weave.set_node_bookmarked_status_u128(&node.id, false);
                         };
                     },
                     |ui, settings, state, weave, node| {
@@ -192,7 +186,7 @@ impl TreeListView {
     pub fn render(
         &mut self,
         ui: &mut Ui,
-        weave: &mut TapestryWeave,
+        weave: &mut WeaveWrapper,
         settings: &Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
@@ -202,12 +196,7 @@ impl TreeListView {
             self.last_active_nodes.clear();
 
             if let Some(cursor_node) = state.get_cursor_node().into_node() {
-                let active = weave
-                    .weave
-                    .get_thread_from(&cursor_node.0)
-                    .iter()
-                    .copied()
-                    .map(Ulid);
+                let active = weave.get_thread_from_u128(&cursor_node.0).map(Ulid);
 
                 for item in active {
                     self.last_active_nodes.insert(item);
@@ -301,7 +290,7 @@ impl TreeListView {
 }
 
 fn render_node_tree(
-    weave: &mut TapestryWeave,
+    weave: &mut WeaveWrapper,
     settings: &Settings,
     state: &mut SharedState,
     ui: &mut Ui,
@@ -397,7 +386,7 @@ fn render_horizontal_node_label_buttons_rtl(
     ui: &mut Ui,
     settings: &Settings,
     state: &mut SharedState,
-    weave: &mut TapestryWeave,
+    weave: &mut WeaveWrapper,
     node: &DependentNode<NodeContent>,
 ) {
     if ui.button("\u{E28F}").on_hover_text("Delete node").clicked() {
@@ -418,7 +407,7 @@ fn render_horizontal_node_label_buttons_rtl(
         .on_hover_text(bookmark_hover_text)
         .clicked()
     {
-        weave.set_node_bookmarked_status(&Ulid(node.id), !node.bookmarked);
+        weave.set_node_bookmarked_status_u128(&node.id, !node.bookmarked);
     };
     if ui.button("\u{E40C}").on_hover_text("Add node").clicked() {
         let identifier = Ulid::new().0;
@@ -458,7 +447,7 @@ fn render_horizontal_node_label_buttons_rtl(
 fn render_omitted_chidren_tree_node_label(
     ui: &mut Ui,
     state: &mut SharedState,
-    weave: &mut TapestryWeave,
+    weave: &mut WeaveWrapper,
     node: &DependentNode<NodeContent>,
     first_child: Ulid,
 ) {
@@ -488,7 +477,7 @@ fn render_omitted_chidren_tree_node_label(
                 }
 
                 if label_button_response.clicked() {
-                    weave.set_node_active_status(&Ulid(node.id), true);
+                    weave.set_node_active_status_u128(&node.id, true);
                     state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
                 }
 
@@ -500,7 +489,7 @@ fn render_omitted_chidren_tree_node_label(
         .response;
 
     if response.clicked() {
-        weave.set_node_active_status(&Ulid(node.id), true);
+        weave.set_node_active_status_u128(&node.id, true);
         state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
     }
 
@@ -513,20 +502,20 @@ fn render_horizontal_node_label(
     ui: &mut Ui,
     settings: &Settings,
     state: &mut SharedState,
-    weave: &mut TapestryWeave,
+    weave: &mut WeaveWrapper,
     node: &DependentNode<NodeContent>,
     buttons: impl Fn(
         &mut Ui,
         &Settings,
         &mut SharedState,
-        &mut TapestryWeave,
+        &mut WeaveWrapper,
         &DependentNode<NodeContent>,
     ),
     context_menu: impl Fn(
         &mut Ui,
         &Settings,
         &mut SharedState,
-        &mut TapestryWeave,
+        &mut WeaveWrapper,
         &DependentNode<NodeContent>,
     ),
     show_node_info: bool,
@@ -602,7 +591,7 @@ fn render_horizontal_node_label(
                 }
 
                 if label_button_response.clicked() {
-                    weave.set_node_active_status(&Ulid(node.id), true);
+                    weave.set_node_active_status_u128(&node.id, true);
                     state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
                 }
 
@@ -647,7 +636,7 @@ fn render_horizontal_node_label(
     });
 
     if response.clicked() {
-        weave.set_node_active_status(&Ulid(node.id), true);
+        weave.set_node_active_status_u128(&node.id, true);
         state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
     }
 
@@ -660,7 +649,7 @@ fn render_node_context_menu(
     ui: &mut Ui,
     settings: &Settings,
     state: &mut SharedState,
-    weave: &mut TapestryWeave,
+    weave: &mut WeaveWrapper,
     node: &DependentNode<NodeContent>,
 ) {
     if ui.button("Generate completions").clicked() {
@@ -673,7 +662,7 @@ fn render_node_context_menu(
         "Bookmark"
     };
     if ui.button(bookmark_label).clicked() {
-        weave.set_node_bookmarked_status(&Ulid(node.id), !node.bookmarked);
+        weave.set_node_bookmarked_status_u128(&node.id, !node.bookmarked);
     }
 
     ui.separator();
@@ -736,10 +725,7 @@ fn render_node_context_menu(
                     .collect()
             } else {
                 weave
-                    .weave
-                    .get_roots()
-                    .iter()
-                    .copied()
+                    .get_roots_u128()
                     .filter(|id| *id != node.id)
                     .map(Ulid)
                     .collect()
@@ -770,7 +756,7 @@ fn render_node_tree_context_menu(
     settings: &Settings,
     state: &mut SharedState,
     editor_id: Ulid,
-    weave: &mut TapestryWeave,
+    weave: &mut WeaveWrapper,
     node: &DependentNode<NodeContent>,
 ) {
     if ui.button("Generate completions").clicked() {
@@ -783,7 +769,7 @@ fn render_node_tree_context_menu(
         "Bookmark"
     };
     if ui.button(bookmark_label).clicked() {
-        weave.set_node_bookmarked_status(&Ulid(node.id), !node.bookmarked);
+        weave.set_node_bookmarked_status_u128(&node.id, !node.bookmarked);
     }
 
     ui.separator();
@@ -852,7 +838,7 @@ fn render_node_tree_context_menu(
 
     if ui.button("Delete all siblings").clicked() {
         let siblings: Vec<Ulid> =
-            if let Some(parent) = node.from.and_then(|id| weave.get_node(&Ulid(id))) {
+            if let Some(parent) = node.from.and_then(|id| weave.get_node_u128(&id)) {
                 parent
                     .to
                     .iter()
@@ -862,10 +848,7 @@ fn render_node_tree_context_menu(
                     .collect()
             } else {
                 weave
-                    .weave
-                    .get_roots()
-                    .iter()
-                    .copied()
+                    .get_roots_u128()
                     .filter(|id| *id != node.id)
                     .map(Ulid)
                     .collect()
@@ -887,6 +870,6 @@ fn render_node_tree_context_menu(
     ui.separator();
 
     if ui.button("Delete").clicked() {
-        weave.remove_node(&Ulid(node.id));
+        weave.remove_node_u128(&node.id);
     }
 }

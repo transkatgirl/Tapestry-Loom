@@ -1,10 +1,9 @@
 use eframe::egui::Ui;
 use egui_notify::Toasts;
 use flagset::FlagSet;
-use tapestry_weave::v0::TapestryWeave;
 
 use crate::{
-    editor::shared::SharedState,
+    editor::shared::{SharedState, weave::WeaveWrapper},
     settings::{Settings, shortcuts::Shortcuts},
 };
 
@@ -16,7 +15,7 @@ impl GraphView {
     pub fn render(
         &mut self,
         ui: &mut Ui,
-        weave: &mut TapestryWeave,
+        weave: &mut WeaveWrapper,
         settings: &Settings,
         toasts: &mut Toasts,
         state: &mut SharedState,

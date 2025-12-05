@@ -1,11 +1,4 @@
-use std::{
-    borrow::Cow,
-    cell::RefCell,
-    collections::HashMap,
-    rc::Rc,
-    sync::Arc,
-    time::{Duration, SystemTime},
-};
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
 
 use chrono::{DateTime, offset};
 use eframe::egui::{
@@ -19,18 +12,20 @@ use reqwest::Client;
 use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{
-        Weave,
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
-    v0::{InnerNodeContent, NodeContent, TapestryWeave},
+    v0::{InnerNodeContent, NodeContent},
 };
 use tokio::runtime::Runtime;
 
-use crate::settings::{
-    Settings,
-    inference::{InferenceHandle, InferenceParameters},
-    shortcuts::Shortcuts,
+use crate::{
+    editor::shared::weave::WeaveWrapper,
+    settings::{
+        Settings,
+        inference::{InferenceHandle, InferenceParameters},
+        shortcuts::Shortcuts,
+    },
 };
 
 pub(super) mod layout;
@@ -105,7 +100,7 @@ impl SharedState {
     }*/
     pub fn update(
         &mut self,
-        weave: &mut TapestryWeave,
+        weave: &mut WeaveWrapper,
         settings: &Settings,
         toasts: &mut Toasts,
         shortcuts: FlagSet<Shortcuts>,
@@ -122,7 +117,7 @@ impl SharedState {
             self.cursor_node = NodeIndex::None;
         }
         if !self.cursor_node.has_node()
-            && let Some(active) = weave.get_active_thread().next().map(|node| Ulid(node.id))
+            && let Some(active) = weave.get_active_thread_first()
         {
             self.cursor_node = NodeIndex::Node(active);
         }
@@ -165,11 +160,7 @@ impl SharedState {
                         let parent = weave.get_node(&node).and_then(|node| node.from.map(Ulid));
                         self.generate_children(weave, parent, settings);
                     } else {
-                        weave.split_node(&node, index, |timestamp| {
-                            Ulid::from_datetime(
-                                SystemTime::UNIX_EPOCH + Duration::from_millis(timestamp),
-                            )
-                        });
+                        weave.split_node(&node, index);
                         self.generate_children(weave, Some(node), settings);
                     }
                 }
@@ -186,7 +177,8 @@ impl SharedState {
                 .into_node()
                 .and_then(|id| weave.get_node(&id))
         {
-            weave.set_node_bookmarked_status(&Ulid(node.id), !node.bookmarked);
+            let identifier = node.id;
+            weave.set_node_bookmarked_status_u128(&identifier, !node.bookmarked);
         }
 
         if shortcuts.contains(Shortcuts::AddChild)
@@ -242,7 +234,7 @@ impl SharedState {
         {
             let parent = weave.get_node(&node).and_then(|node| node.from).map(Ulid);
 
-            if weave.remove_node(&node).is_some()
+            if weave.remove_node(&node)
                 && let Some(parent) = parent
             {
                 self.cursor_node = NodeIndex::Node(parent);
@@ -269,7 +261,7 @@ impl SharedState {
                 .and_then(|id| weave.get_node(&id))
         {
             let siblings: Vec<Ulid> =
-                if let Some(parent) = node.from.and_then(|id| weave.get_node(&Ulid(id))) {
+                if let Some(parent) = node.from.and_then(|id| weave.get_node_u128(&id)) {
                     parent
                         .to
                         .iter()
@@ -279,10 +271,7 @@ impl SharedState {
                         .collect()
                 } else {
                     weave
-                        .weave
-                        .get_roots()
-                        .iter()
-                        .copied()
+                        .get_roots_u128()
                         .filter(|id| *id != node.id)
                         .map(Ulid)
                         .collect()
@@ -304,10 +293,10 @@ impl SharedState {
             }
 
             let siblings_and_current: Vec<Ulid> =
-                if let Some(parent) = node.from.and_then(|id| weave.get_node(&Ulid(id))) {
+                if let Some(parent) = node.from.and_then(|id| weave.get_node_u128(&id)) {
                     parent.to.iter().copied().map(Ulid).collect()
                 } else {
-                    weave.weave.get_roots().iter().copied().map(Ulid).collect()
+                    weave.get_roots().collect()
                 };
 
             for item in siblings_and_current {
@@ -330,9 +319,7 @@ impl SharedState {
         if shortcuts.contains(Shortcuts::SplitAtCursor)
             && let NodeIndex::WithinNode(node, index) = self.last_cursor_node
         {
-            weave.split_node(&node, index, |timestamp| {
-                Ulid::from_datetime(SystemTime::UNIX_EPOCH + Duration::from_millis(timestamp))
-            });
+            weave.split_node(&node, index);
         }
 
         if shortcuts.contains(Shortcuts::MoveToParent)
@@ -366,7 +353,7 @@ impl SharedState {
                 .from
                 .and_then(|id| weave.get_node(&Ulid(id)))
                 .map(|parent| &parent.to)
-                .unwrap_or(weave.weave.get_roots())
+                .unwrap_or(weave.get_roots_u128_direct())
             && let Some(current_index) = parent_children.get_index_of(&node.id)
             && let Some(previous_sibling) = parent_children
                 .get_index(current_index.saturating_sub(1))
@@ -386,7 +373,7 @@ impl SharedState {
                 .from
                 .and_then(|id| weave.get_node(&Ulid(id)))
                 .map(|parent| &parent.to)
-                .unwrap_or(weave.weave.get_roots())
+                .unwrap_or(weave.get_roots_u128_direct())
             && let Some(current_index) = parent_children.get_index_of(&node.id)
             && let Some(next_sibling) = parent_children
                 .get_index(current_index + 1)
@@ -414,7 +401,7 @@ impl SharedState {
     }
     pub fn generate_children(
         &mut self,
-        weave: &mut TapestryWeave,
+        weave: &mut WeaveWrapper,
         parent: Option<Ulid>,
         settings: &Settings,
     ) {
@@ -425,17 +412,11 @@ impl SharedState {
         }
 
         let content: Vec<u8> = if let Some(parent) = parent {
-            let thread: Vec<u128> = weave
-                .weave
-                .get_thread_from(&parent.0)
-                .iter()
-                .rev()
-                .copied()
-                .collect();
+            let thread: Vec<u128> = weave.get_thread_from_u128(&parent.0).rev().collect();
 
             thread
                 .into_iter()
-                .filter_map(|id| weave.weave.get_node(&id))
+                .filter_map(|id| weave.get_node_u128(&id))
                 .flat_map(|node| node.contents.content.as_bytes().into_owned().into_iter())
                 .collect()
         } else {

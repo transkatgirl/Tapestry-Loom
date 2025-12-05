@@ -46,7 +46,7 @@ use crate::{
         graph::GraphView,
         lists::{BookmarkListView, ListView, TreeListView},
         menus::MenuView,
-        shared::SharedState,
+        shared::{SharedState, weave::WeaveWrapper},
         textedit::TextEditorView,
     },
     settings::{Settings, shortcuts::Shortcuts},
@@ -60,7 +60,7 @@ pub struct Editor {
     pub title: String,
     path: Arc<Mutex<Option<PathBuf>>>,
     old_path: Option<PathBuf>,
-    weave: Arc<Mutex<Option<TapestryWeave>>>,
+    weave: Arc<Mutex<Option<WeaveWrapper>>>,
     error_channel: (Arc<Sender<String>>, Receiver<String>),
     last_save: Instant,
     last_filesize: Arc<AtomicUsize>,
@@ -228,7 +228,7 @@ impl Editor {
                                             weave.reserve(65536 - weave.capacity());
                                         }
 
-                                        *weave_dest = Some(weave);
+                                        *weave_dest = Some(weave.into());
                                     }
                                     Some(Err(error)) => {
                                         file_size.store(0, Ordering::SeqCst);
@@ -236,10 +236,13 @@ impl Editor {
                                             .send("Weave deserialization failed".to_string());
                                         error!("Weave deserialization failed: {:#?}", error);
                                         *path = None;
-                                        *weave_dest = Some(TapestryWeave::with_capacity(
-                                            65536,
-                                            IndexMap::default(),
-                                        ));
+                                        *weave_dest = Some(
+                                            TapestryWeave::with_capacity(
+                                                65536,
+                                                IndexMap::default(),
+                                            )
+                                            .into(),
+                                        );
                                     }
                                     None => {
                                         file_size.store(0, Ordering::SeqCst);
@@ -247,10 +250,13 @@ impl Editor {
                                             error_sender.send("Invalid weave header".to_string());
                                         error!("Invalid weave header");
                                         *path = None;
-                                        *weave_dest = Some(TapestryWeave::with_capacity(
-                                            65536,
-                                            IndexMap::default(),
-                                        ));
+                                        *weave_dest = Some(
+                                            TapestryWeave::with_capacity(
+                                                65536,
+                                                IndexMap::default(),
+                                            )
+                                            .into(),
+                                        );
                                     }
                                 },
                                 Err(error) => {
@@ -258,15 +264,16 @@ impl Editor {
                                     let _ = error_sender.send(format!("Filesystem error: {error}"));
                                     error!("Filesystem error: {:#?}", error);
                                     *path = None;
-                                    *weave_dest = Some(TapestryWeave::with_capacity(
-                                        65536,
-                                        IndexMap::default(),
-                                    ));
+                                    *weave_dest = Some(
+                                        TapestryWeave::with_capacity(65536, IndexMap::default())
+                                            .into(),
+                                    );
                                 }
                             }
                         } else {
-                            *weave_dest =
-                                Some(TapestryWeave::with_capacity(65536, IndexMap::default()));
+                            *weave_dest = Some(
+                                TapestryWeave::with_capacity(65536, IndexMap::default()).into(),
+                            );
                         }
                     });
                     barrier.wait();
@@ -527,7 +534,7 @@ struct EditorTilingBehavior {
     menu_view: MenuView,
     settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
-    weave: Arc<Mutex<Option<TapestryWeave>>>,
+    weave: Arc<Mutex<Option<WeaveWrapper>>>,
     shortcuts: FlagSet<Shortcuts>,
 }
 

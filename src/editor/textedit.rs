@@ -3,7 +3,7 @@ use std::{
     collections::HashMap,
     ops::Range,
     rc::Rc,
-    time::{Duration, Instant, SystemTime},
+    time::{Duration, Instant},
 };
 
 use eframe::{
@@ -16,16 +16,12 @@ use eframe::{
 };
 use egui_notify::Toasts;
 use flagset::FlagSet;
-use tapestry_weave::{
-    ulid::Ulid,
-    universal_weave::{Weave, indexmap::IndexMap},
-    v0::{InnerNodeContent, TapestryWeave},
-};
+use tapestry_weave::{ulid::Ulid, universal_weave::indexmap::IndexMap, v0::InnerNodeContent};
 
 use crate::{
     editor::shared::{
         NodeIndex, SharedState, get_node_color, get_token_color, render_node_metadata_tooltip,
-        render_token_tooltip,
+        render_token_tooltip, weave::WeaveWrapper,
     },
     settings::{Settings, shortcuts::Shortcuts},
 };
@@ -99,7 +95,7 @@ impl TextEditorView {
     pub fn render(
         &mut self,
         ui: &mut Ui,
-        weave: &mut TapestryWeave,
+        weave: &mut WeaveWrapper,
         settings: &Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
@@ -310,21 +306,21 @@ impl TextEditorView {
                     });
             });
     }
-    fn update(&mut self, weave: &mut TapestryWeave, settings: &Settings, default_color: Color32) {
+    fn update(&mut self, weave: &mut WeaveWrapper, settings: &Settings, default_color: Color32) {
         let mut snippets = self.snippets.borrow_mut();
         self.text.clear();
         self.bytes.clear();
         snippets.clear();
         self.node_snippets.clear();
 
-        let active: Vec<u128> = weave.weave.get_active_thread().iter().copied().collect();
+        let active: Vec<u128> = weave.get_active_thread_u128().collect();
 
         let mut offset = 0;
 
         for node in active
             .into_iter()
             .rev()
-            .filter_map(|id| weave.weave.get_node(&id))
+            .filter_map(|id| weave.get_node_u128(&id))
         {
             let color = get_node_color(node, settings).unwrap_or(default_color);
 
@@ -367,7 +363,7 @@ impl TextEditorView {
     }
     fn calculate_cursor(
         &mut self,
-        weave: &mut TapestryWeave,
+        weave: &mut WeaveWrapper,
         char_position: Option<usize>,
     ) -> Option<(Ulid, usize)> {
         let mut cursor_node = None;
@@ -386,7 +382,7 @@ impl TextEditorView {
                     }
                 }
             }
-        } else if let Some(active) = weave.get_active_thread().next().map(|node| Ulid(node.id)) {
+        } else if let Some(active) = weave.get_active_thread_first() {
             cursor_node = Some((active, self.text.len()));
         } else {
             cursor_node = None;
@@ -394,7 +390,7 @@ impl TextEditorView {
 
         cursor_node
     }
-    fn update_weave(&mut self, weave: &mut TapestryWeave) {
+    fn update_weave(&mut self, weave: &mut WeaveWrapper) {
         self.buffer.clear();
         self.buffer.extend_from_slice(self.text.as_bytes());
 
@@ -404,13 +400,7 @@ impl TextEditorView {
             }
         }
 
-        weave.set_active_content(&self.buffer, IndexMap::default(), |timestamp| {
-            if let Some(timestamp) = timestamp {
-                Ulid::from_datetime(SystemTime::UNIX_EPOCH + Duration::from_millis(timestamp))
-            } else {
-                Ulid::new()
-            }
-        });
+        weave.set_active_content(&self.buffer, IndexMap::default());
     }
 }
 
@@ -684,7 +674,7 @@ fn calculate_cursor_index(
 
 fn render_tooltip(
     ui: &mut Ui,
-    weave: &TapestryWeave,
+    weave: &WeaveWrapper,
     node_snippets: &HashMap<Ulid, Vec<Range<usize>>>,
     node: Ulid,
     index: usize,
