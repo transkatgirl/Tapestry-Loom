@@ -236,7 +236,7 @@ impl TreeListView {
         state: &mut SharedState,
         shortcuts: FlagSet<Shortcuts>,
     ) {
-        if state.has_cursor_node_changed {
+        if state.has_cursor_node_changed || self.last_active_nodes.is_empty() {
             self.last_active_nodes.clear();
 
             if let Some(cursor_node) = state.get_cursor_node().into_node() {
