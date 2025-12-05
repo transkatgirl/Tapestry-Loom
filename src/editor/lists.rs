@@ -1,6 +1,11 @@
 #![allow(clippy::too_many_arguments)]
 
-use std::{collections::HashSet, sync::Arc};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet, hash_map::Entry},
+    rc::Rc,
+    sync::Arc,
+};
 
 use eframe::egui::{
     Align, Button, Color32, FontFamily, Frame, Id, Layout, RichText, ScrollArea, Sense, Ui,
@@ -211,6 +216,8 @@ impl BookmarkListView {
 pub struct TreeListView {
     last_active_nodes: HashSet<Ulid>,
     last_rendered_nodes: HashSet<Ulid>,
+    lists: HashMap<Ulid, Rc<RefCell<VirtualList>>>,
+    needs_list_refresh: bool,
 }
 
 impl Default for TreeListView {
@@ -218,6 +225,8 @@ impl Default for TreeListView {
         Self {
             last_active_nodes: HashSet::with_capacity(65536),
             last_rendered_nodes: HashSet::with_capacity(65536),
+            lists: HashMap::with_capacity(256),
+            needs_list_refresh: false,
         }
     }
 }
@@ -226,7 +235,27 @@ impl TreeListView {
     /*pub fn reset(&mut self) {
         self.last_active_nodes.clear();
         self.last_rendered_nodes.clear();
+        self.lists.clear();
+        self.needs_list_refresh = false;
     }*/
+    fn update_lists(&mut self) {
+        let mut removal_list = Vec::with_capacity(self.lists.len());
+
+        for (id, list) in self.lists.iter() {
+            if self.last_rendered_nodes.contains(id)
+                || self.last_active_nodes.contains(id)
+                || *id == Ulid::nil()
+            {
+                list.borrow_mut().reset();
+            } else {
+                removal_list.push(*id);
+            }
+        }
+
+        for item in removal_list {
+            self.lists.remove(&item);
+        }
+    }
     pub fn render(
         &mut self,
         ui: &mut Ui,
@@ -247,12 +276,19 @@ impl TreeListView {
                     set_node_tree_item_open_status(ui, state.identifier, item, true);
                 }
             }
+
+            self.update_lists();
+            self.needs_list_refresh = false;
+        } else if state.has_weave_changed {
+            self.update_lists();
+            self.needs_list_refresh = false;
         }
 
         if shortcuts.contains(Shortcuts::ToggleNodeCollapsed)
             && let Some(item) = state.get_cursor_node().into_node()
         {
             toggle_node_tree_item_open_status(ui, state.identifier, item);
+            self.needs_list_refresh = true;
         }
 
         if shortcuts.contains(Shortcuts::CollapseAllVisibleInactive) {
@@ -261,6 +297,7 @@ impl TreeListView {
                     set_node_tree_item_open_status(ui, state.identifier, item, false);
                 }
             }
+            self.needs_list_refresh = true;
         }
 
         if shortcuts.contains(Shortcuts::CollapseChildren)
@@ -272,12 +309,14 @@ impl TreeListView {
             for item in node.to.iter().cloned().map(Ulid) {
                 set_node_tree_item_open_status(ui, state.identifier, item, false);
             }
+            self.needs_list_refresh = true;
         }
 
         if shortcuts.contains(Shortcuts::ExpandAllVisible) {
             for item in self.last_rendered_nodes.iter().copied() {
                 set_node_tree_item_open_status(ui, state.identifier, item, true);
             }
+            self.needs_list_refresh = true;
         }
 
         if shortcuts.contains(Shortcuts::ExpandChildren)
@@ -289,6 +328,7 @@ impl TreeListView {
             for item in node.to.iter().cloned().map(Ulid) {
                 set_node_tree_item_open_status(ui, state.identifier, item, true);
             }
+            self.needs_list_refresh = true;
         }
 
         let tree_roots: Vec<Ulid> = if let Some(cursor_node) = state
@@ -308,6 +348,13 @@ impl TreeListView {
             weave.get_roots().collect()
         };
 
+        if (settings.interface.auto_scroll && !self.lists.is_empty())
+            || (!settings.interface.auto_scroll && self.needs_list_refresh)
+        {
+            self.update_lists();
+            self.needs_list_refresh = false;
+        }
+
         self.last_rendered_nodes.clear();
 
         ScrollArea::vertical()
@@ -323,9 +370,12 @@ impl TreeListView {
                             state,
                             ui,
                             state.identifier,
+                            Ulid::nil(),
                             tree_roots,
                             settings.interface.max_tree_depth,
                             &mut self.last_rendered_nodes,
+                            &mut self.lists,
+                            &mut self.needs_list_refresh,
                         );
                     });
             });
@@ -338,74 +388,143 @@ fn render_node_tree(
     state: &mut SharedState,
     ui: &mut Ui,
     editor_id: Ulid,
+    branch_identifier: Ulid,
     items: impl IntoIterator<Item = Ulid>,
     max_depth: usize,
     rendered_items: &mut HashSet<Ulid>,
+    virtual_lists: &mut HashMap<Ulid, Rc<RefCell<VirtualList>>>,
+    needs_list_refresh: &mut bool,
 ) {
     let indent_compensation = ui.spacing().icon_width + ui.spacing().icon_spacing;
 
-    for item in items {
-        if let Some(node) = weave.get_node(&item).cloned() {
-            rendered_items.insert(item);
-            let mut render_label = |ui: &mut Ui| {
-                ui.horizontal_wrapped(|ui| {
-                    if node.to.is_empty() {
-                        ui.add_space(indent_compensation);
-                    }
-                    render_horizontal_node_label(
-                        ui,
-                        settings,
-                        state,
-                        weave,
-                        &node,
-                        |ui, settings, state, weave, node| {
-                            render_horizontal_node_label_buttons_rtl(
-                                ui, settings, state, weave, node,
-                            );
-                        },
-                        |ui, settings, state, weave, node| {
-                            render_node_tree_context_menu(
-                                ui, settings, state, editor_id, weave, node,
-                            );
-                        },
-                        true,
-                    );
-                });
-            };
+    if settings.interface.auto_scroll {
+        for item in items {
+            render_node_tree_row(
+                weave,
+                settings,
+                state,
+                ui,
+                editor_id,
+                indent_compensation,
+                item,
+                max_depth,
+                rendered_items,
+                virtual_lists,
+                needs_list_refresh,
+            );
+        }
+    } else {
+        let virtual_list = match virtual_lists.entry(branch_identifier) {
+            Entry::Occupied(occupied) => occupied,
+            Entry::Vacant(vacant) => {
+                let mut list = VirtualList::new();
+                list.scroll_position_sync_on_resize(false);
 
-            if node.to.is_empty() {
-                render_label(ui);
-            } else {
-                let id = Id::new([editor_id.0, node.id, 0]);
-                CollapsingState::load_with_default_open(ui.ctx(), id, false)
-                    .show_header(ui, |ui| {
-                        render_label(ui);
-                    })
-                    .body(|ui| {
-                        if max_depth > 0 {
-                            render_node_tree(
-                                weave,
-                                settings,
-                                state,
+                vacant.insert_entry(Rc::new(RefCell::new(list)))
+            }
+        }
+        .get()
+        .clone();
+
+        let items: Vec<Ulid> = items.into_iter().collect();
+
+        virtual_list
+            .borrow_mut()
+            .ui_custom_layout(ui, items.len(), |ui, index| {
+                render_node_tree_row(
+                    weave,
+                    settings,
+                    state,
+                    ui,
+                    editor_id,
+                    indent_compensation,
+                    items[index],
+                    max_depth,
+                    rendered_items,
+                    virtual_lists,
+                    needs_list_refresh,
+                );
+                1
+            });
+    }
+}
+
+fn render_node_tree_row(
+    weave: &mut WeaveWrapper,
+    settings: &Settings,
+    state: &mut SharedState,
+    ui: &mut Ui,
+    editor_id: Ulid,
+    indent_compensation: f32,
+    item: Ulid,
+    max_depth: usize,
+    rendered_items: &mut HashSet<Ulid>,
+    virtual_lists: &mut HashMap<Ulid, Rc<RefCell<VirtualList>>>,
+    needs_list_refresh: &mut bool,
+) {
+    if let Some(node) = weave.get_node(&item).cloned() {
+        rendered_items.insert(item);
+        let mut render_label = |ui: &mut Ui| {
+            ui.horizontal_wrapped(|ui| {
+                if node.to.is_empty() {
+                    ui.add_space(indent_compensation);
+                }
+                render_horizontal_node_label(
+                    ui,
+                    settings,
+                    state,
+                    weave,
+                    &node,
+                    |ui, settings, state, weave, node| {
+                        render_horizontal_node_label_buttons_rtl(ui, settings, state, weave, node);
+                    },
+                    |ui, settings, state, weave, node| {
+                        render_node_tree_context_menu(ui, settings, state, editor_id, weave, node);
+                    },
+                    true,
+                );
+            });
+        };
+
+        if node.to.is_empty() {
+            render_label(ui);
+        } else {
+            let id = Id::new([editor_id.0, node.id, 0]);
+            let collapsing_response = CollapsingState::load_with_default_open(ui.ctx(), id, false)
+                .show_header(ui, |ui| {
+                    render_label(ui);
+                })
+                .body(|ui| {
+                    if max_depth > 0 {
+                        render_node_tree(
+                            weave,
+                            settings,
+                            state,
+                            ui,
+                            editor_id,
+                            item,
+                            node.to.into_iter().map(Ulid),
+                            max_depth - 1,
+                            rendered_items,
+                            virtual_lists,
+                            needs_list_refresh,
+                        );
+                    } else {
+                        ui.horizontal_wrapped(|ui| {
+                            let first_child = node.to.first().copied().map(Ulid).unwrap();
+                            render_omitted_chidren_tree_node_label(
                                 ui,
-                                editor_id,
-                                node.to.into_iter().map(Ulid),
-                                max_depth - 1,
-                                rendered_items,
+                                state,
+                                weave,
+                                &node,
+                                first_child,
                             );
-                        } else {
-                            ui.horizontal_wrapped(|ui| {
-                                let first_child = node.to.first().copied().map(Ulid).unwrap();
-                                render_omitted_chidren_tree_node_label(
-                                    ui,
-                                    state,
-                                    weave,
-                                    &node,
-                                    first_child,
-                                );
-                            });
-                        }
-                    });
+                        });
+                    }
+                });
+
+            if collapsing_response.0.clicked() {
+                *needs_list_refresh = true;
             }
         }
     }
