@@ -42,6 +42,7 @@ pub struct TextEditorView {
     last_text_edit_highlighting_hover: HighlightingHover,
     last_text_edit_highlighting_hover_update: Instant,
     last_text_edit_rect: Rect,
+    should_update_highlighting: bool,
 }
 
 // TODO: Implement a context menu on the TextEdit
@@ -80,6 +81,7 @@ impl Default for TextEditorView {
                 min: Pos2::ZERO,
                 max: Pos2::ZERO,
             },
+            should_update_highlighting: false,
         }
     }
 }
@@ -117,8 +119,10 @@ impl TextEditorView {
         if state.has_weave_changed
             || self.highlighting.borrow().is_empty()
             || state.has_hover_node_changed
+            || self.should_update_highlighting
         {
             self.calculate_highlighting(ui);
+            self.should_update_highlighting = false;
         }
     }
     pub fn render(
@@ -282,12 +286,16 @@ impl TextEditorView {
                                 if highlighting_hover != self.last_text_edit_highlighting_hover {
                                     self.last_text_edit_highlighting_hover = highlighting_hover;
                                     self.last_text_edit_highlighting_hover_update = Instant::now();
+                                    if highlighting_hover == HighlightingHover::None {
+                                        self.calculate_highlighting(ui);
+                                    }
                                 }
                             } else {
                                 self.last_text_edit_highlighting_hover = HighlightingHover::None;
                             }
 
                             self.last_text_edit_hover = hover_position;
+                            self.should_update_highlighting = true;
                         }
 
                         ui.style_mut().override_font_id = None;
