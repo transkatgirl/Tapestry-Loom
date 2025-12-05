@@ -238,6 +238,7 @@ pub struct TreeListView {
     last_rendered_nodes: HashSet<Ulid>,
     lists: HashMap<Ulid, Rc<RefCell<VirtualList>>>,
     needs_list_refresh: bool,
+    last_max_depth: usize,
 }
 
 impl Default for TreeListView {
@@ -247,6 +248,7 @@ impl Default for TreeListView {
             last_rendered_nodes: HashSet::with_capacity(65536),
             lists: HashMap::with_capacity(256),
             needs_list_refresh: false,
+            last_max_depth: 4,
         }
     }
 }
@@ -279,11 +281,9 @@ impl TreeListView {
                 }
             }
 
-            self.update_lists();
-            self.needs_list_refresh = false;
+            self.update_lists(settings.interface.max_tree_depth);
         } else if state.has_weave_changed {
-            self.update_lists();
-            self.needs_list_refresh = false;
+            self.update_lists(settings.interface.max_tree_depth);
         }
 
         if shortcuts.contains(Shortcuts::ToggleNodeCollapsed)
@@ -335,12 +335,12 @@ impl TreeListView {
 
         if (settings.interface.auto_scroll && !self.lists.is_empty())
             || (!settings.interface.auto_scroll && self.needs_list_refresh)
+            || self.last_max_depth != settings.interface.max_tree_depth
         {
-            self.update_lists();
-            self.needs_list_refresh = false;
+            self.update_lists(settings.interface.max_tree_depth);
         }
     }
-    fn update_lists(&mut self) {
+    fn update_lists(&mut self, max_depth: usize) {
         let mut removal_list = Vec::with_capacity(self.lists.len());
 
         for (id, list) in self.lists.iter() {
@@ -357,6 +357,9 @@ impl TreeListView {
         for item in removal_list {
             self.lists.remove(&item);
         }
+
+        self.needs_list_refresh = false;
+        self.last_max_depth = max_depth;
     }
     pub fn render(
         &mut self,
