@@ -31,8 +31,7 @@ pub struct TextEditorView {
     text: String,
     bytes: Rc<RefCell<Vec<u8>>>,
     buffer: Vec<u8>,
-    snippets: Vec<Snippet>,
-    highlighting: Rc<RefCell<Vec<LayoutSection>>>,
+    snippets: Rc<RefCell<Vec<Snippet>>>,
     node_snippets: HashMap<Ulid, Vec<Range<usize>>>,
     rects: Vec<(Rect, Color32)>,
     last_seen_cursor_node: NodeIndex,
@@ -42,7 +41,7 @@ pub struct TextEditorView {
     last_text_edit_highlighting_hover: HighlightingHover,
     last_text_edit_highlighting_hover_update: Instant,
     last_text_edit_rect: Rect,
-    should_update_highlighting: bool,
+    should_update_rects: bool,
 }
 
 // TODO: Implement a context menu on the TextEdit
@@ -67,8 +66,7 @@ impl Default for TextEditorView {
             text: String::with_capacity(262144),
             bytes: Rc::new(RefCell::new(Vec::with_capacity(262144))),
             buffer: Vec::with_capacity(262144),
-            snippets: Vec::with_capacity(65536),
-            highlighting: Rc::new(RefCell::new(Vec::with_capacity(65536))),
+            snippets: Rc::new(RefCell::new(Vec::with_capacity(65536))),
             node_snippets: HashMap::with_capacity(65536),
             rects: Vec::with_capacity(65536),
             last_seen_cursor_node: NodeIndex::None,
@@ -81,7 +79,7 @@ impl Default for TextEditorView {
                 min: Pos2::ZERO,
                 max: Pos2::ZERO,
             },
-            should_update_highlighting: false,
+            should_update_rects: false,
         }
     }
 }
@@ -114,15 +112,7 @@ impl TextEditorView {
             self.update_contents(weave, settings, ui.visuals().widgets.inactive.text_color());
         }
         if state.has_weave_changed {
-            self.rects.clear();
-        }
-        if state.has_weave_changed
-            || self.highlighting.borrow().is_empty()
-            || state.has_hover_node_changed
-            || self.should_update_highlighting
-        {
-            self.calculate_highlighting(ui);
-            self.should_update_highlighting = false;
+            self.should_update_rects = true;
         }
     }
     pub fn render(
@@ -134,8 +124,8 @@ impl TextEditorView {
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
     ) {
-        let highlighting = self.highlighting.clone();
-
+        let snippets = self.snippets.clone();
+        let hover = self.last_text_edit_highlighting_hover;
         let bytes = self.bytes.clone();
 
         let mut layouter = |ui: &Ui, buf: &dyn TextBuffer, wrap_width: f32| {
@@ -143,18 +133,15 @@ impl TextEditorView {
             font_id.size *= 1.1;
 
             let layout_job = LayoutJob {
-                sections: if buf.as_str().as_bytes() == *bytes.borrow() {
-                    highlighting.borrow().clone()
-                } else {
-                    vec![LayoutSection {
-                        leading_space: 0.0,
-                        byte_range: 0..buf.as_str().len(),
-                        format: TextFormat::simple(
-                            font_id,
-                            ui.visuals().widgets.inactive.text_color(),
-                        ),
-                    }]
-                },
+                sections: calculate_highlighting(
+                    ui,
+                    &snippets.borrow(),
+                    buf.as_str().len(),
+                    ui.visuals().widgets.inactive.text_color(),
+                    hover,
+                    &bytes.borrow(),
+                    buf.as_str().as_bytes(),
+                ),
                 text: buf.as_str().to_string(),
                 wrap: TextWrapping {
                     max_width: wrap_width,
@@ -173,6 +160,10 @@ impl TextEditorView {
                 Frame::new()
                     .outer_margin(MarginF32::same(ui.style().spacing.menu_spacing / 2.0))
                     .show(ui, |ui| {
+                        let mut font_id = TextStyle::Monospace.resolve(ui.style());
+                        font_id.size *= 1.1;
+                        ui.style_mut().override_font_id = Some(font_id);
+
                         render_rects(ui, &self.rects);
 
                         let mut textedit = TextEdit::multiline(&mut self.text)
@@ -207,6 +198,7 @@ impl TextEditorView {
                         let top_left = textedit.text_clip_rect.left_top();
 
                         if self.rects.is_empty()
+                            || self.should_update_rects
                             || textedit.response.changed()
                             || textedit.response.rect != self.last_text_edit_rect
                             || state.get_changed_node().is_some()
@@ -214,7 +206,7 @@ impl TextEditorView {
                             self.rects.clear();
                             calculate_boundaries_and_update_scroll(
                                 ui,
-                                &self.snippets,
+                                &self.snippets.borrow(),
                                 top_left,
                                 &textedit.galley,
                                 if settings.interface.auto_scroll {
@@ -225,6 +217,7 @@ impl TextEditorView {
                                 &mut self.rects,
                             );
                             self.last_text_edit_rect = textedit.response.rect;
+                            self.should_update_rects = false;
                         }
 
                         if textedit.response.changed() {
@@ -282,16 +275,12 @@ impl TextEditorView {
                                 if highlighting_hover != self.last_text_edit_highlighting_hover {
                                     self.last_text_edit_highlighting_hover = highlighting_hover;
                                     self.last_text_edit_highlighting_hover_update = Instant::now();
-                                    if highlighting_hover == HighlightingHover::None {
-                                        self.calculate_highlighting(ui);
-                                    }
                                 }
                             } else {
                                 self.last_text_edit_highlighting_hover = HighlightingHover::None;
                             }
 
                             self.last_text_edit_hover = hover_position;
-                            self.should_update_highlighting = true;
                         }
 
                         ui.style_mut().override_font_id = None;
@@ -358,7 +347,8 @@ impl TextEditorView {
         let mut bytes = self.bytes.borrow_mut();
         self.text.clear();
         bytes.clear();
-        self.snippets.clear();
+        let mut snippets = self.snippets.borrow_mut();
+        snippets.clear();
         self.node_snippets.clear();
 
         let active: Vec<u128> = weave.get_active_thread_u128().collect();
@@ -375,8 +365,7 @@ impl TextEditorView {
             match &node.contents.content {
                 InnerNodeContent::Snippet(snippet) => {
                     bytes.extend_from_slice(snippet);
-                    self.snippets
-                        .push((snippet.len(), Ulid(node.id), color, None));
+                    snippets.push((snippet.len(), Ulid(node.id), color, None));
                     #[allow(clippy::single_range_in_vec_init)]
                     self.node_snippets
                         .insert(Ulid(node.id), vec![offset..offset + snippet.len()]);
@@ -391,8 +380,7 @@ impl TextEditorView {
                             .unwrap_or(default_color);
 
                         bytes.extend_from_slice(token);
-                        self.snippets
-                            .push((token.len(), Ulid(node.id), color, Some(token_index)));
+                        snippets.push((token.len(), Ulid(node.id), color, Some(token_index)));
                         token_indices.push(offset..offset + token.len());
                         token_index += token.len();
                         offset += token.len();
@@ -417,13 +405,14 @@ impl TextEditorView {
         char_position: Option<usize>,
     ) -> Option<(Ulid, usize)> {
         let mut cursor_node = None;
+        let snippets = self.snippets.borrow();
 
         if let Some(char_index) = char_position {
             let index = self.text.byte_index_from_char_index(char_index);
 
             let mut offset = 0;
 
-            for (length, node, _, _) in self.snippets.iter() {
+            for (length, node, _, _) in snippets.iter() {
                 offset += length;
                 if offset >= index {
                     cursor_node = Some((*node, index));
@@ -454,48 +443,74 @@ impl TextEditorView {
 
         weave.set_active_content(&self.buffer, IndexMap::default());
     }
-    fn calculate_highlighting(&mut self, ui: &Ui) {
-        let mut font_id = TextStyle::Monospace.resolve(ui.style());
-        font_id.size *= 1.1;
+}
 
-        let mut sections = self.highlighting.borrow_mut();
-        sections.clear();
+fn calculate_highlighting(
+    ui: &Ui,
+    snippets: &[Snippet],
+    length: usize,
+    default_color: Color32,
+    hover: HighlightingHover,
+    snippet_buffer: &[u8],
+    text_buffer: &[u8],
+) -> Vec<LayoutSection> {
+    let font_id = ui
+        .style()
+        .override_font_id
+        .clone()
+        .unwrap_or_else(|| TextStyle::Monospace.resolve(ui.style()));
 
-        let mut index = 0;
-        let hover_bg = ui.style().visuals.widgets.hovered.weak_bg_fill;
+    let mut sections = Vec::with_capacity(snippets.len() + 1);
+    let mut index = 0;
 
-        for (snippet_length, node, color, token_index) in self.snippets.iter().copied() {
-            let byte_range = index..(index + snippet_length);
+    let hover_bg = ui.style().visuals.widgets.hovered.weak_bg_fill;
 
-            index += snippet_length;
+    for (snippet_length, node, color, token_index) in snippets {
+        let byte_range = index..(index + snippet_length);
 
-            let mut format = TextFormat::simple(font_id.clone(), color);
+        index += snippet_length;
 
-            match self.last_text_edit_highlighting_hover {
-                HighlightingHover::Position((hover_node, hover_position)) => {
-                    if hover_node == node {
-                        format.background = hover_bg;
-
-                        if byte_range.contains(&hover_position) && token_index.is_some() {
-                            format.underline = ui.style().visuals.widgets.hovered.bg_stroke;
-                        }
-                    }
-                }
-                HighlightingHover::Node(hover_node) => {
-                    if hover_node == node {
-                        format.background = hover_bg;
-                    }
-                }
-                HighlightingHover::None => {}
-            }
-
-            sections.push(LayoutSection {
-                leading_space: 0.0,
-                byte_range,
-                format,
-            });
+        if index > length || snippet_buffer[byte_range.clone()] != text_buffer[byte_range.clone()] {
+            index -= snippet_length;
+            break;
         }
+
+        let mut format = TextFormat::simple(font_id.clone(), *color);
+
+        match hover {
+            HighlightingHover::Position((hover_node, hover_position)) => {
+                if hover_node == *node {
+                    format.background = hover_bg;
+
+                    if byte_range.contains(&hover_position) && token_index.is_some() {
+                        format.underline = ui.style().visuals.widgets.hovered.bg_stroke;
+                    }
+                }
+            }
+            HighlightingHover::Node(hover_node) => {
+                if hover_node == *node {
+                    format.background = hover_bg;
+                }
+            }
+            HighlightingHover::None => {}
+        }
+
+        sections.push(LayoutSection {
+            leading_space: 0.0,
+            byte_range,
+            format,
+        });
     }
+
+    if index < length {
+        sections.push(LayoutSection {
+            leading_space: 0.0,
+            byte_range: index..length,
+            format: TextFormat::simple(font_id, default_color),
+        });
+    }
+
+    sections
 }
 
 fn calculate_boundaries_and_update_scroll(
