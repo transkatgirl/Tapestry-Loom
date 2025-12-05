@@ -592,7 +592,6 @@ impl EditorTilingBehavior {
                 self.shortcuts,
             );
             self.text_edit_view.update(
-                ui,
                 weave,
                 &settings,
                 &mut toasts,

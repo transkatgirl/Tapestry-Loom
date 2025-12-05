@@ -101,15 +101,14 @@ impl TextEditorView {
     }*/
     pub fn update(
         &mut self,
-        ui: &Ui,
-        weave: &mut WeaveWrapper,
-        settings: &Settings,
+        _weave: &mut WeaveWrapper,
+        _settings: &Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
     ) {
-        if state.has_weave_changed || self.text.is_empty() {
-            self.update_contents(weave, settings, ui.visuals().widgets.inactive.text_color());
+        if state.has_weave_changed {
+            self.text.clear();
         }
         if state.has_weave_changed {
             self.should_update_rects = true;
@@ -124,6 +123,10 @@ impl TextEditorView {
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
     ) {
+        if self.text.is_empty() {
+            self.update_contents(weave, settings, ui.visuals().widgets.inactive.text_color());
+        }
+
         let snippets = self.snippets.clone();
         let hover = self.last_text_edit_highlighting_hover;
         let bytes = self.bytes.clone();
