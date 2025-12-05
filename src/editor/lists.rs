@@ -269,21 +269,13 @@ impl TreeListView {
         state: &mut SharedState,
         shortcuts: FlagSet<Shortcuts>,
     ) {
-        if state.has_cursor_node_changed || self.last_active_nodes.is_empty() {
+        if state.has_cursor_node_changed {
             self.last_active_nodes.clear();
-
-            if let Some(cursor_node) = state.get_cursor_node().into_node() {
-                let active = weave.get_thread_from_u128(&cursor_node.0).map(Ulid);
-
-                for item in active {
-                    self.last_active_nodes.insert(item);
-                    set_node_tree_item_open_status(ui, state.identifier, item, true);
-                }
-            }
-
-            self.update_lists(settings.interface.max_tree_depth);
-        } else if state.has_weave_changed {
-            self.update_lists(settings.interface.max_tree_depth);
+            self.needs_list_refresh = true;
+        } else if state.has_weave_changed
+            || self.last_max_depth != settings.interface.max_tree_depth
+        {
+            self.needs_list_refresh = true;
         }
 
         if shortcuts.contains(Shortcuts::ToggleNodeCollapsed)
@@ -332,17 +324,6 @@ impl TreeListView {
             }
             self.needs_list_refresh = true;
         }
-
-        if (!settings.interface.optimize_tree || settings.interface.auto_scroll)
-            && !self.lists.is_empty()
-        {
-            self.lists.clear();
-        } else if (!settings.interface.auto_scroll && settings.interface.optimize_tree)
-            && (self.needs_list_refresh
-                || (self.last_max_depth != settings.interface.max_tree_depth))
-        {
-            self.update_lists(settings.interface.max_tree_depth);
-        }
     }
     fn update_lists(&mut self, max_depth: usize) {
         let mut removal_list = Vec::with_capacity(self.lists.len());
@@ -374,6 +355,29 @@ impl TreeListView {
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
     ) {
+        if self.last_active_nodes.is_empty() {
+            if let Some(cursor_node) = state.get_cursor_node().into_node() {
+                let active = weave.get_thread_from_u128(&cursor_node.0).map(Ulid);
+
+                for item in active {
+                    self.last_active_nodes.insert(item);
+                    set_node_tree_item_open_status(ui, state.identifier, item, true);
+                }
+            }
+
+            self.update_lists(settings.interface.max_tree_depth);
+        }
+
+        if (!settings.interface.optimize_tree || settings.interface.auto_scroll)
+            && !self.lists.is_empty()
+        {
+            self.lists.clear();
+        } else if (!settings.interface.auto_scroll && settings.interface.optimize_tree)
+            && self.needs_list_refresh
+        {
+            self.update_lists(settings.interface.max_tree_depth);
+        }
+
         let tree_roots: Vec<Ulid> = if let Some(cursor_node) = state
             .get_cursor_node()
             .into_node()
