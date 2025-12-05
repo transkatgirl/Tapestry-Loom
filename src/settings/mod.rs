@@ -204,7 +204,7 @@ impl UISettings {
         );
         ui.checkbox(
             &mut self.auto_scroll,
-            "Automatically adjust scroll position",
+            "Automatically adjust scroll position (may reduce performance)",
         );
 
         // TODO: Add editor layout presets
