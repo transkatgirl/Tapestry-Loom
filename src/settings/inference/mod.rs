@@ -499,6 +499,14 @@ impl InferenceParameters {
             if is_ready && let Some(value) = input.remove(&key) {
                 let result = value.handle.block_and_take();
 
+                let identifiers = if let Ok(content) = &result {
+                    (0..content.len())
+                        .map(|_| Ulid::from_datetime(key.datetime()))
+                        .collect()
+                } else {
+                    vec![]
+                };
+
                 if value.parameters.recursion_depth > 0
                     && let Ok(content) = &result
                     && let Some(client) = client
@@ -506,7 +514,7 @@ impl InferenceParameters {
                     let mut parameters = value.parameters.as_ref().clone();
                     parameters.recursion_depth -= 1;
 
-                    for item in content {
+                    for (i, item) in content.iter().enumerate() {
                         let mut parent_content = BytesMut::from(value.parent_content.clone());
                         parent_content.extend_from_slice(&item.content.as_bytes());
 
@@ -514,7 +522,7 @@ impl InferenceParameters {
                             value.models.clone(),
                             runtime,
                             client,
-                            Some(key),
+                            Some(identifiers[i]),
                             parent_content.into(),
                             input,
                         );
@@ -523,9 +531,9 @@ impl InferenceParameters {
 
                 match result {
                     Ok(contents) => {
-                        for content in contents {
+                        for (i, content) in contents.into_iter().enumerate() {
                             output.push(Ok(DependentNode {
-                                id: Ulid::from_datetime(key.datetime()).0,
+                                id: identifiers[i].0,
                                 from: value.parent.map(|id| id.0),
                                 to: IndexSet::default(),
                                 active: false,
