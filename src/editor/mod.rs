@@ -223,11 +223,7 @@ impl Editor {
                                     Some(Ok(weave)) => {
                                         file_size.store(bytes.len(), Ordering::SeqCst);
                                         let mut weave = weave.into_latest();
-
-                                        if weave.capacity() < 65536 {
-                                            weave.reserve(65536 - weave.capacity());
-                                        }
-
+                                        weave.reserve(65536_usize.saturating_sub(weave.capacity()));
                                         *weave_dest = Some(weave.into());
                                     }
                                     Some(Err(error)) => {
