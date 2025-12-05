@@ -97,6 +97,22 @@ impl TextEditorView {
         self.last_text_edit_highlighting_hover = HighlightingHover::None;
         self.last_text_edit_highlighting_hover_update = Instant::now();
     }*/
+    pub fn update(
+        &mut self,
+        ui: &Ui,
+        weave: &mut WeaveWrapper,
+        settings: &Settings,
+        _toasts: &mut Toasts,
+        state: &mut SharedState,
+        _shortcuts: FlagSet<Shortcuts>,
+    ) {
+        if state.has_weave_changed || self.text.is_empty() {
+            self.update_contents(weave, settings, ui.visuals().widgets.inactive.text_color());
+        }
+        if state.has_weave_changed || state.has_hover_node_changed {
+            self.rects.clear();
+        }
+    }
     pub fn render(
         &mut self,
         ui: &mut Ui,
@@ -106,10 +122,6 @@ impl TextEditorView {
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
     ) {
-        if state.has_weave_changed || self.text.is_empty() {
-            self.update(weave, settings, ui.visuals().widgets.inactive.text_color());
-        }
-
         let snippets = self.snippets.clone();
         let hover = self.last_text_edit_highlighting_hover;
 
@@ -177,9 +189,8 @@ impl TextEditorView {
 
                         let top_left = textedit.text_clip_rect.left_top();
 
-                        if textedit.response.changed()
-                            || (state.has_weave_changed || self.text.is_empty())
-                            || state.has_hover_node_changed
+                        if self.rects.is_empty()
+                            || textedit.response.changed()
                             || textedit.response.rect != self.last_text_edit_rect
                         {
                             self.rects.clear();
@@ -321,7 +332,12 @@ impl TextEditorView {
                     });
             });
     }
-    fn update(&mut self, weave: &mut WeaveWrapper, settings: &Settings, default_color: Color32) {
+    fn update_contents(
+        &mut self,
+        weave: &mut WeaveWrapper,
+        settings: &Settings,
+        default_color: Color32,
+    ) {
         let mut snippets = self.snippets.borrow_mut();
         self.text.clear();
         self.bytes.clear();

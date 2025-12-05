@@ -50,6 +50,18 @@ impl ListView {
     /*pub fn reset(&mut self) {
         self.list.reset();
     }*/
+    pub fn update(
+        &mut self,
+        _weave: &mut WeaveWrapper,
+        _settings: &Settings,
+        _toasts: &mut Toasts,
+        state: &mut SharedState,
+        _shortcuts: FlagSet<Shortcuts>,
+    ) {
+        if state.has_weave_changed || state.has_cursor_node_changed {
+            self.list.reset();
+        }
+    }
     pub fn render(
         &mut self,
         ui: &mut Ui,
@@ -68,10 +80,6 @@ impl ListView {
         } else {
             weave.get_roots().collect()
         };
-
-        if state.has_weave_changed || state.has_cursor_node_changed {
-            self.list.reset();
-        }
 
         ScrollArea::vertical()
             .auto_shrink(false)
@@ -140,6 +148,18 @@ impl BookmarkListView {
     /*pub fn reset(&mut self) {
         self.list.reset();
     }*/
+    pub fn update(
+        &mut self,
+        _weave: &mut WeaveWrapper,
+        _settings: &Settings,
+        _toasts: &mut Toasts,
+        state: &mut SharedState,
+        _shortcuts: FlagSet<Shortcuts>,
+    ) {
+        if state.has_weave_changed {
+            self.list.reset();
+        }
+    }
     pub fn render(
         &mut self,
         ui: &mut Ui,
@@ -238,25 +258,7 @@ impl TreeListView {
         self.lists.clear();
         self.needs_list_refresh = false;
     }*/
-    fn update_lists(&mut self) {
-        let mut removal_list = Vec::with_capacity(self.lists.len());
-
-        for (id, list) in self.lists.iter() {
-            if self.last_rendered_nodes.contains(id)
-                || self.last_active_nodes.contains(id)
-                || *id == Ulid::nil()
-            {
-                list.borrow_mut().reset();
-            } else {
-                removal_list.push(*id);
-            }
-        }
-
-        for item in removal_list {
-            self.lists.remove(&item);
-        }
-    }
-    pub fn render(
+    pub fn update(
         &mut self,
         ui: &mut Ui,
         weave: &mut WeaveWrapper,
@@ -331,6 +333,40 @@ impl TreeListView {
             self.needs_list_refresh = true;
         }
 
+        if (settings.interface.auto_scroll && !self.lists.is_empty())
+            || (!settings.interface.auto_scroll && self.needs_list_refresh)
+        {
+            self.update_lists();
+            self.needs_list_refresh = false;
+        }
+    }
+    fn update_lists(&mut self) {
+        let mut removal_list = Vec::with_capacity(self.lists.len());
+
+        for (id, list) in self.lists.iter() {
+            if self.last_rendered_nodes.contains(id)
+                || self.last_active_nodes.contains(id)
+                || *id == Ulid::nil()
+            {
+                list.borrow_mut().reset();
+            } else {
+                removal_list.push(*id);
+            }
+        }
+
+        for item in removal_list {
+            self.lists.remove(&item);
+        }
+    }
+    pub fn render(
+        &mut self,
+        ui: &mut Ui,
+        weave: &mut WeaveWrapper,
+        settings: &Settings,
+        _toasts: &mut Toasts,
+        state: &mut SharedState,
+        _shortcuts: FlagSet<Shortcuts>,
+    ) {
         let tree_roots: Vec<Ulid> = if let Some(cursor_node) = state
             .get_cursor_node()
             .into_node()
@@ -347,13 +383,6 @@ impl TreeListView {
         } else {
             weave.get_roots().collect()
         };
-
-        if (settings.interface.auto_scroll && !self.lists.is_empty())
-            || (!settings.interface.auto_scroll && self.needs_list_refresh)
-        {
-            self.update_lists();
-            self.needs_list_refresh = false;
-        }
 
         self.last_rendered_nodes.clear();
 

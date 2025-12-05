@@ -12,6 +12,15 @@ pub struct GraphView {}
 
 impl GraphView {
     pub fn reset(&mut self) {}
+    pub fn update(
+        &mut self,
+        weave: &mut WeaveWrapper,
+        settings: &Settings,
+        toasts: &mut Toasts,
+        state: &mut SharedState,
+        shortcuts: FlagSet<Shortcuts>,
+    ) {
+    }
     pub fn render(
         &mut self,
         ui: &mut Ui,

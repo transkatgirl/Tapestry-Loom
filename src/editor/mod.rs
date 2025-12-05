@@ -555,6 +555,51 @@ impl EditorTilingBehavior {
             let mut toasts = self.toasts.borrow_mut();
             self.shared_state
                 .update(weave, &settings, &mut toasts, self.shortcuts);
+            self.canvas_view.update(
+                weave,
+                &settings,
+                &mut toasts,
+                &mut self.shared_state,
+                self.shortcuts,
+            );
+            self.graph_view.update(
+                weave,
+                &settings,
+                &mut toasts,
+                &mut self.shared_state,
+                self.shortcuts,
+            );
+            self.tree_list_view.update(
+                ui,
+                weave,
+                &settings,
+                &mut toasts,
+                &mut self.shared_state,
+                self.shortcuts,
+            );
+            self.list_view.update(
+                weave,
+                &settings,
+                &mut toasts,
+                &mut self.shared_state,
+                self.shortcuts,
+            );
+            self.bookmark_list_view.update(
+                weave,
+                &settings,
+                &mut toasts,
+                &mut self.shared_state,
+                self.shortcuts,
+            );
+            self.text_edit_view.update(
+                ui,
+                weave,
+                &settings,
+                &mut toasts,
+                &mut self.shared_state,
+                self.shortcuts,
+            );
+
             self.menu_view.render_rtl_panel(
                 ui,
                 weave,
