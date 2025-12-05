@@ -1,7 +1,6 @@
 use eframe::egui::{Color32, Pos2, Rect, ScrollArea, Sense, Stroke, Ui};
 use egui_notify::Toasts;
 use flagset::FlagSet;
-use rust_sugiyama::configure::{Config, CrossingMinimization, RankingType};
 use tapestry_weave::ulid::Ulid;
 
 use crate::{
@@ -60,15 +59,7 @@ impl GraphView {
                     .dump_identifiers_u128()
                     .map(|id| (Ulid(id), (2.5, 2.5))),
             );
-            self.arranged = self.layout.layout_weave(&Config {
-                minimum_length: 1,
-                vertex_spacing: 10.0,
-                dummy_vertices: false,
-                dummy_size: 5.0,
-                ranking_type: RankingType::Up,
-                c_minimization: CrossingMinimization::Barycenter,
-                transpose: false,
-            })
+            self.arranged = self.layout.layout_weave(10.0);
         }
 
         let default_color = ui.visuals().widgets.inactive.text_color();
@@ -77,7 +68,7 @@ impl GraphView {
             .animated(false)
             .auto_shrink(false)
             .show(ui, |ui| {
-                /*let painter = ui.painter();
+                let painter = ui.painter();
 
                 for (item, (x, y)) in self.arranged.positions.iter() {
                     let node = weave.get_node(item).unwrap();
@@ -127,7 +118,7 @@ impl GraphView {
                         get_node_color(node, settings).unwrap_or(default_color),
                         Stroke::NONE,
                     );
-                }*/
+                }
             });
 
         // ui.heading("Unimplemented");

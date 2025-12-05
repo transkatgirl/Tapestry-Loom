@@ -1,6 +1,9 @@
 use std::collections::{HashMap, hash_map::Entry};
 
-use rust_sugiyama::{configure::Config, from_vertices_and_edges};
+use rust_sugiyama::{
+    configure::{Config, CrossingMinimization, RankingType},
+    from_vertices_and_edges,
+};
 use tapestry_weave::ulid::Ulid;
 
 use crate::editor::shared::weave::WeaveWrapper;
@@ -66,8 +69,20 @@ impl WeaveLayout {
             }
         }
     }
-    pub fn layout_weave(&self, config: &Config) -> ArrangedWeave {
-        let layout = from_vertices_and_edges(&self.vertices, &self.edges, config);
+    pub fn layout_weave(&self, spacing: f64) -> ArrangedWeave {
+        let layout = from_vertices_and_edges(
+            &self.vertices,
+            &self.edges,
+            &Config {
+                minimum_length: 1,
+                vertex_spacing: spacing,
+                dummy_vertices: false,
+                dummy_size: 1.0,
+                ranking_type: RankingType::Up,
+                c_minimization: CrossingMinimization::Barycenter,
+                transpose: false,
+            },
+        );
 
         let mut offset = 0.0;
         let mut width = 0.0;
