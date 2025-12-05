@@ -29,9 +29,10 @@ use crate::{
 #[derive(Debug)]
 pub struct TextEditorView {
     text: String,
-    bytes: Vec<u8>,
+    bytes: Rc<RefCell<Vec<u8>>>,
     buffer: Vec<u8>,
-    snippets: Rc<RefCell<Vec<Snippet>>>,
+    snippets: Vec<Snippet>,
+    highlighting: Rc<RefCell<Vec<LayoutSection>>>,
     node_snippets: HashMap<Ulid, Vec<Range<usize>>>,
     rects: Vec<(Rect, Color32)>,
     last_seen_cursor_node: NodeIndex,
@@ -63,9 +64,10 @@ impl Default for TextEditorView {
 
         Self {
             text: String::with_capacity(262144),
-            bytes: Vec::with_capacity(262144),
+            bytes: Rc::new(RefCell::new(Vec::with_capacity(262144))),
             buffer: Vec::with_capacity(262144),
-            snippets: Rc::new(RefCell::new(Vec::with_capacity(65536))),
+            snippets: Vec::with_capacity(65536),
+            highlighting: Rc::new(RefCell::new(Vec::with_capacity(65536))),
             node_snippets: HashMap::with_capacity(65536),
             rects: Vec::with_capacity(65536),
             last_seen_cursor_node: NodeIndex::None,
@@ -109,8 +111,14 @@ impl TextEditorView {
         if state.has_weave_changed || self.text.is_empty() {
             self.update_contents(weave, settings, ui.visuals().widgets.inactive.text_color());
         }
-        if state.has_weave_changed || state.has_hover_node_changed {
+        if state.has_weave_changed {
             self.rects.clear();
+        }
+        if state.has_weave_changed
+            || self.highlighting.borrow().is_empty()
+            || state.has_hover_node_changed
+        {
+            self.calculate_highlighting(ui);
         }
     }
     pub fn render(
@@ -122,18 +130,27 @@ impl TextEditorView {
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
     ) {
-        let snippets = self.snippets.clone();
-        let hover = self.last_text_edit_highlighting_hover;
+        let highlighting = self.highlighting.clone();
+
+        let bytes = self.bytes.clone();
 
         let mut layouter = |ui: &Ui, buf: &dyn TextBuffer, wrap_width: f32| {
             let layout_job = LayoutJob {
-                sections: calculate_highlighting(
-                    ui,
-                    &snippets.borrow(),
-                    buf.as_str().len(),
-                    ui.visuals().widgets.inactive.text_color(),
-                    hover,
-                ),
+                sections: if buf.as_str().as_bytes() == *bytes.borrow() {
+                    highlighting.borrow().clone()
+                } else {
+                    vec![LayoutSection {
+                        leading_space: 0.0,
+                        byte_range: 0..buf.as_str().len(),
+                        format: TextFormat::simple(
+                            ui.style()
+                                .override_font_id
+                                .clone()
+                                .unwrap_or_else(|| TextStyle::Monospace.resolve(ui.style())),
+                            ui.visuals().widgets.inactive.text_color(),
+                        ),
+                    }]
+                },
                 text: buf.as_str().to_string(),
                 wrap: TextWrapping {
                     max_width: wrap_width,
@@ -192,18 +209,14 @@ impl TextEditorView {
                         if self.rects.is_empty()
                             || textedit.response.changed()
                             || textedit.response.rect != self.last_text_edit_rect
+                            || state.get_changed_node().is_some()
                         {
                             self.rects.clear();
                             calculate_boundaries_and_update_scroll(
                                 ui,
-                                &self.snippets.borrow(),
+                                &self.snippets,
                                 top_left,
                                 &textedit.galley,
-                                match self.last_text_edit_highlighting_hover {
-                                    HighlightingHover::Position((node, _)) => Some(node),
-                                    HighlightingHover::Node(node) => Some(node),
-                                    HighlightingHover::None => None,
-                                },
                                 if settings.interface.auto_scroll {
                                     state.get_changed_node()
                                 } else {
@@ -338,10 +351,10 @@ impl TextEditorView {
         settings: &Settings,
         default_color: Color32,
     ) {
-        let mut snippets = self.snippets.borrow_mut();
+        let mut bytes = self.bytes.borrow_mut();
         self.text.clear();
-        self.bytes.clear();
-        snippets.clear();
+        bytes.clear();
+        self.snippets.clear();
         self.node_snippets.clear();
 
         let active: Vec<u128> = weave.get_active_thread_u128().collect();
@@ -357,8 +370,9 @@ impl TextEditorView {
 
             match &node.contents.content {
                 InnerNodeContent::Snippet(snippet) => {
-                    self.bytes.extend_from_slice(snippet);
-                    snippets.push((snippet.len(), Ulid(node.id), color, None));
+                    bytes.extend_from_slice(snippet);
+                    self.snippets
+                        .push((snippet.len(), Ulid(node.id), color, None));
                     #[allow(clippy::single_range_in_vec_init)]
                     self.node_snippets
                         .insert(Ulid(node.id), vec![offset..offset + snippet.len()]);
@@ -372,8 +386,9 @@ impl TextEditorView {
                         let color = get_token_color(Some(color), token_metadata, settings)
                             .unwrap_or(default_color);
 
-                        self.bytes.extend_from_slice(token);
-                        snippets.push((token.len(), Ulid(node.id), color, Some(token_index)));
+                        bytes.extend_from_slice(token);
+                        self.snippets
+                            .push((token.len(), Ulid(node.id), color, Some(token_index)));
                         token_indices.push(offset..offset + token.len());
                         token_index += token.len();
                         offset += token.len();
@@ -384,7 +399,7 @@ impl TextEditorView {
             }
         }
 
-        for chunk in self.bytes.utf8_chunks() {
+        for chunk in bytes.utf8_chunks() {
             self.text.push_str(chunk.valid());
 
             for _ in chunk.invalid() {
@@ -404,7 +419,7 @@ impl TextEditorView {
 
             let mut offset = 0;
 
-            for (length, node, _, _) in self.snippets.borrow().iter() {
+            for (length, node, _, _) in self.snippets.iter() {
                 offset += length;
                 if offset >= index {
                     cursor_node = Some((*node, index));
@@ -425,80 +440,61 @@ impl TextEditorView {
         self.buffer.clear();
         self.buffer.extend_from_slice(self.text.as_bytes());
 
-        for (index, byte) in self.buffer.iter_mut().take(self.bytes.len()).enumerate() {
+        let bytes = self.bytes.borrow();
+
+        for (index, byte) in self.buffer.iter_mut().take(bytes.len()).enumerate() {
             if *byte == SUBSTITUTION_BYTE {
-                *byte = self.bytes[index];
+                *byte = bytes[index];
             }
         }
 
         weave.set_active_content(&self.buffer, IndexMap::default());
     }
-}
+    fn calculate_highlighting(&mut self, ui: &Ui) {
+        let font_id = ui
+            .style()
+            .override_font_id
+            .clone()
+            .unwrap_or_else(|| TextStyle::Monospace.resolve(ui.style()));
 
-fn calculate_highlighting(
-    ui: &Ui,
-    snippets: &[Snippet],
-    length: usize,
-    default_color: Color32,
-    hover: HighlightingHover,
-) -> Vec<LayoutSection> {
-    let font_id = ui
-        .style()
-        .override_font_id
-        .clone()
-        .unwrap_or_else(|| TextStyle::Monospace.resolve(ui.style()));
+        let mut sections = self.highlighting.borrow_mut();
+        sections.clear();
 
-    let mut sections = Vec::with_capacity(snippets.len() + 1);
-    let mut index = 0;
+        let mut index = 0;
+        let hover_bg = ui.style().visuals.widgets.hovered.weak_bg_fill;
 
-    let hover_bg = ui.style().visuals.widgets.hovered.weak_bg_fill;
+        for (snippet_length, node, color, token_index) in self.snippets.iter().copied() {
+            let byte_range = index..(index + snippet_length);
 
-    for (snippet_length, node, color, token_index) in snippets {
-        let byte_range = index..(index + snippet_length);
+            index += snippet_length;
 
-        index += snippet_length;
+            let mut format = TextFormat::simple(font_id.clone(), color);
 
-        if index > length {
-            index -= snippet_length;
-            break;
-        }
+            match self.last_text_edit_highlighting_hover {
+                HighlightingHover::Position((hover_node, hover_position)) => {
+                    if hover_node == node {
+                        format.background = hover_bg;
 
-        let mut format = TextFormat::simple(font_id.clone(), *color);
-
-        match hover {
-            HighlightingHover::Position((hover_node, hover_position)) => {
-                if hover_node == *node {
-                    format.background = hover_bg;
-
-                    if byte_range.contains(&hover_position) && token_index.is_some() {
-                        format.underline = ui.style().visuals.widgets.hovered.bg_stroke;
+                        if byte_range.contains(&hover_position) && token_index.is_some() {
+                            format.underline = ui.style().visuals.widgets.hovered.bg_stroke;
+                        }
                     }
                 }
-            }
-            HighlightingHover::Node(hover_node) => {
-                if hover_node == *node {
-                    format.background = hover_bg;
+                HighlightingHover::Node(hover_node) => {
+                    if hover_node == node {
+                        format.background = hover_bg;
+                    }
                 }
+                HighlightingHover::None => {}
             }
-            HighlightingHover::None => {}
+
+            sections.push(LayoutSection {
+                leading_space: 0.0,
+                byte_range,
+                format,
+            });
         }
-
-        sections.push(LayoutSection {
-            leading_space: 0.0,
-            byte_range,
-            format,
-        });
     }
-
-    if index < length {
-        sections.push(LayoutSection {
-            leading_space: 0.0,
-            byte_range: index..length,
-            format: TextFormat::simple(font_id, default_color),
-        });
-    }
-
-    sections
 }
 
 fn calculate_boundaries_and_update_scroll(
@@ -506,7 +502,6 @@ fn calculate_boundaries_and_update_scroll(
     snippets: &[Snippet],
     top_left: Pos2,
     galley: &Galley,
-    _hover: Option<Ulid>,
     changed: Option<Ulid>,
     output: &mut Vec<(Rect, Color32)>,
 ) {
