@@ -333,9 +333,11 @@ impl TreeListView {
             self.needs_list_refresh = true;
         }
 
-        if settings.interface.auto_scroll && !self.lists.is_empty() {
+        if (!settings.interface.optimize_tree || settings.interface.auto_scroll)
+            && !self.lists.is_empty()
+        {
             self.lists.clear();
-        } else if !settings.interface.auto_scroll
+        } else if (!settings.interface.auto_scroll && settings.interface.optimize_tree)
             && (self.needs_list_refresh
                 || (self.last_max_depth != settings.interface.max_tree_depth))
         {
@@ -438,7 +440,8 @@ fn render_node_tree(
 ) {
     let indent_compensation = ui.spacing().icon_width + ui.spacing().icon_spacing;
 
-    if settings.interface.auto_scroll /*|| within_virtual_list*/ || items.len() < 10 {
+    if settings.interface.auto_scroll || !settings.interface.optimize_tree /*|| within_virtual_list*/ || items.len() < 10
+    {
         for item in items {
             render_node_tree_row(
                 weave,

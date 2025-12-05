@@ -34,6 +34,7 @@ pub struct UISettings {
     pub minimum_token_opacity: f32,
     pub max_tree_depth: usize,
     pub auto_scroll: bool,
+    pub optimize_tree: bool,
 
     #[serde(skip)]
     fonts_changed: bool,
@@ -52,6 +53,7 @@ impl Default for UISettings {
             minimum_token_opacity: 65.0,
             max_tree_depth: 10,
             auto_scroll: true,
+            optimize_tree: false,
 
             fonts_changed: false,
         }
@@ -206,6 +208,12 @@ impl UISettings {
             &mut self.auto_scroll,
             "Automatically adjust scroll position (may reduce performance)",
         );
+        if !self.auto_scroll {
+            ui.checkbox(
+                &mut self.optimize_tree,
+                "Perform additional tree rendering optimizations",
+            );
+        }
 
         // TODO: Add editor layout presets
     }
