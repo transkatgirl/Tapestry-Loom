@@ -7,6 +7,7 @@ use eframe::egui::{
     UiBuilder, WidgetText, collapsing_header::CollapsingState,
 };
 use egui_notify::Toasts;
+use egui_virtual_list::VirtualList;
 use flagset::FlagSet;
 use tapestry_weave::{
     ulid::Ulid,
@@ -26,11 +27,24 @@ use crate::{
     settings::{Settings, shortcuts::Shortcuts},
 };
 
-#[derive(Default, Debug)]
-pub struct ListView {}
+#[derive(Debug)]
+pub struct ListView {
+    list: VirtualList,
+}
+
+impl Default for ListView {
+    fn default() -> Self {
+        let mut list = VirtualList::new();
+        list.scroll_position_sync_on_resize(false);
+
+        Self { list }
+    }
+}
 
 impl ListView {
-    //pub fn reset(&mut self) {}
+    /*pub fn reset(&mut self) {
+        self.list.reset();
+    }*/
     pub fn render(
         &mut self,
         ui: &mut Ui,
@@ -50,6 +64,10 @@ impl ListView {
             weave.get_roots().collect()
         };
 
+        if state.has_weave_changed || state.has_cursor_node_changed {
+            self.list.reset();
+        }
+
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
@@ -57,14 +75,20 @@ impl ListView {
                 Frame::new()
                     .outer_margin(listing_margin(ui))
                     .show(ui, |ui| {
-                        for item in items {
-                            self.render_item(weave, settings, state, ui, &item);
+                        if settings.interface.auto_scroll {
+                            for item in items {
+                                Self::render_item(weave, settings, state, ui, &item);
+                            }
+                        } else {
+                            self.list.ui_custom_layout(ui, items.len(), |ui, index| {
+                                Self::render_item(weave, settings, state, ui, &items[index]);
+                                1
+                            });
                         }
                     });
             });
     }
     fn render_item(
-        &mut self,
         weave: &mut WeaveWrapper,
         settings: &Settings,
         state: &mut SharedState,
@@ -93,11 +117,24 @@ impl ListView {
     }
 }
 
-#[derive(Default, Debug)]
-pub struct BookmarkListView {}
+#[derive(Debug)]
+pub struct BookmarkListView {
+    list: VirtualList,
+}
+
+impl Default for BookmarkListView {
+    fn default() -> Self {
+        let mut list = VirtualList::new();
+        list.scroll_position_sync_on_resize(false);
+
+        Self { list }
+    }
+}
 
 impl BookmarkListView {
-    //pub fn reset(&mut self) {}
+    /*pub fn reset(&mut self) {
+        self.list.reset();
+    }*/
     pub fn render(
         &mut self,
         ui: &mut Ui,
@@ -109,6 +146,10 @@ impl BookmarkListView {
     ) {
         let items: Vec<Ulid> = weave.get_bookmarks().collect();
 
+        if state.has_weave_changed {
+            self.list.reset();
+        }
+
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
@@ -116,14 +157,20 @@ impl BookmarkListView {
                 Frame::new()
                     .outer_margin(listing_margin(ui))
                     .show(ui, |ui| {
-                        for item in items {
-                            self.render_bookmark(weave, settings, state, ui, &item);
+                        if settings.interface.auto_scroll {
+                            for item in items {
+                                Self::render_bookmark(weave, settings, state, ui, &item);
+                            }
+                        } else {
+                            self.list.ui_custom_layout(ui, items.len(), |ui, index| {
+                                Self::render_bookmark(weave, settings, state, ui, &items[index]);
+                                1
+                            });
                         }
                     });
             });
     }
     fn render_bookmark(
-        &mut self,
         weave: &mut WeaveWrapper,
         settings: &Settings,
         state: &mut SharedState,

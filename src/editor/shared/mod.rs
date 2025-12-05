@@ -41,6 +41,8 @@ pub struct SharedState {
     hovered_node: NodeIndex,
     last_hovered_node: NodeIndex,
     last_changed_node: Option<Ulid>,
+    pub has_cursor_node_changed: bool,
+    pub has_hover_node_changed: bool,
     pub has_weave_changed: bool,
     pub has_weave_layout_changed: bool,
     requests: HashMap<Ulid, InferenceHandle>,
@@ -88,6 +90,8 @@ impl SharedState {
             hovered_node: NodeIndex::None,
             last_hovered_node: NodeIndex::None,
             last_changed_node: None,
+            has_cursor_node_changed: false,
+            has_hover_node_changed: false,
             has_weave_changed: false,
             has_weave_layout_changed: false,
             requests: HashMap::with_capacity(128),
@@ -99,6 +103,8 @@ impl SharedState {
         self.last_cursor_node = NodeIndex::None;
         self.hovered_node = NodeIndex::None;
         self.last_hovered_node = NodeIndex::None;
+        self.has_cursor_node_changed = false;
+        self.has_hover_node_changed = false;
         self.has_weave_changed = false;
         self.has_weave_layout_changed = false;
         self.requests.clear();
@@ -111,10 +117,13 @@ impl SharedState {
         toasts: &mut Toasts,
         shortcuts: FlagSet<Shortcuts>,
     ) {
+        self.has_cursor_node_changed = false;
+        self.has_hover_node_changed = false;
         self.last_changed_node = None;
         if self.last_hovered_node != self.hovered_node && self.hovered_node != NodeIndex::None {
             self.last_changed_node = self.hovered_node.into_node();
             self.last_hovered_node = self.hovered_node;
+            self.has_hover_node_changed = true;
         }
         self.hovered_node = NodeIndex::None;
         if let Some(cursor_node) = self.cursor_node.into_node()
@@ -130,6 +139,7 @@ impl SharedState {
         if self.last_cursor_node != self.cursor_node {
             self.last_changed_node = self.cursor_node.into_node();
             self.last_cursor_node = self.cursor_node;
+            self.has_cursor_node_changed = true;
         }
 
         InferenceParameters::get_responses(

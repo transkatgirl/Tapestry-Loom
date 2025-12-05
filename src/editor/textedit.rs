@@ -101,7 +101,9 @@ impl TextEditorView {
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
     ) {
-        self.update(weave, settings, ui.visuals().widgets.inactive.text_color());
+        if state.has_weave_changed || self.text.is_empty() {
+            self.update(weave, settings, ui.visuals().widgets.inactive.text_color());
+        }
 
         let snippets = self.snippets.clone();
         let hover = self.last_text_edit_highlighting_hover;
