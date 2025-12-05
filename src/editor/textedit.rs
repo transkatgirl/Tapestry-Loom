@@ -548,22 +548,24 @@ fn calculate_boundaries_and_update_scroll(
 
             if snippet_index >= snippets.len() {
                 break;
-            } else if offset >= snippet_offset {
-                if last_node != Some(snippets[snippet_index].1) {
-                    if offset > 0 {
-                        draw_row_boundary(row_position, row.size, char.pos.x, false);
+            } else {
+                while offset >= snippet_offset {
+                    if last_node != Some(snippets[snippet_index].1) {
+                        if offset > 0 {
+                            draw_row_boundary(row_position, row.size, char.pos.x, false);
+                        }
+                        last_node = Some(snippets[snippet_index].1);
+                    } /*else if hover == Some(snippets[snippet_index].1) {
+                    draw_row_boundary(row_position, row.size, char.pos.x, true);
+                    }*/
+
+                    if changed == Some(snippets[snippet_index].1) || changed == last_node {
+                        scroll_boundary_into_view(row_position, row.size, char.pos.x);
                     }
-                    last_node = Some(snippets[snippet_index].1);
-                } /*else if hover == Some(snippets[snippet_index].1) {
-                draw_row_boundary(row_position, row.size, char.pos.x, true);
-                }*/
 
-                if changed == Some(snippets[snippet_index].1) || changed == last_node {
-                    scroll_boundary_into_view(row_position, row.size, char.pos.x);
+                    snippet_offset += snippets[snippet_index].0;
+                    snippet_index += 1;
                 }
-
-                snippet_offset += snippets[snippet_index].0;
-                snippet_index += 1;
             }
 
             offset += char_len;
@@ -572,22 +574,24 @@ fn calculate_boundaries_and_update_scroll(
         if row.ends_with_newline {
             if snippet_index >= snippets.len() {
                 break;
-            } else if offset >= snippet_offset {
-                if last_node != Some(snippets[snippet_index].1) {
-                    if offset > 0 {
-                        draw_row_boundary(row_position, row.size, row.size.x, false);
+            } else {
+                while offset >= snippet_offset {
+                    if last_node != Some(snippets[snippet_index].1) {
+                        if offset > 0 {
+                            draw_row_boundary(row_position, row.size, row.size.x, false);
+                        }
+                        last_node = Some(snippets[snippet_index].1);
+                    } /*else if hover == Some(snippets[snippet_index].1) {
+                    draw_row_boundary(row_position, row.size, row.size.x, true);
+                    }*/
+
+                    if changed == Some(snippets[snippet_index].1) || changed == last_node {
+                        scroll_boundary_into_view(row_position, row.size, row.size.x);
                     }
-                    last_node = Some(snippets[snippet_index].1);
-                } /*else if hover == Some(snippets[snippet_index].1) {
-                draw_row_boundary(row_position, row.size, row.size.x, true);
-                }*/
 
-                if changed == Some(snippets[snippet_index].1) || changed == last_node {
-                    scroll_boundary_into_view(row_position, row.size, row.size.x);
+                    snippet_offset += snippets[snippet_index].0;
+                    snippet_index += 1;
                 }
-
-                snippet_offset += snippets[snippet_index].0;
-                snippet_index += 1;
             }
 
             offset += 1;
