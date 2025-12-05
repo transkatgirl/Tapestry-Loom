@@ -73,6 +73,9 @@ impl WeaveWrapper {
             .copied()
             .map(Ulid)
     }*/
+    pub fn dump_identifiers_u128(&self) -> impl ExactSizeIterator<Item = u128> {
+        self.weave.weave.get_all_nodes_unordered()
+    }
     pub fn get_active_thread_u128(&mut self) -> impl DoubleEndedIterator<Item = u128> {
         self.weave.weave.get_active_thread().iter().copied()
     }

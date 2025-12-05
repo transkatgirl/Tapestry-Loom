@@ -5,6 +5,7 @@ use tapestry_weave::ulid::Ulid;
 
 use crate::editor::shared::weave::WeaveWrapper;
 
+#[derive(Debug)]
 pub struct WeaveLayout {
     identifier_map: HashMap<Ulid, u32>,
     identifier_unmap: HashMap<u32, Ulid>,
@@ -23,7 +24,11 @@ impl WeaveLayout {
             id_counter: 0,
         }
     }
-    pub fn load_weave(&mut self, weave: WeaveWrapper, node_sizes: HashMap<Ulid, (f64, f64)>) {
+    pub fn load_weave(
+        &mut self,
+        weave: &WeaveWrapper,
+        node_sizes: impl ExactSizeIterator<Item = (Ulid, (f64, f64))>,
+    ) {
         self.identifier_map.clear();
         self.identifier_unmap.clear();
         self.vertices.clear();
@@ -68,7 +73,7 @@ impl WeaveLayout {
         let mut width = 0.0;
         let mut height = 0.0;
 
-        let mut positions = Vec::with_capacity(self.vertices.len());
+        let mut positions = HashMap::with_capacity(self.vertices.len());
 
         for (subgraph, subgraph_width, subgraph_height) in layout {
             for (vertex_index, (x, y)) in subgraph {
@@ -76,7 +81,7 @@ impl WeaveLayout {
                     .identifier_unmap
                     .get(&self.vertices[vertex_index].0)
                     .unwrap();
-                positions.push((*identifier, (x + offset, y)));
+                positions.insert(*identifier, (x + offset, y));
             }
 
             offset += subgraph_width;
@@ -92,8 +97,9 @@ impl WeaveLayout {
     }
 }
 
+#[derive(Default, Debug)]
 pub struct ArrangedWeave {
-    pub positions: Vec<(Ulid, (f64, f64))>,
+    pub positions: HashMap<Ulid, (f64, f64)>,
     pub width: f64,
     pub height: f64,
 }
