@@ -88,8 +88,10 @@ impl MenuView {
             } else {
                 format!("{} active", self.active_node_count)
             };
-            ui.label(format!("{node_count_label}, {active_node_count_label}"))
-                .on_hover_ui(|ui| {
+            let label = ui.label(format!("{node_count_label}, {active_node_count_label}"));
+
+            if file_size > 0 {
+                label.on_hover_ui(|ui| {
                     let file_size_label = if file_size >= 100_000_000_000 {
                         format!("{:.0} GB", file_size as f32 / 1_000_000_000.0)
                     } else if file_size >= 1_000_000_000 {
@@ -102,14 +104,13 @@ impl MenuView {
                         format!("{:.0} kB", file_size as f32 / 1_000.0)
                     } else if file_size >= 1_000 {
                         format!("{:.1} kB", file_size as f32 / 1_000.0)
-                    } else if file_size > 0 {
-                        format!("{} bytes", file_size)
                     } else {
-                        String::new()
+                        format!("{} bytes", file_size)
                     };
 
                     ui.label(file_size_label);
                 });
+            }
         }
 
         if shortcuts.contains(Shortcuts::ResetParameters) {
