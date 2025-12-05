@@ -41,6 +41,8 @@ pub struct SharedState {
     hovered_node: NodeIndex,
     last_hovered_node: NodeIndex,
     last_changed_node: Option<Ulid>,
+    pub has_weave_changed: bool,
+    pub has_weave_layout_changed: bool,
     requests: HashMap<Ulid, InferenceHandle>,
     responses: Vec<Result<DependentNode<NodeContent>, anyhow::Error>>,
 }
@@ -86,6 +88,8 @@ impl SharedState {
             hovered_node: NodeIndex::None,
             last_hovered_node: NodeIndex::None,
             last_changed_node: None,
+            has_weave_changed: false,
+            has_weave_layout_changed: false,
             requests: HashMap::with_capacity(128),
             responses: Vec::with_capacity(128),
         }
@@ -95,6 +99,8 @@ impl SharedState {
         self.last_cursor_node = NodeIndex::None;
         self.hovered_node = NodeIndex::None;
         self.last_hovered_node = NodeIndex::None;
+        self.has_weave_changed = false;
+        self.has_weave_layout_changed = false;
         self.requests.clear();
         self.responses.clear();
     }*/
@@ -383,6 +389,9 @@ impl SharedState {
             self.cursor_node = NodeIndex::Node(next_sibling);
             weave.set_node_active_status(&next_sibling, true);
         }
+
+        self.has_weave_layout_changed = weave.has_layout_changed();
+        self.has_weave_changed = weave.has_changed();
     }
     pub fn get_cursor_node(&self) -> NodeIndex {
         self.last_cursor_node

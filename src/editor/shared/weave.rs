@@ -6,7 +6,7 @@ use std::{
 use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{
-        DiscreteWeave, Weave,
+        Weave,
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
         rkyv::{hash::FxHasher64, rancor},
@@ -54,31 +54,31 @@ impl WeaveWrapper {
     pub fn is_mergeable_with_parent(&self, id: &Ulid) -> bool {
         self.weave.is_mergeable_with_parent(id)
     }
-    pub fn get_thread_from(&mut self, id: &Ulid) -> impl DoubleEndedIterator<Item = Ulid> {
+    /*pub fn get_thread_from(&mut self, id: &Ulid) -> impl DoubleEndedIterator<Item = Ulid> {
         self.weave
             .weave
             .get_thread_from(&id.0)
             .iter()
             .copied()
             .map(Ulid)
-    }
+    }*/
     pub fn get_thread_from_u128(&mut self, id: &u128) -> impl DoubleEndedIterator<Item = u128> {
         self.weave.weave.get_thread_from(id).iter().copied()
     }
-    pub fn get_active_thread(&mut self) -> impl DoubleEndedIterator<Item = Ulid> {
+    /*pub fn get_active_thread(&mut self) -> impl DoubleEndedIterator<Item = Ulid> {
         self.weave
             .weave
             .get_active_thread()
             .iter()
             .copied()
             .map(Ulid)
-    }
+    }*/
     pub fn get_active_thread_u128(&mut self) -> impl DoubleEndedIterator<Item = u128> {
         self.weave.weave.get_active_thread().iter().copied()
     }
-    pub fn get_active_thread_nodes(&mut self) -> impl Iterator<Item = &DependentNode<NodeContent>> {
+    /*pub fn get_active_thread_nodes(&mut self) -> impl Iterator<Item = &DependentNode<NodeContent>> {
         self.weave.get_active_thread()
-    }
+    }*/
     pub fn get_active_thread_first(&mut self) -> Option<Ulid> {
         self.weave
             .weave
@@ -132,11 +132,11 @@ impl WeaveWrapper {
         self.layout_changed = true;
         self.weave.merge_with_parent(id)
     }
-    pub fn merge_with_parent_u128(&mut self, id: &u128) -> bool {
+    /*pub fn merge_with_parent_u128(&mut self, id: &u128) -> bool {
         self.changed = true;
         self.layout_changed = true;
         self.weave.weave.merge_with_parent(id)
-    }
+    }*/
     pub fn split_node(&mut self, id: &Ulid, at: usize) -> bool {
         self.changed = true;
         self.layout_changed = true;
