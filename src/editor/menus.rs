@@ -62,8 +62,12 @@ impl MenuView {
             }
         } else {
             let node_count = weave.len();
-            let node_count_label = if node_count >= 1_000_000 {
+            let node_count_label = if node_count >= 100_000_000 {
+                format!("{:.0}M nodes", node_count as f32 / 1_000_000.0)
+            } else if node_count >= 1_000_000 {
                 format!("{:.1}M nodes", node_count as f32 / 1_000_000.0)
+            } else if node_count >= 100_000 {
+                format!("{:.0}k nodes", node_count as f32 / 1_000.0)
             } else if node_count >= 1_000 {
                 format!("{:.1}k nodes", node_count as f32 / 1_000.0)
             } else if node_count == 1 {
@@ -71,8 +75,12 @@ impl MenuView {
             } else {
                 format!("{} nodes", node_count)
             };
-            let active_node_count_label = if self.active_node_count >= 1_000_000 {
+            let active_node_count_label = if self.active_node_count >= 100_000_000 {
+                format!("{:.0}M active", self.active_node_count as f32 / 1_000_000.0)
+            } else if self.active_node_count >= 1_000_000 {
                 format!("{:.1}M active", self.active_node_count as f32 / 1_000_000.0)
+            } else if self.active_node_count >= 100_000 {
+                format!("{:.0}k active", self.active_node_count as f32 / 1_000.0)
             } else if self.active_node_count >= 1_000 {
                 format!("{:.1}k active", self.active_node_count as f32 / 1_000.0)
             } else if self.active_node_count == 1 {
@@ -82,10 +90,16 @@ impl MenuView {
             };
             ui.label(format!("{node_count_label}, {active_node_count_label}"))
                 .on_hover_ui(|ui| {
-                    let file_size_label = if file_size >= 1_000_000_000 {
+                    let file_size_label = if file_size >= 100_000_000_000 {
+                        format!("{:.0} GB", file_size as f32 / 1_000_000_000.0)
+                    } else if file_size >= 1_000_000_000 {
                         format!("{:.1} GB", file_size as f32 / 1_000_000_000.0)
+                    } else if file_size >= 100_000_000 {
+                        format!("{:.0} MB", file_size as f32 / 1_000_000.0)
                     } else if file_size >= 1_000_000 {
                         format!("{:.1} MB", file_size as f32 / 1_000_000.0)
+                    } else if file_size >= 100_000 {
+                        format!("{:.0} kB", file_size as f32 / 1_000.0)
                     } else if file_size >= 1_000 {
                         format!("{:.1} kB", file_size as f32 / 1_000.0)
                     } else if file_size > 0 {
