@@ -9,7 +9,7 @@ use std::{
 
 use eframe::egui::{
     Align, Button, Color32, FontFamily, Frame, Id, Layout, RichText, ScrollArea, Sense, Ui,
-    UiBuilder, WidgetText, collapsing_header::CollapsingState,
+    UiBuilder, WidgetText, collapsing_header::CollapsingState, scroll_area::ScrollBarVisibility,
 };
 use egui_notify::Toasts;
 use egui_virtual_list::VirtualList;
@@ -333,9 +333,11 @@ impl TreeListView {
             self.needs_list_refresh = true;
         }
 
-        if (settings.interface.auto_scroll && !self.lists.is_empty())
-            || (!settings.interface.auto_scroll && self.needs_list_refresh)
-            || self.last_max_depth != settings.interface.max_tree_depth
+        if settings.interface.auto_scroll && !self.lists.is_empty() {
+            self.lists.clear();
+        } else if !settings.interface.auto_scroll
+            && (self.needs_list_refresh
+                || (self.last_max_depth != settings.interface.max_tree_depth))
         {
             self.update_lists(settings.interface.max_tree_depth);
         }
@@ -392,6 +394,11 @@ impl TreeListView {
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
+            .scroll_bar_visibility(if self.lists.is_empty() {
+                ScrollBarVisibility::VisibleWhenNeeded
+            } else {
+                ScrollBarVisibility::AlwaysHidden // Workaround for bugs caused by nesting multiple virtual lists
+            })
             .show(ui, |ui| {
                 Frame::new()
                     .outer_margin(listing_margin(ui))
@@ -431,7 +438,7 @@ fn render_node_tree(
 ) {
     let indent_compensation = ui.spacing().icon_width + ui.spacing().icon_spacing;
 
-    if settings.interface.auto_scroll || within_virtual_list || items.len() < 10 {
+    if settings.interface.auto_scroll /*|| within_virtual_list*/ || items.len() < 10 {
         for item in items {
             render_node_tree_row(
                 weave,
