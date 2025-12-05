@@ -479,7 +479,15 @@ fn render_node_tree_row(
                         render_horizontal_node_label_buttons_rtl(ui, settings, state, weave, node);
                     },
                     |ui, settings, state, weave, node| {
-                        render_node_tree_context_menu(ui, settings, state, editor_id, weave, node);
+                        render_node_tree_context_menu(
+                            ui,
+                            settings,
+                            state,
+                            editor_id,
+                            weave,
+                            node,
+                            needs_list_refresh,
+                        );
                     },
                     true,
                 );
@@ -666,14 +674,14 @@ fn render_horizontal_node_label(
     state: &mut SharedState,
     weave: &mut WeaveWrapper,
     node: &DependentNode<NodeContent>,
-    buttons: impl Fn(
+    mut buttons: impl FnMut(
         &mut Ui,
         &Settings,
         &mut SharedState,
         &mut WeaveWrapper,
         &DependentNode<NodeContent>,
     ),
-    context_menu: impl Fn(
+    mut context_menu: impl FnMut(
         &mut Ui,
         &Settings,
         &mut SharedState,
@@ -920,6 +928,7 @@ fn render_node_tree_context_menu(
     editor_id: Ulid,
     weave: &mut WeaveWrapper,
     node: &DependentNode<NodeContent>,
+    needs_list_refresh: &mut bool,
 ) {
     if ui.button("Generate completions").clicked() {
         state.generate_children(weave, Some(Ulid(node.id)), settings);
@@ -981,12 +990,14 @@ fn render_node_tree_context_menu(
             for child in node.to.iter().copied() {
                 set_node_tree_item_open_status(ui, editor_id, Ulid(child), false);
             }
+            *needs_list_refresh = true;
         }
 
         if ui.button("Expand all children").clicked() {
             for child in node.to.iter().copied() {
                 set_node_tree_item_open_status(ui, editor_id, Ulid(child), true);
             }
+            *needs_list_refresh = true;
         }
 
         ui.separator();
