@@ -59,14 +59,38 @@ impl WeaveLayout {
             }
         }
     }
-    pub fn layout_weave(&self, config: &Config) -> Vec<ArrangedWeaveSubgraph> {
+    pub fn layout_weave(&self, config: &Config) -> ArrangedWeave {
         let layout = from_vertices_and_edges(&self.vertices, &self.edges, config);
 
-        todo!()
+        let mut offset = 0.0;
+        let mut width = 0.0;
+        let mut height = 0.0;
+
+        let mut positions = Vec::with_capacity(self.vertices.len());
+
+        for (subgraph, subgraph_width, subgraph_height) in layout {
+            for (vertex_index, (x, y)) in subgraph {
+                let identifier = self
+                    .identifier_unmap
+                    .get(&self.vertices[vertex_index].0)
+                    .unwrap();
+                positions.push((*identifier, (x + offset, y)));
+            }
+
+            offset += subgraph_width;
+            width += subgraph_width;
+            height = f64::max(height, subgraph_height);
+        }
+
+        ArrangedWeave {
+            positions,
+            width,
+            height,
+        }
     }
 }
 
-pub struct ArrangedWeaveSubgraph {
+pub struct ArrangedWeave {
     pub positions: Vec<(Ulid, (f64, f64))>,
     pub width: f64,
     pub height: f64,
