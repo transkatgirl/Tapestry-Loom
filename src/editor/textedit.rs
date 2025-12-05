@@ -139,6 +139,9 @@ impl TextEditorView {
         let bytes = self.bytes.clone();
 
         let mut layouter = |ui: &Ui, buf: &dyn TextBuffer, wrap_width: f32| {
+            let mut font_id = TextStyle::Monospace.resolve(ui.style());
+            font_id.size *= 1.1;
+
             let layout_job = LayoutJob {
                 sections: if buf.as_str().as_bytes() == *bytes.borrow() {
                     highlighting.borrow().clone()
@@ -147,10 +150,7 @@ impl TextEditorView {
                         leading_space: 0.0,
                         byte_range: 0..buf.as_str().len(),
                         format: TextFormat::simple(
-                            ui.style()
-                                .override_font_id
-                                .clone()
-                                .unwrap_or_else(|| TextStyle::Monospace.resolve(ui.style())),
+                            font_id,
                             ui.visuals().widgets.inactive.text_color(),
                         ),
                     }]
@@ -173,10 +173,6 @@ impl TextEditorView {
                 Frame::new()
                     .outer_margin(MarginF32::same(ui.style().spacing.menu_spacing / 2.0))
                     .show(ui, |ui| {
-                        let mut font_id = TextStyle::Monospace.resolve(ui.style());
-                        font_id.size *= 1.1;
-                        ui.style_mut().override_font_id = Some(font_id);
-
                         render_rects(ui, &self.rects);
 
                         let mut textedit = TextEdit::multiline(&mut self.text)
@@ -459,11 +455,8 @@ impl TextEditorView {
         weave.set_active_content(&self.buffer, IndexMap::default());
     }
     fn calculate_highlighting(&mut self, ui: &Ui) {
-        let font_id = ui
-            .style()
-            .override_font_id
-            .clone()
-            .unwrap_or_else(|| TextStyle::Monospace.resolve(ui.style()));
+        let mut font_id = TextStyle::Monospace.resolve(ui.style());
+        font_id.size *= 1.1;
 
         let mut sections = self.highlighting.borrow_mut();
         sections.clear();
