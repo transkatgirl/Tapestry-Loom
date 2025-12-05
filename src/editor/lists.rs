@@ -405,6 +405,7 @@ impl TreeListView {
                             Ulid::nil(),
                             tree_roots.into_iter(),
                             settings.interface.max_tree_depth,
+                            false,
                             &mut self.last_rendered_nodes,
                             &mut self.lists,
                             &mut self.needs_list_refresh,
@@ -423,13 +424,14 @@ fn render_node_tree(
     branch_identifier: Ulid,
     items: impl ExactSizeIterator<Item = Ulid>,
     max_depth: usize,
+    within_virtual_list: bool,
     rendered_items: &mut HashSet<Ulid>,
     virtual_lists: &mut HashMap<Ulid, Rc<RefCell<VirtualList>>>,
     needs_list_refresh: &mut bool,
 ) {
     let indent_compensation = ui.spacing().icon_width + ui.spacing().icon_spacing;
 
-    if settings.interface.auto_scroll {
+    if settings.interface.auto_scroll || within_virtual_list || items.len() < 10 {
         for item in items {
             render_node_tree_row(
                 weave,
@@ -440,6 +442,7 @@ fn render_node_tree(
                 indent_compensation,
                 item,
                 max_depth,
+                within_virtual_list,
                 rendered_items,
                 virtual_lists,
                 needs_list_refresh,
@@ -472,6 +475,7 @@ fn render_node_tree(
                     indent_compensation,
                     items[index],
                     max_depth,
+                    true,
                     rendered_items,
                     virtual_lists,
                     needs_list_refresh,
@@ -490,6 +494,7 @@ fn render_node_tree_row(
     indent_compensation: f32,
     item: Ulid,
     max_depth: usize,
+    within_virtual_list: bool,
     rendered_items: &mut HashSet<Ulid>,
     virtual_lists: &mut HashMap<Ulid, Rc<RefCell<VirtualList>>>,
     needs_list_refresh: &mut bool,
@@ -545,6 +550,7 @@ fn render_node_tree_row(
                             item,
                             node.to.into_iter().map(Ulid),
                             max_depth - 1,
+                            within_virtual_list,
                             rendered_items,
                             virtual_lists,
                             needs_list_refresh,
