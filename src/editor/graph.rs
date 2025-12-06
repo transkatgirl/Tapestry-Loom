@@ -100,6 +100,8 @@ impl GraphView {
             }
         }
 
+        // TODO: Stylize hovered & bookmarked nodes
+
         for (item, (x, y)) in self.arranged.positions.iter() {
             let node = weave.get_node(item).unwrap();
 
