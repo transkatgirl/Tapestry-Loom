@@ -107,10 +107,8 @@ impl TextEditorView {
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
     ) {
-        if state.has_weave_changed {
+        if state.has_weave_changed || state.has_theme_changed {
             self.text.clear();
-        }
-        if state.has_weave_changed {
             self.should_update_rects = true;
         }
     }

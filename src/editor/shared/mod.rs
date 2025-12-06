@@ -22,7 +22,7 @@ use tokio::runtime::Runtime;
 use crate::{
     editor::shared::weave::WeaveWrapper,
     settings::{
-        Settings,
+        Settings, UITheme,
         inference::{InferenceHandle, InferenceParameters},
         shortcuts::Shortcuts,
     },
@@ -47,6 +47,8 @@ pub struct SharedState {
     pub has_weave_layout_changed: bool,
     requests: HashMap<Ulid, InferenceHandle>,
     responses: Vec<Result<DependentNode<NodeContent>, anyhow::Error>>,
+    last_theme: UITheme,
+    pub has_theme_changed: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -96,6 +98,8 @@ impl SharedState {
             has_weave_layout_changed: false,
             requests: HashMap::with_capacity(128),
             responses: Vec::with_capacity(128),
+            last_theme: settings.interface.ui_theme,
+            has_theme_changed: false,
         }
     }
     /*pub fn reset(&mut self) {
@@ -140,6 +144,12 @@ impl SharedState {
             self.last_changed_node = self.cursor_node.into_node();
             self.last_cursor_node = self.cursor_node;
             self.has_cursor_node_changed = true;
+        }
+        if self.last_theme != settings.interface.ui_theme {
+            self.has_theme_changed = true;
+            self.last_theme = settings.interface.ui_theme;
+        } else {
+            self.has_theme_changed = false;
         }
 
         InferenceParameters::get_responses(

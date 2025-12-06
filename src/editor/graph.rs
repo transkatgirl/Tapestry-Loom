@@ -53,7 +53,7 @@ impl GraphView {
         if state.has_weave_layout_changed {
             self.arranged = ArrangedWeave::default();
         }
-        if state.has_weave_changed {
+        if state.has_weave_changed || state.has_theme_changed {
             self.items.clear();
         }
     }
