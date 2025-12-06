@@ -66,7 +66,7 @@ impl GraphView {
         let default_color = ui.visuals().widgets.inactive.text_color();
 
         let stroke_color = ui.visuals().widgets.inactive.bg_fill;
-        let active_stroke_color = ui.visuals().widgets.active.bg_stroke.color;
+        let active_stroke_color = ui.visuals().widgets.noninteractive.fg_stroke.color;
 
         for (item, (x, y)) in self.arranged.positions.iter() {
             if !active.contains(item) {
@@ -155,7 +155,7 @@ impl GraphView {
         let mut pointer_node = None;
 
         let hover_stroke = Stroke {
-            color: ui.visuals().widgets.active.bg_stroke.color, // Same as active_stroke_color in update_plot_cache()
+            color: ui.visuals().widgets.noninteractive.fg_stroke.color, // Same as active_stroke_color in update_plot_cache()
             width: 2.0,
         };
         let hovered_node = state.get_hovered_node().into_node();
