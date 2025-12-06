@@ -90,17 +90,23 @@ impl WeaveLayout {
 
         let mut positions = HashMap::with_capacity(self.vertices.len());
 
-        for (subgraph, subgraph_width, subgraph_height) in layout {
+        for (subgraph, _, _) in layout {
+            let mut subgraph_width: f64 = 0.0;
+            let mut subgraph_height: f64 = 0.0;
+
             for (vertex_index, (x, y)) in subgraph {
                 let identifier = self
                     .identifier_unmap
                     .get(&self.vertices[vertex_index].0)
                     .unwrap();
                 positions.insert(*identifier, (x + offset, y));
+
+                subgraph_width = subgraph_width.max(x);
+                subgraph_height = subgraph_height.max(y);
             }
 
-            offset += subgraph_width;
-            width += subgraph_width;
+            offset += subgraph_width + spacing;
+            width += subgraph_width + spacing;
             height = f64::max(height, subgraph_height);
         }
 

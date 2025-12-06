@@ -94,16 +94,6 @@ impl GraphView {
                             },
                         );
                     }
-
-                    painter.circle(
-                        Pos2 {
-                            x: (x + 20.0) as f32,
-                            y: (y + 60.0) as f32,
-                        },
-                        5.0,
-                        get_node_color(node, settings).unwrap_or(default_color),
-                        Stroke::NONE,
-                    );
                 }
 
                 for (item, (x, y)) in self.arranged.positions.iter() {
@@ -114,7 +104,7 @@ impl GraphView {
                             x: (x + 20.0) as f32,
                             y: (y + 60.0) as f32,
                         },
-                        5.0,
+                        2.5,
                         get_node_color(node, settings).unwrap_or(default_color),
                         Stroke::NONE,
                     );
