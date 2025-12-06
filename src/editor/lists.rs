@@ -867,7 +867,7 @@ fn render_horizontal_node_label(
     }
 }
 
-fn render_node_context_menu(
+pub fn render_node_context_menu(
     ui: &mut Ui,
     settings: &Settings,
     state: &mut SharedState,

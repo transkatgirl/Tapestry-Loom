@@ -7,11 +7,14 @@ use flagset::FlagSet;
 use tapestry_weave::ulid::Ulid;
 
 use crate::{
-    editor::shared::{
-        NodeIndex, SharedState, get_node_color,
-        layout::{ArrangedWeave, WeaveLayout},
-        render_node_metadata_tooltip, render_node_text,
-        weave::WeaveWrapper,
+    editor::{
+        lists::render_node_context_menu,
+        shared::{
+            NodeIndex, SharedState, get_node_color,
+            layout::{ArrangedWeave, WeaveLayout},
+            render_node_metadata_tooltip, render_node_text,
+            weave::WeaveWrapper,
+        },
     },
     settings::{Settings, shortcuts::Shortcuts},
 };
@@ -197,7 +200,7 @@ impl GraphView {
         if response.response.context_menu_opened() {
             if let Some(id) = self.context_menu_node {
                 response.response.context_menu(|ui| {
-                    render_node_context_menu(ui, weave, &id, settings, state);
+                    render_context_menu(ui, weave, &id, settings, state);
                 });
             }
         } else {
@@ -212,7 +215,7 @@ impl GraphView {
 
             if self.context_menu_node.is_none() {
                 response.response.context_menu(|ui| {
-                    render_node_context_menu(ui, weave, &id, settings, state);
+                    render_context_menu(ui, weave, &id, settings, state);
                     self.context_menu_node = Some(id);
                 });
             }
@@ -223,6 +226,7 @@ impl GraphView {
                     .show(|ui| {
                         render_tooltip(ui, weave, &id, settings);
                     });
+                state.set_hovered_node(NodeIndex::Node(id));
             }
         }
 
@@ -242,14 +246,16 @@ enum PrecalculatedItem {
     Node(Ulid, [PlotPoint; 4], Color32),
 }
 
-fn render_node_context_menu(
+fn render_context_menu(
     ui: &mut Ui,
     weave: &mut WeaveWrapper,
     node: &Ulid,
     settings: &Settings,
     state: &mut SharedState,
 ) {
-    ui.label("test");
+    if let Some(node) = weave.get_node(node).cloned() {
+        render_node_context_menu(ui, settings, state, weave, &node);
+    }
 }
 
 fn render_tooltip(ui: &mut Ui, weave: &mut WeaveWrapper, node: &Ulid, settings: &Settings) {
