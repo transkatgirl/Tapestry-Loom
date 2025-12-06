@@ -155,13 +155,13 @@ impl GraphView {
         let mut pointer_node = None;
 
         let hover_stroke = Stroke {
-            color: ui.visuals().widgets.inactive.fg_stroke.color,
+            color: ui.visuals().widgets.active.fg_stroke.color,
             width: 2.0,
         };
         let hovered_node = state.get_hovered_node().into_node();
 
         let cursor_stroke = Stroke {
-            color: ui.visuals().strong_text_color(),
+            color: ui.visuals().widgets.inactive.bg_fill,
             width: hover_stroke.width,
         };
         let cursor_node = state.get_cursor_node().into_node();
@@ -205,7 +205,6 @@ impl GraphView {
                                 && ((bounds.min()[1])..=(bounds.max()[1])).contains(&pointer.y)
                             {
                                 pointer_node = Some(id);
-
                                 polygon = polygon.stroke(hover_stroke);
                             } else if Some(id) == hovered_node {
                                 polygon = polygon.stroke(hover_stroke);
