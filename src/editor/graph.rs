@@ -59,23 +59,37 @@ impl GraphView {
         let default_color = ui.visuals().widgets.inactive.text_color();
 
         let stroke_color = ui.visuals().widgets.inactive.bg_fill;
-        let active_stroke_color = ui.visuals().selection.bg_fill;
+        let active_stroke_color = ui.visuals().widgets.active.fg_stroke.color;
 
         for (item, (x, y)) in self.arranged.positions.iter() {
-            let node = weave.get_node(item).unwrap();
+            if !active.contains(item) {
+                let node = weave.get_node(item).unwrap();
 
-            if let Some((p_x, p_y)) = node
-                .from
-                .and_then(|id| self.arranged.positions.get(&Ulid(id)))
-            {
-                self.items.push(PrecalculatedItem::Edge(
-                    [PlotPoint { x: *p_x, y: *p_y }, PlotPoint { x: *x, y: *y }],
-                    if active.contains(item) {
-                        active_stroke_color
-                    } else {
-                        stroke_color
-                    },
-                ));
+                if let Some((p_x, p_y)) = node
+                    .from
+                    .and_then(|id| self.arranged.positions.get(&Ulid(id)))
+                {
+                    self.items.push(PrecalculatedItem::Edge(
+                        [PlotPoint { x: *p_x, y: *p_y }, PlotPoint { x: *x, y: *y }],
+                        stroke_color,
+                    ));
+                }
+            }
+        }
+
+        for (item, (x, y)) in self.arranged.positions.iter() {
+            if active.contains(item) {
+                let node = weave.get_node(item).unwrap();
+
+                if let Some((p_x, p_y)) = node
+                    .from
+                    .and_then(|id| self.arranged.positions.get(&Ulid(id)))
+                {
+                    self.items.push(PrecalculatedItem::Edge(
+                        [PlotPoint { x: *p_x, y: *p_y }, PlotPoint { x: *x, y: *y }],
+                        active_stroke_color,
+                    ));
+                }
             }
         }
 
@@ -105,7 +119,7 @@ impl GraphView {
                     .dump_identifiers_u128()
                     .map(|id| (Ulid(id), (1.0, 1.0))),
             );
-            self.arranged = self.layout.layout_weave(2.0);
+            self.arranged = self.layout.layout_weave(1.5);
             self.update_plot_cache(weave, ui, settings);
         } else if self.items.is_empty() {
             self.update_plot_cache(weave, ui, settings);
