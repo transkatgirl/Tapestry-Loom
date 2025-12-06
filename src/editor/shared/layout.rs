@@ -84,7 +84,8 @@ impl WeaveLayout {
             },
         );
 
-        let mut offset = 0.0;
+        let mut x_offset = spacing;
+        let y_offset = spacing;
         let mut width = 0.0;
         let mut height = 0.0;
 
@@ -95,25 +96,24 @@ impl WeaveLayout {
             let mut subgraph_height: f64 = 0.0;
 
             for (vertex_index, (x, y)) in subgraph {
-                let identifier = self
-                    .identifier_unmap
-                    .get(&self.vertices[vertex_index].0)
-                    .unwrap();
-                positions.insert(*identifier, (x + offset, y));
+                let (id, (width, height)) = self.vertices[vertex_index];
 
-                subgraph_width = subgraph_width.max(x);
-                subgraph_height = subgraph_height.max(y);
+                let identifier = self.identifier_unmap.get(&id).unwrap();
+                positions.insert(*identifier, (x + x_offset, y + y_offset));
+
+                subgraph_width = subgraph_width.max(x + width);
+                subgraph_height = subgraph_height.max(y + height);
             }
 
-            offset += subgraph_width + spacing;
+            x_offset += subgraph_width + spacing;
             width += subgraph_width + spacing;
             height = f64::max(height, subgraph_height);
         }
 
         ArrangedWeave {
             positions,
-            width,
-            height,
+            width: width + spacing,
+            height: height + (spacing * 2.0),
         }
     }
 }

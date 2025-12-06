@@ -1,4 +1,4 @@
-use eframe::egui::{Color32, Pos2, Rect, ScrollArea, Sense, Stroke, Ui};
+use eframe::egui::{Color32, Pos2, Rect, ScrollArea, Sense, Stroke, Ui, Vec2};
 use egui_notify::Toasts;
 use flagset::FlagSet;
 use tapestry_weave::ulid::Ulid;
@@ -68,8 +68,13 @@ impl GraphView {
             .animated(false)
             .auto_shrink(false)
             .show(ui, |ui| {
-                let (response, painter) =
-                    ui.allocate_painter(ui.clip_rect().size(), Sense::click_and_drag());
+                let (response, painter) = ui.allocate_painter(
+                    Vec2 {
+                        x: self.arranged.width as f32,
+                        y: self.arranged.height as f32,
+                    },
+                    Sense::click_and_drag(),
+                );
                 let rect = response.rect;
 
                 for (item, (x, y)) in self.arranged.positions.iter() {
@@ -82,12 +87,12 @@ impl GraphView {
                         painter.line(
                             vec![
                                 Pos2 {
-                                    x: *p_x as f32 + rect.min.x + 10.0,
-                                    y: *p_y as f32 + rect.min.y + 10.0,
+                                    x: *p_x as f32 + rect.min.x,
+                                    y: *p_y as f32 + rect.min.y,
                                 },
                                 Pos2 {
-                                    x: *x as f32 + rect.min.x + 10.0,
-                                    y: *y as f32 + rect.min.y + 10.0,
+                                    x: *x as f32 + rect.min.x,
+                                    y: *y as f32 + rect.min.y,
                                 },
                             ],
                             Stroke {
@@ -103,8 +108,8 @@ impl GraphView {
 
                     painter.circle(
                         Pos2 {
-                            x: *x as f32 + rect.min.x + 10.0,
-                            y: *y as f32 + rect.min.y + 10.0,
+                            x: *x as f32 + rect.min.x,
+                            y: *y as f32 + rect.min.y,
                         },
                         2.5,
                         get_node_color(node, settings).unwrap_or(default_color),
