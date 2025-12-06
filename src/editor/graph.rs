@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use eframe::egui::{Color32, Tooltip, Ui};
+use eframe::egui::{Color32, Stroke, Tooltip, Ui};
 use egui_notify::Toasts;
 use egui_plot::{Line, Plot, PlotItem, PlotPoint, PlotPoints, Polygon};
 use flagset::FlagSet;
@@ -100,7 +100,7 @@ impl GraphView {
             }
         }
 
-        // TODO: Stylize hovered & bookmarked nodes
+        // TODO: Stylize bookmarked nodes
 
         for (item, (x, y)) in self.arranged.positions.iter() {
             let node = weave.get_node(item).unwrap();
@@ -154,6 +154,18 @@ impl GraphView {
 
         let mut pointer_node = None;
 
+        let hover_stroke = Stroke {
+            color: ui.visuals().widgets.inactive.fg_stroke.color,
+            width: 2.0,
+        };
+        let hovered_node = state.get_hovered_node().into_node();
+
+        let cursor_stroke = Stroke {
+            color: ui.visuals().strong_text_color(),
+            width: hover_stroke.width,
+        };
+        let cursor_node = state.get_cursor_node().into_node();
+
         let response = Plot::new([state.identifier.to_string(), "graph".to_string()])
             .show_x(false)
             .show_y(false)
@@ -164,6 +176,8 @@ impl GraphView {
             .show_grid(false)
             .data_aspect(1.0)
             .show(ui, |ui| {
+                // TODO: Automatic graph fitting
+
                 let bounds = ui.plot_bounds();
                 let pointer = ui.pointer_coordinate().filter(|pointer| {
                     ((bounds.min()[0])..=(bounds.max()[0])).contains(&pointer.x)
@@ -181,7 +195,7 @@ impl GraphView {
                             );
                         }
                         PrecalculatedItem::Node(id, points, color) => {
-                            let polygon = Polygon::new("", PlotPoints::Owned(points.to_vec()))
+                            let mut polygon = Polygon::new("", PlotPoints::Owned(points.to_vec()))
                                 .fill_color(color)
                                 .allow_hover(true);
                             let bounds = polygon.bounds();
@@ -191,6 +205,12 @@ impl GraphView {
                                 && ((bounds.min()[1])..=(bounds.max()[1])).contains(&pointer.y)
                             {
                                 pointer_node = Some(id);
+
+                                polygon = polygon.stroke(hover_stroke);
+                            } else if Some(id) == hovered_node {
+                                polygon = polygon.stroke(hover_stroke);
+                            } else if Some(id) == cursor_node {
+                                polygon = polygon.stroke(cursor_stroke);
                             }
 
                             ui.add(polygon);
