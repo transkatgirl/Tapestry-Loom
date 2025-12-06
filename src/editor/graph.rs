@@ -191,6 +191,7 @@ impl GraphView {
                             ui.add(
                                 Line::new("", PlotPoints::Owned(points.to_vec()))
                                     .color(color)
+                                    .width(2.0)
                                     .allow_hover(false),
                             );
                         }
