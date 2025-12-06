@@ -156,7 +156,7 @@ impl GraphView {
 
         let hover_stroke = Stroke {
             color: ui.visuals().widgets.noninteractive.fg_stroke.color, // Same as active_stroke_color in update_plot_cache()
-            width: 2.0,
+            width: 3.0,
         };
         let hovered_node = state.get_hovered_node().into_node();
 
