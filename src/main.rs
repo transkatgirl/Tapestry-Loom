@@ -14,6 +14,7 @@ use egui_notify::Toasts;
 use egui_tiles::{
     Behavior, Container, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse,
 };
+use env_logger::Env;
 use flagset::FlagSet;
 use font_kit::{
     family_name::FamilyName, handle::Handle, properties::Properties, source::SystemSource,
@@ -38,7 +39,7 @@ mod settings;
 static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() -> eframe::Result {
-    env_logger::init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("debug,tapestry_loom=trace,layouting=warn,coordinate_calculation=warn,crossing_reduction=warn,ranking=warn,Cycle Removal=warn,connected_components=warn,rust_sugiyama::algorithm=warn")).init();
 
     #[cfg(not(debug_assertions))]
     let _ = ctrlc::set_handler(|| {}); // Hack to work around eframe's lack of signal handling

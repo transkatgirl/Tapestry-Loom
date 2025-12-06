@@ -134,14 +134,4 @@ Note: This project is a work in progress. Missing features and major bugs are a 
 
 Make sure to clone the repository with submodules!
 
-### Run in debug mode w/ logging
-
-```bash
-RUST_LOG=debug,tapestry_loom=trace cargo run
-```
-
-### Run in release mode w/ logging
-
-```bash
-RUST_LOG=debug cargo run --release
-```
+Use `cargo run` to run in debug mode, or `cargo run --release` to run in release mode.
