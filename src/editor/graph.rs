@@ -1,6 +1,6 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
-use eframe::egui::{Color32, Id, PointerButton, Pos2, Rect, ScrollArea, Sense, Stroke, Ui, Vec2};
+use eframe::egui::{Color32, PointerButton, Ui};
 use egui_notify::Toasts;
 use egui_plot::{Line, Plot, PlotItem, PlotPoint, PlotPoints, Polygon};
 use flagset::FlagSet;
@@ -157,6 +157,7 @@ impl GraphView {
                 let pointer = ui.pointer_coordinate().filter(|pointer| {
                     ((bounds.min()[0])..=(bounds.max()[0])).contains(&pointer.x)
                         && ((bounds.min()[1])..=(bounds.max()[1])).contains(&pointer.y)
+                        && !ui.response().dragged()
                 });
 
                 for item in self.items.iter().copied() {
@@ -192,10 +193,12 @@ impl GraphView {
         if let Some(id) = pointer_node {
             //println!("{}", id);
 
-            /*ui.ctx().input(|input| {
-                if input.pointer.button_clicked(PointerButton::Primary) {
-                    weave.set_node_active_status(id, true);
-                }
+            if response.response.clicked() {
+                weave.set_node_active_status(&id, true);
+            }
+
+            /*response.response.context_menu(|ui| {
+                ui.label("test");
             });*/
         }
 
