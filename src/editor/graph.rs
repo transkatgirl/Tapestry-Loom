@@ -214,11 +214,13 @@ impl GraphView {
                 });
             }
 
-            Tooltip::for_widget(&response.response)
-                .at_pointer()
-                .show(|ui| {
-                    render_tooltip(ui, weave, &id, settings);
-                });
+            if !response.response.context_menu_opened() {
+                Tooltip::for_widget(&response.response)
+                    .at_pointer()
+                    .show(|ui| {
+                        render_tooltip(ui, weave, &id, settings);
+                    });
+            }
         }
 
         if shortcuts.contains(Shortcuts::FitToCursor) {
