@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use eframe::egui::{Color32, PointerButton, Ui};
+use eframe::egui::{Color32, Ui};
 use egui_notify::Toasts;
 use egui_plot::{Line, Plot, PlotItem, PlotPoint, PlotPoints, Polygon};
 use flagset::FlagSet;
@@ -10,6 +10,7 @@ use crate::{
     editor::shared::{
         SharedState, get_node_color,
         layout::{ArrangedWeave, WeaveLayout},
+        render_node_metadata_tooltip, render_node_text,
         weave::WeaveWrapper,
     },
     settings::{Settings, shortcuts::Shortcuts},
@@ -20,6 +21,7 @@ pub struct GraphView {
     layout: WeaveLayout,
     items: Vec<PrecalculatedItem>,
     arranged: ArrangedWeave,
+    context_menu_node: Option<Ulid>,
 }
 
 impl Default for GraphView {
@@ -28,14 +30,15 @@ impl Default for GraphView {
             layout: WeaveLayout::with_capacity(65535, 131072),
             items: Vec::with_capacity(65535 + 131072),
             arranged: ArrangedWeave::default(),
+            context_menu_node: None,
         }
     }
 }
 
 impl GraphView {
-    pub fn reset(&mut self) {
+    /*pub fn reset(&mut self) {
         self.arranged = ArrangedWeave::default();
-    }
+    }*/
     pub fn update(
         &mut self,
         _weave: &mut WeaveWrapper,
@@ -55,6 +58,7 @@ impl GraphView {
         let active: HashSet<Ulid> = weave.get_active_thread().collect();
 
         self.items.clear();
+        self.context_menu_node = None;
 
         let default_color = ui.visuals().widgets.inactive.text_color();
 
@@ -125,7 +129,7 @@ impl GraphView {
         ui: &mut Ui,
         weave: &mut WeaveWrapper,
         settings: &Settings,
-        toasts: &mut Toasts,
+        _toasts: &mut Toasts,
         state: &mut SharedState,
         shortcuts: FlagSet<Shortcuts>,
     ) {
@@ -190,25 +194,40 @@ impl GraphView {
                 //ui.response().clone().on_hover_text("test");
             });
 
-        if let Some(id) = pointer_node {
-            //println!("{}", id);
+        if response.response.context_menu_opened() {
+            if let Some(id) = self.context_menu_node {
+                response.response.context_menu(|ui| {
+                    node_context_menu(ui, weave, &id, settings, state);
+                });
+            }
+        } else {
+            self.context_menu_node = None;
+        }
 
+        if let Some(id) = pointer_node {
             if response.response.clicked() {
                 weave.set_node_active_status(&id, true);
             }
 
-            /*response.response.context_menu(|ui| {
-                ui.label("test");
-            });*/
+            if self.context_menu_node.is_none() {
+                response.response.context_menu(|ui| {
+                    node_context_menu(ui, weave, &id, settings, state);
+                    self.context_menu_node = Some(id);
+                });
+            }
+
+            response.response.on_hover_ui_at_pointer(|ui| {
+                node_tooltip(ui, weave, &id, settings);
+            });
         }
 
-        /*if shortcuts.contains(Shortcuts::FitToCursor) {
+        if shortcuts.contains(Shortcuts::FitToCursor) {
             // TODO
         }
 
         if shortcuts.contains(Shortcuts::FitToWeave) {
             // TODO
-        }*/
+        }
     }
 }
 
@@ -216,4 +235,24 @@ impl GraphView {
 enum PrecalculatedItem {
     Edge([PlotPoint; 2], Color32),
     Node(Ulid, [PlotPoint; 4], Color32),
+}
+
+fn node_context_menu(
+    ui: &mut Ui,
+    weave: &mut WeaveWrapper,
+    node: &Ulid,
+    settings: &Settings,
+    state: &mut SharedState,
+) {
+    ui.label("test");
+}
+
+fn node_tooltip(ui: &mut Ui, weave: &mut WeaveWrapper, node: &Ulid, settings: &Settings) {
+    if let Some(node) = weave.get_node(node) {
+        ui.label(render_node_text(ui, node, settings, None));
+
+        ui.separator();
+
+        render_node_metadata_tooltip(ui, node);
+    }
 }
