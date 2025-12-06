@@ -60,15 +60,11 @@ impl GraphView {
                     .dump_identifiers_u128()
                     .map(|id| (Ulid(id), (2.5, 2.5))),
             );
-            self.arranged = self.layout.layout_weave(10.0);
+            self.arranged = self.layout.layout_weave(5.0);
         }
 
         let default_color = ui.visuals().widgets.inactive.text_color();
-
-        let stroke = Stroke {
-            width: ui.visuals().widgets.inactive.fg_stroke.width,
-            color: ui.visuals().widgets.inactive.bg_fill,
-        };
+        let stroke_color = ui.visuals().widgets.inactive.bg_fill;
 
         let response = Plot::new([state.identifier.to_string(), "graph".to_string()])
             .show_x(false)
@@ -79,7 +75,7 @@ impl GraphView {
             .show_grid(false)
             .data_aspect(1.0)
             .show(ui, |ui| {
-                // TODO: Only draw visible items
+                // TODO: Cache plot items
 
                 for (item, (x, y)) in self.arranged.positions.iter() {
                     let node = weave.get_node(item).unwrap();
@@ -96,7 +92,8 @@ impl GraphView {
                                     PlotPoint { x: *x, y: *y },
                                 ]),
                             )
-                            .stroke(stroke),
+                            .color(stroke_color)
+                            .allow_hover(false),
                         );
                     }
                 }
