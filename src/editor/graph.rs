@@ -68,7 +68,9 @@ impl GraphView {
             .animated(false)
             .auto_shrink(false)
             .show(ui, |ui| {
-                let painter = ui.painter();
+                let (response, painter) =
+                    ui.allocate_painter(ui.clip_rect().size(), Sense::click_and_drag());
+                let rect = response.rect;
 
                 for (item, (x, y)) in self.arranged.positions.iter() {
                     let node = weave.get_node(item).unwrap();
@@ -80,12 +82,12 @@ impl GraphView {
                         painter.line(
                             vec![
                                 Pos2 {
-                                    x: (p_x + 20.0) as f32,
-                                    y: (p_y + 60.0) as f32,
+                                    x: *p_x as f32 + rect.min.x + 10.0,
+                                    y: *p_y as f32 + rect.min.y + 10.0,
                                 },
                                 Pos2 {
-                                    x: (x + 20.0) as f32,
-                                    y: (y + 60.0) as f32,
+                                    x: *x as f32 + rect.min.x + 10.0,
+                                    y: *y as f32 + rect.min.y + 10.0,
                                 },
                             ],
                             Stroke {
@@ -101,8 +103,8 @@ impl GraphView {
 
                     painter.circle(
                         Pos2 {
-                            x: (x + 20.0) as f32,
-                            y: (y + 60.0) as f32,
+                            x: *x as f32 + rect.min.x + 10.0,
+                            y: *y as f32 + rect.min.y + 10.0,
                         },
                         2.5,
                         get_node_color(node, settings).unwrap_or(default_color),
