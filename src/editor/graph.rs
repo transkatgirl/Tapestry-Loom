@@ -139,7 +139,6 @@ impl GraphView {
                 weave
                     .dump_identifiers_ordered_u128()
                     .into_iter()
-                    .rev()
                     .map(|id| (Ulid(id), (1.0, 1.0))),
             );
             self.arranged = self.layout.layout_weave(1.5);
@@ -153,6 +152,7 @@ impl GraphView {
         let response = Plot::new([state.identifier.to_string(), "graph".to_string()])
             .show_x(false)
             .show_y(false)
+            .invert_x(true)
             .invert_y(true)
             .show_background(false)
             .show_axes(false)
