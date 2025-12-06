@@ -1214,6 +1214,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_plot"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33233ffc010fd450381805bbbebecbbb82f077de7712ddc439f0b20effd42db7"
+dependencies = [
+ "ahash",
+ "egui",
+ "emath",
+]
+
+[[package]]
 name = "egui_solarized"
 version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4010,6 +4021,7 @@ dependencies = [
  "eframe",
  "egui-keybind",
  "egui-notify",
+ "egui_plot",
  "egui_solarized",
  "egui_tiles",
  "egui_virtual_list",
