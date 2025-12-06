@@ -68,6 +68,8 @@ impl GraphView {
         let stroke_color = ui.visuals().widgets.inactive.bg_fill;
         let active_stroke_color = ui.visuals().widgets.noninteractive.fg_stroke.color;
 
+        let icon_color = ui.visuals().extreme_bg_color;
+
         for (item, (x, y)) in self.arranged.positions.iter() {
             if !active.contains(item) {
                 let node = weave.get_node(item).unwrap();
@@ -100,8 +102,6 @@ impl GraphView {
             }
         }
 
-        // TODO: Stylize bookmarked nodes
-
         for (item, (x, y)) in self.arranged.positions.iter() {
             let node = weave.get_node(item).unwrap();
 
@@ -127,6 +127,35 @@ impl GraphView {
                 ],
                 get_node_color(node, settings).unwrap_or(default_color),
             ));
+
+            if node.bookmarked {
+                self.items.push(PrecalculatedItem::Shape(
+                    vec![
+                        PlotPoint {
+                            x: x - 0.275,
+                            y: y - 0.375,
+                        },
+                        PlotPoint {
+                            x: x + 0.275,
+                            y: y - 0.375,
+                        },
+                        PlotPoint {
+                            x: x + 0.275,
+                            y: y + 0.375,
+                        },
+                        PlotPoint { x: *x, y: y + 0.2 },
+                        PlotPoint {
+                            x: x - 0.275,
+                            y: y + 0.375,
+                        },
+                        PlotPoint {
+                            x: x - 0.275,
+                            y: y - 0.375,
+                        },
+                    ],
+                    icon_color,
+                ));
+            }
         }
     }
     pub fn render(
@@ -185,21 +214,22 @@ impl GraphView {
                         && !ui.response().dragged()
                 });
 
-                for item in self.items.iter().copied() {
+                for item in self.items.iter() {
                     match item {
                         PrecalculatedItem::Edge(points, color) => {
                             ui.add(
-                                Line::new("", PlotPoints::Owned(points.to_vec()))
-                                    .color(color)
+                                Line::new("", PlotPoints::Borrowed(points))
+                                    .color(*color)
                                     .width(2.0)
                                     .allow_hover(false),
                             );
                         }
                         PrecalculatedItem::Node(id, points, color) => {
-                            let mut polygon = Polygon::new("", PlotPoints::Owned(points.to_vec()))
-                                .fill_color(color)
-                                .allow_hover(true);
+                            let mut polygon = Polygon::new("", PlotPoints::Borrowed(points))
+                                .fill_color(*color)
+                                .allow_hover(false);
                             let bounds = polygon.bounds();
+                            let id = *id;
 
                             if let Some(pointer) = pointer
                                 && ((bounds.min()[0])..=(bounds.max()[0])).contains(&pointer.x)
@@ -214,6 +244,13 @@ impl GraphView {
                             }
 
                             ui.add(polygon);
+                        }
+                        PrecalculatedItem::Shape(points, color) => {
+                            ui.add(
+                                Polygon::new("", PlotPoints::Borrowed(points))
+                                    .fill_color(*color)
+                                    .allow_hover(false),
+                            );
                         }
                     }
                 }
@@ -262,10 +299,11 @@ impl GraphView {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum PrecalculatedItem {
     Edge([PlotPoint; 2], Color32),
     Node(Ulid, [PlotPoint; 4], Color32),
+    Shape(Vec<PlotPoint>, Color32),
 }
 
 fn render_context_menu(
