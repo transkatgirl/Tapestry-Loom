@@ -1,8 +1,8 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-use eframe::egui::{Color32, Pos2, Rect, ScrollArea, Sense, Stroke, Ui, Vec2};
+use eframe::egui::{Color32, Id, PointerButton, Pos2, Rect, ScrollArea, Sense, Stroke, Ui, Vec2};
 use egui_notify::Toasts;
-use egui_plot::{Line, Plot, PlotPoint, PlotPoints, Polygon};
+use egui_plot::{Line, Plot, PlotItem, PlotPoint, PlotPoints, Polygon};
 use flagset::FlagSet;
 use tapestry_weave::ulid::Ulid;
 
@@ -25,8 +25,8 @@ pub struct GraphView {
 impl Default for GraphView {
     fn default() -> Self {
         Self {
-            layout: WeaveLayout::with_capacity(65535, 262144),
-            items: Vec::with_capacity(65535 + 262144),
+            layout: WeaveLayout::with_capacity(65535, 131072),
+            items: Vec::with_capacity(65535 + 131072),
             arranged: ArrangedWeave::default(),
         }
     }
@@ -38,7 +38,7 @@ impl GraphView {
     }
     pub fn update(
         &mut self,
-        weave: &mut WeaveWrapper,
+        _weave: &mut WeaveWrapper,
         _settings: &Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
@@ -98,7 +98,24 @@ impl GraphView {
 
             self.items.push(PrecalculatedItem::Node(
                 *item,
-                PlotPoint { x: *x, y: *y },
+                [
+                    PlotPoint {
+                        x: x - 0.5,
+                        y: y - 0.5,
+                    },
+                    PlotPoint {
+                        x: x + 0.5,
+                        y: y - 0.5,
+                    },
+                    PlotPoint {
+                        x: x + 0.5,
+                        y: y + 0.5,
+                    },
+                    PlotPoint {
+                        x: x - 0.5,
+                        y: y + 0.5,
+                    },
+                ],
                 get_node_color(node, settings).unwrap_or(default_color),
             ));
         }
@@ -125,6 +142,8 @@ impl GraphView {
             self.update_plot_cache(weave, ui, settings);
         }
 
+        let mut pointer_node = None;
+
         let response = Plot::new([state.identifier.to_string(), "graph".to_string()])
             .show_x(false)
             .show_y(false)
@@ -134,6 +153,12 @@ impl GraphView {
             .show_grid(false)
             .data_aspect(1.0)
             .show(ui, |ui| {
+                let bounds = ui.plot_bounds();
+                let pointer = ui.pointer_coordinate().filter(|pointer| {
+                    ((bounds.min()[0])..=(bounds.max()[0])).contains(&pointer.x)
+                        && ((bounds.min()[1])..=(bounds.max()[1])).contains(&pointer.y)
+                });
+
                 for item in self.items.iter().copied() {
                     match item {
                         PrecalculatedItem::Edge(points, color) => {
@@ -143,36 +168,36 @@ impl GraphView {
                                     .allow_hover(false),
                             );
                         }
-                        PrecalculatedItem::Node(id, point, color) => {
-                            ui.add(
-                                Polygon::new(
-                                    "",
-                                    PlotPoints::Owned(vec![
-                                        PlotPoint {
-                                            x: point.x - 0.5,
-                                            y: point.y - 0.5,
-                                        },
-                                        PlotPoint {
-                                            x: point.x + 0.5,
-                                            y: point.y - 0.5,
-                                        },
-                                        PlotPoint {
-                                            x: point.x + 0.5,
-                                            y: point.y + 0.5,
-                                        },
-                                        PlotPoint {
-                                            x: point.x - 0.5,
-                                            y: point.y + 0.5,
-                                        },
-                                    ]),
-                                )
-                                .id(id.to_string())
-                                .fill_color(color),
-                            );
+                        PrecalculatedItem::Node(id, points, color) => {
+                            let polygon = Polygon::new("", PlotPoints::Owned(points.to_vec()))
+                                .fill_color(color)
+                                .allow_hover(true);
+                            let bounds = polygon.bounds();
+
+                            if let Some(pointer) = pointer
+                                && ((bounds.min()[0])..=(bounds.max()[0])).contains(&pointer.x)
+                                && ((bounds.min()[1])..=(bounds.max()[1])).contains(&pointer.y)
+                            {
+                                pointer_node = Some(id);
+                            }
+
+                            ui.add(polygon);
                         }
                     }
                 }
+
+                //ui.response().clone().on_hover_text("test");
             });
+
+        if let Some(id) = pointer_node {
+            //println!("{}", id);
+
+            /*ui.ctx().input(|input| {
+                if input.pointer.button_clicked(PointerButton::Primary) {
+                    weave.set_node_active_status(id, true);
+                }
+            });*/
+        }
 
         /*if shortcuts.contains(Shortcuts::FitToCursor) {
             // TODO
@@ -187,5 +212,5 @@ impl GraphView {
 #[derive(Debug, Clone, Copy)]
 enum PrecalculatedItem {
     Edge([PlotPoint; 2], Color32),
-    Node(Ulid, PlotPoint, Color32),
+    Node(Ulid, [PlotPoint; 4], Color32),
 }
