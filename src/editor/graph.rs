@@ -68,7 +68,7 @@ impl GraphView {
         let stroke_color = ui.visuals().widgets.inactive.bg_fill;
         let active_stroke_color = ui.visuals().widgets.noninteractive.fg_stroke.color;
 
-        let icon_color = ui.visuals().extreme_bg_color;
+        let icon_color = ui.visuals().panel_fill;
 
         for (item, (x, y)) in self.arranged.positions.iter() {
             if !active.contains(item) {
@@ -132,25 +132,25 @@ impl GraphView {
                 self.items.push(PrecalculatedItem::Shape(
                     vec![
                         PlotPoint {
-                            x: x - 0.275,
-                            y: y - 0.375,
+                            x: x - 0.25,
+                            y: y - 0.35,
                         },
                         PlotPoint {
-                            x: x + 0.275,
-                            y: y - 0.375,
+                            x: x + 0.25,
+                            y: y - 0.35,
                         },
                         PlotPoint {
-                            x: x + 0.275,
-                            y: y + 0.375,
+                            x: x + 0.25,
+                            y: y + 0.35,
                         },
                         PlotPoint { x: *x, y: y + 0.2 },
                         PlotPoint {
-                            x: x - 0.275,
-                            y: y + 0.375,
+                            x: x - 0.25,
+                            y: y + 0.35,
                         },
                         PlotPoint {
-                            x: x - 0.275,
-                            y: y - 0.375,
+                            x: x - 0.25,
+                            y: y - 0.35,
                         },
                     ],
                     icon_color,
