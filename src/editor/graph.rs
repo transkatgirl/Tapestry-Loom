@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use eframe::egui::{Color32, Ui};
+use eframe::egui::{Color32, Tooltip, Ui};
 use egui_notify::Toasts;
 use egui_plot::{Line, Plot, PlotItem, PlotPoint, PlotPoints, Polygon};
 use flagset::FlagSet;
@@ -190,14 +190,12 @@ impl GraphView {
                         }
                     }
                 }
-
-                //ui.response().clone().on_hover_text("test");
             });
 
         if response.response.context_menu_opened() {
             if let Some(id) = self.context_menu_node {
                 response.response.context_menu(|ui| {
-                    node_context_menu(ui, weave, &id, settings, state);
+                    render_node_context_menu(ui, weave, &id, settings, state);
                 });
             }
         } else {
@@ -211,14 +209,16 @@ impl GraphView {
 
             if self.context_menu_node.is_none() {
                 response.response.context_menu(|ui| {
-                    node_context_menu(ui, weave, &id, settings, state);
+                    render_node_context_menu(ui, weave, &id, settings, state);
                     self.context_menu_node = Some(id);
                 });
             }
 
-            response.response.on_hover_ui_at_pointer(|ui| {
-                node_tooltip(ui, weave, &id, settings);
-            });
+            Tooltip::for_widget(&response.response)
+                .at_pointer()
+                .show(|ui| {
+                    render_tooltip(ui, weave, &id, settings);
+                });
         }
 
         if shortcuts.contains(Shortcuts::FitToCursor) {
@@ -237,7 +237,7 @@ enum PrecalculatedItem {
     Node(Ulid, [PlotPoint; 4], Color32),
 }
 
-fn node_context_menu(
+fn render_node_context_menu(
     ui: &mut Ui,
     weave: &mut WeaveWrapper,
     node: &Ulid,
@@ -247,7 +247,7 @@ fn node_context_menu(
     ui.label("test");
 }
 
-fn node_tooltip(ui: &mut Ui, weave: &mut WeaveWrapper, node: &Ulid, settings: &Settings) {
+fn render_tooltip(ui: &mut Ui, weave: &mut WeaveWrapper, node: &Ulid, settings: &Settings) {
     if let Some(node) = weave.get_node(node) {
         ui.label(render_node_text(ui, node, settings, None));
 
