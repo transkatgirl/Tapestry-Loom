@@ -73,8 +73,25 @@ impl WeaveWrapper {
             .copied()
             .map(Ulid)
     }*/
-    pub fn dump_identifiers_u128(&self) -> impl ExactSizeIterator<Item = u128> {
+    /*pub fn dump_identifiers_u128(&self) -> impl ExactSizeIterator<Item = u128> {
         self.weave.weave.get_all_nodes_unordered()
+    }*/
+    pub fn dump_identifiers_ordered_u128(&self) -> Vec<u128> {
+        let mut identifiers = Vec::with_capacity(self.weave.len());
+
+        for root in self.weave.weave.get_roots() {
+            self.add_node_identifiers(root, &mut identifiers);
+        }
+
+        identifiers
+    }
+    fn add_node_identifiers(&self, id: &u128, identifiers: &mut Vec<u128>) {
+        if let Some(node) = self.weave.weave.get_node(id) {
+            identifiers.push(node.id);
+            for child in &node.to {
+                self.add_node_identifiers(child, identifiers);
+            }
+        }
     }
     pub fn get_active_thread_u128(&mut self) -> impl DoubleEndedIterator<Item = u128> {
         self.weave.weave.get_active_thread().iter().copied()

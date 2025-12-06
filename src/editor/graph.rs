@@ -8,7 +8,7 @@ use tapestry_weave::ulid::Ulid;
 
 use crate::{
     editor::shared::{
-        SharedState, get_node_color,
+        NodeIndex, SharedState, get_node_color,
         layout::{ArrangedWeave, WeaveLayout},
         render_node_metadata_tooltip, render_node_text,
         weave::WeaveWrapper,
@@ -137,7 +137,9 @@ impl GraphView {
             self.layout.load_weave(
                 weave,
                 weave
-                    .dump_identifiers_u128()
+                    .dump_identifiers_ordered_u128()
+                    .into_iter()
+                    .rev()
                     .map(|id| (Ulid(id), (1.0, 1.0))),
             );
             self.arranged = self.layout.layout_weave(1.5);
@@ -205,6 +207,7 @@ impl GraphView {
         if let Some(id) = pointer_node {
             if response.response.clicked() {
                 weave.set_node_active_status(&id, true);
+                state.set_cursor_node(NodeIndex::Node(id));
             }
 
             if self.context_menu_node.is_none() {
