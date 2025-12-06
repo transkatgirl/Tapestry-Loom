@@ -71,90 +71,87 @@ impl GraphView {
         let icon_color = ui.visuals().panel_fill;
 
         for (item, (x, y)) in self.arranged.positions.iter() {
-            if !active.contains(item) {
-                let node = weave.get_node(item).unwrap();
-
-                if let Some((p_x, p_y)) = node
+            if !active.contains(item)
+                && let Some(node) = weave.get_node(item)
+                && let Some((p_x, p_y)) = node
                     .from
                     .and_then(|id| self.arranged.positions.get(&Ulid(id)))
-                {
-                    self.items.push(PrecalculatedItem::Edge(
-                        [PlotPoint { x: *p_x, y: *p_y }, PlotPoint { x: *x, y: *y }],
-                        stroke_color,
-                    ));
-                }
+            {
+                self.items.push(PrecalculatedItem::Edge(
+                    [PlotPoint { x: *p_x, y: *p_y }, PlotPoint { x: *x, y: *y }],
+                    stroke_color,
+                ));
             }
         }
 
         for (item, (x, y)) in self.arranged.positions.iter() {
-            if active.contains(item) {
-                let node = weave.get_node(item).unwrap();
-
-                if let Some((p_x, p_y)) = node
+            if active.contains(item)
+                && let Some(node) = weave.get_node(item)
+                && let Some((p_x, p_y)) = node
                     .from
                     .and_then(|id| self.arranged.positions.get(&Ulid(id)))
-                {
-                    self.items.push(PrecalculatedItem::Edge(
-                        [PlotPoint { x: *p_x, y: *p_y }, PlotPoint { x: *x, y: *y }],
-                        active_stroke_color,
-                    ));
-                }
+            {
+                self.items.push(PrecalculatedItem::Edge(
+                    [PlotPoint { x: *p_x, y: *p_y }, PlotPoint { x: *x, y: *y }],
+                    active_stroke_color,
+                ));
             }
         }
 
         for (item, (x, y)) in self.arranged.positions.iter() {
-            let node = weave.get_node(item).unwrap();
-
-            self.items.push(PrecalculatedItem::Node(
-                *item,
-                [
-                    PlotPoint {
-                        x: x - 0.5,
-                        y: y - 0.5,
-                    },
-                    PlotPoint {
-                        x: x + 0.5,
-                        y: y - 0.5,
-                    },
-                    PlotPoint {
-                        x: x + 0.5,
-                        y: y + 0.5,
-                    },
-                    PlotPoint {
-                        x: x - 0.5,
-                        y: y + 0.5,
-                    },
-                ],
-                get_node_color(node, settings).unwrap_or(default_color),
-            ));
-
-            if node.bookmarked {
-                self.items.push(PrecalculatedItem::Shape(
+            if let Some(node) = weave.get_node(item) {
+                self.items.push(PrecalculatedItem::Node(
+                    *item,
                     vec![
                         PlotPoint {
-                            x: x - 0.25,
-                            y: y - 0.35,
+                            x: x - 0.5,
+                            y: y - 0.5,
                         },
                         PlotPoint {
-                            x: x + 0.25,
-                            y: y - 0.35,
+                            x: x + 0.5,
+                            y: y - 0.5,
                         },
                         PlotPoint {
-                            x: x + 0.25,
-                            y: y + 0.35,
-                        },
-                        PlotPoint { x: *x, y: y + 0.2 },
-                        PlotPoint {
-                            x: x - 0.25,
-                            y: y + 0.35,
+                            x: x + 0.5,
+                            y: y + 0.5,
                         },
                         PlotPoint {
-                            x: x - 0.25,
-                            y: y - 0.35,
+                            x: x - 0.5,
+                            y: y + 0.5,
                         },
                     ],
-                    icon_color,
+                    PlotPoint { x: *x, y: *y },
+                    get_node_color(node, settings).unwrap_or(default_color),
                 ));
+
+                if node.bookmarked {
+                    self.items.push(PrecalculatedItem::Shape(
+                        vec![
+                            PlotPoint {
+                                x: x - 0.25,
+                                y: y - 0.35,
+                            },
+                            PlotPoint {
+                                x: x + 0.25,
+                                y: y - 0.35,
+                            },
+                            PlotPoint {
+                                x: x + 0.25,
+                                y: y + 0.35,
+                            },
+                            PlotPoint { x: *x, y: y + 0.2 },
+                            PlotPoint {
+                                x: x - 0.25,
+                                y: y + 0.35,
+                            },
+                            PlotPoint {
+                                x: x - 0.25,
+                                y: y - 0.35,
+                            },
+                        ],
+                        icon_color,
+                    ));
+                }
             }
         }
     }
@@ -168,6 +165,7 @@ impl GraphView {
         shortcuts: FlagSet<Shortcuts>,
     ) {
         if self.arranged.width == 0.0 && self.arranged.height == 0.0 {
+            // TODO: Perform layout on a background thread
             self.layout.load_weave(
                 weave,
                 weave
@@ -195,6 +193,8 @@ impl GraphView {
         };
         let cursor_node = state.get_cursor_node().into_node();
 
+        let changed_node = state.get_changed_node();
+
         let response = Plot::new([state.identifier.to_string(), "graph".to_string()])
             .show_x(false)
             .show_y(false)
@@ -214,6 +214,8 @@ impl GraphView {
                         && !ui.response().dragged()
                 });
 
+                let screen_area = ui.response().rect;
+
                 for item in self.items.iter() {
                     match item {
                         PrecalculatedItem::Edge(points, color) => {
@@ -224,7 +226,7 @@ impl GraphView {
                                     .allow_hover(false),
                             );
                         }
-                        PrecalculatedItem::Node(id, points, color) => {
+                        PrecalculatedItem::Node(id, points, location, color) => {
                             let mut polygon = Polygon::new("", PlotPoints::Borrowed(points))
                                 .fill_color(*color)
                                 .allow_hover(false);
@@ -241,6 +243,22 @@ impl GraphView {
                                 polygon = polygon.stroke(hover_stroke);
                             } else if Some(id) == cursor_node {
                                 polygon = polygon.stroke(cursor_stroke);
+                            }
+
+                            if settings.interface.auto_scroll
+                                && pointer.is_none()
+                                && Some(id) == changed_node
+                            {
+                                let mut bounds = ui.plot_bounds();
+                                bounds.set_x_center_width(
+                                    location.x,
+                                    screen_area.width() as f64 / 15.0,
+                                );
+                                bounds.set_y_center_height(
+                                    location.y,
+                                    screen_area.height() as f64 / 15.0,
+                                );
+                                ui.set_plot_bounds(bounds);
                             }
 
                             ui.add(polygon);
@@ -302,7 +320,7 @@ impl GraphView {
 #[derive(Debug, Clone)]
 enum PrecalculatedItem {
     Edge([PlotPoint; 2], Color32),
-    Node(Ulid, [PlotPoint; 4], Color32),
+    Node(Ulid, Vec<PlotPoint>, PlotPoint, Color32),
     Shape(Vec<PlotPoint>, Color32),
 }
 
