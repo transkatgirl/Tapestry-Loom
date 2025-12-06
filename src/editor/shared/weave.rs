@@ -79,6 +79,14 @@ impl WeaveWrapper {
     pub fn get_active_thread_u128(&mut self) -> impl DoubleEndedIterator<Item = u128> {
         self.weave.weave.get_active_thread().iter().copied()
     }
+    pub fn get_active_thread(&mut self) -> impl DoubleEndedIterator<Item = Ulid> {
+        self.weave
+            .weave
+            .get_active_thread()
+            .iter()
+            .copied()
+            .map(Ulid)
+    }
     /*pub fn get_active_thread_nodes(&mut self) -> impl Iterator<Item = &DependentNode<NodeContent>> {
         self.weave.get_active_thread()
     }*/

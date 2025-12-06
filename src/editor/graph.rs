@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use eframe::egui::{Color32, Pos2, Rect, ScrollArea, Sense, Stroke, Ui, Vec2};
 use egui_notify::Toasts;
 use egui_plot::{Line, Plot, PlotPoint, PlotPoints, Polygon};
@@ -16,6 +18,7 @@ use crate::{
 #[derive(Debug)]
 pub struct GraphView {
     layout: WeaveLayout,
+    items: Vec<PrecalculatedItem>,
     arranged: ArrangedWeave,
 }
 
@@ -23,6 +26,7 @@ impl Default for GraphView {
     fn default() -> Self {
         Self {
             layout: WeaveLayout::with_capacity(65535, 262144),
+            items: Vec::with_capacity(65535 + 262144),
             arranged: ArrangedWeave::default(),
         }
     }
@@ -43,6 +47,47 @@ impl GraphView {
         if state.has_weave_layout_changed {
             self.arranged = ArrangedWeave::default();
         }
+        if state.has_weave_changed {
+            self.items.clear();
+        }
+    }
+    fn update_plot_cache(&mut self, weave: &mut WeaveWrapper, ui: &Ui, settings: &Settings) {
+        let active: HashSet<Ulid> = weave.get_active_thread().collect();
+
+        self.items.clear();
+
+        let default_color = ui.visuals().widgets.inactive.text_color();
+
+        let stroke_color = ui.visuals().widgets.inactive.bg_fill;
+        let active_stroke_color = ui.visuals().selection.bg_fill;
+
+        for (item, (x, y)) in self.arranged.positions.iter() {
+            let node = weave.get_node(item).unwrap();
+
+            if let Some((p_x, p_y)) = node
+                .from
+                .and_then(|id| self.arranged.positions.get(&Ulid(id)))
+            {
+                self.items.push(PrecalculatedItem::Edge(
+                    [PlotPoint { x: *p_x, y: *p_y }, PlotPoint { x: *x, y: *y }],
+                    if active.contains(item) {
+                        active_stroke_color
+                    } else {
+                        stroke_color
+                    },
+                ));
+            }
+        }
+
+        for (item, (x, y)) in self.arranged.positions.iter() {
+            let node = weave.get_node(item).unwrap();
+
+            self.items.push(PrecalculatedItem::Node(
+                *item,
+                PlotPoint { x: *x, y: *y },
+                get_node_color(node, settings).unwrap_or(default_color),
+            ));
+        }
     }
     pub fn render(
         &mut self,
@@ -58,13 +103,13 @@ impl GraphView {
                 weave,
                 weave
                     .dump_identifiers_u128()
-                    .map(|id| (Ulid(id), (2.5, 2.5))),
+                    .map(|id| (Ulid(id), (1.0, 1.0))),
             );
-            self.arranged = self.layout.layout_weave(5.0);
+            self.arranged = self.layout.layout_weave(2.0);
+            self.update_plot_cache(weave, ui, settings);
+        } else if self.items.is_empty() {
+            self.update_plot_cache(weave, ui, settings);
         }
-
-        let default_color = ui.visuals().widgets.inactive.text_color();
-        let stroke_color = ui.visuals().widgets.inactive.bg_fill;
 
         let response = Plot::new([state.identifier.to_string(), "graph".to_string()])
             .show_x(false)
@@ -75,116 +120,45 @@ impl GraphView {
             .show_grid(false)
             .data_aspect(1.0)
             .show(ui, |ui| {
-                // TODO: Cache plot items
-
-                for (item, (x, y)) in self.arranged.positions.iter() {
-                    let node = weave.get_node(item).unwrap();
-
-                    if let Some((p_x, p_y)) = node
-                        .from
-                        .and_then(|id| self.arranged.positions.get(&Ulid(id)))
-                    {
-                        ui.add(
-                            Line::new(
-                                "",
-                                PlotPoints::Owned(vec![
-                                    PlotPoint { x: *p_x, y: *p_y },
-                                    PlotPoint { x: *x, y: *y },
-                                ]),
-                            )
-                            .color(stroke_color)
-                            .allow_hover(false),
-                        );
+                for item in self.items.iter().copied() {
+                    match item {
+                        PrecalculatedItem::Edge(points, color) => {
+                            ui.add(
+                                Line::new("", PlotPoints::Owned(points.to_vec()))
+                                    .color(color)
+                                    .allow_hover(false),
+                            );
+                        }
+                        PrecalculatedItem::Node(id, point, color) => {
+                            ui.add(
+                                Polygon::new(
+                                    "",
+                                    PlotPoints::Owned(vec![
+                                        PlotPoint {
+                                            x: point.x - 0.5,
+                                            y: point.y - 0.5,
+                                        },
+                                        PlotPoint {
+                                            x: point.x + 0.5,
+                                            y: point.y - 0.5,
+                                        },
+                                        PlotPoint {
+                                            x: point.x + 0.5,
+                                            y: point.y + 0.5,
+                                        },
+                                        PlotPoint {
+                                            x: point.x - 0.5,
+                                            y: point.y + 0.5,
+                                        },
+                                    ]),
+                                )
+                                .id(id.to_string())
+                                .fill_color(color),
+                            );
+                        }
                     }
                 }
-
-                for (item, (x, y)) in self.arranged.positions.iter() {
-                    let node = weave.get_node(item).unwrap();
-
-                    ui.add(
-                        Polygon::new(
-                            "",
-                            PlotPoints::Owned(vec![
-                                PlotPoint {
-                                    x: x - 1.25,
-                                    y: y - 1.25,
-                                },
-                                PlotPoint {
-                                    x: x + 1.25,
-                                    y: y - 1.25,
-                                },
-                                PlotPoint {
-                                    x: x + 1.25,
-                                    y: y + 1.25,
-                                },
-                                PlotPoint {
-                                    x: x - 1.25,
-                                    y: y + 1.25,
-                                },
-                            ]),
-                        )
-                        .fill_color(get_node_color(node, settings).unwrap_or(default_color)),
-                    );
-                }
             });
-
-        /*ScrollArea::both()
-        .animated(false)
-        .auto_shrink(false)
-        .show(ui, |ui| {
-            let (response, painter) = ui.allocate_painter(
-                Vec2 {
-                    x: self.arranged.width as f32,
-                    y: self.arranged.height as f32,
-                },
-                Sense::click_and_drag(),
-            );
-            let rect = response.rect;
-
-            for (item, (x, y)) in self.arranged.positions.iter() {
-                let node = weave.get_node(item).unwrap();
-
-                if let Some((p_x, p_y)) = node
-                    .from
-                    .and_then(|id| self.arranged.positions.get(&Ulid(id)))
-                {
-                    painter.line(
-                        vec![
-                            Pos2 {
-                                x: *p_x as f32 + rect.min.x,
-                                y: *p_y as f32 + rect.min.y,
-                            },
-                            Pos2 {
-                                x: *x as f32 + rect.min.x,
-                                y: *y as f32 + rect.min.y,
-                            },
-                        ],
-                        Stroke {
-                            width: 1.0,
-                            color: default_color,
-                        },
-                    );
-                }
-            }
-
-            for (item, (x, y)) in self.arranged.positions.iter() {
-                let node = weave.get_node(item).unwrap();
-
-                painter.circle(
-                    Pos2 {
-                        x: *x as f32 + rect.min.x,
-                        y: *y as f32 + rect.min.y,
-                    },
-                    2.5,
-                    get_node_color(node, settings).unwrap_or(default_color),
-                    Stroke::NONE,
-                );
-            }
-        });*/
-
-        // ui.heading("Unimplemented");
-
-        //println!("{:#?}", self.arranged);
 
         /*if shortcuts.contains(Shortcuts::FitToCursor) {
             // TODO
@@ -194,4 +168,10 @@ impl GraphView {
             // TODO
         }*/
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum PrecalculatedItem {
+    Edge([PlotPoint; 2], Color32),
+    Node(Ulid, PlotPoint, Color32),
 }
