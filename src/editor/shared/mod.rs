@@ -506,21 +506,41 @@ pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &DependentNode<NodeConten
 }
 
 pub fn render_token_tooltip(ui: &mut Ui, token: &[u8], token_metadata: &IndexMap<String, String>) {
-    if let Ok(string) = str::from_utf8(token) {
-        ui.label(RichText::new(format!("{string:#?}")).monospace());
-    } else {
-        ui.label(RichText::new(format!("{token:?}")).monospace());
+    if token_metadata
+        .get("original_length")
+        .and_then(|value| value.parse::<usize>().ok())
+        .map(|original_length| original_length == token.len())
+        .unwrap_or(true)
+    {
+        if let Ok(string) = str::from_utf8(token) {
+            ui.label(RichText::new(format!("{string:#?}")).monospace());
+        } else {
+            ui.label(RichText::new(format!("{token:?}")).monospace());
+        }
     }
 
-    render_token_metadata_tooltip(ui, token_metadata);
+    render_token_metadata_tooltip(ui, token.len(), token_metadata);
 }
 
-pub fn render_token_metadata_tooltip(ui: &mut Ui, token_metadata: &IndexMap<String, String>) {
+pub fn render_token_metadata_tooltip(
+    ui: &mut Ui,
+    token_len: usize,
+    token_metadata: &IndexMap<String, String>,
+) {
     for (key, value) in token_metadata {
         if key == "probability"
             && let Ok(probability) = value.parse::<f32>()
         {
             ui.label(format!("probability: {:.2}%", probability * 100.0));
+        } else if key == "original_length"
+            && let Ok(original_length) = value.parse::<usize>()
+        {
+            if original_length != token_len {
+                ui.colored_label(
+                    ui.style().visuals.warn_fg_color,
+                    "modified_boundaries: true",
+                );
+            }
         } else {
             ui.label(format!("{key}: {value}"));
         }

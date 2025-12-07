@@ -347,7 +347,7 @@ fn render_tooltip(ui: &mut Ui, weave: &mut WeaveWrapper, node: &Ulid, settings: 
             && tokens.len() == 1
             && let Some(token) = tokens.first()
         {
-            render_token_metadata_tooltip(ui, &token.1);
+            render_token_metadata_tooltip(ui, token.0.len(), &token.1);
         }
 
         ui.separator();

@@ -400,13 +400,18 @@ fn parse_openai_response(
                                     responses.reserve(tokens.len());
 
                                     for (token, prob) in tokens {
+                                        let length = token.len();
+
                                         responses.push(EndpointResponse {
                                             content: InnerNodeContent::Tokens(vec![(
                                                 token,
-                                                IndexMap::from_iter([(
-                                                    "probability".to_string(),
-                                                    prob.to_string(),
-                                                )]),
+                                                IndexMap::from_iter([
+                                                    ("probability".to_string(), prob.to_string()),
+                                                    (
+                                                        "original_length".to_string(),
+                                                        length.to_string(),
+                                                    ),
+                                                ]),
                                             )]),
                                             metadata: metadata.clone(),
                                         });
@@ -443,13 +448,15 @@ fn parse_openai_response(
                             responses.reserve(tokens.len());
 
                             for (token, prob) in tokens {
+                                let length = token.len();
+
                                 responses.push(EndpointResponse {
                                     content: InnerNodeContent::Tokens(vec![(
                                         token,
-                                        IndexMap::from_iter([(
-                                            "probability".to_string(),
-                                            prob.to_string(),
-                                        )]),
+                                        IndexMap::from_iter([
+                                            ("probability".to_string(), prob.to_string()),
+                                            ("original_length".to_string(), length.to_string()),
+                                        ]),
                                     )]),
                                     metadata: metadata.clone(),
                                 });
@@ -493,12 +500,14 @@ fn parse_openai_response(
                                 tokens
                                     .into_iter()
                                     .map(|(token, prob)| {
+                                        let length = token.len();
+
                                         (
                                             token,
-                                            IndexMap::from_iter([(
-                                                "probability".to_string(),
-                                                prob.to_string(),
-                                            )]),
+                                            IndexMap::from_iter([
+                                                ("probability".to_string(), prob.to_string()),
+                                                ("original_length".to_string(), length.to_string()),
+                                            ]),
                                         )
                                     })
                                     .collect(),

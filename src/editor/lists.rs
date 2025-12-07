@@ -26,7 +26,7 @@ use tapestry_weave::{
 use crate::{
     editor::shared::{
         NodeIndex, SharedState, get_node_color, render_node_metadata_tooltip, render_node_text,
-        weave::WeaveWrapper,
+        render_token_metadata_tooltip, weave::WeaveWrapper,
     },
     listing_margin,
     settings::{Settings, shortcuts::Shortcuts},
@@ -786,9 +786,18 @@ fn render_horizontal_node_label(
                         label_button.stroke(ui.style().visuals.widgets.hovered.bg_stroke);
                 }
 
-                let label_button_response = ui
-                    .add(label_button)
-                    .on_hover_ui(|ui| render_node_metadata_tooltip(ui, node));
+                let label_button_response = ui.add(label_button).on_hover_ui(|ui| {
+                    if let InnerNodeContent::Tokens(tokens) = &node.contents.content
+                        && tokens.len() == 1
+                        && let Some(token) = tokens.first()
+                    {
+                        render_token_metadata_tooltip(ui, token.0.len(), &token.1);
+
+                        ui.separator();
+                    }
+
+                    render_node_metadata_tooltip(ui, node)
+                });
 
                 if settings.interface.auto_scroll && is_changed {
                     label_button_response.scroll_to_me(None);
