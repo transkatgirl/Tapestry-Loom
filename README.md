@@ -82,6 +82,7 @@ The plans for the rewrite are the following:
 			- [x] Scroll newly generated nodes into view
 	- [ ] Node finding
 	- [ ] Node sorting
+	- [ ] Node bulk selection
 	- [x] Better error handling
 - [ ] Keyboard shortcut implementation
 	- [x] Automatically adapt keyboards shortcuts based on OS (such as Mac vs Windows/Linux)
