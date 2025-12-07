@@ -384,7 +384,6 @@ fn parse_openai_response(
                                 if i == 0
                                     && let Some(Value::Array(top_logprobs)) =
                                         logprob_item.remove("top_logprobs")
-                                    && top_logprobs.len() > 1
                                 {
                                     let mut tokens = Vec::with_capacity(top_logprobs.len());
 
@@ -420,7 +419,6 @@ fn parse_openai_response(
                             logprobs.remove("top_logprobs")
                             && !top_logprobs.is_empty()
                             && let Value::Object(top_logprobs) = top_logprobs.swap_remove(0)
-                            && top_logprobs.len() > 1
                         {
                             let mut tokens = Vec::with_capacity(top_logprobs.len());
 
