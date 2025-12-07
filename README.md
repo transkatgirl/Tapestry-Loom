@@ -170,4 +170,4 @@ See also: the [original v1 plans](https://github.com/transkatgirl/Tapestry-Loom/
 
 Note: Tapestry Loom will be *entirely* focused on base and/or embedding models for the foreseeable future.
 
-There are already plenty of chat looms and base model looms which heavily integrate assistant functionality; Tapestry Loom will **not** be one of them.
+There are already good chat looms (such as [miniloom](https://github.com/JD-P/miniloom)) and base model looms which heavily integrate assistant functionality (such as [helm](https://github.com/Shoalstone/helm)); Tapestry Loom will **not** be one of them.
