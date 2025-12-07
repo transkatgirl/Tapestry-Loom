@@ -1,0 +1,13 @@
+[package]
+name    = "tapestry-loom-obsidian-migration"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+base64         = "0.22.1"
+deflate        = "1.0.0"
+frontmatter    = "0.4.0"
+boa_engine     = "0.21.0"
+tapestry-weave = { path = "../universal-weave/tapestry-weave" }
+clap = "4.5.53"
+anyhow = "1.0.100"

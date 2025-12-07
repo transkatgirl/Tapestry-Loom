@@ -5,6 +5,27 @@ An IDE for working with base model LLMs, inspired by the designs of [loom](https
 > [!WARNING]
 > This is beta software. Most of it works, but there are plenty of undiscovered bugs and things will randomly break from time to time. Make backups.
 
+## Usage
+
+Requires the [Rust Programming Language](https://rust-lang.org/tools/install/) and a working C compiler to be installed.
+
+```bash
+git clone --recurse-submodules https://github.com/transkatgirl/Tapestry-Loom.git
+# Switching branches after cloning is required at the moment, but this branch will be merged into main soon
+cargo run --release
+```
+
+### Updating
+
+```bash
+git pull
+git submodule update --init --recursive
+```
+
+### Migrating from Tapestry Loom v0
+
+TODO
+
 ## Plans
 
 The plans for the rewrite are the following:
@@ -130,20 +151,3 @@ In addition, below are the tentative plans for Tapestry Loom v2:
 - [ ] Implement an optional inference server using llama.cpp
 
 See also: the [original v1 plans](https://github.com/transkatgirl/Tapestry-Loom/blob/c8ccca0079ae186fcc7a70b955b2d2b123082d63/README.md)
-
-## Usage
-
-Requires the [Rust Programming Language](https://rust-lang.org/tools/install/) and a working C compiler to be installed.
-
-```bash
-git clone --recurse-submodules https://github.com/transkatgirl/Tapestry-Loom.git
-# Switching branches after cloning is required at the moment, but this branch will be merged into main soon
-cargo run --release
-```
-
-### Updating
-
-```bash
-git pull
-git submodule update --init --recursive
-```
