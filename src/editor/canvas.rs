@@ -99,21 +99,19 @@ impl CanvasView {
         let stroke_color = ui.visuals().widgets.inactive.bg_fill;
         let active_stroke_color = ui.visuals().widgets.noninteractive.fg_stroke.color;
 
-        for (item, (x, y)) in self.arranged.positions.iter() {
+        for (item, rect) in self.arranged.rects.iter() {
             if !active.contains(item)
                 && let Some(node) = weave.get_node(item)
-                && let Some((p_x, p_y)) = node
-                    .from
-                    .and_then(|id| self.arranged.positions.get(&Ulid(id)))
+                && let Some(p_rect) = node.from.and_then(|id| self.arranged.rects.get(&Ulid(id)))
             {
                 self.lines.push((
                     Pos2 {
-                        x: *p_y as f32,
-                        y: *p_x as f32,
+                        x: p_rect.max.x,
+                        y: (p_rect.min.y + (p_rect.max.y - p_rect.min.y) / 2.0),
                     },
                     Pos2 {
-                        x: *y as f32,
-                        y: *x as f32,
+                        x: rect.min.x,
+                        y: (rect.min.y + (rect.max.y - rect.min.y) / 2.0),
                     },
                     PathStroke {
                         width: stroke_width,
@@ -124,21 +122,19 @@ impl CanvasView {
             }
         }
 
-        for (item, (x, y)) in self.arranged.positions.iter() {
+        for (item, rect) in self.arranged.rects.iter() {
             if active.contains(item)
                 && let Some(node) = weave.get_node(item)
-                && let Some((p_x, p_y)) = node
-                    .from
-                    .and_then(|id| self.arranged.positions.get(&Ulid(id)))
+                && let Some(p_rect) = node.from.and_then(|id| self.arranged.rects.get(&Ulid(id)))
             {
                 self.lines.push((
                     Pos2 {
-                        x: *p_y as f32,
-                        y: *p_x as f32,
+                        x: p_rect.max.x,
+                        y: (p_rect.min.y + (p_rect.max.y - p_rect.min.y) / 2.0),
                     },
                     Pos2 {
-                        x: *y as f32,
-                        y: *x as f32,
+                        x: rect.min.x,
+                        y: (rect.min.y + (rect.max.y - rect.min.y) / 2.0),
                     },
                     PathStroke {
                         width: stroke_width,
