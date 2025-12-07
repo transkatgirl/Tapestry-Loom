@@ -1,0 +1,11 @@
+{
+	"id": "tapestry-loom",
+	"name": "Tapestry Loom",
+	"version": "0.1.0",
+	"minAppVersion": "1.8.0",
+	"description": "An IDE for working with Pretrained (Base Model) LLMs",
+	"author": "transkatgirl",
+	"authorUrl": "https://github.com/transkatgirl",
+	"fundingUrl": "https://ko-fi.com/transkatgirl",
+	"isDesktopOnly": true
+}

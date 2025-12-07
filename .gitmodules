@@ -1,0 +1,3 @@
+[submodule "universal-weave"]
+	path = universal-weave
+	url = https://github.com/transkatgirl/universal-weave

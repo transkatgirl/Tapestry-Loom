@@ -1,0 +1,24 @@
+[package]
+name    = "tapestry-loom-obsidian-migration"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+base64 = "0.22.1"
+miniz_oxide = "0.8.9"
+frontmatter = "0.4.0"
+boa_engine = "0.21.0"
+tapestry-weave = { path = "../universal-weave/tapestry-weave", features = [
+	"serde",
+] }
+clap = { version = "4.5.53", features = [
+	"derive",
+] }
+anyhow = "1.0.100"
+walkdir = "2.5.0"
+serde = { version = "1.0.228", features = [
+	"derive",
+] }
+serde_json = { version = "1.0.145", features = [
+	"preserve_order",
+] }

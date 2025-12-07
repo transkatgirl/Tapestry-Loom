@@ -1,0 +1,165 @@
+.tapestry_tree .tree-item-self:not(:has(.tree-item-icon)) {
+	margin-left: var(--nav-item-children-padding-start);
+	padding-left: var(--nav-item-children-padding-start);
+}
+
+.tree-item-self:has(.tapestry_tree-heading) {
+	padding-inline-start: var(--size-4-2);
+}
+
+.tapestry_tree .tree-item-self .tree-item-icon {
+	color: var(--nav-collapse-icon-color);
+}
+
+.tapestry_tree-buttons {
+	align-self: flex-end;
+	display: none;
+}
+
+.tree-item-self:hover > .tapestry_tree-buttons {
+	display: inherit;
+}
+
+.tapestry_tree-buttons .clickable-icon {
+	padding: 0 var(--size-2-1);
+}
+
+.tapestry_tree-buttons .clickable-icon,
+.tree-item-flair-outer .svg-icon {
+	--icon-size: 1lh;
+}
+
+.tree-item-flair:nth-of-type(2) {
+	padding-left: var(--size-2-2);
+}
+
+.tapestry_tree .tree-item-inner {
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	flex-grow: 1;
+}
+
+.tapestry_tree .tree-item-self:hover > .tree-item-flair-outer {
+	display: none;
+}
+
+.tapestry_tree-notice {
+	color: var(--text-faint);
+}
+
+.tapestry_tree-heading {
+	font-weight: var(--nav-heading-weight);
+	color: var(--nav-heading-color);
+}
+
+.tree-item-self.is-collapsed > .tapestry_tree-heading {
+	color: var(--nav-heading-color-collapsed);
+}
+
+.tree-item-self.is-collapsed:hover > .tapestry_tree-heading {
+	color: var(--nav-heading-color-collapsed-hover);
+}
+
+.tree-item-self.is-collapsed:hover > .tapestry_tree-heading-container {
+	background-color: var(--nav-item-background-hover);
+}
+
+.tapestry_tree-heading-container {
+	padding: var(--size-4-1) 1px var(--size-4-4);
+}
+
+.tapestry_tree-heading-container.tapestry_tree:not(:has(.search-empty-state)) {
+	padding: 0 1px 0;
+}
+
+.tapestry_tree-heading-container.tapestry_bookmarks:not(
+		:has(.search-empty-state)
+	) {
+	padding: 0 1px var(--size-4-4);
+}
+
+.tapestry_graph {
+	width: 100%;
+	height: 100%;
+}
+
+.tapestry_tree-heading-container .setting-item-name {
+	font-size: var(--font-ui-small);
+}
+
+.tapestry_tree-heading-container .setting-item {
+	padding: var(--size-4-1) var(--size-4-3);
+	border-top: none;
+}
+
+.tapestry_tree-heading-container
+	.setting-item-control:has(input[type="text"]:nth-of-type(2))
+	input[type="text"] {
+	width: 100%;
+}
+
+.tapestry_tree-heading-container
+	.setting-item-info:has(.setting-item-name:empty) {
+	display: none;
+}
+
+.tapestry_tree-heading-container .setting-item + .setting-item-heading {
+	font-weight: var(--nav-heading-weight);
+	color: var(--nav-heading-color);
+	margin-top: var(--size-4-1);
+}
+
+.tapestry_tree-heading-container .setting-item-control select {
+	width: 100%;
+}
+
+.plugin-tapestry-loom.status-bar-item:has(span:empty) {
+	display: none;
+}
+
+span.tapestry_editor-node-border {
+	border-right: var(--blockquote-border-thickness) dotted var(--text-faint);
+}
+
+span.tapestry_editor-node:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+/*span.tapestry_editor-token-border {
+	border-right: var(--table-border-width) dotted var(--text-faint);
+}*/
+
+span.tapestry_editor-token:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+span.tapestry_editor-node:hover span.tapestry_editor-token {
+	border-right: var(--table-border-width) dotted var(--text-faint);
+}
+
+.tapestry_list .search-result-file-match {
+	padding: var(--size-4-2) var(--size-4-3) var(--size-4-2) var(--size-4-3);
+	display: flex;
+}
+
+.tapestry_list .search-result-file-match:hover {
+	color: var(--text-normal);
+	background-color: var(--nav-item-background-hover);
+}
+
+.tapestry_list .search-result-file-match.tapestry_list-selected {
+	color: var(--text-normal);
+	background-color: var(--text-selection);
+}
+
+.tapestry_list:has(.search-empty-state) {
+	padding: var(--size-2-1) 1px var(--size-4-4);
+}
+
+.tapestry_list .search-result-file-match span {
+	flex-grow: 1;
+}
+
+.tapestry_list .search-result-file-match .tree-item-flair {
+	align-self: flex-end;
+}
