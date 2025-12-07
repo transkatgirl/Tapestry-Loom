@@ -22,7 +22,7 @@ git pull
 git submodule update --init --recursive
 ```
 
-### Migrating from Tapestry Loom v0
+### Migrating weaves from Tapestry Loom v0
 
 ```bash
 cd obsidian-migration
@@ -77,9 +77,6 @@ The plans for the rewrite are the following:
 			- [x] Scroll newly generated nodes into view
 	- [ ] Node finding
 	- [x] Better error handling
-	- [ ] Experiments to try (may or may not end up being implemented):
-		- [ ] Applying colors to background instead of text
-		- [ ] Implement multi-token multi-logprob generations as chains of single token nodes, inspired by [loom](https://github.com/socketteer/loom) and [logitloom](https://github.com/vgel/logitloom)
 - [ ] Keyboard shortcut implementation
 	- [x] Automatically adapt keyboards shortcuts based on OS (such as Mac vs Windows/Linux)
 	- [x] Repeat keypresses when a keyboard be cut is held down
