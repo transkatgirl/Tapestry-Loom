@@ -89,6 +89,7 @@ The plans for the rewrite are the following:
 	- [ ] Custom llama.cpp based server ("Tapestry Inference")
 - [ ] UI improvements
 - [ ] Better documentation & onboarding
+	- [ ] Loomsidian migration script?
 
 In addition, below are the tentative plans for Tapestry Loom v2:
 
