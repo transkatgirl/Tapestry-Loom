@@ -1,4 +1,4 @@
-use eframe::egui::Ui;
+use eframe::egui::{Rect, Scene, Ui};
 use egui_notify::Toasts;
 use flagset::FlagSet;
 
@@ -7,11 +7,21 @@ use crate::{
     settings::{Settings, shortcuts::Shortcuts},
 };
 
-#[derive(Default, Debug)]
-pub struct CanvasView {}
+#[derive(Debug)]
+pub struct CanvasView {
+    rect: Rect,
+}
+
+impl Default for CanvasView {
+    fn default() -> Self {
+        Self { rect: Rect::ZERO }
+    }
+}
 
 impl CanvasView {
-    pub fn reset(&mut self) {}
+    pub fn reset(&mut self) {
+        self.rect = Rect::ZERO;
+    }
     pub fn update(
         &mut self,
         weave: &mut WeaveWrapper,
@@ -30,15 +40,17 @@ impl CanvasView {
         state: &mut SharedState,
         shortcuts: FlagSet<Shortcuts>,
     ) {
-        ui.heading("Unimplemented");
+        Scene::new().show(ui, &mut self.rect, |ui| {
+            ui.heading("Unimplemented");
+        });
 
-        /*if shortcuts.contains(Shortcuts::FitToCursor) {
+        if shortcuts.contains(Shortcuts::FitToCursor) {
             // TODO
         }
 
         if shortcuts.contains(Shortcuts::FitToWeave) {
-            // TODO
-        }*/
+            self.rect = Rect::ZERO;
+        }
 
         /*ScrollArea::both()
         .animated(false)
