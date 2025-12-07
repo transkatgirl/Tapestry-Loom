@@ -188,7 +188,9 @@ impl CanvasView {
         Scene::new().show(ui, &mut self.rect, |ui| {
             let painter = ui.painter();
 
-            if clip_rect.contains(ui.ctx().pointer_hover_pos().unwrap_or_default()) {
+            if clip_rect.contains(ui.ctx().pointer_hover_pos().unwrap_or_default())
+                && last_rect != Rect::ZERO
+            {
                 changed_node = None;
             }
 
