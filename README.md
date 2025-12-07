@@ -7,7 +7,6 @@ An IDE for working with base model LLMs, inspired by the designs of [loom](https
 
 ## Known issues
 
-- Ordering of nodes in multi-model Weaves is ~random
 - Canvas view does not work
 
 ## Usage

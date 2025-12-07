@@ -163,10 +163,17 @@ impl SharedState {
             match response {
                 Ok(node) => {
                     let identifier = node.id;
+                    let parent = node.from;
 
                     if weave.add_node(node) {
                         if self.last_changed_node.is_none() {
                             self.last_changed_node = Some(Ulid(identifier));
+                        }
+
+                        if let Some(parent) = parent {
+                            weave.sort_node_children_u128(&parent);
+                        } else {
+                            weave.sort_roots();
                         }
                     } else {
                         debug!("Failed to add node to weave");

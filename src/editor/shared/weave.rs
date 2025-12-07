@@ -195,4 +195,26 @@ impl WeaveWrapper {
             }
         })
     }
+    pub fn sort_node_children_u128(&mut self, id: &u128) -> bool {
+        self.changed = true;
+        self.layout_changed = true;
+        self.weave.weave.sort_node_children_by(id, |a, b| {
+            a.contents
+                .model
+                .as_ref()
+                .map(|model| model.label.clone())
+                .cmp(&b.contents.model.as_ref().map(|model| model.label.clone()))
+        })
+    }
+    pub fn sort_roots(&mut self) {
+        self.changed = true;
+        self.layout_changed = true;
+        self.weave.weave.sort_roots_by(|a, b| {
+            a.contents
+                .model
+                .as_ref()
+                .map(|model| model.label.clone())
+                .cmp(&b.contents.model.as_ref().map(|model| model.label.clone()))
+        })
+    }
 }
