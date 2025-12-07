@@ -1,51 +1,191 @@
-use eframe::egui::{Rect, Scene, Ui};
+use std::collections::HashSet;
+
+use eframe::{
+    egui::{Frame, Pos2, Rect, Scene, StrokeKind, TextStyle, Ui, UiBuilder, Vec2},
+    epaint::{ColorMode, PathStroke},
+};
 use egui_notify::Toasts;
 use flagset::FlagSet;
+use tapestry_weave::ulid::Ulid;
 
 use crate::{
-    editor::shared::{SharedState, weave::WeaveWrapper},
+    editor::shared::{
+        SharedState,
+        layout::{ArrangedWeave, WeaveLayout},
+        render_node_text,
+        weave::WeaveWrapper,
+    },
     settings::{Settings, shortcuts::Shortcuts},
 };
 
 #[derive(Debug)]
 pub struct CanvasView {
     rect: Rect,
+    layout: WeaveLayout,
+    arranged: ArrangedWeave,
+    lines: Vec<(Pos2, Pos2, PathStroke)>,
 }
 
 impl Default for CanvasView {
     fn default() -> Self {
-        Self { rect: Rect::ZERO }
+        Self {
+            rect: Rect::ZERO,
+            layout: WeaveLayout::with_capacity(65535, 131072),
+            arranged: ArrangedWeave::default(),
+            lines: Vec::with_capacity(131072),
+        }
     }
 }
 
 impl CanvasView {
     pub fn reset(&mut self) {
         self.rect = Rect::ZERO;
+        self.arranged = ArrangedWeave::default();
     }
     pub fn update(
         &mut self,
+        _weave: &mut WeaveWrapper,
+        _settings: &Settings,
+        _toasts: &mut Toasts,
+        state: &mut SharedState,
+        _shortcuts: FlagSet<Shortcuts>,
+    ) {
+        if state.has_weave_changed {
+            self.arranged = ArrangedWeave::default();
+        }
+    }
+    fn update_layout(
+        &mut self,
+        ui: &mut Ui,
         weave: &mut WeaveWrapper,
         settings: &Settings,
-        toasts: &mut Toasts,
         state: &mut SharedState,
-        shortcuts: FlagSet<Shortcuts>,
     ) {
+        let sizes: Vec<_> = weave
+            .dump_identifiers_ordered_u128()
+            .into_iter()
+            .map(|id| {
+                let size = calculate_size(ui, |ui| {
+                    render_node(ui, weave, settings, state, &Ulid(id));
+                });
+
+                (Ulid(id), (size.y as f64, size.x as f64))
+            })
+            .collect();
+
+        self.layout.load_weave(weave, sizes.into_iter());
+        self.arranged = self
+            .layout
+            .layout_weave(ui.text_style_height(&TextStyle::Monospace) as f64 * 2.0);
+
+        for (_, rect) in self.arranged.rects.iter_mut() {
+            *rect = Rect {
+                min: Pos2 {
+                    x: rect.min.y,
+                    y: rect.min.x,
+                },
+                max: Pos2 {
+                    x: rect.max.y,
+                    y: rect.max.x,
+                },
+            };
+        }
+
+        self.lines.clear();
+
+        let active: HashSet<Ulid> = weave.get_active_thread().collect();
+
+        let stroke_width = ui.visuals().widgets.noninteractive.fg_stroke.width;
+        let stroke_color = ui.visuals().widgets.inactive.bg_fill;
+        let active_stroke_color = ui.visuals().widgets.noninteractive.fg_stroke.color;
+
+        for (item, (x, y)) in self.arranged.positions.iter() {
+            if !active.contains(item)
+                && let Some(node) = weave.get_node(item)
+                && let Some((p_x, p_y)) = node
+                    .from
+                    .and_then(|id| self.arranged.positions.get(&Ulid(id)))
+            {
+                self.lines.push((
+                    Pos2 {
+                        x: *p_y as f32,
+                        y: *p_x as f32,
+                    },
+                    Pos2 {
+                        x: *y as f32,
+                        y: *x as f32,
+                    },
+                    PathStroke {
+                        width: stroke_width,
+                        color: ColorMode::Solid(stroke_color),
+                        kind: StrokeKind::Middle,
+                    },
+                ));
+            }
+        }
+
+        for (item, (x, y)) in self.arranged.positions.iter() {
+            if active.contains(item)
+                && let Some(node) = weave.get_node(item)
+                && let Some((p_x, p_y)) = node
+                    .from
+                    .and_then(|id| self.arranged.positions.get(&Ulid(id)))
+            {
+                self.lines.push((
+                    Pos2 {
+                        x: *p_y as f32,
+                        y: *p_x as f32,
+                    },
+                    Pos2 {
+                        x: *y as f32,
+                        y: *x as f32,
+                    },
+                    PathStroke {
+                        width: stroke_width,
+                        color: ColorMode::Solid(active_stroke_color),
+                        kind: StrokeKind::Middle,
+                    },
+                ));
+            }
+        }
     }
     pub fn render(
         &mut self,
         ui: &mut Ui,
         weave: &mut WeaveWrapper,
         settings: &Settings,
-        toasts: &mut Toasts,
+        _toasts: &mut Toasts,
         state: &mut SharedState,
         shortcuts: FlagSet<Shortcuts>,
     ) {
+        if self.arranged.width == 0.0 && self.arranged.height == 0.0 {
+            self.update_layout(ui, weave, settings, state);
+        }
+
+        let mut focus: Option<Rect> = None;
+
         Scene::new().show(ui, &mut self.rect, |ui| {
+            /*let painter = ui.painter();
+
+            for (from, to, stroke) in self.lines.iter().cloned() {
+                painter.line(vec![from, to], stroke);
+            }
+
+            for (node, rect) in &self.arranged.rects {
+                ui.scope_builder(UiBuilder::new().max_rect(*rect), |ui| {
+                    render_node(ui, weave, settings, state, node);
+                });
+            }*/
+
             ui.heading("Unimplemented");
         });
 
         if shortcuts.contains(Shortcuts::FitToCursor) {
             // TODO
+        }
+
+        if let Some(focus) = focus {
+            self.rect = focus;
         }
 
         if shortcuts.contains(Shortcuts::FitToWeave) {
@@ -108,4 +248,26 @@ impl CanvasView {
 
         //println!("{:#?}", self.arranged);
     }
+}
+
+fn render_node(
+    ui: &mut Ui,
+    weave: &mut WeaveWrapper,
+    settings: &Settings,
+    state: &mut SharedState,
+    node: &Ulid,
+) {
+    if let Some(node) = weave.get_node(node).cloned() {
+        Frame::new()
+            .fill(ui.visuals().widgets.inactive.bg_fill)
+            .show(ui, |ui| {
+                ui.label(render_node_text(ui, &node, settings, None));
+            });
+    }
+}
+
+fn calculate_size(ui: &Ui, contents: impl FnOnce(&mut Ui)) -> Vec2 {
+    let mut ui = Ui::new(ui.ctx().clone(), ui.id(), UiBuilder::new().sizing_pass());
+    contents(&mut ui);
+    ui.min_size()
 }

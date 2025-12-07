@@ -1,5 +1,6 @@
 use std::collections::{HashMap, hash_map::Entry};
 
+use eframe::egui::{Pos2, Rect};
 use rust_sugiyama::{
     configure::{Config, CrossingMinimization, RankingType},
     from_vertices_and_edges,
@@ -90,6 +91,7 @@ impl WeaveLayout {
         let mut height = 0.0;
 
         let mut positions = HashMap::with_capacity(self.vertices.len());
+        let mut rects = HashMap::with_capacity(self.vertices.len());
 
         for (subgraph, _, _) in layout {
             let mut subgraph_width: f64 = 0.0;
@@ -98,11 +100,27 @@ impl WeaveLayout {
             for (vertex_index, (x, y)) in subgraph {
                 let (id, (width, height)) = self.vertices[vertex_index];
 
-                let identifier = self.identifier_unmap.get(&id).unwrap();
-                positions.insert(*identifier, (x + x_offset, y + y_offset));
+                let x_pos = x + x_offset;
+                let y_pos = y + y_offset;
 
-                subgraph_width = subgraph_width.max(x + width);
-                subgraph_height = subgraph_height.max(y + height);
+                let identifier = self.identifier_unmap.get(&id).unwrap();
+                positions.insert(*identifier, (x_pos, y_pos));
+                rects.insert(
+                    *identifier,
+                    Rect {
+                        min: Pos2 {
+                            x: (x_pos - (width / 2.0)) as f32,
+                            y: (y_pos - (height / 2.0)) as f32,
+                        },
+                        max: Pos2 {
+                            x: (x_pos + (width / 2.0)) as f32,
+                            y: (y_pos + (height / 2.0)) as f32,
+                        },
+                    },
+                );
+
+                subgraph_width = subgraph_width.max(x + (width / 2.0));
+                subgraph_height = subgraph_height.max(y + (height / 2.0));
             }
 
             x_offset += subgraph_width + spacing;
@@ -112,6 +130,7 @@ impl WeaveLayout {
 
         ArrangedWeave {
             positions,
+            rects,
             width: width + spacing,
             height: height + (spacing * 2.0),
         }
@@ -121,6 +140,7 @@ impl WeaveLayout {
 #[derive(Default, Debug)]
 pub struct ArrangedWeave {
     pub positions: HashMap<Ulid, (f64, f64)>,
+    pub rects: HashMap<Ulid, Rect>,
     pub width: f64,
     pub height: f64,
 }
