@@ -7,7 +7,6 @@ An IDE for working with base model LLMs, inspired by the designs of [loom](https
 
 ## Known issues
 
-- Canvas view is unfinished
 - Separation between nodes in list/bookmarks/tree view is unclear
 
 ## Usage
@@ -45,16 +44,16 @@ The plans for the rewrite are the following:
 - [ ] Full UI redesign
 	- [x] Resizable, dragable, scrollable, and collapsible settings
 	- [ ] Three user-switchable UIs:
-		- [ ] Interactive canvas + textbox, similar to [wool](https://github.com/lyramakesmusic/wool)
-			- [ ] Implement dragable and scrollable canvas
-			- [ ] Implement draggable canvas nodes
-				- [ ] Implement canvas node left click
-				- [ ] Implement canvas node right click
-			- [ ] Implement canvas actions
+		- [x] Interactive canvas + textbox, similar to [wool](https://github.com/lyramakesmusic/wool)
+			- [x] Implement dragable and scrollable canvas
+			- [x] Implement draggable canvas nodes
+				- [x] Implement canvas node left click
+				- [x] Implement canvas node right click
+			- [x] Implement canvas actions
 			- [x] Implement resizable & dragable textbox
 				- [ ] Show node siblings on hover
-			- [ ] Automatically adjust canvas position & highlighting based on textbox cursor location
-			- [ ] Automatically scroll textbox based on canvas cursor
+			- [x] Automatically adjust canvas position & highlighting based on textbox cursor location
+			- [x] Automatically scroll textbox based on canvas cursor
 			- [ ] Scroll newly generated nodes into view
 		- [x] Compact tree + compact treelist + textbox, similar to [loomsidian](https://github.com/cosmicoptima/loom) & old Tapestry Loom
 			- [x] Implement resizable, dragable & scrollable tree
