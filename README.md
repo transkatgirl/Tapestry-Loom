@@ -5,6 +5,11 @@ An IDE for working with base model LLMs, inspired by the designs of [loom](https
 > [!WARNING]
 > This is beta software. Most of it works, but there are plenty of undiscovered bugs and things will randomly break from time to time. Make backups.
 
+## Known issues
+
+- Ordering of nodes in multi-model Weaves is ~random
+- Canvas view does not work
+
 ## Usage
 
 Requires the [Rust Programming Language](https://rust-lang.org/tools/install/) and a working C compiler to be installed.

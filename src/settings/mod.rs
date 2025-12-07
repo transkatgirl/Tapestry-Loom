@@ -286,7 +286,7 @@ impl Settings {
                         ui.heading("Inference");
                         self.inference.render(ui);
 
-                        #[cfg(debug_assertions)]
+                        /*#[cfg(debug_assertions)]
                         {
                             ui.separator();
                             ui.collapsing("Debug", |ui| {
@@ -295,7 +295,7 @@ impl Settings {
                                 ui.ctx().clone().texture_ui(ui);
                                 ui.ctx().clone().memory_ui(ui);
                             });
-                        }
+                        }*/
                     });
             });
     }
