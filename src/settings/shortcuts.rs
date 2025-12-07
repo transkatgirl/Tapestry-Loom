@@ -3,9 +3,7 @@ use egui_keybind::Keybind;
 use flagset::{FlagSet, flags};
 use serde::{Deserialize, Serialize};
 
-// TODO: Specify default shortcuts
-
-#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct KeyboardShortcuts {
     generate_at_cursor: Option<KeyboardShortcut>,
     toggle_node_bookmarked: Option<KeyboardShortcut>,
@@ -26,6 +24,7 @@ pub struct KeyboardShortcuts {
 
     reset_parameters: Option<KeyboardShortcut>,
     toggle_colors: Option<KeyboardShortcut>,
+    toggle_probabilities: Option<KeyboardShortcut>,
 
     toggle_node_collapsed: Option<KeyboardShortcut>,
     collapse_all_visible_inactive: Option<KeyboardShortcut>,
@@ -35,6 +34,58 @@ pub struct KeyboardShortcuts {
 
     fit_to_cursor: Option<KeyboardShortcut>,
     fit_to_weave: Option<KeyboardShortcut>,
+}
+
+impl Default for KeyboardShortcuts {
+    fn default() -> Self {
+        Self {
+            generate_at_cursor: Some(KeyboardShortcut {
+                modifiers: Modifiers::CTRL,
+                logical_key: Key::Space,
+            }),
+            toggle_node_bookmarked: None,
+            add_child: None,
+            add_sibling: None,
+            delete_current: None,
+            delete_children: None,
+            delete_siblings: None,
+            delete_siblings_and_current: None,
+            merge_with_parent: None,
+            split_at_cursor: None,
+            move_to_parent: Some(KeyboardShortcut {
+                modifiers: Modifiers::CTRL,
+                logical_key: Key::ArrowLeft,
+            }),
+            move_to_child: Some(KeyboardShortcut {
+                modifiers: Modifiers::CTRL,
+                logical_key: Key::ArrowRight,
+            }),
+            move_to_previous_sibling: Some(KeyboardShortcut {
+                modifiers: Modifiers::CTRL,
+                logical_key: Key::ArrowUp,
+            }),
+            move_to_next_sibling: Some(KeyboardShortcut {
+                modifiers: Modifiers::CTRL,
+                logical_key: Key::ArrowDown,
+            }),
+            reset_parameters: None,
+            toggle_colors: None,
+            toggle_probabilities: None,
+            toggle_node_collapsed: None,
+            collapse_all_visible_inactive: None,
+            collapse_children: None,
+            expand_all_visible: None,
+            expand_children: None,
+            fit_to_cursor: Some(KeyboardShortcut {
+                modifiers: Modifiers::CTRL,
+                logical_key: Key::Num0,
+            }),
+            fit_to_weave: Some(KeyboardShortcut {
+                modifiers: Modifiers::CTRL,
+                logical_key: Key::Num9,
+            }),
+        }
+    }
 }
 
 impl KeyboardShortcuts {
@@ -167,6 +218,16 @@ impl KeyboardShortcuts {
                 .with_text("Toggle model colors")
                 .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(
+                &mut self.toggle_probabilities,
+                "keybind-toggle_probabilities",
+            )
+            .with_text("Toggle token probabilities")
+            .with_reset(None)
+            .with_reset_key(Some(Key::Escape)),
         );
 
         ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.5);
@@ -328,6 +389,12 @@ impl KeyboardShortcuts {
                 flags |= Shortcuts::ToggleColors;
             }
 
+            if let Some(shortcut) = &self.toggle_probabilities
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ToggleProbabilities;
+            }
+
             if let Some(shortcut) = &self.toggle_node_collapsed
                 && consume_shortcut(input, shortcut)
             {
@@ -396,6 +463,7 @@ flags! {
 
         ResetParameters,
         ToggleColors,
+        ToggleProbabilities,
 
         ToggleNodeCollapsed,
         CollapseAllVisibleInactive,

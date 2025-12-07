@@ -303,5 +303,9 @@ impl Settings {
         if shortcuts.contains(Shortcuts::ToggleColors) {
             self.interface.show_model_colors = !self.interface.show_model_colors;
         }
+
+        if shortcuts.contains(Shortcuts::ToggleProbabilities) {
+            self.interface.show_token_probabilities = !self.interface.show_token_probabilities;
+        }
     }
 }
