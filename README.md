@@ -131,6 +131,8 @@ In addition, below are the tentative plans for Tapestry Loom v2:
 			- [ ] Importing & exporting custom presets
 	- [ ] Support touchscreen-only devices
 - [ ] Optimize for performance whenever possible
+	- [ ] Aim to have acceptable performance on weaves with ~1 million nodes, ~100k active and ~10MB of active text
+		- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
 - [ ] Collaborative weave editing
 - [ ] Adaptive looming using token entropy or [confidence](https://arxiv.org/pdf/2508.15260)
 - [ ] Token streaming and display of nodes being generated
@@ -164,3 +166,5 @@ In addition, below are the tentative plans for Tapestry Loom v2:
 - [ ] Implement an optional inference server using llama.cpp
 
 See also: the [original v1 plans](https://github.com/transkatgirl/Tapestry-Loom/blob/c8ccca0079ae186fcc7a70b955b2d2b123082d63/README.md)
+
+Tapestry Loom will be *entirely* focused on base and/or embedding models for the foreseeable future. There are already plenty of chat looms and base model looms which heavily integrate assistant functionality; Tapestry Loom will **not** be one of them.
