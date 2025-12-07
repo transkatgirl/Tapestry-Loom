@@ -107,9 +107,9 @@ impl CanvasView {
 
         let active: HashSet<Ulid> = weave.get_active_thread().collect();
 
-        let stroke_width = ui.visuals().widgets.noninteractive.fg_stroke.width;
+        let stroke_width = ui.visuals().widgets.inactive.fg_stroke.width;
         let stroke_color = ui.visuals().widgets.inactive.bg_fill;
-        let active_stroke_color = ui.visuals().widgets.noninteractive.fg_stroke.color;
+        let active_stroke_color = ui.visuals().widgets.active.fg_stroke.color;
 
         for (item, rect) in self.arranged.rects.iter() {
             if !active.contains(item)
@@ -254,7 +254,7 @@ fn render_node(
     let hovered_node = state.get_hovered_node().into_node();
     let cursor_node = state.get_cursor_node().into_node();
 
-    let stroke_width = ui.visuals().widgets.noninteractive.fg_stroke.width * 1.5;
+    let stroke_width = ui.visuals().widgets.inactive.fg_stroke.width * 1.5;
 
     ui.set_max_width(ui.spacing().text_edit_width * 1.2);
 
@@ -263,7 +263,7 @@ fn render_node(
             .fill(Color32::TRANSPARENT)
             .stroke(Stroke {
                 width: stroke_width,
-                color: ui.visuals().widgets.noninteractive.bg_stroke.color,
+                color: ui.visuals().widgets.inactive.bg_fill,
             })
             .min_size(Vec2 {
                 x: ui.spacing().text_edit_width * 1.2,
@@ -275,7 +275,7 @@ fn render_node(
             button = button
                 .stroke(Stroke {
                     width: stroke_width,
-                    color: ui.visuals().widgets.noninteractive.fg_stroke.color,
+                    color: ui.visuals().widgets.active.fg_stroke.color,
                 })
                 .selected(true);
         }
