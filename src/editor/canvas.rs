@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
 use eframe::{
-    egui::{Frame, Pos2, Rect, Scene, StrokeKind, TextStyle, Ui, UiBuilder, Vec2},
-    epaint::{ColorMode, PathStroke},
+    egui::{Color32, Frame, Pos2, Rect, Scene, Stroke, StrokeKind, TextStyle, Ui, UiBuilder, Vec2},
+    epaint::{ColorMode, CubicBezierShape, PathStroke, QuadraticBezierShape},
 };
 use egui_notify::Toasts;
 use flagset::FlagSet;
@@ -11,7 +11,7 @@ use tapestry_weave::ulid::Ulid;
 use crate::{
     editor::shared::{
         SharedState,
-        layout::{ArrangedWeave, WeaveLayout},
+        layout::{ArrangedWeave, WeaveLayout, wire_bezier_3},
         render_node_text,
         weave::WeaveWrapper,
     },
@@ -23,7 +23,7 @@ pub struct CanvasView {
     rect: Rect,
     layout: WeaveLayout,
     arranged: ArrangedWeave,
-    lines: Vec<(Pos2, Pos2, PathStroke)>,
+    lines: Vec<([Pos2; 4], PathStroke)>,
 }
 
 impl Default for CanvasView {
@@ -76,7 +76,7 @@ impl CanvasView {
         self.layout.load_weave(weave, sizes.into_iter());
         self.arranged = self
             .layout
-            .layout_weave(ui.text_style_height(&TextStyle::Monospace) as f64 * 2.0);
+            .layout_weave(ui.text_style_height(&TextStyle::Monospace) as f64 * 4.0);
 
         for (_, rect) in self.arranged.rects.iter_mut() {
             *rect = Rect {
@@ -105,14 +105,17 @@ impl CanvasView {
                 && let Some(p_rect) = node.from.and_then(|id| self.arranged.rects.get(&Ulid(id)))
             {
                 self.lines.push((
-                    Pos2 {
-                        x: p_rect.max.x,
-                        y: (p_rect.min.y + (p_rect.max.y - p_rect.min.y) / 2.0),
-                    },
-                    Pos2 {
-                        x: rect.min.x,
-                        y: (rect.min.y + (rect.max.y - rect.min.y) / 2.0),
-                    },
+                    wire_bezier_3(
+                        ui.style().spacing.interact_size.y * 4.0,
+                        Pos2 {
+                            x: p_rect.max.x,
+                            y: (p_rect.min.y + (p_rect.max.y - p_rect.min.y) / 2.0),
+                        },
+                        Pos2 {
+                            x: rect.min.x,
+                            y: (rect.min.y + (rect.max.y - rect.min.y) / 2.0),
+                        },
+                    ),
                     PathStroke {
                         width: stroke_width,
                         color: ColorMode::Solid(stroke_color),
@@ -128,14 +131,17 @@ impl CanvasView {
                 && let Some(p_rect) = node.from.and_then(|id| self.arranged.rects.get(&Ulid(id)))
             {
                 self.lines.push((
-                    Pos2 {
-                        x: p_rect.max.x,
-                        y: (p_rect.min.y + (p_rect.max.y - p_rect.min.y) / 2.0),
-                    },
-                    Pos2 {
-                        x: rect.min.x,
-                        y: (rect.min.y + (rect.max.y - rect.min.y) / 2.0),
-                    },
+                    wire_bezier_3(
+                        ui.style().spacing.interact_size.y * 4.0,
+                        Pos2 {
+                            x: p_rect.max.x,
+                            y: (p_rect.min.y + (p_rect.max.y - p_rect.min.y) / 2.0),
+                        },
+                        Pos2 {
+                            x: rect.min.x,
+                            y: (rect.min.y + (rect.max.y - rect.min.y) / 2.0),
+                        },
+                    ),
                     PathStroke {
                         width: stroke_width,
                         color: ColorMode::Solid(active_stroke_color),
@@ -163,8 +169,13 @@ impl CanvasView {
         Scene::new().show(ui, &mut self.rect, |ui| {
             /*let painter = ui.painter();
 
-            for (from, to, stroke) in self.lines.iter().cloned() {
-                painter.line(vec![from, to], stroke);
+            for (points, stroke) in self.lines.iter().cloned() {
+                painter.add(CubicBezierShape {
+                    points,
+                    closed: false,
+                    fill: Color32::TRANSPARENT,
+                    stroke,
+                });
             }
 
             for (node, rect) in &self.arranged.rects {
@@ -257,13 +268,20 @@ fn render_node(
         Frame::new()
             .fill(ui.visuals().widgets.inactive.bg_fill)
             .show(ui, |ui| {
+                //ui.set_min_width(ui.spacing().text_edit_width);
+                //ui.set_min_height(ui.text_style_height(&TextStyle::Monospace) * 3.0);
+
                 ui.label(render_node_text(ui, &node, settings, None));
             });
     }
 }
 
 fn calculate_size(ui: &Ui, contents: impl FnOnce(&mut Ui)) -> Vec2 {
-    let mut ui = Ui::new(ui.ctx().clone(), ui.id(), UiBuilder::new().sizing_pass());
+    let mut ui = Ui::new(
+        ui.ctx().clone(),
+        ui.id(),
+        UiBuilder::new().sizing_pass().invisible(),
+    );
     contents(&mut ui);
     ui.min_size()
 }

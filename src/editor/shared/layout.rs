@@ -1,6 +1,6 @@
 use std::collections::{HashMap, hash_map::Entry};
 
-use eframe::egui::{Pos2, Rect};
+use eframe::egui::{Pos2, Rect, pos2};
 use rust_sugiyama::{
     configure::{Config, CrossingMinimization, RankingType},
     from_vertices_and_edges,
@@ -143,4 +143,135 @@ pub struct ArrangedWeave {
     pub rects: HashMap<Ulid, Rect>,
     pub width: f64,
     pub height: f64,
+}
+
+// Copied from egui-snarl
+fn wire_bezier_5(frame_size: f32, from: Pos2, to: Pos2) -> [Pos2; 6] {
+    let from_norm_x = frame_size;
+    let from_2 = pos2(from.x + from_norm_x, from.y);
+    let to_norm_x = -from_norm_x;
+    let to_2 = pos2(to.x + to_norm_x, to.y);
+
+    let between = (from_2 - to_2).length();
+
+    if from_2.x <= to_2.x && between >= frame_size * 2.0 {
+        let middle_1 = from_2 + (to_2 - from_2).normalized() * frame_size;
+        let middle_2 = to_2 + (from_2 - to_2).normalized() * frame_size;
+
+        [from, from_2, middle_1, middle_2, to_2, to]
+    } else if from_2.x <= to_2.x {
+        let t = (between - (to_2.y - from_2.y).abs())
+            / frame_size.mul_add(2.0, -(to_2.y - from_2.y).abs());
+
+        let mut middle_1 = from_2 + (to_2 - from_2).normalized() * frame_size;
+        let mut middle_2 = to_2 + (from_2 - to_2).normalized() * frame_size;
+
+        if from_2.y >= to_2.y + frame_size {
+            let u = (from_2.y - to_2.y - frame_size) / frame_size;
+
+            let t0_middle_1 = pos2(
+                (1.0 - u).mul_add(frame_size, from_2.x),
+                frame_size.mul_add(-u, from_2.y),
+            );
+            let t0_middle_2 = pos2(to_2.x, to_2.y + frame_size);
+
+            middle_1 = t0_middle_1.lerp(middle_1, t);
+            middle_2 = t0_middle_2.lerp(middle_2, t);
+        } else if from_2.y >= to_2.y {
+            let u = (from_2.y - to_2.y) / frame_size;
+
+            let t0_middle_1 = pos2(
+                u.mul_add(frame_size, from_2.x),
+                frame_size.mul_add(1.0 - u, from_2.y),
+            );
+            let t0_middle_2 = pos2(to_2.x, to_2.y + frame_size);
+
+            middle_1 = t0_middle_1.lerp(middle_1, t);
+            middle_2 = t0_middle_2.lerp(middle_2, t);
+        } else if to_2.y >= from_2.y + frame_size {
+            let u = (to_2.y - from_2.y - frame_size) / frame_size;
+
+            let t0_middle_1 = pos2(from_2.x, from_2.y + frame_size);
+            let t0_middle_2 = pos2(
+                (1.0 - u).mul_add(-frame_size, to_2.x),
+                frame_size.mul_add(-u, to_2.y),
+            );
+
+            middle_1 = t0_middle_1.lerp(middle_1, t);
+            middle_2 = t0_middle_2.lerp(middle_2, t);
+        } else if to_2.y >= from_2.y {
+            let u = (to_2.y - from_2.y) / frame_size;
+
+            let t0_middle_1 = pos2(from_2.x, from_2.y + frame_size);
+            let t0_middle_2 = pos2(
+                u.mul_add(-frame_size, to_2.x),
+                frame_size.mul_add(1.0 - u, to_2.y),
+            );
+
+            middle_1 = t0_middle_1.lerp(middle_1, t);
+            middle_2 = t0_middle_2.lerp(middle_2, t);
+        } else {
+            unreachable!();
+        }
+
+        [from, from_2, middle_1, middle_2, to_2, to]
+    } else if from_2.y >= frame_size.mul_add(2.0, to_2.y) {
+        let middle_1 = pos2(from_2.x, from_2.y - frame_size);
+        let middle_2 = pos2(to_2.x, to_2.y + frame_size);
+
+        [from, from_2, middle_1, middle_2, to_2, to]
+    } else if from_2.y >= to_2.y + frame_size {
+        let t = (from_2.y - to_2.y - frame_size) / frame_size;
+
+        let middle_1 = pos2(
+            (1.0 - t).mul_add(frame_size, from_2.x),
+            frame_size.mul_add(-t, from_2.y),
+        );
+        let middle_2 = pos2(to_2.x, to_2.y + frame_size);
+
+        [from, from_2, middle_1, middle_2, to_2, to]
+    } else if from_2.y >= to_2.y {
+        let t = (from_2.y - to_2.y) / frame_size;
+
+        let middle_1 = pos2(
+            t.mul_add(frame_size, from_2.x),
+            frame_size.mul_add(1.0 - t, from_2.y),
+        );
+        let middle_2 = pos2(to_2.x, to_2.y + frame_size);
+
+        [from, from_2, middle_1, middle_2, to_2, to]
+    } else if to_2.y >= frame_size.mul_add(2.0, from_2.y) {
+        let middle_1 = pos2(from_2.x, from_2.y + frame_size);
+        let middle_2 = pos2(to_2.x, to_2.y - frame_size);
+
+        [from, from_2, middle_1, middle_2, to_2, to]
+    } else if to_2.y >= from_2.y + frame_size {
+        let t = (to_2.y - from_2.y - frame_size) / frame_size;
+
+        let middle_1 = pos2(from_2.x, from_2.y + frame_size);
+        let middle_2 = pos2(
+            (1.0 - t).mul_add(-frame_size, to_2.x),
+            frame_size.mul_add(-t, to_2.y),
+        );
+
+        [from, from_2, middle_1, middle_2, to_2, to]
+    } else if to_2.y >= from_2.y {
+        let t = (to_2.y - from_2.y) / frame_size;
+
+        let middle_1 = pos2(from_2.x, from_2.y + frame_size);
+        let middle_2 = pos2(
+            t.mul_add(-frame_size, to_2.x),
+            frame_size.mul_add(1.0 - t, to_2.y),
+        );
+
+        [from, from_2, middle_1, middle_2, to_2, to]
+    } else {
+        unreachable!();
+    }
+}
+
+// Copied from egui-snarl
+pub fn wire_bezier_3(frame_size: f32, from: Pos2, to: Pos2) -> [Pos2; 4] {
+    let [a, b, _, _, c, d] = wire_bezier_5(frame_size, from, to);
+    [a, b, c, d]
 }
