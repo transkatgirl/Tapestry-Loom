@@ -4,7 +4,7 @@ use eframe::egui::{Color32, Stroke, Tooltip, Ui, Vec2};
 use egui_notify::Toasts;
 use egui_plot::{Line, Plot, PlotItem, PlotPoint, PlotPoints, Polygon};
 use flagset::FlagSet;
-use tapestry_weave::ulid::Ulid;
+use tapestry_weave::{ulid::Ulid, v0::InnerNodeContent};
 
 use crate::{
     editor::{
@@ -12,7 +12,7 @@ use crate::{
         shared::{
             NodeIndex, SharedState, get_node_color,
             layout::{ArrangedWeave, WeaveLayout},
-            render_node_metadata_tooltip, render_node_text,
+            render_node_metadata_tooltip, render_node_text, render_token_metadata_tooltip,
             weave::WeaveWrapper,
         },
     },
@@ -342,6 +342,13 @@ fn render_context_menu(
 fn render_tooltip(ui: &mut Ui, weave: &mut WeaveWrapper, node: &Ulid, settings: &Settings) {
     if let Some(node) = weave.get_node(node) {
         ui.label(render_node_text(ui, node, settings, None));
+
+        if let InnerNodeContent::Tokens(tokens) = &node.contents.content
+            && tokens.len() == 1
+            && let Some(token) = tokens.first()
+        {
+            render_token_metadata_tooltip(ui, &token.1);
+        }
 
         ui.separator();
 

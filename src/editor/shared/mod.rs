@@ -505,6 +505,10 @@ pub fn render_token_tooltip(ui: &mut Ui, token: &[u8], token_metadata: &IndexMap
         ui.label(RichText::new(format!("{token:?}")).monospace());
     }
 
+    render_token_metadata_tooltip(ui, token_metadata);
+}
+
+pub fn render_token_metadata_tooltip(ui: &mut Ui, token_metadata: &IndexMap<String, String>) {
     for (key, value) in token_metadata {
         if key == "probability"
             && let Ok(probability) = value.parse::<f32>()
