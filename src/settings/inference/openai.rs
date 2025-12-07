@@ -482,23 +482,25 @@ fn parse_openai_response(
                 }
 
                 if !tokens.is_empty() {
-                    responses.push(EndpointResponse {
-                        content: InnerNodeContent::Tokens(
-                            tokens
-                                .into_iter()
-                                .map(|(token, prob)| {
-                                    (
-                                        token,
-                                        IndexMap::from_iter([(
-                                            "probability".to_string(),
-                                            prob.to_string(),
-                                        )]),
-                                    )
-                                })
-                                .collect(),
-                        ),
-                        metadata,
-                    });
+                    if tokens.len() != 1 {
+                        responses.push(EndpointResponse {
+                            content: InnerNodeContent::Tokens(
+                                tokens
+                                    .into_iter()
+                                    .map(|(token, prob)| {
+                                        (
+                                            token,
+                                            IndexMap::from_iter([(
+                                                "probability".to_string(),
+                                                prob.to_string(),
+                                            )]),
+                                        )
+                                    })
+                                    .collect(),
+                            ),
+                            metadata,
+                        });
+                    }
                 } else if let Some(Value::String(text)) = choice.remove("text") {
                     responses.push(EndpointResponse {
                         content: InnerNodeContent::Snippet(text.into_bytes()),
