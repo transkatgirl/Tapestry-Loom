@@ -30,6 +30,7 @@ pub struct CanvasView {
     layout: WeaveLayout,
     arranged: ArrangedWeave,
     lines: Vec<([Pos2; 4], PathStroke)>,
+    active: HashSet<Ulid>,
     last_changed: Instant,
     new: bool,
 }
@@ -41,6 +42,7 @@ impl Default for CanvasView {
             layout: WeaveLayout::with_capacity(65535, 131072),
             arranged: ArrangedWeave::default(),
             lines: Vec::with_capacity(131072),
+            active: HashSet::with_capacity(65535),
             last_changed: Instant::now(),
             new: true,
         }
@@ -77,7 +79,18 @@ impl CanvasView {
             .into_iter()
             .map(|id| {
                 let size = calculate_size(ui, id, |ui| {
-                    render_node(ui, weave, settings, state, &Ulid(id), false);
+                    render_node(
+                        ui,
+                        weave,
+                        settings,
+                        state,
+                        &Ulid(id),
+                        Stroke {
+                            width: ui.visuals().widgets.inactive.fg_stroke.width * 1.5,
+                            color: ui.visuals().widgets.inactive.bg_fill,
+                        },
+                        false,
+                    );
                 });
 
                 (Ulid(id), (size.y as f64, size.x as f64))
@@ -105,14 +118,14 @@ impl CanvasView {
 
         self.lines.clear();
 
-        let active: HashSet<Ulid> = weave.get_active_thread().collect();
+        self.active = weave.get_active_thread().collect();
 
         let stroke_width = ui.visuals().widgets.inactive.fg_stroke.width;
         let stroke_color = ui.visuals().widgets.inactive.bg_fill;
         let active_stroke_color = ui.visuals().widgets.active.fg_stroke.color;
 
         for (item, rect) in self.arranged.rects.iter() {
-            if !active.contains(item)
+            if !self.active.contains(item)
                 && let Some(node) = weave.get_node(item)
                 && let Some(p_rect) = node.from.and_then(|id| self.arranged.rects.get(&Ulid(id)))
             {
@@ -138,7 +151,7 @@ impl CanvasView {
         }
 
         for (item, rect) in self.arranged.rects.iter() {
-            if active.contains(item)
+            if self.active.contains(item)
                 && let Some(node) = weave.get_node(item)
                 && let Some(p_rect) = node.from.and_then(|id| self.arranged.rects.get(&Ulid(id)))
             {
@@ -193,6 +206,15 @@ impl CanvasView {
 
         let clip_rect = ui.clip_rect();
 
+        let inactive_stroke = Stroke {
+            width: ui.visuals().widgets.inactive.fg_stroke.width * 1.5,
+            color: ui.visuals().widgets.inactive.bg_fill,
+        };
+        let active_stroke = Stroke {
+            width: ui.visuals().widgets.inactive.fg_stroke.width * 1.5,
+            color: ui.visuals().widgets.active.fg_stroke.color,
+        };
+
         Scene::new().show(ui, &mut self.rect, |ui| {
             let painter = ui.painter();
 
@@ -220,7 +242,19 @@ impl CanvasView {
 
             for (node, rect) in &self.arranged.rects {
                 ui.scope_builder(UiBuilder::new().max_rect(*rect), |ui| {
-                    render_node(ui, weave, settings, state, node, show_tooltip);
+                    render_node(
+                        ui,
+                        weave,
+                        settings,
+                        state,
+                        node,
+                        if self.active.contains(node) {
+                            active_stroke
+                        } else {
+                            inactive_stroke
+                        },
+                        show_tooltip,
+                    );
                 });
 
                 if Some(*node) == changed_node {
@@ -249,46 +283,34 @@ fn render_node(
     settings: &Settings,
     state: &mut SharedState,
     node: &Ulid,
+    mut stroke: Stroke,
     show_tooltip: bool,
 ) {
     let hovered_node = state.get_hovered_node().into_node();
     let cursor_node = state.get_cursor_node().into_node();
 
-    let stroke_width = ui.visuals().widgets.inactive.fg_stroke.width * 1.5;
-
     ui.set_max_width(ui.spacing().text_edit_width * 1.2);
 
     if let Some(node) = weave.get_node(node).cloned() {
+        if node.bookmarked {
+            stroke.color = ui.visuals().selection.bg_fill;
+        }
+
+        if cursor_node == Some(Ulid(node.id)) {
+            stroke.width *= 2.0;
+        }
+
         let mut button = Button::new(render_node_text(ui, &node, settings, None))
             .fill(Color32::TRANSPARENT)
-            .stroke(Stroke {
-                width: stroke_width,
-                color: ui.visuals().widgets.inactive.bg_fill,
-            })
+            .stroke(stroke)
             .min_size(Vec2 {
                 x: ui.spacing().text_edit_width * 1.2,
                 y: ui.text_style_height(&TextStyle::Monospace) * 3.0,
             })
             .wrap();
 
-        if cursor_node == Some(Ulid(node.id)) {
-            button = button
-                .stroke(Stroke {
-                    width: stroke_width,
-                    color: ui.visuals().widgets.active.fg_stroke.color,
-                })
-                .selected(true);
-        }
-
         if hovered_node == Some(Ulid(node.id)) {
             button = button.fill(ui.style().visuals.widgets.hovered.weak_bg_fill);
-        }
-
-        if node.bookmarked {
-            button = button.stroke(Stroke {
-                width: stroke_width,
-                color: ui.visuals().selection.bg_fill,
-            });
         }
 
         let response = ui.add(button);
