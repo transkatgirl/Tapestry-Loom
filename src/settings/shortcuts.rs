@@ -40,7 +40,7 @@ impl Default for KeyboardShortcuts {
     fn default() -> Self {
         Self {
             generate_at_cursor: Some(KeyboardShortcut {
-                modifiers: Modifiers::CTRL,
+                modifiers: Modifiers::COMMAND,
                 logical_key: Key::Space,
             }),
             toggle_node_bookmarked: None,
@@ -53,19 +53,19 @@ impl Default for KeyboardShortcuts {
             merge_with_parent: None,
             split_at_cursor: None,
             move_to_parent: Some(KeyboardShortcut {
-                modifiers: Modifiers::CTRL,
+                modifiers: Modifiers::COMMAND,
                 logical_key: Key::ArrowLeft,
             }),
             move_to_child: Some(KeyboardShortcut {
-                modifiers: Modifiers::CTRL,
+                modifiers: Modifiers::COMMAND,
                 logical_key: Key::ArrowRight,
             }),
             move_to_previous_sibling: Some(KeyboardShortcut {
-                modifiers: Modifiers::CTRL,
+                modifiers: Modifiers::COMMAND,
                 logical_key: Key::ArrowUp,
             }),
             move_to_next_sibling: Some(KeyboardShortcut {
-                modifiers: Modifiers::CTRL,
+                modifiers: Modifiers::COMMAND,
                 logical_key: Key::ArrowDown,
             }),
             reset_parameters: None,
@@ -77,11 +77,11 @@ impl Default for KeyboardShortcuts {
             expand_all_visible: None,
             expand_children: None,
             fit_to_cursor: Some(KeyboardShortcut {
-                modifiers: Modifiers::CTRL,
+                modifiers: Modifiers::COMMAND,
                 logical_key: Key::Num0,
             }),
             fit_to_weave: Some(KeyboardShortcut {
-                modifiers: Modifiers::CTRL,
+                modifiers: Modifiers::COMMAND,
                 logical_key: Key::Num9,
             }),
         }
