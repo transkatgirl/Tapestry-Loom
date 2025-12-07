@@ -167,7 +167,6 @@ impl GraphView {
         let mut fitting_node = None;
 
         if self.arranged.width == 0.0 && self.arranged.height == 0.0 {
-            // TODO: Perform layout on a background thread
             self.layout.load_weave(
                 weave,
                 weave
