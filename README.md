@@ -1,6 +1,9 @@
-# Tapestry Loom (v1)
+# Tapestry Loom (v1 beta)
 
-This branch contains is where work on Tapestry Loom's Version 1 rewrite is taking place.
+An IDE for working with base model LLMs, inspired by the designs of [loom](https://github.com/socketteer/loom), [loomsidian](https://github.com/cosmicoptima/loom), [exoloom](https://exoloom.io), [logitloom](https://github.com/vgel/logitloom), and [wool](https://github.com/lyramakesmusic/wool).
+
+> [!WARNING]
+> This is beta software. Most of it works, but there are plenty of undiscovered bugs and things will randomly break from time to time. Make backups.
 
 ## Plans
 
@@ -130,8 +133,17 @@ See also: the [original v1 plans](https://github.com/transkatgirl/Tapestry-Loom/
 
 ## Usage
 
-Note: This project is a work in progress. Missing features and major bugs are a certainty.
+Requires the [Rust Programming Language](https://rust-lang.org/tools/install/) and a working C compiler to be installed.
 
-Make sure to clone the repository with submodules!
+```bash
+git clone --recurse-submodules https://github.com/transkatgirl/Tapestry-Loom.git
+# Switching branches after cloning is required at the moment, but this branch will be merged into main soon
+cargo run --release
+```
 
-Use `cargo run` to run in debug mode, or `cargo run --release` to run in release mode.
+### Updating
+
+```bash
+git pull
+git submodule update --init --recursive
+```
