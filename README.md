@@ -8,7 +8,6 @@ An IDE for working with base model LLMs, inspired by the designs of [loom](https
 ## Known issues
 
 - Canvas view does not work
-- Separation between nodes in list/bookmarks/tree view is unclear
 
 ## Usage
 

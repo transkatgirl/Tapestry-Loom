@@ -609,6 +609,7 @@ pub fn render_node_text(
     node: &DependentNode<NodeContent>,
     settings: &Settings,
     override_color: Option<Color32>,
+    break_on_newline: bool,
 ) -> LayoutJob {
     let color = if let Some(override_color) = override_color {
         override_color
@@ -646,7 +647,7 @@ pub fn render_node_text(
             LayoutJob {
                 text,
                 sections,
-                break_on_newline: true,
+                break_on_newline,
                 ..Default::default()
             }
         }
@@ -666,7 +667,7 @@ pub fn render_node_text(
                         ..Default::default()
                     },
                 }],
-                break_on_newline: true,
+                break_on_newline,
                 ..Default::default()
             }
         }
