@@ -87,7 +87,7 @@ The plans for the rewrite are the following:
 	- [x] OpenAI-compatible Completions
 	- [x] OpenAI-compatible ChatCompletions
 	- [ ] Custom llama.cpp based server ("Tapestry Inference")
-- [ ] UI improvements
+- [ ] Improve HTTP error handling
 - [ ] Better documentation & onboarding
 	- [ ] Loomsidian migration script?
 
