@@ -26,7 +26,9 @@ use eframe::egui::{
     Align, Layout, Modal, OutputCommand, Sides, Spinner, TopBottomPanel, Ui, WidgetText,
 };
 use egui_notify::Toasts;
-use egui_tiles::{Behavior, SimplificationOptions, TileId, Tiles, Tree, UiResponse};
+use egui_tiles::{
+    Behavior, Container, LinearDir, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse,
+};
 use flagset::FlagSet;
 use log::{debug, error};
 use parking_lot::Mutex;
@@ -98,17 +100,21 @@ impl Editor {
 
         let mut tiles = Tiles::default();
 
-        let tabs = vec![
+        let left_tabs = vec![
             tiles.insert_pane(Pane::Canvas),
             tiles.insert_pane(Pane::Graph),
             tiles.insert_pane(Pane::TreeList),
             tiles.insert_pane(Pane::List),
             tiles.insert_pane(Pane::BookmarkList),
-            tiles.insert_pane(Pane::TextEdit),
             tiles.insert_pane(Pane::Menu),
         ];
 
-        let root = tiles.insert_tab_tile(tabs);
+        let right_tabs = vec![tiles.insert_pane(Pane::TextEdit)];
+
+        let left_tab_tile = tiles.insert_tab_tile(left_tabs);
+        let right_tab_tile = tiles.insert_tab_tile(right_tabs);
+
+        let root = tiles.insert_horizontal_tile(vec![left_tab_tile, right_tab_tile]);
 
         let weave = Arc::new(Mutex::new(None));
 
