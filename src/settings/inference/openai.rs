@@ -374,6 +374,7 @@ fn parse_openai_response(
             if let Value::Object(mut choice) = choice {
                 let mut tokens = Vec::new();
                 let mut metadata = metadata.clone();
+                let mut has_top_tokens = false;
 
                 if let Some(Value::Object(mut logprobs)) = choice.remove("logprobs") {
                     if let Some(Value::Array(logprobs_content)) = logprobs.remove("content") {
@@ -384,6 +385,7 @@ fn parse_openai_response(
                                 if i == 0
                                     && let Some(Value::Array(top_logprobs)) =
                                         logprob_item.remove("top_logprobs")
+                                    && top_logprobs.len() > 1
                                 {
                                     let mut tokens = Vec::with_capacity(top_logprobs.len());
 
@@ -409,6 +411,8 @@ fn parse_openai_response(
                                             metadata: metadata.clone(),
                                         });
                                     }
+
+                                    has_top_tokens = true;
                                 }
 
                                 parse_openai_logprob(logprob_item, &mut tokens);
@@ -419,6 +423,7 @@ fn parse_openai_response(
                             logprobs.remove("top_logprobs")
                             && !top_logprobs.is_empty()
                             && let Value::Object(top_logprobs) = top_logprobs.swap_remove(0)
+                            && top_logprobs.len() > 1
                         {
                             let mut tokens = Vec::with_capacity(top_logprobs.len());
 
@@ -449,6 +454,8 @@ fn parse_openai_response(
                                     metadata: metadata.clone(),
                                 });
                             }
+
+                            has_top_tokens = true;
                         }
 
                         let output = &mut tokens;
@@ -480,7 +487,7 @@ fn parse_openai_response(
                 }
 
                 if !tokens.is_empty() {
-                    if tokens.len() != 1 {
+                    if !has_top_tokens || tokens.len() > 1 {
                         responses.push(EndpointResponse {
                             content: InnerNodeContent::Tokens(
                                 tokens
