@@ -85,11 +85,28 @@ impl WeaveWrapper {
 
         identifiers
     }
+    pub fn dump_identifiers_ordered_u128_rev(&self) -> Vec<u128> {
+        let mut identifiers = Vec::with_capacity(self.weave.len());
+
+        for root in self.weave.weave.get_roots() {
+            self.add_node_identifiers_rev(root, &mut identifiers);
+        }
+
+        identifiers
+    }
     fn add_node_identifiers(&self, id: &u128, identifiers: &mut Vec<u128>) {
         if let Some(node) = self.weave.weave.get_node(id) {
             identifiers.push(node.id);
             for child in &node.to {
                 self.add_node_identifiers(child, identifiers);
+            }
+        }
+    }
+    fn add_node_identifiers_rev(&self, id: &u128, identifiers: &mut Vec<u128>) {
+        if let Some(node) = self.weave.weave.get_node(id) {
+            identifiers.push(node.id);
+            for child in node.to.iter().rev() {
+                self.add_node_identifiers_rev(child, identifiers);
             }
         }
     }

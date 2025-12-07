@@ -65,7 +65,7 @@ impl CanvasView {
         state: &mut SharedState,
     ) {
         let sizes: Vec<_> = weave
-            .dump_identifiers_ordered_u128()
+            .dump_identifiers_ordered_u128_rev()
             .into_iter()
             .map(|id| {
                 let size = calculate_size(ui, id, |ui| {
