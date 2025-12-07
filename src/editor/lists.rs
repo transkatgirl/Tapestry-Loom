@@ -760,7 +760,6 @@ fn render_horizontal_node_label(
                         } else {
                             None
                         },
-                        false,
                     )))
                 };
                 let label_color = get_node_color(node, settings);
