@@ -63,7 +63,6 @@ The plans for the rewrite are the following:
 				- [x] Implement tree node right click
 			- [x] Implement resizable & scrollable treelist
 			- [x] Implement resizable and scrollable textbox
-				- [ ] Show node siblings on hover
 			- [x] Automatically adjust tree position & highlighting based on textbox cursor location
 			- [x] Automatically scroll textbox based on tree cursor location
 			- [x] Scroll newly generated nodes into view
@@ -75,24 +74,14 @@ The plans for the rewrite are the following:
 				- [x] Implement tree node right click
 			- [x] Implement resizable and scrollable node child list
 			- [x] Implement resizable and scrollable textbox
-				- [ ] Show node siblings on hover
 			- [x] Automatically adjust tree position & highlighting based on textbox cursor location
 			- [x] Automatically scroll textbox based on tree cursor location
 			- [x] Scroll newly generated nodes into view
-	- [ ] Node finding
-	- [ ] Node sorting
-	- [ ] Node bulk selection
 	- [x] Better error handling
 - [ ] Keyboard shortcut implementation
 	- [x] Automatically adapt keyboards shortcuts based on OS (such as Mac vs Windows/Linux)
 	- [x] Repeat keypresses when a keyboard be cut is held down
 	- [ ] Support shortcuts for all aspects of the UI, not just the weave editor
-	- [ ] Multiple presets
-		- [ ] [loomsidian](https://github.com/cosmicoptima/loom)-like
-		- [ ] [exoloom](https://exoloom.io)-like
-		- [ ] Tapestry Loom
-	- [ ] Allows saving & loading custom presets
-	- [ ] Allow importing and exporting custom presets
 - [ ] Multiple inference backends
 	- [x] OpenAI-compatible Completions
 	- [x] OpenAI-compatible ChatCompletions
@@ -124,8 +113,22 @@ In addition, below are the tentative plans for Tapestry Loom v2:
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
-- [ ] Mobile support
-- [ ] Rewrite UI using a retained mode UI to improve performance
+- [ ] Further UI improvements
+	- [ ] Better file manager
+	- [ ] Node finding
+	- [ ] Customizable node sorting
+	- [ ] Node bulk selection
+	- [ ] Node custom ordering via drag and drop
+	- [ ] Show node siblings on hover in textbox
+	- [ ] Keyboard shortcut presets
+		- [ ] Built-in presets
+			- [ ] [loomsidian](https://github.com/cosmicoptima/loom)-like
+			- [ ] [exoloom](https://exoloom.io)-like
+			- [ ] Tapestry Loom
+		- [ ] Saving & loading custom presets
+			- [ ] Importing & exporting custom presets
+	- [ ] Support touchscreen-only devices
+- [ ] Optimize for performance whenever possible
 - [ ] Collaborative weave editing
 - [ ] Adaptive looming using token entropy or [confidence](https://arxiv.org/pdf/2508.15260)
 - [ ] Token streaming and display of nodes being generated
