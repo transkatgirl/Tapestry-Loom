@@ -307,18 +307,17 @@ fn render_node(
                 render_horizontal_node_label_buttons_ltr(ui, settings, state, weave, &node);
             });
 
+            if let InnerNodeContent::Tokens(tokens) = &node.contents.content
+                && tokens.len() == 1
+                && let Some(token) = tokens.first()
+            {
+                ui.add_space(ui.spacing().menu_spacing);
+                render_token_metadata_tooltip(ui, token.0.len(), &token.1);
+            }
+
             ui.separator();
 
             ui.collapsing("Node Information", |ui| {
-                if let InnerNodeContent::Tokens(tokens) = &node.contents.content
-                    && tokens.len() == 1
-                    && let Some(token) = tokens.first()
-                {
-                    render_token_metadata_tooltip(ui, token.0.len(), &token.1);
-
-                    ui.separator();
-                }
-
                 render_node_metadata_tooltip(ui, &node);
             });
         });
