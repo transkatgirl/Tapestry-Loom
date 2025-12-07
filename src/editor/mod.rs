@@ -26,7 +26,9 @@ use eframe::egui::{
     Align, Layout, Modal, OutputCommand, Sides, Spinner, TopBottomPanel, Ui, WidgetText,
 };
 use egui_notify::Toasts;
-use egui_tiles::{Behavior, SimplificationOptions, TileId, Tiles, Tree, UiResponse};
+use egui_tiles::{
+    Behavior, Container, SimplificationOptions, Tabs, Tile, TileId, Tiles, Tree, UiResponse,
+};
 use flagset::FlagSet;
 use log::{debug, error};
 use parking_lot::Mutex;
@@ -106,10 +108,17 @@ impl Editor {
             tiles.insert_pane(Pane::BookmarkList),
             tiles.insert_pane(Pane::Menu),
         ];
+        let active_left_tab = left_tabs[2];
 
         let right_tabs = vec![tiles.insert_pane(Pane::TextEdit)];
 
-        let left_tab_tile = tiles.insert_tab_tile(left_tabs);
+        let left_tab_tile = tiles.insert_new(Tile::Container(Container::Tabs({
+            let mut tabs = Tabs::new(left_tabs);
+            tabs.set_active(active_left_tab);
+
+            tabs
+        })));
+
         let right_tab_tile = tiles.insert_tab_tile(right_tabs);
 
         let root = tiles.insert_horizontal_tile(vec![left_tab_tile, right_tab_tile]);
