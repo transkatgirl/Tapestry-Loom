@@ -118,7 +118,9 @@ fn convert_weave(input: String) -> anyhow::Result<Vec<u8>> {
         ))?
         .to_std_string()?;
 
-    let input: LegacyWeave = serde_json::from_str(&output)?;
+    let mut input: LegacyWeave = serde_json::from_str(&output)?;
+
+    input.sort();
 
     let mut input_nodes = Vec::with_capacity(input.nodes.len());
 
@@ -188,13 +190,34 @@ struct LegacyWeave {
     models: HashMap<Ulid, LegacyModelLabel>,
     modelNodes: HashMap<Ulid, HashSet<Ulid>>,
     nodes: HashMap<Ulid, LegacyDocumentNode>,
-    rootNodes: HashSet<Ulid>,
-    nodeChildren: HashMap<Ulid, HashSet<Ulid>>,
+    rootNodes: Vec<Ulid>,
+    nodeChildren: HashMap<Ulid, Vec<Ulid>>,
     currentNode: Option<Ulid>,
     bookmarks: HashSet<Ulid>,
 }
 
 impl LegacyWeave {
+    fn sort(&mut self) {
+        let mut roots = self
+            .rootNodes
+            .iter()
+            .filter_map(|id| self.nodes.get(id))
+            .collect();
+        sort_node_list(&mut roots);
+        self.rootNodes = roots.into_iter().map(|node| node.identifier).collect();
+
+        for (_, children) in self.nodeChildren.iter_mut() {
+            let mut children_nodes = children
+                .iter()
+                .filter_map(|id| self.nodes.get(id))
+                .collect();
+            sort_node_list(&mut children_nodes);
+            *children = children_nodes
+                .into_iter()
+                .map(|node| node.identifier)
+                .collect();
+        }
+    }
     fn build_node_list(&self, id: Ulid, nodes: &mut Vec<Ulid>) {
         nodes.push(id);
 
@@ -226,4 +249,35 @@ struct LegacyDocumentNode {
 enum LegacyNodeContent {
     Snippet(String),
     Tokens(Vec<(f64, String)>),
+}
+
+fn sort_node_list(nodes: &mut Vec<&LegacyDocumentNode>) {
+    nodes.sort_unstable_by(|a, b| {
+        let a_tokens = if let LegacyNodeContent::Tokens(tokens) = &a.content {
+            Some(tokens)
+        } else {
+            None
+        };
+        let b_tokens = if let LegacyNodeContent::Tokens(tokens) = &b.content {
+            Some(tokens)
+        } else {
+            None
+        };
+
+        let x = a_tokens.map(|t| t.len()).unwrap_or_default() == 1;
+        let y = b_tokens.map(|t| t.len()).unwrap_or_default() == 1;
+
+        if x && y {
+            a.model.cmp(&b.model).then(
+                a_tokens.unwrap()[0]
+                    .partial_cmp(&b_tokens.unwrap()[0])
+                    .unwrap(),
+            )
+        } else {
+            a.model
+                .cmp(&b.model)
+                .then(x.cmp(&y))
+                .then(a.identifier.cmp(&b.identifier))
+        }
+    });
 }
