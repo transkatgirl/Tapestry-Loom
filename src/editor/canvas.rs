@@ -31,6 +31,7 @@ pub struct CanvasView {
     arranged: ArrangedWeave,
     lines: Vec<([Pos2; 4], PathStroke)>,
     last_changed: Instant,
+    new: bool,
 }
 
 impl Default for CanvasView {
@@ -41,6 +42,7 @@ impl Default for CanvasView {
             arranged: ArrangedWeave::default(),
             lines: Vec::with_capacity(131072),
             last_changed: Instant::now(),
+            new: true,
         }
     }
 }
@@ -49,6 +51,7 @@ impl CanvasView {
     /*pub fn reset(&mut self) {
         self.rect = Rect::ZERO;
         self.arranged = ArrangedWeave::default();
+        self.new = true;
     }*/
     pub fn update(
         &mut self,
@@ -169,17 +172,22 @@ impl CanvasView {
         state: &mut SharedState,
         shortcuts: FlagSet<Shortcuts>,
     ) {
-        if self.arranged.width == 0.0 && self.arranged.height == 0.0 {
-            self.update_layout(ui, weave, settings, state);
-        }
-
-        let mut focus: Option<Rect> = None;
-
         let mut changed_node = if settings.interface.auto_scroll {
             state.get_changed_node()
         } else {
             None
         };
+
+        if self.arranged.width == 0.0 && self.arranged.height == 0.0 {
+            self.update_layout(ui, weave, settings, state);
+
+            if self.new {
+                changed_node = state.get_cursor_node().into_node();
+                self.new = false;
+            }
+        }
+
+        let mut focus: Option<Rect> = None;
 
         let last_rect = self.rect;
 
