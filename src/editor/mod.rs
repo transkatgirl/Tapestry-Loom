@@ -26,9 +26,7 @@ use eframe::egui::{
     Align, Layout, Modal, OutputCommand, Sides, Spinner, TopBottomPanel, Ui, WidgetText,
 };
 use egui_notify::Toasts;
-use egui_tiles::{
-    Behavior, Container, LinearDir, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse,
-};
+use egui_tiles::{Behavior, SimplificationOptions, TileId, Tiles, Tree, UiResponse};
 use flagset::FlagSet;
 use log::{debug, error};
 use parking_lot::Mutex;

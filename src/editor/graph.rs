@@ -200,7 +200,6 @@ impl GraphView {
 
         if shortcuts.contains(Shortcuts::FitToCursor) {
             fitting_node = cursor_node;
-            println!("{:?}", cursor_node);
         }
 
         let response = Plot::new([state.identifier.to_string(), "graph".to_string()])
