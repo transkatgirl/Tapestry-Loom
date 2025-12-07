@@ -269,14 +269,14 @@ fn sort_node_list(nodes: &mut Vec<&LegacyDocumentNode>) {
 
         if x && y {
             a.model.cmp(&b.model).then(
-                a_tokens.unwrap()[0]
-                    .partial_cmp(&b_tokens.unwrap()[0])
+                b_tokens.unwrap()[0]
+                    .partial_cmp(&a_tokens.unwrap()[0])
                     .unwrap(),
             )
         } else {
             a.model
                 .cmp(&b.model)
-                .then(x.cmp(&y))
+                .then(y.cmp(&x))
                 .then(a.identifier.cmp(&b.identifier))
         }
     });
