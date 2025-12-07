@@ -88,7 +88,11 @@ fn migrate_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<()> {
             println!("{} -> {}", input_path.display(), output_path.display());
 
             fs::write(output_path, convert_weave(weave)?)?;
+        } else {
+            println!("Skipping {}", input_path.display());
         }
+    } else {
+        println!("Skipping {}", input_path.display());
     }
 
     Ok(())
