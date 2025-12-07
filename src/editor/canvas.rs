@@ -181,9 +181,6 @@ impl CanvasView {
             None
         };
 
-        let hovered_node = state.get_hovered_node().into_node();
-        let cursor_node = state.get_cursor_node().into_node();
-
         let last_rect = self.rect;
 
         let clip_rect = ui.clip_rect();
@@ -193,7 +190,6 @@ impl CanvasView {
 
             if clip_rect.contains(ui.ctx().pointer_hover_pos().unwrap_or_default())
                 && last_rect != Rect::ZERO
-                && (changed_node == hovered_node || changed_node == cursor_node)
             {
                 changed_node = None;
             }
@@ -290,13 +286,13 @@ fn render_node(
             render_node_context_menu(ui, settings, state, weave, &node);
         });
 
+        if response.contains_pointer() {
+            state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
+        }
+
         if response.clicked() {
             weave.set_node_active_status_u128(&node.id, true);
             state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
-        }
-
-        if response.contains_pointer() {
-            state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
         }
 
         let mut tooltip = Tooltip::for_enabled(&response);

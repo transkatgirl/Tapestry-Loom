@@ -764,12 +764,12 @@ fn render_omitted_chidren_tree_node_label(
         })
         .response;
 
-    if response.clicked() {
-        state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
-    }
-
     if response.contains_pointer() {
         state.set_hovered_node(NodeIndex::Node(first_child));
+    }
+
+    if response.clicked() {
+        state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
     }
 }
 
@@ -919,13 +919,13 @@ fn render_horizontal_node_label(
         context_menu(ui, settings, state, weave, node);
     });
 
+    if response.contains_pointer() {
+        state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
+    }
+
     if response.clicked() {
         weave.set_node_active_status_u128(&node.id, true);
         state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
-    }
-
-    if response.contains_pointer() {
-        state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
     }
 }
 
