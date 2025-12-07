@@ -4,6 +4,7 @@ use bytes::{Bytes, BytesMut};
 use eframe::egui::{
     Align, Color32, ComboBox, DragValue, Layout, RichText, Slider, SliderClamping, TextEdit,
     TextStyle, Ui, Widget, WidgetText,
+    color_picker::{Alpha, color_edit_button_srgba},
 };
 use poll_promise::Promise;
 use reqwest::{Client, ClientBuilder};
@@ -218,7 +219,7 @@ impl InferenceModel {
                 .labelled_by(textedit_label.id);
 
             if let Some(color) = &mut self.color {
-                ui.color_edit_button_srgba(color);
+                color_edit_button_srgba(ui, color, Alpha::Opaque);
                 if ui
                     .button("\u{E148}")
                     .on_hover_text("Remove label color")
