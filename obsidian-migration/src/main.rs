@@ -1,4 +1,7 @@
+#![allow(non_snake_case)]
+
 use std::{
+    collections::{HashMap, HashSet},
     fs,
     path::{Path, PathBuf},
 };
@@ -8,6 +11,15 @@ use boa_engine::{Context, JsString, JsValue, Source, js_string, property::Attrib
 use clap::Parser;
 use frontmatter::{Yaml, parse_and_find_content};
 use miniz_oxide::inflate::decompress_to_vec_zlib;
+use serde::{Deserialize, Serialize};
+use tapestry_weave::{
+    ulid::Ulid,
+    universal_weave::{
+        dependent::DependentNode,
+        indexmap::{IndexMap, IndexSet},
+    },
+    v0::{InnerNodeContent, Model, NodeContent, TapestryWeave},
+};
 use walkdir::WalkDir;
 
 #[derive(Parser)]
@@ -102,9 +114,53 @@ fn convert_weave(input: String) -> anyhow::Result<Vec<u8>> {
         ))?
         .to_std_string()?;
 
+    let input: LegacyWeave = serde_json::from_str(&output)?;
+
+    let output = TapestryWeave::with_capacity(
+        16384,
+        IndexMap::from([(
+            "converted_from".to_string(),
+            "LegacyTapestryLoom".to_string(),
+        )]),
+    );
+
     // TODO
 
-    //println!("{:?}", input);
+    //println!("{:#?}", input);
 
     Ok(vec![])
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct LegacyWeave {
+    identifier: Ulid,
+    models: HashMap<Ulid, LegacyModelLabel>,
+    modelNodes: HashMap<Ulid, HashSet<Ulid>>,
+    nodes: HashMap<Ulid, LegacyDocumentNode>,
+    rootNodes: HashSet<Ulid>,
+    nodeChildren: HashMap<Ulid, HashSet<Ulid>>,
+    currentNode: Option<Ulid>,
+    bookmarks: HashSet<Ulid>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct LegacyModelLabel {
+    label: String,
+    color: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct LegacyDocumentNode {
+    identifier: Ulid,
+    content: LegacyNodeContent,
+    model: Option<Ulid>,
+    parentNode: Option<Ulid>,
+    parameters: Option<IndexMap<String, String>>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(untagged)]
+enum LegacyNodeContent {
+    Snippet(String),
+    Tokens(Vec<(f64, String)>),
 }

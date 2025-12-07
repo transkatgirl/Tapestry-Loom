@@ -8,7 +8,9 @@ base64 = "0.22.1"
 miniz_oxide = "0.8.9"
 frontmatter = "0.4.0"
 boa_engine = "0.21.0"
-tapestry-weave = { path = "../universal-weave/tapestry-weave" }
+tapestry-weave = { path = "../universal-weave/tapestry-weave", features = [
+	"serde",
+] }
 clap = { version = "4.5.53", features = [
 	"derive",
 ] }
