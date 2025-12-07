@@ -4,6 +4,7 @@ use std::{
 };
 
 use base64::prelude::*;
+use boa_engine::{Context, JsString, JsValue, Source, js_string, property::Attribute};
 use clap::Parser;
 use frontmatter::{Yaml, parse_and_find_content};
 use miniz_oxide::inflate::decompress_to_vec_zlib;
@@ -51,6 +52,8 @@ fn main() -> anyhow::Result<()> {
 }
 
 fn migrate_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<()> {
+    assert_ne!(input_path, output_path);
+
     let input = fs::read_to_string(input_path)?;
 
     if let Ok((Some(Yaml::Hash(mut frontmatter)), _)) = parse_and_find_content(&input) {
@@ -72,13 +75,36 @@ fn migrate_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<()> {
         if let Some(weave) = weave {
             println!("{} -> {}", input_path.display(), output_path.display());
 
-            // TODO
-
-            //println!("{:?}", frontmatter);
-
-            //fs::write(output_path, buffer)?;
+            fs::write(output_path, convert_weave(weave)?)?;
         }
     }
 
     Ok(())
+}
+
+fn convert_weave(input: String) -> anyhow::Result<Vec<u8>> {
+    let mut context = Context::default();
+
+    context
+        .register_global_property(
+            js_string!("input_data"),
+            JsString::from(input),
+            Attribute::READONLY,
+        )
+        .unwrap();
+
+    let output = context
+        .eval(Source::from_bytes(include_bytes!("convert.js")))
+        .map_err(|e| anyhow::Error::msg(format!("{}", e)))?
+        .as_string()
+        .ok_or(anyhow::Error::msg(
+            "Incorrect return type from conversion script",
+        ))?
+        .to_std_string()?;
+
+    // TODO
+
+    //println!("{:?}", input);
+
+    Ok(vec![])
 }
