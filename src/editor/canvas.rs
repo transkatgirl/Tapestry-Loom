@@ -84,7 +84,7 @@ impl CanvasView {
         self.layout.load_weave(weave, sizes.into_iter());
         self.arranged = self
             .layout
-            .layout_weave(ui.text_style_height(&TextStyle::Monospace) as f64 * 4.0);
+            .layout_weave(ui.text_style_height(&TextStyle::Monospace) as f64 * 3.0);
         self.last_changed = Instant::now();
 
         for (_, rect) in self.arranged.rects.iter_mut() {
@@ -248,6 +248,8 @@ fn render_node(
 
     let stroke_width = ui.visuals().widgets.noninteractive.fg_stroke.width * 1.5;
 
+    ui.set_max_width(ui.spacing().text_edit_width * 1.2);
+
     if let Some(node) = weave.get_node(node).cloned() {
         let mut button = Button::new(render_node_text(ui, &node, settings, None))
             .fill(Color32::TRANSPARENT)
@@ -256,9 +258,10 @@ fn render_node(
                 color: ui.visuals().widgets.noninteractive.bg_stroke.color,
             })
             .min_size(Vec2 {
-                x: ui.spacing().text_edit_width,
+                x: ui.spacing().text_edit_width * 1.2,
                 y: ui.text_style_height(&TextStyle::Monospace) * 3.0,
-            });
+            })
+            .wrap();
 
         if cursor_node == Some(Ulid(node.id)) {
             button = button
