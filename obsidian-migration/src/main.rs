@@ -7,7 +7,7 @@ use std::{
 };
 
 use base64::prelude::*;
-use boa_engine::{Context, JsString, JsValue, Source, js_string, property::Attribute};
+use boa_engine::{Context, JsString, Source, js_string, property::Attribute};
 use clap::Parser;
 use frontmatter::{Yaml, parse_and_find_content};
 use miniz_oxide::inflate::decompress_to_vec_zlib;
@@ -116,22 +116,69 @@ fn convert_weave(input: String) -> anyhow::Result<Vec<u8>> {
 
     let input: LegacyWeave = serde_json::from_str(&output)?;
 
-    let output = TapestryWeave::with_capacity(
-        16384,
+    let mut input_nodes = Vec::with_capacity(input.nodes.len());
+
+    for node in &input.rootNodes {
+        input.build_node_list(*node, &mut input_nodes);
+    }
+
+    let mut output = TapestryWeave::with_capacity(
+        input.nodes.len(),
         IndexMap::from([(
             "converted_from".to_string(),
             "LegacyTapestryLoom".to_string(),
         )]),
     );
 
-    // TODO
+    for node in input_nodes {
+        if let Some(node) = input.nodes.get(&node).cloned() {
+            output.add_node(DependentNode {
+                id: node.identifier.0,
+                from: node.parentNode.map(|id| id.0),
+                to: IndexSet::default(),
+                active: input.currentNode == Some(node.identifier),
+                bookmarked: input.bookmarks.contains(&node.identifier),
+                contents: NodeContent {
+                    content: match node.content {
+                        LegacyNodeContent::Snippet(snippet) => {
+                            InnerNodeContent::Snippet(snippet.into_bytes())
+                        }
+                        LegacyNodeContent::Tokens(tokens) => InnerNodeContent::Tokens(
+                            tokens
+                                .into_iter()
+                                .map(|(probability, token)| {
+                                    (
+                                        token.into_bytes(),
+                                        IndexMap::from([(
+                                            "probability".to_string(),
+                                            probability.to_string(),
+                                        )]),
+                                    )
+                                })
+                                .collect(),
+                        ),
+                    },
+                    metadata: node.parameters.unwrap_or_default(),
+                    model: node
+                        .model
+                        .and_then(|id| input.models.get(&id).cloned())
+                        .map(|model| Model {
+                            label: model.label,
+                            metadata: if let Some(color) = model.color {
+                                IndexMap::from([("color".to_string(), color)])
+                            } else {
+                                IndexMap::default()
+                            },
+                        }),
+                },
+            });
+        }
+    }
 
-    //println!("{:#?}", input);
-
-    Ok(vec![])
+    Ok(output.to_versioned_bytes()?)
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct LegacyWeave {
     identifier: Ulid,
     models: HashMap<Ulid, LegacyModelLabel>,
@@ -143,13 +190,25 @@ struct LegacyWeave {
     bookmarks: HashSet<Ulid>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+impl LegacyWeave {
+    fn build_node_list(&self, id: Ulid, nodes: &mut Vec<Ulid>) {
+        nodes.push(id);
+
+        if let Some(children) = self.nodeChildren.get(&id) {
+            for child in children {
+                self.build_node_list(*child, nodes);
+            }
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct LegacyModelLabel {
     label: String,
     color: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct LegacyDocumentNode {
     identifier: Ulid,
     content: LegacyNodeContent,
@@ -158,7 +217,7 @@ struct LegacyDocumentNode {
     parameters: Option<IndexMap<String, String>>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 enum LegacyNodeContent {
     Snippet(String),
