@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, hash::Hash};
 
 use eframe::{
     egui::{Color32, Frame, Pos2, Rect, Scene, Stroke, StrokeKind, TextStyle, Ui, UiBuilder, Vec2},
@@ -65,7 +65,7 @@ impl CanvasView {
             .dump_identifiers_ordered_u128()
             .into_iter()
             .map(|id| {
-                let size = calculate_size(ui, |ui| {
+                let size = calculate_size(ui, id, |ui| {
                     render_node(ui, weave, settings, state, &Ulid(id));
                 });
 
@@ -167,9 +167,9 @@ impl CanvasView {
         let mut focus: Option<Rect> = None;
 
         Scene::new().show(ui, &mut self.rect, |ui| {
-            /*let painter = ui.painter();
+            let painter = ui.painter();
 
-            for (points, stroke) in self.lines.iter().cloned() {
+            /*for (points, stroke) in self.lines.iter().cloned() {
                 painter.add(CubicBezierShape {
                     points,
                     closed: false,
@@ -268,19 +268,19 @@ fn render_node(
         Frame::new()
             .fill(ui.visuals().widgets.inactive.bg_fill)
             .show(ui, |ui| {
-                //ui.set_min_width(ui.spacing().text_edit_width);
-                //ui.set_min_height(ui.text_style_height(&TextStyle::Monospace) * 3.0);
+                ui.set_min_width(ui.spacing().text_edit_width);
+                ui.set_min_height(ui.text_style_height(&TextStyle::Monospace) * 3.0);
 
                 ui.label(render_node_text(ui, &node, settings, None));
             });
     }
 }
 
-fn calculate_size(ui: &Ui, contents: impl FnOnce(&mut Ui)) -> Vec2 {
+fn calculate_size(ui: &Ui, hash: impl Hash, contents: impl FnOnce(&mut Ui)) -> Vec2 {
     let mut ui = Ui::new(
         ui.ctx().clone(),
-        ui.id(),
-        UiBuilder::new().sizing_pass().invisible(),
+        ui.id().with(hash),
+        UiBuilder::new().invisible().sizing_pass(),
     );
     contents(&mut ui);
     ui.min_size()
