@@ -43,7 +43,7 @@ The plans for the rewrite are the following:
 	- [x] Implement all functionality supported by the original Obsidian plugin
 - [ ] Full UI redesign
 	- [x] Resizable, dragable, scrollable, and collapsible settings
-	- [ ] Three user-switchable UIs:
+	- [x] Three user-switchable UIs:
 		- [x] Interactive canvas + textbox, similar to [wool](https://github.com/lyramakesmusic/wool)
 			- [x] Implement dragable and scrollable canvas
 			- [x] Implement draggable canvas nodes
@@ -54,7 +54,7 @@ The plans for the rewrite are the following:
 				- [ ] Show node siblings on hover
 			- [x] Automatically adjust canvas position & highlighting based on textbox cursor location
 			- [x] Automatically scroll textbox based on canvas cursor
-			- [ ] Scroll newly generated nodes into view
+			- [x] Scroll newly generated nodes into view
 		- [x] Compact tree + compact treelist + textbox, similar to [loomsidian](https://github.com/cosmicoptima/loom) & old Tapestry Loom
 			- [x] Implement resizable, dragable & scrollable tree
 			- [x] Implement tree nodes

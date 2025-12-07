@@ -181,6 +181,9 @@ impl CanvasView {
             None
         };
 
+        let hovered_node = state.get_hovered_node().into_node();
+        let cursor_node = state.get_cursor_node().into_node();
+
         let last_rect = self.rect;
 
         let clip_rect = ui.clip_rect();
@@ -190,6 +193,7 @@ impl CanvasView {
 
             if clip_rect.contains(ui.ctx().pointer_hover_pos().unwrap_or_default())
                 && last_rect != Rect::ZERO
+                && (changed_node == hovered_node || changed_node == cursor_node)
             {
                 changed_node = None;
             }
