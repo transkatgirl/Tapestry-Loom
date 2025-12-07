@@ -2,22 +2,22 @@ use std::{collections::HashSet, hash::Hash};
 
 use eframe::{
     egui::{
-        Button, Color32, Frame, Pos2, Rect, Scene, Sense, Stroke, StrokeKind, TextStyle, Ui,
-        UiBuilder, Vec2,
+        Button, Color32, Pos2, Rect, Scene, Stroke, StrokeKind, TextStyle, Tooltip, Ui, UiBuilder,
+        Vec2,
     },
-    epaint::{ColorMode, CubicBezierShape, MarginF32, PathStroke, QuadraticBezierShape},
+    epaint::{ColorMode, CubicBezierShape, PathStroke},
 };
 use egui_notify::Toasts;
 use flagset::FlagSet;
-use tapestry_weave::ulid::Ulid;
+use tapestry_weave::{ulid::Ulid, v0::InnerNodeContent};
 
 use crate::{
     editor::{
-        lists::render_node_context_menu,
+        lists::{render_horizontal_node_label_buttons_ltr, render_node_context_menu},
         shared::{
             NodeIndex, SharedState,
             layout::{ArrangedWeave, WeaveLayout, wire_bezier_3},
-            render_node_text,
+            render_node_metadata_tooltip, render_node_text, render_token_metadata_tooltip,
             weave::WeaveWrapper,
         },
     },
@@ -333,6 +333,33 @@ fn render_node(
         if response.contains_pointer() {
             state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
         }
+
+        let mut tooltip = Tooltip::for_enabled(&response);
+
+        tooltip.popup = tooltip
+            .popup
+            .open(response.contains_pointer() || Tooltip::should_show_tooltip(&response, true));
+
+        tooltip.show(|ui| {
+            ui.horizontal(|ui| {
+                render_horizontal_node_label_buttons_ltr(ui, settings, state, weave, &node);
+            });
+
+            ui.separator();
+
+            ui.collapsing("Node Information", |ui| {
+                if let InnerNodeContent::Tokens(tokens) = &node.contents.content
+                    && tokens.len() == 1
+                    && let Some(token) = tokens.first()
+                {
+                    render_token_metadata_tooltip(ui, token.0.len(), &token.1);
+
+                    ui.separator();
+                }
+
+                render_node_metadata_tooltip(ui, &node);
+            });
+        });
     }
 }
 

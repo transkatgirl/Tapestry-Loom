@@ -598,7 +598,69 @@ fn toggle_node_tree_item_open_status(ui: &mut Ui, editor_id: Ulid, item_id: Ulid
     collapsing_state.store(ui.ctx());
 }
 
-fn render_horizontal_node_label_buttons_rtl(
+pub fn render_horizontal_node_label_buttons_ltr(
+    ui: &mut Ui,
+    settings: &Settings,
+    state: &mut SharedState,
+    weave: &mut WeaveWrapper,
+    node: &DependentNode<NodeContent>,
+) {
+    if weave.is_mergeable_with_parent(&Ulid(node.id))
+        && ui
+            .button("\u{E43F}")
+            .on_hover_text("Merge node with parent")
+            .clicked()
+    {
+        weave.merge_with_parent(&Ulid(node.id));
+    };
+    if ui
+        .button("\u{E5CE}")
+        .on_hover_text("Generate completions")
+        .clicked()
+    {
+        state.generate_children(weave, Some(Ulid(node.id)), settings);
+    };
+    if ui.button("\u{E40C}").on_hover_text("Add node").clicked() {
+        let identifier = Ulid::new().0;
+        if weave.add_node(DependentNode {
+            id: identifier,
+            from: Some(node.id),
+            to: IndexSet::default(),
+            active: node.active,
+            bookmarked: false,
+            contents: NodeContent {
+                content: InnerNodeContent::Snippet(vec![]),
+                metadata: IndexMap::new(),
+                model: None,
+            },
+        }) && node.active
+        {
+            state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
+        }
+    };
+    let bookmark_label = if node.bookmarked {
+        "\u{E23C}"
+    } else {
+        "\u{E23d}"
+    };
+    let bookmark_hover_text = if node.bookmarked {
+        "Remove bookmark"
+    } else {
+        "Bookmark node"
+    };
+    if ui
+        .button(bookmark_label)
+        .on_hover_text(bookmark_hover_text)
+        .clicked()
+    {
+        weave.set_node_bookmarked_status_u128(&node.id, !node.bookmarked);
+    };
+    if ui.button("\u{E28F}").on_hover_text("Delete node").clicked() {
+        weave.remove_node(&Ulid(node.id));
+    };
+}
+
+pub fn render_horizontal_node_label_buttons_rtl(
     ui: &mut Ui,
     settings: &Settings,
     state: &mut SharedState,
