@@ -2,8 +2,8 @@ use std::{collections::HashSet, hash::Hash, time::Instant};
 
 use eframe::{
     egui::{
-        Button, Color32, Pos2, Rect, Scene, Stroke, StrokeKind, TextStyle, Tooltip, Ui, UiBuilder,
-        Vec2,
+        Button, CollapsingHeader, Color32, Pos2, Rect, Scene, Stroke, StrokeKind, TextStyle,
+        Tooltip, Ui, UiBuilder, Vec2,
     },
     epaint::{ColorMode, CubicBezierShape, PathStroke},
 };
@@ -328,7 +328,7 @@ fn render_node(
 
             ui.separator();
 
-            ui.collapsing("Node Information", |ui| {
+            CollapsingHeader::new("Node Information").show_unindented(ui, |ui| {
                 render_node_metadata_tooltip(ui, &node);
             });
         });
