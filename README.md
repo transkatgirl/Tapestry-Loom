@@ -26,7 +26,7 @@ git submodule update --init --recursive
 
 ```bash
 cd obsidian-migration
-cargo run --release -- --input $OLD_TAPESTRY_OBSIDIAN_VAULT --output "~/Documents/Tapestry Loom/Migrated Weaves"
+cargo run --release -- --input $OLD_TAPESTRY_OBSIDIAN_VAULT --output ~/"Documents/Tapestry Loom/Migrated Weaves"
 ```
 
 Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the obsidian vault used by Tapestry Loom v0.
