@@ -35,7 +35,7 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the obsidian vaul
 
 The plans for the rewrite are the following:
 - [x] Migrate to a desktop app rather than an Obsidian plugin
-	- [ ] Implement conversion from the old Weave format to the new one
+	- [x] Implement conversion from the old Weave format to the new one
 	- [x] Implement all functionality supported by the original Obsidian plugin
 - [ ] Full UI redesign
 	- [x] Resizable, dragable, scrollable, and collapsible settings
