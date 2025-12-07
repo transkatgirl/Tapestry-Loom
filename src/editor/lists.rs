@@ -572,13 +572,7 @@ fn render_node_tree_row(
                     } else {
                         ui.horizontal_wrapped(|ui| {
                             let first_child = node.to.first().copied().map(Ulid).unwrap();
-                            render_omitted_chidren_tree_node_label(
-                                ui,
-                                state,
-                                weave,
-                                &node,
-                                first_child,
-                            );
+                            render_omitted_chidren_tree_node_label(ui, state, &node, first_child);
                         });
                     }
                 });
@@ -669,7 +663,6 @@ fn render_horizontal_node_label_buttons_rtl(
 fn render_omitted_chidren_tree_node_label(
     ui: &mut Ui,
     state: &mut SharedState,
-    weave: &mut WeaveWrapper,
     node: &DependentNode<NodeContent>,
     first_child: Ulid,
 ) {
@@ -699,7 +692,6 @@ fn render_omitted_chidren_tree_node_label(
                 }
 
                 if label_button_response.clicked() {
-                    weave.set_node_active_status_u128(&node.id, true);
                     state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
                 }
 
@@ -711,7 +703,6 @@ fn render_omitted_chidren_tree_node_label(
         .response;
 
     if response.clicked() {
-        weave.set_node_active_status_u128(&node.id, true);
         state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
     }
 
