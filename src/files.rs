@@ -32,6 +32,8 @@ use crate::{
     settings::{Settings, shortcuts::Shortcuts},
 };
 
+// TODO: Update this to use logical ordering (directories before files, 1000.txt > 1.txt)
+
 pub struct FileManager {
     settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
