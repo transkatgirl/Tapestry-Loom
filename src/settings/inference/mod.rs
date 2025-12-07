@@ -122,7 +122,7 @@ impl InferenceSettings {
                         }
 
                         if ui.button("\u{E09E}").on_hover_text("Copy model").clicked() {
-                            copy = Some(*id);
+                            copy = Some((*id, index));
                         }
 
                         if index != length.saturating_sub(1)
@@ -159,8 +159,10 @@ impl InferenceSettings {
             self.models.swap_indices(index, index + 1);
         }
 
-        if let Some(copy) = copy.and_then(|id| self.models.get(&id)).cloned() {
-            self.models.insert(Ulid::new(), copy);
+        if let Some((id, index)) = copy
+            && let Some(copy) = self.models.get(&id).cloned()
+        {
+            self.models.insert_before(index, Ulid::new(), copy);
         }
 
         if let Some(delete) = delete {
@@ -370,8 +372,10 @@ impl InferenceParameters {
             self.models.swap(index, index + 1);
         }
 
-        if let Some(copy) = copy.and_then(|index| self.models.get(index)).cloned() {
-            self.models.push(copy);
+        if let Some(index) = copy
+            && let Some(copy) = self.models.get(index).cloned()
+        {
+            self.models.insert(index, copy);
         }
 
         if let Some(delete) = delete {
