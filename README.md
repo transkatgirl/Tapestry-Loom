@@ -9,6 +9,7 @@ An IDE for working with base model LLMs, inspired by the designs of [loom](https
 
 - Ordering of nodes in multi-model Weaves is ~random
 - Canvas view does not work
+- File picker item ordering can vary based on the operating system used
 
 ## Usage
 
