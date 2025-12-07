@@ -1,9 +1,12 @@
 use std::{collections::HashMap, fmt::Display, rc::Rc, sync::Arc, time::Duration};
 
 use bytes::{Bytes, BytesMut};
-use eframe::egui::{
-    Align, Color32, ComboBox, DragValue, Layout, RichText, Slider, SliderClamping, TextEdit,
-    TextStyle, Ui, Widget, WidgetText,
+use eframe::{
+    egui::{
+        Align, Color32, ComboBox, DragValue, Layout, RichText, Slider, SliderClamping, TextEdit,
+        TextStyle, Ui, Widget, WidgetText,
+    },
+    epaint::Hsva,
 };
 use poll_promise::Promise;
 use reqwest::{Client, ClientBuilder};
@@ -179,7 +182,7 @@ impl InferenceSettings {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct InferenceModel {
     label: String,
-    color: Option<Color32>,
+    color: Option<Hsva>,
     endpoint: EndpointConfig,
 }
 
@@ -202,7 +205,7 @@ impl InferenceModel {
         Model {
             label: self.label().to_string(),
             metadata: if let Some(color) = self.color {
-                IndexMap::from_iter([("color".to_string(), color.to_hex())])
+                IndexMap::from_iter([("color".to_string(), Color32::from(color).to_hex())])
             } else {
                 IndexMap::default()
             },
@@ -218,7 +221,7 @@ impl InferenceModel {
                 .labelled_by(textedit_label.id);
 
             if let Some(color) = &mut self.color {
-                ui.color_edit_button_srgba(color);
+                ui.color_edit_button_hsva(color);
                 if ui
                     .button("\u{E148}")
                     .on_hover_text("Remove label color")
@@ -231,7 +234,7 @@ impl InferenceModel {
                 .on_hover_text("Add label color")
                 .clicked()
             {
-                self.color = Some(ui.style().visuals.hyperlink_color);
+                self.color = Some(ui.style().visuals.hyperlink_color.into());
             }
         });
 
