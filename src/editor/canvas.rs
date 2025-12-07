@@ -2,8 +2,8 @@ use std::{collections::HashSet, hash::Hash};
 
 use eframe::{
     egui::{
-        Color32, Frame, Pos2, Rect, Scene, Sense, Stroke, StrokeKind, TextStyle, Ui, UiBuilder,
-        Vec2,
+        Button, Color32, Frame, Pos2, Rect, Scene, Sense, Stroke, StrokeKind, TextStyle, Ui,
+        UiBuilder, Vec2,
     },
     epaint::{ColorMode, CubicBezierShape, MarginF32, PathStroke, QuadraticBezierShape},
 };
@@ -12,11 +12,14 @@ use flagset::FlagSet;
 use tapestry_weave::ulid::Ulid;
 
 use crate::{
-    editor::shared::{
-        NodeIndex, SharedState,
-        layout::{ArrangedWeave, WeaveLayout, wire_bezier_3},
-        render_node_text,
-        weave::WeaveWrapper,
+    editor::{
+        lists::render_node_context_menu,
+        shared::{
+            NodeIndex, SharedState,
+            layout::{ArrangedWeave, WeaveLayout, wire_bezier_3},
+            render_node_text,
+            weave::WeaveWrapper,
+        },
     },
     settings::{Settings, shortcuts::Shortcuts},
 };
@@ -282,37 +285,52 @@ fn render_node(
     let hovered_node = state.get_hovered_node().into_node();
     let cursor_node = state.get_cursor_node().into_node();
 
+    let stroke_width = ui.visuals().widgets.noninteractive.fg_stroke.width * 1.5;
+
     if let Some(node) = weave.get_node(node).cloned() {
-        let mut frame = Frame::new()
-            .inner_margin(MarginF32::same(ui.style().spacing.menu_spacing / 2.0))
+        let mut button = Button::new(render_node_text(ui, &node, settings, None))
+            .fill(Color32::TRANSPARENT)
             .stroke(Stroke {
-                width: ui.visuals().widgets.noninteractive.fg_stroke.width * 1.5,
+                width: stroke_width,
                 color: ui.visuals().widgets.noninteractive.bg_stroke.color,
+            })
+            .min_size(Vec2 {
+                x: ui.spacing().text_edit_width,
+                y: ui.text_style_height(&TextStyle::Monospace) * 3.0,
             });
 
         if cursor_node == Some(Ulid(node.id)) {
-            frame.stroke.color = ui.visuals().widgets.noninteractive.fg_stroke.color;
+            button = button
+                .stroke(Stroke {
+                    width: stroke_width,
+                    color: ui.visuals().widgets.noninteractive.fg_stroke.color,
+                })
+                .selected(true);
         }
 
         if hovered_node == Some(Ulid(node.id)) {
-            frame = frame.fill(ui.style().visuals.widgets.hovered.weak_bg_fill);
+            button = button.fill(ui.style().visuals.widgets.hovered.weak_bg_fill);
         }
 
-        let response = ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
-            frame.show(ui, |ui| {
-                ui.set_min_width(ui.spacing().text_edit_width);
-                ui.set_min_height(ui.text_style_height(&TextStyle::Monospace) * 3.0);
-
-                ui.label(render_node_text(ui, &node, settings, None));
+        if node.bookmarked {
+            button = button.stroke(Stroke {
+                width: stroke_width,
+                color: ui.visuals().selection.bg_fill,
             });
+        }
+
+        let response = ui.add(button);
+
+        response.context_menu(|ui| {
+            render_node_context_menu(ui, settings, state, weave, &node);
         });
 
-        if response.response.clicked() {
+        if response.clicked() {
             weave.set_node_active_status_u128(&node.id, true);
             state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
         }
 
-        if response.response.contains_pointer() {
+        if response.contains_pointer() {
             state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
         }
     }
