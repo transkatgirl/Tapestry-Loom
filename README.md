@@ -22,24 +22,24 @@ The plans for the rewrite are the following:
 			- [ ] Automatically adjust canvas position & highlighting based on textbox cursor location
 			- [ ] Automatically scroll textbox based on canvas cursor
 			- [ ] Scroll newly generated nodes into view
-		- [ ] Compact tree + compact treelist + textbox, similar to [loomsidian](https://github.com/cosmicoptima/loom) & old Tapestry Loom
-			- [ ] Implement resizable, dragable & scrollable tree
-			- [ ] Implement tree nodes
-				- [ ] Implement tree node content display on hover
-				- [ ] Implement tree node left click
-				- [ ] Implement tree node right click
+		- [x] Compact tree + compact treelist + textbox, similar to [loomsidian](https://github.com/cosmicoptima/loom) & old Tapestry Loom
+			- [x] Implement resizable, dragable & scrollable tree
+			- [x] Implement tree nodes
+				- [x] Implement tree node content display on hover
+				- [x] Implement tree node left click
+				- [x] Implement tree node right click
 			- [x] Implement resizable & scrollable treelist
 			- [x] Implement resizable and scrollable textbox
 				- [ ] Show node siblings on hover
 			- [x] Automatically adjust tree position & highlighting based on textbox cursor location
 			- [x] Automatically scroll textbox based on tree cursor location
 			- [x] Scroll newly generated nodes into view
-		- [ ] Compact tree + node child list + textbox, similar to [exoloom](https://exoloom.io)
-			- [ ] Implement resizable, dragable & scrollable tree
-			- [ ] Implement tree nodes
-				- [ ] Implement tree node content display on hover
-				- [ ] Implement tree node left click
-				- [ ] Implement tree node right click
+		- [x] Compact tree + node child list + textbox, similar to [exoloom](https://exoloom.io)
+			- [x] Implement resizable, dragable & scrollable tree
+			- [x] Implement tree nodes
+				- [x] Implement tree node content display on hover
+				- [x] Implement tree node left click
+				- [x] Implement tree node right click
 			- [x] Implement resizable and scrollable node child list
 			- [x] Implement resizable and scrollable textbox
 				- [ ] Show node siblings on hover
