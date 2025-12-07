@@ -11,7 +11,7 @@ Requires the [Rust Programming Language](https://rust-lang.org/tools/install/) a
 
 ```bash
 git clone --recurse-submodules https://github.com/transkatgirl/Tapestry-Loom.git
-# Switching branches after cloning is required at the moment, but this branch will be merged into main soon
+cd Tapestry-Loom
 cargo run --release
 ```
 
