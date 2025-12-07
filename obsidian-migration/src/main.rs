@@ -3,7 +3,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use base64::prelude::*;
 use clap::Parser;
+use frontmatter::{Yaml, parse_and_find_content};
+use miniz_oxide::inflate::decompress_to_vec_zlib;
 use walkdir::WalkDir;
 
 #[derive(Parser)]
@@ -47,12 +50,35 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn migrate_weave(input: &Path, output: &Path) -> anyhow::Result<()> {
-    let contents = fs::read_to_string(input)?;
+fn migrate_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<()> {
+    let input = fs::read_to_string(input_path)?;
 
-    // TODO
+    if let Ok((Some(Yaml::Hash(mut frontmatter)), _)) = parse_and_find_content(&input) {
+        let weave = if let Some(Yaml::String(compressed_weave)) =
+            frontmatter.remove(&Yaml::String("TapestryLoomWeaveCompressed".to_string()))
+        {
+            Some(String::from_utf8(
+                decompress_to_vec_zlib(&BASE64_STANDARD.decode(compressed_weave)?)
+                    .map_err(|e| anyhow::Error::msg(format!("{}", e)))?,
+            )?)
+        } else if let Some(Yaml::String(decompressed_weave)) =
+            frontmatter.remove(&Yaml::String("TapestryLoomWeave".to_string()))
+        {
+            Some(decompressed_weave)
+        } else {
+            None
+        };
 
-    println!("{} -> {}", input.display(), output.display());
+        if let Some(weave) = weave {
+            println!("{} -> {}", input_path.display(), output_path.display());
+
+            // TODO
+
+            //println!("{:?}", frontmatter);
+
+            //fs::write(output_path, buffer)?;
+        }
+    }
 
     Ok(())
 }

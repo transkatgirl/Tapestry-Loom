@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 base64 = "0.22.1"
-deflate = "1.0.0"
+miniz_oxide = "0.8.9"
 frontmatter = "0.4.0"
 boa_engine = "0.21.0"
 tapestry-weave = { path = "../universal-weave/tapestry-weave" }
