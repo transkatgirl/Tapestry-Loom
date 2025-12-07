@@ -1,4 +1,4 @@
-use std::{collections::HashSet, hash::Hash};
+use std::{collections::HashSet, hash::Hash, time::Instant};
 
 use eframe::{
     egui::{
@@ -30,6 +30,7 @@ pub struct CanvasView {
     layout: WeaveLayout,
     arranged: ArrangedWeave,
     lines: Vec<([Pos2; 4], PathStroke)>,
+    last_changed: Instant,
 }
 
 impl Default for CanvasView {
@@ -39,6 +40,7 @@ impl Default for CanvasView {
             layout: WeaveLayout::with_capacity(65535, 131072),
             arranged: ArrangedWeave::default(),
             lines: Vec::with_capacity(131072),
+            last_changed: Instant::now(),
         }
     }
 }
@@ -72,7 +74,7 @@ impl CanvasView {
             .into_iter()
             .map(|id| {
                 let size = calculate_size(ui, id, |ui| {
-                    render_node(ui, weave, settings, state, &Ulid(id));
+                    render_node(ui, weave, settings, state, &Ulid(id), false);
                 });
 
                 (Ulid(id), (size.y as f64, size.x as f64))
@@ -83,6 +85,7 @@ impl CanvasView {
         self.arranged = self
             .layout
             .layout_weave(ui.text_style_height(&TextStyle::Monospace) as f64 * 4.0);
+        self.last_changed = Instant::now();
 
         for (_, rect) in self.arranged.rects.iter_mut() {
             *rect = Rect {
@@ -178,6 +181,8 @@ impl CanvasView {
             None
         };
 
+        let last_rect = self.rect;
+
         Scene::new().show(ui, &mut self.rect, |ui| {
             let painter = ui.painter();
 
@@ -200,7 +205,15 @@ impl CanvasView {
 
             for (node, rect) in &self.arranged.rects {
                 ui.scope_builder(UiBuilder::new().max_rect(*rect), |ui| {
-                    render_node(ui, weave, settings, state, node);
+                    render_node(
+                        ui,
+                        weave,
+                        settings,
+                        state,
+                        node,
+                        self.last_changed.elapsed().as_secs_f32()
+                            >= ui.style().interaction.tooltip_delay,
+                    );
                 });
 
                 if Some(*node) == changed_node {
@@ -217,61 +230,9 @@ impl CanvasView {
             self.rect = Rect::ZERO;
         }
 
-        /*ScrollArea::both()
-        .animated(false)
-        .auto_shrink(false)
-        .show(ui, |ui| {
-            let (response, painter) = ui.allocate_painter(
-                Vec2 {
-                    x: self.arranged.width as f32,
-                    y: self.arranged.height as f32,
-                },
-                Sense::click_and_drag(),
-            );
-            let rect = response.rect;
-
-            for (item, (x, y)) in self.arranged.positions.iter() {
-                let node = weave.get_node(item).unwrap();
-
-                if let Some((p_x, p_y)) = node
-                    .from
-                    .and_then(|id| self.arranged.positions.get(&Ulid(id)))
-                {
-                    painter.line(
-                        vec![
-                            Pos2 {
-                                x: *p_x as f32 + rect.min.x,
-                                y: *p_y as f32 + rect.min.y,
-                            },
-                            Pos2 {
-                                x: *x as f32 + rect.min.x,
-                                y: *y as f32 + rect.min.y,
-                            },
-                        ],
-                        Stroke {
-                            width: 1.0,
-                            color: default_color,
-                        },
-                    );
-                }
-            }
-
-            for (item, (x, y)) in self.arranged.positions.iter() {
-                let node = weave.get_node(item).unwrap();
-
-                painter.circle(
-                    Pos2 {
-                        x: *x as f32 + rect.min.x,
-                        y: *y as f32 + rect.min.y,
-                    },
-                    2.5,
-                    get_node_color(node, settings).unwrap_or(default_color),
-                    Stroke::NONE,
-                );
-            }
-        });*/
-
-        //println!("{:#?}", self.arranged);
+        if self.rect != last_rect {
+            self.last_changed = Instant::now();
+        }
     }
 }
 
@@ -281,6 +242,7 @@ fn render_node(
     settings: &Settings,
     state: &mut SharedState,
     node: &Ulid,
+    show_tooltip: bool,
 ) {
     let hovered_node = state.get_hovered_node().into_node();
     let cursor_node = state.get_cursor_node().into_node();
@@ -336,9 +298,10 @@ fn render_node(
 
         let mut tooltip = Tooltip::for_enabled(&response);
 
-        tooltip.popup = tooltip
-            .popup
-            .open(response.contains_pointer() || Tooltip::should_show_tooltip(&response, true));
+        tooltip.popup = tooltip.popup.open(
+            (response.contains_pointer() || Tooltip::should_show_tooltip(&response, true))
+                && show_tooltip,
+        );
 
         tooltip.show(|ui| {
             ui.horizontal(|ui| {
