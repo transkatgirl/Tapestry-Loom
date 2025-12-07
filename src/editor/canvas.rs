@@ -1,8 +1,11 @@
 use std::{collections::HashSet, hash::Hash};
 
 use eframe::{
-    egui::{Color32, Frame, Pos2, Rect, Scene, Stroke, StrokeKind, TextStyle, Ui, UiBuilder, Vec2},
-    epaint::{ColorMode, CubicBezierShape, PathStroke, QuadraticBezierShape},
+    egui::{
+        Color32, Frame, Pos2, Rect, Scene, Sense, Stroke, StrokeKind, TextStyle, Ui, UiBuilder,
+        Vec2,
+    },
+    epaint::{ColorMode, CubicBezierShape, MarginF32, PathStroke, QuadraticBezierShape},
 };
 use egui_notify::Toasts;
 use flagset::FlagSet;
@@ -10,7 +13,7 @@ use tapestry_weave::ulid::Ulid;
 
 use crate::{
     editor::shared::{
-        SharedState,
+        NodeIndex, SharedState,
         layout::{ArrangedWeave, WeaveLayout, wire_bezier_3},
         render_node_text,
         weave::WeaveWrapper,
@@ -50,7 +53,7 @@ impl CanvasView {
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
     ) {
-        if state.has_weave_changed {
+        if state.has_weave_changed || state.has_theme_changed {
             self.arranged = ArrangedWeave::default();
         }
     }
@@ -106,7 +109,7 @@ impl CanvasView {
             {
                 self.lines.push((
                     wire_bezier_3(
-                        ui.style().spacing.interact_size.y * 4.0,
+                        ui.style().spacing.interact_size.y * 2.0,
                         Pos2 {
                             x: p_rect.max.x,
                             y: (p_rect.min.y + (p_rect.max.y - p_rect.min.y) / 2.0),
@@ -132,7 +135,7 @@ impl CanvasView {
             {
                 self.lines.push((
                     wire_bezier_3(
-                        ui.style().spacing.interact_size.y * 4.0,
+                        ui.style().spacing.interact_size.y * 2.0,
                         Pos2 {
                             x: p_rect.max.x,
                             y: (p_rect.min.y + (p_rect.max.y - p_rect.min.y) / 2.0),
@@ -166,10 +169,24 @@ impl CanvasView {
 
         let mut focus: Option<Rect> = None;
 
+        let mut changed_node = if settings.interface.auto_scroll {
+            state.get_changed_node()
+        } else {
+            None
+        };
+
         Scene::new().show(ui, &mut self.rect, |ui| {
             let painter = ui.painter();
 
-            /*for (points, stroke) in self.lines.iter().cloned() {
+            if ui.response().contains_pointer() {
+                changed_node = None;
+            }
+
+            if shortcuts.contains(Shortcuts::FitToCursor) {
+                changed_node = state.get_cursor_node().into_node();
+            }
+
+            for (points, stroke) in self.lines.iter().cloned() {
                 painter.add(CubicBezierShape {
                     points,
                     closed: false,
@@ -182,14 +199,12 @@ impl CanvasView {
                 ui.scope_builder(UiBuilder::new().max_rect(*rect), |ui| {
                     render_node(ui, weave, settings, state, node);
                 });
-            }*/
 
-            ui.heading("Unimplemented");
+                if Some(*node) == changed_node {
+                    focus = Some(*rect);
+                }
+            }
         });
-
-        if shortcuts.contains(Shortcuts::FitToCursor) {
-            // TODO
-        }
 
         if let Some(focus) = focus {
             self.rect = focus;
@@ -264,15 +279,42 @@ fn render_node(
     state: &mut SharedState,
     node: &Ulid,
 ) {
+    let hovered_node = state.get_hovered_node().into_node();
+    let cursor_node = state.get_cursor_node().into_node();
+
     if let Some(node) = weave.get_node(node).cloned() {
-        Frame::new()
-            .fill(ui.visuals().widgets.inactive.bg_fill)
-            .show(ui, |ui| {
+        let mut frame = Frame::new()
+            .inner_margin(MarginF32::same(ui.style().spacing.menu_spacing / 2.0))
+            .stroke(Stroke {
+                width: ui.visuals().widgets.noninteractive.fg_stroke.width * 1.5,
+                color: ui.visuals().widgets.noninteractive.bg_stroke.color,
+            });
+
+        if cursor_node == Some(Ulid(node.id)) {
+            frame.stroke.color = ui.visuals().widgets.noninteractive.fg_stroke.color;
+        }
+
+        if hovered_node == Some(Ulid(node.id)) {
+            frame = frame.fill(ui.style().visuals.widgets.hovered.weak_bg_fill);
+        }
+
+        let response = ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+            frame.show(ui, |ui| {
                 ui.set_min_width(ui.spacing().text_edit_width);
                 ui.set_min_height(ui.text_style_height(&TextStyle::Monospace) * 3.0);
 
                 ui.label(render_node_text(ui, &node, settings, None));
             });
+        });
+
+        if response.response.clicked() {
+            weave.set_node_active_status_u128(&node.id, true);
+            state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
+        }
+
+        if response.response.contains_pointer() {
+            state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
+        }
     }
 }
 
