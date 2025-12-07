@@ -216,7 +216,7 @@ impl KeyboardShortcuts {
 
         ui.add(
             Keybind::new(&mut self.fit_to_cursor, "keybind-fit_to_cursor")
-                .with_text("Fit view automatically")
+                .with_text("Fit view to cursor")
                 .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );

@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use eframe::egui::{Color32, Stroke, Tooltip, Ui};
+use eframe::egui::{Color32, Stroke, Tooltip, Ui, Vec2};
 use egui_notify::Toasts;
 use egui_plot::{Line, Plot, PlotItem, PlotPoint, PlotPoints, Polygon};
 use flagset::FlagSet;
@@ -164,6 +164,8 @@ impl GraphView {
         state: &mut SharedState,
         shortcuts: FlagSet<Shortcuts>,
     ) {
+        let mut fitting_node = None;
+
         if self.arranged.width == 0.0 && self.arranged.height == 0.0 {
             // TODO: Perform layout on a background thread
             self.layout.load_weave(
@@ -175,8 +177,10 @@ impl GraphView {
             );
             self.arranged = self.layout.layout_weave(1.5);
             self.update_plot_cache(weave, ui, settings);
+            fitting_node = state.get_cursor_node().into_node();
         } else if self.items.is_empty() {
             self.update_plot_cache(weave, ui, settings);
+            fitting_node = state.get_cursor_node().into_node();
         }
 
         let mut pointer_node = None;
@@ -195,6 +199,11 @@ impl GraphView {
 
         let changed_node = state.get_changed_node();
 
+        if shortcuts.contains(Shortcuts::FitToCursor) {
+            fitting_node = cursor_node;
+            println!("{:?}", cursor_node);
+        }
+
         let response = Plot::new([state.identifier.to_string(), "graph".to_string()])
             .show_x(false)
             .show_y(false)
@@ -205,8 +214,6 @@ impl GraphView {
             .show_grid(false)
             .data_aspect(1.0)
             .show(ui, |ui| {
-                // TODO: Automatic graph fitting
-
                 let bounds = ui.plot_bounds();
                 let pointer = ui.pointer_coordinate().filter(|pointer| {
                     ((bounds.min()[0])..=(bounds.max()[0])).contains(&pointer.x)
@@ -215,6 +222,10 @@ impl GraphView {
                 });
 
                 let screen_area = ui.response().rect;
+                let fitting_area = Vec2 {
+                    x: screen_area.width() / 15.0,
+                    y: screen_area.height() / 15.0,
+                };
 
                 for item in self.items.iter() {
                     match item {
@@ -245,19 +256,15 @@ impl GraphView {
                                 polygon = polygon.stroke(cursor_stroke);
                             }
 
-                            if settings.interface.auto_scroll
+                            if (settings.interface.auto_scroll
                                 && pointer.is_none()
-                                && Some(id) == changed_node
+                                && fitting_node.is_none()
+                                && Some(id) == changed_node)
+                                || (Some(id) == fitting_node)
                             {
                                 let mut bounds = ui.plot_bounds();
-                                bounds.set_x_center_width(
-                                    location.x,
-                                    screen_area.width() as f64 / 15.0,
-                                );
-                                bounds.set_y_center_height(
-                                    location.y,
-                                    screen_area.height() as f64 / 15.0,
-                                );
+                                bounds.set_x_center_width(location.x, fitting_area.x as f64);
+                                bounds.set_y_center_height(location.y, fitting_area.y as f64);
                                 ui.set_plot_bounds(bounds);
                             }
 
@@ -272,6 +279,12 @@ impl GraphView {
                         }
                     }
                 }
+
+                if shortcuts.contains(Shortcuts::FitToWeave) {
+                    ui.set_auto_bounds(true);
+                }
+
+                fitting_node = None;
             });
 
         if response.response.context_menu_opened() {
@@ -305,14 +318,6 @@ impl GraphView {
                     });
                 state.set_hovered_node(NodeIndex::Node(id));
             }
-        }
-
-        if shortcuts.contains(Shortcuts::FitToCursor) {
-            // TODO
-        }
-
-        if shortcuts.contains(Shortcuts::FitToWeave) {
-            // TODO
         }
     }
 }
