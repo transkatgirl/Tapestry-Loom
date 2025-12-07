@@ -46,10 +46,10 @@ impl Default for CanvasView {
 }
 
 impl CanvasView {
-    pub fn reset(&mut self) {
+    /*pub fn reset(&mut self) {
         self.rect = Rect::ZERO;
         self.arranged = ArrangedWeave::default();
-    }
+    }*/
     pub fn update(
         &mut self,
         _weave: &mut WeaveWrapper,
@@ -205,17 +205,12 @@ impl CanvasView {
                 });
             }
 
+            let show_tooltip =
+                self.last_changed.elapsed().as_secs_f32() >= ui.style().interaction.tooltip_delay;
+
             for (node, rect) in &self.arranged.rects {
                 ui.scope_builder(UiBuilder::new().max_rect(*rect), |ui| {
-                    render_node(
-                        ui,
-                        weave,
-                        settings,
-                        state,
-                        node,
-                        self.last_changed.elapsed().as_secs_f32()
-                            >= ui.style().interaction.tooltip_delay,
-                    );
+                    render_node(ui, weave, settings, state, node, show_tooltip);
                 });
 
                 if Some(*node) == changed_node {
