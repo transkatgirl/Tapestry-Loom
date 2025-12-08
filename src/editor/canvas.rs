@@ -242,8 +242,8 @@ impl CanvasView {
                 self.last_changed.elapsed().as_secs_f32() >= ui.style().interaction.tooltip_delay;
 
             for (node, rect) in &self.arranged.rects {
-                if ui.is_rect_visible(*rect) {
-                    ui.scope_builder(UiBuilder::new().max_rect(*rect), |ui| {
+                ui.scope_builder(UiBuilder::new().max_rect(*rect), |ui| {
+                    if ui.is_rect_visible(*rect) {
                         render_node(
                             ui,
                             weave,
@@ -257,8 +257,8 @@ impl CanvasView {
                             },
                             show_tooltip,
                         );
-                    });
-                }
+                    }
+                });
 
                 if Some(*node) == changed_node {
                     let rect = *rect;
