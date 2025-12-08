@@ -86,6 +86,8 @@ The plans for the rewrite are the following:
 	- [ ] Support shortcuts for all aspects of the UI, not just the weave editor
 - [ ] Allows saving and switching between multiple inference presets
 - [ ] Better documentation & onboarding
+	- [ ] Tutorial video
+	- [ ] Binary releases
 	- [ ] Loomsidian migration script?
 
 In addition, below are the tentative plans for Tapestry Loom v2:
