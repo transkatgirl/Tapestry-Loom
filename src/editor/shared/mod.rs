@@ -214,27 +214,42 @@ impl SharedState {
             weave.set_node_bookmarked_status_u128(&identifier, !node.bookmarked);
         }
 
-        if shortcuts.contains(Shortcuts::AddChild)
-            && let Some(node) = self
-                .last_cursor_node
-                .into_node()
-                .and_then(|id| weave.get_node(&id).cloned())
-        {
-            let identifier = Ulid::new().0;
-            if weave.add_node(DependentNode {
-                id: identifier,
-                from: Some(node.id),
-                to: IndexSet::default(),
-                active: node.active,
-                bookmarked: false,
-                contents: NodeContent {
-                    content: InnerNodeContent::Snippet(vec![]),
-                    metadata: IndexMap::new(),
-                    model: None,
-                },
-            }) && node.active
-            {
-                self.cursor_node = NodeIndex::Node(Ulid(identifier));
+        if shortcuts.contains(Shortcuts::AddChild) {
+            if let Some(id) = self.last_cursor_node.into_node() {
+                if let Some(node) = weave.get_node(&id).cloned() {
+                    let identifier = Ulid::new().0;
+                    if weave.add_node(DependentNode {
+                        id: identifier,
+                        from: Some(node.id),
+                        to: IndexSet::default(),
+                        active: node.active,
+                        bookmarked: false,
+                        contents: NodeContent {
+                            content: InnerNodeContent::Snippet(vec![]),
+                            metadata: IndexMap::new(),
+                            model: None,
+                        },
+                    }) && node.active
+                    {
+                        self.cursor_node = NodeIndex::Node(Ulid(identifier));
+                    }
+                }
+            } else {
+                let identifier = Ulid::new().0;
+                if weave.add_node(DependentNode {
+                    id: identifier,
+                    from: None,
+                    to: IndexSet::default(),
+                    active: true,
+                    bookmarked: false,
+                    contents: NodeContent {
+                        content: InnerNodeContent::Snippet(vec![]),
+                        metadata: IndexMap::new(),
+                        model: None,
+                    },
+                }) {
+                    self.cursor_node = NodeIndex::Node(Ulid(identifier));
+                }
             }
         }
 
