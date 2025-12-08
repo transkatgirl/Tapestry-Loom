@@ -1,0 +1,45 @@
+name: Automated Builds
+
+on:
+    push:
+        tags:
+            - "v*.*.*"
+
+env:
+    CARGO_TERM_COLOR: always
+
+jobs:
+    build:
+        name: Build release for ${{ matrix.os }}
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                include:
+                    - os: windows-latest
+                      artifact_name: tapestry-loom.exe
+                      asset_name: tapestry-loom-windows-x86_64.exe
+                    - os: macos-latest
+                      artifact_name: tapestry-loom
+                      asset_name: tapestry-loom-macos-aarch64
+                    - os: ubuntu-24.04
+                      artifact_name: tapestry-loom
+                      asset_name: tapestry-loom-linux-x86_64
+                    - os: ubuntu-24.04-arm
+                      artifact_name: tapestry-loom
+                      asset_name: tapestry-loom-linux-aarch64
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v6
+              with:
+                  submodules: "true"
+            - name: Rust Cache
+              uses: Swatinem/rust-cache@v2.8.2
+            - name: Build
+              run: cargo build --release --locked
+            - name: Upload binaries to release
+              uses: svenstaro/upload-release-action@v2
+              with:
+                  repo_token: ${{ secrets.GITHUB_TOKEN }}
+                  file: target/release/${{ matrix.artifact_name }}
+                  asset_name: ${{ matrix.asset_name }}
+                  tag: ${{ github.ref }}
