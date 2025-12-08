@@ -24,7 +24,7 @@ impl Template<OpenAICompletionsConfig> for OpenAICompletionsTemplate {
     fn render(&mut self, ui: &mut Ui) {
         ui.horizontal_wrapped(|ui| {
             TextEdit::singleline(&mut self.endpoint)
-                .hint_text("https://openrouter.ai/api/v1/completions")
+                .hint_text("http://127.0.0.1:8080/v1/completions")
                 .ui(ui)
                 .on_hover_text("Endpoint URL");
             TextEdit::singleline(&mut self.model)
@@ -42,10 +42,22 @@ impl Template<OpenAICompletionsConfig> for OpenAICompletionsTemplate {
     fn build(mut self) -> Option<OpenAICompletionsConfig> {
         Some(OpenAICompletionsConfig {
             endpoint: if self.endpoint.is_empty() {
-                "https://openrouter.ai/api/v1/completions".to_string()
+                "http://127.0.0.1:8080/v1/completions".to_string()
             } else {
-                if !self.endpoint.ends_with("/v1/completions") {
-                    self.endpoint.push_str("/v1/completions");
+                if !(self.endpoint.ends_with("/v1") || self.endpoint.ends_with("/v1/")) {
+                    if self.endpoint.ends_with("/") {
+                        self.endpoint.push_str("v1");
+                    } else {
+                        self.endpoint.push_str("/v1");
+                    }
+                }
+
+                if !self.endpoint.ends_with("/completions") {
+                    if self.endpoint.ends_with("/") {
+                        self.endpoint.push_str("completions");
+                    } else {
+                        self.endpoint.push_str("/completions");
+                    }
                 }
 
                 self.endpoint
@@ -93,7 +105,7 @@ impl Template<OpenAIChatCompletionsConfig> for OpenAIChatCompletionsTemplate {
     fn render(&mut self, ui: &mut Ui) {
         ui.horizontal_wrapped(|ui| {
             TextEdit::singleline(&mut self.endpoint)
-                .hint_text("https://openrouter.ai/api/v1/chat/completions")
+                .hint_text("http://127.0.0.1:8080/v1/chat/completions")
                 .ui(ui)
                 .on_hover_text("Endpoint URL");
             TextEdit::singleline(&mut self.model)
@@ -111,10 +123,22 @@ impl Template<OpenAIChatCompletionsConfig> for OpenAIChatCompletionsTemplate {
     fn build(mut self) -> Option<OpenAIChatCompletionsConfig> {
         Some(OpenAIChatCompletionsConfig {
             endpoint: if self.endpoint.is_empty() {
-                "https://openrouter.ai/api/v1/chat/completions".to_string()
+                "http://127.0.0.1:8080/v1/chat/completions".to_string()
             } else {
-                if !self.endpoint.ends_with("/v1/chat/completions") {
-                    self.endpoint.push_str("/v1/chat/completions");
+                if !(self.endpoint.ends_with("/v1") || self.endpoint.ends_with("/v1/")) {
+                    if self.endpoint.ends_with("/") {
+                        self.endpoint.push_str("v1");
+                    } else {
+                        self.endpoint.push_str("/v1");
+                    }
+                }
+
+                if !self.endpoint.ends_with("/chat/completions") {
+                    if self.endpoint.ends_with("/") {
+                        self.endpoint.push_str("chat/completions");
+                    } else {
+                        self.endpoint.push_str("/chat/completions");
+                    }
                 }
 
                 self.endpoint
