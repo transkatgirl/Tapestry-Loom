@@ -8,8 +8,9 @@ use std::{
 };
 
 use eframe::egui::{
-    Align, Button, Color32, FontFamily, Frame, Id, Layout, RichText, ScrollArea, Sense, Ui,
-    UiBuilder, WidgetText, collapsing_header::CollapsingState, scroll_area::ScrollBarVisibility,
+    Align, Button, Color32, FontFamily, Frame, Id, Layout, Pos2, Rect, RichText, ScrollArea, Sense,
+    Ui, UiBuilder, WidgetText, collapsing_header::CollapsingState,
+    scroll_area::ScrollBarVisibility,
 };
 use egui_notify::Toasts;
 use egui_virtual_list::VirtualList;
@@ -879,38 +880,54 @@ fn render_horizontal_node_label(
                     state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
                 }
 
-                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    if ui.rect_contains_pointer(ui.max_rect()) {
-                        state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
-                        mouse_hovered = true;
-                    }
+                let hover_rect = Rect {
+                    min: Pos2 {
+                        x: ui.min_rect().min.x,
+                        y: ui.max_rect().min.y,
+                    },
+                    max: Pos2 {
+                        x: ui.max_rect().max.x,
+                        y: ui.min_rect().max.y,
+                    },
+                };
 
-                    if mouse_hovered {
-                        ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
-                            ui.add_space(ui.spacing().icon_spacing);
-                            buttons(ui, settings, state, weave, node);
-                            ui.add_space(ui.spacing().icon_spacing);
+                if ui.rect_contains_pointer(hover_rect) {
+                    state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
+                    mouse_hovered = true;
+                }
 
+                ui.scope_builder(
+                    UiBuilder::new()
+                        .max_rect(hover_rect)
+                        .layout(Layout::right_to_left(Align::Center)),
+                    |ui| {
+                        if mouse_hovered {
+                            ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                                ui.add_space(ui.spacing().icon_spacing);
+                                buttons(ui, settings, state, weave, node);
+                                ui.add_space(ui.spacing().icon_spacing);
+
+                                ui.add_space(0.0);
+                            });
+                        } else if show_node_info {
+                            ui.add_space(ui.spacing().icon_spacing);
+                            if node.bookmarked {
+                                ui.label("\u{E060}");
+                            }
+                            if let InnerNodeContent::Tokens(tokens) = &node.contents.content
+                                && tokens.len() == 1
+                                && let Some(token) = tokens.first()
+                                && let Some(probability) = token.1.get("probability")
+                                && let Ok(probability) = probability.parse::<f32>()
+                            {
+                                ui.label(format!("{:.1}%", probability * 100.0));
+                            }
+                            ui.add_space(ui.spacing().icon_spacing);
+                        } else {
                             ui.add_space(0.0);
-                        });
-                    } else if show_node_info {
-                        ui.add_space(ui.spacing().icon_spacing);
-                        if node.bookmarked {
-                            ui.label("\u{E060}");
                         }
-                        if let InnerNodeContent::Tokens(tokens) = &node.contents.content
-                            && tokens.len() == 1
-                            && let Some(token) = tokens.first()
-                            && let Some(probability) = token.1.get("probability")
-                            && let Ok(probability) = probability.parse::<f32>()
-                        {
-                            ui.label(format!("{:.1}%", probability * 100.0));
-                        }
-                        ui.add_space(ui.spacing().icon_spacing);
-                    } else {
-                        ui.add_space(0.0);
-                    }
-                });
+                    },
+                );
             })
         })
         .response;
