@@ -8,8 +8,8 @@ use std::{
 };
 
 use eframe::egui::{
-    Align, Button, Color32, FontFamily, Frame, Id, Layout, Pos2, Rect, RichText, ScrollArea, Sense,
-    Ui, UiBuilder, WidgetText, collapsing_header::CollapsingState,
+    Align, Button, Color32, FontFamily, Frame, Id, Layout, Pos2, Rect, Rgba, RichText, ScrollArea,
+    Sense, Ui, UiBuilder, WidgetText, collapsing_header::CollapsingState,
     scroll_area::ScrollBarVisibility,
 };
 use egui_notify::Toasts;
@@ -902,6 +902,14 @@ fn render_horizontal_node_label(
 
                 let mut label_button = if node.active {
                     if let Some(label_color) = label_color {
+                        let rgba = Rgba::from(label_color).to_opaque();
+                        let label_color = Color32::from(Rgba::from_rgba_unmultiplied(
+                            rgba.r(),
+                            rgba.g(),
+                            rgba.b(),
+                            0.5,
+                        ));
+
                         Button::new(label).fill(label_color).selected(true)
                     } else {
                         Button::new(label).selected(true)
