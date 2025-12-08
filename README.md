@@ -84,6 +84,7 @@ The plans for the rewrite are the following:
 	- [x] Automatically adapt keyboards shortcuts based on OS (such as Mac vs Windows/Linux)
 	- [x] Repeat keypresses when a keyboard be cut is held down
 	- [ ] Support shortcuts for all aspects of the UI, not just the weave editor
+- [ ] Allows saving and switching between multiple inference presets
 - [ ] Better documentation & onboarding
 	- [ ] Loomsidian migration script?
 
