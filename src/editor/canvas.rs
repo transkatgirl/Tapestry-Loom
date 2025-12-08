@@ -308,6 +308,9 @@ fn render_node(
 
         if cursor_node == Some(Ulid(node.id)) {
             stroke.width *= 2.0;
+            if node.bookmarked {
+                stroke.color = ui.visuals().selection.stroke.color;
+            }
         }
 
         let mut button = Button::new(render_node_text(ui, &node, settings, None))
@@ -324,6 +327,10 @@ fn render_node(
         }
 
         let response = ui.add(button);
+
+        if ui.is_sizing_pass() {
+            return;
+        }
 
         response.context_menu(|ui| {
             render_node_context_menu(ui, settings, state, weave, &node);
