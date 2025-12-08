@@ -84,11 +84,6 @@ The plans for the rewrite are the following:
 	- [x] Automatically adapt keyboards shortcuts based on OS (such as Mac vs Windows/Linux)
 	- [x] Repeat keypresses when a keyboard be cut is held down
 	- [ ] Support shortcuts for all aspects of the UI, not just the weave editor
-- [ ] Multiple inference backends
-	- [x] OpenAI-compatible Completions
-	- [x] OpenAI-compatible ChatCompletions
-	- [ ] Custom llama.cpp based server ("Tapestry Inference")
-		- [ ] Alternatively, try to get as many of the needed features merged into llama-server as possible?
 - [ ] Better documentation & onboarding
 	- [ ] Loomsidian migration script?
 

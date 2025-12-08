@@ -106,7 +106,7 @@ impl InferenceSettings {
         let length = self.models.len();
         for (index, (id, model)) in &mut self.models.iter_mut().enumerate() {
             ui.group(|ui| {
-                model.render(ui);
+                model.render(ui, id);
 
                 ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
 
@@ -209,7 +209,7 @@ impl InferenceModel {
             },
         }
     }
-    fn render(&mut self, ui: &mut Ui) {
+    fn render(&mut self, ui: &mut Ui, id: &Ulid) {
         ui.horizontal_wrapped(|ui| {
             let textedit_label = ui.label("Label:");
 
@@ -239,7 +239,7 @@ impl InferenceModel {
         ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
         ui.label(["Endpoint Mode: ", &self.endpoint.to_string()].concat());
 
-        self.endpoint.render_settings(ui);
+        self.endpoint.render_settings(ui, id);
     }
 }
 
@@ -627,8 +627,8 @@ impl Display for EndpointTemplate {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::None => f.write_str("Choose template..."),
-            Self::OpenAICompletions(_) => f.write_str("OpenAI-like Completions"),
-            Self::OpenAIChatCompletions(_) => f.write_str("OpenAI-like ChatCompletions"),
+            Self::OpenAICompletions(_) => f.write_str("OpenAI-style Completions"),
+            Self::OpenAIChatCompletions(_) => f.write_str("OpenAI-style ChatCompletions"),
         }
     }
 }
@@ -643,17 +643,17 @@ enum EndpointConfig {
 impl Display for EndpointConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::OpenAICompletions(_) => f.write_str("OpenAI-like Completions"),
-            Self::OpenAIChatCompletions(_) => f.write_str("OpenAI-like ChatCompletions"),
+            Self::OpenAICompletions(_) => f.write_str("OpenAI-style Completions"),
+            Self::OpenAIChatCompletions(_) => f.write_str("OpenAI-style ChatCompletions"),
         }
     }
 }
 
 impl Endpoint for EndpointConfig {
-    fn render_settings(&mut self, ui: &mut Ui) {
+    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid) {
         match self {
-            Self::OpenAICompletions(endpoint) => endpoint.render_settings(ui),
-            Self::OpenAIChatCompletions(endpoint) => endpoint.render_settings(ui),
+            Self::OpenAICompletions(endpoint) => endpoint.render_settings(ui, id),
+            Self::OpenAIChatCompletions(endpoint) => endpoint.render_settings(ui, id),
         }
     }
     fn label(&self) -> &str {
@@ -694,7 +694,7 @@ struct EndpointResponse {
 }
 
 trait Endpoint: Serialize + DeserializeOwned + Clone {
-    fn render_settings(&mut self, ui: &mut Ui);
+    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid);
     fn label(&self) -> &str;
     fn default_parameters(&self) -> Vec<(String, String)>;
     async fn perform_request(

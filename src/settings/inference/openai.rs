@@ -1,4 +1,4 @@
-use eframe::egui::{TextEdit, Ui, Widget};
+use eframe::egui::{CollapsingHeader, TextEdit, Ui, Widget};
 use log::trace;
 use reqwest::{
     Client, Method, Response, Url,
@@ -6,7 +6,7 @@ use reqwest::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use tapestry_weave::{universal_weave::indexmap::IndexMap, v0::InnerNodeContent};
+use tapestry_weave::{ulid::Ulid, universal_weave::indexmap::IndexMap, v0::InnerNodeContent};
 
 use crate::settings::inference::{
     Endpoint, EndpointRequest, EndpointResponse, Template, escaped_string_from_utf8,
@@ -90,6 +90,7 @@ impl Template<OpenAICompletionsConfig> for OpenAICompletionsTemplate {
                     ("X-Title".to_string(), "Tapestry Loom".to_string()),
                 ]
             },
+            nonstandard: NonStandardOpenAIModifications::default(),
         })
     }
 }
@@ -171,6 +172,7 @@ impl Template<OpenAIChatCompletionsConfig> for OpenAIChatCompletionsTemplate {
                     ("X-Title".to_string(), "Tapestry Loom".to_string()),
                 ]
             },
+            nonstandard: NonStandardOpenAIModifications::default(),
         })
     }
 }
@@ -180,15 +182,24 @@ pub(super) struct OpenAICompletionsConfig {
     endpoint: String,
     parameters: Vec<(String, String)>,
     headers: Vec<(String, String)>,
+
+    #[serde(default)]
+    nonstandard: NonStandardOpenAIModifications,
 }
 
 impl Endpoint for OpenAICompletionsConfig {
-    fn render_settings(&mut self, ui: &mut Ui) {
+    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid) {
         TextEdit::singleline(&mut self.endpoint)
             .hint_text("Endpoint URL")
             .desired_width(ui.spacing().text_edit_width * 2.0)
             .ui(ui)
             .on_hover_text("Endpoint URL");
+
+        CollapsingHeader::new("Non-standard API modifications")
+            .id_salt(id)
+            .show(ui, |ui| {
+                self.nonstandard.render_settings(ui, false);
+            });
 
         ui.group(|ui| {
             ui.label("Request parameters:");
@@ -239,10 +250,23 @@ impl Endpoint for OpenAICompletionsConfig {
             body.insert("stream".to_string(), Value::Bool(false));
         };
 
-        body.insert(
-            "prompt".to_string(),
-            Value::String(escaped_string_from_utf8(&request.content)),
-        );
+        if self.nonstandard.raw_byte_input {
+            body.insert(
+                "prompt_bytes".to_string(),
+                Value::Array(
+                    request
+                        .content
+                        .into_iter()
+                        .map(|b| Value::Number(b.into()))
+                        .collect(),
+                ),
+            );
+        } else {
+            body.insert(
+                "prompt".to_string(),
+                Value::String(escaped_string_from_utf8(&request.content)),
+            );
+        }
 
         trace!("{:#?}", &body);
 
@@ -275,15 +299,24 @@ pub(super) struct OpenAIChatCompletionsConfig {
     endpoint: String,
     parameters: Vec<(String, String)>,
     headers: Vec<(String, String)>,
+
+    #[serde(default)]
+    nonstandard: NonStandardOpenAIModifications,
 }
 
 impl Endpoint for OpenAIChatCompletionsConfig {
-    fn render_settings(&mut self, ui: &mut Ui) {
+    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid) {
         TextEdit::singleline(&mut self.endpoint)
             .hint_text("Endpoint URL")
             .desired_width(ui.spacing().text_edit_width * 2.0)
             .ui(ui)
             .on_hover_text("Endpoint URL");
+
+        CollapsingHeader::new("Non-standard API modifications")
+            .id_salt(id)
+            .show(ui, |ui| {
+                self.nonstandard.render_settings(ui, true);
+            });
 
         ui.group(|ui| {
             ui.label("Request parameters:");
@@ -335,16 +368,35 @@ impl Endpoint for OpenAIChatCompletionsConfig {
             body.insert("stream".to_string(), Value::Bool(false));
         };
 
-        body.insert(
-            "messages".to_string(),
-            Value::Array(vec![Value::Object(Map::from_iter([
-                ("role".to_string(), Value::String("assistant".to_string())),
-                (
-                    "content".to_string(),
-                    Value::String(escaped_string_from_utf8(&request.content)),
-                ),
-            ]))]),
-        );
+        if self.nonstandard.raw_byte_input {
+            body.insert(
+                "messages".to_string(),
+                Value::Array(vec![Value::Object(Map::from_iter([
+                    ("role".to_string(), Value::String("assistant".to_string())),
+                    (
+                        "content_bytes".to_string(),
+                        Value::Array(
+                            request
+                                .content
+                                .into_iter()
+                                .map(|b| Value::Number(b.into()))
+                                .collect(),
+                        ),
+                    ),
+                ]))]),
+            );
+        } else {
+            body.insert(
+                "messages".to_string(),
+                Value::Array(vec![Value::Object(Map::from_iter([
+                    ("role".to_string(), Value::String("assistant".to_string())),
+                    (
+                        "content".to_string(),
+                        Value::String(escaped_string_from_utf8(&request.content)),
+                    ),
+                ]))]),
+            );
+        }
 
         trace!("{:#?}", &body);
 
@@ -369,6 +421,24 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         } else {
             Err(anyhow::Error::msg("Response does not match API schema"))
         }
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+struct NonStandardOpenAIModifications {
+    raw_byte_input: bool,
+}
+
+impl NonStandardOpenAIModifications {
+    fn render_settings(&mut self, ui: &mut Ui, is_chat: bool) {
+        ui.checkbox(
+            &mut self.raw_byte_input,
+            if is_chat {
+                "Send input messages as raw (UTF-8) bytes using \"content_bytes\" parameter"
+            } else {
+                "Send model prompt as raw (UTF-8) bytes using \"prompt_bytes\" parameter"
+            },
+        );
     }
 }
 
