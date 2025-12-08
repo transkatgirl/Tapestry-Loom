@@ -205,6 +205,7 @@ impl CanvasView {
         let last_rect = self.rect;
 
         let clip_rect = ui.clip_rect();
+        let outer_rect = ui.available_rect_before_wrap();
 
         let inactive_stroke = Stroke {
             width: ui.visuals().widgets.inactive.fg_stroke.width * 1.5,
@@ -258,7 +259,14 @@ impl CanvasView {
                 });
 
                 if Some(*node) == changed_node {
-                    focus = Some(*rect);
+                    let rect = *rect;
+                    let scale = (outer_rect.size() / rect.size()).min_elem();
+
+                    if scale > 0.9 {
+                        focus = Some(rect.scale_from_center(scale * (1.0 / 0.9)));
+                    } else {
+                        focus = Some(rect);
+                    }
                 }
             }
         });
