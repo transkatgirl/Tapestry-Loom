@@ -106,11 +106,13 @@ impl Editor {
             tiles.insert_pane(Pane::TreeList),
             tiles.insert_pane(Pane::List),
             tiles.insert_pane(Pane::BookmarkList),
-            tiles.insert_pane(Pane::Menu),
         ];
         let active_left_tab = left_tabs[2];
 
-        let right_tabs = vec![tiles.insert_pane(Pane::TextEdit)];
+        let right_tabs = vec![
+            tiles.insert_pane(Pane::TextEdit),
+            tiles.insert_pane(Pane::Menu),
+        ];
 
         let left_tab_tile = tiles.insert_new(Tile::Container(Container::Tabs({
             let mut tabs = Tabs::new(left_tabs);
