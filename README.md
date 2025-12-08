@@ -10,6 +10,7 @@ An IDE for working with base model LLMs, inspired by the designs of [loom](https
 - Some documents may cause the text editor to render token boundaries incorrectly
 	- This seems to be due to a bug in egui regarding textedit underline rendering
 - Separation between nodes in list/bookmarks/tree view is unclear
+- Inserting text in the middle of a node in the editor causes the cursor position to be reset
 
 ## Usage
 
@@ -130,7 +131,7 @@ In addition, below are the tentative plans for Tapestry Loom v2:
 			- [ ] Importing & exporting custom presets
 	- [ ] Support touchscreen-only devices
 - [ ] Optimize for performance whenever possible
-	- [ ] Aim to have acceptable performance on weaves with ~1 million nodes, ~100k active and ~10MB of active text on low-end hardware (such as a Raspberry Pi)
+	- [ ] Aim to have acceptable performance on weaves with ~1 million nodes, ~200k active and ~10MB of active text on low-end hardware (such as a Raspberry Pi)
 		- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
 - [ ] Collaborative weave editing over LAN
 - [ ] Adaptive looming using token entropy or [confidence](https://arxiv.org/pdf/2508.15260)
