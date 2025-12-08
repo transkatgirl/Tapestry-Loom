@@ -242,21 +242,23 @@ impl CanvasView {
                 self.last_changed.elapsed().as_secs_f32() >= ui.style().interaction.tooltip_delay;
 
             for (node, rect) in &self.arranged.rects {
-                ui.scope_builder(UiBuilder::new().max_rect(*rect), |ui| {
-                    render_node(
-                        ui,
-                        weave,
-                        settings,
-                        state,
-                        node,
-                        if self.active.contains(node) {
-                            active_stroke
-                        } else {
-                            inactive_stroke
-                        },
-                        show_tooltip,
-                    );
-                });
+                if ui.is_rect_visible(*rect) {
+                    ui.scope_builder(UiBuilder::new().max_rect(*rect), |ui| {
+                        render_node(
+                            ui,
+                            weave,
+                            settings,
+                            state,
+                            node,
+                            if self.active.contains(node) {
+                                active_stroke
+                            } else {
+                                inactive_stroke
+                            },
+                            show_tooltip,
+                        );
+                    });
+                }
 
                 if Some(*node) == changed_node {
                     let rect = *rect;
