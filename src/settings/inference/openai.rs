@@ -1,7 +1,7 @@
 use eframe::egui::{TextEdit, Ui, Widget};
 use log::trace;
 use reqwest::{
-    Client, Method, Url,
+    Client, Method, Response, Url,
     header::{HeaderMap, HeaderName, HeaderValue},
 };
 use serde::{Deserialize, Serialize};
@@ -222,15 +222,17 @@ impl Endpoint for OpenAICompletionsConfig {
 
         trace!("{:#?}", &body);
 
-        let response: Map<String, Value> = client
-            .request(Method::POST, Url::parse(&self.endpoint)?)
-            .headers(headers)
-            .json(&Value::Object(body))
-            .send()
-            .await?
-            .error_for_status()?
-            .json()
-            .await?;
+        let response: Map<String, Value> = error_for_status(
+            client
+                .request(Method::POST, Url::parse(&self.endpoint)?)
+                .headers(headers)
+                .json(&Value::Object(body))
+                .send()
+                .await?,
+        )
+        .await?
+        .json()
+        .await?;
 
         let metadata = request.parameters.as_ref().clone();
 
@@ -322,15 +324,17 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
         trace!("{:#?}", &body);
 
-        let response: Map<String, Value> = client
-            .request(Method::POST, Url::parse(&self.endpoint)?)
-            .headers(headers)
-            .json(&Value::Object(body))
-            .send()
-            .await?
-            .error_for_status()?
-            .json()
-            .await?;
+        let response: Map<String, Value> = error_for_status(
+            client
+                .request(Method::POST, Url::parse(&self.endpoint)?)
+                .headers(headers)
+                .json(&Value::Object(body))
+                .send()
+                .await?,
+        )
+        .await?
+        .json()
+        .await?;
 
         let metadata = request.parameters.as_ref().clone();
 
@@ -351,6 +355,22 @@ fn build_json_object(map: &mut Map<String, Value>, parameters: Vec<(String, Stri
         } else {
             map.insert(key, Value::String(value));
         }
+    }
+}
+
+async fn error_for_status(response: Response) -> Result<Response, anyhow::Error> {
+    let status = response.status();
+    if status.is_client_error() || status.is_server_error() {
+        Err(anyhow::Error::msg(format!(
+            "HTTP {}: {}",
+            status.as_u16(),
+            match response.text().await {
+                Ok(text) => text,
+                Err(error) => error.to_string(),
+            }
+        )))
+    } else {
+        Ok(response)
     }
 }
 
