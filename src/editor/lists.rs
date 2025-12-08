@@ -783,7 +783,7 @@ fn render_omitted_chidren_tree_node_label(
 
 fn render_empty_tree_label(
     ui: &mut Ui,
-    settings: &Settings,
+    _settings: &Settings,
     state: &mut SharedState,
     weave: &mut WeaveWrapper,
 ) {
@@ -830,13 +830,13 @@ fn render_empty_tree_label(
                         state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
                     }
                 };
-                if ui
+                /*if ui
                     .button("\u{E5CE}")
                     .on_hover_text("Generate completions")
                     .clicked()
                 {
                     state.generate_children(weave, None, settings);
-                };
+                };*/
                 ui.add_space(ui.spacing().icon_spacing);
 
                 ui.add_space(0.0);
