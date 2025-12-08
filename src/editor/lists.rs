@@ -410,20 +410,27 @@ impl TreeListView {
                 Frame::new()
                     .outer_margin(listing_margin(ui))
                     .show(ui, |ui| {
-                        render_node_tree(
-                            weave,
-                            settings,
-                            state,
-                            ui,
-                            state.identifier,
-                            Ulid::nil(),
-                            tree_roots.into_iter(),
-                            settings.interface.max_tree_depth,
-                            false,
-                            &mut self.last_rendered_nodes,
-                            &mut self.lists,
-                            &mut self.needs_list_refresh,
-                        );
+                        if weave.len() == 0 {
+                            ui.horizontal_wrapped(|ui| {
+                                ui.add_space(ui.spacing().icon_spacing);
+                                render_empty_tree_label(ui, settings, state, weave)
+                            });
+                        } else {
+                            render_node_tree(
+                                weave,
+                                settings,
+                                state,
+                                ui,
+                                state.identifier,
+                                Ulid::nil(),
+                                tree_roots.into_iter(),
+                                settings.interface.max_tree_depth,
+                                false,
+                                &mut self.last_rendered_nodes,
+                                &mut self.lists,
+                                &mut self.needs_list_refresh,
+                            );
+                        }
                     });
             });
     }
@@ -772,6 +779,72 @@ fn render_omitted_chidren_tree_node_label(
     if response.clicked() {
         state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
     }
+}
+
+fn render_empty_tree_label(
+    ui: &mut Ui,
+    settings: &Settings,
+    state: &mut SharedState,
+    weave: &mut WeaveWrapper,
+) {
+    ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+        let label_button_response = ui
+            .add_enabled_ui(false, |ui| {
+                let label = RichText::new("No nodes").family(FontFamily::Proportional);
+
+                ui.add(Button::new(label).frame(false).fill(Color32::TRANSPARENT))
+            })
+            .response;
+
+        let hover_rect = Rect {
+            min: Pos2 {
+                x: ui.min_rect().min.x,
+                y: ui.max_rect().min.y,
+            },
+            max: Pos2 {
+                x: ui.max_rect().max.x,
+                y: ui.min_rect().max.y,
+            },
+        };
+
+        let mouse_hovered =
+            ui.rect_contains_pointer(hover_rect) || label_button_response.contains_pointer();
+
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            if mouse_hovered {
+                ui.add_space(ui.spacing().icon_spacing);
+                if ui.button("\u{E40C}").on_hover_text("Add node").clicked() {
+                    let identifier = Ulid::new().0;
+                    if weave.add_node(DependentNode {
+                        id: identifier,
+                        from: None,
+                        to: IndexSet::default(),
+                        active: true,
+                        bookmarked: false,
+                        contents: NodeContent {
+                            content: InnerNodeContent::Snippet(vec![]),
+                            metadata: IndexMap::new(),
+                            model: None,
+                        },
+                    }) {
+                        state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
+                    }
+                };
+                if ui
+                    .button("\u{E5CE}")
+                    .on_hover_text("Generate completions")
+                    .clicked()
+                {
+                    state.generate_children(weave, None, settings);
+                };
+                ui.add_space(ui.spacing().icon_spacing);
+
+                ui.add_space(0.0);
+            } else {
+                ui.add_space(0.0);
+            }
+        });
+    });
 }
 
 fn render_horizontal_node_label(
