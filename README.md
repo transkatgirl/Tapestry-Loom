@@ -7,10 +7,6 @@ An IDE for working with base model LLMs, inspired by the designs of [loom](https
 
 ## Known issues
 
-### High priority
-- SIGINT signals are currently not handled correctly (release builds contain a dummy handler to prevent accidental data loss)
-
-### Low priority
 - Some documents may cause the text editor to render token boundaries incorrectly
 	- This seems to be due to a bug in egui regarding textedit underline rendering
 - Separation between nodes in list/bookmarks/tree view is unclear

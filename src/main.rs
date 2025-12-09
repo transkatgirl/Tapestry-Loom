@@ -40,10 +40,6 @@ static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() -> eframe::Result {
     env_logger::Builder::from_env(Env::default().default_filter_or("debug,tapestry_loom=trace,layouting=warn,coordinate_calculation=warn,crossing_reduction=warn,ranking=warn,Cycle Removal=warn,connected_components=warn,rust_sugiyama::algorithm=warn")).init();
-
-    #[cfg(not(debug_assertions))]
-    let _ = ctrlc::set_handler(|| {}); // Hack to work around eframe's lack of signal handling
-
     let options = NativeOptions {
         viewport: ViewportBuilder::default()
             .with_fullscreen(true)
@@ -69,6 +65,13 @@ struct TapestryLoomApp {
 
 impl TapestryLoomApp {
     fn new(cc: &CreationContext<'_>) -> Self {
+        let ctrlc_context = cc.egui_ctx.clone();
+
+        // Hack to work around eframe's lack of signal handling
+        let _ = ctrlc::set_handler(move || {
+            ctrlc_context.send_viewport_cmd(egui::ViewportCommand::Close);
+        });
+
         let mut toasts = Toasts::new();
 
         let settings = if let Some(storage) = cc.storage {
