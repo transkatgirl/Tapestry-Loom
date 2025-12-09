@@ -41,6 +41,7 @@ pub struct TextEditorView {
     last_text_edit_highlighting_hover: HighlightingHover,
     last_text_edit_highlighting_hover_update: Instant,
     last_text_edit_rect: Rect,
+    text_edit_last_changed: bool,
     should_update_rects: bool,
 }
 
@@ -79,6 +80,7 @@ impl Default for TextEditorView {
                 min: Pos2::ZERO,
                 max: Pos2::ZERO,
             },
+            text_edit_last_changed: false,
             should_update_rects: false,
         }
     }
@@ -87,7 +89,7 @@ impl Default for TextEditorView {
 impl TextEditorView {
     /*pub fn reset(&mut self) {
         self.text.clear();
-        self.bytes.clear();
+        self.bytes.borrow_mut().clear();
         self.buffer.clear();
         self.snippets.borrow_mut().clear();
         self.node_snippets.clear();
@@ -98,6 +100,7 @@ impl TextEditorView {
         self.last_text_edit_hover = None;
         self.last_text_edit_highlighting_hover = HighlightingHover::None;
         self.last_text_edit_highlighting_hover_update = Instant::now();
+        self.text_edit_last_changed = false;
     }*/
     pub fn update(
         &mut self,
@@ -178,7 +181,7 @@ impl TextEditorView {
 
                         if self.last_seen_cursor_node != state.get_cursor_node() {
                             // TODO: Rewrite this to properly change the cursor position
-                            if !textedit.response.changed() {
+                            if !(textedit.response.changed() || self.text_edit_last_changed) {
                                 let index = self.text.chars().count();
                                 textedit.state.cursor.set_char_range(Some(CCursorRange {
                                     primary: CCursor {
@@ -336,6 +339,8 @@ impl TextEditorView {
                                 .unwrap_or(HighlightingHover::None);
                             self.last_seen_hovered_node = state.get_hovered_node();
                         }
+
+                        self.text_edit_last_changed = textedit.response.changed();
                     });
             });
     }

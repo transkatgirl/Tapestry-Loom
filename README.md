@@ -8,7 +8,6 @@ An IDE for working with base model LLMs, inspired by the designs of [loom](https
 ## Known issues
 
 ### High priority
-- Inserting text in the middle of a node in the editor causes the cursor position to be reset
 - SIGINT signals are currently not handled correctly (release builds contain a dummy handler to prevent accidental data loss)
 
 ### Low priority
