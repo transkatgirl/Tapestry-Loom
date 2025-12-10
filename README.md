@@ -11,26 +11,24 @@ An IDE for working with base model LLMs, inspired by the designs of [loom](https
 	- This seems to be due to a bug in egui regarding textedit underline rendering
 - Separation between nodes in list/bookmarks/tree view is unclear
 
-## Usage
+## Getting started
 
 ### Binary releases
 
 Compiled binaries can be found on the [releases page](https://github.com/transkatgirl/Tapestry-Loom/releases).
 
-#### Platform specific instructions
+#### MacOS-specific instructions
 
-##### MacOS
-
-Before running, you will have to mark the file as executable using the following CLI commands:
+Before running, you need to mark the file as executable by running the following CLI commands in the folder containing the downloaded binary:
 
 ```bash
-chmod +x tapestry-loom-macos-aarch64
 xattr -d com.apple.quarantine tapestry-loom-macos-aarch64
+chmod +x tapestry-loom-macos-aarch64
 ```
 
-##### Linux
+#### Linux-specific instructions
 
-Before running, you will have to mark the file as executable using the following CLI command:
+Before running, you need to mark the file as executable running the following CLI commands in the folder containing the downloaded binary:
 
 ```bash
 chmod +x $FILENAME
@@ -45,17 +43,27 @@ Requires the [Rust Programming Language](https://rust-lang.org/tools/install/) a
 ```bash
 git clone --recurse-submodules https://github.com/transkatgirl/Tapestry-Loom.git
 cd Tapestry-Loom
-cargo run --release
+cargo build --release
 ```
 
+The compiled binary can be found in the ./target/release/ folder.
+
 #### Updating
+
+Run the following commands in the repository folder:
 
 ```bash
 git pull
 git submodule update --init --recursive
 ```
 
+## Usage
+
+TODO: Make tutorial video
+
 ### Migrating weaves from Tapestry Loom v0
+
+After compiling Tapestry Loom from source, run the following commands in the repository folder:
 
 ```bash
 cd obsidian-migration
@@ -114,7 +122,7 @@ The plans for the rewrite are the following:
 - [ ] Allows saving and switching between multiple inference presets
 - [ ] Better documentation & onboarding
 	- [ ] Tutorial video
-	- [ ] Binary releases
+	- [x] Binary releases
 	- [ ] Loomsidian migration script?
 
 In addition, below are the tentative plans for Tapestry Loom v2:
