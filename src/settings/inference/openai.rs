@@ -254,17 +254,20 @@ impl Endpoint for OpenAICompletionsConfig {
             body.insert("stream".to_string(), Value::Bool(false));
         };
 
-        if self.nonstandard.raw_byte_input {
-            body.insert(
-                "prompt_bytes".to_string(),
-                Value::Array(
-                    request
-                        .content
-                        .into_iter()
-                        .map(|b| Value::Number(b.into()))
-                        .collect(),
-                ),
-            );
+        if !self.nonstandard.tokenization_endpoint.is_empty() {
+            let tokenized: Value = error_for_status(
+                client
+                    .request(Method::POST, Url::parse(&self.endpoint)?)
+                    .headers(headers.clone())
+                    .body(request.content)
+                    .send()
+                    .await?,
+            )
+            .await?
+            .json()
+            .await?;
+
+            body.insert("content".to_string(), tokenized);
         } else {
             body.insert(
                 "prompt".to_string(),
@@ -431,17 +434,20 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
         message.insert("role".to_string(), Value::String(self.message_role.clone()));
 
-        if self.nonstandard.raw_byte_input {
-            message.insert(
-                "content_bytes".to_string(),
-                Value::Array(
-                    request
-                        .content
-                        .into_iter()
-                        .map(|b| Value::Number(b.into()))
-                        .collect(),
-                ),
-            );
+        if !self.nonstandard.tokenization_endpoint.is_empty() {
+            let tokenized: Value = error_for_status(
+                client
+                    .request(Method::POST, Url::parse(&self.endpoint)?)
+                    .headers(headers.clone())
+                    .body(request.content)
+                    .send()
+                    .await?,
+            )
+            .await?
+            .json()
+            .await?;
+
+            message.insert("content".to_string(), tokenized);
         } else {
             message.insert(
                 "content".to_string(),
@@ -488,7 +494,8 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub(super) struct NonStandardOpenAIModifications {
-    pub(super) raw_byte_input: bool,
+    #[serde(default)]
+    pub(super) tokenization_endpoint: String,
 
     #[serde(default)]
     pub(super) chat_message_custom_fields: Vec<(String, String)>,
@@ -496,14 +503,11 @@ pub(super) struct NonStandardOpenAIModifications {
 
 impl NonStandardOpenAIModifications {
     fn render_settings(&mut self, ui: &mut Ui, is_chat: bool) {
-        ui.checkbox(
-            &mut self.raw_byte_input,
-            if is_chat {
-                "Send input messages as raw (UTF-8) bytes using \"content_bytes\" parameter"
-            } else {
-                "Send model prompt as raw (UTF-8) bytes using \"prompt_bytes\" parameter"
-            },
-        );
+        TextEdit::singleline(&mut self.tokenization_endpoint)
+            .hint_text("Tapestry-Tokenize Endpoint")
+            .desired_width(ui.spacing().text_edit_width * 1.5)
+            .ui(ui)
+            .on_hover_text("Tapestry-Tokenize Endpoint");
         if is_chat {
             ui.group(|ui| {
                 ui.label("Additional input message parameters:");
@@ -512,7 +516,7 @@ impl NonStandardOpenAIModifications {
         }
     }
     fn is_standard(&self) -> bool {
-        !self.raw_byte_input && self.chat_message_custom_fields.is_empty()
+        self.tokenization_endpoint.is_empty() && self.chat_message_custom_fields.is_empty()
     }
 }
 
