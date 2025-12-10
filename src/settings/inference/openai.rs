@@ -225,7 +225,7 @@ impl Endpoint for OpenAICompletionsConfig {
 
         ui.checkbox(
             &mut self.reuse_tokens,
-            "(Opportunistically) reuse output token IDs",
+            "(Opportunistically) reuse token IDs",
         );
 
         result

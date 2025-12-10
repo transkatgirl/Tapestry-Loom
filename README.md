@@ -117,7 +117,7 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 - [x] Keyboard shortcut implementation
 	- [x] Automatically adapt keyboards shortcuts based on OS (such as Mac vs Windows/Linux)
 	- [x] Repeat keypresses when a keyboard be cut is held down
-- [ ] Store model output token IDs in nodes and reuse them when applicable
+- [x] Store model output token IDs in nodes and reuse them when applicable
 - [ ] Allows saving and switching between multiple inference presets
 - [ ] Better documentation & onboarding
 	- [ ] Tutorial video
