@@ -429,6 +429,7 @@ impl TreeListView {
                                 &mut self.last_rendered_nodes,
                                 &mut self.lists,
                                 &mut self.needs_list_refresh,
+                                true,
                             );
                         }
                     });
@@ -449,6 +450,7 @@ fn render_node_tree(
     rendered_items: &mut HashSet<Ulid>,
     virtual_lists: &mut HashMap<Ulid, Rc<RefCell<VirtualList>>>,
     needs_list_refresh: &mut bool,
+    is_display_root: bool,
 ) {
     let indent_compensation = ui.spacing().icon_width + ui.spacing().icon_spacing;
 
@@ -468,6 +470,7 @@ fn render_node_tree(
                 rendered_items,
                 virtual_lists,
                 needs_list_refresh,
+                is_display_root,
             );
         }
     } else if items.len() > 0 {
@@ -501,6 +504,7 @@ fn render_node_tree(
                     rendered_items,
                     virtual_lists,
                     needs_list_refresh,
+                    is_display_root,
                 );
                 1
             });
@@ -520,6 +524,7 @@ fn render_node_tree_row(
     rendered_items: &mut HashSet<Ulid>,
     virtual_lists: &mut HashMap<Ulid, Rc<RefCell<VirtualList>>>,
     needs_list_refresh: &mut bool,
+    is_display_root: bool,
 ) {
     if let Some(node) = weave.get_node(&item).cloned() {
         rendered_items.insert(item);
@@ -536,6 +541,15 @@ fn render_node_tree_row(
                     &node,
                     |ui, settings, state, weave, node| {
                         render_horizontal_node_label_buttons_rtl(ui, settings, state, weave, node);
+                        if is_display_root
+                            && let Some(parent) = node.from
+                            && ui
+                                .button("\u{E042}")
+                                .on_hover_text("Show parents")
+                                .clicked()
+                        {
+                            state.set_cursor_node(NodeIndex::Node(Ulid(parent)));
+                        };
                     },
                     |ui, settings, state, weave, node| {
                         render_node_tree_context_menu(
@@ -576,11 +590,18 @@ fn render_node_tree_row(
                             rendered_items,
                             virtual_lists,
                             needs_list_refresh,
+                            false,
                         );
                     } else {
                         ui.horizontal_wrapped(|ui| {
                             let first_child = node.to.first().copied().map(Ulid).unwrap();
-                            render_omitted_chidren_tree_node_label(ui, state, &node, first_child);
+                            render_omitted_node_label(
+                                ui,
+                                state,
+                                Ulid(node.id),
+                                first_child,
+                                "\u{E04A} Show more",
+                            );
                         });
                     }
                 });
@@ -730,25 +751,25 @@ pub fn render_horizontal_node_label_buttons_rtl(
     };
 }
 
-fn render_omitted_chidren_tree_node_label(
+fn render_omitted_node_label(
     ui: &mut Ui,
     state: &mut SharedState,
-    node: &DependentNode<NodeContent>,
-    first_child: Ulid,
+    selection_node: Ulid,
+    hover_node: Ulid,
+    label: impl Into<String>,
 ) {
     let response = ui
         .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
             let mut frame = Frame::new();
 
-            let is_hovered = state.get_hovered_node() == NodeIndex::Node(first_child);
+            let is_hovered = state.get_hovered_node() == NodeIndex::Node(hover_node);
 
             if is_hovered {
                 frame = frame.fill(ui.style().visuals.widgets.hovered.weak_bg_fill);
             }
 
             frame.show(ui, |ui| {
-                let mut label =
-                    RichText::new("\u{E04A} Show more").family(FontFamily::Proportional);
+                let mut label = RichText::new(label).family(FontFamily::Proportional);
 
                 if is_hovered {
                     label = label.color(ui.style().visuals.widgets.hovered.text_color());
@@ -758,11 +779,11 @@ fn render_omitted_chidren_tree_node_label(
                     ui.add(Button::new(label).frame(false).fill(Color32::TRANSPARENT));
 
                 if label_button_response.contains_pointer() {
-                    state.set_hovered_node(NodeIndex::Node(first_child));
+                    state.set_hovered_node(NodeIndex::Node(hover_node));
                 }
 
                 if label_button_response.clicked() {
-                    state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
+                    state.set_cursor_node(NodeIndex::Node(selection_node));
                 }
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -773,11 +794,11 @@ fn render_omitted_chidren_tree_node_label(
         .response;
 
     if response.contains_pointer() {
-        state.set_hovered_node(NodeIndex::Node(first_child));
+        state.set_hovered_node(NodeIndex::Node(hover_node));
     }
 
     if response.clicked() {
-        state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
+        state.set_cursor_node(NodeIndex::Node(selection_node));
     }
 }
 
