@@ -91,7 +91,7 @@ impl Template<OpenAICompletionsConfig> for OpenAICompletionsTemplate {
                 ]
             },
             nonstandard: NonStandardOpenAIModifications::default(),
-            reuse_tokens: true,
+            reuse_tokens: false,
         })
     }
 }
@@ -190,12 +190,8 @@ pub(super) struct OpenAICompletionsConfig {
     #[serde(default)]
     pub(super) nonstandard: NonStandardOpenAIModifications,
 
-    #[serde(default = "default_reuse_tokens")]
+    #[serde(default)]
     pub(super) reuse_tokens: bool,
-}
-
-fn default_reuse_tokens() -> bool {
-    true
 }
 
 impl Endpoint for OpenAICompletionsConfig {
@@ -225,12 +221,14 @@ impl Endpoint for OpenAICompletionsConfig {
             render_config_map(ui, &mut self.headers, 0.9, 1.1, true);
         });
 
+        let result = *self != old;
+
         ui.checkbox(
             &mut self.reuse_tokens,
             "(Opportunistically) reuse output token IDs",
         );
 
-        *self != old
+        result
     }
     fn label(&self) -> &str {
         for (key, value) in &self.parameters {
