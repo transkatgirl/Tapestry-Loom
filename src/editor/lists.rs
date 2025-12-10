@@ -634,6 +634,9 @@ fn render_node_tree_row(
                             show_child_separators,
                         );
                     } else {
+                        if show_separator {
+                            render_label_separator(ui);
+                        }
                         ui.horizontal_wrapped(|ui| {
                             let first_child = node.to.first().copied().map(Ulid).unwrap();
                             render_omitted_node_label(
