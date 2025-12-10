@@ -10,7 +10,7 @@ use tapestry_weave::{ulid::Ulid, universal_weave::indexmap::IndexMap, v0::InnerN
 
 use crate::settings::inference::{
     Endpoint, EndpointRequest, EndpointResponse, Template, escaped_string_from_utf8,
-    render_config_map,
+    render_config_map, render_config_map_small,
 };
 
 #[derive(Default, Debug, Clone, PartialEq)]
@@ -368,35 +368,37 @@ impl Endpoint for OpenAIChatCompletionsConfig {
             body.insert("stream".to_string(), Value::Bool(false));
         };
 
+        let mut message = Map::with_capacity(self.nonstandard.chat_message_custom_fields.len() + 2);
+
+        message.insert("role".to_string(), Value::String("assistant".to_string()));
+
+        build_json_object(
+            &mut message,
+            self.nonstandard.chat_message_custom_fields.clone(),
+        );
+
         if self.nonstandard.raw_byte_input {
-            body.insert(
-                "messages".to_string(),
-                Value::Array(vec![Value::Object(Map::from_iter([
-                    ("role".to_string(), Value::String("assistant".to_string())),
-                    (
-                        "content_bytes".to_string(),
-                        Value::Array(
-                            request
-                                .content
-                                .into_iter()
-                                .map(|b| Value::Number(b.into()))
-                                .collect(),
-                        ),
-                    ),
-                ]))]),
+            message.insert(
+                "content_bytes".to_string(),
+                Value::Array(
+                    request
+                        .content
+                        .into_iter()
+                        .map(|b| Value::Number(b.into()))
+                        .collect(),
+                ),
             );
         } else {
-            body.insert(
-                "messages".to_string(),
-                Value::Array(vec![Value::Object(Map::from_iter([
-                    ("role".to_string(), Value::String("assistant".to_string())),
-                    (
-                        "content".to_string(),
-                        Value::String(escaped_string_from_utf8(&request.content)),
-                    ),
-                ]))]),
+            message.insert(
+                "content".to_string(),
+                Value::String(escaped_string_from_utf8(&request.content)),
             );
         }
+
+        body.insert(
+            "messages".to_string(),
+            Value::Array(vec![Value::Object(message)]),
+        );
 
         trace!("{:#?}", &body);
 
@@ -427,6 +429,9 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 struct NonStandardOpenAIModifications {
     raw_byte_input: bool,
+
+    #[serde(default)]
+    chat_message_custom_fields: Vec<(String, String)>,
 }
 
 impl NonStandardOpenAIModifications {
@@ -439,6 +444,12 @@ impl NonStandardOpenAIModifications {
                 "Send model prompt as raw (UTF-8) bytes using \"prompt_bytes\" parameter"
             },
         );
+        if is_chat {
+            ui.group(|ui| {
+                ui.label("Additional input message parameters:");
+                render_config_map_small(ui, &mut self.chat_message_custom_fields, 0.675, 0.825);
+            });
+        }
     }
 }
 
