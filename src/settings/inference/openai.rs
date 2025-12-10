@@ -335,7 +335,7 @@ impl Endpoint for OpenAICompletionsConfig {
                 .json()
                 .await?;
 
-                body.insert("prompt".to_string(), tokenized);
+                body.insert("prompt".to_string(), Value::Array(vec![tokenized]));
             } else {
                 body.insert(
                     "prompt".to_string(),
