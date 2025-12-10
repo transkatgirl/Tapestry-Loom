@@ -13,6 +13,33 @@ An IDE for working with base model LLMs, inspired by the designs of [loom](https
 
 ## Usage
 
+### Binary releases
+
+Compiled binaries can be found on the [releases page](https://github.com/transkatgirl/Tapestry-Loom/releases).
+
+#### Platform specific instructions
+
+##### MacOS
+
+Before running, you will have to mark the file as executable using the following CLI commands:
+
+```bash
+chmod +x tapestry-loom-macos-aarch64
+xattr -d com.apple.quarantine tapestry-loom-macos-aarch64
+```
+
+##### Linux
+
+Before running, you will have to mark the file as executable using the following CLI command:
+
+```bash
+chmod +x $FILENAME
+```
+
+Where `$FILENAME` matches the name of the binary you downloaded.
+
+### Compiling from source
+
 Requires the [Rust Programming Language](https://rust-lang.org/tools/install/) and a working C compiler to be installed.
 
 ```bash
@@ -21,7 +48,7 @@ cd Tapestry-Loom
 cargo run --release
 ```
 
-### Updating
+#### Updating
 
 ```bash
 git pull
