@@ -260,10 +260,10 @@ impl Endpoint for OpenAICompletionsConfig {
         };
 
         if self.nonstandard.reuse_tokens && !self.nonstandard.tokenization_endpoint.is_empty() {
-            let mut tokens = Vec::new();
+            let mut token_futures = Vec::with_capacity(request.content.len());
 
             for segment in request.content.as_ref().clone() {
-                tokens.extend(
+                token_futures.push(
                     RequestTokensOrBytes::build(segment, &tokenization_identifier)
                         .into_tokens_async(|bytes: Vec<u8>| async {
                             Ok(error_for_status(
@@ -281,16 +281,22 @@ impl Endpoint for OpenAICompletionsConfig {
                             .await?
                             .json()
                             .await?)
-                        })
-                        .await?,
+                        }),
                 );
+            }
+
+            let mut token_segments = Vec::with_capacity(token_futures.len());
+
+            for item in token_futures {
+                token_segments.push(item.await?);
             }
 
             body.insert(
                 "prompt".to_string(),
                 Value::Array(
-                    tokens
+                    token_segments
                         .into_iter()
+                        .flatten()
                         .map(|t| Value::Number(Number::from_i128(t).unwrap()))
                         .collect(),
                 ),
