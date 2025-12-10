@@ -1,9 +1,10 @@
 [package]
 name = "tapestry-loom"
-version = "0.1.1"
+version = "0.1.2"
 authors = [
 	"transkatgirl",
 ]
+homepage = "https://github.com/transkatgirl/Tapestry-Loom"
 license = "AGPL-3.0-or-later"
 description = "An IDE for working with base model LLMs."
 edition = "2024"

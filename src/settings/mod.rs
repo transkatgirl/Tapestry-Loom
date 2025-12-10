@@ -299,6 +299,14 @@ impl Settings {
                         ui.separator();
                         ui.heading("Inference");
                         self.inference.render(ui);
+                        ui.separator();
+                        ui.hyperlink_to(
+                            format!(
+                                "Tapestry Loom v{} by transkatgirl",
+                                env!("CARGO_PKG_VERSION")
+                            ),
+                            env!("CARGO_PKG_HOMEPAGE"),
+                        );
 
                         /*#[cfg(debug_assertions)]
                         {
