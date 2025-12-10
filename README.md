@@ -18,7 +18,7 @@ Compiled binaries can be found on the [releases page](https://github.com/transka
 
 #### MacOS-specific instructions
 
-Before running, you need to mark the file as executable by running the following CLI commands in the folder containing the downloaded binary:
+Before using the app, you will need to mark the file as executable by running the following CLI commands in the folder containing the downloaded binary:
 
 ```bash
 xattr -d com.apple.quarantine tapestry-loom-macos-aarch64
@@ -27,7 +27,7 @@ chmod +x tapestry-loom-macos-aarch64
 
 #### Linux-specific instructions
 
-Before running, you need to mark the file as executable running the following CLI commands in the folder containing the downloaded binary:
+Before using the app, you will need to mark the file as executable by running the following CLI command in the folder containing the downloaded binary:
 
 ```bash
 chmod +x $FILENAME
@@ -54,6 +54,7 @@ Run the following commands in the repository folder:
 ```bash
 git pull
 git submodule update --init --recursive
+cargo build --release
 ```
 
 ## Usage
