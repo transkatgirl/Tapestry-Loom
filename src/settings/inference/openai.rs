@@ -508,30 +508,10 @@ impl Endpoint for OpenAIChatCompletionsConfig {
             .flat_map(|t| t.into_bytes())
             .collect();
 
-        if !self.nonstandard.tokenization_endpoint.is_empty() {
-            let tokenized: Value = error_for_status(
-                client
-                    .request(
-                        Method::POST,
-                        Url::parse(&self.nonstandard.tokenization_endpoint)?,
-                    )
-                    .headers(headers.clone())
-                    .header(CONTENT_TYPE, "application/octet-stream")
-                    .body(request_bytes)
-                    .send()
-                    .await?,
-            )
-            .await?
-            .json()
-            .await?;
-
-            message.insert("content".to_string(), tokenized);
-        } else {
-            message.insert(
-                "content".to_string(),
-                Value::String(String::from_utf8_lossy(&request_bytes).to_string()),
-            );
-        }
+        message.insert(
+            "content".to_string(),
+            Value::String(String::from_utf8_lossy(&request_bytes).to_string()),
+        );
 
         let mut messages =
             Vec::with_capacity(self.prefix_messages.len() + self.suffix_messages.len() + 1);
@@ -598,24 +578,24 @@ fn default_reuse_tokens() -> bool {
 
 impl NonStandardOpenAIModifications {
     fn render_settings(&mut self, ui: &mut Ui, is_chat: bool) {
-        TextEdit::singleline(&mut self.tokenization_endpoint)
-            .hint_text("Tapestry-Tokenize Endpoint")
-            .desired_width(ui.spacing().text_edit_width * 1.5)
-            .ui(ui)
-            .on_hover_text("Tapestry-Tokenize Endpoint");
-
-        if !self.tokenization_endpoint.is_empty() && !is_chat {
-            ui.checkbox(
-                &mut self.reuse_tokens,
-                "(Opportunistically) reuse output token IDs",
-            );
-        }
-
         if is_chat {
             ui.group(|ui| {
                 ui.label("Additional input message parameters:");
                 render_config_map(ui, &mut self.chat_message_custom_fields, 0.675, 0.825, true);
             });
+        } else {
+            TextEdit::singleline(&mut self.tokenization_endpoint)
+                .hint_text("Tapestry-Tokenize Endpoint")
+                .desired_width(ui.spacing().text_edit_width * 1.5)
+                .ui(ui)
+                .on_hover_text("Tapestry-Tokenize Endpoint");
+
+            if !self.tokenization_endpoint.is_empty() {
+                ui.checkbox(
+                    &mut self.reuse_tokens,
+                    "(Opportunistically) reuse output token IDs",
+                );
+            }
         }
     }
     #[allow(clippy::nonminimal_bool)]
