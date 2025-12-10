@@ -593,7 +593,6 @@ pub fn render_token_metadata_tooltip(
                 );
             }
         } else if key == "token_id" {
-            #[cfg(debug_assertions)]
             if token_metadata
                 .get("original_length")
                 .and_then(|value| value.parse::<usize>().ok())
