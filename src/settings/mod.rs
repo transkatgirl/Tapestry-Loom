@@ -32,12 +32,20 @@ pub struct UISettings {
     pub show_model_colors: bool,
     pub show_token_probabilities: bool,
     pub minimum_token_opacity: f32,
+
+    #[serde(default = "default_list_separator_opacity")]
+    pub list_separator_opacity: f32,
+
     pub max_tree_depth: usize,
     pub auto_scroll: bool,
     pub optimize_tree: bool,
 
     #[serde(skip)]
     fonts_changed: bool,
+}
+
+fn default_list_separator_opacity() -> f32 {
+    30.0
 }
 
 impl Default for UISettings {
@@ -51,6 +59,7 @@ impl Default for UISettings {
             show_model_colors: true,
             show_token_probabilities: true,
             minimum_token_opacity: 65.0,
+            list_separator_opacity: 30.0,
             max_tree_depth: 10,
             auto_scroll: true,
             optimize_tree: false,
@@ -199,6 +208,11 @@ impl UISettings {
                     .text("Minimum token opacity"),
             );
         }
+        ui.add(
+            Slider::new(&mut self.list_separator_opacity, 0.0..=100.0)
+                .suffix("%")
+                .text("List separator opacity"),
+        );
         ui.add(
             Slider::new(&mut self.max_tree_depth, 3..=32)
                 .clamping(SliderClamping::Never)

@@ -119,7 +119,7 @@ impl ListView {
     ) {
         if let Some(node) = weave.get_node(item).cloned() {
             if !is_start {
-                render_label_separator(ui);
+                render_label_separator(ui, settings);
             }
             ui.horizontal_wrapped(|ui| {
                 ui.add_space(ui.spacing().icon_spacing);
@@ -231,7 +231,7 @@ impl BookmarkListView {
     ) {
         if let Some(node) = weave.get_node(item).cloned() {
             if !is_start {
-                render_label_separator(ui);
+                render_label_separator(ui, settings);
             }
             ui.horizontal_wrapped(|ui| {
                 ui.add_space(ui.spacing().icon_spacing);
@@ -565,7 +565,7 @@ fn render_node_tree_row(
 ) {
     if let Some(node) = weave.get_node(&item).cloned() {
         if show_separator {
-            render_label_separator(ui);
+            render_label_separator(ui, settings);
         }
         rendered_items.insert(item);
         let mut render_label = |ui: &mut Ui| {
@@ -635,7 +635,7 @@ fn render_node_tree_row(
                         );
                     } else {
                         if show_separator {
-                            render_label_separator(ui);
+                            render_label_separator(ui, settings);
                         }
                         ui.horizontal_wrapped(|ui| {
                             let first_child = node.to.first().copied().map(Ulid).unwrap();
@@ -913,7 +913,11 @@ fn render_empty_tree_label(
 }
 
 // Based on egui::widgets::Separator
-fn render_label_separator(ui: &mut Ui) {
+fn render_label_separator(ui: &mut Ui, settings: &Settings) {
+    if settings.interface.list_separator_opacity < f32::EPSILON {
+        return;
+    }
+
     let available_space = if ui.is_sizing_pass() {
         Vec2::ZERO
     } else {
@@ -926,7 +930,10 @@ fn render_label_separator(ui: &mut Ui) {
 
     if ui.is_rect_visible(response.rect) {
         let mut stroke = ui.visuals().widgets.noninteractive.bg_stroke;
-        stroke.color = change_color_opacity(stroke.color, 0.3);
+        stroke.color = change_color_opacity(
+            stroke.color,
+            settings.interface.list_separator_opacity / 100.0,
+        );
         let painter = ui.painter();
 
         painter.hline(rect.left()..=rect.right(), rect.center().y, stroke);
