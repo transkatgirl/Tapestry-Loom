@@ -601,7 +601,7 @@ impl NonStandardOpenAIModifications {
         if !self.tokenization_endpoint.is_empty() {
             ui.checkbox(
                 &mut self.reuse_tokens,
-                "(Opportunistically) reuse token IDs",
+                "(Opportunistically) reuse output token IDs",
             );
         }
 
