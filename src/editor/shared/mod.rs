@@ -23,7 +23,7 @@ use crate::{
     editor::shared::weave::WeaveWrapper,
     settings::{
         Settings, UISettings,
-        inference::{InferenceHandle, InferenceParameters},
+        inference::{InferenceHandle, InferenceParameters, TokensOrBytes},
         shortcuts::Shortcuts,
     },
 };
@@ -462,13 +462,13 @@ impl SharedState {
             return;
         }
 
-        let content: Vec<u8> = if let Some(parent) = parent {
+        let content: Vec<TokensOrBytes> = if let Some(parent) = parent {
             let thread: Vec<u128> = weave.get_thread_from_u128(&parent.0).rev().collect();
 
             thread
                 .into_iter()
                 .filter_map(|id| weave.get_node_u128(&id))
-                .flat_map(|node| node.contents.content.as_bytes().into_owned().into_iter())
+                .map(|node| node.contents.content.clone().into())
                 .collect()
         } else {
             vec![]
@@ -490,6 +490,44 @@ impl SharedState {
     }
     pub fn get_request_count(&self) -> usize {
         self.requests.len()
+    }
+}
+
+impl From<InnerNodeContent> for TokensOrBytes {
+    fn from(value: InnerNodeContent) -> Self {
+        match value {
+            InnerNodeContent::Snippet(snippet) => Self::Bytes(snippet),
+            InnerNodeContent::Tokens(tokens) => {
+                let token_count = tokens.len();
+                let mut token_pairs = Vec::with_capacity(token_count);
+                let mut bytes = Vec::with_capacity(tokens.iter().map(|(t, _)| t.len()).sum());
+
+                for (token, mut token_metadata) in tokens {
+                    if let Some(token_id) = token_metadata
+                        .swap_remove("token_id")
+                        .and_then(|id| id.parse::<i128>().ok())
+                        && let Some(model_id) = token_metadata
+                            .swap_remove("model_id")
+                            .and_then(|id| Ulid::from_string(&id).ok())
+                        && token_metadata
+                            .get("original_length")
+                            .and_then(|value| value.parse::<usize>().ok())
+                            .map(|original_length| original_length == token.len())
+                            .unwrap_or(false)
+                    {
+                        token_pairs.push((token.clone(), token_id, model_id));
+                    }
+
+                    bytes.extend(token);
+                }
+
+                if token_pairs.len() == token_count {
+                    Self::TokensAndBytes(token_pairs)
+                } else {
+                    Self::Bytes(bytes)
+                }
+            }
+        }
     }
 }
 

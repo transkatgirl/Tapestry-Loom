@@ -1,6 +1,5 @@
 use std::{collections::HashMap, fmt::Display, rc::Rc, sync::Arc, time::Duration};
 
-use bytes::{Bytes, BytesMut};
 use eframe::egui::{
     Align, Color32, ComboBox, DragValue, Layout, RichText, Slider, SliderClamping, TextEdit,
     TextStyle, Ui, Widget, WidgetText,
@@ -428,7 +427,7 @@ impl InferenceParameters {
         runtime: &Runtime,
         client: &Client,
         parent: Option<Ulid>,
-        content: Vec<u8>,
+        content: Vec<TokensOrBytes>,
         output: &mut HashMap<Ulid, InferenceHandle>,
     ) {
         self.create_request_inner(
@@ -436,7 +435,7 @@ impl InferenceParameters {
             runtime,
             client,
             parent,
-            Bytes::from(content),
+            Arc::new(content),
             output,
         );
     }
@@ -446,7 +445,7 @@ impl InferenceParameters {
         runtime: &Runtime,
         client: &Client,
         parent_node: Option<Ulid>,
-        content: Bytes,
+        content: Arc<Vec<TokensOrBytes>>,
         output: &mut HashMap<Ulid, InferenceHandle>,
     ) {
         let parameters = Rc::new(self.clone());
@@ -533,8 +532,8 @@ impl InferenceParameters {
                     parameters.recursion_depth -= 1;
 
                     for (i, item) in content.iter().enumerate() {
-                        let mut parent_content = BytesMut::from(value.parent_content.clone());
-                        parent_content.extend_from_slice(&item.content.as_bytes());
+                        let mut parent_content = value.parent_content.as_ref().clone();
+                        parent_content.push(item.content.clone().into());
 
                         parameters.create_request_inner(
                             value.models.clone(),
@@ -569,7 +568,7 @@ impl InferenceParameters {
 
 pub struct InferenceHandle {
     parent: Option<Ulid>,
-    parent_content: Bytes,
+    parent_content: Arc<Vec<TokensOrBytes>>,
     models: Rc<IndexMap<Ulid, InferenceModel>>,
     parameters: Rc<InferenceParameters>,
     handle: Promise<Result<Vec<NodeContent>, anyhow::Error>>,
@@ -704,7 +703,7 @@ impl Endpoint for EndpointConfig {
 
 #[derive(Debug, Clone)]
 struct EndpointRequest {
-    content: Bytes,
+    content: Arc<Vec<TokensOrBytes>>,
     parameters: Arc<Vec<(String, String)>>,
 }
 
@@ -803,5 +802,83 @@ pub fn render_config_list(
 
     if ui.button("\u{E13D}").on_hover_text("Add item").clicked() {
         value.push(new_item_text.map(|s| s.to_string()).unwrap_or_default());
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum TokensOrBytes {
+    TokensAndBytes(Vec<(Vec<u8>, i128, Ulid)>),
+    Bytes(Vec<u8>),
+}
+
+impl TokensOrBytes {
+    fn into_bytes(self) -> Vec<u8> {
+        match self {
+            TokensOrBytes::Bytes(bytes) => bytes,
+            TokensOrBytes::TokensAndBytes(token_pairs) => token_pairs
+                .into_iter()
+                .flat_map(|(t, _, _)| t.into_iter())
+                .collect(),
+        }
+    }
+}
+
+enum RequestTokensOrBytes {
+    Tokens(Vec<i128>),
+    Bytes(Vec<u8>),
+}
+
+impl RequestTokensOrBytes {
+    fn build(input: TokensOrBytes, model_id: &Ulid) -> Self {
+        match input {
+            TokensOrBytes::Bytes(bytes) => Self::Bytes(bytes),
+            TokensOrBytes::TokensAndBytes(token_pairs) => {
+                let input_len = token_pairs.len();
+                let mut bytes =
+                    Vec::with_capacity(token_pairs.iter().map(|(t, _, _)| t.len()).sum());
+                let mut token_ids = Vec::with_capacity(token_pairs.len());
+
+                for (token, token_id, token_model_id) in token_pairs {
+                    bytes.extend(token);
+                    if &token_model_id == model_id {
+                        token_ids.push(token_id);
+                    }
+                }
+
+                if token_ids.len() == input_len {
+                    Self::Tokens(token_ids)
+                } else {
+                    Self::Bytes(bytes)
+                }
+            }
+        }
+    }
+    /*fn into_json(
+        self,
+        mut byte_handler: impl FnMut(Vec<u8>) -> serde_json::Value,
+    ) -> serde_json::Value {
+        match self {
+            Self::Bytes(bytes) => byte_handler(bytes),
+            Self::Tokens(tokens) => serde_json::Value::Array(
+                tokens
+                    .into_iter()
+                    .map(|t| serde_json::Value::Number(serde_json::Number::from_i128(t).unwrap()))
+                    .collect(),
+            ),
+        }
+    }*/
+    async fn into_json_async(
+        self,
+        byte_handler: impl AsyncFnOnce(Vec<u8>) -> Result<serde_json::Value, anyhow::Error>,
+    ) -> Result<serde_json::Value, anyhow::Error> {
+        match self {
+            Self::Bytes(bytes) => byte_handler(bytes).await,
+            Self::Tokens(tokens) => Ok(serde_json::Value::Array(
+                tokens
+                    .into_iter()
+                    .map(|t| serde_json::Value::Number(serde_json::Number::from_i128(t).unwrap()))
+                    .collect(),
+            )),
+        }
     }
 }
