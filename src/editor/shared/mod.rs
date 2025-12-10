@@ -554,7 +554,7 @@ pub fn render_token_metadata_tooltip(
                     "modified_boundaries: true",
                 );
             }
-        } else {
+        } else if !(key == "token_id" || key == "model_id") {
             ui.label(format!("{key}: {value}"));
         }
     }

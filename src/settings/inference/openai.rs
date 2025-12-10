@@ -179,7 +179,7 @@ impl Template<OpenAIChatCompletionsConfig> for OpenAIChatCompletionsTemplate {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub(super) struct OpenAICompletionsConfig {
     pub(super) endpoint: String,
     pub(super) parameters: Vec<(String, String)>,
@@ -190,7 +190,9 @@ pub(super) struct OpenAICompletionsConfig {
 }
 
 impl Endpoint for OpenAICompletionsConfig {
-    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid) {
+    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid) -> bool {
+        let old = self.clone();
+
         TextEdit::singleline(&mut self.endpoint)
             .hint_text("Endpoint URL")
             .desired_width(ui.spacing().text_edit_width * 2.0)
@@ -213,6 +215,8 @@ impl Endpoint for OpenAICompletionsConfig {
             ui.label("Request headers:");
             render_config_map(ui, &mut self.headers, 0.9, 1.1, true);
         });
+
+        *self != old
     }
     fn label(&self) -> &str {
         for (key, value) in &self.parameters {
@@ -234,6 +238,7 @@ impl Endpoint for OpenAICompletionsConfig {
         &self,
         client: &Client,
         request: EndpointRequest,
+        tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
         let mut headers = HeaderMap::with_capacity(self.headers.len());
 
@@ -294,7 +299,7 @@ impl Endpoint for OpenAICompletionsConfig {
 
         let metadata = request.parameters.as_ref().clone();
 
-        let endpoint_response = parse_openai_response(response, metadata);
+        let endpoint_response = parse_openai_response(response, metadata, tokenization_identifier);
 
         if !endpoint_response.is_empty() {
             Ok(endpoint_response)
@@ -304,7 +309,7 @@ impl Endpoint for OpenAICompletionsConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub(super) struct OpenAIChatCompletionsConfig {
     pub(super) endpoint: String,
 
@@ -329,7 +334,9 @@ fn default_message_role() -> String {
 }
 
 impl Endpoint for OpenAIChatCompletionsConfig {
-    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid) {
+    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid) -> bool {
+        let old = self.clone();
+
         TextEdit::singleline(&mut self.endpoint)
             .hint_text("Endpoint URL")
             .desired_width(ui.spacing().text_edit_width * 2.0)
@@ -387,6 +394,8 @@ impl Endpoint for OpenAIChatCompletionsConfig {
             ui.label("Request headers:");
             render_config_map(ui, &mut self.headers, 0.9, 1.1, true);
         });
+
+        *self != old
     }
     fn label(&self) -> &str {
         for (key, value) in &self.parameters {
@@ -409,6 +418,7 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         &self,
         client: &Client,
         request: EndpointRequest,
+        tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
         let mut headers = HeaderMap::with_capacity(self.headers.len());
 
@@ -489,7 +499,7 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
         let metadata = request.parameters.as_ref().clone();
 
-        let endpoint_response = parse_openai_response(response, metadata);
+        let endpoint_response = parse_openai_response(response, metadata, tokenization_identifier);
 
         if !endpoint_response.is_empty() {
             Ok(endpoint_response)
@@ -499,7 +509,7 @@ impl Endpoint for OpenAIChatCompletionsConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, Eq)]
 pub(super) struct NonStandardOpenAIModifications {
     #[serde(default)]
     pub(super) tokenization_endpoint: String,
@@ -566,6 +576,7 @@ async fn error_for_status(response: Response) -> Result<Response, anyhow::Error>
 fn parse_openai_response(
     mut response: Map<String, Value>,
     metadata: Vec<(String, String)>,
+    tokenization_identifier: Ulid,
 ) -> Vec<EndpointResponse> {
     trace!("{:#?}", &response);
 
@@ -608,19 +619,43 @@ fn parse_openai_response(
 
                                     responses.reserve(tokens.len());
 
-                                    for (token, prob) in tokens {
+                                    for (token, prob, token_id) in tokens {
                                         let length = token.len();
 
                                         responses.push(EndpointResponse {
                                             content: InnerNodeContent::Tokens(vec![(
                                                 token,
-                                                IndexMap::from_iter([
-                                                    ("probability".to_string(), prob.to_string()),
-                                                    (
-                                                        "original_length".to_string(),
-                                                        length.to_string(),
-                                                    ),
-                                                ]),
+                                                if let Some(token_id) = token_id {
+                                                    IndexMap::from_iter([
+                                                        (
+                                                            "probability".to_string(),
+                                                            prob.to_string(),
+                                                        ),
+                                                        (
+                                                            "original_length".to_string(),
+                                                            length.to_string(),
+                                                        ),
+                                                        (
+                                                            "token_id".to_string(),
+                                                            token_id.to_string(),
+                                                        ),
+                                                        (
+                                                            "model_id".to_string(),
+                                                            tokenization_identifier.to_string(),
+                                                        ),
+                                                    ])
+                                                } else {
+                                                    IndexMap::from_iter([
+                                                        (
+                                                            "probability".to_string(),
+                                                            prob.to_string(),
+                                                        ),
+                                                        (
+                                                            "original_length".to_string(),
+                                                            length.to_string(),
+                                                        ),
+                                                    ])
+                                                },
                                             )]),
                                             metadata: metadata.clone(),
                                         });
@@ -691,6 +726,7 @@ fn parse_openai_response(
                                     output.push((
                                         token.into_bytes(),
                                         (logprob.exp() * 10000.0).round() / 10000.0,
+                                        None,
                                     ));
                                 }
                             }
@@ -708,15 +744,33 @@ fn parse_openai_response(
                             content: InnerNodeContent::Tokens(
                                 tokens
                                     .into_iter()
-                                    .map(|(token, prob)| {
+                                    .map(|(token, prob, token_id)| {
                                         let length = token.len();
 
                                         (
                                             token,
-                                            IndexMap::from_iter([
-                                                ("probability".to_string(), prob.to_string()),
-                                                ("original_length".to_string(), length.to_string()),
-                                            ]),
+                                            if let Some(token_id) = token_id {
+                                                IndexMap::from_iter([
+                                                    ("probability".to_string(), prob.to_string()),
+                                                    (
+                                                        "original_length".to_string(),
+                                                        length.to_string(),
+                                                    ),
+                                                    ("token_id".to_string(), token_id.to_string()),
+                                                    (
+                                                        "model_id".to_string(),
+                                                        tokenization_identifier.to_string(),
+                                                    ),
+                                                ])
+                                            } else {
+                                                IndexMap::from_iter([
+                                                    ("probability".to_string(), prob.to_string()),
+                                                    (
+                                                        "original_length".to_string(),
+                                                        length.to_string(),
+                                                    ),
+                                                ])
+                                            },
                                         )
                                     })
                                     .collect(),
@@ -798,7 +852,10 @@ fn parse_openai_response(
     vec![]
 }
 
-fn parse_openai_logprob(mut logprob: Map<String, Value>, output: &mut Vec<(Vec<u8>, f64)>) {
+fn parse_openai_logprob(
+    mut logprob: Map<String, Value>,
+    output: &mut Vec<(Vec<u8>, f64, Option<i128>)>,
+) {
     let token = if let Some(bytes) = logprob
         .remove("bytes")
         .and_then(|v| serde_json::from_value::<Vec<u8>>(v).ok())
@@ -811,10 +868,18 @@ fn parse_openai_logprob(mut logprob: Map<String, Value>, output: &mut Vec<(Vec<u
         None
     };
 
+    let token_id = if let Some(Value::Number(id)) = logprob.remove("id")
+        && let Some(id) = id.as_i128()
+    {
+        Some(id)
+    } else {
+        None
+    };
+
     if let Some(token) = token
         && let Some(Value::Number(logprob)) = logprob.remove("logprob")
         && let Some(logprob) = logprob.as_f64()
     {
-        output.push((token, (logprob.exp() * 10000.0).round() / 10000.0));
+        output.push((token, (logprob.exp() * 10000.0).round() / 10000.0, token_id));
     }
 }

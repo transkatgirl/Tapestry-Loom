@@ -6,6 +6,7 @@ use eframe::egui::{
     TextStyle, Ui, Widget, WidgetText,
     color_picker::{Alpha, color_edit_button_srgba},
 };
+use log::trace;
 use poll_promise::Promise;
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
@@ -87,12 +88,15 @@ impl InferenceSettings {
                 && ui.button("Add model").clicked()
                 && let Some(endpoint) = self.template.build()
             {
+                let identifier = Ulid::new();
+
                 self.models.insert(
-                    Ulid::new(),
+                    identifier,
                     InferenceModel {
                         label: String::new(),
                         color: None,
                         endpoint,
+                        tokenization_identifier: identifier,
                     },
                 );
             }
@@ -182,6 +186,9 @@ struct InferenceModel {
     label: String,
     color: Option<Color32>,
     endpoint: EndpointConfig,
+
+    #[serde(default = "Ulid::new")]
+    tokenization_identifier: Ulid,
 }
 
 impl InferenceModel {
@@ -239,7 +246,10 @@ impl InferenceModel {
         ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
         ui.label(["Endpoint Mode: ", &self.endpoint.to_string()].concat());
 
-        self.endpoint.render_settings(ui, id);
+        if self.endpoint.render_settings(ui, id) {
+            trace!("Updating tokenization identifier for {}", id);
+            self.tokenization_identifier = Ulid::new();
+        };
     }
 }
 
@@ -450,6 +460,7 @@ impl InferenceParameters {
                     parameters: Arc::new(model.parameters.clone()),
                 };
                 let endpoint = Arc::new(inference_model.endpoint.clone());
+                let tokenization_identifier = inference_model.tokenization_identifier;
 
                 for _ in 0..model.requests {
                     let content_model = content_model.clone();
@@ -464,8 +475,10 @@ impl InferenceParameters {
                             models: models.clone(),
                             parameters: parameters.clone(),
                             handle: Promise::spawn_async(async move {
-                                let responses =
-                                    endpoint.as_ref().perform_request(&client, request).await?;
+                                let responses = endpoint
+                                    .as_ref()
+                                    .perform_request(&client, request, tokenization_identifier)
+                                    .await?;
 
                                 responses
                                     .into_iter()
@@ -650,7 +663,7 @@ impl Display for EndpointConfig {
 }
 
 impl Endpoint for EndpointConfig {
-    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid) {
+    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid) -> bool {
         match self {
             Self::OpenAICompletions(endpoint) => endpoint.render_settings(ui, id),
             Self::OpenAIChatCompletions(endpoint) => endpoint.render_settings(ui, id),
@@ -672,11 +685,18 @@ impl Endpoint for EndpointConfig {
         &self,
         client: &Client,
         request: EndpointRequest,
+        tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
         match self {
-            Self::OpenAICompletions(endpoint) => endpoint.perform_request(client, request).await,
+            Self::OpenAICompletions(endpoint) => {
+                endpoint
+                    .perform_request(client, request, tokenization_identifier)
+                    .await
+            }
             Self::OpenAIChatCompletions(endpoint) => {
-                endpoint.perform_request(client, request).await
+                endpoint
+                    .perform_request(client, request, tokenization_identifier)
+                    .await
             }
         }
     }
@@ -694,13 +714,14 @@ struct EndpointResponse {
 }
 
 trait Endpoint: Serialize + DeserializeOwned + Clone {
-    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid);
+    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid) -> bool;
     fn label(&self) -> &str;
     fn default_parameters(&self) -> Vec<(String, String)>;
     async fn perform_request(
         &self,
         client: &Client,
         request: EndpointRequest,
+        tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error>;
 }
 
