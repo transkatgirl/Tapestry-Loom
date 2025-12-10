@@ -77,7 +77,7 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 - [x] Migrate to a desktop app rather than an Obsidian plugin
 	- [x] Implement conversion from the old Weave format to the new one
 	- [x] Implement all functionality supported by the original Obsidian plugin
-- [ ] Full UI redesign
+- [x] Full UI redesign
 	- [x] Resizable, dragable, scrollable, and collapsible settings
 	- [x] Three user-switchable UIs:
 		- [x] Interactive canvas + textbox, similar to [wool](https://github.com/lyramakesmusic/wool)
@@ -112,7 +112,7 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 			- [x] Automatically adjust tree position & highlighting based on textbox cursor location
 			- [x] Automatically scroll textbox based on tree cursor location
 			- [x] Scroll newly generated nodes into view
-	- [ ] Weave metadata & statistics tab
+	- [x] Weave metadata tab
 	- [x] Better UI error handling
 - [x] Keyboard shortcut implementation
 	- [x] Automatically adapt keyboards shortcuts based on OS (such as Mac vs Windows/Linux)
@@ -168,6 +168,7 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 		- [ ] Saving & loading custom presets
 			- [ ] Importing & exporting custom presets
 	- [ ] Support touchscreen-only devices
+- [ ] Weave statistical analysis tools
 - [ ] Optimize for performance whenever possible
 	- [ ] Aim to have acceptable performance on weaves with ~1 million nodes, ~200k active and ~10MB of active text on low-end hardware (such as a Raspberry Pi)
 		- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
