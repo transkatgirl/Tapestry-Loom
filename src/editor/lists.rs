@@ -8,9 +8,9 @@ use std::{
 };
 
 use eframe::egui::{
-    Align, Button, Color32, FontFamily, Frame, Id, Layout, Pos2, Rect, Rgba, RichText, ScrollArea,
-    Sense, Ui, UiBuilder, WidgetText, collapsing_header::CollapsingState,
-    scroll_area::ScrollBarVisibility,
+    Align, Button, Color32, FontFamily, Frame, Id, Layout, Pos2, Rect, RichText, ScrollArea, Sense,
+    Ui, UiBuilder, Vec2, WidgetText, collapsing_header::CollapsingState,
+    scroll_area::ScrollBarVisibility, vec2,
 };
 use egui_notify::Toasts;
 use egui_virtual_list::VirtualList;
@@ -26,8 +26,8 @@ use tapestry_weave::{
 
 use crate::{
     editor::shared::{
-        NodeIndex, SharedState, get_node_color, render_node_metadata_tooltip, render_node_text,
-        render_token_metadata_tooltip, weave::WeaveWrapper,
+        NodeIndex, SharedState, change_color_opacity, get_node_color, render_node_metadata_tooltip,
+        render_node_text, render_token_metadata_tooltip, weave::WeaveWrapper,
     },
     listing_margin,
     settings::{Settings, shortcuts::Shortcuts},
@@ -90,12 +90,19 @@ impl ListView {
                     .outer_margin(listing_margin(ui))
                     .show(ui, |ui| {
                         if settings.interface.auto_scroll {
-                            for item in items {
-                                Self::render_item(weave, settings, state, ui, &item);
+                            for (index, item) in items.into_iter().enumerate() {
+                                Self::render_item(weave, settings, state, ui, &item, index == 0);
                             }
                         } else {
                             self.list.ui_custom_layout(ui, items.len(), |ui, index| {
-                                Self::render_item(weave, settings, state, ui, &items[index]);
+                                Self::render_item(
+                                    weave,
+                                    settings,
+                                    state,
+                                    ui,
+                                    &items[index],
+                                    index == 0,
+                                );
                                 1
                             });
                         }
@@ -108,8 +115,12 @@ impl ListView {
         state: &mut SharedState,
         ui: &mut Ui,
         item: &Ulid,
+        is_start: bool,
     ) {
         if let Some(node) = weave.get_node(item).cloned() {
+            if !is_start {
+                render_label_separator(ui);
+            }
             ui.horizontal_wrapped(|ui| {
                 ui.add_space(ui.spacing().icon_spacing);
                 render_horizontal_node_label(
@@ -184,12 +195,26 @@ impl BookmarkListView {
                     .outer_margin(listing_margin(ui))
                     .show(ui, |ui| {
                         if settings.interface.auto_scroll {
-                            for item in items {
-                                Self::render_bookmark(weave, settings, state, ui, &item);
+                            for (index, item) in items.into_iter().enumerate() {
+                                Self::render_bookmark(
+                                    weave,
+                                    settings,
+                                    state,
+                                    ui,
+                                    &item,
+                                    index == 0,
+                                );
                             }
                         } else {
                             self.list.ui_custom_layout(ui, items.len(), |ui, index| {
-                                Self::render_bookmark(weave, settings, state, ui, &items[index]);
+                                Self::render_bookmark(
+                                    weave,
+                                    settings,
+                                    state,
+                                    ui,
+                                    &items[index],
+                                    index == 0,
+                                );
                                 1
                             });
                         }
@@ -202,8 +227,12 @@ impl BookmarkListView {
         state: &mut SharedState,
         ui: &mut Ui,
         item: &Ulid,
+        is_start: bool,
     ) {
         if let Some(node) = weave.get_node(item).cloned() {
+            if !is_start {
+                render_label_separator(ui);
+            }
             ui.horizontal_wrapped(|ui| {
                 ui.add_space(ui.spacing().icon_spacing);
                 ui.label("\u{E060}");
@@ -430,6 +459,7 @@ impl TreeListView {
                                 &mut self.lists,
                                 &mut self.needs_list_refresh,
                                 true,
+                                true,
                             );
                         }
                     });
@@ -451,12 +481,13 @@ fn render_node_tree(
     virtual_lists: &mut HashMap<Ulid, Rc<RefCell<VirtualList>>>,
     needs_list_refresh: &mut bool,
     is_display_root: bool,
+    show_separators: bool,
 ) {
     let indent_compensation = ui.spacing().icon_width + ui.spacing().icon_spacing;
 
     if settings.interface.auto_scroll || !settings.interface.optimize_tree /*|| within_virtual_list*/ || items.len() < 10
     {
-        for item in items {
+        for (index, item) in items.into_iter().enumerate() {
             render_node_tree_row(
                 weave,
                 settings,
@@ -471,6 +502,8 @@ fn render_node_tree(
                 virtual_lists,
                 needs_list_refresh,
                 is_display_root,
+                show_separators && !(is_display_root && index == 0),
+                show_separators,
             );
         }
     } else if items.len() > 0 {
@@ -505,6 +538,8 @@ fn render_node_tree(
                     virtual_lists,
                     needs_list_refresh,
                     is_display_root,
+                    show_separators && !(is_display_root && index == 0),
+                    show_separators,
                 );
                 1
             });
@@ -525,8 +560,13 @@ fn render_node_tree_row(
     virtual_lists: &mut HashMap<Ulid, Rc<RefCell<VirtualList>>>,
     needs_list_refresh: &mut bool,
     is_display_root: bool,
+    show_separator: bool,
+    show_child_separators: bool,
 ) {
     if let Some(node) = weave.get_node(&item).cloned() {
+        if show_separator {
+            render_label_separator(ui);
+        }
         rendered_items.insert(item);
         let mut render_label = |ui: &mut Ui| {
             ui.horizontal_wrapped(|ui| {
@@ -591,6 +631,7 @@ fn render_node_tree_row(
                             virtual_lists,
                             needs_list_refresh,
                             false,
+                            show_child_separators,
                         );
                     } else {
                         ui.horizontal_wrapped(|ui| {
@@ -868,6 +909,27 @@ fn render_empty_tree_label(
     });
 }
 
+// Based on egui::widgets::Separator
+fn render_label_separator(ui: &mut Ui) {
+    let available_space = if ui.is_sizing_pass() {
+        Vec2::ZERO
+    } else {
+        ui.available_size_before_wrap()
+    };
+
+    let size = vec2(available_space.x, 0.0);
+
+    let (rect, response) = ui.allocate_at_least(size, Sense::hover());
+
+    if ui.is_rect_visible(response.rect) {
+        let mut stroke = ui.visuals().widgets.noninteractive.bg_stroke;
+        stroke.color = change_color_opacity(stroke.color, 0.3);
+        let painter = ui.painter();
+
+        painter.hline(rect.left()..=rect.right(), rect.center().y, stroke);
+    }
+}
+
 fn render_horizontal_node_label(
     ui: &mut Ui,
     settings: &Settings,
@@ -923,15 +985,9 @@ fn render_horizontal_node_label(
 
                 let mut label_button = if node.active {
                     if let Some(label_color) = label_color {
-                        let rgba = Rgba::from(label_color).to_opaque();
-                        let label_color = Color32::from(Rgba::from_rgba_unmultiplied(
-                            rgba.r(),
-                            rgba.g(),
-                            rgba.b(),
-                            0.5,
-                        ));
-
-                        Button::new(label).fill(label_color).selected(true)
+                        Button::new(label)
+                            .fill(change_color_opacity(label_color, 0.5))
+                            .selected(true)
                     } else {
                         Button::new(label).selected(true)
                     }

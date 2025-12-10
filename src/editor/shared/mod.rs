@@ -574,16 +574,10 @@ pub fn get_token_color(
                 .and_then(|p| p.parse::<f32>().ok())
         {
             let probability = probability.clamp(0.0, 1.0);
-            let rgba = Rgba::from(color).to_opaque();
             let opacity = (1.0 - (f32::ln(1.0 / probability)) / 10.0)
                 .clamp(settings.interface.minimum_token_opacity / 100.0, 1.0);
 
-            Some(Color32::from(Rgba::from_rgba_unmultiplied(
-                rgba.r(),
-                rgba.g(),
-                rgba.b(),
-                opacity,
-            )))
+            Some(change_color_opacity(color, opacity))
         } else {
             Some(color)
         }
@@ -686,6 +680,16 @@ pub fn render_node_text(
             }
         }
     }
+}
+
+pub fn change_color_opacity(color: Color32, opacity: f32) -> Color32 {
+    let rgba = Rgba::from(color).to_opaque();
+    Color32::from(Rgba::from_rgba_unmultiplied(
+        rgba.r(),
+        rgba.g(),
+        rgba.b(),
+        opacity,
+    ))
 }
 
 // Modified version of String::from_utf8_lossy()
