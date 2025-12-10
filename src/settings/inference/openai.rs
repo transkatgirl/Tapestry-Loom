@@ -2,7 +2,7 @@ use eframe::egui::{CollapsingHeader, TextEdit, Ui, Widget};
 use log::trace;
 use reqwest::{
     Client, Method, Response, Url,
-    header::{HeaderMap, HeaderName, HeaderValue},
+    header::{CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -257,8 +257,12 @@ impl Endpoint for OpenAICompletionsConfig {
         if !self.nonstandard.tokenization_endpoint.is_empty() {
             let tokenized: Value = error_for_status(
                 client
-                    .request(Method::POST, Url::parse(&self.endpoint)?)
+                    .request(
+                        Method::POST,
+                        Url::parse(&self.nonstandard.tokenization_endpoint)?,
+                    )
                     .headers(headers.clone())
+                    .header(CONTENT_TYPE, "application/octet-stream")
                     .body(request.content)
                     .send()
                     .await?,
@@ -267,7 +271,7 @@ impl Endpoint for OpenAICompletionsConfig {
             .json()
             .await?;
 
-            body.insert("content".to_string(), tokenized);
+            body.insert("prompt".to_string(), tokenized);
         } else {
             body.insert(
                 "prompt".to_string(),
@@ -437,8 +441,12 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         if !self.nonstandard.tokenization_endpoint.is_empty() {
             let tokenized: Value = error_for_status(
                 client
-                    .request(Method::POST, Url::parse(&self.endpoint)?)
+                    .request(
+                        Method::POST,
+                        Url::parse(&self.nonstandard.tokenization_endpoint)?,
+                    )
                     .headers(headers.clone())
+                    .header(CONTENT_TYPE, "application/octet-stream")
                     .body(request.content)
                     .send()
                     .await?,
