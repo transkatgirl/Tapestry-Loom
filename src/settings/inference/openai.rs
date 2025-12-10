@@ -598,7 +598,7 @@ impl NonStandardOpenAIModifications {
             .ui(ui)
             .on_hover_text("Tapestry-Tokenize Endpoint");
 
-        if !self.tokenization_endpoint.is_empty() {
+        if !self.tokenization_endpoint.is_empty() && !is_chat {
             ui.checkbox(
                 &mut self.reuse_tokens,
                 "(Opportunistically) reuse output token IDs",
