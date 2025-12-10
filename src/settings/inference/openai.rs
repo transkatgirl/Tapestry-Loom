@@ -10,7 +10,7 @@ use tapestry_weave::{ulid::Ulid, universal_weave::indexmap::IndexMap, v0::InnerN
 
 use crate::settings::inference::{
     Endpoint, EndpointRequest, EndpointResponse, Template, escaped_string_from_utf8,
-    render_config_map, render_config_map_small,
+    render_config_list, render_config_map,
 };
 
 #[derive(Default, Debug, Clone, PartialEq)]
@@ -144,6 +144,9 @@ impl Template<OpenAIChatCompletionsConfig> for OpenAIChatCompletionsTemplate {
 
                 self.endpoint
             },
+            prefix_messages: Vec::new(),
+            message_role: "assistant".to_string(),
+            suffix_messages: Vec::new(),
             parameters: if self.model.is_empty() {
                 Vec::new()
             } else {
@@ -203,12 +206,12 @@ impl Endpoint for OpenAICompletionsConfig {
 
         ui.group(|ui| {
             ui.label("Request parameters:");
-            render_config_map(ui, &mut self.parameters, 0.9, 1.1);
+            render_config_map(ui, &mut self.parameters, 0.9, 1.1, true);
         });
 
         ui.group(|ui| {
             ui.label("Request headers:");
-            render_config_map(ui, &mut self.headers, 0.9, 1.1);
+            render_config_map(ui, &mut self.headers, 0.9, 1.1, true);
         });
     }
     fn label(&self) -> &str {
@@ -297,11 +300,25 @@ impl Endpoint for OpenAICompletionsConfig {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(super) struct OpenAIChatCompletionsConfig {
     endpoint: String,
+
+    #[serde(default)]
+    prefix_messages: Vec<String>,
+
+    #[serde(default = "default_message_role")]
+    message_role: String,
+
+    #[serde(default)]
+    suffix_messages: Vec<String>,
+
     parameters: Vec<(String, String)>,
     headers: Vec<(String, String)>,
 
     #[serde(default)]
     nonstandard: NonStandardOpenAIModifications,
+}
+
+fn default_message_role() -> String {
+    "assistant".to_string()
 }
 
 impl Endpoint for OpenAIChatCompletionsConfig {
@@ -320,12 +337,47 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
         ui.group(|ui| {
             ui.label("Request parameters:");
-            render_config_map(ui, &mut self.parameters, 0.9, 1.1);
+            render_config_map(ui, &mut self.parameters, 0.9, 1.1, true);
+        });
+
+        ui.group(|ui| {
+            ui.label("Prefix messages:");
+            render_config_list(
+                ui,
+                &mut self.prefix_messages,
+                Some("{\"role\": \"user\",\"content\": \"\"}"),
+                Some("{\"role\": \"user\",\"content\": \"\"}"),
+                2.0,
+                true,
+            );
+        });
+
+        ui.group(|ui| {
+            ui.horizontal_wrapped(|ui| {
+                let label = ui.label("Message role:").id;
+                TextEdit::singleline(&mut self.message_role)
+                    .hint_text("assistant")
+                    .clip_text(false)
+                    .ui(ui)
+                    .labelled_by(label);
+            });
+        });
+
+        ui.group(|ui| {
+            ui.label("Suffix messages:");
+            render_config_list(
+                ui,
+                &mut self.suffix_messages,
+                Some("{\"role\": \"user\",\"content\": \"\"}"),
+                Some("{\"role\": \"user\",\"content\": \"\"}"),
+                2.0,
+                true,
+            );
         });
 
         ui.group(|ui| {
             ui.label("Request headers:");
-            render_config_map(ui, &mut self.headers, 0.9, 1.1);
+            render_config_map(ui, &mut self.headers, 0.9, 1.1, true);
         });
     }
     fn label(&self) -> &str {
@@ -370,7 +422,7 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
         let mut message = Map::with_capacity(self.nonstandard.chat_message_custom_fields.len() + 2);
 
-        message.insert("role".to_string(), Value::String("assistant".to_string()));
+        message.insert("role".to_string(), Value::String(self.message_role.clone()));
 
         build_json_object(
             &mut message,
@@ -395,10 +447,16 @@ impl Endpoint for OpenAIChatCompletionsConfig {
             );
         }
 
-        body.insert(
-            "messages".to_string(),
-            Value::Array(vec![Value::Object(message)]),
-        );
+        let mut messages =
+            Vec::with_capacity(self.prefix_messages.len() + self.suffix_messages.len() + 1);
+
+        build_json_list(&mut messages, self.prefix_messages.clone());
+
+        messages.push(Value::Object(message));
+
+        build_json_list(&mut messages, self.suffix_messages.clone());
+
+        body.insert("messages".to_string(), Value::Array(messages));
 
         trace!("{:#?}", &body);
 
@@ -447,8 +505,18 @@ impl NonStandardOpenAIModifications {
         if is_chat {
             ui.group(|ui| {
                 ui.label("Additional input message parameters:");
-                render_config_map_small(ui, &mut self.chat_message_custom_fields, 0.675, 0.825);
+                render_config_map(ui, &mut self.chat_message_custom_fields, 0.675, 0.825, true);
             });
+        }
+    }
+}
+
+fn build_json_list(list: &mut Vec<Value>, items: Vec<String>) {
+    for item in items {
+        if let Ok(value) = serde_json::from_str(&item) {
+            list.push(value);
+        } else {
+            list.push(Value::String(item));
         }
     }
 }

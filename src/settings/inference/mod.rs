@@ -300,7 +300,7 @@ impl ModelInferenceParameters {
         });
 
         ui.label("Request parameters:");
-        render_config_map_small(ui, &mut self.parameters, 0.55, 0.45);
+        render_config_map(ui, &mut self.parameters, 0.55, 0.45, false);
     }
 }
 
@@ -717,6 +717,7 @@ pub fn render_config_map(
     value: &mut Vec<(String, String)>,
     key_width: f32,
     value_width: f32,
+    clip_text: bool,
 ) {
     let mut remove = None;
 
@@ -728,10 +729,12 @@ pub fn render_config_map(
             TextEdit::singleline(key)
                 .hint_text("key")
                 .desired_width(key_width)
+                .clip_text(clip_text)
                 .ui(ui);
             TextEdit::singleline(value)
                 .hint_text("value")
                 .desired_width(value_width)
+                .clip_text(clip_text)
                 .ui(ui);
             if ui.button("\u{E28F}").on_hover_text("Remove item").clicked() {
                 remove = Some(index);
@@ -748,28 +751,24 @@ pub fn render_config_map(
     }
 }
 
-pub fn render_config_map_small(
+pub fn render_config_list(
     ui: &mut Ui,
-    value: &mut Vec<(String, String)>,
-    key_width: f32,
-    value_width: f32,
+    value: &mut Vec<String>,
+    hint_text: Option<&str>,
+    new_item_text: Option<&str>,
+    item_width: f32,
+    clip_text: bool,
 ) {
     let mut remove = None;
 
-    let key_width = ui.spacing().text_edit_width * key_width;
-    let value_width = ui.spacing().text_edit_width * value_width;
+    let item_width = ui.spacing().text_edit_width * item_width;
 
-    for (index, (key, value)) in value.iter_mut().enumerate() {
+    for (index, item) in value.iter_mut().enumerate() {
         ui.horizontal_wrapped(|ui| {
-            TextEdit::singleline(key)
-                .hint_text("key")
-                .desired_width(key_width)
-                .clip_text(false)
-                .ui(ui);
-            TextEdit::singleline(value)
-                .hint_text("value")
-                .desired_width(value_width)
-                .clip_text(false)
+            TextEdit::singleline(item)
+                .hint_text(hint_text.unwrap_or("item"))
+                .desired_width(item_width)
+                .clip_text(clip_text)
                 .ui(ui);
             if ui.button("\u{E28F}").on_hover_text("Remove item").clicked() {
                 remove = Some(index);
@@ -782,7 +781,7 @@ pub fn render_config_map_small(
     }
 
     if ui.button("\u{E13D}").on_hover_text("Add item").clicked() {
-        value.push((String::new(), String::new()));
+        value.push(new_item_text.map(|s| s.to_string()).unwrap_or_default());
     }
 }
 

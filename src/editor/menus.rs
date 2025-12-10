@@ -178,7 +178,7 @@ impl InfoView {
                                 .map(|(k, v)| (k.clone(), v.clone()))
                                 .collect();
 
-                            render_config_map(ui, &mut metadata, 0.9, 1.1);
+                            render_config_map(ui, &mut metadata, 0.9, 1.1, true);
 
                             metadata.push((
                                 "notes".to_string(),
