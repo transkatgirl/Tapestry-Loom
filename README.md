@@ -120,9 +120,8 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 - [ ] Better documentation & onboarding
 	- [ ] Tutorial video
 	- [x] Binary releases
-	- [ ] Loomsidian migration script?
 
-In addition, below are the tentative plans for the next major version:
+### Plans for next major version
 
 <!--
 - [ ] Server-client, multi-user WebUI
@@ -144,6 +143,11 @@ In addition, below are the tentative plans for the next major version:
 	- [ ] Node copying & moving
 	- [ ] Perform heavy testing of data structures and/or formal verification to prevent bugs that could result in data loss
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
+- [ ] Support for migrating weaves from other Loom implementations
+	- [ ] [loomsidian](https://github.com/cosmicoptima/loom)
+	- [ ] [exoloom](https://exoloom.io)
+	- [ ] [loom](https://github.com/socketteer/loom)
+	- [ ] [wool](https://github.com/lyramakesmusic/wool)
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Further UI improvements
