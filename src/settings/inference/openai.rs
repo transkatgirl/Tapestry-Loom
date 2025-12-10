@@ -9,8 +9,7 @@ use serde_json::{Map, Value};
 use tapestry_weave::{ulid::Ulid, universal_weave::indexmap::IndexMap, v0::InnerNodeContent};
 
 use crate::settings::inference::{
-    Endpoint, EndpointRequest, EndpointResponse, Template, escaped_string_from_utf8,
-    render_config_list, render_config_map,
+    Endpoint, EndpointRequest, EndpointResponse, Template, render_config_list, render_config_map,
 };
 
 #[derive(Default, Debug, Clone, PartialEq)]
@@ -275,7 +274,7 @@ impl Endpoint for OpenAICompletionsConfig {
         } else {
             body.insert(
                 "prompt".to_string(),
-                Value::String(escaped_string_from_utf8(&request.content)),
+                Value::String(String::from_utf8_lossy(&request.content).to_string()),
             );
         }
 
@@ -459,7 +458,7 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         } else {
             message.insert(
                 "content".to_string(),
-                Value::String(escaped_string_from_utf8(&request.content)),
+                Value::String(String::from_utf8_lossy(&request.content).to_string()),
             );
         }
 

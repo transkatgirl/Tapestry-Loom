@@ -784,17 +784,3 @@ pub fn render_config_list(
         value.push(new_item_text.map(|s| s.to_string()).unwrap_or_default());
     }
 }
-
-pub fn escaped_string_from_utf8(bytes: &[u8]) -> String {
-    let mut string = String::with_capacity(bytes.len());
-
-    for chunk in bytes.utf8_chunks() {
-        string.push_str(chunk.valid());
-
-        for invalid in chunk.invalid() {
-            string.push_str(&format!("\\x{invalid:X}"));
-        }
-    }
-
-    string
-}
