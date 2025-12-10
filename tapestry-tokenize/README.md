@@ -2,8 +2,6 @@
 
 > [!WARNING]
 > The current code is a prototype that does not correctly handle invalid UTF-8 and does not support streaming data to reduce memory usage.
->
-> **There is *currently* no advantage whatsoever to using this in your Tapestry Loom configuration!**
 
 A server which provides a basic HTTP API for tokenizing and detokenizing inputs.
 
