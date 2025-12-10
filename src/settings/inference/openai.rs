@@ -91,7 +91,6 @@ impl Template<OpenAICompletionsConfig> for OpenAICompletionsTemplate {
                 ]
             },
             nonstandard: NonStandardOpenAIModifications::default(),
-            reuse_tokens: false,
         })
     }
 }
@@ -189,9 +188,6 @@ pub(super) struct OpenAICompletionsConfig {
 
     #[serde(default)]
     pub(super) nonstandard: NonStandardOpenAIModifications,
-
-    #[serde(default)]
-    pub(super) reuse_tokens: bool,
 }
 
 impl Endpoint for OpenAICompletionsConfig {
@@ -221,14 +217,7 @@ impl Endpoint for OpenAICompletionsConfig {
             render_config_map(ui, &mut self.headers, 0.9, 1.1, true);
         });
 
-        let result = *self != old;
-
-        ui.checkbox(
-            &mut self.reuse_tokens,
-            "(Opportunistically) reuse token IDs",
-        );
-
-        result
+        *self != old
     }
     fn label(&self) -> &str {
         for (key, value) in &self.parameters {
@@ -272,7 +261,7 @@ impl Endpoint for OpenAICompletionsConfig {
 
         let mut contents = Vec::with_capacity(request.content.len());
 
-        if self.reuse_tokens {
+        if self.nonstandard.reuse_tokens {
             for segment in request.content.as_ref().clone() {
                 contents.push(
                     RequestTokensOrBytes::build(segment, &tokenization_identifier)
@@ -303,11 +292,11 @@ impl Endpoint for OpenAICompletionsConfig {
 
             body.insert(
                 "prompt".to_string(),
-                if contents.len() == 1 {
+                Value::Array(vec![if contents.len() == 1 {
                     contents.swap_remove(0)
                 } else {
                     Value::Array(contents)
-                },
+                }]),
             );
         } else {
             let request_bytes: Vec<u8> = request
@@ -584,6 +573,9 @@ pub(super) struct NonStandardOpenAIModifications {
     pub(super) tokenization_endpoint: String,
 
     #[serde(default)]
+    pub(super) reuse_tokens: bool,
+
+    #[serde(default)]
     pub(super) chat_message_custom_fields: Vec<(String, String)>,
 }
 
@@ -594,6 +586,12 @@ impl NonStandardOpenAIModifications {
             .desired_width(ui.spacing().text_edit_width * 1.5)
             .ui(ui)
             .on_hover_text("Tapestry-Tokenize Endpoint");
+
+        ui.checkbox(
+            &mut self.reuse_tokens,
+            "(Opportunistically) reuse token IDs",
+        );
+
         if is_chat {
             ui.group(|ui| {
                 ui.label("Additional input message parameters:");
@@ -602,7 +600,9 @@ impl NonStandardOpenAIModifications {
         }
     }
     fn is_standard(&self) -> bool {
-        self.tokenization_endpoint.is_empty() && self.chat_message_custom_fields.is_empty()
+        self.tokenization_endpoint.is_empty()
+            && !self.reuse_tokens
+            && self.chat_message_custom_fields.is_empty()
     }
 }
 
