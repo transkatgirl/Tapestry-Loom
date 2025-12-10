@@ -1,7 +1,4 @@
 .DS_Store
 target
-target_ra
-target_wasm
-/weaves
-/reference
-/frontend/dist
+/tapestry-tokenize/models
+/tapestry-tokenize/models.toml

@@ -1,0 +1,20 @@
+[package]
+name = "tapestry-tokenize"
+version = "0.1.0"
+authors = [
+	"transkatgirl",
+]
+license = "Unlicense"
+description = "A server which provides a basic HTTP API for tokenizing and detokenizing inputs."
+edition = "2024"
+
+[dependencies]
+serde = { version = "1.0.228", features = [
+	"derive",
+] }
+toml = "0.9.8"
+rocket = { version = "0.5.1", features = [
+	"json",
+] }
+anyhow = "1.0.100"
+tokenizers = "0.22.2"
