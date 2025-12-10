@@ -1007,7 +1007,7 @@ fn render_horizontal_node_label(
                             ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
                                 ui.add_space(ui.spacing().icon_spacing);
                                 buttons(ui, settings, state, weave, node);
-                                ui.add_space(ui.spacing().icon_spacing);
+                                //ui.add_space(ui.spacing().icon_spacing);
 
                                 ui.add_space(0.0);
                             });
