@@ -867,7 +867,7 @@ impl RequestTokensOrBytes {
             ),
         }
     }*/
-    async fn into_json_async(
+    /*async fn into_json_async(
         self,
         byte_handler: impl AsyncFnOnce(Vec<u8>) -> Result<serde_json::Value, anyhow::Error>,
     ) -> Result<serde_json::Value, anyhow::Error> {
@@ -879,6 +879,15 @@ impl RequestTokensOrBytes {
                     .map(|t| serde_json::Value::Number(serde_json::Number::from_i128(t).unwrap()))
                     .collect(),
             )),
+        }
+    }*/
+    async fn into_tokens_async(
+        self,
+        byte_handler: impl AsyncFnOnce(Vec<u8>) -> Result<Vec<i128>, anyhow::Error>,
+    ) -> Result<Vec<i128>, anyhow::Error> {
+        match self {
+            Self::Bytes(bytes) => byte_handler(bytes).await,
+            Self::Tokens(tokens) => Ok(tokens),
         }
     }
 }

@@ -5,7 +5,7 @@ use reqwest::{
     header::{CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue},
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::{Map, Number, Value};
 use tapestry_weave::{ulid::Ulid, universal_weave::indexmap::IndexMap, v0::InnerNodeContent};
 
 use crate::settings::inference::{
@@ -259,32 +259,28 @@ impl Endpoint for OpenAICompletionsConfig {
             body.insert("stream".to_string(), Value::Bool(false));
         };
 
-        let mut contents = Vec::with_capacity(request.content.len());
+        if self.nonstandard.reuse_tokens && !self.nonstandard.tokenization_endpoint.is_empty() {
+            let mut tokens = Vec::new();
 
-        if self.nonstandard.reuse_tokens {
             for segment in request.content.as_ref().clone() {
-                contents.push(
+                tokens.extend(
                     RequestTokensOrBytes::build(segment, &tokenization_identifier)
-                        .into_json_async(|bytes: Vec<u8>| async {
-                            Ok(if !self.nonstandard.tokenization_endpoint.is_empty() {
-                                error_for_status(
-                                    client
-                                        .request(
-                                            Method::POST,
-                                            Url::parse(&self.nonstandard.tokenization_endpoint)?,
-                                        )
-                                        .headers(headers.clone())
-                                        .header(CONTENT_TYPE, "application/octet-stream")
-                                        .body(bytes)
-                                        .send()
-                                        .await?,
-                                )
-                                .await?
-                                .json()
-                                .await?
-                            } else {
-                                Value::String(String::from_utf8_lossy(&bytes).to_string())
-                            })
+                        .into_tokens_async(|bytes: Vec<u8>| async {
+                            Ok(error_for_status(
+                                client
+                                    .request(
+                                        Method::POST,
+                                        Url::parse(&self.nonstandard.tokenization_endpoint)?,
+                                    )
+                                    .headers(headers.clone())
+                                    .header(CONTENT_TYPE, "application/octet-stream")
+                                    .body(bytes)
+                                    .send()
+                                    .await?,
+                            )
+                            .await?
+                            .json()
+                            .await?)
                         })
                         .await?,
                 );
@@ -292,11 +288,12 @@ impl Endpoint for OpenAICompletionsConfig {
 
             body.insert(
                 "prompt".to_string(),
-                Value::Array(vec![if contents.len() == 1 {
-                    contents.swap_remove(0)
-                } else {
-                    Value::Array(contents)
-                }]),
+                Value::Array(
+                    tokens
+                        .into_iter()
+                        .map(|t| Value::Number(Number::from_i128(t).unwrap()))
+                        .collect(),
+                ),
             );
         } else {
             let request_bytes: Vec<u8> = request
@@ -324,7 +321,7 @@ impl Endpoint for OpenAICompletionsConfig {
                 .json()
                 .await?;
 
-                body.insert("prompt".to_string(), Value::Array(vec![tokenized]));
+                body.insert("prompt".to_string(), tokenized);
             } else {
                 body.insert(
                     "prompt".to_string(),
@@ -567,16 +564,30 @@ impl Endpoint for OpenAIChatCompletionsConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub(super) struct NonStandardOpenAIModifications {
     #[serde(default)]
     pub(super) tokenization_endpoint: String,
 
-    #[serde(default)]
+    #[serde(default = "default_reuse_tokens")]
     pub(super) reuse_tokens: bool,
 
     #[serde(default)]
     pub(super) chat_message_custom_fields: Vec<(String, String)>,
+}
+
+impl Default for NonStandardOpenAIModifications {
+    fn default() -> Self {
+        Self {
+            tokenization_endpoint: String::new(),
+            reuse_tokens: true,
+            chat_message_custom_fields: Vec::new(),
+        }
+    }
+}
+
+fn default_reuse_tokens() -> bool {
+    true
 }
 
 impl NonStandardOpenAIModifications {
@@ -587,10 +598,12 @@ impl NonStandardOpenAIModifications {
             .ui(ui)
             .on_hover_text("Tapestry-Tokenize Endpoint");
 
-        ui.checkbox(
-            &mut self.reuse_tokens,
-            "(Opportunistically) reuse token IDs",
-        );
+        if !self.tokenization_endpoint.is_empty() {
+            ui.checkbox(
+                &mut self.reuse_tokens,
+                "(Opportunistically) reuse token IDs",
+            );
+        }
 
         if is_chat {
             ui.group(|ui| {
@@ -599,9 +612,10 @@ impl NonStandardOpenAIModifications {
             });
         }
     }
+    #[allow(clippy::nonminimal_bool)]
     fn is_standard(&self) -> bool {
-        self.tokenization_endpoint.is_empty()
-            && !self.reuse_tokens
+        !(self.reuse_tokens && !self.tokenization_endpoint.is_empty())
+            && self.tokenization_endpoint.is_empty()
             && self.chat_message_custom_fields.is_empty()
     }
 }
