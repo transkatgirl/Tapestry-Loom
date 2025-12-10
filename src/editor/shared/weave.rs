@@ -60,6 +60,9 @@ impl WeaveWrapper {
     }
     pub fn is_empty(&self) -> bool {
         self.weave.is_empty()
+    }
+    pub fn is_empty_including_metadata(&self) -> bool {
+        self.weave.is_empty()
             && self
                 .weave
                 .weave

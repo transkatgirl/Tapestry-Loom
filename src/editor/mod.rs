@@ -443,7 +443,11 @@ impl Editor {
             && self
                 .weave
                 .try_lock()
-                .and_then(|weave| weave.as_ref().map(|weave| !weave.is_empty()))
+                .and_then(|weave| {
+                    weave
+                        .as_ref()
+                        .map(|weave| !weave.is_empty_including_metadata())
+                })
                 .unwrap_or(true)
     }
     pub fn close(&mut self) -> bool {
@@ -453,7 +457,11 @@ impl Editor {
             && self
                 .weave
                 .try_lock()
-                .and_then(|weave| weave.as_ref().map(|weave| !weave.is_empty()))
+                .and_then(|weave| {
+                    weave
+                        .as_ref()
+                        .map(|weave| !weave.is_empty_including_metadata())
+                })
                 .unwrap_or(true)
         {
             self.show_confirmation = true;

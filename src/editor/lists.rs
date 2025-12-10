@@ -439,7 +439,7 @@ impl TreeListView {
                 Frame::new()
                     .outer_margin(listing_margin(ui))
                     .show(ui, |ui| {
-                        if weave.len() == 0 {
+                        if weave.is_empty() {
                             ui.horizontal_wrapped(|ui| {
                                 ui.add_space(ui.spacing().icon_spacing);
                                 render_empty_tree_label(ui, settings, state, weave)
