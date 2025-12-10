@@ -1,4 +1,4 @@
-# Tapestry Loom (v1 beta)
+# Tapestry Loom
 
 An IDE for working with base model LLMs, inspired by the designs of [loom](https://github.com/socketteer/loom), [loomsidian](https://github.com/cosmicoptima/loom), [exoloom](https://exoloom.io), [logitloom](https://github.com/vgel/logitloom), and [wool](https://github.com/lyramakesmusic/wool).
 
@@ -60,7 +60,7 @@ git submodule update --init --recursive
 
 TODO: Make tutorial video
 
-### Migrating weaves from Tapestry Loom v0
+### Migrating weaves from the old Tapestry Loom Obsidian plugin
 
 After compiling Tapestry Loom from source, run the following commands in the repository folder:
 
@@ -69,11 +69,10 @@ cd obsidian-migration
 cargo run --release -- --input $OLD_TAPESTRY_OBSIDIAN_VAULT --output ~/"Documents/Tapestry Loom/Migrated Weaves"
 ```
 
-Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the obsidian vault used by Tapestry Loom v0.
+Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by the Obsidian plugin.
 
 ## Plans
 
-The plans for the rewrite are the following:
 - [x] Migrate to a desktop app rather than an Obsidian plugin
 	- [x] Implement conversion from the old Weave format to the new one
 	- [x] Implement all functionality supported by the original Obsidian plugin
@@ -114,17 +113,16 @@ The plans for the rewrite are the following:
 			- [x] Scroll newly generated nodes into view
 	- [ ] Weave metadata & statistics tab
 	- [x] Better UI error handling
-- [ ] Keyboard shortcut implementation
+- [x] Keyboard shortcut implementation
 	- [x] Automatically adapt keyboards shortcuts based on OS (such as Mac vs Windows/Linux)
 	- [x] Repeat keypresses when a keyboard be cut is held down
-	- [ ] Support shortcuts for all aspects of the UI, not just the weave editor
 - [ ] Allows saving and switching between multiple inference presets
 - [ ] Better documentation & onboarding
 	- [ ] Tutorial video
 	- [x] Binary releases
 	- [ ] Loomsidian migration script?
 
-In addition, below are the tentative plans for Tapestry Loom v2:
+In addition, below are the tentative plans for the next major version:
 
 <!--
 - [ ] Server-client, multi-user WebUI
@@ -150,6 +148,8 @@ In addition, below are the tentative plans for Tapestry Loom v2:
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Further UI improvements
 	- [ ] Better file manager
+	- [ ] Support keyboard shortcuts for all aspects of the UI, not just the weave editor
+		- [ ] Aim to support navigating the entirety of the UI without a mouse
 	- [ ] Node finding
 	- [ ] Customizable node sorting
 	- [ ] Node bulk selection
@@ -198,7 +198,7 @@ In addition, below are the tentative plans for Tapestry Loom v2:
 - [ ] Add some sort of plugin API for building on top of Tapestry Loom???
 - [ ] Implement an optional inference server using llama.cpp
 
-See also: the [original v1 plans](https://github.com/transkatgirl/Tapestry-Loom/blob/c8ccca0079ae186fcc7a70b955b2d2b123082d63/README.md)
+See also: the [original rewrite plans](https://github.com/transkatgirl/Tapestry-Loom/blob/c8ccca0079ae186fcc7a70b955b2d2b123082d63/README.md)
 
 Note: Tapestry Loom will be *entirely* focused on base and/or embedding models for the foreseeable future.
 
