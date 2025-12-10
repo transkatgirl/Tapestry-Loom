@@ -592,7 +592,17 @@ pub fn render_token_metadata_tooltip(
                     "modified_boundaries: true",
                 );
             }
-        } else if !(key == "token_id" || key == "model_id") {
+        } else if key == "token_id" {
+            #[cfg(debug_assertions)]
+            if token_metadata
+                .get("original_length")
+                .and_then(|value| value.parse::<usize>().ok())
+                .map(|original_length| original_length == token_len)
+                .unwrap_or(false)
+            {
+                ui.label(format!("token_id: {}", value));
+            }
+        } else if key != "model_id" {
             ui.label(format!("{key}: {value}"));
         }
     }
