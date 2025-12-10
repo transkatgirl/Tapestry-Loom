@@ -34,10 +34,7 @@ use log::{debug, error};
 use parking_lot::Mutex;
 use reqwest::Client;
 use tapestry_weave::{
-    VERSIONED_WEAVE_FILE_EXTENSION, VersionedWeave,
-    ulid::Ulid,
-    universal_weave::{indexmap::IndexMap, rkyv::rancor},
-    v0::TapestryWeave,
+    VERSIONED_WEAVE_FILE_EXTENSION, VersionedWeave, ulid::Ulid, universal_weave::rkyv::rancor,
 };
 use threadpool::ThreadPool;
 use tokio::runtime::Runtime;
@@ -47,7 +44,7 @@ use crate::{
         canvas::CanvasView,
         graph::GraphView,
         lists::{BookmarkListView, ListView, TreeListView},
-        menus::MenuView,
+        menus::{InfoView, MenuView},
         shared::{SharedState, weave::WeaveWrapper},
         textedit::TextEditorView,
     },
@@ -112,6 +109,7 @@ impl Editor {
         let right_tabs = vec![
             tiles.insert_pane(Pane::TextEdit),
             tiles.insert_pane(Pane::Menu),
+            tiles.insert_pane(Pane::Info),
         ];
 
         let left_tab_tile = tiles.insert_new(Tile::Container(Container::Tabs({
@@ -162,6 +160,7 @@ impl Editor {
                 bookmark_list_view: BookmarkListView::default(),
                 text_edit_view: TextEditorView::default(),
                 menu_view: MenuView::default(),
+                info_view: InfoView::default(),
                 shortcuts: FlagSet::default(),
             },
             allow_close: false,
@@ -247,13 +246,7 @@ impl Editor {
                                             .send("Weave deserialization failed".to_string());
                                         error!("Weave deserialization failed: {:#?}", error);
                                         *path = None;
-                                        *weave_dest = Some(
-                                            TapestryWeave::with_capacity(
-                                                65536,
-                                                IndexMap::default(),
-                                            )
-                                            .into(),
-                                        );
+                                        *weave_dest = Some(WeaveWrapper::default());
                                     }
                                     None => {
                                         file_size.store(0, Ordering::SeqCst);
@@ -261,13 +254,7 @@ impl Editor {
                                             error_sender.send("Invalid weave header".to_string());
                                         error!("Invalid weave header");
                                         *path = None;
-                                        *weave_dest = Some(
-                                            TapestryWeave::with_capacity(
-                                                65536,
-                                                IndexMap::default(),
-                                            )
-                                            .into(),
-                                        );
+                                        *weave_dest = Some(WeaveWrapper::default());
                                     }
                                 },
                                 Err(error) => {
@@ -275,16 +262,11 @@ impl Editor {
                                     let _ = error_sender.send(format!("Filesystem error: {error}"));
                                     error!("Filesystem error: {:#?}", error);
                                     *path = None;
-                                    *weave_dest = Some(
-                                        TapestryWeave::with_capacity(65536, IndexMap::default())
-                                            .into(),
-                                    );
+                                    *weave_dest = Some(WeaveWrapper::default());
                                 }
                             }
                         } else {
-                            *weave_dest = Some(
-                                TapestryWeave::with_capacity(65536, IndexMap::default()).into(),
-                            );
+                            *weave_dest = Some(WeaveWrapper::default());
                         }
                     });
                     barrier.wait();
@@ -461,9 +443,8 @@ impl Editor {
             && self
                 .weave
                 .try_lock()
-                .and_then(|weave| weave.as_ref().map(|weave| weave.len()))
-                .unwrap_or(1)
-                != 0
+                .and_then(|weave| weave.as_ref().map(|weave| !weave.is_empty()))
+                .unwrap_or(true)
     }
     pub fn close(&mut self) -> bool {
         if let Some(path) = &self.path.lock().as_ref() {
@@ -472,9 +453,8 @@ impl Editor {
             && self
                 .weave
                 .try_lock()
-                .and_then(|weave| weave.as_ref().map(|weave| weave.len()))
-                .unwrap_or(1)
-                != 0
+                .and_then(|weave| weave.as_ref().map(|weave| !weave.is_empty()))
+                .unwrap_or(true)
         {
             self.show_confirmation = true;
             return false;
@@ -521,7 +501,7 @@ fn write_bytes(path: &Path, contents: &[u8]) -> Result<(), io::Error> {
 }
 
 pub fn blank_weave_bytes() -> Result<Vec<u8>, rancor::Error> {
-    TapestryWeave::with_capacity(0, IndexMap::with_capacity(0)).to_versioned_bytes()
+    WeaveWrapper::default().to_versioned_bytes()
 }
 
 enum Pane {
@@ -532,6 +512,7 @@ enum Pane {
     BookmarkList,
     TextEdit,
     Menu,
+    Info,
 }
 
 struct EditorTilingBehavior {
@@ -543,6 +524,7 @@ struct EditorTilingBehavior {
     bookmark_list_view: BookmarkListView,
     text_edit_view: TextEditorView,
     menu_view: MenuView,
+    info_view: InfoView,
     settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
     weave: Arc<Mutex<Option<WeaveWrapper>>>,
@@ -613,7 +595,13 @@ impl EditorTilingBehavior {
                 &mut self.shared_state,
                 self.shortcuts,
             );
-
+            self.info_view.update(
+                weave,
+                &settings,
+                &mut toasts,
+                &mut self.shared_state,
+                self.shortcuts,
+            );
             self.menu_view.render_rtl_panel(
                 ui,
                 weave,
@@ -692,6 +680,14 @@ impl Behavior<Pane> for EditorTilingBehavior {
                     &mut self.shared_state,
                     self.shortcuts,
                 ),
+                Pane::Info => self.info_view.render(
+                    ui,
+                    weave,
+                    &settings,
+                    &mut toasts,
+                    &mut self.shared_state,
+                    self.shortcuts,
+                ),
             }
         }
 
@@ -706,6 +702,7 @@ impl Behavior<Pane> for EditorTilingBehavior {
             Pane::BookmarkList => WidgetText::Text("\u{E060} Bookmarks".to_string()),
             Pane::TextEdit => WidgetText::Text("\u{E265} Editor".to_string()),
             Pane::Menu => WidgetText::Text("\u{E1B1} Menu".to_string()),
+            Pane::Info => WidgetText::Text("\u{E0F9} Info".to_string()),
         }
     }
     fn is_tab_closable(&self, _tiles: &Tiles<Pane>, _tile_id: TileId) -> bool {

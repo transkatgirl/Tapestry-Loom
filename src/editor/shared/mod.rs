@@ -1,4 +1,4 @@
-use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
+use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc, sync::Arc, time::SystemTime};
 
 use chrono::{DateTime, offset};
 use eframe::egui::{
@@ -512,9 +512,7 @@ pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &DependentNode<NodeConten
         ui.label(format!("{key}: {value}"));
     }
 
-    let datetime: DateTime<offset::Local> = DateTime::from(Ulid(node.id).datetime());
-
-    ui.label(format!("{}", datetime.format("%x %r")));
+    ui.label(format_time(Ulid(node.id).datetime()));
 
     #[cfg(debug_assertions)]
     ui.label(Ulid(node.id).to_string());
@@ -690,6 +688,12 @@ pub fn change_color_opacity(color: Color32, opacity: f32) -> Color32 {
         rgba.b(),
         opacity,
     ))
+}
+
+pub fn format_time(time: SystemTime) -> String {
+    let datetime: DateTime<offset::Local> = DateTime::from(time);
+
+    datetime.format("%x %r").to_string()
 }
 
 // Modified version of String::from_utf8_lossy()

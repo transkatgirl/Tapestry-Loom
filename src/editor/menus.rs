@@ -1,10 +1,11 @@
-use eframe::egui::{Frame, ScrollArea, Spinner, Ui};
+use eframe::egui::{Frame, Resize, ScrollArea, Spinner, TextEdit, Ui};
 use egui_notify::Toasts;
 use flagset::FlagSet;
+use tapestry_weave::universal_weave::indexmap::IndexMap;
 
 use crate::{
     editor::shared::{SharedState, weave::WeaveWrapper},
-    settings::{Settings, shortcuts::Shortcuts},
+    settings::{Settings, inference::render_config_map, shortcuts::Shortcuts},
 };
 
 #[derive(Default, Debug)]
@@ -116,5 +117,77 @@ impl MenuView {
         if shortcuts.contains(Shortcuts::ResetParameters) {
             state.inference.reset(&settings.inference);
         }
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct InfoView {}
+
+impl InfoView {
+    //pub fn reset(&mut self) {}
+    pub fn update(
+        &mut self,
+        _weave: &mut WeaveWrapper,
+        _settings: &Settings,
+        _toasts: &mut Toasts,
+        _state: &mut SharedState,
+        _shortcuts: FlagSet<Shortcuts>,
+    ) {
+    }
+    pub fn render(
+        &mut self,
+        ui: &mut Ui,
+        weave: &mut WeaveWrapper,
+        _settings: &Settings,
+        _toasts: &mut Toasts,
+        _state: &mut SharedState,
+        _shortcuts: FlagSet<Shortcuts>,
+    ) {
+        ScrollArea::vertical()
+            .auto_shrink(false)
+            .animated(false)
+            .show(ui, |ui| {
+                Frame::new()
+                    .outer_margin(ui.style().spacing.menu_margin)
+                    .show(ui, |ui| {
+                        if let Some(notes) = weave.metadata_mut().get_mut("notes") {
+                            ui.group(|ui| {
+                                let label = ui.label("Notes:").id;
+                                Resize::default()
+                                    .min_width(ui.spacing().text_edit_width)
+                                    .default_width(ui.spacing().text_edit_width * 2.0)
+                                    .show(ui, |ui| {
+                                        TextEdit::multiline(notes)
+                                            .min_size(ui.available_size_before_wrap())
+                                            .desired_width(ui.available_size_before_wrap().x)
+                                            .lock_focus(true)
+                                            .show(ui)
+                                            .response
+                                            .labelled_by(label);
+                                    });
+                            });
+                        }
+
+                        ui.group(|ui| {
+                            ui.label("Metadata:");
+
+                            let mut metadata = weave
+                                .metadata()
+                                .iter()
+                                .filter(|(k, _)| *k != "notes")
+                                .map(|(k, v)| (k.clone(), v.clone()))
+                                .collect();
+
+                            render_config_map(ui, &mut metadata, 0.9, 1.1);
+
+                            metadata.push((
+                                "notes".to_string(),
+                                weave.metadata().get("notes").cloned().unwrap_or_default(),
+                            ));
+
+                            *weave.metadata_mut() = IndexMap::from_iter(metadata);
+                        });
+                    });
+            });
     }
 }

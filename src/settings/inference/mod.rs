@@ -712,7 +712,7 @@ where
     fn build(self) -> Option<T>;
 }
 
-fn render_config_map(
+pub fn render_config_map(
     ui: &mut Ui,
     value: &mut Vec<(String, String)>,
     key_width: f32,
@@ -748,7 +748,7 @@ fn render_config_map(
     }
 }
 
-fn render_config_map_small(
+pub fn render_config_map_small(
     ui: &mut Ui,
     value: &mut Vec<(String, String)>,
     key_width: f32,

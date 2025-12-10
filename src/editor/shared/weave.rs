@@ -3,6 +3,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
+use chrono::Local;
 use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{
@@ -20,11 +21,24 @@ pub struct WeaveWrapper {
     layout_changed: bool,
 }
 
+impl Default for WeaveWrapper {
+    fn default() -> Self {
+        TapestryWeave::with_capacity(
+            65536,
+            IndexMap::from_iter([
+                ("created".to_string(), Local::now().to_rfc3339()),
+                ("notes".to_string(), String::with_capacity(65536)),
+            ]),
+        )
+        .into()
+    }
+}
+
 impl From<TapestryWeave> for WeaveWrapper {
     fn from(value: TapestryWeave) -> Self {
         Self {
             weave: value,
-            changed: false,
+            changed: false, // Does not react to metadata changes
             layout_changed: false,
         }
     }
@@ -34,9 +48,25 @@ impl WeaveWrapper {
     pub fn to_versioned_bytes(&self) -> Result<Vec<u8>, rancor::Error> {
         self.weave.to_versioned_bytes()
     }
+    pub fn metadata(&self) -> &IndexMap<String, String> {
+        &self.weave.weave.metadata
+    }
+    pub fn metadata_mut(&mut self) -> &mut IndexMap<String, String> {
+        &mut self.weave.weave.metadata
+    }
 
     pub fn len(&self) -> usize {
         self.weave.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.weave.is_empty()
+            && self
+                .weave
+                .weave
+                .metadata
+                .get("notes")
+                .map(|n| n.is_empty())
+                .unwrap_or(true)
     }
     pub fn get_bookmarks(&self) -> impl Iterator<Item = Ulid> {
         self.weave.get_bookmarks()
