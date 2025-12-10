@@ -182,12 +182,12 @@ impl Template<OpenAIChatCompletionsConfig> for OpenAIChatCompletionsTemplate {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(super) struct OpenAICompletionsConfig {
-    endpoint: String,
-    parameters: Vec<(String, String)>,
-    headers: Vec<(String, String)>,
+    pub(super) endpoint: String,
+    pub(super) parameters: Vec<(String, String)>,
+    pub(super) headers: Vec<(String, String)>,
 
     #[serde(default)]
-    nonstandard: NonStandardOpenAIModifications,
+    pub(super) nonstandard: NonStandardOpenAIModifications,
 }
 
 impl Endpoint for OpenAICompletionsConfig {
@@ -200,6 +200,7 @@ impl Endpoint for OpenAICompletionsConfig {
 
         CollapsingHeader::new("Non-standard API modifications")
             .id_salt(id)
+            .default_open(!self.nonstandard.is_standard())
             .show(ui, |ui| {
                 self.nonstandard.render_settings(ui, false);
             });
@@ -299,22 +300,22 @@ impl Endpoint for OpenAICompletionsConfig {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(super) struct OpenAIChatCompletionsConfig {
-    endpoint: String,
+    pub(super) endpoint: String,
 
     #[serde(default)]
-    prefix_messages: Vec<String>,
+    pub(super) prefix_messages: Vec<String>,
 
     #[serde(default = "default_message_role")]
-    message_role: String,
+    pub(super) message_role: String,
 
     #[serde(default)]
-    suffix_messages: Vec<String>,
+    pub(super) suffix_messages: Vec<String>,
 
-    parameters: Vec<(String, String)>,
-    headers: Vec<(String, String)>,
+    pub(super) parameters: Vec<(String, String)>,
+    pub(super) headers: Vec<(String, String)>,
 
     #[serde(default)]
-    nonstandard: NonStandardOpenAIModifications,
+    pub(super) nonstandard: NonStandardOpenAIModifications,
 }
 
 fn default_message_role() -> String {
@@ -331,6 +332,7 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
         CollapsingHeader::new("Non-standard API modifications")
             .id_salt(id)
+            .default_open(!self.nonstandard.is_standard())
             .show(ui, |ui| {
                 self.nonstandard.render_settings(ui, true);
             });
@@ -422,12 +424,12 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
         let mut message = Map::with_capacity(self.nonstandard.chat_message_custom_fields.len() + 2);
 
-        message.insert("role".to_string(), Value::String(self.message_role.clone()));
-
         build_json_object(
             &mut message,
             self.nonstandard.chat_message_custom_fields.clone(),
         );
+
+        message.insert("role".to_string(), Value::String(self.message_role.clone()));
 
         if self.nonstandard.raw_byte_input {
             message.insert(
@@ -485,11 +487,11 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 }
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
-struct NonStandardOpenAIModifications {
-    raw_byte_input: bool,
+pub(super) struct NonStandardOpenAIModifications {
+    pub(super) raw_byte_input: bool,
 
     #[serde(default)]
-    chat_message_custom_fields: Vec<(String, String)>,
+    pub(super) chat_message_custom_fields: Vec<(String, String)>,
 }
 
 impl NonStandardOpenAIModifications {
@@ -508,6 +510,9 @@ impl NonStandardOpenAIModifications {
                 render_config_map(ui, &mut self.chat_message_custom_fields, 0.675, 0.825, true);
             });
         }
+    }
+    fn is_standard(&self) -> bool {
+        !self.raw_byte_input && self.chat_message_custom_fields.is_empty()
     }
 }
 
