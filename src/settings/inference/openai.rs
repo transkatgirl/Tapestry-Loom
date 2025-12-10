@@ -718,16 +718,39 @@ fn parse_openai_response(
                         {
                             output.reserve(tokens.len());
 
-                            for (token, logprob) in tokens.drain(..).zip(token_logprobs.drain(..)) {
-                                if let Value::String(token) = token
-                                    && let Value::Number(logprob) = logprob
-                                    && let Some(logprob) = logprob.as_f64()
+                            if let Some(Value::Array(mut token_ids)) = logprobs.remove("token_ids")
+                            {
+                                for (token, (logprob, token_id)) in tokens
+                                    .drain(..)
+                                    .zip(token_logprobs.drain(..).zip(token_ids.drain(..)))
                                 {
-                                    output.push((
-                                        token.into_bytes(),
-                                        (logprob.exp() * 10000.0).round() / 10000.0,
-                                        None,
-                                    ));
+                                    if let Value::String(token) = token
+                                        && let Value::Number(token_id) = token_id
+                                        && let Some(token_id) = token_id.as_i128()
+                                        && let Value::Number(logprob) = logprob
+                                        && let Some(logprob) = logprob.as_f64()
+                                    {
+                                        output.push((
+                                            token.into_bytes(),
+                                            (logprob.exp() * 10000.0).round() / 10000.0,
+                                            Some(token_id),
+                                        ));
+                                    }
+                                }
+                            } else {
+                                for (token, logprob) in
+                                    tokens.drain(..).zip(token_logprobs.drain(..))
+                                {
+                                    if let Value::String(token) = token
+                                        && let Value::Number(logprob) = logprob
+                                        && let Some(logprob) = logprob.as_f64()
+                                    {
+                                        output.push((
+                                            token.into_bytes(),
+                                            (logprob.exp() * 10000.0).round() / 10000.0,
+                                            None,
+                                        ));
+                                    }
                                 }
                             }
                         }
