@@ -124,7 +124,7 @@ impl SharedState {
         self.has_cursor_node_changed = false;
         self.has_hover_node_changed = false;
         self.last_changed_node = None;
-        if self.last_hovered_node != self.hovered_node && self.hovered_node != NodeIndex::None {
+        if self.last_hovered_node != self.hovered_node {
             self.last_changed_node = self.hovered_node.into_node();
             self.last_hovered_node = self.hovered_node;
             self.has_hover_node_changed = true;
