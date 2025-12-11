@@ -173,6 +173,8 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 		- [ ] Saving & loading custom presets
 			- [ ] Importing & exporting custom presets
 	- [ ] Support touchscreen-only devices
+	- [ ] Show hovered child of active node in editor, similar to [exoloom](https://exoloom.io)
+	- [ ] Add ability to add custom labels to bookmarks/nodes
 - [ ] Weave statistical analysis tools
 - [ ] Optimize for performance whenever possible
 	- [ ] Aim to have acceptable performance on weaves with ~1 million nodes, ~200k active and ~10MB of active text on low-end hardware (such as a Raspberry Pi)
