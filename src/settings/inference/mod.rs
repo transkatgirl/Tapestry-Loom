@@ -593,10 +593,10 @@ impl EndpointTemplate {
                     let templates = vec![
                         Self::None,
                         Self::OpenAICompletions(OpenAICompletionsTemplate::default()),
-                        Self::OpenAIChatCompletions(OpenAIChatCompletionsTemplate::default()),
                         Self::TapestryTokenizeOpenAICompletions(
                             TapestryTokenizeOpenAICompletionsTemplate::default(),
                         ),
+                        Self::OpenAIChatCompletions(OpenAIChatCompletionsTemplate::default()),
                     ];
 
                     for template in templates {
