@@ -43,10 +43,10 @@ async fn main() -> Result<(), anyhow::Error> {
         );
     }
 
-    let shared = Arc::new(SharedState { tokenizers });
+    let shared = SharedState { tokenizers };
 
     let _rocket = rocket::build()
-        .manage(shared.clone())
+        .manage(shared)
         .mount("/", rocket::routes![tokenize, detokenize, tokenize_root])
         .launch()
         .await?;
@@ -56,7 +56,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
 #[post("/<model>", data = "<data>")]
 async fn tokenize_root(
-    state: &State<Arc<SharedState>>,
+    state: &State<SharedState>,
     model: &str,
     data: Vec<u8>,
 ) -> Result<Json<Vec<u32>>, Status> {
@@ -65,7 +65,7 @@ async fn tokenize_root(
 
 #[post("/<model>/tokenize", data = "<data>")]
 async fn tokenize(
-    state: &State<Arc<SharedState>>,
+    state: &State<SharedState>,
     model: &str,
     data: Vec<u8>,
 ) -> Result<Json<Vec<u32>>, Status> {
@@ -101,7 +101,7 @@ async fn tokenize(
 
 #[post("/<model>/detokenize", data = "<data>")]
 async fn detokenize(
-    state: &State<Arc<SharedState>>,
+    state: &State<SharedState>,
     model: &str,
     data: Json<Vec<u32>>,
 ) -> Result<Vec<u8>, Status> {
