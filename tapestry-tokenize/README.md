@@ -47,6 +47,12 @@ The server provides the following API endpoints
 
 ### Using Tapestry Tokenize within Tapestry Loom
 
+#### New models
+
+When adding a new model, fill out the "OpenAI-style Completions + Tapestry Tokenize" template in order to create a new model which uses the specified Tapestry Tokenize endpoint and opportunistically reuses token IDs from the model's output.
+
+#### Existing models
+
 You can configure Tapestry Loom to use Tapestry Tokenize on OpenAI-style Completion APIs by opening the model's "Non-standard API modifications" dropdown and inputting the tokenization URL in the "Tapestry-Tokenize Endpoint" input box.
 
 (Example: if your model label is `myfavoritellm` and the server is running on `http://127.0.0.1:8000` (the default), you would input this URL into the input box: `http://127.0.0.1:8000/myfavoritellm`)
