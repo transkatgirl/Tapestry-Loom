@@ -22,7 +22,7 @@ More information about a specific setting can often be found by hovering over th
 
 ### Shortcuts
 
-Tapestry Loom has various keyboards shortcuts which can allow the user to more quickly execute common actions. You can click on a shortcut's button to change it, and you can press escape while editing a shortcut to reset it to it's default value.
+Tapestry Loom has various keyboards shortcuts which can allow the user to more quickly execute common actions. You can click on a shortcut's button to change it, and you can press escape while editing a shortcut to clear the keybind.
 
 On MacOS, shortcuts containing Ctrl can be triggered using either the control or command keyboard buttons.
 

@@ -329,5 +329,9 @@ impl Settings {
         if shortcuts.contains(Shortcuts::ToggleProbabilities) {
             self.interface.show_token_probabilities = !self.interface.show_token_probabilities;
         }
+
+        if shortcuts.contains(Shortcuts::ToggleAutoScroll) {
+            self.interface.auto_scroll = !self.interface.auto_scroll;
+        }
     }
 }

@@ -25,6 +25,7 @@ pub struct KeyboardShortcuts {
     reset_parameters: Option<KeyboardShortcut>,
     toggle_colors: Option<KeyboardShortcut>,
     toggle_probabilities: Option<KeyboardShortcut>,
+    toggle_automatic_scrolling: Option<KeyboardShortcut>,
 
     toggle_node_collapsed: Option<KeyboardShortcut>,
     collapse_all_visible_inactive: Option<KeyboardShortcut>,
@@ -51,7 +52,10 @@ impl Default for KeyboardShortcuts {
             delete_siblings: None,
             delete_siblings_and_current: None,
             merge_with_parent: None,
-            split_at_cursor: None,
+            split_at_cursor: Some(KeyboardShortcut {
+                modifiers: Modifiers::COMMAND,
+                logical_key: Key::S,
+            }),
             move_to_parent: Some(KeyboardShortcut {
                 modifiers: Modifiers::COMMAND,
                 logical_key: Key::ArrowLeft,
@@ -71,6 +75,10 @@ impl Default for KeyboardShortcuts {
             reset_parameters: None,
             toggle_colors: None,
             toggle_probabilities: None,
+            toggle_automatic_scrolling: Some(KeyboardShortcut {
+                modifiers: Modifiers::COMMAND,
+                logical_key: Key::D,
+            }),
             toggle_node_collapsed: None,
             collapse_all_visible_inactive: None,
             collapse_children: None,
@@ -226,6 +234,16 @@ impl KeyboardShortcuts {
                 "keybind-toggle_probabilities",
             )
             .with_text("Toggle token probabilities")
+            .with_reset(None)
+            .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(
+                &mut self.toggle_automatic_scrolling,
+                "keybind-toggle_automatic_scrolling",
+            )
+            .with_text("Toggle automatic scrolling")
             .with_reset(None)
             .with_reset_key(Some(Key::Escape)),
         );
@@ -395,6 +413,12 @@ impl KeyboardShortcuts {
                 flags |= Shortcuts::ToggleProbabilities;
             }
 
+            if let Some(shortcut) = &self.toggle_automatic_scrolling
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ToggleAutoScroll;
+            }
+
             if let Some(shortcut) = &self.toggle_node_collapsed
                 && consume_shortcut(input, shortcut)
             {
@@ -464,6 +488,7 @@ flags! {
         ResetParameters,
         ToggleColors,
         ToggleProbabilities,
+        ToggleAutoScroll,
 
         ToggleNodeCollapsed,
         CollapseAllVisibleInactive,
