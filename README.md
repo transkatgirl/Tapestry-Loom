@@ -52,6 +52,22 @@ cargo build --release
 
 TODO: Make tutorial video
 
+### Local inference
+
+Ollama is not recommended as an inference backend due to [poor inference defaults which are very difficult to override](https://github.com/ollama/ollama/issues/11325), limited feature support (token IDs are not provided in logprobs output), and a lack of available base models. [llama.cpp](https://github.com/ggml-org/llama.cpp)'s llama-server is recommended.
+
+The recommended CLI arguments for llama-server are listed below:
+
+```bash
+llama-server --offline -hf $HF_REPO:q8_0 --jinja --chat-template "message.content" --ctx-size 4096 --temp 1 --top-k 0 --top-p 1 --min-p 0
+```
+
+Where `$HF_REPO` is set to the HuggingFace repository of the model (such as `mradermacher/Trinity-Mini-Base-GGUF`).
+
+Quantization should be kept to a minimum; Benchmarks of how chat models are affected by quantization may not necessarily generalize to how base models are used. `q8_0` is a reasonable balance between quality and VRAM usage for most use cases.
+
+Reducing the maximum context length can help reduce VRAM usage without reducing output quality.
+
 ### Optional tokenization server
 
 See [tapestry-tokenize](./tapestry-tokenize/README.md) for more information on how to use the (optional) tokenization server.
