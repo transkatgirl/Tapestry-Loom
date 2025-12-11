@@ -50,7 +50,9 @@ cargo build --release
 
 ## Usage
 
-TODO: Make tutorial video
+See the [Tapestry Loom Manual](./Manual.md) for more information on how to use the application.
+
+The rest of this README covers the usage of external tools which Tapestry Loom can interface with.
 
 ### Local inference
 
