@@ -154,7 +154,11 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 	- [ ] [wool](https://github.com/lyramakesmusic/wool)
 	- [ ] Package migration assistant in releases
 - [ ] Allows saving and switching between multiple inference presets
-- [ ] Add node collapsing to the canvas view?
+- [ ] Further canvas view improvements
+	- [ ] Add node collapsing
+	- [ ] Add node creation button
+- [ ] Improve built-in color schemes
+	- [ ] Improve rendering of light color schemes
 - [ ] Better documentation & onboarding
 	- [ ] Finish manual
 	- [x] Binary releases
