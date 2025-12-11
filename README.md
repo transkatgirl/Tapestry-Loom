@@ -73,6 +73,11 @@ Explanation of arguments:
 - The default sampling parameters (those specified by the CLI arguments) should leave the model's output distribution unchanged. **Sampling parameter defaults for chat models do not generalize to how base models are used.**
 	- The sampling parameters specified in the CLI arguments will be overridden by any sampling parameters that are specified in a request.
 
+If you are using llama-server on it's default port, you do not need to explicitly specify an endpoint URL when filling out the "OpenAI-style Completions" and "OpenAI-style ChatCompletions" templates.
+
+> [!IMPORTANT]
+> llama-server currently ignores the `model` request parameter.
+
 ### Tokenization server (optional)
 
 See [tapestry-tokenize](./tapestry-tokenize/README.md) for more information on how to configure and use the (optional) tokenization server.
