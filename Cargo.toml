@@ -21,7 +21,7 @@ env_logger = { version = "0.11.8", features = [
 	"auto-color",
 	"humantime",
 ] }
-log = { version = "0.4.28", features = [
+log = { version = "0.4.29", features = [
 	"release_max_level_debug",
 ] }
 mimalloc = { version = "0.1.48", features = [
@@ -39,7 +39,7 @@ ron = { version = "0.12.0", features = [
 	"integer128",
 	"unicode-segmentation",
 ] }
-reqwest = { version = "0.12", features = [
+reqwest = { version = "0.12.25", features = [
 	"json",
 	"gzip",
 	"brotli",
