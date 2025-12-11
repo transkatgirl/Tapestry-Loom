@@ -1,7 +1,7 @@
 # Tapestry Tokenize
 
 > [!WARNING]
-> The current code is a prototype that does not correctly handle invalid UTF-8 and does not support streaming data to reduce memory usage.
+> The current tokenization backend (huggingface tokenizers) does not correctly handle invalid UTF-8 characters.
 
 A server which provides a basic HTTP API for tokenizing and detokenizing inputs.
 

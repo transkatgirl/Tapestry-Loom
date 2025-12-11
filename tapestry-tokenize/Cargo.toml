@@ -15,6 +15,10 @@ serde = { version = "1.0.228", features = [
 toml = "0.9.8"
 rocket = { version = "0.5.1", features = [
 	"json",
+	"tls",
 ] }
 anyhow = "1.0.100"
 tokenizers = "0.22.2"
+log = { version = "0.4.29", features = [
+	"release_max_level_debug",
+] }

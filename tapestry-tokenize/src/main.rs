@@ -1,6 +1,9 @@
 use std::{collections::HashMap, env, fs, path::PathBuf, sync::Arc};
 
-use rocket::{Data, State, data::ByteUnit, http::Status, post, serde::json::Json};
+use log::{info, warn};
+use rocket::{
+    Data, State, data::ByteUnit, http::Status, post, serde::json::Json, tokio::task::spawn_blocking,
+};
 use serde::{Deserialize, Serialize};
 use tokenizers::Tokenizer;
 
@@ -17,7 +20,7 @@ struct Model {
 
 #[derive(Default)]
 struct SharedState {
-    tokenizers: HashMap<String, Tokenizer>,
+    tokenizers: HashMap<String, Arc<Tokenizer>>,
 }
 
 #[rocket::main]
@@ -27,6 +30,10 @@ async fn main() -> Result<(), anyhow::Error> {
         env::set_var("RAYON_RS_NUM_THREADS", "1");
     }
 
+    if !fs::exists("Rocket.toml")? {
+        fs::write("Rocket.toml", include_bytes!("default-rocket.toml"))?;
+    }
+
     let model_config: ModelConfig = toml::from_slice(&fs::read("models.toml")?)?;
 
     let mut tokenizers = HashMap::with_capacity(model_config.models.len());
@@ -34,7 +41,7 @@ async fn main() -> Result<(), anyhow::Error> {
     for model in model_config.models {
         tokenizers.insert(
             model.label,
-            Tokenizer::from_file(&model.file).map_err(anyhow::Error::from_boxed)?,
+            Arc::new(Tokenizer::from_file(&model.file).map_err(anyhow::Error::from_boxed)?),
         );
     }
 
@@ -42,34 +49,58 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let _rocket = rocket::build()
         .manage(shared.clone())
-        .mount("/", rocket::routes![tokenize, detokenize])
+        .mount("/", rocket::routes![tokenize, detokenize, tokenize_root])
         .launch()
         .await?;
 
     Ok(())
 }
 
+#[post("/<model>", data = "<data>")]
+async fn tokenize_root(
+    state: &State<Arc<SharedState>>,
+    model: &str,
+    data: Vec<u8>,
+) -> Result<Json<Vec<u32>>, Status> {
+    tokenize(state, model, data).await
+}
+
 #[post("/<model>/tokenize", data = "<data>")]
 async fn tokenize(
     state: &State<Arc<SharedState>>,
     model: &str,
-    data: Data<'_>,
+    data: Vec<u8>,
 ) -> Result<Json<Vec<u32>>, Status> {
     if let Some(tokenizer) = state.tokenizers.get(model) {
-        let data = data
-            .open(ByteUnit::Megabyte(4))
-            .into_bytes()
-            .await
-            .map_err(|_| Status::BadRequest)?;
+        info!(
+            "Tokenizing {} using {:?}",
+            ByteUnit::Byte(data.len() as u64),
+            model
+        );
 
-        let input = String::from_utf8_lossy(&data);
+        let tokenizer = tokenizer.clone();
 
-        let encoding = tokenizer
-            .encode_fast(input, false)
-            .map_err(|_| Status::InternalServerError)?;
+        spawn_blocking(move || {
+            let input = if let Ok(input) = str::from_utf8(&data) {
+                input
+            } else {
+                warn!(
+                    "Request body contains characters not supported by the current tokenization backend"
+                );
+                &String::from_utf8_lossy(&data)
+            };
 
-        Ok(Json(encoding.get_ids().to_vec()))
+            let encoding = tokenizer
+                .encode_fast(input, false)
+                .map_err(|_| Status::InternalServerError)?;
+
+            Ok(Json(encoding.get_ids().to_vec()))
+        })
+        .await
+        .map_err(|_| Status::InternalServerError)?
     } else {
+        warn!("Unable to find model {:?}", model);
+
         Err(Status::NotFound)
     }
 }
@@ -81,11 +112,21 @@ async fn detokenize(
     data: Json<Vec<u32>>,
 ) -> Result<Vec<u8>, Status> {
     if let Some(tokenizer) = state.tokenizers.get(model) {
-        Ok(tokenizer
-            .decode(&data.0, true)
-            .map_err(|_| Status::InternalServerError)?
-            .into_bytes())
+        info!("Detokenizing {} tokens using {:?}", data.0.len(), model);
+
+        let tokenizer = tokenizer.clone();
+
+        spawn_blocking(move || {
+            Ok(tokenizer
+                .decode(&data.0, true)
+                .map_err(|_| Status::InternalServerError)?
+                .into_bytes())
+        })
+        .await
+        .map_err(|_| Status::InternalServerError)?
     } else {
+        warn!("Unable to find model {:?}", model);
+
         Err(Status::NotFound)
     }
 }

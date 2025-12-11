@@ -1,0 +1,9 @@
+[default]
+address      = "127.0.0.1"
+port         = 8000
+log_level    = "normal"
+max_blocking = 64
+
+[default.limits]
+bytes = "4MiB"
+json  = "8MiB"
