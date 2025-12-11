@@ -40,6 +40,9 @@ pub struct UISettings {
     pub auto_scroll: bool,
     pub optimize_tree: bool,
 
+    #[serde(default)]
+    pub show_bookmark_count: bool,
+
     #[serde(skip)]
     fonts_changed: bool,
 }
@@ -63,6 +66,8 @@ impl Default for UISettings {
             max_tree_depth: 10,
             auto_scroll: true,
             optimize_tree: false,
+
+            show_bookmark_count: false,
 
             fonts_changed: false,
         }
@@ -228,6 +233,10 @@ impl UISettings {
                 "Perform additional tree rendering optimizations",
             );
         }
+        ui.checkbox(
+            &mut self.show_bookmark_count,
+            "Display number of bookmarked nodes",
+        );
 
         // TODO: Add editor layout presets
     }
