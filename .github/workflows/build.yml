@@ -16,17 +16,17 @@ jobs:
             matrix:
                 include:
                     - os: windows-latest
-                      artifact_name: tapestry-loom.exe
-                      asset_name: tapestry-loom-windows-x86_64.exe
+                      artifact: tapestry-loom.zip
+                      asset_name: tapestry-loom-windows-x86_64.zip
                     - os: macos-latest
-                      artifact_name: tapestry-loom
-                      asset_name: tapestry-loom-macos-aarch64
+                      artifact: tapestry-loom.zip
+                      asset_name: tapestry-loom-macos-aarch64.zip
                     - os: ubuntu-24.04
-                      artifact_name: tapestry-loom
-                      asset_name: tapestry-loom-linux-x86_64
+                      artifact: tapestry-loom.tar.xz
+                      asset_name: tapestry-loom-linux-x86_64.tar.xz
                     - os: ubuntu-24.04-arm
-                      artifact_name: tapestry-loom
-                      asset_name: tapestry-loom-linux-aarch64
+                      artifact: tapestry-loom.tar.xz
+                      asset_name: tapestry-loom-linux-aarch64.tar.xz
         steps:
             - name: Checkout repository
               uses: actions/checkout@v6
@@ -37,14 +37,41 @@ jobs:
               run: |
                   sudo apt update
                   sudo apt -y install pkg-config libfreetype6-dev libfontconfig1-dev
-            - name: Rust Cache
-              uses: Swatinem/rust-cache@v2.8.2
+            #- name: Rust Cache
+            #  uses: Swatinem/rust-cache@v2.8.2
             - name: Build
-              run: cargo build --release --locked
-            - name: Upload binaries to release
+              run: |
+                  cargo build --release --locked
+                  cd tapestry-tokenize
+                  cargo build --release --locked
+                  cd ..
+            - name: Compress
+              if: startsWith(matrix.os, 'windows')
+              run: |
+                  copy target/release/tapestry-loom.exe tapestry-loom.exe
+                  copy tapestry-tokenize/target/release/tapestry-tokenize.exe tapestry-tokenize.exe
+                  7z a -mx=9 tapestry-loom.zip tapestry-loom.exe tapestry-tokenize.exe
+            - name: Compress
+              if: startsWith(matrix.os, 'macos')
+              run: |
+                  cp target/release/tapestry-loom tapestry-loom
+                  cp tapestry-tokenize/target/release/tapestry-tokenize tapestry-tokenize_
+                  mv tapestry-tokenize tapestry-tokenize__
+                  mv tapestry-tokenize_ tapestry-tokenize
+                  7z a -m0=lzma -mx=9 tapestry-loom.zip tapestry-loom tapestry-tokenize
+            - name: Compress
+              if: startsWith(matrix.os, 'ubuntu')
+              run: |
+                  cp target/release/tapestry-loom tapestry-loom
+                  cp tapestry-tokenize/target/release/tapestry-tokenize tapestry-tokenize_
+                  mv tapestry-tokenize tapestry-tokenize__
+                  mv tapestry-tokenize_ tapestry-tokenize
+                  tar -cf tapestry-loom.tar tapestry-loom tapestry-tokenize
+                  xz -9e tapestry-loom.tar
+            - name: Upload files to release
               uses: svenstaro/upload-release-action@v2
               with:
                   repo_token: ${{ secrets.GITHUB_TOKEN }}
-                  file: target/release/${{ matrix.artifact_name }}
+                  file: ${{ matrix.artifact }}
                   asset_name: ${{ matrix.asset_name }}
                   tag: ${{ github.ref }}
