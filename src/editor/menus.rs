@@ -1,4 +1,4 @@
-use eframe::egui::{Frame, Resize, ScrollArea, Spinner, TextEdit, Ui};
+use eframe::egui::{Frame, ScrollArea, Spinner, TextEdit, Ui};
 use egui_notify::Toasts;
 use flagset::FlagSet;
 use tapestry_weave::universal_weave::indexmap::IndexMap;
@@ -185,18 +185,13 @@ impl InfoView {
                         if let Some(notes) = weave.metadata_mut().get_mut("notes") {
                             ui.group(|ui| {
                                 let label = ui.label("Notes:").id;
-                                Resize::default()
-                                    .min_width(ui.spacing().text_edit_width)
-                                    .default_width(ui.spacing().text_edit_width * 2.0)
-                                    .show(ui, |ui| {
-                                        TextEdit::multiline(notes)
-                                            .min_size(ui.available_size_before_wrap())
-                                            .desired_width(ui.available_size_before_wrap().x)
-                                            .lock_focus(true)
-                                            .show(ui)
-                                            .response
-                                            .labelled_by(label);
-                                    });
+
+                                TextEdit::multiline(notes)
+                                    .desired_width(ui.spacing().text_edit_width * 2.0)
+                                    .lock_focus(true)
+                                    .show(ui)
+                                    .response
+                                    .labelled_by(label);
                             });
                         }
 
