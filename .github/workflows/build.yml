@@ -37,7 +37,8 @@ jobs:
               run: |
                   sudo apt update
                   sudo apt -y install pkg-config libfreetype6-dev libfontconfig1-dev
-            - uses: actions-rust-lang/setup-rust-toolchain@v1
+            - name: Installed latest Rust toolchain
+              uses: actions-rust-lang/setup-rust-toolchain@v1
               with:
                   cache: false
             - name: Rust Cache
