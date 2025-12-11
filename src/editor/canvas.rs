@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 use std::{collections::HashSet, hash::Hash, time::Instant};
 
 use eframe::{
@@ -74,6 +76,8 @@ impl CanvasView {
         settings: &Settings,
         state: &mut SharedState,
     ) {
+        let active = HashSet::new();
+
         let sizes: Vec<_> = weave
             .dump_identifiers_ordered_u128_rev()
             .into_iter()
@@ -82,6 +86,7 @@ impl CanvasView {
                     render_node(
                         ui,
                         weave,
+                        &active,
                         settings,
                         state,
                         &Ulid(id),
@@ -247,6 +252,7 @@ impl CanvasView {
                         render_node(
                             ui,
                             weave,
+                            &self.active,
                             settings,
                             state,
                             node,
@@ -290,6 +296,7 @@ impl CanvasView {
 fn render_node(
     ui: &mut Ui,
     weave: &mut WeaveWrapper,
+    active: &HashSet<Ulid>,
     settings: &Settings,
     state: &mut SharedState,
     node: &Ulid,
@@ -303,14 +310,15 @@ fn render_node(
 
     if let Some(node) = weave.get_node(node).cloned() {
         if node.bookmarked {
-            stroke.color = ui.visuals().selection.bg_fill;
+            if active.contains(&Ulid(node.id)) {
+                stroke.color = ui.visuals().selection.stroke.color;
+            } else {
+                stroke.color = ui.visuals().selection.bg_fill;
+            }
         }
 
         if cursor_node == Some(Ulid(node.id)) {
             stroke.width *= 2.0;
-            if node.bookmarked {
-                stroke.color = ui.visuals().selection.stroke.color;
-            }
         }
 
         let mut button = Button::new(render_node_text(ui, &node, settings, None))
