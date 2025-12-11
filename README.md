@@ -19,22 +19,11 @@ Compiled binaries can be found on the [releases page](https://github.com/transka
 
 #### MacOS-specific instructions
 
-Before using the app, you will need to mark the file as executable by running the following CLI commands in the folder containing the downloaded binary:
+Before using the app, you will need to run the following CLI command in the extracted folder:
 
 ```bash
-xattr -d com.apple.quarantine tapestry-loom-macos-aarch64
-chmod +x tapestry-loom-macos-aarch64
+xattr -d com.apple.quarantine tapestry*
 ```
-
-#### Linux-specific instructions
-
-Before using the app, you will need to mark the file as executable by running the following CLI command in the folder containing the downloaded binary:
-
-```bash
-chmod +x $FILENAME
-```
-
-Where `$FILENAME` matches the name of the binary you downloaded.
 
 ### Compiling from source
 
@@ -61,6 +50,10 @@ cargo build --release
 ## Usage
 
 TODO: Make tutorial video
+
+### Optional tokenization server
+
+See [tapestry-tokenize](./tapestry-tokenize/README.md) for more information on how to use the (optional) tokenization server.
 
 ### Migrating weaves from the old Tapestry Loom Obsidian plugin
 
@@ -119,8 +112,7 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 	- [x] Automatically adapt keyboards shortcuts based on OS (such as Mac vs Windows/Linux)
 	- [x] Repeat keypresses when a keyboard be cut is held down
 - [x] Store model output token IDs in nodes and reuse them when applicable
-- [ ] Add tokenization server
-	- [ ] Package tokenization server in releases
+- [x] Tapestry Loom tokenization server
 - [ ] Support for migrating weaves from other Loom implementations
 	- [ ] [loomsidian](https://github.com/cosmicoptima/loom)
 	- [ ] [exoloom](https://exoloom.io)

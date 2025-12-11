@@ -5,17 +5,31 @@
 
 A server which provides a basic HTTP API for tokenizing and detokenizing inputs.
 
+## Getting started
+
+### Binary releases
+
+See [tapestry-loom's documentation](../README.md) in order to download a binary release.
+
+### Compiling from source
+
+Once you are in the tapestry-tokenize folder, you can run the server with the following command:
+
+```bash
+cargo run --release
+```
+
 ## Usage
 
-In order to run the server, you will need to create a `models.toml` file with the following structure:
+In order to start the server, you will need to create a `models.toml` file in the server's working directory.
+
+This file should contain the following structure:
 
 ```toml
 [[models]] # Add a [[models]] block for every model you want to specify
 label = "test" # The label for the model, used in API requests
 file  = "./models/test/tokenizer.json" # The path to the model's tokenizer.json file.
 ```
-
-After being configured, the server can be started using the `cargo run --release` command.
 
 ### API Endpoints
 
