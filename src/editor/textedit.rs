@@ -145,7 +145,7 @@ impl TextEditorView {
                     ui.visuals().widgets.inactive.text_color(),
                     hover,
                     &bytes.borrow(),
-                    buf.as_str().as_bytes(),
+                    buf.as_str(),
                 ),
                 text: buf.as_str().to_string(),
                 wrap: TextWrapping {
@@ -460,7 +460,7 @@ fn calculate_highlighting(
     default_color: Color32,
     hover: HighlightingHover,
     snippet_buffer: &[u8],
-    text_buffer: &[u8],
+    text_buffer: &str,
 ) -> Vec<LayoutSection> {
     let font_id = ui
         .style()
@@ -478,7 +478,9 @@ fn calculate_highlighting(
 
         index += snippet_length;
 
-        if index > length || snippet_buffer[byte_range.clone()] != text_buffer[byte_range.clone()] {
+        if index > length
+            || snippet_buffer[byte_range.clone()] != text_buffer.as_bytes()[byte_range.clone()]
+        {
             index -= snippet_length;
             break;
         }
@@ -505,7 +507,10 @@ fn calculate_highlighting(
 
         sections.push(LayoutSection {
             leading_space: 0.0,
-            byte_range,
+            byte_range: Range {
+                start: text_buffer.floor_char_boundary(byte_range.start),
+                end: text_buffer.floor_char_boundary(byte_range.end),
+            },
             format,
         });
     }

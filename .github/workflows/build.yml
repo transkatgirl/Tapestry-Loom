@@ -37,8 +37,10 @@ jobs:
               run: |
                   sudo apt update
                   sudo apt -y install pkg-config libfreetype6-dev libfontconfig1-dev
-            #- name: Rust Cache
-            #  uses: Swatinem/rust-cache@v2.8.2
+            - name: Rust Cache
+              uses: Swatinem/rust-cache@v2.8.2
+              with:
+                  cache-targets: false
             - name: Build
               run: |
                   cargo build --release --locked

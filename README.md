@@ -10,7 +10,6 @@ An IDE for working with base model LLMs, inspired by the designs of [loom](https
 - Some documents may cause the text editor to render token boundaries incorrectly
 	- This seems to be due to a bug in egui regarding textedit underline rendering
 - Accesskit screen reader support seems to be broken
-- Valid UTF-8 characters split between two or more active nodes can cause the app to crash when the text editor is open
 
 If you are experiencing an issue not listed here or in this [repository's active issues](https://github.com/transkatgirl/Tapestry-Loom/issues), please file an issue so that it can be fixed.
 
