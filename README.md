@@ -149,7 +149,7 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 	- [ ] Package migration assistant in releases
 - [ ] Allows saving and switching between multiple inference presets
 - [ ] Better documentation & onboarding
-	- [ ] Tutorial video
+	- [ ] Finish manual
 	- [x] Binary releases
 
 ### Plans for next major version
