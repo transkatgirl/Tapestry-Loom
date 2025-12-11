@@ -49,6 +49,7 @@ pub struct SharedState {
     responses: Vec<Result<DependentNode<NodeContent>, anyhow::Error>>,
     last_ui_settings: UISettings,
     pub has_theme_changed: bool,
+    last_activated_hovered: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -100,6 +101,7 @@ impl SharedState {
             responses: Vec::with_capacity(128),
             last_ui_settings: settings.interface,
             has_theme_changed: false,
+            last_activated_hovered: false,
         }
     }
     /*pub fn reset(&mut self) {
@@ -111,6 +113,7 @@ impl SharedState {
         self.has_hover_node_changed = false;
         self.has_weave_changed = false;
         self.has_weave_layout_changed = false;
+        self.last_activated_hovered = false;
         self.requests.clear();
         self.responses.clear();
     }*/
@@ -430,6 +433,22 @@ impl SharedState {
         {
             self.cursor_node = NodeIndex::Node(next_sibling);
             weave.set_node_active_status(&next_sibling, true);
+        }
+
+        if shortcuts.contains(Shortcuts::ActivateHovered)
+            && let Some(hovered_node) = self.last_hovered_node.into_node()
+        {
+            weave.set_node_active_status(&hovered_node, true);
+
+            self.last_activated_hovered = true;
+        } else {
+            if self.last_activated_hovered
+                && let Some(hovered_node) = self.last_hovered_node.into_node()
+            {
+                self.cursor_node = NodeIndex::Node(hovered_node);
+            }
+
+            self.last_activated_hovered = false;
         }
 
         self.has_weave_layout_changed = weave.has_layout_changed();

@@ -197,7 +197,6 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 	- [ ] Node bulk selection
 	- [ ] Node custom ordering via drag and drop
 		- [ ] Support reordering nodes in canvas and graph views as well
-	- [ ] Show node siblings on hover in textbox
 	- [ ] Keyboard shortcut presets
 		- [ ] Built-in presets
 			- [ ] [loomsidian](https://github.com/cosmicoptima/loom)-like
@@ -208,6 +207,9 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 	- [ ] Support touchscreen-only devices
 	- [ ] Show hovered child of active node in editor, similar to [exoloom](https://exoloom.io)
 	- [ ] Add ability to add custom labels to bookmarks/nodes
+	- [ ] Add ability to add custom attributes to nodes, rather than just bookmarks
+- [ ] Include documentation within app
+	- [ ] Include tokenization server within app?
 - [ ] Weave statistical analysis tools
 - [ ] Optimize for performance whenever possible
 	- [ ] Aim to have acceptable performance on weaves with ~1 million nodes, ~200k active and ~10MB of active text on low-end hardware (such as a Raspberry Pi)

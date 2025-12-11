@@ -16,6 +16,7 @@ pub struct KeyboardShortcuts {
     delete_siblings_and_current: Option<KeyboardShortcut>,
     merge_with_parent: Option<KeyboardShortcut>,
     split_at_cursor: Option<KeyboardShortcut>,
+    activate_hovered: Option<KeyboardShortcut>,
 
     move_to_parent: Option<KeyboardShortcut>,
     move_to_child: Option<KeyboardShortcut>,
@@ -56,6 +57,7 @@ impl Default for KeyboardShortcuts {
                 modifiers: Modifiers::COMMAND,
                 logical_key: Key::S,
             }),
+            activate_hovered: None,
             move_to_parent: Some(KeyboardShortcut {
                 modifiers: Modifiers::COMMAND,
                 logical_key: Key::ArrowLeft,
@@ -172,6 +174,13 @@ impl KeyboardShortcuts {
         ui.add(
             Keybind::new(&mut self.split_at_cursor, "keybind-split_at_cursor")
                 .with_text("Split node at cursor")
+                .with_reset(None)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.activate_hovered, "keybind-activate_hovered")
+                .with_text("Activate hovered node")
                 .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
@@ -371,6 +380,12 @@ impl KeyboardShortcuts {
                 flags |= Shortcuts::SplitAtCursor;
             }
 
+            if let Some(shortcut) = &self.activate_hovered
+                && is_shortcut_pressed(input, shortcut)
+            {
+                flags |= Shortcuts::ActivateHovered;
+            }
+
             if let Some(shortcut) = &self.move_to_parent
                 && consume_shortcut(input, shortcut)
             {
@@ -479,6 +494,7 @@ flags! {
         DeleteSiblingsAndCurrent,
         MergeWithParent,
         SplitAtCursor,
+        ActivateHovered,
 
         MoveToParent,
         MoveToChild,
@@ -531,4 +547,14 @@ fn consume_shortcut(input: &mut InputState, shortcut: &KeyboardShortcut) -> bool
         logical_key,
     } = *shortcut;
     count_and_consume_key(input, modifiers, logical_key) > 0
+}
+
+fn is_shortcut_pressed(input: &mut InputState, shortcut: &KeyboardShortcut) -> bool {
+    let KeyboardShortcut {
+        modifiers,
+        logical_key,
+    } = *shortcut;
+    input.modifiers.matches_exact(modifiers)
+        && input.keys_down.len() == 1
+        && input.keys_down.contains(&logical_key)
 }
