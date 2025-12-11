@@ -1,9 +1,7 @@
 use std::{collections::HashMap, env, fs, path::PathBuf, sync::Arc};
 
 use log::{info, warn};
-use rocket::{
-    Data, State, data::ByteUnit, http::Status, post, serde::json::Json, tokio::task::spawn_blocking,
-};
+use rocket::{State, http::Status, post, serde::json::Json, tokio::task::spawn_blocking};
 use serde::{Deserialize, Serialize};
 use tokenizers::Tokenizer;
 
@@ -72,11 +70,7 @@ async fn tokenize(
     data: Vec<u8>,
 ) -> Result<Json<Vec<u32>>, Status> {
     if let Some(tokenizer) = state.tokenizers.get(model) {
-        info!(
-            "Tokenizing {} using {:?}",
-            ByteUnit::Byte(data.len() as u64),
-            model
-        );
+        info!("Tokenizing {} bytes using {:?}", data.len(), model);
 
         let tokenizer = tokenizer.clone();
 

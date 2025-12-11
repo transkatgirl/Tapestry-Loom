@@ -16,6 +16,7 @@ toml = "0.9.8"
 rocket = { version = "0.5.1", features = [
 	"json",
 	"tls",
+	"mtls",
 ] }
 anyhow = "1.0.100"
 tokenizers = "0.22.2"
