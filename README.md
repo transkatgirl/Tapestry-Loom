@@ -183,6 +183,7 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Further UI improvements
+	- [ ] Better handle valid UTF-8 character split across multiple nodes
 	- [ ] Better file manager
 	- [ ] Support keyboard shortcuts for all aspects of the UI, not just the weave editor
 		- [ ] Aim to support navigating the entirety of the UI without a mouse
