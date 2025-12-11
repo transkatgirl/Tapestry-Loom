@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = [
 	"transkatgirl",
 ]
+homepage = "https://github.com/transkatgirl/Tapestry-Loom"
 license = "Unlicense"
 description = "A server which provides a basic HTTP API for tokenizing and detokenizing inputs."
 edition = "2024"
