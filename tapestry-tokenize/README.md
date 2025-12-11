@@ -21,17 +21,18 @@ After being configured, the server can be started using the `cargo run --release
 
 The server provides the following API endpoints
 
+- POST `/<model>`
+	- Input: An HTTP body containing the bytes you want to tokenize
+	- Output: A JSON array of token IDs
 - POST `/<model>/tokenize`
 	- Input: An HTTP body containing the bytes you want to tokenize
-		- Content type should be `application/octet-stream`
 	- Output: A JSON array of token IDs
 - POST `/<model>/detokenize`
 	- Input: A JSON array of token IDs (same format that is output by the `/tokenize` endpoint)
-		- Content type should be `application/json`
 	- Output: The decoded bytes
 
 ### Using Tapestry Tokenize within Tapestry Loom
 
-You can configure Tapestry Loom to use Tapestry Tokenize on OpenAI-style APIs by opening to the model's "Non-standard API modifications" dropdown and inputting the *complete* `/tokenize` URL in the "Tapestry-Tokenize Endpoint" input box.
+You can configure Tapestry Loom to use Tapestry Tokenize on OpenAI-style Completion APIs by opening the model's "Non-standard API modifications" dropdown and inputting the tokenization URL in the "Tapestry-Tokenize Endpoint" input box.
 
-Example: if your model label is `myfavoritellm` and the server is running on `http://127.0.0.1:8000` (the default), you would this URL into the input box: `http://127.0.0.1:8000/myfavoritellm/tokenize`
+(Example: if your model label is `myfavoritellm` and the server is running on `http://127.0.0.1:8000` (the default), you would input this URL into the input box: `http://127.0.0.1:8000/myfavoritellm`)
