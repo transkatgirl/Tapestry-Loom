@@ -155,7 +155,7 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 	- [ ] Package migration assistant in releases
 - [ ] Allows saving and switching between multiple inference presets
 - [ ] Further canvas view improvements
-	- [ ] Add node collapsing
+	- [ ] Add node collapsing (unlike tree, canvas has all branches expanded by default)
 	- [ ] Add node creation button
 - [ ] Improve built-in color schemes
 	- [ ] Improve rendering of light color schemes
@@ -196,6 +196,7 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 	- [ ] Customizable node sorting
 	- [ ] Node bulk selection
 	- [ ] Node custom ordering via drag and drop
+		- [ ] Support reordering nodes in canvas and graph views as well
 	- [ ] Show node siblings on hover in textbox
 	- [ ] Keyboard shortcut presets
 		- [ ] Built-in presets
