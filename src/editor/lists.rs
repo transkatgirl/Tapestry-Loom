@@ -563,6 +563,8 @@ fn render_node_tree_row(
     show_separator: bool,
     show_child_separators: bool,
 ) {
+    let needs_list_refresh = RefCell::new(needs_list_refresh);
+
     if let Some(node) = weave.get_node(&item).cloned() {
         if show_separator {
             render_label_separator(ui, settings);
@@ -580,7 +582,15 @@ fn render_node_tree_row(
                     weave,
                     &node,
                     |ui, settings, state, weave, node| {
-                        render_horizontal_node_label_buttons_rtl(ui, settings, state, weave, node);
+                        render_horizontal_node_tree_label_buttons_rtl(
+                            ui,
+                            settings,
+                            state,
+                            editor_id,
+                            weave,
+                            node,
+                            &mut needs_list_refresh.borrow_mut(),
+                        );
                         if is_display_root
                             && let Some(parent) = node.from
                             && ui
@@ -599,7 +609,7 @@ fn render_node_tree_row(
                             editor_id,
                             weave,
                             node,
-                            needs_list_refresh,
+                            &mut needs_list_refresh.borrow_mut(),
                         );
                     },
                     true,
@@ -629,7 +639,7 @@ fn render_node_tree_row(
                             within_virtual_list,
                             rendered_items,
                             virtual_lists,
-                            needs_list_refresh,
+                            &mut needs_list_refresh.borrow_mut(),
                             false,
                             show_child_separators,
                         );
@@ -651,7 +661,7 @@ fn render_node_tree_row(
                 });
 
             if collapsing_response.0.clicked() {
-                *needs_list_refresh = true;
+                **needs_list_refresh.borrow_mut() = true;
             }
         }
     }
@@ -784,6 +794,77 @@ pub fn render_horizontal_node_label_buttons_rtl(
         .clicked()
     {
         state.generate_children(weave, Some(Ulid(node.id)), settings);
+    };
+    if weave.is_mergeable_with_parent(&Ulid(node.id))
+        && ui
+            .button("\u{E43F}")
+            .on_hover_text("Merge node with parent")
+            .clicked()
+    {
+        weave.merge_with_parent(&Ulid(node.id));
+    };
+}
+
+fn render_horizontal_node_tree_label_buttons_rtl(
+    ui: &mut Ui,
+    settings: &Settings,
+    state: &mut SharedState,
+    editor_id: Ulid,
+    weave: &mut WeaveWrapper,
+    node: &DependentNode<NodeContent>,
+    needs_list_refresh: &mut bool,
+) {
+    if ui.button("\u{E28F}").on_hover_text("Delete node").clicked() {
+        weave.remove_node(&Ulid(node.id));
+    };
+    let bookmark_label = if node.bookmarked {
+        "\u{E23C}"
+    } else {
+        "\u{E23d}"
+    };
+    let bookmark_hover_text = if node.bookmarked {
+        "Remove bookmark"
+    } else {
+        "Bookmark node"
+    };
+    if ui
+        .button(bookmark_label)
+        .on_hover_text(bookmark_hover_text)
+        .clicked()
+    {
+        weave.set_node_bookmarked_status_u128(&node.id, !node.bookmarked);
+    };
+    if ui.button("\u{E40C}").on_hover_text("Add node").clicked() {
+        let identifier = Ulid::new().0;
+        if weave.add_node(DependentNode {
+            id: identifier,
+            from: Some(node.id),
+            to: IndexSet::default(),
+            active: node.active,
+            bookmarked: false,
+            contents: NodeContent {
+                content: InnerNodeContent::Snippet(vec![]),
+                metadata: IndexMap::new(),
+                model: None,
+            },
+        }) {
+            if node.active {
+                state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
+            } else {
+                set_node_tree_item_open_status(ui, editor_id, Ulid(node.id), true);
+                *needs_list_refresh = true;
+            }
+        }
+    };
+    if ui
+        .button("\u{E5CE}")
+        .on_hover_text("Generate completions")
+        .clicked()
+    {
+        state.generate_children(weave, Some(Ulid(node.id)), settings);
+
+        set_node_tree_item_open_status(ui, editor_id, Ulid(node.id), true);
+        *needs_list_refresh = true;
     };
     if weave.is_mergeable_with_parent(&Ulid(node.id))
         && ui
@@ -1231,6 +1312,9 @@ fn render_node_tree_context_menu(
 ) {
     if ui.button("Generate completions").clicked() {
         state.generate_children(weave, Some(Ulid(node.id)), settings);
+
+        set_node_tree_item_open_status(ui, editor_id, Ulid(node.id), true);
+        *needs_list_refresh = true;
     }
 
     let bookmark_label = if node.bookmarked {
@@ -1257,9 +1341,13 @@ fn render_node_tree_context_menu(
                 metadata: IndexMap::new(),
                 model: None,
             },
-        }) && node.active
-        {
-            state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
+        }) {
+            if node.active {
+                state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
+            } else {
+                set_node_tree_item_open_status(ui, editor_id, Ulid(node.id), true);
+                *needs_list_refresh = true;
+            }
         }
     }
 
