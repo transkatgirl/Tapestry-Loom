@@ -96,6 +96,109 @@ impl Template<OpenAICompletionsConfig> for OpenAICompletionsTemplate {
 }
 
 #[derive(Default, Debug, Clone, PartialEq)]
+pub(super) struct TapestryTokenizeOpenAICompletionsTemplate {
+    endpoint: String,
+    model: String,
+    api_key: String,
+
+    tokenization_endpoint: String,
+}
+
+impl Template<OpenAICompletionsConfig> for TapestryTokenizeOpenAICompletionsTemplate {
+    fn render(&mut self, ui: &mut Ui) {
+        ui.horizontal_wrapped(|ui| {
+            TextEdit::singleline(&mut self.endpoint)
+                .hint_text("http://127.0.0.1:8080/v1/completions")
+                .ui(ui)
+                .on_hover_text("Endpoint URL");
+            TextEdit::singleline(&mut self.model)
+                .hint_text("Model")
+                .desired_width(ui.spacing().text_edit_width / 1.5)
+                .ui(ui)
+                .on_hover_text("Model");
+            TextEdit::singleline(&mut self.api_key)
+                .hint_text("API key (optional)")
+                .desired_width(ui.spacing().text_edit_width / 1.5)
+                .ui(ui)
+                .on_hover_text("API key");
+        });
+        ui.horizontal_wrapped(|ui| {
+            TextEdit::singleline(&mut self.tokenization_endpoint)
+                .hint_text("http://127.0.0.1:8000")
+                .ui(ui)
+                .on_hover_text("Tokenization base URL");
+        });
+    }
+    fn build(mut self) -> Option<OpenAICompletionsConfig> {
+        if self.model.is_empty() {
+            return None;
+        }
+
+        Some(OpenAICompletionsConfig {
+            nonstandard: NonStandardOpenAIModifications {
+                tokenization_endpoint: [
+                    if self.tokenization_endpoint.is_empty() {
+                        "http://127.0.0.1:8000"
+                    } else {
+                        &self.tokenization_endpoint
+                    },
+                    "/",
+                    &self.model,
+                ]
+                .concat(),
+                reuse_tokens: true,
+                ..Default::default()
+            },
+            endpoint: if self.endpoint.is_empty() {
+                "http://127.0.0.1:8080/v1/completions".to_string()
+            } else {
+                if !(self.endpoint.ends_with("/v1") || self.endpoint.ends_with("/v1/")) {
+                    if self.endpoint.ends_with("/") {
+                        self.endpoint.push_str("v1");
+                    } else {
+                        self.endpoint.push_str("/v1");
+                    }
+                }
+
+                if !self.endpoint.ends_with("/completions") {
+                    if self.endpoint.ends_with("/") {
+                        self.endpoint.push_str("completions");
+                    } else {
+                        self.endpoint.push_str("/completions");
+                    }
+                }
+
+                self.endpoint
+            },
+            parameters: vec![("model".to_string(), self.model)],
+            headers: if self.api_key.is_empty() {
+                vec![
+                    ("User-Agent".to_string(), "TapestryLoom".to_string()),
+                    (
+                        "HTTP-Referer".to_string(),
+                        "https://github.com/transkatgirl/Tapestry-Loom".to_string(),
+                    ),
+                    ("X-Title".to_string(), "Tapestry Loom".to_string()),
+                ]
+            } else {
+                vec![
+                    (
+                        "Authorization".to_string(),
+                        ["Bearer ", &self.api_key].concat(),
+                    ),
+                    ("User-Agent".to_string(), "TapestryLoom".to_string()),
+                    (
+                        "HTTP-Referer".to_string(),
+                        "https://github.com/transkatgirl/Tapestry-Loom".to_string(),
+                    ),
+                    ("X-Title".to_string(), "Tapestry Loom".to_string()),
+                ]
+            },
+        })
+    }
+}
+
+#[derive(Default, Debug, Clone, PartialEq)]
 pub(super) struct OpenAIChatCompletionsTemplate {
     endpoint: String,
     model: String,

@@ -21,7 +21,7 @@ use tokio::runtime::Runtime;
 
 use crate::settings::inference::openai::{
     OpenAIChatCompletionsConfig, OpenAIChatCompletionsTemplate, OpenAICompletionsConfig,
-    OpenAICompletionsTemplate,
+    OpenAICompletionsTemplate, TapestryTokenizeOpenAICompletionsTemplate,
 };
 
 mod openai;
@@ -580,6 +580,7 @@ enum EndpointTemplate {
     None,
     OpenAICompletions(OpenAICompletionsTemplate),
     OpenAIChatCompletions(OpenAIChatCompletionsTemplate),
+    TapestryTokenizeOpenAICompletions(TapestryTokenizeOpenAICompletionsTemplate),
 }
 
 impl EndpointTemplate {
@@ -593,6 +594,9 @@ impl EndpointTemplate {
                         Self::None,
                         Self::OpenAICompletions(OpenAICompletionsTemplate::default()),
                         Self::OpenAIChatCompletions(OpenAIChatCompletionsTemplate::default()),
+                        Self::TapestryTokenizeOpenAICompletions(
+                            TapestryTokenizeOpenAICompletionsTemplate::default(),
+                        ),
                     ];
 
                     for template in templates {
@@ -608,6 +612,7 @@ impl EndpointTemplate {
             Self::None => {}
             Self::OpenAICompletions(template) => template.render(ui),
             Self::OpenAIChatCompletions(template) => template.render(ui),
+            Self::TapestryTokenizeOpenAICompletions(template) => template.render(ui),
         }
     }
     fn build(&mut self) -> Option<EndpointConfig> {
@@ -631,6 +636,15 @@ impl EndpointTemplate {
                     None
                 }
             }
+            Self::TapestryTokenizeOpenAICompletions(template) => {
+                if let Some(endpoint) = template.clone().build() {
+                    *self = EndpointTemplate::None;
+
+                    Some(EndpointConfig::OpenAICompletions(endpoint))
+                } else {
+                    None
+                }
+            }
         }
     }
 }
@@ -641,6 +655,9 @@ impl Display for EndpointTemplate {
             Self::None => f.write_str("Choose template..."),
             Self::OpenAICompletions(_) => f.write_str("OpenAI-style Completions"),
             Self::OpenAIChatCompletions(_) => f.write_str("OpenAI-style ChatCompletions"),
+            Self::TapestryTokenizeOpenAICompletions(_) => {
+                f.write_str("OpenAI-style Completions + Tapestry Tokenize")
+            }
         }
     }
 }
