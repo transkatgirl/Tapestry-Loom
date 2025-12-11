@@ -88,11 +88,11 @@ impl Default for KeyboardShortcuts {
             expand_children: None,
             fit_to_cursor: Some(KeyboardShortcut {
                 modifiers: Modifiers::COMMAND,
-                logical_key: Key::Num0,
+                logical_key: Key::Num9,
             }),
             fit_to_weave: Some(KeyboardShortcut {
                 modifiers: Modifiers::COMMAND,
-                logical_key: Key::Num9,
+                logical_key: Key::Num0,
             }),
         }
     }
