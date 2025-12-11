@@ -71,7 +71,7 @@ impl WeaveWrapper {
                 .map(|n| n.is_empty())
                 .unwrap_or(true)
     }
-    pub fn get_bookmarks(&self) -> impl Iterator<Item = Ulid> {
+    pub fn get_bookmarks(&self) -> impl ExactSizeIterator<Item = Ulid> {
         self.weave.get_bookmarks()
     }
     pub fn contains(&self, id: &Ulid) -> bool {
