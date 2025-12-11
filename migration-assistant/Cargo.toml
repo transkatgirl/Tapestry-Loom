@@ -1,5 +1,5 @@
 [package]
-name    = "tapestry-loom-obsidian-migration"
+name    = "tapestry-loom-migration-assistant"
 version = "0.0.0"
 edition = "2024"
 

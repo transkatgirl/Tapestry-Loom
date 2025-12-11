@@ -67,7 +67,7 @@ TODO: Make tutorial video
 After compiling Tapestry Loom from source, run the following commands in the repository folder:
 
 ```bash
-cd obsidian-migration
+cd migration-assistant
 cargo run --release -- --input $OLD_TAPESTRY_OBSIDIAN_VAULT --output ~/"Documents/Tapestry Loom/Migrated Weaves"
 ```
 
@@ -119,6 +119,14 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 	- [x] Automatically adapt keyboards shortcuts based on OS (such as Mac vs Windows/Linux)
 	- [x] Repeat keypresses when a keyboard be cut is held down
 - [x] Store model output token IDs in nodes and reuse them when applicable
+- [ ] Add tokenization server
+	- [ ] Package tokenization server in releases
+- [ ] Support for migrating weaves from other Loom implementations
+	- [ ] [loomsidian](https://github.com/cosmicoptima/loom)
+	- [ ] [exoloom](https://exoloom.io)
+	- [ ] [loom](https://github.com/socketteer/loom)
+	- [ ] [wool](https://github.com/lyramakesmusic/wool)
+	- [ ] Package migration assistant in releases
 - [ ] Allows saving and switching between multiple inference presets
 - [ ] Better documentation & onboarding
 	- [ ] Tutorial video
@@ -146,11 +154,6 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 	- [ ] Node copying & moving
 	- [ ] Perform heavy testing of data structures and/or formal verification to prevent bugs that could result in data loss
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
-- [ ] Support for migrating weaves from other Loom implementations
-	- [ ] [loomsidian](https://github.com/cosmicoptima/loom)
-	- [ ] [exoloom](https://exoloom.io)
-	- [ ] [loom](https://github.com/socketteer/loom)
-	- [ ] [wool](https://github.com/lyramakesmusic/wool)
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Further UI improvements
