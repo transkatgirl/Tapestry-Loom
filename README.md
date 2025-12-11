@@ -86,7 +86,7 @@ Once a tokenization endpoint is configured for a model, enabling the setting "(O
 
 This setting requires the inference backend to support returning token IDs (to check if this is working, hover over generated tokens in the text editor to see if they contain a token identifier). This is a non-standard addition to the OpenAI Completions API which is currently supported by very few inference backends ([llama.cpp](https://github.com/ggml-org/llama.cpp) has been confirmed to work properly with this feature).
 
-If your inference backend returns token IDs in OpenAI-style Completions requests but they do not appear in your weaves, please file a GitHub issue.
+If your inference backend returns token IDs in OpenAI-style Completions responses but they do not appear in your weaves, please file a GitHub issue.
 
 ### Migrating weaves from the old Tapestry Loom Obsidian plugin
 
