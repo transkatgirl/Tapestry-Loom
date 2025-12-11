@@ -155,7 +155,7 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 	- [ ] Package migration assistant in releases
 - [ ] Allows saving and switching between multiple inference presets
 - [ ] Further canvas view improvements
-	- [ ] Add node collapsing (unlike tree, canvas has all branches expanded by default)
+	- [ ] Add node collapsing (unlike tree, canvas should have all branches expanded by default)
 	- [ ] Add node creation button
 - [ ] Improve built-in color schemes
 	- [ ] Improve rendering of light color schemes
@@ -212,6 +212,7 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 - [ ] Optimize for performance whenever possible
 	- [ ] Aim to have acceptable performance on weaves with ~1 million nodes, ~200k active and ~10MB of active text on low-end hardware (such as a Raspberry Pi)
 		- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
+	- [ ] Optimize memory usage to be as low as reasonably possible
 - [ ] Collaborative weave editing over LAN
 - [ ] Adaptive looming using token entropy or [confidence](https://arxiv.org/pdf/2508.15260)
 - [ ] Token streaming and display of nodes being generated
