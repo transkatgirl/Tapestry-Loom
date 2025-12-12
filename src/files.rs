@@ -855,12 +855,8 @@ impl FileManager {
             self.scan_threadpool.execute(move || {
                 match fs::exists(&path) {
                     Ok(exists) => {
-                        if !exists {
-                            if let Err(error) = fs::create_dir_all(&path) {
-                                let _ = tx.send(Err(error.into()));
-                            } else {
-                                return;
-                            }
+                        if !exists && let Err(error) = fs::create_dir_all(&path) {
+                            let _ = tx.send(Err(error.into()));
                         }
                     }
                     Err(error) => {
