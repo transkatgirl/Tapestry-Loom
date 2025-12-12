@@ -59,9 +59,9 @@ The rest of this README covers the usage of external tools which Tapestry Loom c
 
 [llama.cpp](https://github.com/ggml-org/llama.cpp)'s llama-server is recommended, as it has been confirmed to work properly with *all* of the features within Tapestry Loom.
 
-Ollama is not recommended as an inference backend due to [poor inference defaults](https://docs.ollama.com/modelfile#valid-parameters-and-values) which [are very difficult to override](https://github.com/ollama/ollama/issues/11325), limited feature support (only very recent versions support logprobs), and a lack of available base models.
+Ollama is not recommended as an inference backend due to [poor inference defaults](https://docs.ollama.com/modelfile#valid-parameters-and-values) which [are very difficult to override](https://github.com/ollama/ollama/issues/11325), limited feature support, and a lack of available base models.
 
-Kobold.cpp is not recommended due to a poor implementation of logprobs (the number of requested logprobs is entirely ignored, leading to unwanted creation of single-token nodes). If you still plan on using Kobold.cpp, you will need to remove `logprobs = 1` from the inference configuration specified in the editor's menu subview.
+Kobold.cpp is not recommended due to a lack of request queuing and a poor implementation of logprobs (the number of requested logprobs is entirely ignored, leading to unwanted creation of single-token nodes). If you still plan on using Kobold.cpp, you will need to remove `logprobs = 1` from the inference configuration specified in the editor's menu subview.
 
 The recommended CLI arguments for [llama-server](https://github.com/ggml-org/llama.cpp/tree/master/tools/server) are listed below:
 
