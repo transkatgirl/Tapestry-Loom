@@ -27,7 +27,7 @@ use tapestry_weave::{
 use crate::{
     editor::shared::{
         NodeIndex, SharedState, change_color_opacity, get_node_color, render_node_metadata_tooltip,
-        render_node_text, render_token_metadata_tooltip, weave::WeaveWrapper,
+        render_node_text_or_empty, render_token_tooltip, weave::WeaveWrapper,
     },
     listing_margin,
     settings::{Settings, shortcuts::Shortcuts},
@@ -1058,20 +1058,16 @@ fn render_horizontal_node_label(
             }
 
             frame.show(ui, |ui| {
-                let mut label = if node.contents.content.as_bytes().is_empty() {
-                    WidgetText::Text("No text".to_string())
-                } else {
-                    WidgetText::LayoutJob(Arc::new(render_node_text(
-                        ui,
-                        node,
-                        settings,
-                        if node.active {
-                            Some(ui.visuals().widgets.active.text_color())
-                        } else {
-                            None
-                        },
-                    )))
-                };
+                let mut label = WidgetText::LayoutJob(Arc::new(render_node_text_or_empty(
+                    ui,
+                    node,
+                    settings,
+                    if node.active {
+                        Some(ui.visuals().widgets.active.text_color())
+                    } else {
+                        None
+                    },
+                )));
                 let label_color = get_node_color(node, settings);
 
                 let mut label_button = if node.active {
@@ -1103,7 +1099,7 @@ fn render_horizontal_node_label(
                         && tokens.len() == 1
                         && let Some(token) = tokens.first()
                     {
-                        render_token_metadata_tooltip(ui, token.0.len(), &token.1);
+                        render_token_tooltip(ui, &token.0, &token.1);
 
                         ui.separator();
                     }

@@ -153,7 +153,7 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 	- [ ] [loom](https://github.com/socketteer/loom)
 	- [ ] [wool](https://github.com/lyramakesmusic/wool)
 	- [ ] Package migration assistant in releases
-- [ ] Allows saving and switching between multiple inference presets
+- [ ] Allow saving and switching between multiple inference presets
 - [ ] Further canvas view improvements
 	- [ ] Add node collapsing (unlike tree, canvas should have all branches expanded by default)
 	- [ ] Add node creation button

@@ -12,7 +12,8 @@ use crate::{
         shared::{
             NodeIndex, SharedState, get_node_color,
             layout::{ArrangedWeave, WeaveLayout},
-            render_node_metadata_tooltip, render_node_text, render_token_metadata_tooltip,
+            render_node_metadata_tooltip, render_node_text_or_first_token_bytes,
+            render_token_metadata_tooltip,
             weave::WeaveWrapper,
         },
     },
@@ -341,7 +342,9 @@ fn render_context_menu(
 
 fn render_tooltip(ui: &mut Ui, weave: &mut WeaveWrapper, node: &Ulid, settings: &Settings) {
     if let Some(node) = weave.get_node(node) {
-        ui.label(render_node_text(ui, node, settings, None));
+        ui.label(render_node_text_or_first_token_bytes(
+            ui, node, settings, None,
+        ));
 
         if let InnerNodeContent::Tokens(tokens) = &node.contents.content
             && tokens.len() == 1

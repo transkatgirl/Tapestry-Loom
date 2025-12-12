@@ -19,7 +19,7 @@ use crate::{
         shared::{
             NodeIndex, SharedState,
             layout::{ArrangedWeave, WeaveLayout, wire_bezier_3},
-            render_node_metadata_tooltip, render_node_text, render_token_metadata_tooltip,
+            render_node_metadata_tooltip, render_node_text_or_empty, render_token_tooltip,
             weave::WeaveWrapper,
         },
     },
@@ -321,7 +321,7 @@ fn render_node(
             stroke.width *= 2.0;
         }
 
-        let mut button = Button::new(render_node_text(ui, &node, settings, None))
+        let mut button = Button::new(render_node_text_or_empty(ui, &node, settings, None))
             .fill(Color32::TRANSPARENT)
             .stroke(stroke)
             .min_size(Vec2 {
@@ -370,7 +370,7 @@ fn render_node(
                 && let Some(token) = tokens.first()
             {
                 ui.add_space(ui.spacing().menu_spacing);
-                render_token_metadata_tooltip(ui, token.0.len(), &token.1);
+                render_token_tooltip(ui, &token.0, &token.1);
             }
 
             ui.separator();

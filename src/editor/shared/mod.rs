@@ -592,6 +592,24 @@ pub fn render_token_tooltip(ui: &mut Ui, token: &[u8], token_metadata: &IndexMap
     render_token_metadata_tooltip(ui, token.len(), token_metadata);
 }
 
+/*pub fn render_token_optional_contents_tooltip(
+    ui: &mut Ui,
+    token: &[u8],
+    token_metadata: &IndexMap<String, String>,
+) {
+    if token_metadata
+        .get("original_length")
+        .and_then(|value| value.parse::<usize>().ok())
+        .map(|original_length| original_length == token.len())
+        .unwrap_or(true)
+        && str::from_utf8(token).is_err()
+    {
+        ui.label(RichText::new(format!("{token:?}")).monospace());
+    }
+
+    render_token_metadata_tooltip(ui, token.len(), token_metadata);
+}*/
+
 pub fn render_token_metadata_tooltip(
     ui: &mut Ui,
     token_len: usize,
@@ -677,7 +695,7 @@ pub fn get_node_color(node: &DependentNode<NodeContent>, settings: &Settings) ->
     }
 }
 
-pub fn render_node_text(
+/*pub fn render_node_text(
     ui: &Ui,
     node: &DependentNode<NodeContent>,
     settings: &Settings,
@@ -741,6 +759,199 @@ pub fn render_node_text(
                 }],
                 break_on_newline: true,
                 ..Default::default()
+            }
+        }
+    }
+}*/
+
+pub fn render_node_text_or_first_token_bytes(
+    ui: &Ui,
+    node: &DependentNode<NodeContent>,
+    settings: &Settings,
+    override_color: Option<Color32>,
+) -> LayoutJob {
+    let color = if let Some(override_color) = override_color {
+        override_color
+    } else {
+        get_node_color(node, settings).unwrap_or(ui.visuals().widgets.inactive.text_color())
+    };
+    let font_id = TextStyle::Monospace.resolve(ui.style());
+
+    match &node.contents.content {
+        InnerNodeContent::Tokens(tokens) => {
+            let mut text = String::with_capacity(tokens.iter().map(|(t, _)| t.len()).sum());
+            let mut offset = 0;
+
+            let mut sections = Vec::with_capacity(tokens.len());
+
+            for (token, token_metadata) in tokens {
+                let mut color = get_token_color(Some(color), token_metadata, settings)
+                    .unwrap_or(ui.visuals().widgets.inactive.text_color());
+                let mut token_text = from_utf8_lossy(token);
+
+                if tokens.len() == 1
+                    && token_metadata
+                        .get("original_length")
+                        .and_then(|value| value.parse::<usize>().ok())
+                        .map(|original_length| original_length == token.len())
+                        .unwrap_or(true)
+                    && str::from_utf8(token).is_err()
+                {
+                    token_text = format!("{token:?}").into();
+                    color = ui.visuals().widgets.noninteractive.text_color();
+                }
+
+                sections.push(LayoutSection {
+                    leading_space: 0.0,
+                    byte_range: offset..(offset + token_text.len()),
+                    format: TextFormat {
+                        font_id: font_id.clone(),
+                        color,
+                        valign: ui.text_valign(),
+                        ..Default::default()
+                    },
+                });
+                offset += token_text.len();
+                text.push_str(&token_text);
+            }
+
+            LayoutJob {
+                text,
+                sections,
+                break_on_newline: true,
+                ..Default::default()
+            }
+        }
+        InnerNodeContent::Snippet(snippet) => {
+            let text = from_utf8_lossy(snippet).to_string();
+            let text_length = text.len();
+
+            LayoutJob {
+                text,
+                sections: vec![LayoutSection {
+                    leading_space: 0.0,
+                    byte_range: 0..text_length,
+                    format: TextFormat {
+                        font_id,
+                        color,
+                        valign: ui.text_valign(),
+                        ..Default::default()
+                    },
+                }],
+                break_on_newline: true,
+                ..Default::default()
+            }
+        }
+    }
+}
+
+pub fn render_node_text_or_empty(
+    ui: &Ui,
+    node: &DependentNode<NodeContent>,
+    settings: &Settings,
+    override_color: Option<Color32>,
+) -> LayoutJob {
+    let color = if let Some(override_color) = override_color {
+        override_color
+    } else {
+        get_node_color(node, settings).unwrap_or(ui.visuals().widgets.inactive.text_color())
+    };
+    let font_id = TextStyle::Monospace.resolve(ui.style());
+    let mut notice_font_id = TextStyle::Body.resolve(ui.style());
+    notice_font_id.size = font_id.size;
+
+    match &node.contents.content {
+        InnerNodeContent::Tokens(tokens) => {
+            let mut text = String::with_capacity(tokens.iter().map(|(t, _)| t.len()).sum());
+            let mut offset = 0;
+
+            let mut sections = Vec::with_capacity(tokens.len());
+
+            for (token, token_metadata) in tokens {
+                let color = get_token_color(Some(color), token_metadata, settings)
+                    .unwrap_or(ui.visuals().widgets.inactive.text_color());
+                let token_text = from_utf8_lossy(token);
+
+                sections.push(LayoutSection {
+                    leading_space: 0.0,
+                    byte_range: offset..(offset + token_text.len()),
+                    format: TextFormat {
+                        font_id: font_id.clone(),
+                        color,
+                        valign: ui.text_valign(),
+                        ..Default::default()
+                    },
+                });
+                offset += token_text.len();
+                text.push_str(&token_text);
+            }
+
+            if !text.is_empty() {
+                LayoutJob {
+                    text,
+                    sections,
+                    break_on_newline: true,
+                    ..Default::default()
+                }
+            } else {
+                LayoutJob {
+                    text: "No text".to_string(),
+                    sections: vec![LayoutSection {
+                        leading_space: 0.0,
+                        byte_range: 0..("No text").len(),
+                        format: TextFormat {
+                            font_id: notice_font_id,
+                            color: if let Some((_, token_metadata)) = tokens.first() {
+                                get_token_color(Some(color), token_metadata, settings)
+                                    .unwrap_or(ui.visuals().widgets.inactive.text_color())
+                            } else {
+                                color
+                            },
+                            valign: ui.text_valign(),
+                            ..Default::default()
+                        },
+                    }],
+                    break_on_newline: true,
+                    ..Default::default()
+                }
+            }
+        }
+        InnerNodeContent::Snippet(snippet) => {
+            let text = from_utf8_lossy(snippet).to_string();
+            let text_length = text.len();
+
+            if text_length != 0 {
+                LayoutJob {
+                    text,
+                    sections: vec![LayoutSection {
+                        leading_space: 0.0,
+                        byte_range: 0..text_length,
+                        format: TextFormat {
+                            font_id,
+                            color,
+                            valign: ui.text_valign(),
+                            ..Default::default()
+                        },
+                    }],
+                    break_on_newline: true,
+                    ..Default::default()
+                }
+            } else {
+                LayoutJob {
+                    text: "No text".to_string(),
+                    sections: vec![LayoutSection {
+                        leading_space: 0.0,
+                        byte_range: 0..("No text").len(),
+                        format: TextFormat {
+                            font_id: notice_font_id,
+                            color,
+                            valign: ui.text_valign(),
+                            ..Default::default()
+                        },
+                    }],
+                    break_on_newline: true,
+                    ..Default::default()
+                }
             }
         }
     }
