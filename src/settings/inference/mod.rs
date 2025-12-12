@@ -47,7 +47,7 @@ impl Default for ClientConfig {
     fn default() -> Self {
         Self {
             accept_invalid_tls: false,
-            timeout_minutes: 5.0,
+            timeout_minutes: 10.0,
         }
     }
 }
