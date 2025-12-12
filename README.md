@@ -67,7 +67,7 @@ llama-server --models-dir $MODEL_DIRECTORY --models-max 1 --jinja --chat-templat
 
 Where `$MODEL_DIRECTORY` is set to the directory where model gguf files are stored.
 
-(Regarding quantization: Benchmarks of how chat models are affected by quantization likely do not generalize to how base  ,models are used. Quantization should be kept as low as reasonably possible, but `q8_0` is likely good enough for most use cases.)
+(Regarding quantization: Benchmarks of how chat models are affected by quantization likely do not generalize to how base models are used. Quantization should be kept as low as reasonably possible, but `q8_0` is likely good enough for most use cases.)
 
 Explanation of arguments:
 - Reducing the maximum context length helps reduce VRAM usage without sacrificing quality.
