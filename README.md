@@ -62,22 +62,19 @@ Ollama is not recommended as an inference backend due to [poor inference default
 The recommended CLI arguments for [llama-server](https://github.com/ggml-org/llama.cpp/tree/master/tools/server) are listed below:
 
 ```bash
-llama-server --offline -hf $HF_REPO:q8_0 --jinja --chat-template "message.content" --ctx-size 4096 --temp 1 --top-k 0 --top-p 1 --min-p 0
+llama-server --models-dir $MODEL_DIRECTORY --models-max 1 --jinja --chat-template "message.content" --ctx-size 4096 --temp 1 --top-k 0 --top-p 1 --min-p 0
 ```
 
-Where `$HF_REPO` is set to the HuggingFace repository of the model (such as `mradermacher/Trinity-Mini-Base-GGUF`).
+Where `$MODEL_DIRECTORY` is set to the directory where model gguf files are stored.
+
+(Regarding quantization: Benchmarks of how chat models are affected by quantization likely do not generalize to how base  ,models are used. Quantization should be kept as low as reasonably possible, but `q8_0` is likely good enough for most use cases.)
 
 Explanation of arguments:
-- Quantization should be kept to a minimum; Benchmarks of how chat models are affected by quantization may not necessarily generalize to how base models are used.
-	- `q8_0` is a reasonable balance between quality and VRAM usage for most use cases.
 - Reducing the maximum context length helps reduce VRAM usage without sacrificing quality.
 - The default sampling parameters (those specified by the CLI arguments) should leave the model's output distribution unchanged. **Sampling parameter defaults for chat models do not generalize to how base models are used.**
 	- The sampling parameters specified in the CLI arguments will be overridden by any sampling parameters that are specified in a request.
 
 If you are running llama-server on the same device as Tapestry Loom (and you are using the default port), you do not need to explicitly specify an endpoint URL when filling out the "OpenAI-style Completions" and "OpenAI-style ChatCompletions" templates.
-
-> [!IMPORTANT]
-> llama-server currently ignores the `model` request parameter.
 
 ### Tokenization server (optional)
 
