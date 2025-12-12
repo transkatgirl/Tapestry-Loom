@@ -9,7 +9,7 @@ An IDE for working with base model LLMs, inspired by the designs of [loom](https
 
 - Some documents may cause the text editor to render token boundaries incorrectly
 	- This seems to be due to a bug in egui regarding textedit underline rendering
-- Accesskit screen reader support seems to be broken
+- View/subview tabs and titles are not read by screen readers
 
 If you are experiencing an issue not listed here or in this [repository's active issues](https://github.com/transkatgirl/Tapestry-Loom/issues), please file an issue so that it can be fixed.
 
@@ -154,21 +154,21 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 	- [x] Repeat keypresses when a keyboard be cut is held down
 - [x] Store model output token IDs in nodes and reuse them when applicable
 - [x] Tapestry Loom tokenization server
+- [ ] Allow saving and switching between multiple inference presets
 - [ ] Support for migrating weaves from other Loom implementations
 	- [ ] [loomsidian](https://github.com/cosmicoptima/loom)
 	- [ ] [exoloom](https://exoloom.io)
 	- [ ] [loom](https://github.com/socketteer/loom)
 	- [ ] [wool](https://github.com/lyramakesmusic/wool)
 	- [ ] Package migration assistant in releases
-- [ ] Allow saving and switching between multiple inference presets
 - [ ] Further canvas view improvements
 	- [ ] Add node collapsing (unlike tree, canvas should have all branches expanded by default)
 	- [ ] Add node creation button
-- [ ] Improve built-in color schemes
-	- [ ] Improve rendering of light color schemes
 - [ ] Better documentation & onboarding
 	- [ ] Finish manual
 	- [x] Binary releases
+- [ ] Improve built-in color schemes
+	- [ ] Improve rendering of light color schemes
 
 ### Plans for next major version
 
