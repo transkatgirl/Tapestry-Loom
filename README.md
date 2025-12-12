@@ -74,7 +74,7 @@ Where `$MODEL_DIRECTORY` is set to the directory where model gguf files are stor
 (Regarding quantization: Benchmarks of how chat models are affected by quantization likely do not generalize to how base models are used. Quantization should be kept as low as reasonably possible, but `q8_0` is likely good enough for most use cases.)
 
 Explanation of arguments:
-- Only one model loaded into VRAM at a time; old models were automatically unloaded to make room for new ones
+- Only one model loaded into VRAM at a time; old models are automatically unloaded to make room for new ones
 - The specified chat template passes user input directly to the model without further changes.
 - Reducing the maximum context length helps reduce VRAM usage without sacrificing quality.
 - The default sampling parameters (those specified by the CLI arguments) should leave the model's output distribution unchanged. **Sampling parameter defaults for chat models do not generalize to how base models are used.**

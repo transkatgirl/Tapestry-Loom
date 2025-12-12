@@ -76,6 +76,8 @@ impl CanvasView {
         settings: &Settings,
         state: &mut SharedState,
     ) {
+        let padding_base = ui.text_style_height(&TextStyle::Monospace) as f64;
+
         let active = HashSet::new();
 
         let sizes: Vec<_> = weave
@@ -98,14 +100,15 @@ impl CanvasView {
                     );
                 });
 
-                (Ulid(id), (size.y as f64, size.x as f64))
+                (
+                    Ulid(id),
+                    (size.y as f64, size.x as f64 + (padding_base * 2.0)),
+                )
             })
             .collect();
 
         self.layout.load_weave(weave, sizes.into_iter());
-        self.arranged = self
-            .layout
-            .layout_weave(ui.text_style_height(&TextStyle::Monospace) as f64 * 3.0);
+        self.arranged = self.layout.layout_weave(padding_base * 3.0);
         self.last_changed = Instant::now();
 
         for (_, rect) in self.arranged.rects.iter_mut() {
@@ -129,6 +132,8 @@ impl CanvasView {
         let stroke_color = ui.visuals().widgets.inactive.bg_fill;
         let active_stroke_color = ui.visuals().widgets.active.fg_stroke.color;
 
+        let padding_base = padding_base as f32;
+
         for (item, rect) in self.arranged.rects.iter() {
             if !self.active.contains(item)
                 && let Some(node) = weave.get_node(item)
@@ -138,11 +143,11 @@ impl CanvasView {
                     wire_bezier_3(
                         ui.style().spacing.interact_size.y * 2.0,
                         Pos2 {
-                            x: p_rect.max.x,
+                            x: p_rect.max.x - padding_base,
                             y: (p_rect.min.y + (p_rect.max.y - p_rect.min.y) / 2.0),
                         },
                         Pos2 {
-                            x: rect.min.x,
+                            x: rect.min.x + padding_base,
                             y: (rect.min.y + (rect.max.y - rect.min.y) / 2.0),
                         },
                     ),
@@ -164,11 +169,11 @@ impl CanvasView {
                     wire_bezier_3(
                         ui.style().spacing.interact_size.y * 2.0,
                         Pos2 {
-                            x: p_rect.max.x,
+                            x: p_rect.max.x - padding_base,
                             y: (p_rect.min.y + (p_rect.max.y - p_rect.min.y) / 2.0),
                         },
                         Pos2 {
-                            x: rect.min.x,
+                            x: rect.min.x + padding_base,
                             y: (rect.min.y + (rect.max.y - rect.min.y) / 2.0),
                         },
                     ),
@@ -179,6 +184,19 @@ impl CanvasView {
                     },
                 ));
             }
+        }
+
+        for (_, rect) in self.arranged.rects.iter_mut() {
+            *rect = Rect {
+                min: Pos2 {
+                    x: rect.min.x + padding_base,
+                    y: rect.min.y,
+                },
+                max: Pos2 {
+                    x: rect.max.x - padding_base,
+                    y: rect.max.y,
+                },
+            };
         }
     }
     pub fn render(
