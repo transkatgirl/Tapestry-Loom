@@ -57,7 +57,7 @@ The rest of this README covers the usage of external tools which Tapestry Loom c
 
 ### Local inference
 
-Ollama is not recommended as an inference backend due to [poor inference defaults which are very difficult to override](https://github.com/ollama/ollama/issues/11325), limited feature support (token IDs are not provided in logprobs output), and a lack of available base models. [llama.cpp](https://github.com/ggml-org/llama.cpp)'s llama-server is recommended.
+Ollama is not recommended as an inference backend due to [poor inference defaults](https://docs.ollama.com/modelfile#valid-parameters-and-values) which [are very difficult to override](https://github.com/ollama/ollama/issues/11325), limited feature support (token IDs are not provided in logprobs output), and a lack of available base models. [llama.cpp](https://github.com/ggml-org/llama.cpp)'s llama-server is recommended.
 
 The recommended CLI arguments for [llama-server](https://github.com/ggml-org/llama.cpp/tree/master/tools/server) are listed below:
 
