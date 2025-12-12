@@ -155,7 +155,10 @@ impl Template<OpenAICompletionsConfig> for TapestryTokenizeOpenAICompletionsTemp
             endpoint: if self.endpoint.is_empty() {
                 "http://127.0.0.1:8080/v1/completions".to_string()
             } else {
-                if !(self.endpoint.ends_with("/v1") || self.endpoint.ends_with("/v1/")) {
+                if !(self.endpoint.ends_with("/v1")
+                    || self.endpoint.ends_with("/v1/")
+                    || self.endpoint.ends_with("/v1/completions"))
+                {
                     if self.endpoint.ends_with("/") {
                         self.endpoint.push_str("v1");
                     } else {
