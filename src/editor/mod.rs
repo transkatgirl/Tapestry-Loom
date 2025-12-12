@@ -1,7 +1,7 @@
 use std::{
     cell::RefCell,
     collections::HashSet,
-    fs::File,
+    fs::{self, File},
     io::{self, Read, Write},
     path::{Path, PathBuf},
     rc::Rc,
@@ -370,7 +370,9 @@ impl Editor {
                                 if new_path.extension().is_none() {
                                     new_path.set_extension("tapestry");
                                 }
-                                if !self.open_documents.borrow().contains(&new_path) {
+                                if !self.open_documents.borrow().contains(&new_path)
+                                    && !fs::exists(&new_path).unwrap_or(true)
+                                {
                                     *path = Some(new_path);
                                     ui.close();
                                 }
