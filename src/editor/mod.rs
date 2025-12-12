@@ -396,6 +396,8 @@ impl Editor {
         if self.last_save.elapsed() > settings.documents.save_interval {
             self.last_save = Instant::now();
             self.save(false);
+            ui.ctx()
+                .request_repaint_after_secs(settings.documents.save_interval.as_secs_f32() + 0.5);
         }
     }
     fn save(&self, unload: bool) {

@@ -8,8 +8,9 @@ An IDE for working with base model LLMs, inspired by the designs of [loom](https
 ## Known issues
 
 - Some documents may cause the text editor to render token boundaries incorrectly
-	- This seems to be due to a bug in egui regarding textedit underline rendering
-- View/subview tabs and titles are not read by screen readers
+	- This is due to a bug in egui regarding textedit underline rendering
+- Tab bars are not read by screen readers
+	- This is due to a bug in egui_tiles
 
 If you are experiencing an issue not listed here or in this [repository's active issues](https://github.com/transkatgirl/Tapestry-Loom/issues), please file an issue so that it can be fixed.
 
