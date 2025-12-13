@@ -1,7 +1,7 @@
 use std::{collections::HashMap, env, fs, path::PathBuf, sync::Arc};
 
 use log::{info, warn};
-use rocket::{State, http::Status, post, serde::json::Json, tokio::task::block_in_place};
+use rocket::{State, get, http::Status, post, serde::json::Json, tokio::task::block_in_place};
 use serde::{Deserialize, Serialize};
 use tokenizers::Tokenizer;
 
@@ -18,7 +18,7 @@ struct Model {
 
 #[derive(Default)]
 struct SharedState {
-    tokenizers: HashMap<String, Arc<Tokenizer>>,
+    tokenizers: HashMap<String, (Tokenizer, Arc<[u8]>)>,
 }
 
 #[rocket::main]
@@ -38,9 +38,14 @@ async fn main() -> Result<(), anyhow::Error> {
 
     for model in model_config.models {
         println!("Loading {}", model.file.display());
+        let contents = fs::read(model.file)?;
+
         tokenizers.insert(
             model.label,
-            Arc::new(Tokenizer::from_file(&model.file).map_err(anyhow::Error::from_boxed)?),
+            (
+                Tokenizer::from_bytes(&contents).map_err(anyhow::Error::from_boxed)?,
+                contents.into(),
+            ),
         );
     }
 
@@ -48,7 +53,10 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let _rocket = rocket::build()
         .manage(shared)
-        .mount("/", rocket::routes![tokenize, detokenize, tokenize_root])
+        .mount(
+            "/",
+            rocket::routes![tokenize, detokenize, tokenizer, tokenize_root],
+        )
         .launch()
         .await?;
 
@@ -70,12 +78,10 @@ async fn tokenize(
     model: &str,
     data: Vec<u8>,
 ) -> Result<Json<Vec<u32>>, Status> {
-    if let Some(tokenizer) = state.tokenizers.get(model) {
+    if let Some((tokenizer, _)) = state.tokenizers.get(model) {
         info!("Tokenizing {} bytes using {:?}", data.len(), model);
 
-        let tokenizer = tokenizer.clone();
-
-        block_in_place(move || {
+        block_in_place(|| {
             let input = if let Ok(input) = str::from_utf8(&data) {
                 input
             } else {
@@ -98,18 +104,29 @@ async fn tokenize(
     }
 }
 
+#[get("/<model>/tokenizer.json")]
+async fn tokenizer<'a>(state: &'a State<SharedState>, model: &str) -> Result<Arc<[u8]>, Status> {
+    if let Some((_, data)) = state.tokenizers.get(model) {
+        info!("Sending tokenizer file for {:?}", model);
+
+        Ok(data.clone())
+    } else {
+        warn!("Unable to find model {:?}", model);
+
+        Err(Status::NotFound)
+    }
+}
+
 #[post("/<model>/detokenize", data = "<data>")]
 async fn detokenize(
     state: &State<SharedState>,
     model: &str,
     data: Json<Vec<u32>>,
 ) -> Result<Vec<u8>, Status> {
-    if let Some(tokenizer) = state.tokenizers.get(model) {
+    if let Some((tokenizer, _)) = state.tokenizers.get(model) {
         info!("Detokenizing {} tokens using {:?}", data.0.len(), model);
 
-        let tokenizer = tokenizer.clone();
-
-        block_in_place(move || {
+        block_in_place(|| {
             Ok(tokenizer
                 .decode(&data.0, true)
                 .map_err(|_| Status::InternalServerError)?

@@ -38,6 +38,8 @@ The server provides the following API endpoints
 - POST `/<model>`
 	- Input: An HTTP body containing the bytes you want to tokenize
 	- Output: A JSON array of token IDs
+- GET `/<model>/tokenizer.json`
+	- Response: The model's tokenizer.json file
 - POST `/<model>/tokenize`
 	- Input: An HTTP body containing the bytes you want to tokenize
 	- Output: A JSON array of token IDs
