@@ -960,6 +960,10 @@ impl RequestTokensOrBytes {
                 let model_cache = match cache.lock().await.entry(identifier) {
                     Entry::Occupied(occupied) => {
                         if let Some(tokens) = occupied.get().lock().await.get(&bytes) {
+                            trace!(
+                                "Using cached tokenization of {:?}",
+                                String::from_utf8_lossy(&bytes)
+                            );
                             return Ok(tokens.clone());
                         } else {
                             occupied.get().clone()
@@ -972,9 +976,13 @@ impl RequestTokensOrBytes {
                     }
                 };
 
+                trace!("Tokenizing {:?}", String::from_utf8_lossy(&bytes));
+
                 let mut model_cache = model_cache.lock().await;
 
                 let tokens = byte_handler(bytes.clone()).await?;
+
+                trace!("{:?} = {:?}", String::from_utf8_lossy(&bytes), tokens);
 
                 model_cache.insert(bytes, tokens.clone());
 
