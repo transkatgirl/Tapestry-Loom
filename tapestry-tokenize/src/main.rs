@@ -1,7 +1,7 @@
 use std::{collections::HashMap, env, fs, path::PathBuf, sync::Arc};
 
 use log::{info, warn};
-use rocket::{State, http::Status, post, serde::json::Json, tokio::task::spawn_blocking};
+use rocket::{State, http::Status, post, serde::json::Json, tokio::task::block_in_place};
 use serde::{Deserialize, Serialize};
 use tokenizers::Tokenizer;
 
@@ -37,6 +37,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let mut tokenizers = HashMap::with_capacity(model_config.models.len());
 
     for model in model_config.models {
+        println!("Loading {}", model.file.display());
         tokenizers.insert(
             model.label,
             Arc::new(Tokenizer::from_file(&model.file).map_err(anyhow::Error::from_boxed)?),
@@ -74,7 +75,7 @@ async fn tokenize(
 
         let tokenizer = tokenizer.clone();
 
-        spawn_blocking(move || {
+        block_in_place(move || {
             let input = if let Ok(input) = str::from_utf8(&data) {
                 input
             } else {
@@ -90,8 +91,6 @@ async fn tokenize(
 
             Ok(Json(encoding.get_ids().to_vec()))
         })
-        .await
-        .map_err(|_| Status::InternalServerError)?
     } else {
         warn!("Unable to find model {:?}", model);
 
@@ -110,14 +109,12 @@ async fn detokenize(
 
         let tokenizer = tokenizer.clone();
 
-        spawn_blocking(move || {
+        block_in_place(move || {
             Ok(tokenizer
                 .decode(&data.0, true)
                 .map_err(|_| Status::InternalServerError)?
                 .into_bytes())
         })
-        .await
-        .map_err(|_| Status::InternalServerError)?
     } else {
         warn!("Unable to find model {:?}", model);
 
