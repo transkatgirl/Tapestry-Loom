@@ -791,12 +791,15 @@ fn parse_openai_response(
                     if let Some(Value::Array(logprobs_content)) = logprobs.remove("content") {
                         tokens.reserve(logprobs_content.len());
 
+                        let token_count = logprobs_content.len();
+
                         for (i, logprob_item) in logprobs_content.into_iter().enumerate() {
                             if let Value::Object(mut logprob_item) = logprob_item {
                                 if i == 0
                                     && let Some(Value::Array(top_logprobs)) =
                                         logprob_item.remove("top_logprobs")
                                     && top_logprobs.len() > 1
+                                    && token_count == 1
                                 {
                                     let mut tokens = Vec::with_capacity(top_logprobs.len());
 
@@ -859,11 +862,19 @@ fn parse_openai_response(
                             }
                         }
                     } else {
+                        let token_count = if let Some(Value::Array(tokens)) = logprobs.get("tokens")
+                        {
+                            tokens.len()
+                        } else {
+                            0
+                        };
+
                         if let Some(Value::Array(mut top_logprobs)) =
                             logprobs.remove("top_logprobs")
                             && !top_logprobs.is_empty()
                             && let Value::Object(top_logprobs) = top_logprobs.swap_remove(0)
                             && top_logprobs.len() > 1
+                            && token_count == 1
                         {
                             let mut tokens = Vec::with_capacity(top_logprobs.len());
 

@@ -62,7 +62,7 @@ The rest of this README covers the usage of external tools which Tapestry Loom c
 
 **Ollama should *not* be used** due to [bad sampling settings](https://docs.ollama.com/modelfile#valid-parameters-and-values) which [cannot be overridden in API requests](https://github.com/ollama/ollama/issues/11325), along with a lack of available base models.
 
-KoboldCpp is not recommended due to a lack of request queuing and a poor implementation of logprobs (the number of requested logprobs is entirely ignored, leading to unwanted creation of single-token nodes). If you still plan on using KoboldCpp, you will need to remove `logprobs = 1` from the inference configuration specified in the editor's menu subview.
+KoboldCpp is not recommended due to a lack of request queuing and a poor implementation of logprobs (the number of requested logprobs is entirely ignored).
 
 The recommended CLI arguments for [llama-server](https://github.com/ggml-org/llama.cpp/tree/master/tools/server) are listed below:
 
