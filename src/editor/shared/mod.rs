@@ -8,7 +8,6 @@ use eframe::egui::{
 use egui_notify::Toasts;
 use flagset::FlagSet;
 use log::{debug, warn};
-use reqwest::Client;
 use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{
@@ -23,7 +22,9 @@ use crate::{
     editor::shared::weave::WeaveWrapper,
     settings::{
         Settings, UISettings,
-        inference::{InferenceHandle, InferenceParameters, TokensOrBytes},
+        inference::{
+            InferenceCache, InferenceClient, InferenceHandle, InferenceParameters, TokensOrBytes,
+        },
         shortcuts::Shortcuts,
     },
 };
@@ -33,8 +34,9 @@ pub(super) mod weave;
 
 pub struct SharedState {
     pub identifier: Ulid,
-    pub runtime: Arc<Runtime>,
-    pub client: Rc<RefCell<Option<Client>>>,
+    runtime: Arc<Runtime>,
+    client: Rc<RefCell<Option<InferenceClient>>>,
+    cache: InferenceCache,
     pub inference: InferenceParameters,
     cursor_node: NodeIndex,
     last_cursor_node: NodeIndex,
@@ -80,13 +82,14 @@ impl SharedState {
     pub fn new(
         identifier: Ulid,
         runtime: Arc<Runtime>,
-        client: Rc<RefCell<Option<Client>>>,
+        client: Rc<RefCell<Option<InferenceClient>>>,
         settings: &Settings,
     ) -> Self {
         Self {
             identifier,
             runtime,
             client,
+            cache: InferenceCache::default(),
             inference: settings.inference.default_parameters.clone(),
             cursor_node: NodeIndex::None,
             last_cursor_node: NodeIndex::None,
@@ -158,6 +161,7 @@ impl SharedState {
         InferenceParameters::get_responses(
             &self.runtime,
             self.client.borrow().as_ref(),
+            &self.cache,
             &mut self.requests,
             &mut self.responses,
         );
@@ -498,6 +502,7 @@ impl SharedState {
                 &settings.inference,
                 &self.runtime,
                 client,
+                &self.cache,
                 parent,
                 content,
                 &mut self.requests,

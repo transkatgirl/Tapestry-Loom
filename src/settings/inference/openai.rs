@@ -1,7 +1,7 @@
 use eframe::egui::{CollapsingHeader, TextEdit, Ui, Widget};
 use log::trace;
 use reqwest::{
-    Client, Method, Response, Url,
+    Method, Response, Url,
     header::{CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue},
 };
 use serde::{Deserialize, Serialize};
@@ -9,8 +9,8 @@ use serde_json::{Map, Number, Value};
 use tapestry_weave::{ulid::Ulid, universal_weave::indexmap::IndexMap, v0::InnerNodeContent};
 
 use crate::settings::inference::{
-    Endpoint, EndpointRequest, EndpointResponse, RequestTokensOrBytes, Template,
-    render_config_list, render_config_map,
+    Endpoint, EndpointRequest, EndpointResponse, InferenceCache, InferenceClient,
+    RequestTokensOrBytes, Template, render_config_list, render_config_map,
 };
 
 #[derive(Default, Debug, Clone, PartialEq)]
@@ -349,7 +349,8 @@ impl Endpoint for OpenAICompletionsConfig {
     }
     async fn perform_request(
         &self,
-        client: &Client,
+        client: &InferenceClient,
+        cache: &InferenceCache,
         request: EndpointRequest,
         tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
@@ -377,23 +378,28 @@ impl Endpoint for OpenAICompletionsConfig {
             for segment in request.content.as_ref().clone() {
                 token_futures.push(
                     RequestTokensOrBytes::build(segment, &tokenization_identifier)
-                        .into_tokens_async(|bytes: Vec<u8>| async {
-                            Ok(error_for_status(
-                                client
-                                    .request(
-                                        Method::POST,
-                                        Url::parse(&self.nonstandard.tokenization_endpoint)?,
-                                    )
-                                    .headers(headers.clone())
-                                    .header(CONTENT_TYPE, "application/octet-stream")
-                                    .body(bytes)
-                                    .send()
-                                    .await?,
-                            )
-                            .await?
-                            .json()
-                            .await?)
-                        }),
+                        .cached_into_tokens_async(
+                            tokenization_identifier,
+                            &cache.tokens,
+                            |bytes: Vec<u8>| async {
+                                Ok(error_for_status(
+                                    client
+                                        .client
+                                        .request(
+                                            Method::POST,
+                                            Url::parse(&self.nonstandard.tokenization_endpoint)?,
+                                        )
+                                        .headers(headers.clone())
+                                        .header(CONTENT_TYPE, "application/octet-stream")
+                                        .body(bytes)
+                                        .send()
+                                        .await?,
+                                )
+                                .await?
+                                .json()
+                                .await?)
+                            },
+                        ),
                 );
             }
 
@@ -425,6 +431,7 @@ impl Endpoint for OpenAICompletionsConfig {
             if !self.nonstandard.tokenization_endpoint.is_empty() {
                 let tokenized: Value = error_for_status(
                     client
+                        .client
                         .request(
                             Method::POST,
                             Url::parse(&self.nonstandard.tokenization_endpoint)?,
@@ -452,6 +459,7 @@ impl Endpoint for OpenAICompletionsConfig {
 
         let response: Map<String, Value> = error_for_status(
             client
+                .client
                 .request(Method::POST, Url::parse(&self.endpoint)?)
                 .headers(headers)
                 .json(&Value::Object(body))
@@ -581,7 +589,8 @@ impl Endpoint for OpenAIChatCompletionsConfig {
     }
     async fn perform_request(
         &self,
-        client: &Client,
+        client: &InferenceClient,
+        _cache: &InferenceCache,
         request: EndpointRequest,
         tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
@@ -640,6 +649,7 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
         let response: Map<String, Value> = error_for_status(
             client
+                .client
                 .request(Method::POST, Url::parse(&self.endpoint)?)
                 .headers(headers)
                 .json(&Value::Object(body))

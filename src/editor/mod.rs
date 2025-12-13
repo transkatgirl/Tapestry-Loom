@@ -32,7 +32,6 @@ use egui_tiles::{
 use flagset::FlagSet;
 use log::{debug, error};
 use parking_lot::Mutex;
-use reqwest::Client;
 use tapestry_weave::{
     VERSIONED_WEAVE_FILE_EXTENSION, VersionedWeave, ulid::Ulid, universal_weave::rkyv::rancor,
 };
@@ -48,7 +47,7 @@ use crate::{
         shared::{SharedState, weave::WeaveWrapper},
         textedit::TextEditorView,
     },
-    settings::{Settings, shortcuts::Shortcuts},
+    settings::{Settings, inference::InferenceClient, shortcuts::Shortcuts},
 };
 
 pub struct Editor {
@@ -82,7 +81,7 @@ impl Editor {
         threadpool: Rc<ThreadPool>,
         open_documents: Rc<RefCell<HashSet<PathBuf>>>,
         runtime: Arc<Runtime>,
-        client: Rc<RefCell<Option<Client>>>,
+        client: Rc<RefCell<Option<InferenceClient>>>,
         path: Option<PathBuf>,
         new_path_callback: Box<dyn FnMut(&PathBuf)>,
     ) -> Self {

@@ -1,4 +1,10 @@
-use std::{collections::HashMap, fmt::Display, rc::Rc, sync::Arc, time::Duration};
+use std::{
+    collections::{HashMap, hash_map::Entry},
+    fmt::Display,
+    rc::Rc,
+    sync::Arc,
+    time::Duration,
+};
 
 use eframe::egui::{
     Align, Color32, ComboBox, DragValue, Layout, RichText, Slider, SliderClamping, TextEdit,
@@ -17,7 +23,7 @@ use tapestry_weave::{
     },
     v0::{InnerNodeContent, Model, NodeContent},
 };
-use tokio::runtime::Runtime;
+use tokio::{runtime::Runtime, sync::Mutex};
 
 use crate::settings::inference::openai::{
     OpenAIChatCompletionsConfig, OpenAIChatCompletionsTemplate, OpenAICompletionsConfig,
@@ -68,15 +74,37 @@ impl ClientConfig {
                 .suffix(" minutes"),
         );
     }
-    pub fn build(&self) -> Result<Client, reqwest::Error> {
-        ClientBuilder::new()
-            .connect_timeout(Duration::from_secs(15))
-            .danger_accept_invalid_certs(self.accept_invalid_tls)
-            .danger_accept_invalid_hostnames(self.accept_invalid_tls)
-            .timeout(Duration::from_secs_f32(self.timeout_minutes * 60.0))
-            .build()
+    pub fn build(&self) -> Result<InferenceClient, anyhow::Error> {
+        Ok(InferenceClient {
+            client: ClientBuilder::new()
+                .connect_timeout(Duration::from_secs(15))
+                .danger_accept_invalid_certs(self.accept_invalid_tls)
+                .danger_accept_invalid_hostnames(self.accept_invalid_tls)
+                .timeout(Duration::from_secs_f32(self.timeout_minutes * 60.0))
+                .build()?,
+        })
     }
 }
+
+#[derive(Clone)]
+pub struct InferenceClient {
+    client: Client,
+}
+
+#[derive(Clone)]
+pub struct InferenceCache {
+    tokens: Arc<Mutex<InferenceTokenCache>>,
+}
+
+impl Default for InferenceCache {
+    fn default() -> Self {
+        Self {
+            tokens: Arc::new(Mutex::new(HashMap::with_capacity(16))),
+        }
+    }
+}
+
+type InferenceTokenCache = HashMap<Ulid, Arc<Mutex<HashMap<Vec<u8>, Vec<i128>>>>>;
 
 impl InferenceSettings {
     pub(super) fn render(&mut self, ui: &mut Ui) {
@@ -313,6 +341,7 @@ impl ModelInferenceParameters {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 impl InferenceParameters {
     pub fn reset(&mut self, settings: &InferenceSettings) {
         *self = settings.default_parameters.clone();
@@ -425,7 +454,8 @@ impl InferenceParameters {
         &self,
         settings: &InferenceSettings,
         runtime: &Runtime,
-        client: &Client,
+        client: &InferenceClient,
+        cache: &InferenceCache,
         parent: Option<Ulid>,
         content: Vec<TokensOrBytes>,
         output: &mut HashMap<Ulid, InferenceHandle>,
@@ -434,6 +464,7 @@ impl InferenceParameters {
             Rc::new(settings.models.clone()),
             runtime,
             client,
+            cache,
             parent,
             Arc::new(content),
             output,
@@ -443,7 +474,8 @@ impl InferenceParameters {
         &self,
         models: Rc<IndexMap<Ulid, InferenceModel>>,
         runtime: &Runtime,
-        client: &Client,
+        client: &InferenceClient,
+        cache: &InferenceCache,
         parent_node: Option<Ulid>,
         content: Arc<Vec<TokensOrBytes>>,
         output: &mut HashMap<Ulid, InferenceHandle>,
@@ -466,6 +498,7 @@ impl InferenceParameters {
                     let request = request.clone();
                     let endpoint = endpoint.clone();
                     let client = client.clone();
+                    let cache = cache.clone();
                     output.insert(
                         Ulid::new(),
                         InferenceHandle {
@@ -476,7 +509,12 @@ impl InferenceParameters {
                             handle: Promise::spawn_async(async move {
                                 let responses = endpoint
                                     .as_ref()
-                                    .perform_request(&client, request, tokenization_identifier)
+                                    .perform_request(
+                                        &client,
+                                        &cache,
+                                        request,
+                                        tokenization_identifier,
+                                    )
                                     .await?;
 
                                 responses
@@ -498,7 +536,8 @@ impl InferenceParameters {
     }
     pub fn get_responses(
         runtime: &Runtime,
-        client: Option<&Client>,
+        client: Option<&InferenceClient>,
+        cache: &InferenceCache,
         input: &mut HashMap<Ulid, InferenceHandle>,
         output: &mut Vec<Result<DependentNode<NodeContent>, anyhow::Error>>,
     ) {
@@ -539,6 +578,7 @@ impl InferenceParameters {
                             value.models.clone(),
                             runtime,
                             client,
+                            cache,
                             Some(identifiers[i]),
                             parent_content.into(),
                             input,
@@ -699,19 +739,20 @@ impl Endpoint for EndpointConfig {
     }
     async fn perform_request(
         &self,
-        client: &Client,
+        client: &InferenceClient,
+        cache: &InferenceCache,
         request: EndpointRequest,
         tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
         match self {
             Self::OpenAICompletions(endpoint) => {
                 endpoint
-                    .perform_request(client, request, tokenization_identifier)
+                    .perform_request(client, cache, request, tokenization_identifier)
                     .await
             }
             Self::OpenAIChatCompletions(endpoint) => {
                 endpoint
-                    .perform_request(client, request, tokenization_identifier)
+                    .perform_request(client, cache, request, tokenization_identifier)
                     .await
             }
         }
@@ -735,7 +776,8 @@ trait Endpoint: Serialize + DeserializeOwned + Clone {
     fn default_parameters(&self) -> Vec<(String, String)>;
     async fn perform_request(
         &self,
-        client: &Client,
+        client: &InferenceClient,
+        cache: &InferenceCache,
         request: EndpointRequest,
         tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error>;
@@ -897,13 +939,47 @@ impl RequestTokensOrBytes {
                     .collect(),
             )),
         }
-    }*/
+    }
     async fn into_tokens_async(
         self,
         byte_handler: impl AsyncFnOnce(Vec<u8>) -> Result<Vec<i128>, anyhow::Error>,
     ) -> Result<Vec<i128>, anyhow::Error> {
         match self {
             Self::Bytes(bytes) => byte_handler(bytes).await,
+            Self::Tokens(tokens) => Ok(tokens),
+        }
+    }*/
+    async fn cached_into_tokens_async(
+        self,
+        identifier: Ulid,
+        cache: &Mutex<InferenceTokenCache>,
+        byte_handler: impl AsyncFnOnce(Vec<u8>) -> Result<Vec<i128>, anyhow::Error>,
+    ) -> Result<Vec<i128>, anyhow::Error> {
+        match self {
+            Self::Bytes(bytes) => {
+                let model_cache = match cache.lock().await.entry(identifier) {
+                    Entry::Occupied(occupied) => {
+                        if let Some(tokens) = occupied.get().lock().await.get(&bytes) {
+                            return Ok(tokens.clone());
+                        } else {
+                            occupied.get().clone()
+                        }
+                    }
+                    Entry::Vacant(vacant) => {
+                        let occupied = vacant
+                            .insert_entry(Arc::new(Mutex::new(HashMap::with_capacity(65536))));
+                        occupied.get().clone()
+                    }
+                };
+
+                let mut model_cache = model_cache.lock().await;
+
+                let tokens = byte_handler(bytes.clone()).await?;
+
+                model_cache.insert(bytes, tokens.clone());
+
+                Ok(tokens)
+            }
             Self::Tokens(tokens) => Ok(tokens),
         }
     }

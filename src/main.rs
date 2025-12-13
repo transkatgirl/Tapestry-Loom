@@ -21,14 +21,17 @@ use font_kit::{
 };
 use log::{debug, error, warn};
 use mimalloc::MiMalloc;
-use reqwest::Client;
 use threadpool::ThreadPool;
 use tokio::runtime::Runtime;
 
 use crate::{
     editor::Editor,
     files::FileManager,
-    settings::{Settings, UIFonts, UISettings, inference::ClientConfig, shortcuts::Shortcuts},
+    settings::{
+        Settings, UIFonts, UISettings,
+        inference::{ClientConfig, InferenceClient},
+        shortcuts::Shortcuts,
+    },
 };
 
 mod editor;
@@ -508,7 +511,7 @@ impl App for TapestryLoomApp {
 
 struct TapestryLoomBehavior {
     settings: Rc<RefCell<Settings>>,
-    client: Rc<RefCell<Option<Client>>>,
+    client: Rc<RefCell<Option<InferenceClient>>>,
     new_editor_queue: Vec<(Option<PathBuf>, Option<TileId>)>,
     focus_queue: Vec<TileId>,
     close_queue: Vec<TileId>,
