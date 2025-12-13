@@ -155,7 +155,7 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 	- [x] Repeat keypresses when a keyboard be cut is held down
 - [x] Store model output token IDs in nodes and reuse them when applicable
 - [x] Tapestry Loom tokenization server
-- [ ] Allow saving and switching between multiple inference presets
+- [x] Allow saving and switching between multiple inference presets
 - [ ] Support for migrating weaves from other Loom implementations
 	- [ ] [loomsidian](https://github.com/cosmicoptima/loom)
 	- [ ] [exoloom](https://exoloom.io)

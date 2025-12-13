@@ -38,6 +38,9 @@ pub struct InferenceSettings {
     models: IndexMap<Ulid, InferenceModel>,
     pub default_parameters: InferenceParameters,
 
+    #[serde(default)]
+    parameter_presets: Vec<(String, Option<Color32>, InferenceParameters)>,
+
     #[serde(skip)]
     template: EndpointTemplate,
 }
@@ -202,9 +205,119 @@ impl InferenceSettings {
         }
 
         ui.separator();
+        ui.heading("Inference defaults");
 
-        ui.heading("Editor inference defaults");
         self.default_parameters.render_inner(&self.models, ui);
+
+        ui.separator();
+        ui.heading("Inference presets");
+        ui.add_space(ui.spacing().icon_spacing);
+
+        let mut move_up = None;
+        let mut move_down = None;
+        let mut copy = None;
+        let mut delete = None;
+
+        let length = self.parameter_presets.len();
+
+        for (index, (label, color, parameters)) in self.parameter_presets.iter_mut().enumerate() {
+            ui.group(|ui| {
+                ui.horizontal_wrapped(|ui| {
+                    let textedit_label = ui.label("Label:");
+
+                    TextEdit::singleline(label)
+                        .hint_text("Preset label")
+                        .ui(ui)
+                        .labelled_by(textedit_label.id);
+
+                    if let Some(label_color) = color {
+                        color_edit_button_srgba(ui, label_color, Alpha::Opaque);
+                        if ui
+                            .button("\u{E148}")
+                            .on_hover_text("Remove label color")
+                            .clicked()
+                        {
+                            *color = None;
+                        }
+                    } else if ui
+                        .button("\u{E1DD}")
+                        .on_hover_text("Add label color")
+                        .clicked()
+                    {
+                        *color = Some(ui.style().visuals.hyperlink_color);
+                    }
+                });
+
+                ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
+
+                parameters.render_inner(&self.models, ui);
+
+                ui.set_max_width(ui.min_rect().width());
+
+                ui.horizontal_wrapped(|ui| {
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        if ui
+                            .button("\u{E18E}")
+                            .on_hover_text("Delete preset")
+                            .clicked()
+                        {
+                            delete = Some(index);
+                        }
+
+                        if ui.button("\u{E09E}").on_hover_text("Copy preset").clicked() {
+                            copy = Some(index);
+                        }
+
+                        if index != length.saturating_sub(1)
+                            && ui
+                                .button("\u{E44D}")
+                                .on_hover_text("Move preset down")
+                                .clicked()
+                        {
+                            move_down = Some(index);
+                        }
+
+                        if index != 0
+                            && ui
+                                .button("\u{E44E}")
+                                .on_hover_text("Move preset up")
+                                .clicked()
+                        {
+                            move_up = Some(index);
+                        }
+                    });
+                });
+            });
+        }
+
+        if let Some(index) = move_up
+            && index > 0
+        {
+            self.parameter_presets.swap(index, index - 1);
+        }
+
+        if let Some(index) = move_down
+            && index < self.parameter_presets.len() - 1
+        {
+            self.parameter_presets.swap(index, index + 1);
+        }
+
+        if let Some(index) = copy {
+            self.parameter_presets
+                .insert(index, self.parameter_presets[index].clone());
+        }
+
+        if let Some(delete) = delete {
+            self.parameter_presets.remove(delete);
+        }
+
+        if ui.button("\u{E13D}").on_hover_text("Add preset").clicked() {
+            self.parameter_presets.push((
+                "New preset".to_string(),
+                None,
+                self.default_parameters.clone(),
+            ));
+        }
     }
 }
 
@@ -347,6 +460,30 @@ impl InferenceParameters {
         *self = settings.default_parameters.clone();
     }
     pub fn render(&mut self, settings: &InferenceSettings, ui: &mut Ui) {
+        if !settings.parameter_presets.is_empty() {
+            ui.group(|ui| {
+                ui.horizontal_wrapped(|ui| {
+                    if ui.button("\u{E148}").clicked() {
+                        *self = settings.default_parameters.clone();
+                    }
+
+                    for (label, color, preset) in &settings.parameter_presets {
+                        if ui
+                            .button(if let Some(color) = color {
+                                RichText::new(label).color(*color)
+                            } else {
+                                RichText::new(label)
+                            })
+                            .clicked()
+                        {
+                            *self = preset.clone();
+                        }
+                    }
+                });
+            });
+            ui.add_space(ui.spacing().icon_spacing);
+        }
+
         self.render_inner(&settings.models, ui);
     }
     fn render_inner(&mut self, models: &IndexMap<Ulid, InferenceModel>, ui: &mut Ui) {
