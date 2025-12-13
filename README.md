@@ -169,7 +169,8 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 	- [ ] Finish manual
 	- [x] Binary releases
 - [ ] Improve built-in color schemes
-	- [ ] Improve rendering of light color schemes
+
+improve request error logging
 
 ### Plans for next major version
 
