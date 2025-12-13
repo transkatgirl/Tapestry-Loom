@@ -957,7 +957,7 @@ impl RequestTokensOrBytes {
     ) -> Result<Vec<i128>, anyhow::Error> {
         match self {
             Self::Bytes(bytes) => {
-                let model_cache = match cache.lock().await.entry(identifier) {
+                let mut model_cache = match cache.lock().await.entry(identifier) {
                     Entry::Occupied(occupied) => {
                         if let Some(tokens) = occupied.get().lock().await.get(&bytes) {
                             trace!(
@@ -966,19 +966,17 @@ impl RequestTokensOrBytes {
                             );
                             return Ok(tokens.clone());
                         } else {
-                            occupied.get().clone()
+                            occupied.get().clone().lock_owned().await
                         }
                     }
                     Entry::Vacant(vacant) => {
                         let occupied = vacant
                             .insert_entry(Arc::new(Mutex::new(HashMap::with_capacity(65536))));
-                        occupied.get().clone()
+                        occupied.get().clone().lock_owned().await
                     }
                 };
 
                 trace!("Tokenizing {:?}", String::from_utf8_lossy(&bytes));
-
-                let mut model_cache = model_cache.lock().await;
 
                 let tokens = byte_handler(bytes.clone()).await?;
 
