@@ -691,12 +691,20 @@ pub fn get_token_color(
 
 pub fn get_node_color(node: &DependentNode<NodeContent>, settings: &Settings) -> Option<Color32> {
     if settings.interface.show_model_colors {
-        node.contents.model.as_ref().and_then(|model| {
-            model
-                .metadata
-                .get("color")
-                .and_then(|h| Color32::from_hex(h).ok())
-        })
+        if let Some(color_override) = settings.interface.model_color_override {
+            if node.contents.model.is_some() {
+                Some(color_override)
+            } else {
+                None
+            }
+        } else {
+            node.contents.model.as_ref().and_then(|model| {
+                model
+                    .metadata
+                    .get("color")
+                    .and_then(|h| Color32::from_hex(h).ok())
+            })
+        }
     } else {
         None
     }

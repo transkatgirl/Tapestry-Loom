@@ -150,10 +150,10 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 - [x] Tapestry Loom tokenization server
 - [x] Allow saving and switching between multiple inference presets
 	- [x] Add keyboard shortcuts for inference presets
+- [x] Add ability to override model colors
 - [ ] Further canvas view improvements
 	- [ ] Add node collapsing (unlike tree, canvas should have all branches expanded by default)
 	- [ ] Add node creation button
-- [ ] Add ability to override model colors
 - [ ] Support for migrating weaves from other Loom implementations
 	- [ ] [loomsidian](https://github.com/cosmicoptima/loom)
 	- [ ] [exoloom](https://exoloom.io)

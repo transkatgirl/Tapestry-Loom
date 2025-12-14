@@ -1,7 +1,8 @@
 use std::{fmt::Display, path::PathBuf, time::Duration};
 
 use eframe::egui::{
-    ComboBox, Context, Frame, ScrollArea, Slider, SliderClamping, TextStyle, Ui, Visuals,
+    Color32, ComboBox, Context, Frame, ScrollArea, Slider, SliderClamping, TextStyle, Ui, Visuals,
+    color_picker::{Alpha, color_edit_button_srgba},
 };
 use flagset::FlagSet;
 use serde::{Deserialize, Serialize};
@@ -30,6 +31,7 @@ pub struct UISettings {
 
     pub displayed_ui_scale: f32,
     pub show_model_colors: bool,
+    pub model_color_override: Option<Color32>,
     pub show_token_probabilities: bool,
 
     #[serde(default = "default_show_token_confidence")]
@@ -68,6 +70,7 @@ impl Default for UISettings {
 
             displayed_ui_scale: 1.25,
             show_model_colors: true,
+            model_color_override: None,
             show_token_probabilities: true,
             show_token_confidence: true,
             minimum_token_opacity: 65.0,
@@ -211,6 +214,29 @@ impl UISettings {
         ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
 
         ui.checkbox(&mut self.show_model_colors, "Show model colors");
+
+        if self.show_model_colors {
+            let mut override_model_colors = self.model_color_override.is_some();
+            if ui
+                .checkbox(&mut override_model_colors, "Override model colors")
+                .changed()
+            {
+                if override_model_colors {
+                    self.model_color_override = Some(ui.style().visuals.hyperlink_color);
+                } else {
+                    self.model_color_override = None;
+                }
+            };
+
+            if let Some(model_color_override) = &mut self.model_color_override {
+                ui.horizontal_wrapped(|ui| {
+                    let label = ui.label("Model color:").id;
+                    color_edit_button_srgba(ui, model_color_override, Alpha::Opaque)
+                        .labelled_by(label);
+                });
+            }
+        }
+
         ui.checkbox(
             &mut self.show_token_probabilities,
             "Show token probabilities",
