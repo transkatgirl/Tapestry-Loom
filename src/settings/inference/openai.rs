@@ -812,7 +812,7 @@ fn parse_openai_response(
                             if let Value::Object(mut logprob_item) = logprob_item {
                                 if let Some(Value::Array(top_logprobs)) =
                                     logprob_item.get("top_logprobs")
-                                    && top_logprobs.len() >= 10
+                                    && top_logprobs.len() >= 5
                                 {
                                     let mut sum = 0.0;
 
@@ -903,7 +903,7 @@ fn parse_openai_response(
 
                             for item in top_logprobs {
                                 if let Value::Object(top_logprobs) = item
-                                    && top_logprobs.len() >= 10
+                                    && top_logprobs.len() >= 5
                                 {
                                     let mut sum = 0.0;
 
