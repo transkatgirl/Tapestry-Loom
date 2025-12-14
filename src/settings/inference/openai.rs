@@ -810,7 +810,7 @@ fn parse_openai_response(
 
                         for (i, logprob_item) in logprobs_content.into_iter().enumerate() {
                             if let Value::Object(mut logprob_item) = logprob_item {
-                                if let Some(Value::Array(top_logprobs)) =
+                                let token_confidence = if let Some(Value::Array(top_logprobs)) =
                                     logprob_item.get("top_logprobs")
                                     && top_logprobs.len() >= 5
                                 {
@@ -826,10 +826,11 @@ fn parse_openai_response(
 
                                     sum /= top_logprobs.len() as f64;
 
-                                    confidence.push(Some((-sum, top_logprobs.len())));
+                                    Some((-sum, top_logprobs.len()))
                                 } else {
-                                    confidence.push(None);
-                                }
+                                    None
+                                };
+                                confidence.push(token_confidence);
 
                                 if i == 0
                                     && single_token
@@ -852,40 +853,36 @@ fn parse_openai_response(
                                     for (token, prob, token_id) in tokens {
                                         let length = token.len();
 
+                                        let mut token_metadata = Vec::with_capacity(5);
+
+                                        token_metadata
+                                            .push(("probability".to_string(), prob.to_string()));
+                                        if let Some((conf, k)) = token_confidence {
+                                            let conf = (conf * 100.0).round() / 100.0;
+                                            token_metadata.extend([
+                                                ("confidence".to_string(), conf.to_string()),
+                                                ("confidence_k".to_string(), k.to_string()),
+                                            ]);
+                                        }
+                                        token_metadata.push((
+                                            "original_length".to_string(),
+                                            length.to_string(),
+                                        ));
+
+                                        if let Some(token_id) = token_id {
+                                            token_metadata.extend([
+                                                ("token_id".to_string(), token_id.to_string()),
+                                                (
+                                                    "model_id".to_string(),
+                                                    tokenization_identifier.to_string(),
+                                                ),
+                                            ]);
+                                        }
+
                                         responses.push(EndpointResponse {
                                             content: InnerNodeContent::Tokens(vec![(
                                                 token,
-                                                if let Some(token_id) = token_id {
-                                                    IndexMap::from_iter([
-                                                        (
-                                                            "probability".to_string(),
-                                                            prob.to_string(),
-                                                        ),
-                                                        (
-                                                            "original_length".to_string(),
-                                                            length.to_string(),
-                                                        ),
-                                                        (
-                                                            "token_id".to_string(),
-                                                            token_id.to_string(),
-                                                        ),
-                                                        (
-                                                            "model_id".to_string(),
-                                                            tokenization_identifier.to_string(),
-                                                        ),
-                                                    ])
-                                                } else {
-                                                    IndexMap::from_iter([
-                                                        (
-                                                            "probability".to_string(),
-                                                            prob.to_string(),
-                                                        ),
-                                                        (
-                                                            "original_length".to_string(),
-                                                            length.to_string(),
-                                                        ),
-                                                    ])
-                                                },
+                                                IndexMap::from_iter(token_metadata),
                                             )]),
                                             metadata: metadata.clone(),
                                         });
@@ -898,32 +895,6 @@ fn parse_openai_response(
                             }
                         }
                     } else {
-                        if let Some(Value::Array(top_logprobs)) = logprobs.get("top_logprobs") {
-                            confidence.reserve(top_logprobs.len());
-
-                            for item in top_logprobs {
-                                if let Value::Object(top_logprobs) = item
-                                    && top_logprobs.len() >= 5
-                                {
-                                    let mut sum = 0.0;
-
-                                    for (_, logprob) in top_logprobs {
-                                        if let Value::Number(logprob) = logprob
-                                            && let Some(logprob) = logprob.as_f64()
-                                        {
-                                            sum += logprob;
-                                        }
-                                    }
-
-                                    sum /= top_logprobs.len() as f64;
-
-                                    confidence.push(Some((-sum, top_logprobs.len())));
-                                } else {
-                                    confidence.push(None);
-                                }
-                            }
-                        }
-
                         if single_token
                             && let Some(Value::Array(mut top_logprobs)) =
                                 logprobs.remove("top_logprobs")
