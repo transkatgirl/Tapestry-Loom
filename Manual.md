@@ -40,9 +40,11 @@ Models in the list have a label, an optional color (used for color coding their 
 
 Once a model is added to the list, the API it uses cannot be changed without deleting and re-adding the model.
 
-### Editor inference defaults
+### Inference defaults
 
 This section allows you to change the default inference parameters used in new editors. See the [editor menu subview](#menu-subview) for more information on how to use this.
+
+### Inference presets
 
 ## File manager view
 

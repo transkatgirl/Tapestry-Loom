@@ -150,6 +150,9 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 - [x] Tapestry Loom tokenization server
 - [x] Allow saving and switching between multiple inference presets
 	- [x] Add keyboard shortcuts for inference presets
+- [ ] Further canvas view improvements
+	- [ ] Add node collapsing (unlike tree, canvas should have all branches expanded by default)
+	- [ ] Add node creation button
 - [ ] Add ability to override model colors
 - [ ] Support for migrating weaves from other Loom implementations
 	- [ ] [loomsidian](https://github.com/cosmicoptima/loom)
@@ -157,14 +160,9 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 	- [ ] [loom](https://github.com/socketteer/loom)
 	- [ ] [wool](https://github.com/lyramakesmusic/wool)
 	- [x] Package migration assistant in releases
-- [ ] Further canvas view improvements
-	- [ ] Add node collapsing (unlike tree, canvas should have all branches expanded by default)
-	- [ ] Add node creation button
 - [ ] Better documentation & onboarding
 	- [ ] Finish manual
 	- [x] Binary releases
-- [ ] Improve built-in color schemes
-- [ ] Improve request error logging
 
 ### Plans for next major version
 
@@ -193,11 +191,16 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 - [ ] Further UI improvements
 	- [ ] Better handle valid UTF-8 character split across multiple nodes
 	- [ ] Improve graph/canvas layout algorithm
+	- [ ] Improve clarity of error messages
 	- [ ] Better file manager
 	- [ ] Support keyboard shortcuts for all aspects of the UI, not just the weave editor
 		- [ ] Aim to support navigating the entirety of the UI without a mouse
+	- [ ] Improve built-in color schemes
 	- [ ] Node finding
 	- [ ] Customizable node sorting
+		- [ ] Time added
+		- [ ] Alphabetical
+		- [ ] Semantic sort
 	- [ ] Node bulk selection
 	- [ ] Node custom ordering via drag and drop
 		- [ ] Support reordering nodes in canvas and graph views as well
@@ -221,6 +224,7 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 	- [ ] Optimize memory usage to be as low as reasonably possible
 - [ ] Collaborative weave editing over LAN
 - [ ] Adaptive looming using token entropy or [confidence](https://arxiv.org/pdf/2508.15260)
+	- [ ] Add color coding by token entropy or [confidence](https://arxiv.org/pdf/2508.15260)
 - [ ] Token streaming and display of nodes being generated
 - [ ] Prefix-based duplication
 - [ ] Undo/redo functionality
@@ -230,13 +234,6 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 - [ ] Allow adjusting proportion of completions from each model
 	- [ ] Allow dynamically adjusting proportions based on usage
 		- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count
-- [ ] Allow adjusting model parameters for each model
-	- [ ] Add node sorting options
-		- [ ] Time added
-		- [ ] Alphabetical
-		- [ ] Semantic sort
-	- [ ] Add color coding by token entropy or [confidence](https://arxiv.org/pdf/2508.15260)
-	- [ ] Add more color coding customization
 - [ ] Support alternate input devices
 	- [ ] Talon Voice
 	- [ ] Controllers / Gamepads
@@ -247,7 +244,7 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 	- [ ] Weave metadata
 - [ ] Implement context window wrapping
 - [ ] Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
-- [ ] Tooling for autolooms (looms where node choices are picked by another model or an algorithm)
+- [ ] Tooling for autolooms (looms where node choices are picked by a user-provided algorithm)
 - [ ] Add some sort of plugin API for building on top of Tapestry Loom???
 - [ ] Implement an optional inference server using llama.cpp
 
