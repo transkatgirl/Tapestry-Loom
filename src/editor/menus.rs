@@ -146,6 +146,46 @@ impl MenuView {
             }
         }
 
+        if shortcuts.contains(Shortcuts::ParameterPreset10) {
+            state.inference.switch_preset(&settings.inference, 10);
+        }
+
+        if shortcuts.contains(Shortcuts::ParameterPreset9) {
+            state.inference.switch_preset(&settings.inference, 9);
+        }
+
+        if shortcuts.contains(Shortcuts::ParameterPreset8) {
+            state.inference.switch_preset(&settings.inference, 8);
+        }
+
+        if shortcuts.contains(Shortcuts::ParameterPreset7) {
+            state.inference.switch_preset(&settings.inference, 7);
+        }
+
+        if shortcuts.contains(Shortcuts::ParameterPreset6) {
+            state.inference.switch_preset(&settings.inference, 6);
+        }
+
+        if shortcuts.contains(Shortcuts::ParameterPreset5) {
+            state.inference.switch_preset(&settings.inference, 5);
+        }
+
+        if shortcuts.contains(Shortcuts::ParameterPreset4) {
+            state.inference.switch_preset(&settings.inference, 4);
+        }
+
+        if shortcuts.contains(Shortcuts::ParameterPreset3) {
+            state.inference.switch_preset(&settings.inference, 3);
+        }
+
+        if shortcuts.contains(Shortcuts::ParameterPreset2) {
+            state.inference.switch_preset(&settings.inference, 2);
+        }
+
+        if shortcuts.contains(Shortcuts::ParameterPreset1) {
+            state.inference.switch_preset(&settings.inference, 1);
+        }
+
         if shortcuts.contains(Shortcuts::ResetParameters) {
             state.inference.reset(&settings.inference);
         }

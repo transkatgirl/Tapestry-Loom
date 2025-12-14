@@ -459,6 +459,11 @@ impl InferenceParameters {
     pub fn reset(&mut self, settings: &InferenceSettings) {
         *self = settings.default_parameters.clone();
     }
+    pub fn switch_preset(&mut self, settings: &InferenceSettings, preset: usize) {
+        if let Some((_, _, preset)) = settings.parameter_presets.get(preset.saturating_sub(1)) {
+            *self = preset.clone();
+        }
+    }
     pub fn render(&mut self, settings: &InferenceSettings, ui: &mut Ui) {
         if !settings.parameter_presets.is_empty() {
             ui.group(|ui| {

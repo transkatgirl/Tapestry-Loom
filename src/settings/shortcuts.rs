@@ -24,6 +24,16 @@ pub struct KeyboardShortcuts {
     move_to_next_sibling: Option<KeyboardShortcut>,
 
     reset_parameters: Option<KeyboardShortcut>,
+    parameter_preset_1: Option<KeyboardShortcut>,
+    parameter_preset_2: Option<KeyboardShortcut>,
+    parameter_preset_3: Option<KeyboardShortcut>,
+    parameter_preset_4: Option<KeyboardShortcut>,
+    parameter_preset_5: Option<KeyboardShortcut>,
+    parameter_preset_6: Option<KeyboardShortcut>,
+    parameter_preset_7: Option<KeyboardShortcut>,
+    parameter_preset_8: Option<KeyboardShortcut>,
+    parameter_preset_9: Option<KeyboardShortcut>,
+    parameter_preset_10: Option<KeyboardShortcut>,
     toggle_colors: Option<KeyboardShortcut>,
     toggle_probabilities: Option<KeyboardShortcut>,
     toggle_automatic_scrolling: Option<KeyboardShortcut>,
@@ -75,6 +85,16 @@ impl Default for KeyboardShortcuts {
                 logical_key: Key::ArrowDown,
             }),
             reset_parameters: None,
+            parameter_preset_1: None,
+            parameter_preset_2: None,
+            parameter_preset_3: None,
+            parameter_preset_4: None,
+            parameter_preset_5: None,
+            parameter_preset_6: None,
+            parameter_preset_7: None,
+            parameter_preset_8: None,
+            parameter_preset_9: None,
+            parameter_preset_10: None,
             toggle_colors: None,
             toggle_probabilities: None,
             toggle_automatic_scrolling: Some(KeyboardShortcut {
@@ -226,6 +246,76 @@ impl KeyboardShortcuts {
         ui.add(
             Keybind::new(&mut self.reset_parameters, "keybind-reset_parameters")
                 .with_text("Reset editor parameters")
+                .with_reset(None)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.parameter_preset_1, "keybind-parameter_preset_1")
+                .with_text("Parameter preset 1")
+                .with_reset(None)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.parameter_preset_2, "keybind-parameter_preset_2")
+                .with_text("Parameter preset 2")
+                .with_reset(None)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.parameter_preset_3, "keybind-parameter_preset_3")
+                .with_text("Parameter preset 3")
+                .with_reset(None)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.parameter_preset_4, "keybind-parameter_preset_4")
+                .with_text("Parameter preset 4")
+                .with_reset(None)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.parameter_preset_5, "keybind-parameter_preset_5")
+                .with_text("Parameter preset 5")
+                .with_reset(None)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.parameter_preset_6, "keybind-parameter_preset_6")
+                .with_text("Parameter preset 6")
+                .with_reset(None)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.parameter_preset_7, "keybind-parameter_preset_7")
+                .with_text("Parameter preset 7")
+                .with_reset(None)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.parameter_preset_8, "keybind-parameter_preset_8")
+                .with_text("Parameter preset 8")
+                .with_reset(None)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.parameter_preset_9, "keybind-parameter_preset_9")
+                .with_text("Parameter preset 9")
+                .with_reset(None)
+                .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(&mut self.parameter_preset_10, "keybind-parameter_preset_10")
+                .with_text("Parameter preset 10")
                 .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
@@ -416,6 +506,66 @@ impl KeyboardShortcuts {
                 flags |= Shortcuts::ResetParameters;
             }
 
+            if let Some(shortcut) = &self.parameter_preset_1
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ParameterPreset1;
+            }
+
+            if let Some(shortcut) = &self.parameter_preset_2
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ParameterPreset2;
+            }
+
+            if let Some(shortcut) = &self.parameter_preset_3
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ParameterPreset3;
+            }
+
+            if let Some(shortcut) = &self.parameter_preset_4
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ParameterPreset4;
+            }
+
+            if let Some(shortcut) = &self.parameter_preset_5
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ParameterPreset5;
+            }
+
+            if let Some(shortcut) = &self.parameter_preset_6
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ParameterPreset6;
+            }
+
+            if let Some(shortcut) = &self.parameter_preset_7
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ParameterPreset7;
+            }
+
+            if let Some(shortcut) = &self.parameter_preset_8
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ParameterPreset8;
+            }
+
+            if let Some(shortcut) = &self.parameter_preset_9
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ParameterPreset9;
+            }
+
+            if let Some(shortcut) = &self.parameter_preset_10
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ParameterPreset10;
+            }
+
             if let Some(shortcut) = &self.toggle_colors
                 && consume_shortcut(input, shortcut)
             {
@@ -502,6 +652,16 @@ flags! {
         MoveToNextSibling,
 
         ResetParameters,
+        ParameterPreset1,
+        ParameterPreset2,
+        ParameterPreset3,
+        ParameterPreset4,
+        ParameterPreset5,
+        ParameterPreset6,
+        ParameterPreset7,
+        ParameterPreset8,
+        ParameterPreset9,
+        ParameterPreset10,
         ToggleColors,
         ToggleProbabilities,
         ToggleAutoScroll,
