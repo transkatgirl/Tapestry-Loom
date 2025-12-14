@@ -688,6 +688,8 @@ pub fn render_horizontal_node_label_buttons_ltr(
     weave: &mut WeaveWrapper,
     node: &DependentNode<NodeContent>,
 ) {
+    let is_shift_pressed = ui.input(|input| input.modifiers.shift);
+
     if weave.is_mergeable_with_parent(&Ulid(node.id))
         && ui
             .button("\u{E43F}")
@@ -698,27 +700,31 @@ pub fn render_horizontal_node_label_buttons_ltr(
     };
     if ui
         .button("\u{E5CE}")
-        .on_hover_text("Generate completions")
+        .on_hover_text(if !is_shift_pressed {
+            "Generate completions"
+        } else {
+            "Generate completions & focus node"
+        })
         .clicked()
     {
         state.generate_children(weave, Some(Ulid(node.id)), settings);
 
-        ui.input(|input| {
-            if input.modifiers.shift {
-                weave.set_node_active_status_u128(&node.id, true);
-                state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
-            }
-        });
+        if is_shift_pressed {
+            weave.set_node_active_status_u128(&node.id, true);
+            state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
+        }
     };
-    if ui.button("\u{E40C}").on_hover_text("Add node").clicked() {
+    if ui
+        .button("\u{E40C}")
+        .on_hover_text(if !is_shift_pressed {
+            "Add node"
+        } else {
+            "Add focused node"
+        })
+        .clicked()
+    {
         let identifier = Ulid::new().0;
-        let active = ui.input(|input| {
-            if input.modifiers.shift {
-                true
-            } else {
-                node.active
-            }
-        });
+        let active = if is_shift_pressed { true } else { node.active };
 
         if weave.add_node(DependentNode {
             id: identifier,
@@ -765,6 +771,8 @@ pub fn render_horizontal_node_label_buttons_rtl(
     weave: &mut WeaveWrapper,
     node: &DependentNode<NodeContent>,
 ) {
+    let is_shift_pressed = ui.input(|input| input.modifiers.shift);
+
     if ui.button("\u{E28F}").on_hover_text("Delete node").clicked() {
         weave.remove_node(&Ulid(node.id));
     };
@@ -785,15 +793,17 @@ pub fn render_horizontal_node_label_buttons_rtl(
     {
         weave.set_node_bookmarked_status_u128(&node.id, !node.bookmarked);
     };
-    if ui.button("\u{E40C}").on_hover_text("Add node").clicked() {
+    if ui
+        .button("\u{E40C}")
+        .on_hover_text(if !is_shift_pressed {
+            "Add node"
+        } else {
+            "Add focused node"
+        })
+        .clicked()
+    {
         let identifier = Ulid::new().0;
-        let active = ui.input(|input| {
-            if input.modifiers.shift {
-                true
-            } else {
-                node.active
-            }
-        });
+        let active = if is_shift_pressed { true } else { node.active };
 
         if weave.add_node(DependentNode {
             id: identifier,
@@ -813,17 +823,19 @@ pub fn render_horizontal_node_label_buttons_rtl(
     };
     if ui
         .button("\u{E5CE}")
-        .on_hover_text("Generate completions")
+        .on_hover_text(if !is_shift_pressed {
+            "Generate completions"
+        } else {
+            "Generate completions & focus node"
+        })
         .clicked()
     {
         state.generate_children(weave, Some(Ulid(node.id)), settings);
 
-        ui.input(|input| {
-            if input.modifiers.shift {
-                weave.set_node_active_status_u128(&node.id, true);
-                state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
-            }
-        });
+        if is_shift_pressed {
+            weave.set_node_active_status_u128(&node.id, true);
+            state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
+        }
     };
     if weave.is_mergeable_with_parent(&Ulid(node.id))
         && ui
@@ -844,6 +856,8 @@ fn render_horizontal_node_tree_label_buttons_rtl(
     node: &DependentNode<NodeContent>,
     needs_list_refresh: &mut bool,
 ) {
+    let is_shift_pressed = ui.input(|input| input.modifiers.shift);
+
     if ui.button("\u{E28F}").on_hover_text("Delete node").clicked() {
         weave.remove_node(&Ulid(node.id));
     };
@@ -864,15 +878,17 @@ fn render_horizontal_node_tree_label_buttons_rtl(
     {
         weave.set_node_bookmarked_status_u128(&node.id, !node.bookmarked);
     };
-    if ui.button("\u{E40C}").on_hover_text("Add node").clicked() {
+    if ui
+        .button("\u{E40C}")
+        .on_hover_text(if !is_shift_pressed {
+            "Add node"
+        } else {
+            "Add focused node"
+        })
+        .clicked()
+    {
         let identifier = Ulid::new().0;
-        let active = ui.input(|input| {
-            if input.modifiers.shift {
-                true
-            } else {
-                node.active
-            }
-        });
+        let active = if is_shift_pressed { true } else { node.active };
 
         if weave.add_node(DependentNode {
             id: identifier,
@@ -896,17 +912,19 @@ fn render_horizontal_node_tree_label_buttons_rtl(
     };
     if ui
         .button("\u{E5CE}")
-        .on_hover_text("Generate completions")
+        .on_hover_text(if !is_shift_pressed {
+            "Generate completions"
+        } else {
+            "Generate completions & focus node"
+        })
         .clicked()
     {
         state.generate_children(weave, Some(Ulid(node.id)), settings);
 
-        ui.input(|input| {
-            if input.modifiers.shift {
-                weave.set_node_active_status_u128(&node.id, true);
-                state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
-            }
-        });
+        if is_shift_pressed {
+            weave.set_node_active_status_u128(&node.id, true);
+            state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
+        }
 
         set_node_tree_item_open_status(ui, editor_id, Ulid(node.id), true);
         *needs_list_refresh = true;
@@ -1243,15 +1261,15 @@ pub fn render_node_context_menu(
     weave: &mut WeaveWrapper,
     node: &DependentNode<NodeContent>,
 ) {
+    let is_shift_pressed = ui.input(|input| input.modifiers.shift);
+
     if ui.button("Generate completions").clicked() {
         state.generate_children(weave, Some(Ulid(node.id)), settings);
 
-        ui.input(|input| {
-            if input.modifiers.shift {
-                weave.set_node_active_status_u128(&node.id, true);
-                state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
-            }
-        });
+        if is_shift_pressed {
+            weave.set_node_active_status_u128(&node.id, true);
+            state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
+        }
     }
 
     let bookmark_label = if node.bookmarked {
@@ -1265,15 +1283,16 @@ pub fn render_node_context_menu(
 
     ui.separator();
 
-    if ui.button("Create child").clicked() {
+    if ui
+        .button(if !is_shift_pressed {
+            "Create child"
+        } else {
+            "Create focused child"
+        })
+        .clicked()
+    {
         let identifier = Ulid::new().0;
-        let active = ui.input(|input| {
-            if input.modifiers.shift {
-                true
-            } else {
-                node.active
-            }
-        });
+        let active = if is_shift_pressed { true } else { node.active };
 
         if weave.add_node(DependentNode {
             id: identifier,
@@ -1292,15 +1311,16 @@ pub fn render_node_context_menu(
         }
     }
 
-    if ui.button("Create sibling").clicked() {
+    if ui
+        .button(if !is_shift_pressed {
+            "Create sibling"
+        } else {
+            "Create focused sibling"
+        })
+        .clicked()
+    {
         let identifier = Ulid::new().0;
-        let active = ui.input(|input| {
-            if input.modifiers.shift {
-                true
-            } else {
-                node.active
-            }
-        });
+        let active = if is_shift_pressed { true } else { node.active };
 
         if weave.add_node(DependentNode {
             id: identifier,
@@ -1374,15 +1394,15 @@ fn render_node_tree_context_menu(
     node: &DependentNode<NodeContent>,
     needs_list_refresh: &mut bool,
 ) {
+    let is_shift_pressed = ui.input(|input| input.modifiers.shift);
+
     if ui.button("Generate completions").clicked() {
         state.generate_children(weave, Some(Ulid(node.id)), settings);
 
-        ui.input(|input| {
-            if input.modifiers.shift {
-                weave.set_node_active_status_u128(&node.id, true);
-                state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
-            }
-        });
+        if is_shift_pressed {
+            weave.set_node_active_status_u128(&node.id, true);
+            state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
+        }
 
         set_node_tree_item_open_status(ui, editor_id, Ulid(node.id), true);
         *needs_list_refresh = true;
@@ -1399,15 +1419,16 @@ fn render_node_tree_context_menu(
 
     ui.separator();
 
-    if ui.button("Create child").clicked() {
+    if ui
+        .button(if !is_shift_pressed {
+            "Create child"
+        } else {
+            "Create focused child"
+        })
+        .clicked()
+    {
         let identifier = Ulid::new().0;
-        let active = ui.input(|input| {
-            if input.modifiers.shift {
-                true
-            } else {
-                node.active
-            }
-        });
+        let active = if is_shift_pressed { true } else { node.active };
 
         if weave.add_node(DependentNode {
             id: identifier,
@@ -1430,15 +1451,16 @@ fn render_node_tree_context_menu(
         }
     }
 
-    if ui.button("Create sibling").clicked() {
+    if ui
+        .button(if !is_shift_pressed {
+            "Create sibling"
+        } else {
+            "Create focused sibling"
+        })
+        .clicked()
+    {
         let identifier = Ulid::new().0;
-        let active = ui.input(|input| {
-            if input.modifiers.shift {
-                true
-            } else {
-                node.active
-            }
-        });
+        let active = if is_shift_pressed { true } else { node.active };
 
         if weave.add_node(DependentNode {
             id: identifier,
