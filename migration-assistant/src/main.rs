@@ -14,11 +14,11 @@ mod obsidian_tapestry;
 #[derive(Parser)]
 #[command(version)]
 struct Cli {
-    /// Folder to scan for convertible weaves
+    /// Folder to scan for weaves to convert
     #[arg(short, long)]
     input: PathBuf,
 
-    /// Folder to output migrated weaves
+    /// Folder to output migrated weaves into
     #[arg(short, long)]
     output: PathBuf,
 }

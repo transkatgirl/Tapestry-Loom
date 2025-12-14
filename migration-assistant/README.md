@@ -1,11 +1,36 @@
 # Tapestry Loom Migration Assistant
 
-## Migrating weaves from the old Tapestry Loom Obsidian plugin
+A tool for converting weaves from other Loom implementations into the Tapestry Loom weave format.
 
-Run the following commands in the migration assistant folder:
+Supported input formats:
+- Legacy Tapestry Loom Obsidian plugin
+
+## Getting Started
+
+### Binary releases
+
+See [tapestry-loom's documentation](../README.md) in order to download a binary release.
+
+### Compiling from source
+
+Once you are in the migration-assistant folder, you can build a binary with the following command:
 
 ```bash
-cargo run --release -- --input $OLD_TAPESTRY_OBSIDIAN_VAULT --output ~/"Documents/Tapestry Loom/Migrated Weaves"
+cargo build --release
+cp target/release/tapestry-loom-migration-assistant tapestry-migration-assistant
 ```
 
-Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by the Obsidian plugin.
+## Usage
+
+The migration assistant requires the following CLI arguments:
+
+- \-\-input = Folder to scan for weaves to convert
+- \-\-output = Folder to output migrated weaves into
+
+The folder structure from the input folder will be replicated within the output folder.
+
+Here is an example of the tool being run on the input folder `~/Documents/Obsidian`
+
+```bash
+./tapestry-migration-assistant --input ~/"Documents/Obsidian" --output ~/"Documents/Tapestry Loom/Migrated Weaves"
+```

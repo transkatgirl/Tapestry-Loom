@@ -97,16 +97,9 @@ This setting requires the inference backend to support returning token IDs (to c
 
 If your inference backend returns token IDs in OpenAI-style Completions responses but they do not appear in your weaves, please file an issue.
 
-### Migrating weaves from the old Tapestry Loom Obsidian plugin
+### Migrating weaves from other Loom implementations
 
-After compiling Tapestry Loom from source, run the following commands in the repository folder:
-
-```bash
-cd migration-assistant
-cargo run --release -- --input $OLD_TAPESTRY_OBSIDIAN_VAULT --output ~/"Documents/Tapestry Loom/Migrated Weaves"
-```
-
-Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by the Obsidian plugin.
+See [migration-assistant](./migration-assistant/README.md) for more information on how to migrate weaves from other Loom implementations to Tapestry Loom.
 
 ## Plans
 
