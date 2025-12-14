@@ -1041,8 +1041,8 @@ fn parse_openai_response(
                                         if let Some((conf, k)) = confidence {
                                             let conf = (conf * 100.0).round() / 100.0;
                                             metadata.extend([
-                                                ("token_confidence".to_string(), conf.to_string()),
-                                                ("token_confidence_k".to_string(), k.to_string()),
+                                                ("confidence".to_string(), conf.to_string()),
+                                                ("confidence_k".to_string(), k.to_string()),
                                             ]);
                                         }
                                         metadata.push((

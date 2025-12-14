@@ -625,13 +625,13 @@ pub fn render_token_metadata_tooltip(
             && let Ok(probability) = value.parse::<f32>()
         {
             ui.label(format!("probability: {:.2}%", probability * 100.0));
-        } else if key == "token_confidence"
+        } else if key == "confidence"
             && let Ok(confidence) = value.parse::<f32>()
         {
-            if let Some(k) = token_metadata.get("token_confidence_k")
+            if let Some(k) = token_metadata.get("confidence_k")
                 && let Ok(k) = k.parse::<usize>()
             {
-                ui.label(format!("token_confidence: {:.2} (k = {k})", confidence,));
+                ui.label(format!("confidence: {:.2} (k = {k})", confidence,));
             }
         } else if key == "original_length"
             && let Ok(original_length) = value.parse::<usize>()
