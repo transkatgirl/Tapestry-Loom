@@ -702,21 +702,36 @@ pub fn render_horizontal_node_label_buttons_ltr(
         .clicked()
     {
         state.generate_children(weave, Some(Ulid(node.id)), settings);
+
+        ui.input(|input| {
+            if input.modifiers.shift {
+                weave.set_node_active_status_u128(&node.id, true);
+                state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
+            }
+        });
     };
     if ui.button("\u{E40C}").on_hover_text("Add node").clicked() {
         let identifier = Ulid::new().0;
+        let active = ui.input(|input| {
+            if input.modifiers.shift {
+                true
+            } else {
+                node.active
+            }
+        });
+
         if weave.add_node(DependentNode {
             id: identifier,
             from: Some(node.id),
             to: IndexSet::default(),
-            active: node.active,
+            active,
             bookmarked: false,
             contents: NodeContent {
                 content: InnerNodeContent::Snippet(vec![]),
                 metadata: IndexMap::new(),
                 model: None,
             },
-        }) && node.active
+        }) && active
         {
             state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
         }
@@ -772,18 +787,26 @@ pub fn render_horizontal_node_label_buttons_rtl(
     };
     if ui.button("\u{E40C}").on_hover_text("Add node").clicked() {
         let identifier = Ulid::new().0;
+        let active = ui.input(|input| {
+            if input.modifiers.shift {
+                true
+            } else {
+                node.active
+            }
+        });
+
         if weave.add_node(DependentNode {
             id: identifier,
             from: Some(node.id),
             to: IndexSet::default(),
-            active: node.active,
+            active,
             bookmarked: false,
             contents: NodeContent {
                 content: InnerNodeContent::Snippet(vec![]),
                 metadata: IndexMap::new(),
                 model: None,
             },
-        }) && node.active
+        }) && active
         {
             state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
         }
@@ -794,6 +817,13 @@ pub fn render_horizontal_node_label_buttons_rtl(
         .clicked()
     {
         state.generate_children(weave, Some(Ulid(node.id)), settings);
+
+        ui.input(|input| {
+            if input.modifiers.shift {
+                weave.set_node_active_status_u128(&node.id, true);
+                state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
+            }
+        });
     };
     if weave.is_mergeable_with_parent(&Ulid(node.id))
         && ui
@@ -836,11 +866,19 @@ fn render_horizontal_node_tree_label_buttons_rtl(
     };
     if ui.button("\u{E40C}").on_hover_text("Add node").clicked() {
         let identifier = Ulid::new().0;
+        let active = ui.input(|input| {
+            if input.modifiers.shift {
+                true
+            } else {
+                node.active
+            }
+        });
+
         if weave.add_node(DependentNode {
             id: identifier,
             from: Some(node.id),
             to: IndexSet::default(),
-            active: node.active,
+            active,
             bookmarked: false,
             contents: NodeContent {
                 content: InnerNodeContent::Snippet(vec![]),
@@ -848,7 +886,7 @@ fn render_horizontal_node_tree_label_buttons_rtl(
                 model: None,
             },
         }) {
-            if node.active {
+            if active {
                 state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
             } else {
                 set_node_tree_item_open_status(ui, editor_id, Ulid(node.id), true);
@@ -862,6 +900,13 @@ fn render_horizontal_node_tree_label_buttons_rtl(
         .clicked()
     {
         state.generate_children(weave, Some(Ulid(node.id)), settings);
+
+        ui.input(|input| {
+            if input.modifiers.shift {
+                weave.set_node_active_status_u128(&node.id, true);
+                state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
+            }
+        });
 
         set_node_tree_item_open_status(ui, editor_id, Ulid(node.id), true);
         *needs_list_refresh = true;
@@ -1200,6 +1245,13 @@ pub fn render_node_context_menu(
 ) {
     if ui.button("Generate completions").clicked() {
         state.generate_children(weave, Some(Ulid(node.id)), settings);
+
+        ui.input(|input| {
+            if input.modifiers.shift {
+                weave.set_node_active_status_u128(&node.id, true);
+                state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
+            }
+        });
     }
 
     let bookmark_label = if node.bookmarked {
@@ -1215,18 +1267,26 @@ pub fn render_node_context_menu(
 
     if ui.button("Create child").clicked() {
         let identifier = Ulid::new().0;
+        let active = ui.input(|input| {
+            if input.modifiers.shift {
+                true
+            } else {
+                node.active
+            }
+        });
+
         if weave.add_node(DependentNode {
             id: identifier,
             from: Some(node.id),
             to: IndexSet::default(),
-            active: node.active,
+            active,
             bookmarked: false,
             contents: NodeContent {
                 content: InnerNodeContent::Snippet(vec![]),
                 metadata: IndexMap::new(),
                 model: None,
             },
-        }) && node.active
+        }) && active
         {
             state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
         }
@@ -1234,18 +1294,26 @@ pub fn render_node_context_menu(
 
     if ui.button("Create sibling").clicked() {
         let identifier = Ulid::new().0;
+        let active = ui.input(|input| {
+            if input.modifiers.shift {
+                true
+            } else {
+                node.active
+            }
+        });
+
         if weave.add_node(DependentNode {
             id: identifier,
             from: node.from,
             to: IndexSet::default(),
-            active: node.active,
+            active,
             bookmarked: false,
             contents: NodeContent {
                 content: InnerNodeContent::Snippet(vec![]),
                 metadata: IndexMap::new(),
                 model: None,
             },
-        }) && node.active
+        }) && active
         {
             state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
         }
@@ -1309,6 +1377,13 @@ fn render_node_tree_context_menu(
     if ui.button("Generate completions").clicked() {
         state.generate_children(weave, Some(Ulid(node.id)), settings);
 
+        ui.input(|input| {
+            if input.modifiers.shift {
+                weave.set_node_active_status_u128(&node.id, true);
+                state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
+            }
+        });
+
         set_node_tree_item_open_status(ui, editor_id, Ulid(node.id), true);
         *needs_list_refresh = true;
     }
@@ -1326,11 +1401,19 @@ fn render_node_tree_context_menu(
 
     if ui.button("Create child").clicked() {
         let identifier = Ulid::new().0;
+        let active = ui.input(|input| {
+            if input.modifiers.shift {
+                true
+            } else {
+                node.active
+            }
+        });
+
         if weave.add_node(DependentNode {
             id: identifier,
             from: Some(node.id),
             to: IndexSet::default(),
-            active: node.active,
+            active,
             bookmarked: false,
             contents: NodeContent {
                 content: InnerNodeContent::Snippet(vec![]),
@@ -1338,7 +1421,7 @@ fn render_node_tree_context_menu(
                 model: None,
             },
         }) {
-            if node.active {
+            if active {
                 state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
             } else {
                 set_node_tree_item_open_status(ui, editor_id, Ulid(node.id), true);
@@ -1349,18 +1432,26 @@ fn render_node_tree_context_menu(
 
     if ui.button("Create sibling").clicked() {
         let identifier = Ulid::new().0;
+        let active = ui.input(|input| {
+            if input.modifiers.shift {
+                true
+            } else {
+                node.active
+            }
+        });
+
         if weave.add_node(DependentNode {
             id: identifier,
             from: node.from,
             to: IndexSet::default(),
-            active: node.active,
+            active,
             bookmarked: false,
             contents: NodeContent {
                 content: InnerNodeContent::Snippet(vec![]),
                 metadata: IndexMap::new(),
                 model: None,
             },
-        }) && node.active
+        }) && active
         {
             state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
         }
