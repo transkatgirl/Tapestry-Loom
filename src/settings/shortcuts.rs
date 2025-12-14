@@ -632,7 +632,7 @@ impl KeyboardShortcuts {
 }
 
 flags! {
-    pub enum Shortcuts: u32 {
+    pub enum Shortcuts: u64 {
         GenerateAtCursor,
         ToggleNodeBookmarked,
 
