@@ -1,6 +1,12 @@
 [package]
-name    = "tapestry-loom-migration-assistant"
+name = "tapestry-loom-migration-assistant"
 version = "0.0.0"
+authors = [
+	"transkatgirl",
+]
+homepage = "https://github.com/transkatgirl/Tapestry-Loom"
+license = "Unlicense"
+description = "A tool for converting weaves from other Loom implementations into the Tapestry Loom weave format."
 edition = "2024"
 
 [dependencies]
