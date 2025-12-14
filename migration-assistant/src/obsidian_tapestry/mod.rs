@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 use base64::prelude::*;
 use boa_engine::{Context, JsString, Source, js_string, property::Attribute};
-use chrono::{DateTime, offset};
+use chrono::{DateTime, Local, offset};
 use frontmatter::{Yaml, parse_and_find_content};
 use miniz_oxide::inflate::decompress_to_vec_zlib;
 use serde::{Deserialize, Serialize};
@@ -80,6 +80,7 @@ fn convert_weave(input: String, created: DateTime<offset::Local>) -> anyhow::Res
                 "LegacyTapestryLoom".to_string(),
             ),
             ("created".to_string(), created.to_rfc3339()),
+            ("converted".to_string(), Local::now().to_rfc3339()),
         ]),
     );
 
