@@ -651,7 +651,7 @@ pub fn render_token_metadata_tooltip(
             {
                 ui.label(format!("token_id: {}", value));
             }
-        } else if key != "model_id" && key != "token_confidence_k" {
+        } else if key != "model_id" && key != "confidence_k" {
             ui.label(format!("{key}: {value}"));
         }
     }
