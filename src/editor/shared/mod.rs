@@ -667,22 +667,20 @@ pub fn get_token_color(
             .get("probability")
             .and_then(|p| p.parse::<f32>().ok())
     {
-        let opacity = if settings.interface.show_token_confidence {
-            if let Some(confidence) = token_metadata
+        let opacity = if settings.interface.show_token_confidence
+            && let Some(confidence) = token_metadata
                 .get("confidence")
                 .and_then(|c| c.parse::<f64>().ok())
-                && let Some(confidence_k) = token_metadata
-                    .get("confidence_k")
-                    .and_then(|c| c.parse::<usize>().ok())
-            {
-                f32::ln(1.0 / (-(confidence)).exp().clamp(f64::EPSILON, 1.0) as f32)
-                    / (f32::ln(confidence_k as f32) + 2.0)
-            } else {
-                0.0
-            }
+            && let Some(confidence_k) = token_metadata
+                .get("confidence_k")
+                .and_then(|c| c.parse::<usize>().ok())
+        {
+            f32::ln(1.0 / (-(confidence)).exp().clamp(f64::EPSILON, 1.0) as f32)
+                / (f32::ln(confidence_k as f32) + 2.0)
         } else {
-            1.0 - (f32::ln(1.0 / probability.clamp(f32::EPSILON, 1.0)) / 10.0)
+            1.0
         }
+        .min(1.0 - (f32::ln(1.0 / probability.clamp(f32::EPSILON, 1.0)) / 10.0))
         .clamp(settings.interface.minimum_token_opacity / 100.0, 1.0);
 
         Some(change_color_opacity(node_color, opacity))

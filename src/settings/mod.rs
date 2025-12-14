@@ -32,7 +32,7 @@ pub struct UISettings {
     pub show_model_colors: bool,
     pub show_token_probabilities: bool,
 
-    #[serde(default)]
+    #[serde(default = "default_show_token_confidence")]
     pub show_token_confidence: bool,
 
     pub minimum_token_opacity: f32,
@@ -55,6 +55,10 @@ fn default_list_separator_opacity() -> f32 {
     30.0
 }
 
+fn default_show_token_confidence() -> bool {
+    true
+}
+
 impl Default for UISettings {
     fn default() -> Self {
         Self {
@@ -65,7 +69,7 @@ impl Default for UISettings {
             displayed_ui_scale: 1.25,
             show_model_colors: true,
             show_token_probabilities: true,
-            show_token_confidence: false,
+            show_token_confidence: true,
             minimum_token_opacity: 65.0,
             list_separator_opacity: 30.0,
             max_tree_depth: 10,
@@ -214,7 +218,7 @@ impl UISettings {
         if self.show_token_probabilities {
             ui.checkbox(
                 &mut self.show_token_confidence,
-                "Show token confidence instead of probability",
+                "Use token confidence in color coding",
             );
         }
         if self.show_token_probabilities {
