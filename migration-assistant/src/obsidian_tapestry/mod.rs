@@ -4,6 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 use base64::prelude::*;
 use boa_engine::{Context, JsString, Source, js_string, property::Attribute};
+use chrono::{DateTime, offset};
 use frontmatter::{Yaml, parse_and_find_content};
 use miniz_oxide::inflate::decompress_to_vec_zlib;
 use serde::{Deserialize, Serialize};
@@ -16,7 +17,7 @@ use tapestry_weave::{
     v0::{InnerNodeContent, Model, NodeContent, TapestryWeave},
 };
 
-pub fn migrate(input: &str) -> anyhow::Result<Option<Vec<u8>>> {
+pub fn migrate(input: &str, created: DateTime<offset::Local>) -> anyhow::Result<Option<Vec<u8>>> {
     if let Ok((Some(Yaml::Hash(mut frontmatter)), _)) = parse_and_find_content(input) {
         let weave = if let Some(Yaml::String(compressed_weave)) =
             frontmatter.remove(&Yaml::String("TapestryLoomWeaveCompressed".to_string()))
@@ -34,14 +35,14 @@ pub fn migrate(input: &str) -> anyhow::Result<Option<Vec<u8>>> {
         };
 
         if let Some(weave) = weave {
-            return Ok(Some(convert_weave(weave)?));
+            return Ok(Some(convert_weave(weave, created)?));
         }
     }
 
     Ok(None)
 }
 
-fn convert_weave(input: String) -> anyhow::Result<Vec<u8>> {
+fn convert_weave(input: String, created: DateTime<offset::Local>) -> anyhow::Result<Vec<u8>> {
     let mut context = Context::default();
 
     context
@@ -73,10 +74,13 @@ fn convert_weave(input: String) -> anyhow::Result<Vec<u8>> {
 
     let mut output = TapestryWeave::with_capacity(
         input.nodes.len(),
-        IndexMap::from([(
-            "converted_from".to_string(),
-            "LegacyTapestryLoom".to_string(),
-        )]),
+        IndexMap::from([
+            (
+                "converted_from".to_string(),
+                "LegacyTapestryLoom".to_string(),
+            ),
+            ("created".to_string(), created.to_rfc3339()),
+        ]),
     );
 
     for node in input_nodes {

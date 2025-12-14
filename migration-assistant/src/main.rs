@@ -5,6 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use chrono::{DateTime, offset};
 use clap::Parser;
 use walkdir::WalkDir;
 
@@ -33,21 +34,25 @@ fn main() -> anyhow::Result<()> {
             && let Some(extension) = entry.path().extension()
             && let Some(extension) = extension.to_ascii_lowercase().to_str()
         {
-            if extension == "md" {
-                let mut output = if let Ok(stripped_path) = entry.path().strip_prefix(&args.input) {
-                    args.output.clone().join(stripped_path)
-                } else {
-                    args.output.clone().join(entry.file_name())
-                };
-                output.set_extension("tapestry");
+            let mut output = if let Ok(stripped_path) = entry.path().strip_prefix(&args.input) {
+                args.output.clone().join(stripped_path)
+            } else {
+                args.output.clone().join(entry.file_name())
+            };
+            output.set_extension("tapestry");
 
+            if extension == "md" {
                 if let Some(parent) = output.parent() {
                     fs::create_dir_all(parent)?;
                 }
 
                 migrate_markdown_weave(entry.path(), &output)?;
             } else if extension == "json" {
-                // Soon
+                if let Some(parent) = output.parent() {
+                    fs::create_dir_all(parent)?;
+                }
+
+                migrate_json_weave(entry.path(), &output)?;
             }
         }
     }
@@ -59,14 +64,25 @@ pub fn migrate_markdown_weave(input_path: &Path, output_path: &Path) -> anyhow::
     assert_ne!(input_path, output_path);
 
     let input = fs::read_to_string(input_path)?;
+    let created: DateTime<offset::Local> = DateTime::from(fs::metadata(input_path)?.created()?);
 
-    if let Some(weave_data) = obsidian_tapestry::migrate(&input)? {
+    if let Some(weave_data) = obsidian_tapestry::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
         fs::write(output_path, weave_data)?;
 
         return Ok(());
     }
+
+    println!("Skipping {}", input_path.display());
+
+    Ok(())
+}
+
+pub fn migrate_json_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<()> {
+    assert_ne!(input_path, output_path);
+
+    // TODO
 
     println!("Skipping {}", input_path.display());
 
