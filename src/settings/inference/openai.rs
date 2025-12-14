@@ -812,7 +812,7 @@ fn parse_openai_response(
                             if let Value::Object(mut logprob_item) = logprob_item {
                                 let token_confidence = if let Some(Value::Array(top_logprobs)) =
                                     logprob_item.get("top_logprobs")
-                                    && top_logprobs.len() >= 5
+                                    && top_logprobs.len() >= 10
                                 {
                                     let mut sum = 0.0;
 
