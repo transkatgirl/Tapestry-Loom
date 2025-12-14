@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use chrono::{DateTime, offset};
+use chrono::{DateTime, Local};
 use clap::Parser;
 use walkdir::WalkDir;
 
@@ -64,7 +64,7 @@ pub fn migrate_markdown_weave(input_path: &Path, output_path: &Path) -> anyhow::
     assert_ne!(input_path, output_path);
 
     let input = fs::read_to_string(input_path)?;
-    let created: DateTime<offset::Local> = DateTime::from(fs::metadata(input_path)?.created()?);
+    let created: DateTime<Local> = DateTime::from(fs::metadata(input_path)?.created()?);
 
     if let Some(weave_data) = obsidian_tapestry::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
