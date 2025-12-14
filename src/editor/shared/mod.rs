@@ -625,6 +625,14 @@ pub fn render_token_metadata_tooltip(
             && let Ok(probability) = value.parse::<f32>()
         {
             ui.label(format!("probability: {:.2}%", probability * 100.0));
+        } else if key == "token_confidence"
+            && let Ok(confidence) = value.parse::<f32>()
+        {
+            if let Some(k) = token_metadata.get("token_confidence_k")
+                && let Ok(k) = k.parse::<usize>()
+            {
+                ui.label(format!("token_confidence: {:.2} (k = {k})", confidence,));
+            }
         } else if key == "original_length"
             && let Ok(original_length) = value.parse::<usize>()
         {
@@ -643,7 +651,7 @@ pub fn render_token_metadata_tooltip(
             {
                 ui.label(format!("token_id: {}", value));
             }
-        } else if key != "model_id" {
+        } else if key != "model_id" && key != "token_confidence_k" {
             ui.label(format!("{key}: {value}"));
         }
     }

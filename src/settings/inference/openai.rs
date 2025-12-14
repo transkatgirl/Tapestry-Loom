@@ -799,7 +799,7 @@ fn parse_openai_response(
                             if let Value::Object(mut logprob_item) = logprob_item {
                                 if let Some(Value::Array(top_logprobs)) =
                                     logprob_item.get("top_logprobs")
-                                    && top_logprobs.len() > 10
+                                    && top_logprobs.len() >= 10
                                 {
                                     let mut sum = 0.0;
 
@@ -813,7 +813,7 @@ fn parse_openai_response(
 
                                     sum /= top_logprobs.len() as f64;
 
-                                    confidence.push(Some(-sum));
+                                    confidence.push(Some((-sum, top_logprobs.len())));
                                 } else {
                                     confidence.push(None);
                                 }
@@ -897,7 +897,7 @@ fn parse_openai_response(
 
                             for item in top_logprobs {
                                 if let Value::Object(top_logprobs) = item
-                                    && top_logprobs.len() > 10
+                                    && top_logprobs.len() >= 10
                                 {
                                     let mut sum = 0.0;
 
@@ -911,7 +911,7 @@ fn parse_openai_response(
 
                                     sum /= top_logprobs.len() as f64;
 
-                                    confidence.push(Some(-sum));
+                                    confidence.push(Some((-sum, top_logprobs.len())));
                                 } else {
                                     confidence.push(None);
                                 }
@@ -1032,10 +1032,12 @@ fn parse_openai_response(
                                         let mut metadata = Vec::with_capacity(5);
                                         metadata
                                             .push(("probability".to_string(), prob.to_string()));
-                                        if let Some(conf) = confidence {
-                                            let conf = (conf * 10.0).round() / 10.0;
-                                            metadata
-                                                .push(("confidence".to_string(), conf.to_string()));
+                                        if let Some((conf, k)) = confidence {
+                                            let conf = (conf * 100.0).round() / 100.0;
+                                            metadata.extend([
+                                                ("token_confidence".to_string(), conf.to_string()),
+                                                ("token_confidence_k".to_string(), k.to_string()),
+                                            ]);
                                         }
                                         metadata.push((
                                             "original_length".to_string(),
