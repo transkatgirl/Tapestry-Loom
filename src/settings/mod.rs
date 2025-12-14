@@ -31,6 +31,10 @@ pub struct UISettings {
     pub displayed_ui_scale: f32,
     pub show_model_colors: bool,
     pub show_token_probabilities: bool,
+
+    #[serde(default)]
+    pub show_token_confidence: bool,
+
     pub minimum_token_opacity: f32,
 
     #[serde(default = "default_list_separator_opacity")]
@@ -61,6 +65,7 @@ impl Default for UISettings {
             displayed_ui_scale: 1.25,
             show_model_colors: true,
             show_token_probabilities: true,
+            show_token_confidence: false,
             minimum_token_opacity: 65.0,
             list_separator_opacity: 30.0,
             max_tree_depth: 10,
@@ -206,6 +211,12 @@ impl UISettings {
             &mut self.show_token_probabilities,
             "Show token probabilities",
         );
+        if self.show_token_probabilities {
+            ui.checkbox(
+                &mut self.show_token_confidence,
+                "Show token confidence instead of probability",
+            );
+        }
         if self.show_token_probabilities {
             ui.add(
                 Slider::new(&mut self.minimum_token_opacity, 20.0..=80.0)

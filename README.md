@@ -224,7 +224,6 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 	- [ ] Optimize memory usage to be as low as reasonably possible
 - [ ] Collaborative weave editing over LAN
 - [ ] Adaptive looming using token entropy or [confidence](https://arxiv.org/pdf/2508.15260)
-	- [ ] Add color coding by token entropy or [confidence](https://arxiv.org/pdf/2508.15260)
 - [ ] Token streaming and display of nodes being generated
 - [ ] Prefix-based duplication
 - [ ] Undo/redo functionality

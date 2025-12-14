@@ -384,7 +384,7 @@ impl TextEditorView {
                     let mut token_indices = Vec::with_capacity(tokens.len());
 
                     for (token, token_metadata) in tokens {
-                        let color = get_token_color(Some(color), token_metadata, settings)
+                        let color = get_token_color(color, token_metadata, settings)
                             .unwrap_or(default_color);
 
                         bytes.extend_from_slice(token);

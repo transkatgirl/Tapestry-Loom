@@ -658,40 +658,36 @@ pub fn render_token_metadata_tooltip(
 }
 
 pub fn get_token_color(
-    node_color: Option<Color32>,
+    node_color: Color32,
     token_metadata: &IndexMap<String, String>,
     settings: &Settings,
 ) -> Option<Color32> {
-    if let Some(color) = node_color {
-        if settings.interface.show_token_probabilities
-            && let Some(probability) = token_metadata
-                .get("probability")
-                .and_then(|p| p.parse::<f32>().ok())
-        {
-            let probability = probability.clamp(0.0, 1.0);
-            let opacity = (1.0 - (f32::ln(1.0 / probability)) / 10.0)
-                .clamp(settings.interface.minimum_token_opacity / 100.0, 1.0);
-
-            Some(change_color_opacity(color, opacity))
-        } else {
-            Some(color)
-        }
-    } else if settings.interface.show_token_probabilities
+    if settings.interface.show_token_probabilities
         && let Some(probability) = token_metadata
             .get("probability")
             .and_then(|p| p.parse::<f32>().ok())
     {
-        // TODO: Perform color blending in perceptual color space
-        let probability = probability.clamp(0.0, 1.0);
-        let (r, g, b) = if probability > 0.5 {
-            ((1.0 - ((probability - 0.5) * 2.0)) * 255.0, 255.0, 0.0)
+        let opacity = if settings.interface.show_token_confidence {
+            if let Some(confidence) = token_metadata
+                .get("confidence")
+                .and_then(|c| c.parse::<f64>().ok())
+                && let Some(confidence_k) = token_metadata
+                    .get("confidence_k")
+                    .and_then(|c| c.parse::<usize>().ok())
+            {
+                f32::ln(1.0 / (-(confidence)).exp().clamp(f64::EPSILON, 1.0) as f32)
+                    / (f32::ln(confidence_k as f32) + 2.0)
+            } else {
+                0.0
+            }
         } else {
-            (255.0, (probability * 2.0) * 255.0, 0.0)
-        };
+            1.0 - (f32::ln(1.0 / probability.clamp(f32::EPSILON, 1.0)) / 10.0)
+        }
+        .clamp(settings.interface.minimum_token_opacity / 100.0, 1.0);
 
-        Some(Color32::from(Rgba::from_rgb(r, g, b)))
+        Some(change_color_opacity(node_color, opacity))
     } else {
-        None
+        Some(node_color)
     }
 }
 
@@ -798,7 +794,7 @@ pub fn render_node_text_or_first_token_bytes(
             let mut sections = Vec::with_capacity(tokens.len());
 
             for (token, token_metadata) in tokens {
-                let mut color = get_token_color(Some(color), token_metadata, settings)
+                let mut color = get_token_color(color, token_metadata, settings)
                     .unwrap_or(ui.visuals().widgets.inactive.text_color());
                 let mut token_text = from_utf8_lossy(token);
 
@@ -881,7 +877,7 @@ pub fn render_node_text_or_empty(
             let mut sections = Vec::with_capacity(tokens.len());
 
             for (token, token_metadata) in tokens {
-                let color = get_token_color(Some(color), token_metadata, settings)
+                let color = get_token_color(color, token_metadata, settings)
                     .unwrap_or(ui.visuals().widgets.inactive.text_color());
                 let token_text = from_utf8_lossy(token);
 
@@ -915,7 +911,7 @@ pub fn render_node_text_or_empty(
                         format: TextFormat {
                             font_id: notice_font_id,
                             color: if let Some((_, token_metadata)) = tokens.first() {
-                                get_token_color(Some(color), token_metadata, settings)
+                                get_token_color(color, token_metadata, settings)
                                     .unwrap_or(ui.visuals().widgets.inactive.text_color())
                             } else {
                                 color
