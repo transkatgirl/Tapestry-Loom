@@ -784,17 +784,40 @@ fn parse_openai_response(
         for choice in choices {
             if let Value::Object(mut choice) = choice {
                 let mut tokens = Vec::new();
+                let mut confidence = Vec::new();
                 let mut metadata = metadata.clone();
                 let mut has_top_tokens = false;
 
                 if let Some(Value::Object(mut logprobs)) = choice.remove("logprobs") {
                     if let Some(Value::Array(logprobs_content)) = logprobs.remove("content") {
                         tokens.reserve(logprobs_content.len());
+                        confidence.reserve(logprobs_content.len());
 
                         let token_count = logprobs_content.len();
 
                         for (i, logprob_item) in logprobs_content.into_iter().enumerate() {
                             if let Value::Object(mut logprob_item) = logprob_item {
+                                if let Some(Value::Array(top_logprobs)) =
+                                    logprob_item.get("top_logprobs")
+                                    && top_logprobs.len() > 10
+                                {
+                                    let mut sum = 0.0;
+
+                                    for logprob in top_logprobs {
+                                        if let Some(Value::Number(logprob)) = logprob.get("logprob")
+                                            && let Some(logprob) = logprob.as_f64()
+                                        {
+                                            sum += logprob;
+                                        }
+                                    }
+
+                                    sum /= top_logprobs.len() as f64;
+
+                                    confidence.push(Some(-sum));
+                                } else {
+                                    confidence.push(None);
+                                }
+
                                 if i == 0
                                     && let Some(Value::Array(top_logprobs)) =
                                         logprob_item.remove("top_logprobs")
@@ -868,6 +891,32 @@ fn parse_openai_response(
                         } else {
                             0
                         };
+
+                        if let Some(Value::Array(top_logprobs)) = logprobs.get("top_logprobs") {
+                            confidence.reserve(top_logprobs.len());
+
+                            for item in top_logprobs {
+                                if let Value::Object(top_logprobs) = item
+                                    && top_logprobs.len() > 10
+                                {
+                                    let mut sum = 0.0;
+
+                                    for (_, logprob) in top_logprobs {
+                                        if let Value::Number(logprob) = logprob
+                                            && let Some(logprob) = logprob.as_f64()
+                                        {
+                                            sum += logprob;
+                                        }
+                                    }
+
+                                    sum /= top_logprobs.len() as f64;
+
+                                    confidence.push(Some(-sum));
+                                } else {
+                                    confidence.push(None);
+                                }
+                            }
+                        }
 
                         if let Some(Value::Array(mut top_logprobs)) =
                             logprobs.remove("top_logprobs")
@@ -959,6 +1008,13 @@ fn parse_openai_response(
                     }
                 }
 
+                if tokens.len() != confidence.len() {
+                    confidence.clear();
+                    for _ in 0..tokens.len() {
+                        confidence.push(None);
+                    }
+                }
+
                 if let Some(Value::String(finish_reason)) = choice.remove("finish_reason") {
                     metadata.push(("finish_reason".to_string(), finish_reason));
                 }
@@ -969,34 +1025,34 @@ fn parse_openai_response(
                             content: InnerNodeContent::Tokens(
                                 tokens
                                     .into_iter()
-                                    .map(|(token, prob, token_id)| {
+                                    .zip(confidence)
+                                    .map(|((token, prob, token_id), confidence)| {
                                         let length = token.len();
 
-                                        (
-                                            token,
-                                            if let Some(token_id) = token_id {
-                                                IndexMap::from_iter([
-                                                    ("probability".to_string(), prob.to_string()),
-                                                    (
-                                                        "original_length".to_string(),
-                                                        length.to_string(),
-                                                    ),
-                                                    ("token_id".to_string(), token_id.to_string()),
-                                                    (
-                                                        "model_id".to_string(),
-                                                        tokenization_identifier.to_string(),
-                                                    ),
-                                                ])
-                                            } else {
-                                                IndexMap::from_iter([
-                                                    ("probability".to_string(), prob.to_string()),
-                                                    (
-                                                        "original_length".to_string(),
-                                                        length.to_string(),
-                                                    ),
-                                                ])
-                                            },
-                                        )
+                                        let mut metadata = Vec::with_capacity(5);
+                                        metadata
+                                            .push(("probability".to_string(), prob.to_string()));
+                                        if let Some(conf) = confidence {
+                                            let conf = (conf * 10.0).round() / 10.0;
+                                            metadata
+                                                .push(("confidence".to_string(), conf.to_string()));
+                                        }
+                                        metadata.push((
+                                            "original_length".to_string(),
+                                            length.to_string(),
+                                        ));
+
+                                        if let Some(token_id) = token_id {
+                                            metadata.extend([
+                                                ("token_id".to_string(), token_id.to_string()),
+                                                (
+                                                    "model_id".to_string(),
+                                                    tokenization_identifier.to_string(),
+                                                ),
+                                            ]);
+                                        }
+
+                                        (token, IndexMap::from_iter(metadata))
                                     })
                                     .collect(),
                             ),
