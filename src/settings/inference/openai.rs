@@ -344,7 +344,7 @@ impl Endpoint for OpenAICompletionsConfig {
         vec![
             ("temperature".to_string(), "1".to_string()),
             ("max_tokens".to_string(), "10".to_string()),
-            ("logprobs".to_string(), "1".to_string()),
+            ("logprobs".to_string(), "20".to_string()),
         ]
     }
     async fn perform_request(
@@ -367,6 +367,12 @@ impl Endpoint for OpenAICompletionsConfig {
 
         build_json_object(&mut body, self.parameters.clone());
         build_json_object(&mut body, request.parameters.as_ref().clone());
+
+        let single_token = body
+            .get("max_tokens")
+            .and_then(|t| t.as_u64())
+            .map(|t| t == 1)
+            .unwrap_or(false);
 
         if body.remove("stream").is_some() {
             body.insert("stream".to_string(), Value::Bool(false));
@@ -472,7 +478,8 @@ impl Endpoint for OpenAICompletionsConfig {
 
         let metadata = request.parameters.as_ref().clone();
 
-        let endpoint_response = parse_openai_response(response, metadata, tokenization_identifier);
+        let endpoint_response =
+            parse_openai_response(response, metadata, tokenization_identifier, single_token);
 
         if !endpoint_response.is_empty() {
             Ok(endpoint_response)
@@ -584,7 +591,7 @@ impl Endpoint for OpenAIChatCompletionsConfig {
             ("temperature".to_string(), "1".to_string()),
             ("max_tokens".to_string(), "10".to_string()),
             ("logprobs".to_string(), "true".to_string()),
-            ("top_logprobs".to_string(), "1".to_string()),
+            ("top_logprobs".to_string(), "20".to_string()),
         ]
     }
     async fn perform_request(
@@ -607,6 +614,12 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
         build_json_object(&mut body, self.parameters.clone());
         build_json_object(&mut body, request.parameters.as_ref().clone());
+
+        let single_token = body
+            .get("max_tokens")
+            .and_then(|t| t.as_u64())
+            .map(|t| t == 1)
+            .unwrap_or(false);
 
         if body.remove("stream").is_some() {
             body.insert("stream".to_string(), Value::Bool(false));
@@ -662,7 +675,8 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
         let metadata = request.parameters.as_ref().clone();
 
-        let endpoint_response = parse_openai_response(response, metadata, tokenization_identifier);
+        let endpoint_response =
+            parse_openai_response(response, metadata, tokenization_identifier, single_token);
 
         if !endpoint_response.is_empty() {
             Ok(endpoint_response)
@@ -768,6 +782,7 @@ fn parse_openai_response(
     mut response: Map<String, Value>,
     metadata: Vec<(String, String)>,
     tokenization_identifier: Ulid,
+    single_token: bool,
 ) -> Vec<EndpointResponse> {
     trace!("{:#?}", &response);
 
@@ -793,8 +808,6 @@ fn parse_openai_response(
                         tokens.reserve(logprobs_content.len());
                         confidence.reserve(logprobs_content.len());
 
-                        let token_count = logprobs_content.len();
-
                         for (i, logprob_item) in logprobs_content.into_iter().enumerate() {
                             if let Value::Object(mut logprob_item) = logprob_item {
                                 if let Some(Value::Array(top_logprobs)) =
@@ -819,10 +832,10 @@ fn parse_openai_response(
                                 }
 
                                 if i == 0
+                                    && single_token
                                     && let Some(Value::Array(top_logprobs)) =
                                         logprob_item.remove("top_logprobs")
                                     && top_logprobs.len() > 1
-                                    && token_count == 1
                                 {
                                     let mut tokens = Vec::with_capacity(top_logprobs.len());
 
@@ -885,13 +898,6 @@ fn parse_openai_response(
                             }
                         }
                     } else {
-                        let token_count = if let Some(Value::Array(tokens)) = logprobs.get("tokens")
-                        {
-                            tokens.len()
-                        } else {
-                            0
-                        };
-
                         if let Some(Value::Array(top_logprobs)) = logprobs.get("top_logprobs") {
                             confidence.reserve(top_logprobs.len());
 
@@ -918,12 +924,12 @@ fn parse_openai_response(
                             }
                         }
 
-                        if let Some(Value::Array(mut top_logprobs)) =
-                            logprobs.remove("top_logprobs")
+                        if single_token
+                            && let Some(Value::Array(mut top_logprobs)) =
+                                logprobs.remove("top_logprobs")
                             && !top_logprobs.is_empty()
                             && let Value::Object(top_logprobs) = top_logprobs.swap_remove(0)
                             && top_logprobs.len() > 1
-                            && token_count == 1
                         {
                             let mut tokens = Vec::with_capacity(top_logprobs.len());
 
