@@ -76,7 +76,7 @@ impl Default for UISettings {
             auto_scroll: true,
             optimize_tree: false,
 
-            show_bookmark_count: false,
+            show_bookmark_count: true,
 
             fonts_changed: false,
         }
