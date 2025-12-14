@@ -85,11 +85,26 @@ impl Default for KeyboardShortcuts {
                 logical_key: Key::ArrowDown,
             }),
             reset_parameters: None,
-            parameter_preset_1: None,
-            parameter_preset_2: None,
-            parameter_preset_3: None,
-            parameter_preset_4: None,
-            parameter_preset_5: None,
+            parameter_preset_1: Some(KeyboardShortcut {
+                modifiers: Modifiers::COMMAND,
+                logical_key: Key::Num1,
+            }),
+            parameter_preset_2: Some(KeyboardShortcut {
+                modifiers: Modifiers::COMMAND,
+                logical_key: Key::Num2,
+            }),
+            parameter_preset_3: Some(KeyboardShortcut {
+                modifiers: Modifiers::COMMAND,
+                logical_key: Key::Num3,
+            }),
+            parameter_preset_4: Some(KeyboardShortcut {
+                modifiers: Modifiers::COMMAND,
+                logical_key: Key::Num4,
+            }),
+            parameter_preset_5: Some(KeyboardShortcut {
+                modifiers: Modifiers::COMMAND,
+                logical_key: Key::Num5,
+            }),
             parameter_preset_6: None,
             parameter_preset_7: None,
             parameter_preset_8: None,
