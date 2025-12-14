@@ -691,7 +691,9 @@ pub fn get_token_color(
 
 pub fn get_node_color(node: &DependentNode<NodeContent>, settings: &Settings) -> Option<Color32> {
     if settings.interface.show_model_colors {
-        if let Some(color_override) = settings.interface.model_color_override {
+        if settings.interface.override_model_colors
+            && let Some(color_override) = settings.interface.model_color_override
+        {
             if node.contents.model.is_some() {
                 Some(color_override)
             } else {

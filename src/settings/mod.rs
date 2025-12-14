@@ -31,6 +31,10 @@ pub struct UISettings {
 
     pub displayed_ui_scale: f32,
     pub show_model_colors: bool,
+
+    #[serde(default)]
+    pub override_model_colors: bool,
+
     pub model_color_override: Option<Color32>,
     pub show_token_probabilities: bool,
 
@@ -70,6 +74,7 @@ impl Default for UISettings {
 
             displayed_ui_scale: 1.25,
             show_model_colors: true,
+            override_model_colors: false,
             model_color_override: None,
             show_token_probabilities: true,
             show_token_confidence: true,
@@ -216,24 +221,21 @@ impl UISettings {
         ui.checkbox(&mut self.show_model_colors, "Show model colors");
 
         if self.show_model_colors {
-            let mut override_model_colors = self.model_color_override.is_some();
-            if ui
-                .checkbox(&mut override_model_colors, "Override model colors")
-                .changed()
-            {
-                if override_model_colors {
-                    self.model_color_override = Some(ui.style().visuals.hyperlink_color);
-                } else {
-                    self.model_color_override = None;
-                }
-            };
+            ui.checkbox(&mut self.override_model_colors, "Override model colors");
 
-            if let Some(model_color_override) = &mut self.model_color_override {
-                ui.horizontal_wrapped(|ui| {
-                    let label = ui.label("Model color:").id;
-                    color_edit_button_srgba(ui, model_color_override, Alpha::Opaque)
-                        .labelled_by(label);
-                });
+            if self.override_model_colors {
+                if let Some(model_color_override) = &mut self.model_color_override {
+                    ui.horizontal_wrapped(|ui| {
+                        let label = ui.label("Model color:").id;
+                        color_edit_button_srgba(ui, model_color_override, Alpha::Opaque)
+                            .labelled_by(label);
+                        if ui.button("\u{E148}").on_hover_text("Reset color").clicked() {
+                            *model_color_override = ui.style().visuals.hyperlink_color;
+                        }
+                    });
+                } else {
+                    self.model_color_override = Some(ui.style().visuals.hyperlink_color);
+                }
             }
         }
 
