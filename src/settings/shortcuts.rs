@@ -35,6 +35,7 @@ pub struct KeyboardShortcuts {
     parameter_preset_9: Option<KeyboardShortcut>,
     parameter_preset_10: Option<KeyboardShortcut>,
     toggle_colors: Option<KeyboardShortcut>,
+    toggle_color_override: Option<KeyboardShortcut>,
     toggle_probabilities: Option<KeyboardShortcut>,
     toggle_automatic_scrolling: Option<KeyboardShortcut>,
 
@@ -111,6 +112,7 @@ impl Default for KeyboardShortcuts {
             parameter_preset_9: None,
             parameter_preset_10: None,
             toggle_colors: None,
+            toggle_color_override: None,
             toggle_probabilities: None,
             toggle_automatic_scrolling: Some(KeyboardShortcut {
                 modifiers: Modifiers::COMMAND,
@@ -340,6 +342,16 @@ impl KeyboardShortcuts {
                 .with_text("Toggle model colors")
                 .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
+        );
+
+        ui.add(
+            Keybind::new(
+                &mut self.toggle_color_override,
+                "keybind-toggle_color_override",
+            )
+            .with_text("Toggle model color override")
+            .with_reset(None)
+            .with_reset_key(Some(Key::Escape)),
         );
 
         ui.add(
@@ -587,6 +599,12 @@ impl KeyboardShortcuts {
                 flags |= Shortcuts::ToggleColors;
             }
 
+            if let Some(shortcut) = &self.toggle_color_override
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::ToggleColorOverride;
+            }
+
             if let Some(shortcut) = &self.toggle_probabilities
                 && consume_shortcut(input, shortcut)
             {
@@ -678,6 +696,7 @@ flags! {
         ParameterPreset9,
         ParameterPreset10,
         ToggleColors,
+        ToggleColorOverride,
         ToggleProbabilities,
         ToggleAutoScroll,
 

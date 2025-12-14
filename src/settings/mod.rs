@@ -1,7 +1,8 @@
 use std::{fmt::Display, path::PathBuf, time::Duration};
 
 use eframe::egui::{
-    Color32, ComboBox, Context, Frame, ScrollArea, Slider, SliderClamping, TextStyle, Ui, Visuals,
+    Color32, ComboBox, Context, Frame, ScrollArea, Slider, SliderClamping, Style, TextStyle, Ui,
+    Visuals,
     color_picker::{Alpha, color_edit_button_srgba},
 };
 use flagset::FlagSet;
@@ -373,9 +374,17 @@ impl Settings {
                     });
             });
     }
-    pub fn handle_shortcuts(&mut self, shortcuts: FlagSet<Shortcuts>) {
+    pub fn handle_shortcuts(&mut self, style: &Style, shortcuts: FlagSet<Shortcuts>) {
         if shortcuts.contains(Shortcuts::ToggleColors) {
             self.interface.show_model_colors = !self.interface.show_model_colors;
+        }
+
+        if shortcuts.contains(Shortcuts::ToggleColorOverride) {
+            self.interface.override_model_colors = !self.interface.override_model_colors;
+            if self.interface.override_model_colors && self.interface.model_color_override.is_none()
+            {
+                self.interface.model_color_override = Some(style.visuals.hyperlink_color);
+            }
         }
 
         if shortcuts.contains(Shortcuts::ToggleProbabilities) {
