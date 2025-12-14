@@ -162,7 +162,7 @@ Where `$OLD_TAPESTRY_OBSIDIAN_VAULT` is set to the location of the vault used by
 	- [ ] [exoloom](https://exoloom.io)
 	- [ ] [loom](https://github.com/socketteer/loom)
 	- [ ] [wool](https://github.com/lyramakesmusic/wool)
-	- [ ] Package migration assistant in releases
+	- [x] Package migration assistant in releases
 - [ ] Further canvas view improvements
 	- [ ] Add node collapsing (unlike tree, canvas should have all branches expanded by default)
 	- [ ] Add node creation button
