@@ -81,3 +81,6 @@ rust-sugiyama = "0.4.0"
 
 [profile.dev]
 opt-level = 3
+
+[profile.release]
+strip = "symbols"

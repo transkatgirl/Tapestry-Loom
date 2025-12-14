@@ -24,3 +24,6 @@ tokenizers = "0.22.2"
 log = { version = "0.4.29", features = [
 	"release_max_level_debug",
 ] }
+
+[profile.release]
+strip = "symbols"

@@ -150,6 +150,7 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 - [x] Tapestry Loom tokenization server
 - [x] Allow saving and switching between multiple inference presets
 	- [x] Add keyboard shortcuts for inference presets
+- [ ] Add ability to override model colors
 - [ ] Support for migrating weaves from other Loom implementations
 	- [ ] [loomsidian](https://github.com/cosmicoptima/loom)
 	- [ ] [exoloom](https://exoloom.io)
