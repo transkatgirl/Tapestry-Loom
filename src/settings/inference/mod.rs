@@ -68,14 +68,15 @@ impl ClientConfig {
         } else {
             RichText::new("Accept invalid TLS")
         };
-        ui.checkbox(&mut self.accept_invalid_tls, accept_invalid_tls_label);
+        ui.checkbox(&mut self.accept_invalid_tls, accept_invalid_tls_label)
+            .on_hover_text("Controls if TLS certificates are validated.\n\nYou should keep this setting disabled unless you know what you're doing, as accepting invalid certificates makes Man-In-The-Middle attacks trivial.");
         ui.add(
             Slider::new(&mut self.timeout_minutes, 1.0..=1440.0)
                 .logarithmic(true)
                 .clamping(SliderClamping::Never)
                 .text("Request timeout")
                 .suffix(" minutes"),
-        );
+        ).on_hover_text("The maximum length of time to wait for a HTTP request to finish. Requests exceeding this duration will be dropped.");
     }
     pub fn build(&self) -> Result<InferenceClient, anyhow::Error> {
         Ok(InferenceClient {

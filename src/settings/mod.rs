@@ -306,12 +306,17 @@ impl Default for DocumentSettings {
 
 impl DocumentSettings {
     fn render(&mut self, ui: &mut Ui) {
-        let location_label = ui.label("Root location:");
+        let location_hover_text = "Changes the path used by the built in file manager.\n\nFile paths in the UI are abbreviated to be relative to the root location whenever possible.";
+
+        let location_label = ui
+            .label("Root location:")
+            .on_hover_text(location_hover_text);
         let mut document_location = self.location.to_string_lossy().to_string();
 
         if ui
             .text_edit_singleline(&mut document_location)
             .labelled_by(location_label.id)
+            .on_hover_text(location_hover_text)
             .changed()
         {
             self.location = PathBuf::from(document_location);
@@ -326,6 +331,7 @@ impl DocumentSettings {
                     .suffix("s")
                     .text("Autosave interval"),
             )
+            .on_hover_text("Weaves are automatically saved at fixed intervals based on this setting.\n\nIn addition to the autosave interval, weaves will be automatically saved on application close.")
             .changed()
         {
             self.save_interval = Duration::from_secs_f32(save_interval);
