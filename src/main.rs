@@ -27,6 +27,7 @@ use tokio::runtime::Runtime;
 use crate::{
     editor::Editor,
     files::FileManager,
+    manual::Manual,
     settings::{
         Settings, UIFonts, UISettings,
         inference::{ClientConfig, InferenceClient},
@@ -36,6 +37,7 @@ use crate::{
 
 mod editor;
 mod files;
+mod manual;
 mod settings;
 
 #[global_allocator]
@@ -284,6 +286,7 @@ impl TapestryLoomApp {
             focus_queue: Vec::with_capacity(16),
             close_queue: Vec::with_capacity(16),
             settings,
+            manual: Manual::default(),
             client: Rc::new(RefCell::new(client)),
             toasts,
             runtime: Arc::new(
@@ -297,6 +300,7 @@ impl TapestryLoomApp {
             pressed_shortcuts: FlagSet::empty(),
             settings_visible: false,
             settings_last_visible: false,
+            open_manual: false,
         };
 
         let mut tiles = Tiles::default();
@@ -356,8 +360,30 @@ impl App for TapestryLoomApp {
                     focus_tile(&mut self.tree.tiles, tile);
                 }
 
-                if !self.behavior.new_editor_queue.is_empty() {
-                    let mut new_tiles = Vec::with_capacity(self.behavior.new_editor_queue.len());
+                if !self.behavior.new_editor_queue.is_empty() || self.behavior.open_manual {
+                    let mut new_tiles = Vec::with_capacity(
+                        self.behavior.new_editor_queue.len() + self.behavior.open_manual as usize,
+                    );
+
+                    if self.behavior.open_manual {
+                        self.behavior.open_manual = false;
+                        let manual_tile = self
+                            .tree
+                            .tiles
+                            .iter()
+                            .filter_map(|(id, tile)| match tile {
+                                Tile::Container(_) => None,
+                                Tile::Pane(pane) => Some((id, pane)),
+                            })
+                            .find(|(_, pane)| pane.is_manual())
+                            .map(|(id, _)| *id);
+
+                        if let Some(tile) = manual_tile {
+                            focus_tile(&mut self.tree.tiles, tile);
+                        } else {
+                            new_tiles.push(self.tree.tiles.insert_pane(Pane::Manual));
+                        }
+                    }
 
                     for (path, parent) in self.behavior.new_editor_queue.drain(..) {
                         if let Some(path) = &path
@@ -516,6 +542,7 @@ struct TapestryLoomBehavior {
     focus_queue: Vec<TileId>,
     close_queue: Vec<TileId>,
     file_manager: Rc<RefCell<FileManager>>,
+    manual: Manual,
     toasts: Rc<RefCell<Toasts>>,
     threadpool: Rc<ThreadPool>,
     runtime: Arc<Runtime>,
@@ -523,12 +550,23 @@ struct TapestryLoomBehavior {
     pressed_shortcuts: FlagSet<Shortcuts>,
     settings_visible: bool,
     settings_last_visible: bool,
+    open_manual: bool,
 }
 
 enum Pane {
     Settings,
     FileManager,
+    Manual,
     Editor(Box<Editor>),
+}
+
+impl Pane {
+    fn is_manual(&self) -> bool {
+        match self {
+            Self::Settings | Self::FileManager | Self::Editor(_) => false,
+            Self::Manual => true,
+        }
+    }
 }
 
 impl Behavior<Pane> for TapestryLoomBehavior {
@@ -536,6 +574,7 @@ impl Behavior<Pane> for TapestryLoomBehavior {
         match pane {
             Pane::Settings => WidgetText::Text("\u{E154} Settings".to_string()),
             Pane::FileManager => WidgetText::Text("\u{E33C} Files".to_string()),
+            Pane::Manual => WidgetText::Text("\u{E54B} Manual".to_string()),
             Pane::Editor(editor) => WidgetText::Text(editor.title.clone()),
         }
     }
@@ -543,7 +582,7 @@ impl Behavior<Pane> for TapestryLoomBehavior {
         match pane {
             Pane::Settings => {
                 self.settings_visible = true;
-                self.settings.borrow_mut().render(ui)
+                self.settings.borrow_mut().render(ui, &mut self.open_manual);
             }
             Pane::FileManager => {
                 for path in self
@@ -553,6 +592,9 @@ impl Behavior<Pane> for TapestryLoomBehavior {
                 {
                     self.new_editor_queue.push((Some(path), None));
                 }
+            }
+            Pane::Manual => {
+                self.manual.render(ui);
             }
             Pane::Editor(editor) => editor.render(
                 ui,
@@ -572,6 +614,7 @@ impl Behavior<Pane> for TapestryLoomBehavior {
                 Tile::Pane(pane) => match pane {
                     Pane::Settings => false,
                     Pane::FileManager => false,
+                    Pane::Manual => true,
                     Pane::Editor(_) => true,
                 },
             }
