@@ -44,6 +44,7 @@ Now that our inference parameters are correct, let's switch back to the \(Text\)
 
 Tapestry Loom is an implementation of a [Loom](https://generative.ink/posts/loom-interface-to-the-multiverse/), which is a multiversal tree-based interface. For those who have never used a Loom or a base model before, here's how they work:
 1. You start with a snippet of text that you would like the model to complete.
+	- Unlike "assistant" LLMs, base model LLMs are pure text predictors. You prompt them with text you'd like them to complete (such as "i wonder what a playground angel"), not queries (like "write a short story about the lives of the angels that linger around the playground").
 2. The model generates numerous possible completions, and you select the completion you prefer the most. If you don't like any of the completions, you can write something in yourself.
 3. This new completion is added to the document, and the cycle repeats, slowly building out a tree of possibilities.
 	- At any time, you can backtrack and explore a different part of the tree.
@@ -51,6 +52,8 @@ Tapestry Loom is an implementation of a [Loom](https://generative.ink/posts/loom
 In Tapestry Loom, these snippets are referred to as nodes. Nodes are referred to as having "parents" and "children", and can be active (part of the active text) or inactive (stored in the tree but not part of the active text).
 
 ### Using the Tree and \(Text\) Editor subviews
+
+
 
 ### Using the Bookmarks subview
 
