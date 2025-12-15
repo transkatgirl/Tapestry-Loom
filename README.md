@@ -2,6 +2,8 @@
 
 A power user focused interface for LLM base models, inspired by the designs of [loom](https://github.com/socketteer/loom), [loomsidian](https://github.com/cosmicoptima/loom), [exoloom](https://exoloom.io), [logitloom](https://github.com/vgel/logitloom), and [wool](https://github.com/lyramakesmusic/wool).
 
+<!-- Also known as Humanity's Last Loom. Built with love and passion, never "vibe coded". Every detail matters. -->
+
 > [!WARNING]
 > This is beta software. Most of it works, but there are plenty of undiscovered bugs and things will randomly break from time to time. Make backups.
 
@@ -158,7 +160,6 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 	- [ ] [loomsidian](https://github.com/cosmicoptima/loom)
 	- [ ] [exoloom](https://exoloom.io)
 	- [ ] [loom](https://github.com/socketteer/loom)
-	- [ ] [wool](https://github.com/lyramakesmusic/wool)
 	- [x] Package migration assistant in releases
 - [ ] Better documentation & onboarding
 	- [ ] Finish manual
@@ -216,6 +217,8 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 	- [ ] Show hovered child of active node in editor, similar to [exoloom](https://exoloom.io)
 	- [ ] Add ability to add custom labels to bookmarks/nodes
 	- [ ] Add ability to add custom attributes to nodes, rather than just bookmarks
+- [ ] Add support for more weave migrations
+	- [ ] [wool](https://github.com/lyramakesmusic/wool)
 - [ ] Include documentation within app
 	- [ ] Include tokenization server within app?
 - [ ] Weave statistical analysis tools

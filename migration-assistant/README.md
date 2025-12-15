@@ -3,7 +3,7 @@
 A tool for converting weaves from other Loom implementations into the Tapestry Loom weave format.
 
 Supported input formats:
-- Legacy Tapestry Loom Obsidian plugin
+- [Original Tapestry Loom](https://github.com/transkatgirl/Tapestry-Loom/tree/47561a4386ca9c0f09afb293d4e21eb4d7fe0c54)
 
 ## Getting Started
 
