@@ -137,6 +137,8 @@ impl Default for KeyboardShortcuts {
 
 impl KeyboardShortcuts {
     pub(super) fn render(&mut self, ui: &mut Ui) {
+        ui.label("Press escape to clear a keybind.");
+
         ui.add(
             Keybind::new(&mut self.generate_at_cursor, "keybind-generate_at_cursor")
                 .with_text("Generate completions at cursor")

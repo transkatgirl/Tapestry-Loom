@@ -131,6 +131,9 @@ impl InferenceSettings {
                 );
             }
         });
+        if self.models.is_empty() {
+            ui.label("Add your first model by filling out an inference template.");
+        }
 
         let mut move_up = None;
         let mut move_down = None;
@@ -205,12 +208,12 @@ impl InferenceSettings {
         }
 
         ui.separator();
-        ui.heading("Inference defaults");
+        ui.heading("Editor inference defaults");
 
         self.default_parameters.render_inner(&self.models, ui);
 
         ui.separator();
-        ui.heading("Inference presets");
+        ui.heading("Editor inference presets");
         ui.add_space(ui.spacing().icon_spacing);
 
         let mut move_up = None;
