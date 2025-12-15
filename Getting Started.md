@@ -16,7 +16,7 @@ Fill out the relevant fields in the template and then click "Add model" to add t
 
 Once the model has been added, you can modify it further. Adding a custom label and label color is usually a good idea.
 
-Finally, make sure that everything looks correct (and correct any errors that you find) before proceeding.
+Finally, make sure that everything in your model looks correct (and correct any errors that you find) before proceeding.
 
 ### Setting your model as default
 
@@ -178,5 +178,5 @@ Shared state can be accessed by multiple subviews, while local state is not shar
 ### Inference parameter configuration
 
 <!--
-Remember to bring up logprob nodees
+Remember to bring up logprob nodes
 -->
