@@ -106,7 +106,23 @@ Now that your weave has been saved, you can safely close the editor view.
 
 ## Managing weaves
 
-## Advanced editor usage
+The Files view displays the files and folders within Tapestry Loom's root location, and allows you to perform actions on them such as opening weaves, creating folders, moving/renaming files, and deleting files.
+
+Files and folders display buttons when they are hovered over, which allow you to perform actions like moving a file/folder or deleting it. You can click on folders to show their contents, and you can click on files ending in `.tapestry` to open them.
+
+In addition to this, the bottom right of the view provides buttons to create a file/folder within the root and to refresh the list of items displayed.
+
+Things to try:
+- Renaming your weave
+- Creating a folder and moving your weave inside of it
+- Reopening your weave
+- Creating nested folders
+	- Keep in mind that folders display additional hover buttons when they are opened
+- Creating blank weaves (using the buttons in the Files view)
+- Deleting a file
+- Deleting a folder
+
+## Advanced editor usage (WIP)
 
 In this section, we'll explore the power user features of Tapestry Loom.
 
