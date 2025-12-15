@@ -74,6 +74,8 @@ welcome to the world you never knew existed.
 so, how does it feel to step into the unknown?
 ```
 
+> A sample document containing this prompt can be found in [example-weaves/welcome.tapestry](./example-weaves/welcome.tapestry).
+
 After you have a node in the tree view, hover over it and click the speech bubble icon with a robot in it to generate some completions. If you're not satisfied with the completions you initially get, you can hover over the node he want to continue from and click the icon again to generate more completions.
 
 Once you have a completion that you like, click on it to activate it and then hover over it and click the completion button again. If you want to go back, click the node's parent in the tree to go up.
@@ -141,7 +143,7 @@ The subviews in the editor have three different types of state:
 - Local + temporary:
 	- Scroll position + Zoom (when applicable)
 		- When enabled, automatic scrolling can provide the illusion of this being shared
-	- *Mouse* pointer position
+	- *Mouse pointer* position
 	- Subview positioning
 		- Subviews can be repositioned and resized using the mouse cursor
 	- etc...
