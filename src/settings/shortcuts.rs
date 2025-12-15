@@ -341,7 +341,7 @@ impl KeyboardShortcuts {
 
         ui.add(
             Keybind::new(&mut self.toggle_colors, "keybind-toggle_colors")
-                .with_text("Toggle model colors")
+                .with_text("Toggle color coding")
                 .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
@@ -361,7 +361,7 @@ impl KeyboardShortcuts {
                 &mut self.toggle_probabilities,
                 "keybind-toggle_probabilities",
             )
-            .with_text("Toggle token probabilities")
+            .with_text("Toggle token shading")
             .with_reset(None)
             .with_reset_key(Some(Key::Escape)),
         );

@@ -235,7 +235,8 @@ impl InferenceSettings {
                         .labelled_by(textedit_label.id);
 
                     if let Some(label_color) = color {
-                        color_edit_button_srgba(ui, label_color, Alpha::Opaque);
+                        color_edit_button_srgba(ui, label_color, Alpha::Opaque)
+                            .on_hover_text("Label color");
                         if ui
                             .button("\u{E148}")
                             .on_hover_text("Remove label color")
@@ -370,7 +371,7 @@ impl InferenceModel {
                 .labelled_by(textedit_label.id);
 
             if let Some(color) = &mut self.color {
-                color_edit_button_srgba(ui, color, Alpha::Opaque);
+                color_edit_button_srgba(ui, color, Alpha::Opaque).on_hover_text("Label color");
                 if ui
                     .button("\u{E148}")
                     .on_hover_text("Remove label color")
