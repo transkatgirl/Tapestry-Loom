@@ -48,6 +48,10 @@ pub struct UISettings {
     pub list_separator_opacity: f32,
 
     pub max_tree_depth: usize,
+
+    #[serde(default)]
+    pub opened_by_default: bool,
+
     pub auto_scroll: bool,
     pub optimize_tree: bool,
 
@@ -79,6 +83,7 @@ impl Default for UISettings {
             minimum_token_opacity: 65.0,
             list_separator_opacity: 30.0,
             max_tree_depth: 10,
+            opened_by_default: false,
             auto_scroll: true,
             optimize_tree: false,
 
@@ -271,6 +276,10 @@ impl UISettings {
             Slider::new(&mut self.max_tree_depth, 3..=32)
                 .clamping(SliderClamping::Never)
                 .text("Maximum displayed tree list depth"),
+        );
+        ui.checkbox(
+            &mut self.opened_by_default,
+            "Open collapsing regions by default",
         );
         ui.checkbox(
             &mut self.auto_scroll,

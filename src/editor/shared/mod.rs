@@ -520,7 +520,10 @@ impl SharedState {
         }
     }
     pub fn is_open(&self, id: &Ulid) -> bool {
-        self.opened.get(id).copied().unwrap_or(true)
+        self.opened
+            .get(id)
+            .copied()
+            .unwrap_or(self.last_ui_settings.opened_by_default)
     }
     pub fn set_open(&mut self, id: Ulid, open: bool) {
         self.next_opened_updated = true;
