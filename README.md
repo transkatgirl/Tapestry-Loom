@@ -52,9 +52,7 @@ cargo build --release
 
 ## Usage
 
-<!-- See the [Tapestry Loom Manual](./Manual.md) for more information on how to use the application. -->
-
-A tutorial video for Tapestry Loom is coming soon.
+See [Getting Started](./Getting%20Started.md) for more information on how to use the application.
 
 The rest of this README covers the usage of external tools which Tapestry Loom can interface with.
 
