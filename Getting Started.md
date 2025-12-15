@@ -42,7 +42,8 @@ Now that our inference parameters are correct, let's switch back to the \(Text\)
 
 ### How a Loom works
 
-> Recommended reading: [Language models are multiverse generators](https://generative.ink/posts/language-models-are-multiverse-generators/), [a summary of Simulators](https://www.astralcodexten.com/p/janus-simulators)
+> Recommended reading: [A summary of Simulators](https://www.astralcodexten.com/p/janus-simulators), [Language models are multiverse generators](https://generative.ink/posts/language-models-are-multiverse-generators/)
+> See also: [Cyborgism wiki](https://cyborgism.wiki)
 
 Tapestry Loom is an implementation of a [Loom](https://generative.ink/posts/loom-interface-to-the-multiverse/), which is a multiversal tree-based interface. For those who have never used a Loom or a base model before, here's how they work:
 1. You start with a snippet of text that you would like the model to complete.
