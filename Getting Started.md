@@ -4,6 +4,8 @@ Tapestry Loom consists of three types of views: The file manager, (application-w
 
 Editors can either be temporary, or they can be backed by a file on disk (Tapestry Loom's document format has the file extension `.tapestry`). When an editor is backed by a file on disk, changes will be automatically saved to disk. This way, if the application crashes, only very recent changes will be lost.
 
+Note: If you'd like to test out Tapestry Loom's interface without configuring an inference provider, see the [example-weaves](./example-weaves/) folder for some sample documents.
+
 ## Adding a model in Settings
 
 Before we can begin using Tapestry Loom, we'll need to add our first model.
@@ -52,8 +54,6 @@ Tapestry Loom is an implementation of a [Loom](https://generative.ink/posts/loom
 In Tapestry Loom, these snippets are referred to as nodes. Nodes are referred to as having "parents" and "children", and can be active (part of the active text) or inactive (stored in the tree but not part of the active text).
 
 ### Using the Tree and \(Text\) Editor subviews
-
-
 
 ### Using the Bookmarks subview
 
