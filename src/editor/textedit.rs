@@ -126,7 +126,7 @@ impl TextEditorView {
     ) {
         if self.text.is_empty() {
             self.update_contents(weave, settings, ui.visuals().widgets.inactive.text_color());
-            ui.ctx().request_repaint();
+            //ui.ctx().request_repaint();
         }
 
         let snippets = self.snippets.clone();
@@ -223,7 +223,7 @@ impl TextEditorView {
                             );
                             self.last_text_edit_rect = textedit.response.rect;
                             self.should_update_rects = false;
-                            ui.ctx().request_repaint();
+                            //ui.ctx().request_repaint();
                         }
 
                         if textedit.response.changed() {
