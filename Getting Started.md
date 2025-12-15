@@ -96,9 +96,9 @@ In the Bookmarks subview, you can:
 
 At the moment, your weave is considered temporary; If you exited Tapestry Loom without saving it, the contents would be lost.
 
-In order to save your weave to disk, click on the "Save as..." button in the bottom left of the weave editor. This will open a dialog, where you can enter a name for your weave before saving it to disk.
+In order to save your weave to disk, click on the "Save as..." button in the bottom left of the weave editor. This will open a dialog where you can enter a name for your weave before saving it to disk.
 
-After your weave is saved to disk, bottom left will now display the path your weave is stored at. All paths in the UI are displayed as being relative to Tapestry Loom's root location (defaults to "~/Documents/Tapestry Loom", can be changed in Settings > Document > Root location).
+After your weave is saved to disk, the bottom left will now display the path your weave is stored at. All paths in the UI are displayed as being relative to Tapestry Loom's root location (defaults to "~/Documents/Tapestry Loom", can be changed in Settings > Document > Root location).
 
 Now that your weave has been saved, you can safely close the editor view.
 
