@@ -64,7 +64,7 @@ The Tree subview displays the nearby nodes in an interactive treelist. You can c
 
 Nodes in all of the subviews are color coded by the label color of the model that produced them (if any), and the tokens within generated nodes are shaded by their probabilities (higher probability tokens are more opaque).
 
-In order to start weaving, we'll need a node to continue from. So, let's write something in the text editor for the model to complete!
+In order to start weaving, we'll need a node to continue from. So, let's write something in the text editor for the model to complete.
 
 The possibilities are limitless, as base models were trained on such a large corpus of text that they can make a decent attempt at continuing pretty much anything you can think of. However, for those who find coming up with their first prompt intimidating, here's an example prompt:
 
@@ -84,7 +84,7 @@ Other things to try:
 - Try using the other buttons that appear when you hover over a node. You can hover over a button to see a tooltip explaining it does.
 - Try right clicking on a node to open it's context menu.
 - Try hovering over the *text* of a node in order to view the metadata that it contains.
-	- Try doing this in both subviews!
+	- Try doing this in both subviews.
 
 ### Using the Bookmarks subview
 
