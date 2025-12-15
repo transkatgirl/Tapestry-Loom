@@ -7,3 +7,12 @@ max_blocking = 64
 [default.limits]
 bytes = "4MiB"
 json  = "8MiB"
+
+# Tapestry Tokenize API endpoint reference:
+# POST	/<model>
+#	- Tokenizes the request body
+# GET	/<model>/tokenizer.json
+# POST	/<model>/tokenize
+#	- Tokenizes the request body
+# POST	/<model>/detokenize
+#	- Detokenizes a list of tokens specified as JSON in the request body
