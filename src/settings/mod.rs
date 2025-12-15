@@ -333,7 +333,7 @@ impl DocumentSettings {
 }
 
 impl Settings {
-    pub fn render(&mut self, ui: &mut Ui, open_manual: &mut bool) {
+    pub fn render(&mut self, ui: &mut Ui) {
         ScrollArea::both()
             .auto_shrink(false)
             .animated(false)
@@ -341,9 +341,6 @@ impl Settings {
                 Frame::new()
                     .outer_margin(ui.style().spacing.menu_margin)
                     .show(ui, |ui| {
-                        if ui.button("Open user manual").clicked() {
-                            *open_manual = true;
-                        }
                         ui.heading("Interface");
                         self.interface.render(ui);
                         ui.separator();
