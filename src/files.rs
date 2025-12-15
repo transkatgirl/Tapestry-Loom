@@ -159,6 +159,15 @@ impl FileManager {
 
         let items = self.item_list.clone();
 
+        if items.is_empty() {
+            Frame::new()
+                .outer_margin(listing_margin(ui))
+                .show(ui, |ui| {
+                    ui.disable();
+                    ui.label("No files found");
+                });
+        }
+
         let text_style = TextStyle::Monospace;
         let row_height = ui.spacing().interact_size.y;
         let ch = ui.fonts_mut(|f| f.glyph_width(&text_style.resolve(ui.style()), ' '));
