@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{
+        Weave,
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
@@ -86,46 +87,55 @@ fn convert_weave(input: String, created: DateTime<Local>) -> anyhow::Result<Vec<
 
     for node in input_nodes {
         if let Some(node) = input.nodes.get(&node).cloned() {
-            output.add_node(DependentNode {
-                id: node.identifier.0,
-                from: node.parentNode.map(|id| id.0),
-                to: IndexSet::default(),
-                active: input.currentNode == Some(node.identifier),
-                bookmarked: input.bookmarks.contains(&node.identifier),
-                contents: NodeContent {
-                    content: match node.content {
-                        LegacyNodeContent::Snippet(snippet) => {
-                            InnerNodeContent::Snippet(snippet.into_bytes())
-                        }
-                        LegacyNodeContent::Tokens(tokens) => InnerNodeContent::Tokens(
-                            tokens
-                                .into_iter()
-                                .map(|(probability, token)| {
-                                    (
-                                        token.into_bytes(),
-                                        IndexMap::from([(
-                                            "probability".to_string(),
-                                            probability.to_string(),
-                                        )]),
-                                    )
-                                })
-                                .collect(),
-                        ),
-                    },
-                    metadata: node.parameters.unwrap_or_default(),
-                    model: node
-                        .model
-                        .and_then(|id| input.models.get(&id).cloned())
-                        .map(|model| Model {
-                            label: model.label,
-                            metadata: if let Some(color) = model.color {
-                                IndexMap::from([("color".to_string(), color)])
-                            } else {
-                                IndexMap::default()
-                            },
+            assert!(
+                output.add_node(DependentNode {
+                    id: node.identifier.0,
+                    from: node
+                        .parentNode
+                        .and_then(|id| if output.weave.contains(&id.0) {
+                            Some(id.0)
+                        } else {
+                            eprintln!("Warning: Node {} has missing parents", node.identifier);
+                            None
                         }),
-                },
-            });
+                    to: IndexSet::default(),
+                    active: input.currentNode == Some(node.identifier),
+                    bookmarked: input.bookmarks.contains(&node.identifier),
+                    contents: NodeContent {
+                        content: match node.content {
+                            LegacyNodeContent::Snippet(snippet) => {
+                                InnerNodeContent::Snippet(snippet.into_bytes())
+                            }
+                            LegacyNodeContent::Tokens(tokens) => InnerNodeContent::Tokens(
+                                tokens
+                                    .into_iter()
+                                    .map(|(probability, token)| {
+                                        (
+                                            token.into_bytes(),
+                                            IndexMap::from([(
+                                                "probability".to_string(),
+                                                probability.to_string(),
+                                            )]),
+                                        )
+                                    })
+                                    .collect(),
+                            ),
+                        },
+                        metadata: node.parameters.unwrap_or_default(),
+                        model: node
+                            .model
+                            .and_then(|id| input.models.get(&id).cloned())
+                            .map(|model| Model {
+                                label: model.label,
+                                metadata: if let Some(color) = model.color {
+                                    IndexMap::from([("color".to_string(), color)])
+                                } else {
+                                    IndexMap::default()
+                                },
+                            }),
+                    },
+                })
+            );
         }
     }
 
