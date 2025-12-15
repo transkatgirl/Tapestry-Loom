@@ -562,7 +562,7 @@ impl EditorTilingBehavior {
             let settings = self.settings.borrow();
             let mut toasts = self.toasts.borrow_mut();
             self.shared_state
-                .update(weave, &settings, &mut toasts, self.shortcuts);
+                .update(ui.ctx(), weave, &settings, &mut toasts, self.shortcuts);
             self.canvas_view.update(
                 weave,
                 &settings,

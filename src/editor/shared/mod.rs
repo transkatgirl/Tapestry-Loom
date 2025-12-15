@@ -2,7 +2,7 @@ use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc, sync::Arc, t
 
 use chrono::{DateTime, offset};
 use eframe::egui::{
-    Color32, Rgba, RichText, TextFormat, TextStyle, Ui,
+    Color32, Context, Rgba, RichText, TextFormat, TextStyle, Ui,
     text::{LayoutJob, LayoutSection},
 };
 use egui_notify::Toasts;
@@ -122,6 +122,7 @@ impl SharedState {
     }*/
     pub fn update(
         &mut self,
+        ctx: &Context,
         weave: &mut WeaveWrapper,
         settings: &Settings,
         toasts: &mut Toasts,
@@ -457,6 +458,15 @@ impl SharedState {
 
         self.has_weave_layout_changed = weave.has_layout_changed();
         self.has_weave_changed = weave.has_changed();
+
+        if self.has_weave_changed
+            || self.has_weave_layout_changed
+            || self.has_cursor_node_changed
+            || self.has_hover_node_changed
+            || self.has_theme_changed
+        {
+            ctx.request_repaint();
+        }
     }
     pub fn get_cursor_node(&self) -> NodeIndex {
         self.last_cursor_node

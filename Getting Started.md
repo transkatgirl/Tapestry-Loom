@@ -18,11 +18,31 @@ Finally, make sure that everything looks correct (and correct any errors that yo
 
 ### Setting your model as default
 
-TODO
+Scroll down in the Settings view until you find the "Editor inference defaults" section. This setting allows you to change the default inference parameters used in new editors.
+
+You can add your model to the inference parameters by clicking the "Choose model..." dropdown and selecting the model you added earlier. Once the model has been added, adjust the inference parameters based on your personal preferences.
 
 ## Editor basics
 
 Documents in Tapestry Loom are called weaves. In this section, we'll use the model we added earlier to write our first weave and then save it to disk.
+
+### Adjusting inference parameters
+
+Before we start on our weave, let's make sure our inference parameters are correct.
+
+The weave editor is split into multiple subviews, with inference parameters being located in the Menu subview.
+
+Once the Menu subview is open, review the inference parameters being used and adjust them based on your personal preferences. Keep in mind that you can use multiple models for inference at the same time, but you need to make sure that you have at least one model selected.
+
+Keep in mind that this subview's state is not persistent; Every time you open a weave, these parameters will initially be set to the defaults specified in settings.
+
+Now that our inference parameters are correct, let's switch back to the \(Text\) Editor subview.
+
+### Using the Tree and \(Text\) Editor subviews
+
+Tapestry Loom is an implementation of a [Loom](https://generative.ink/posts/loom-interface-to-the-multiverse/), which is a multiversal tree-based interface.
+
+### Saving your weave to disk
 
 ## Managing weaves
 
@@ -32,7 +52,8 @@ In this section, we'll explore the power user features of Tapestry Loom.
 
 <!--
 Stuff to bring up:
-- Alternate views
+- Alternate subviews
+- Reorganizing subviews
 - Cursors and hovered nodes
 - Automatic scrolling
 - Keyboard shortcuts
