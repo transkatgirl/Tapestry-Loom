@@ -359,7 +359,7 @@ fn render_node(
         }
 
         response.context_menu(|ui| {
-            render_node_context_menu(ui, settings, state, weave, &node);
+            render_node_context_menu(ui, settings, state, weave, &node, false);
         });
 
         if response.contains_pointer() {

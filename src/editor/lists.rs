@@ -133,7 +133,7 @@ impl ListView {
                         render_horizontal_node_label_buttons_rtl(ui, settings, state, weave, node);
                     },
                     |ui, settings, state, weave, node| {
-                        render_node_context_menu(ui, settings, state, weave, node);
+                        render_node_context_menu(ui, settings, state, weave, node, false);
                     },
                     true,
                 );
@@ -253,7 +253,7 @@ impl BookmarkListView {
                         };
                     },
                     |ui, settings, state, weave, node| {
-                        render_node_context_menu(ui, settings, state, weave, node);
+                        render_node_context_menu(ui, settings, state, weave, node, false);
                     },
                     false,
                 );
@@ -555,9 +555,7 @@ fn render_node_tree_row(
                     weave,
                     &node,
                     |ui, settings, state, weave, node| {
-                        render_horizontal_node_tree_label_buttons_rtl(
-                            ui, settings, state, weave, node,
-                        );
+                        render_horizontal_node_label_buttons_rtl(ui, settings, state, weave, node);
                         if is_display_root
                             && let Some(parent) = node.from
                             && ui
@@ -569,7 +567,7 @@ fn render_node_tree_row(
                         };
                     },
                     |ui, settings, state, weave, node| {
-                        render_node_tree_context_menu(ui, settings, state, weave, node);
+                        render_node_context_menu(ui, settings, state, weave, node, true);
                     },
                     true,
                 );
@@ -660,6 +658,8 @@ pub fn render_horizontal_node_label_buttons_ltr(
             weave.set_node_active_status_u128(&node.id, true);
             state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
         }
+
+        state.set_open(Ulid(node.id), true);
     };
     if ui
         .button("\u{E40C}")
@@ -684,9 +684,12 @@ pub fn render_horizontal_node_label_buttons_ltr(
                 metadata: IndexMap::new(),
                 model: None,
             },
-        }) && active
-        {
-            state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
+        }) {
+            if active {
+                state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
+            } else {
+                state.set_open(Ulid(node.id), true);
+            }
         }
     };
     let bookmark_label = if node.bookmarked {
@@ -712,89 +715,6 @@ pub fn render_horizontal_node_label_buttons_ltr(
 }
 
 pub fn render_horizontal_node_label_buttons_rtl(
-    ui: &mut Ui,
-    settings: &Settings,
-    state: &mut SharedState,
-    weave: &mut WeaveWrapper,
-    node: &DependentNode<NodeContent>,
-) {
-    let is_shift_pressed = ui.input(|input| input.modifiers.shift);
-
-    if ui.button("\u{E28F}").on_hover_text("Delete node").clicked() {
-        weave.remove_node(&Ulid(node.id));
-    };
-    let bookmark_label = if node.bookmarked {
-        "\u{E23C}"
-    } else {
-        "\u{E23d}"
-    };
-    let bookmark_hover_text = if node.bookmarked {
-        "Remove bookmark"
-    } else {
-        "Bookmark node"
-    };
-    if ui
-        .button(bookmark_label)
-        .on_hover_text(bookmark_hover_text)
-        .clicked()
-    {
-        weave.set_node_bookmarked_status_u128(&node.id, !node.bookmarked);
-    };
-    if ui
-        .button("\u{E40C}")
-        .on_hover_text(if !is_shift_pressed {
-            "Add node"
-        } else {
-            "Add focused node"
-        })
-        .clicked()
-    {
-        let identifier = Ulid::new().0;
-        let active = if is_shift_pressed { true } else { node.active };
-
-        if weave.add_node(DependentNode {
-            id: identifier,
-            from: Some(node.id),
-            to: IndexSet::default(),
-            active,
-            bookmarked: false,
-            contents: NodeContent {
-                content: InnerNodeContent::Snippet(vec![]),
-                metadata: IndexMap::new(),
-                model: None,
-            },
-        }) && active
-        {
-            state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
-        }
-    };
-    if ui
-        .button("\u{E5CE}")
-        .on_hover_text(if !is_shift_pressed {
-            "Generate completions"
-        } else {
-            "Generate completions & focus node"
-        })
-        .clicked()
-    {
-        state.generate_children(weave, Some(Ulid(node.id)), settings);
-
-        if is_shift_pressed {
-            weave.set_node_active_status_u128(&node.id, true);
-            state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
-        }
-    };
-    if weave.is_mergeable_with_parent(&Ulid(node.id))
-        && ui
-            .button("\u{E43F}")
-            .on_hover_text("Merge node with parent")
-            .clicked()
-    {
-        weave.merge_with_parent(&Ulid(node.id));
-    };
-}
-
-fn render_horizontal_node_tree_label_buttons_rtl(
     ui: &mut Ui,
     settings: &Settings,
     state: &mut SharedState,
@@ -1203,137 +1123,7 @@ pub fn render_node_context_menu(
     state: &mut SharedState,
     weave: &mut WeaveWrapper,
     node: &DependentNode<NodeContent>,
-) {
-    let is_shift_pressed = ui.input(|input| input.modifiers.shift);
-
-    if ui.button("Generate completions").clicked() {
-        state.generate_children(weave, Some(Ulid(node.id)), settings);
-
-        if is_shift_pressed {
-            weave.set_node_active_status_u128(&node.id, true);
-            state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
-        }
-    }
-
-    let bookmark_label = if node.bookmarked {
-        "Remove bookmark"
-    } else {
-        "Bookmark"
-    };
-    if ui.button(bookmark_label).clicked() {
-        weave.set_node_bookmarked_status_u128(&node.id, !node.bookmarked);
-    }
-
-    ui.separator();
-
-    if ui
-        .button(if !is_shift_pressed {
-            "Create child"
-        } else {
-            "Create focused child"
-        })
-        .clicked()
-    {
-        let identifier = Ulid::new().0;
-        let active = if is_shift_pressed { true } else { node.active };
-
-        if weave.add_node(DependentNode {
-            id: identifier,
-            from: Some(node.id),
-            to: IndexSet::default(),
-            active,
-            bookmarked: false,
-            contents: NodeContent {
-                content: InnerNodeContent::Snippet(vec![]),
-                metadata: IndexMap::new(),
-                model: None,
-            },
-        }) && active
-        {
-            state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
-        }
-    }
-
-    if ui
-        .button(if !is_shift_pressed {
-            "Create sibling"
-        } else {
-            "Create focused sibling"
-        })
-        .clicked()
-    {
-        let identifier = Ulid::new().0;
-        let active = if is_shift_pressed { true } else { node.active };
-
-        if weave.add_node(DependentNode {
-            id: identifier,
-            from: node.from,
-            to: IndexSet::default(),
-            active,
-            bookmarked: false,
-            contents: NodeContent {
-                content: InnerNodeContent::Snippet(vec![]),
-                metadata: IndexMap::new(),
-                model: None,
-            },
-        }) && active
-        {
-            state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
-        }
-    }
-
-    ui.separator();
-
-    if !node.to.is_empty() && ui.button("Delete all children").clicked() {
-        for child in node.to.iter().copied() {
-            weave.remove_node(&Ulid(child));
-        }
-    }
-
-    if ui.button("Delete all siblings").clicked() {
-        let siblings: Vec<Ulid> =
-            if let Some(parent) = node.from.and_then(|id| weave.get_node(&Ulid(id))) {
-                parent
-                    .to
-                    .iter()
-                    .copied()
-                    .filter(|id| *id != node.id)
-                    .map(Ulid)
-                    .collect()
-            } else {
-                weave
-                    .get_roots_u128()
-                    .filter(|id| *id != node.id)
-                    .map(Ulid)
-                    .collect()
-            };
-
-        for sibling in siblings {
-            weave.remove_node(&sibling);
-        }
-    }
-
-    if node.from.is_some()
-        && weave.is_mergeable_with_parent(&Ulid(node.id))
-        && ui.button("Merge with parent").clicked()
-    {
-        ui.separator();
-        weave.merge_with_parent(&Ulid(node.id));
-    }
-
-    ui.separator();
-
-    if ui.button("Delete").clicked() {
-        weave.remove_node(&Ulid(node.id));
-    }
-}
-
-fn render_node_tree_context_menu(
-    ui: &mut Ui,
-    settings: &Settings,
-    state: &mut SharedState,
-    weave: &mut WeaveWrapper,
-    node: &DependentNode<NodeContent>,
+    collapsing: bool,
 ) {
     let is_shift_pressed = ui.input(|input| input.modifiers.shift);
 
@@ -1421,19 +1211,21 @@ fn render_node_tree_context_menu(
     ui.separator();
 
     if !node.to.is_empty() {
-        if ui.button("Collapse all children").clicked() {
-            for child in node.to.iter().copied() {
-                state.set_open(Ulid(child), false);
+        if collapsing {
+            if ui.button("Collapse all children").clicked() {
+                for child in node.to.iter().copied() {
+                    state.set_open(Ulid(child), false);
+                }
             }
-        }
 
-        if ui.button("Expand all children").clicked() {
-            for child in node.to.iter().copied() {
-                state.set_open(Ulid(child), true);
+            if ui.button("Expand all children").clicked() {
+                for child in node.to.iter().copied() {
+                    state.set_open(Ulid(child), true);
+                }
             }
-        }
 
-        ui.separator();
+            ui.separator();
+        }
 
         if ui.button("Delete all children").clicked() {
             for child in node.to.iter().copied() {

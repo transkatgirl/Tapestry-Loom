@@ -336,7 +336,7 @@ fn render_context_menu(
     state: &mut SharedState,
 ) {
     if let Some(node) = weave.get_node(node).cloned() {
-        render_node_context_menu(ui, settings, state, weave, &node);
+        render_node_context_menu(ui, settings, state, weave, &node, false);
     }
 }
 
