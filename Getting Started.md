@@ -126,15 +126,58 @@ Things to try:
 
 In this section, we'll explore the power user features of Tapestry Loom.
 
+### Subview state
+
+The subviews in the editor have three different types of state:
+- Shared + persistent:
+	- Node contents, relationships, identifiers, active/bookmarked statuses, metadata
+	- Weave metadata
+- Shared + temporary:
+	- Hovered position
+	- "Cursor" position
+	- Current inference parameters
+- Local + temporary:
+	- Scroll position + Zoom (when applicable)
+		- When enabled, automatic scrolling can provide the illusion of this being shared
+	- Collapsed/expanded nodes (*will soon be shared + temporary*)
+	- *Mouse* pointer position
+	- Subview positioning
+		- Subviews can be repositioned and resized using the mouse cursor
+	- etc...
+
+Persistent state is stored in the weave, while temporary state is stored in the editor view and is lost when the editor is closed.
+
+Shared state can be accessed by multiple subviews, while local state is not shared between subviews.
+
+### Subview descriptions
+
+- Canvas
+	- Content graph of all nodes within the weave
+	- <!-- TODO: Content graph of all expanded nodes within the weave -->
+- Graph
+	- Graph of all nodes within the weave
+- Tree
+	- Treelist of nodes nearby the cursor node
+- List
+	- List of nodes which are children of the cursor node
+- Bookmarks
+	- List of all bookmarked nodes in the weave
+- Editor
+	- Editor of active text within the document
+	- Currently the only view which allows the user to change the cursor position without changing the active nodes
+- Menu
+	- Inference parameters editor
+- Info
+	- Weave metadata editor
+
+### Keyboard shortcuts
+
+### Menu shift-click
+
+### Node metadata
+
+### Inference parameter configuration
+
 <!--
-Stuff to bring up:
-- Alternate subviews
-- Reorganizing subviews
-- Cursors and hovered nodes
-- Automatic scrolling
-- Keyboard shortcuts
-- Shift-click and context menus
-- Hover information
-- Menu and metadata
-	- Logprob nodees
+Remember to bring up logprob nodees
 -->
