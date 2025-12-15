@@ -136,11 +136,11 @@ The subviews in the editor have three different types of state:
 - Shared + temporary:
 	- Hovered position
 	- "Cursor" position
+	- Collapsed/expanded nodes
 	- Current inference parameters
 - Local + temporary:
 	- Scroll position + Zoom (when applicable)
 		- When enabled, automatic scrolling can provide the illusion of this being shared
-	- Collapsed/expanded nodes (*will soon be shared + temporary*)
 	- *Mouse* pointer position
 	- Subview positioning
 		- Subviews can be repositioned and resized using the mouse cursor
