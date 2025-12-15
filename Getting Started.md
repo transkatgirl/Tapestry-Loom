@@ -68,7 +68,9 @@ In order to start weaving, we'll need a node to continue from. So, let's write s
 The possibilities are limitless, as base models were trained on such a large corpus of text that they can make a decent attempt at continuing pretty much anything you can think of. However, for those who find coming up with their first prompt intimidating, here's an example prompt:
 
 ```
-i'm lost and i don't want to be found.
+welcome to the world you never knew existed.
+
+so, how does it feel to step into the unknown?
 ```
 
 After you have a node in the tree view, hover over it and click the speech bubble icon with a robot in it to generate some completions. If you're not satisfied with the completions you initially get, you can hover over the node he want to continue from and click the icon again to generate more completions.
