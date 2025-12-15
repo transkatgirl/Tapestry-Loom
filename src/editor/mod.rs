@@ -334,7 +334,7 @@ impl Editor {
                                         });
                                     };
                                 });
-                        } else if ui.button("Save As...").clicked() {
+                        } else if ui.button("Save as...").clicked() {
                             self.show_modal = true;
                         }
                     });
