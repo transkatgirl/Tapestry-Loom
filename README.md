@@ -188,6 +188,7 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
+- [ ] Add sub-title of "Humanity's Last Loom"
 - [ ] Further UI improvements
 	- [ ] Better handle valid UTF-8 character split across multiple nodes
 	- [ ] Improve graph/canvas layout algorithm
