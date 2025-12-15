@@ -7,6 +7,7 @@ use tokenizers::Tokenizer;
 
 #[derive(Serialize, Deserialize, Default)]
 struct ModelConfig {
+    #[serde(default)]
     models: Vec<Model>,
 }
 
@@ -30,6 +31,10 @@ async fn main() -> Result<(), anyhow::Error> {
 
     if !fs::exists("Rocket.toml")? {
         fs::write("Rocket.toml", include_bytes!("default-rocket.toml"))?;
+    }
+
+    if !fs::exists("models.toml")? {
+        fs::write("models.toml", include_bytes!("default-models.toml"))?;
     }
 
     let model_config: ModelConfig = toml::from_slice(&fs::read("models.toml")?)?;

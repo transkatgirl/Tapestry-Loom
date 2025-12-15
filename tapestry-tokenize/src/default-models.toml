@@ -1,0 +1,5 @@
+# Specify tokenizers for models here!
+
+#[[models]] # Add a [[models]] block for every model you want to specify
+#label = "test" # The label for the model, used in API requests
+#file  = "./models/test/tokenizer.json" # The path to the model's tokenizer.json file.
