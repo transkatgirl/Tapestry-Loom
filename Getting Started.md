@@ -53,9 +53,44 @@ Tapestry Loom is an implementation of a [Loom](https://generative.ink/posts/loom
 
 In Tapestry Loom, these snippets are referred to as nodes. Nodes are referred to as having "parents" and "children", and can be active (part of the active text) or inactive (stored in the tree but not part of the active text).
 
-### Using the Tree and \(Text\) Editor subviews
+### Using the Tree and \(Text\) Editor
+
+The weave editor has many different subviews for visualizing the tree in different ways. In this section, we'll learn to use the Tree and \(Text\) Editor subviews.
+
+The Editor subview allows you to edit the active text of the document. It is automatically updated as the active nodes change, and any changes made in this subview are automatically applied to the tree.
+
+The Tree subview displays the nearby nodes in an interactive treelist. You can click on a node to activate it and you can hover over the node to perform common actions at that point (such as generating more nodes, creating a blank child node, and bookmarking or deleting the hovered node).
+
+Nodes in all of the subviews are color coded by the label color of the model that produced them (if any), and the tokens within generated nodes are shaded by their probabilities (higher probability tokens are more opaque).
+
+In order to start weaving, we'll need a node to continue from. So, let's write something in the text editor for the model to complete!
+
+The possibilities are limitless, as base models were trained on such a large corpus of text that they can make a decent attempt at continuing pretty much anything you can think of. However, for those who find coming up with their first prompt intimidating, here's an example prompt:
+
+```
+i'm lost and i don't want to be found.
+```
+
+After you have a node in the tree view, hover over it and click the speech bubble icon with a robot in it to generate some completions. If you're not satisfied with the completions you initially get, you can hover over the node he want to continue from and click the icon again to generate more completions.
+
+Once you have a completion that you like, click on it to activate it and then hover over it and click the completion button again. If you want to go back, click the node's parent in the tree to go up.
+
+Other things to try:
+- Try using the other buttons that appear when you hover over a node. You can hover over a button to see a tooltip explaining it does.
+- Try right clicking on a node to open it's context menu.
+- Try hovering over the *text* of a node in order to view the metadata that it contains.
+	- Try doing this in both subviews!
 
 ### Using the Bookmarks subview
+
+When hovering over a node in the tree view, you can bookmark it by clicking the button with a bookmark icon. This node will appear as bookmarked in the tree, and you can repeat the steps taken to bookmark it to remove the bookmark.
+
+Bookmarks are useful for quickly navigating to specific nodes in the weave. The Bookmarks subview contains a list of all bookmarks within your weave, in the order that they were added to the bookmarks list.
+
+In the Bookmarks subview, you can:
+- Click on a bookmark to activate the bookmarked node
+- Right click on a bookmarked node to open it's context menu
+- Remove a bookmark from the list by hovering over the node you'd like to remove and then clicking on the bookmark icon with a minus within it
 
 ### Saving your weave to disk
 
