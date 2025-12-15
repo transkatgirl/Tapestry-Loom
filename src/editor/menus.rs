@@ -90,38 +90,32 @@ impl MenuView {
             } else {
                 format!("{} active", self.active_node_count)
             };
-            let label = if settings.interface.show_bookmark_count {
-                let bookmarked_node_count_label = if bookmarked_node_count >= 100_000_000 {
-                    format!(
-                        "{:.0}M bookmarked",
-                        bookmarked_node_count as f32 / 1_000_000.0
-                    )
-                } else if bookmarked_node_count >= 1_000_000 {
-                    format!(
-                        "{:.1}M bookmarked",
-                        bookmarked_node_count as f32 / 1_000_000.0
-                    )
-                } else if bookmarked_node_count >= 100_000 {
-                    format!("{:.0}k bookmarked", bookmarked_node_count as f32 / 1_000.0)
-                } else if bookmarked_node_count >= 1_000 {
-                    format!("{:.1}k bookmarked", bookmarked_node_count as f32 / 1_000.0)
-                } else if bookmarked_node_count == 1 {
-                    "1 bookmarked".to_string()
-                } else {
-                    format!("{} bookmarked", bookmarked_node_count)
-                };
-                ui.label(
-                    if bookmarked_node_count > 0 {
-                        format!(
-                            "{node_count_label}, {active_node_count_label}, {bookmarked_node_count_label}"
-                        )
-                    } else {
-                        format!("{node_count_label}, {active_node_count_label}")
-                    }
+            let bookmarked_node_count_label = if bookmarked_node_count >= 100_000_000 {
+                format!(
+                    "{:.0}M bookmarked",
+                    bookmarked_node_count as f32 / 1_000_000.0
+                )
+            } else if bookmarked_node_count >= 1_000_000 {
+                format!(
+                    "{:.1}M bookmarked",
+                    bookmarked_node_count as f32 / 1_000_000.0
+                )
+            } else if bookmarked_node_count >= 100_000 {
+                format!("{:.0}k bookmarked", bookmarked_node_count as f32 / 1_000.0)
+            } else if bookmarked_node_count >= 1_000 {
+                format!("{:.1}k bookmarked", bookmarked_node_count as f32 / 1_000.0)
+            } else if bookmarked_node_count == 1 {
+                "1 bookmarked".to_string()
+            } else {
+                format!("{} bookmarked", bookmarked_node_count)
+            };
+            let label = ui.label(if bookmarked_node_count > 0 {
+                format!(
+                    "{node_count_label}, {active_node_count_label}, {bookmarked_node_count_label}"
                 )
             } else {
-                ui.label(format!("{node_count_label}, {active_node_count_label}"))
-            };
+                format!("{node_count_label}, {active_node_count_label}")
+            });
 
             if file_size > 0 {
                 label.on_hover_ui(|ui| {

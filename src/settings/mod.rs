@@ -51,9 +51,6 @@ pub struct UISettings {
     pub auto_scroll: bool,
     pub optimize_tree: bool,
 
-    #[serde(default)]
-    pub show_bookmark_count: bool,
-
     #[serde(skip)]
     fonts_changed: bool,
 }
@@ -84,8 +81,6 @@ impl Default for UISettings {
             max_tree_depth: 10,
             auto_scroll: true,
             optimize_tree: false,
-
-            show_bookmark_count: true,
 
             fonts_changed: false,
         }
@@ -164,14 +159,18 @@ impl UISettings {
                     UITheme::SolarizedLight,
                     UITheme::SolarizedLight.to_string(),
                 );
-            });
-        let ui_slider = ui.add(
-            Slider::new(&mut self.displayed_ui_scale, 0.5..=4.0)
-                .logarithmic(true)
-                .clamping(SliderClamping::Never)
-                .text("Scale")
-                .suffix("x"),
-        );
+            })
+            .response
+            .on_hover_text("Changes the application-wide UI theme.");
+        let ui_slider = ui
+            .add(
+                Slider::new(&mut self.displayed_ui_scale, 0.5..=4.0)
+                    .logarithmic(true)
+                    .clamping(SliderClamping::Never)
+                    .text("Scale")
+                    .suffix("x"),
+            )
+            .on_hover_text("Changes the application-wide UI scale.");
         if !(ui_slider.has_focus() || ui_slider.contains_pointer()) {
             self.ui_scale = self.displayed_ui_scale;
         }
@@ -208,7 +207,7 @@ impl UISettings {
                 {
                     self.fonts_changed = true;
                 };
-            });
+            }).response.on_hover_text("Tapestry Loom has multiple built-in fonts in order to display the widest range of unicode characters possible. However, some of these fonts may be considered less visually appealing.\n\nThis setting allows you to change the primary fonts used when rendering the UI and weave text. If a character is not present in the primary font, the built-in fonts are is used as a fallback.");
 
         if self.fonts_changed {
             ui.colored_label(
@@ -219,10 +218,16 @@ impl UISettings {
 
         ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
 
-        ui.checkbox(&mut self.show_model_colors, "Show model colors");
+        ui.checkbox(
+            &mut self.show_model_colors,
+            "Color code editor using model label colors",
+        );
 
         if self.show_model_colors {
-            ui.checkbox(&mut self.override_model_colors, "Override model colors");
+            ui.checkbox(
+                &mut self.override_model_colors,
+                "Override model color coding",
+            );
 
             if self.override_model_colors {
                 if let Some(model_color_override) = &mut self.model_color_override {
@@ -242,12 +247,12 @@ impl UISettings {
 
         ui.checkbox(
             &mut self.show_token_probabilities,
-            "Show token probabilities",
+            "Shade tokens by probability",
         );
         if self.show_token_probabilities {
             ui.checkbox(
                 &mut self.show_token_confidence,
-                "Use token confidence in color coding",
+                "Use token confidence when determining shading",
             );
         }
         if self.show_token_probabilities {
@@ -260,12 +265,12 @@ impl UISettings {
         ui.add(
             Slider::new(&mut self.list_separator_opacity, 0.0..=100.0)
                 .suffix("%")
-                .text("List separator opacity"),
+                .text("List item separator opacity"),
         );
         ui.add(
             Slider::new(&mut self.max_tree_depth, 3..=32)
                 .clamping(SliderClamping::Never)
-                .text("Maximum tree list depth"),
+                .text("Maximum displayed tree list depth"),
         );
         ui.checkbox(
             &mut self.auto_scroll,
@@ -274,13 +279,9 @@ impl UISettings {
         if !self.auto_scroll {
             ui.checkbox(
                 &mut self.optimize_tree,
-                "Perform additional tree rendering optimizations",
+                "Perform additional tree rendering optimizations (experimental)",
             );
         }
-        ui.checkbox(
-            &mut self.show_bookmark_count,
-            "Display number of bookmarked nodes",
-        );
 
         // TODO: Add editor layout presets
     }

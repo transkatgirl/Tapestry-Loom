@@ -440,7 +440,8 @@ impl ModelInferenceParameters {
                 DragValue::new(&mut self.requests)
                     .suffix("x")
                     .range(1..=usize::MAX),
-            );
+            )
+            .on_hover_text("Request count");
             ComboBox::from_id_salt(ui.next_auto_id())
                 .selected_text(selected)
                 .width(ui.spacing().text_edit_width * 0.6)
@@ -500,7 +501,7 @@ impl InferenceParameters {
                 .clamping(SliderClamping::Never)
                 .text("Recursion")
                 .suffix(" layers"),
-        );
+        ).on_hover_text("The recursion depth used for generating nodes. If this is > 0, nodes will be recursively generated up to the set number of layers.");
 
         let mut move_up = None;
         let mut move_down = None;
