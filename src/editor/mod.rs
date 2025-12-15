@@ -578,7 +578,6 @@ impl EditorTilingBehavior {
                 self.shortcuts,
             );
             self.tree_list_view.update(
-                ui,
                 weave,
                 &settings,
                 &mut toasts,

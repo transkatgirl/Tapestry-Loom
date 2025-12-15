@@ -47,6 +47,9 @@ pub struct SharedState {
     pub has_hover_node_changed: bool,
     pub has_weave_changed: bool,
     pub has_weave_layout_changed: bool,
+    opened: HashMap<Ulid, bool>,
+    next_opened_updated: bool,
+    pub has_opened_changed: bool,
     requests: HashMap<Ulid, InferenceHandle>,
     responses: Vec<Result<DependentNode<NodeContent>, anyhow::Error>>,
     last_ui_settings: UISettings,
@@ -100,6 +103,9 @@ impl SharedState {
             has_hover_node_changed: false,
             has_weave_changed: false,
             has_weave_layout_changed: false,
+            opened: HashMap::with_capacity(65535),
+            next_opened_updated: false,
+            has_opened_changed: false,
             requests: HashMap::with_capacity(128),
             responses: Vec::with_capacity(128),
             last_ui_settings: settings.interface,
@@ -108,14 +114,19 @@ impl SharedState {
         }
     }
     /*pub fn reset(&mut self) {
+        self.cache = InferenceCache::default();
         self.cursor_node = NodeIndex::None;
         self.last_cursor_node = NodeIndex::None;
         self.hovered_node = NodeIndex::None;
         self.last_hovered_node = NodeIndex::None;
+        self.last_changed_node = None;
         self.has_cursor_node_changed = false;
         self.has_hover_node_changed = false;
         self.has_weave_changed = false;
         self.has_weave_layout_changed = false;
+        self.opened.clear();
+        self.next_opened_updated = false;
+        self.has_opened_changed = false;
         self.last_activated_hovered = false;
         self.requests.clear();
         self.responses.clear();
@@ -128,37 +139,6 @@ impl SharedState {
         toasts: &mut Toasts,
         shortcuts: FlagSet<Shortcuts>,
     ) {
-        self.has_cursor_node_changed = false;
-        self.has_hover_node_changed = false;
-        self.last_changed_node = None;
-        if self.last_hovered_node != self.hovered_node {
-            self.last_changed_node = self.hovered_node.into_node();
-            self.last_hovered_node = self.hovered_node;
-            self.has_hover_node_changed = true;
-        }
-        self.hovered_node = NodeIndex::None;
-        if let Some(cursor_node) = self.cursor_node.into_node()
-            && !weave.contains(&cursor_node)
-        {
-            self.cursor_node = NodeIndex::None;
-        }
-        if !self.cursor_node.has_node()
-            && let Some(active) = weave.get_active_thread_first()
-        {
-            self.cursor_node = NodeIndex::Node(active);
-        }
-        if self.last_cursor_node != self.cursor_node {
-            self.last_changed_node = self.cursor_node.into_node();
-            self.last_cursor_node = self.cursor_node;
-            self.has_cursor_node_changed = true;
-        }
-        if self.last_ui_settings != settings.interface {
-            self.has_theme_changed = true;
-            self.last_ui_settings = settings.interface;
-        } else {
-            self.has_theme_changed = false;
-        }
-
         InferenceParameters::get_responses(
             &self.runtime,
             self.client.borrow().as_ref(),
@@ -456,6 +436,76 @@ impl SharedState {
             self.last_activated_hovered = false;
         }
 
+        if shortcuts.contains(Shortcuts::ToggleNodeCollapsed)
+            && let Some(item) = self.get_cursor_node().into_node()
+        {
+            self.toggle_open(item);
+        }
+
+        if shortcuts.contains(Shortcuts::CollapseChildren)
+            && let Some(node) = self
+                .get_cursor_node()
+                .into_node()
+                .and_then(|id| weave.get_node(&id))
+        {
+            for item in node.to.iter().cloned().map(Ulid) {
+                self.set_open(item, false);
+            }
+        }
+
+        if shortcuts.contains(Shortcuts::ExpandChildren)
+            && let Some(node) = self
+                .get_cursor_node()
+                .into_node()
+                .and_then(|id| weave.get_node(&id))
+        {
+            for item in node.to.iter().cloned().map(Ulid) {
+                self.set_open(item, true);
+            }
+        }
+
+        self.has_cursor_node_changed = false;
+        self.has_hover_node_changed = false;
+        self.last_changed_node = None;
+        if self.last_hovered_node != self.hovered_node {
+            self.last_changed_node = self.hovered_node.into_node();
+            self.last_hovered_node = self.hovered_node;
+            self.has_hover_node_changed = true;
+        }
+        self.hovered_node = NodeIndex::None;
+        if let Some(cursor_node) = self.cursor_node.into_node()
+            && !weave.contains(&cursor_node)
+        {
+            self.cursor_node = NodeIndex::None;
+        }
+        if !self.cursor_node.has_node()
+            && let Some(active) = weave.get_active_thread_first()
+        {
+            self.cursor_node = NodeIndex::Node(active);
+        }
+        if self.last_cursor_node != self.cursor_node {
+            self.last_changed_node = self.cursor_node.into_node();
+            self.last_cursor_node = self.cursor_node;
+            self.has_cursor_node_changed = true;
+        }
+        if self.last_ui_settings != settings.interface {
+            self.has_theme_changed = true;
+            self.last_ui_settings = settings.interface;
+        } else {
+            self.has_theme_changed = false;
+        }
+        if self.has_cursor_node_changed
+            && let Some(cursor_node) = self.get_cursor_node().into_node()
+        {
+            let active = weave.get_thread_from_u128(&cursor_node.0).map(Ulid);
+
+            for item in active {
+                self.set_open(item, true);
+            }
+        }
+        self.has_opened_changed = self.next_opened_updated;
+        self.next_opened_updated = false;
+
         self.has_weave_layout_changed = weave.has_layout_changed();
         self.has_weave_changed = weave.has_changed();
 
@@ -464,9 +514,21 @@ impl SharedState {
             || self.has_cursor_node_changed
             || self.has_hover_node_changed
             || self.has_theme_changed
+            || self.has_opened_changed
         {
             ctx.request_repaint();
         }
+    }
+    pub fn is_open(&self, id: &Ulid) -> bool {
+        self.opened.get(id).copied().unwrap_or(true)
+    }
+    pub fn set_open(&mut self, id: Ulid, open: bool) {
+        self.next_opened_updated = true;
+        self.opened.insert(id, open);
+    }
+    pub fn toggle_open(&mut self, id: Ulid) {
+        self.next_opened_updated = true;
+        self.opened.insert(id, !self.is_open(&id));
     }
     pub fn get_cursor_node(&self) -> NodeIndex {
         self.last_cursor_node

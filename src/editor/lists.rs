@@ -292,66 +292,19 @@ impl TreeListView {
     }*/
     pub fn update(
         &mut self,
-        ui: &mut Ui,
-        weave: &mut WeaveWrapper,
+        _weave: &mut WeaveWrapper,
         settings: &Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
-        shortcuts: FlagSet<Shortcuts>,
+        _shortcuts: FlagSet<Shortcuts>,
     ) {
         if state.has_cursor_node_changed {
             self.last_active_nodes.clear();
             self.needs_list_refresh = true;
         } else if state.has_weave_changed
             || self.last_max_depth != settings.interface.max_tree_depth
+            || state.has_opened_changed
         {
-            self.needs_list_refresh = true;
-        }
-
-        if shortcuts.contains(Shortcuts::ToggleNodeCollapsed)
-            && let Some(item) = state.get_cursor_node().into_node()
-        {
-            toggle_node_tree_item_open_status(ui, state.identifier, item);
-            self.needs_list_refresh = true;
-        }
-
-        if shortcuts.contains(Shortcuts::CollapseAllVisibleInactive) {
-            for item in self.last_rendered_nodes.iter().copied() {
-                if !self.last_active_nodes.contains(&item) {
-                    set_node_tree_item_open_status(ui, state.identifier, item, false);
-                }
-            }
-            self.needs_list_refresh = true;
-        }
-
-        if shortcuts.contains(Shortcuts::CollapseChildren)
-            && let Some(node) = state
-                .get_cursor_node()
-                .into_node()
-                .and_then(|id| weave.get_node(&id))
-        {
-            for item in node.to.iter().cloned().map(Ulid) {
-                set_node_tree_item_open_status(ui, state.identifier, item, false);
-            }
-            self.needs_list_refresh = true;
-        }
-
-        if shortcuts.contains(Shortcuts::ExpandAllVisible) {
-            for item in self.last_rendered_nodes.iter().copied() {
-                set_node_tree_item_open_status(ui, state.identifier, item, true);
-            }
-            self.needs_list_refresh = true;
-        }
-
-        if shortcuts.contains(Shortcuts::ExpandChildren)
-            && let Some(node) = state
-                .get_cursor_node()
-                .into_node()
-                .and_then(|id| weave.get_node(&id))
-        {
-            for item in node.to.iter().cloned().map(Ulid) {
-                set_node_tree_item_open_status(ui, state.identifier, item, true);
-            }
             self.needs_list_refresh = true;
         }
     }
@@ -383,15 +336,30 @@ impl TreeListView {
         settings: &Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
-        _shortcuts: FlagSet<Shortcuts>,
+        shortcuts: FlagSet<Shortcuts>,
     ) {
+        if shortcuts.contains(Shortcuts::CollapseAllVisibleInactive) {
+            for item in self.last_rendered_nodes.iter().copied() {
+                if !self.last_active_nodes.contains(&item) {
+                    state.set_open(item, false);
+                }
+            }
+            self.needs_list_refresh = true;
+        }
+
+        if shortcuts.contains(Shortcuts::ExpandAllVisible) {
+            for item in self.last_rendered_nodes.iter().copied() {
+                state.set_open(item, true);
+            }
+            self.needs_list_refresh = true;
+        }
+
         if self.last_active_nodes.is_empty() {
             if let Some(cursor_node) = state.get_cursor_node().into_node() {
                 let active = weave.get_thread_from_u128(&cursor_node.0).map(Ulid);
 
                 for item in active {
                     self.last_active_nodes.insert(item);
-                    set_node_tree_item_open_status(ui, state.identifier, item, true);
                 }
             }
 
@@ -570,6 +538,11 @@ fn render_node_tree_row(
             render_label_separator(ui, settings);
         }
         rendered_items.insert(item);
+
+        let id = Id::new([editor_id.0, node.id, 0]);
+        let mut collapsing = CollapsingState::load_with_default_open(ui.ctx(), id, true);
+        collapsing.set_open(state.is_open(&Ulid(node.id)));
+
         let mut render_label = |ui: &mut Ui| {
             ui.horizontal_wrapped(|ui| {
                 if node.to.is_empty() {
@@ -583,13 +556,7 @@ fn render_node_tree_row(
                     &node,
                     |ui, settings, state, weave, node| {
                         render_horizontal_node_tree_label_buttons_rtl(
-                            ui,
-                            settings,
-                            state,
-                            editor_id,
-                            weave,
-                            node,
-                            &mut needs_list_refresh.borrow_mut(),
+                            ui, settings, state, weave, node,
                         );
                         if is_display_root
                             && let Some(parent) = node.from
@@ -602,15 +569,7 @@ fn render_node_tree_row(
                         };
                     },
                     |ui, settings, state, weave, node| {
-                        render_node_tree_context_menu(
-                            ui,
-                            settings,
-                            state,
-                            editor_id,
-                            weave,
-                            node,
-                            &mut needs_list_refresh.borrow_mut(),
-                        );
+                        render_node_tree_context_menu(ui, settings, state, weave, node);
                     },
                     true,
                 );
@@ -620,8 +579,7 @@ fn render_node_tree_row(
         if node.to.is_empty() {
             render_label(ui);
         } else {
-            let id = Id::new([editor_id.0, node.id, 0]);
-            let collapsing_response = CollapsingState::load_with_default_open(ui.ctx(), id, false)
+            let collapsing_response = collapsing
                 .show_header(ui, |ui| {
                     render_label(ui);
                 })
@@ -661,24 +619,13 @@ fn render_node_tree_row(
                 });
 
             if collapsing_response.0.clicked() {
-                **needs_list_refresh.borrow_mut() = true;
+                state.set_open(
+                    Ulid(node.id),
+                    CollapsingState::load_with_default_open(ui.ctx(), id, true).is_open(),
+                );
             }
         }
     }
-}
-
-fn set_node_tree_item_open_status(ui: &mut Ui, editor_id: Ulid, item_id: Ulid, status: bool) {
-    let id = Id::new([editor_id.0, item_id.0, 0]);
-    let mut collapsing_state = CollapsingState::load_with_default_open(ui.ctx(), id, false);
-    collapsing_state.set_open(status);
-    collapsing_state.store(ui.ctx());
-}
-
-fn toggle_node_tree_item_open_status(ui: &mut Ui, editor_id: Ulid, item_id: Ulid) {
-    let id = Id::new([editor_id.0, item_id.0, 0]);
-    let mut collapsing_state = CollapsingState::load_with_default_open(ui.ctx(), id, false);
-    collapsing_state.set_open(!collapsing_state.is_open());
-    collapsing_state.store(ui.ctx());
 }
 
 pub fn render_horizontal_node_label_buttons_ltr(
@@ -851,10 +798,8 @@ fn render_horizontal_node_tree_label_buttons_rtl(
     ui: &mut Ui,
     settings: &Settings,
     state: &mut SharedState,
-    editor_id: Ulid,
     weave: &mut WeaveWrapper,
     node: &DependentNode<NodeContent>,
-    needs_list_refresh: &mut bool,
 ) {
     let is_shift_pressed = ui.input(|input| input.modifiers.shift);
 
@@ -905,8 +850,7 @@ fn render_horizontal_node_tree_label_buttons_rtl(
             if active {
                 state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
             } else {
-                set_node_tree_item_open_status(ui, editor_id, Ulid(node.id), true);
-                *needs_list_refresh = true;
+                state.set_open(Ulid(node.id), true);
             }
         }
     };
@@ -926,8 +870,7 @@ fn render_horizontal_node_tree_label_buttons_rtl(
             state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
         }
 
-        set_node_tree_item_open_status(ui, editor_id, Ulid(node.id), true);
-        *needs_list_refresh = true;
+        state.set_open(Ulid(node.id), true);
     };
     if weave.is_mergeable_with_parent(&Ulid(node.id))
         && ui
@@ -1389,10 +1332,8 @@ fn render_node_tree_context_menu(
     ui: &mut Ui,
     settings: &Settings,
     state: &mut SharedState,
-    editor_id: Ulid,
     weave: &mut WeaveWrapper,
     node: &DependentNode<NodeContent>,
-    needs_list_refresh: &mut bool,
 ) {
     let is_shift_pressed = ui.input(|input| input.modifiers.shift);
 
@@ -1404,8 +1345,7 @@ fn render_node_tree_context_menu(
             state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
         }
 
-        set_node_tree_item_open_status(ui, editor_id, Ulid(node.id), true);
-        *needs_list_refresh = true;
+        state.set_open(Ulid(node.id), true);
     }
 
     let bookmark_label = if node.bookmarked {
@@ -1445,8 +1385,7 @@ fn render_node_tree_context_menu(
             if active {
                 state.set_cursor_node(NodeIndex::Node(Ulid(identifier)));
             } else {
-                set_node_tree_item_open_status(ui, editor_id, Ulid(node.id), true);
-                *needs_list_refresh = true;
+                state.set_open(Ulid(node.id), true);
             }
         }
     }
@@ -1484,16 +1423,14 @@ fn render_node_tree_context_menu(
     if !node.to.is_empty() {
         if ui.button("Collapse all children").clicked() {
             for child in node.to.iter().copied() {
-                set_node_tree_item_open_status(ui, editor_id, Ulid(child), false);
+                state.set_open(Ulid(child), false);
             }
-            *needs_list_refresh = true;
         }
 
         if ui.button("Expand all children").clicked() {
             for child in node.to.iter().copied() {
-                set_node_tree_item_open_status(ui, editor_id, Ulid(child), true);
+                state.set_open(Ulid(child), true);
             }
-            *needs_list_refresh = true;
         }
 
         ui.separator();
