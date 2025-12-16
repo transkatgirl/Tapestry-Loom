@@ -234,7 +234,9 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 	- [ ] (subset of) [miniloom](https://github.com/JD-P/miniloom)
 - [ ] Support [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
 
-See also: the [original rewrite plans](https://github.com/transkatgirl/Tapestry-Loom/blob/c8ccca0079ae186fcc7a70b955b2d2b123082d63/README.md)
+Note: Tapestry Loom will be *entirely* focused on base and/or embedding models for the foreseeable future.
+
+There are already good chat looms (such as [miniloom](https://github.com/JD-P/miniloom)) and base model looms which heavily integrate assistant functionality (such as [helm](https://github.com/Shoalstone/helm)); Tapestry Loom will **not** be one of them.
 
 ### Speculative ideas
 
@@ -261,6 +263,4 @@ See also: the [original rewrite plans](https://github.com/transkatgirl/Tapestry-
 	- [ ] LZ4 compression for websocket data
 -->
 
-Note: Tapestry Loom will be *entirely* focused on base and/or embedding models for the foreseeable future.
-
-There are already good chat looms (such as [miniloom](https://github.com/JD-P/miniloom)) and base model looms which heavily integrate assistant functionality (such as [helm](https://github.com/Shoalstone/helm)); Tapestry Loom will **not** be one of them.
+See also: the [original rewrite plans](https://github.com/transkatgirl/Tapestry-Loom/blob/c8ccca0079ae186fcc7a70b955b2d2b123082d63/README.md)
