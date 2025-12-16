@@ -37,6 +37,12 @@ pub struct CanvasView {
     new: bool,
 }
 
+struct CanvasNode {
+    id: Ulid,
+    rect: Rect,
+    to: Vec<(CanvasNode, [Pos2; 4], PathStroke)>,
+}
+
 impl Default for CanvasView {
     fn default() -> Self {
         Self {
