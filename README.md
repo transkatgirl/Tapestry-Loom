@@ -188,7 +188,7 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
-- [ ] Add sub-title of "Humanity's Last Loom"
+- [ ] Add a plugin API & custom inference API
 - [ ] Further UI improvements
 	- [ ] Better handle valid UTF-8 character split across multiple nodes
 	- [ ] Improve graph/canvas layout algorithm
@@ -201,7 +201,10 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 	- [ ] Customizable node sorting
 		- [ ] Time added
 		- [ ] Alphabetical
-		- [ ] Semantic sort
+		- [ ] Semantic sorting
+	- [ ] Customizable node color coding
+		- [ ] Probability
+		- [ ] Confidence
 	- [ ] Node bulk selection
 	- [ ] Node custom ordering via drag and drop
 		- [ ] Support reordering nodes in canvas and graph views as well
@@ -247,7 +250,6 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 - [ ] Implement context window wrapping
 - [ ] Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
 - [ ] Tooling for autolooms (looms where node choices are picked by a user-provided algorithm)
-- [ ] Add some sort of plugin API for building on top of Tapestry Loom???
 - [ ] Implement an optional inference server using llama.cpp
 
 See also: the [original rewrite plans](https://github.com/transkatgirl/Tapestry-Loom/blob/c8ccca0079ae186fcc7a70b955b2d2b123082d63/README.md)
