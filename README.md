@@ -166,30 +166,31 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 
 ### Plans for next major version
 
-<!--
-- [ ] Server-client, multi-user WebUI
-	- [ ] Support collaborating on Weaves
-	- [ ] User authentication
-	- [ ] User permissions
-	- [ ] User rate limiting
-- [ ] Event-based server-client communication to reduce bandwidth usage
-- [ ] Automatic color palette generation in settings
-- [ ] HTTPS support
-- [ ] Compression support
-	- [ ] Brotli compression for static assets
-	- [ ] LZ4 compression for websocket data
--->
-
+- [ ] Add a plugin API & custom inference API
+	- [ ] Support the following use cases:
+		- [ ] LLM research
+			- [ ] Support adding custom UI elements and editor subviews
+		- [ ] Autolooms (looms where node choices are picked by a user-determined algorithm)
+		- [ ] Adaptive looming (node lengths are picked by a user-determined algorithm)
+	- [ ] Implement an optional inference server using llama.cpp
+		- [ ] Adaptive looming using token entropy or [confidence](https://arxiv.org/pdf/2508.15260)
+		- [ ] Context window wrapping
+		- [ ] Allow adjusting proportion of completions from each model
+		- [ ] When working with multiple models, allow dynamically adjusting proportions based on usage
+			- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count
 - [ ] Support for DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- [ ] FIM completions
 		- [ ] Selected text is used to determine FIM location
 	- [ ] Node copying & moving
 	- [ ] Perform heavy testing of data structures and/or formal verification to prevent bugs that could result in data loss
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
+	- [ ] Prefix-based duplication
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
-- [ ] Add a plugin API & custom inference API
 - [ ] Further UI improvements
+	- [ ] Blind comparison modes
+		- [ ] (Hide) Models & token probabilities / boundaries
+		- [ ] (Hide) Generated node text (only showing metadata & probabilities)
 	- [ ] Better handle valid UTF-8 character split across multiple nodes
 	- [ ] Improve graph/canvas layout algorithm
 	- [ ] Improve clarity of error messages
@@ -219,40 +220,46 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 	- [ ] Show hovered child of active node in editor, similar to [exoloom](https://exoloom.io)
 	- [ ] Add ability to add custom labels to bookmarks/nodes
 	- [ ] Add ability to add custom attributes to nodes, rather than just bookmarks
-- [ ] Add support for more weave migrations
-	- [ ] [wool](https://github.com/lyramakesmusic/wool)
-- [ ] Include documentation within app
-	- [ ] Include tokenization server within app?
 - [ ] Weave statistical analysis tools
+	- [ ] Predictability analysis using logprobs
+	- [ ] Statistical analysis of various metrics (model usage, text length, logprobs, number of branches, etc)
+- [ ] Token streaming and display of nodes being generated
 - [ ] Optimize for performance whenever possible
 	- [ ] Aim to have acceptable performance on weaves with ~1 million nodes, ~200k active and ~10MB of active text on low-end hardware (such as a Raspberry Pi)
 		- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
 	- [ ] Optimize memory usage to be as low as reasonably possible
-- [ ] Collaborative weave editing over LAN
-- [ ] Adaptive looming using token entropy or [confidence](https://arxiv.org/pdf/2508.15260)
-- [ ] Token streaming and display of nodes being generated
-- [ ] Prefix-based duplication
-- [ ] Undo/redo functionality
-- [ ] Blind comparison modes
-	- [ ] (Hide) Models & token probabilities / boundaries
-	- [ ] (Hide) Generated node text (only showing metadata & probabilities)
-- [ ] Allow adjusting proportion of completions from each model
-	- [ ] Allow dynamically adjusting proportions based on usage
-		- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count
-- [ ] Support alternate input devices
+- [ ] Add support for more weave migrations
+	- [ ] [wool](https://github.com/lyramakesmusic/wool)
+	- [ ] [helm](https://github.com/Shoalstone/helm)
+	- [ ] (subset of) [miniloom](https://github.com/JD-P/miniloom)
+- [ ] Support [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
+
+See also: the [original rewrite plans](https://github.com/transkatgirl/Tapestry-Loom/blob/c8ccca0079ae186fcc7a70b955b2d2b123082d63/README.md)
+
+### Speculative ideas
+
+- [ ] Self-contained packaging: All documentation and tools in one app, rather than being spread out over multiple
+- [ ] Collaborative weave editing
+- [ ] Server-client, multi-user WebUI
+- [ ] Efficiently store full edit history in weave for lossless unbounded undo/redo
+- [ ] Alternate input devices
 	- [ ] Talon Voice
 	- [ ] Controllers / Gamepads
 	- [ ] USB DDR Pads
-- [ ] Document & selection analysis tools
-	- [ ] Predictability analysis using logprobs
-	- [ ] Statistical analysis of various metrics (model usage, text length, logprobs, number of branches, etc)
-	- [ ] Weave metadata
-- [ ] Implement context window wrapping
-- [ ] Support for [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
-- [ ] Tooling for autolooms (looms where node choices are picked by a user-provided algorithm)
-- [ ] Implement an optional inference server using llama.cpp
 
-See also: the [original rewrite plans](https://github.com/transkatgirl/Tapestry-Loom/blob/c8ccca0079ae186fcc7a70b955b2d2b123082d63/README.md)
+<!--
+- [ ] Server-client, multi-user WebUI
+	- [ ] Support collaborating on Weaves
+	- [ ] User authentication
+	- [ ] User permissions
+	- [ ] User rate limiting
+- [ ] Event-based server-client communication to reduce bandwidth usage
+- [ ] Automatic color palette generation in settings
+- [ ] HTTPS support
+- [ ] Compression support
+	- [ ] Brotli compression for static assets
+	- [ ] LZ4 compression for websocket data
+-->
 
 Note: Tapestry Loom will be *entirely* focused on base and/or embedding models for the foreseeable future.
 
