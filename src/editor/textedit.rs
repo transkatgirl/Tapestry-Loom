@@ -201,11 +201,17 @@ impl TextEditorView {
 
                         let top_left = textedit.text_clip_rect.left_top();
 
+                        let hover_position = textedit.response.hover_pos().map(|p| p - top_left);
+                        let is_cursor_within_bounds =
+                            ui.rect_contains_pointer(textedit.response.rect);
+
                         if self.rects.is_empty()
                             || self.should_update_rects
                             || textedit.response.changed()
                             || textedit.response.rect != self.last_text_edit_rect
-                            || state.get_changed_node().is_some()
+                            || (state.get_changed_node().is_some()
+                                && settings.interface.auto_scroll
+                                && !is_cursor_within_bounds)
                         {
                             self.rects.clear();
                             calculate_boundaries_and_update_scroll(
@@ -213,7 +219,7 @@ impl TextEditorView {
                                 &self.snippets.borrow(),
                                 top_left,
                                 &textedit.galley,
-                                if settings.interface.auto_scroll {
+                                if settings.interface.auto_scroll && !is_cursor_within_bounds {
                                     state.get_changed_node()
                                 } else {
                                     None
@@ -262,8 +268,6 @@ impl TextEditorView {
                                 self.last_text_edit_cursor = position;
                             }
                         }
-
-                        let hover_position = textedit.response.hover_pos().map(|p| p - top_left);
 
                         if hover_position != self.last_text_edit_hover {
                             if let Some(hover_position) = hover_position
