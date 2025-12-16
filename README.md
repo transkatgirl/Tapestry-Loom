@@ -154,6 +154,7 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 - [ ] Further canvas view improvements
 	- [ ] Add node collapsing
 	- [ ] Add node creation button
+- [ ] Fix autoscroll w/ large messages
 - [ ] Support for migrating weaves from other Loom implementations
 	- [ ] [loomsidian](https://github.com/cosmicoptima/loom)
 	- [ ] [exoloom](https://exoloom.io)
