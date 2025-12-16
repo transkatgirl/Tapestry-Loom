@@ -531,6 +531,7 @@ fn calculate_highlighting(
     sections
 }
 
+#[allow(clippy::collapsible_if)]
 fn calculate_boundaries_and_update_scroll(
     ui: &mut Ui,
     snippets: &[Snippet],
@@ -575,85 +576,93 @@ fn calculate_boundaries_and_update_scroll(
         ))
     };
 
-    let scroll_boundary_into_view = |row_pos: Pos2, row_size: Vec2, x: f32| {
+    let mut scroll_to = None;
+    let mut scroll_boundary_into_view = |row_pos: Pos2, row_size: Vec2, x: f32| {
         let x = row_pos.x + x;
 
-        let rect = Rect {
+        scroll_to = Some(Rect {
             min: Pos2 { x, y: row_pos.y },
             max: Pos2 {
                 x,
                 y: row_pos.y + row_size.y,
             },
-        };
-
-        ui.scroll_to_rect(rect, None);
+        });
     };
 
     let mut last_node = None;
 
     for row in &galley.rows {
-        if snippet_index > snippets.len() {
-            break;
-        }
-
         let row_position = Pos2 {
             x: row.pos.x + top_left.x,
             y: row.pos.y + top_left.y,
         };
 
+        if snippet_index > snippets.len() {
+            if last_node.is_some() && changed == last_node {
+                scroll_boundary_into_view(row_position, row.size, 0.0);
+            }
+            break;
+        }
+
         for char in row.glyphs.iter() {
             let char_len = char.chr.len_utf8();
 
-            if snippet_index >= snippets.len() {
-                break;
-            } else {
-                while offset >= snippet_offset && snippet_index < snippets.len() {
-                    if last_node != Some(snippets[snippet_index].1) {
-                        if offset > 0 {
-                            draw_row_boundary(row_position, row.size, char.pos.x, false);
-                        }
-                        last_node = Some(snippets[snippet_index].1);
-                    } /*else if hover == Some(snippets[snippet_index].1) {
-                    draw_row_boundary(row_position, row.size, char.pos.x, true);
-                    }*/
-
-                    if changed == Some(snippets[snippet_index].1) || changed == last_node {
-                        scroll_boundary_into_view(row_position, row.size, char.pos.x);
+            while offset >= snippet_offset && snippet_index < snippets.len() {
+                if last_node != Some(snippets[snippet_index].1) {
+                    if offset > 0 {
+                        draw_row_boundary(row_position, row.size, char.pos.x, false);
                     }
+                    if last_node.is_some() && changed == last_node {
+                        scroll_boundary_into_view(row_position, row.size, 0.0);
+                    }
+                    last_node = Some(snippets[snippet_index].1);
+                } /*else if hover == Some(snippets[snippet_index].1) {
+                draw_row_boundary(row_position, row.size, char.pos.x, true);
+                }*/
 
-                    snippet_offset += snippets[snippet_index].0;
-                    snippet_index += 1;
+                if changed == last_node {
+                    scroll_boundary_into_view(row_position, row.size, row.size.x);
                 }
+
+                snippet_offset += snippets[snippet_index].0;
+                snippet_index += 1;
             }
 
             offset += char_len;
         }
 
         if row.ends_with_newline {
-            if snippet_index >= snippets.len() {
-                break;
-            } else {
-                while offset >= snippet_offset && snippet_index < snippets.len() {
-                    if last_node != Some(snippets[snippet_index].1) {
-                        if offset > 0 {
-                            draw_row_boundary(row_position, row.size, row.size.x, false);
-                        }
-                        last_node = Some(snippets[snippet_index].1);
-                    } /*else if hover == Some(snippets[snippet_index].1) {
-                    draw_row_boundary(row_position, row.size, row.size.x, true);
-                    }*/
-
-                    if changed == Some(snippets[snippet_index].1) || changed == last_node {
-                        scroll_boundary_into_view(row_position, row.size, row.size.x);
+            while offset >= snippet_offset && snippet_index < snippets.len() {
+                if last_node != Some(snippets[snippet_index].1) {
+                    if offset > 0 {
+                        draw_row_boundary(row_position, row.size, row.size.x, false);
                     }
+                    if last_node.is_some() && changed == last_node {
+                        scroll_boundary_into_view(row_position, row.size, 0.0);
+                    }
+                    last_node = Some(snippets[snippet_index].1);
+                } /*else if hover == Some(snippets[snippet_index].1) {
+                draw_row_boundary(row_position, row.size, row.size.x, true);
+                }*/
 
-                    snippet_offset += snippets[snippet_index].0;
-                    snippet_index += 1;
+                if changed == last_node {
+                    scroll_boundary_into_view(row_position, row.size, row.size.x);
                 }
+
+                snippet_offset += snippets[snippet_index].0;
+                snippet_index += 1;
             }
 
             offset += 1;
         }
+
+        if last_node.is_some() && changed == last_node {
+            scroll_boundary_into_view(row_position, row.size, row.size.x);
+        }
+    }
+
+    if let Some(rect) = scroll_to {
+        ui.scroll_to_rect(rect, None);
     }
 }
 
