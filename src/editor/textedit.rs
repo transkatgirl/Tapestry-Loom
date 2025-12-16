@@ -576,17 +576,19 @@ fn calculate_boundaries_and_update_scroll(
         ))
     };
 
-    let mut scroll_to = None;
-    let mut scroll_boundary_into_view = |row_pos: Pos2, row_size: Vec2, x: f32| {
+    let scroll_boundary_into_view = |row_pos: Pos2, row_size: Vec2, x: f32| {
         let x = row_pos.x + x;
 
-        scroll_to = Some(Rect {
-            min: Pos2 { x, y: row_pos.y },
-            max: Pos2 {
-                x,
-                y: row_pos.y + row_size.y,
+        ui.scroll_to_rect(
+            Rect {
+                min: Pos2 { x, y: row_pos.y },
+                max: Pos2 {
+                    x,
+                    y: row_pos.y + row_size.y,
+                },
             },
-        });
+            None,
+        );
     };
 
     let mut last_node = None;
@@ -621,6 +623,10 @@ fn calculate_boundaries_and_update_scroll(
                 } /*else if hover == Some(snippets[snippet_index].1) {
                 draw_row_boundary(row_position, row.size, char.pos.x, true);
                 }*/
+
+                if changed == last_node {
+                    scroll_boundary_into_view(row_position, row.size, row.size.x);
+                }
 
                 snippet_offset += snippets[snippet_index].0;
                 snippet_index += 1;
@@ -659,10 +665,6 @@ fn calculate_boundaries_and_update_scroll(
         if last_node.is_some() && changed == last_node {
             scroll_boundary_into_view(row_position, row.size, row.size.x);
         }
-    }
-
-    if let Some(rect) = scroll_to {
-        ui.scroll_to_rect(rect, None);
     }
 }
 
