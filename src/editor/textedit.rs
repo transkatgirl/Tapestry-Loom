@@ -8,8 +8,8 @@ use std::{
 
 use eframe::{
     egui::{
-        Color32, Frame, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit, TextFormat,
-        TextStyle, Tooltip, Ui, Vec2,
+        Align, Color32, Frame, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit,
+        TextFormat, TextStyle, Tooltip, Ui, Vec2,
         text::{CCursor, CCursorRange, LayoutJob, LayoutSection, TextWrapping},
     },
     epaint::{MarginF32, Vertex, WHITE_UV},
@@ -576,19 +576,27 @@ fn calculate_boundaries_and_update_scroll(
         ))
     };
 
-    let scroll_boundary_into_view = |row_pos: Pos2, row_size: Vec2, x: f32| {
+    let mut scroll_to: Option<Rect> = None;
+    let mut scroll_boundary_into_view = |row_pos: Pos2, row_size: Vec2, x: f32| {
         let x = row_pos.x + x;
 
-        ui.scroll_to_rect(
-            Rect {
-                min: Pos2 { x, y: row_pos.y },
-                max: Pos2 {
+        match &mut scroll_to {
+            Some(scroll_to) => {
+                scroll_to.extend_with(Pos2 {
                     x,
                     y: row_pos.y + row_size.y,
-                },
-            },
-            None,
-        );
+                });
+            }
+            None => {
+                scroll_to = Some(Rect {
+                    min: Pos2 { x, y: row_pos.y },
+                    max: Pos2 {
+                        x,
+                        y: row_pos.y + row_size.y,
+                    },
+                });
+            }
+        }
     };
 
     let mut last_node = None;
@@ -665,6 +673,10 @@ fn calculate_boundaries_and_update_scroll(
         if last_node.is_some() && changed == last_node {
             scroll_boundary_into_view(row_position, row.size, row.size.x);
         }
+    }
+
+    if let Some(rect) = scroll_to {
+        ui.scroll_to_rect(rect, Some(Align::Max));
     }
 }
 
