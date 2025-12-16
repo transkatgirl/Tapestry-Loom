@@ -2,8 +2,6 @@
 
 A power user focused interface for LLM base models, inspired by the designs of [loom](https://github.com/socketteer/loom), [loomsidian](https://github.com/cosmicoptima/loom), [exoloom](https://exoloom.io), [logitloom](https://github.com/vgel/logitloom), and [wool](https://github.com/lyramakesmusic/wool).
 
-<!-- Also known as Humanity's Last Loom. Built with love and passion, never "vibe coded". Every detail matters. -->
-
 > [!WARNING]
 > This is beta software. Most of it works, but there are plenty of undiscovered bugs and things will randomly break from time to time. Make backups.
 
