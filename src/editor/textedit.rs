@@ -612,17 +612,15 @@ fn calculate_boundaries_and_update_scroll(
                     if offset > 0 {
                         draw_row_boundary(row_position, row.size, char.pos.x, false);
                     }
-                    if last_node.is_some() && changed == last_node {
-                        scroll_boundary_into_view(row_position, row.size, 0.0);
+                    if (last_node.is_some() && changed == last_node)
+                        || changed == Some(snippets[snippet_index].1)
+                    {
+                        scroll_boundary_into_view(row_position, row.size, char.pos.x);
                     }
                     last_node = Some(snippets[snippet_index].1);
                 } /*else if hover == Some(snippets[snippet_index].1) {
                 draw_row_boundary(row_position, row.size, char.pos.x, true);
                 }*/
-
-                if changed == last_node {
-                    scroll_boundary_into_view(row_position, row.size, row.size.x);
-                }
 
                 snippet_offset += snippets[snippet_index].0;
                 snippet_index += 1;
@@ -637,8 +635,10 @@ fn calculate_boundaries_and_update_scroll(
                     if offset > 0 {
                         draw_row_boundary(row_position, row.size, row.size.x, false);
                     }
-                    if last_node.is_some() && changed == last_node {
-                        scroll_boundary_into_view(row_position, row.size, 0.0);
+                    if (last_node.is_some() && changed == last_node)
+                        || changed == Some(snippets[snippet_index].1)
+                    {
+                        scroll_boundary_into_view(row_position, row.size, row.size.x);
                     }
                     last_node = Some(snippets[snippet_index].1);
                 } /*else if hover == Some(snippets[snippet_index].1) {
