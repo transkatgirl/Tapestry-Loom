@@ -463,6 +463,13 @@ impl Endpoint for OpenAICompletionsConfig {
 
         trace!("{:#?}", &body);
 
+        if let Some(prompt) = body.get_mut("prompt")
+            && let Value::Array(prompt_list) = prompt
+            && prompt_list.is_empty()
+        {
+            *prompt = Value::String(String::new());
+        }
+
         let response: Map<String, Value> = error_for_status(
             client
                 .client
