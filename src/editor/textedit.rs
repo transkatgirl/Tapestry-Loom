@@ -625,7 +625,7 @@ fn calculate_boundaries_and_update_scroll(
                 }*/
 
                 if changed == last_node {
-                    scroll_boundary_into_view(row_position, row.size, row.size.x);
+                    scroll_boundary_into_view(row_position, row.size, char.pos.x);
                 }
 
                 snippet_offset += snippets[snippet_index].0;
