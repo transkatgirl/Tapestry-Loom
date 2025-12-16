@@ -582,10 +582,7 @@ fn calculate_boundaries_and_update_scroll(
 
         match &mut scroll_to {
             Some(scroll_to) => {
-                scroll_to.extend_with(Pos2 {
-                    x,
-                    y: row_pos.y + row_size.y,
-                });
+                scroll_to.extend_with_y(row_pos.y + row_size.y);
             }
             None => {
                 scroll_to = Some(Rect {
