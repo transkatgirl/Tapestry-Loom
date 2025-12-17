@@ -3,7 +3,7 @@
 A power user focused interface for LLM base models, inspired by the designs of [loom](https://github.com/socketteer/loom), [loomsidian](https://github.com/cosmicoptima/loom), [exoloom](https://exoloom.io), [logitloom](https://github.com/vgel/logitloom), and [wool](https://github.com/lyramakesmusic/wool).
 
 > [!WARNING]
-> This is beta software. Most of it works, but there are plenty of undiscovered bugs and things will randomly break from time to time. Make backups.
+> This is a work in progress; Please make backups and report any bugs that you find.
 
 ## Known issues
 
@@ -156,12 +156,10 @@ If your inference backend returns token IDs in OpenAI-style Completions response
 	- [x] [exoloom](https://exoloom.io)
 	- [x] [loom](https://github.com/socketteer/loom)
 	- [x] Package migration assistant in releases
+- [ ] Add ability to manually control refreshing of model tokenization identifier
 - [ ] Better documentation & onboarding
 	- [ ] Finish manual
 	- [x] Binary releases
-
-Add prompt_prefix and prompt_suffix to Completions
-Add ability to manually controll refreshing of model tokenization identifier
 
 ### Plans for next major version
 
