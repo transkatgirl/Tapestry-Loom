@@ -953,7 +953,8 @@ fn parse_openai_response(
                         {
                             output.reserve(tokens.len());
 
-                            if let Some(Value::Array(mut token_ids)) = logprobs.remove("token_ids")
+                            if let Some(Value::Array(mut token_ids)) = choice.remove("token_ids")
+                                && token_ids.len() == tokens.len()
                             {
                                 for (token, (logprob, token_id)) in tokens
                                     .drain(..)
