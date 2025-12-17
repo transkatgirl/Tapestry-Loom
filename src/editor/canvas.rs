@@ -258,6 +258,10 @@ impl CanvasView {
                 changed_node = state.get_cursor_node().into_node();
             }
 
+            for root in &self.roots {
+                self.traverse_and_focus(root, &mut focus, &outer_rect, changed_node);
+            }
+
             if ui.is_visible() {
                 let show_tooltip = self.last_changed.elapsed().as_secs_f32()
                     >= ui.style().interaction.tooltip_delay;
@@ -266,11 +270,8 @@ impl CanvasView {
                     self.traverse_and_paint(
                         ui,
                         root,
-                        &mut focus,
                         &active_stroke,
                         &inactive_stroke,
-                        &outer_rect,
-                        changed_node,
                         show_tooltip,
                         &mut (weave, settings, state),
                     );
@@ -290,15 +291,36 @@ impl CanvasView {
             self.last_changed = Instant::now();
         }
     }
+    fn traverse_and_focus(
+        &self,
+        node: &Ulid,
+        focus: &mut Option<Rect>,
+        outer_rect: &Rect,
+        changed_node: Option<Ulid>,
+    ) {
+        let canvas_node = self.nodes.get(node).unwrap();
+
+        for child in &canvas_node.to {
+            self.traverse_and_focus(child, focus, outer_rect, changed_node);
+
+            if Some(*node) == changed_node {
+                let rect = canvas_node.rect;
+                let scale = (outer_rect.size() / rect.size()).min_elem();
+
+                if scale > 0.9 {
+                    *focus = Some(rect.scale_from_center(scale * (1.0 / 0.9)));
+                } else {
+                    *focus = Some(rect);
+                }
+            }
+        }
+    }
     fn traverse_and_paint(
         &self,
         ui: &mut Ui,
         node: &Ulid,
-        focus: &mut Option<Rect>,
         active_stroke: &Stroke,
         inactive_stroke: &Stroke,
-        outer_rect: &Rect,
-        changed_node: Option<Ulid>,
         show_tooltip: bool,
         render_state: &mut (&mut WeaveWrapper, &Settings, &mut SharedState),
     ) {
@@ -309,27 +331,13 @@ impl CanvasView {
                 self.traverse_and_paint(
                     ui,
                     child,
-                    focus,
                     active_stroke,
                     inactive_stroke,
-                    outer_rect,
-                    changed_node,
                     show_tooltip,
                     render_state,
                 );
             }
         } else {
-            let painter = ui.painter();
-
-            for (points, stroke) in canvas_node.to_lines.iter().cloned() {
-                painter.add(CubicBezierShape {
-                    points,
-                    closed: false,
-                    fill: Color32::TRANSPARENT,
-                    stroke,
-                });
-            }
-
             ui.scope_builder(UiBuilder::new().max_rect(canvas_node.rect), |ui| {
                 if ui.is_rect_visible(canvas_node.rect) {
                     render_node(
@@ -349,30 +357,31 @@ impl CanvasView {
                 }
             });
 
-            if Some(*node) == changed_node {
-                let rect = canvas_node.rect;
-                let scale = (outer_rect.size() / rect.size()).min_elem();
-
-                if scale > 0.9 {
-                    *focus = Some(rect.scale_from_center(scale * (1.0 / 0.9)));
-                } else {
-                    *focus = Some(rect);
-                }
-            }
-
             if ui.clip_rect().max.x >= canvas_node.rect.max.x {
-                for child in &canvas_node.to {
-                    self.traverse_and_paint(
-                        ui,
-                        child,
-                        focus,
-                        active_stroke,
-                        inactive_stroke,
-                        outer_rect,
-                        changed_node,
-                        show_tooltip,
-                        render_state,
-                    );
+                if render_state.2.is_open(node) {
+                    let painter = ui.painter();
+
+                    for (points, stroke) in canvas_node.to_lines.iter().cloned() {
+                        painter.add(CubicBezierShape {
+                            points,
+                            closed: false,
+                            fill: Color32::TRANSPARENT,
+                            stroke,
+                        });
+                    }
+
+                    for child in &canvas_node.to {
+                        self.traverse_and_paint(
+                            ui,
+                            child,
+                            active_stroke,
+                            inactive_stroke,
+                            show_tooltip,
+                            render_state,
+                        );
+                    }
+                } else {
+                    // TODO
                 }
             }
         }
@@ -427,7 +436,7 @@ fn render_node(
         }
 
         response.context_menu(|ui| {
-            render_node_context_menu(ui, settings, state, weave, &node, false);
+            render_node_context_menu(ui, settings, state, weave, &node, true);
         });
 
         if response.contains_pointer() {
@@ -466,6 +475,17 @@ fn render_node(
             });
         });
     }
+}
+
+fn render_expand_button(
+    ui: &mut Ui,
+    weave: &mut WeaveWrapper,
+    active: &HashSet<Ulid>,
+    settings: &Settings,
+    state: &mut SharedState,
+    node: &Ulid,
+    mut stroke: Stroke,
+) {
 }
 
 fn calculate_size(ui: &Ui, hash: impl Hash, contents: impl FnOnce(&mut Ui)) -> Vec2 {
