@@ -163,6 +163,9 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 	- [ ] Finish manual
 	- [x] Binary releases
 
+Add prompt_prefix and prompt_suffix to Completions
+Add ability to manually controll refreshing of model tokenization identifier
+
 ### Plans for next major version
 
 - [ ] Add a plugin API & custom inference API

@@ -10,8 +10,8 @@ use std::{
 
 use eframe::{
     egui::{
-        Button, CollapsingHeader, Color32, Pos2, Rect, Scene, Stroke, StrokeKind, TextStyle,
-        Tooltip, Ui, UiBuilder, Vec2,
+        Align, Button, CollapsingHeader, Color32, Layout, Pos2, Rect, RichText, Scene, Stroke,
+        StrokeKind, TextStyle, Tooltip, Ui, UiBuilder, Vec2,
     },
     epaint::{ColorMode, CubicBezierShape, PathStroke},
 };
@@ -49,6 +49,8 @@ struct CanvasNode {
     to: Vec<Ulid>,
     to_lines: Vec<([Pos2; 4], PathStroke)>,
     max_x: f32,
+    button_rect: Rect,
+    button_line: ([Pos2; 2], PathStroke),
 }
 
 impl Default for CanvasView {
@@ -155,22 +157,53 @@ impl CanvasView {
             let rect = *arranged.rects.get(&item).unwrap();
 
             if let Some(node) = weave.get_node(&item) {
+                let rect = Rect {
+                    min: Pos2 {
+                        x: rect.min.x + padding_base,
+                        y: rect.min.y,
+                    },
+                    max: Pos2 {
+                        x: rect.max.x - padding_base,
+                        y: rect.max.y,
+                    },
+                };
+                let button_rect = Rect {
+                    min: Pos2 {
+                        x: rect.max.x + padding_base,
+                        y: rect.min.y,
+                    },
+                    max: Pos2 {
+                        x: rect.max.x + (padding_base * 5.0),
+                        y: rect.max.y,
+                    },
+                };
+
                 self.nodes.insert(
                     item,
                     CanvasNode {
-                        rect: Rect {
-                            min: Pos2 {
-                                x: rect.min.x + padding_base,
-                                y: rect.min.y,
-                            },
-                            max: Pos2 {
-                                x: rect.max.x - padding_base,
-                                y: rect.max.y,
-                            },
-                        },
+                        rect,
                         to: node.to.iter().copied().map(Ulid).collect(),
                         to_lines: Vec::with_capacity(node.to.len()),
-                        max_x: rect.max.x + (padding_base * 3.0),
+                        max_x: rect.max.x + (padding_base * 4.0),
+                        button_rect,
+                        button_line: (
+                            [
+                                Pos2 {
+                                    x: rect.max.x,
+                                    y: (rect.min.y + (rect.max.y - rect.min.y) / 2.0),
+                                },
+                                Pos2 {
+                                    x: button_rect.min.x,
+                                    y: (button_rect.min.y
+                                        + (button_rect.max.y - button_rect.min.y) / 2.0),
+                                },
+                            ],
+                            PathStroke {
+                                width: stroke_width,
+                                color: ColorMode::Solid(stroke_color),
+                                kind: StrokeKind::Middle,
+                            },
+                        ),
                     },
                 );
 
@@ -187,7 +220,7 @@ impl CanvasView {
                                 y: (p_rect.min.y + (p_rect.max.y - p_rect.min.y) / 2.0),
                             },
                             Pos2 {
-                                x: rect.min.x + padding_base,
+                                x: rect.min.x,
                                 y: (rect.min.y + (rect.max.y - rect.min.y) / 2.0),
                             },
                         ),
@@ -380,8 +413,24 @@ impl CanvasView {
                             render_state,
                         );
                     }
-                } else {
-                    // TODO
+                } else if ui.is_rect_visible(canvas_node.button_rect)
+                    && should_render_expand_button(node, render_state.0)
+                {
+                    let painter = ui.painter();
+
+                    painter.line(
+                        canvas_node.button_line.0.to_vec(),
+                        canvas_node.button_line.1.clone(),
+                    );
+
+                    ui.scope_builder(
+                        UiBuilder::new()
+                            .max_rect(canvas_node.button_rect)
+                            .layout(Layout::left_to_right(Align::Center)),
+                        |ui| {
+                            render_expand_button(ui, render_state.2, node, *inactive_stroke);
+                        },
+                    );
                 }
             }
         }
@@ -477,15 +526,29 @@ fn render_node(
     }
 }
 
-fn render_expand_button(
-    ui: &mut Ui,
-    weave: &mut WeaveWrapper,
-    active: &HashSet<Ulid>,
-    settings: &Settings,
-    state: &mut SharedState,
-    node: &Ulid,
-    mut stroke: Stroke,
-) {
+fn should_render_expand_button(node: &Ulid, weave: &WeaveWrapper) -> bool {
+    if let Some(node) = weave.get_node(node).cloned()
+        && !node.to.is_empty()
+    {
+        true
+    } else {
+        false
+    }
+}
+
+fn render_expand_button(ui: &mut Ui, state: &mut SharedState, node: &Ulid, stroke: Stroke) {
+    if ui
+        .add(
+            Button::new(RichText::new("...").size(ui.text_style_height(&TextStyle::Monospace)))
+                .fill(Color32::TRANSPARENT)
+                .stroke(stroke),
+        )
+        .clicked()
+    {
+        state.set_open(*node, true);
+    }
+
+    ui.set_max_width(ui.min_rect().width());
 }
 
 fn calculate_size(ui: &Ui, hash: impl Hash, contents: impl FnOnce(&mut Ui)) -> Vec2 {
