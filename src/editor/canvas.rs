@@ -360,7 +360,7 @@ impl CanvasView {
                 }
             }
 
-            if ui.clip_rect().max.x >= canvas_node.rect.min.x {
+            if ui.clip_rect().max.x >= canvas_node.rect.max.x {
                 for child in &canvas_node.to {
                     self.traverse_and_paint(
                         ui,
