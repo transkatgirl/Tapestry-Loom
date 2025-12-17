@@ -80,7 +80,7 @@ fn convert_node(
         metadata.insert("modified".to_string(), modified.to_string());
     }
 
-    let suffix = if let Some(attributes) = node.text_attributes {
+    let _suffix = if let Some(attributes) = node.text_attributes {
         if let Some(preview) = attributes.child_preview {
             metadata.insert("child_preview".to_string(), preview.clone());
         }
@@ -107,8 +107,8 @@ fn convert_node(
         metadata.insert("tags".to_string(), serde_json::to_string(&node.tags)?);
     }
 
-    let mut text = node.text;
-    text.push_str(&suffix);
+    let text = node.text;
+    //text.push_str(&suffix);
 
     assert!(
         weave.weave.add_node(DependentNode {
