@@ -152,7 +152,7 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 	- [x] Add keyboard shortcuts for inference presets
 - [x] Add ability to override model colors
 - [ ] Support for migrating weaves from other Loom implementations
-	- [ ] [loomsidian](https://github.com/cosmicoptima/loom)
+	- [x] [loomsidian](https://github.com/cosmicoptima/loom)
 	- [ ] [exoloom](https://exoloom.io)
 	- [ ] [loom](https://github.com/socketteer/loom)
 	- [x] Package migration assistant in releases

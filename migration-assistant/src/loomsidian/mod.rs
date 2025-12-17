@@ -21,8 +21,6 @@ use uuid::Uuid;
 use crate::new_weave;
 
 pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Vec<(PathBuf, Vec<u8>)>> {
-    serde_json::from_str::<LoomsidianData>(input)?;
-
     if let Ok(data) = serde_json::from_str::<LoomsidianData>(input) {
         let mut output = Vec::with_capacity(data.state.len());
 
