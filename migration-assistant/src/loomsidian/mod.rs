@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{
+        Weave,
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
@@ -26,8 +27,6 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Vec<(Pat
         let mut output = Vec::with_capacity(data.state.len());
 
         for (filename, weave) in data.state {
-            //println!("{:?}", filename);
-
             output.push((filename, convert_weave(weave, created)?));
         }
 
@@ -47,12 +46,10 @@ fn convert_weave(mut input: LoomsidianWeave, created: DateTime<Local>) -> anyhow
     let mut output = new_weave(input.nodes.len(), created, "Loomsidian");
 
     for (id, new_id) in id_map.iter().map(|(a, b)| (*a, *b)) {
-        //println!("{}", id);
         let node = input.nodes.swap_remove(&id).unwrap();
 
         let parent = node.parentId.and_then(|parent| {
             if let Some(parent) = id_map.get(&parent) {
-                assert!(output.contains(parent));
                 Some(parent)
             } else {
                 eprintln!("Warning: Node {} has missing parents", id);
@@ -60,7 +57,7 @@ fn convert_weave(mut input: LoomsidianWeave, created: DateTime<Local>) -> anyhow
             }
         });
 
-        assert!(output.add_node(DependentNode {
+        assert!(output.weave.add_node(DependentNode {
             id: new_id.0,
             from: parent.map(|id| id.0),
             to: IndexSet::default(),

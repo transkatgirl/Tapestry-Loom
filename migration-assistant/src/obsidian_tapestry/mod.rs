@@ -80,7 +80,7 @@ fn convert_weave(input: String, created: DateTime<Local>) -> anyhow::Result<Vec<
     for node in input_nodes {
         if let Some(node) = input.nodes.get(&node).cloned() {
             assert!(
-                output.add_node(DependentNode {
+                output.weave.add_node(DependentNode {
                     id: node.identifier.0,
                     from: node
                         .parentNode

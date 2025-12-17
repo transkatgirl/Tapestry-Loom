@@ -93,7 +93,16 @@ fn migrate_json_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<(
         let has_outputs = !output_weaves.is_empty();
 
         for (filename, weave_data) in output_weaves {
-            let output_path = output_path.to_path_buf().join(filename);
+            let output_path = output_path
+                .parent()
+                .map(|p| p.to_path_buf())
+                .unwrap_or_default()
+                .join(filename)
+                .with_extension("tapestry");
+
+            if let Some(parent) = output_path.parent() {
+                fs::create_dir_all(parent)?;
+            }
 
             println!("{} -> {}", input_path.display(), output_path.display());
 
