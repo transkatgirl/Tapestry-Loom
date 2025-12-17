@@ -89,7 +89,7 @@ fn migrate_json_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<(
     let created: DateTime<Local> = DateTime::from(fs::metadata(input_path)?.created()?);
 
     {
-        let output_weaves = loomsidian::migrate(&input, created)?;
+        let output_weaves = loomsidian::migrate_all(&input, created)?;
 
         let has_outputs = !output_weaves.is_empty();
 
@@ -113,6 +113,14 @@ fn migrate_json_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<(
         if has_outputs {
             return Ok(());
         }
+    }
+
+    if let Some(weave_data) = loomsidian::migrate(&input, created)? {
+        println!("{} -> {}", input_path.display(), output_path.display());
+
+        fs::write(output_path, weave_data)?;
+
+        return Ok(());
     }
 
     if let Some(weave_data) = exoloom::migrate(&input, created)? {

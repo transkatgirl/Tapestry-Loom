@@ -8,7 +8,7 @@ Supported input formats:
 - [exoloom](https://exoloom.io)*, last tested on December 17, 2025
 	- Note: Exoloom's export format does not contain information on which nodes are active
 
-\* = Supported on a best-effort basis
+\* = Supported on a best-effort basis; Please file any bugs that you find
 
 ## Getting Started
 

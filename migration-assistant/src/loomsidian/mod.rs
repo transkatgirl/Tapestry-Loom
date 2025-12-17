@@ -20,7 +20,10 @@ use uuid::Uuid;
 
 use crate::new_weave;
 
-pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Vec<(PathBuf, Vec<u8>)>> {
+pub fn migrate_all(
+    input: &str,
+    created: DateTime<Local>,
+) -> anyhow::Result<Vec<(PathBuf, Vec<u8>)>> {
     if let Ok(data) = serde_json::from_str::<LoomsidianData>(input) {
         let mut output = Vec::with_capacity(data.state.len());
 
@@ -34,17 +37,27 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Vec<(Pat
     }
 }
 
-fn convert_weave(mut input: LoomsidianWeave, created: DateTime<Local>) -> anyhow::Result<Vec<u8>> {
-    let mut id_map = IndexMap::with_capacity(input.nodes.len());
+pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<Vec<u8>>> {
+    if let Ok(data) = serde_json::from_str::<LoomsidianWeave>(input) {
+        Ok(Some(convert_weave(data, created)?))
+    } else {
+        Ok(None)
+    }
+}
 
-    for (id, _) in &input.nodes {
-        build_node_list(&input, id, &mut id_map, SystemTime::from(created));
+fn convert_weave(input: LoomsidianWeave, created: DateTime<Local>) -> anyhow::Result<Vec<u8>> {
+    let mut nodes = input.nodes.into_map();
+
+    let mut id_map = IndexMap::with_capacity(nodes.len());
+
+    for (id, _) in &nodes {
+        build_node_list(&nodes, id, &mut id_map, SystemTime::from(created));
     }
 
-    let mut output = new_weave(input.nodes.len(), created, "Loomsidian");
+    let mut output = new_weave(nodes.len(), created, "Loomsidian");
 
     for (id, new_id) in id_map.iter().map(|(a, b)| (*a, *b)) {
-        let node = input.nodes.swap_remove(&id).unwrap();
+        let node = nodes.swap_remove(&id).unwrap();
 
         let parent = node.parentId.and_then(|parent| {
             if let Some(parent) = id_map.get(&parent) {
@@ -62,7 +75,9 @@ fn convert_weave(mut input: LoomsidianWeave, created: DateTime<Local>) -> anyhow
             active: input.current == id,
             bookmarked: node.bookmarked,
             contents: NodeContent {
-                content: InnerNodeContent::Snippet(node.text.into_bytes()),
+                content: InnerNodeContent::Snippet(
+                    node.text.or(node.value).unwrap_or_default().into_bytes()
+                ),
                 metadata: IndexMap::default(),
                 model: node.author.and_then(|author| {
                     if author != "genesis" && author != "N/A" {
@@ -82,7 +97,7 @@ fn convert_weave(mut input: LoomsidianWeave, created: DateTime<Local>) -> anyhow
 }
 
 fn build_node_list(
-    weave: &LoomsidianWeave,
+    weave: &IndexMap<Uuid, LoomsidianNode>,
     node: &Uuid,
     nodes: &mut IndexMap<Uuid, Ulid>,
     created: SystemTime,
@@ -92,7 +107,7 @@ fn build_node_list(
     }
 
     let id = *node;
-    if let Some(node) = weave.nodes.get(node) {
+    if let Some(node) = weave.get(node) {
         let new_id = if let Some(last_visited) = node.lastVisited {
             Ulid::from_datetime(
                 SystemTime::UNIX_EPOCH + Duration::from_secs_f64(last_visited as f64 / 1000.0),
@@ -117,12 +132,58 @@ struct LoomsidianData {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct LoomsidianWeave {
     current: Uuid,
-    nodes: IndexMap<Uuid, LoomsidianNode>,
+    nodes: LoomsidianNodes,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+enum LoomsidianNodes {
+    Map(IndexMap<Uuid, LoomsidianNode>),
+    List(Vec<LoomsidianListNode>),
+}
+
+impl LoomsidianNodes {
+    fn into_map(self) -> IndexMap<Uuid, LoomsidianNode> {
+        match self {
+            Self::Map(map) => map,
+            Self::List(list) => list
+                .into_iter()
+                .map(|node| {
+                    (
+                        node.id,
+                        LoomsidianNode {
+                            text: node.text,
+                            value: node.value,
+                            author: node.author,
+                            parentId: node.parentId,
+                            bookmarked: node.bookmarked,
+                            lastVisited: node.lastVisited,
+                        },
+                    )
+                })
+                .collect(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct LoomsidianListNode {
+    id: Uuid,
+    text: Option<String>,
+    value: Option<String>,
+    author: Option<String>,
+    parentId: Option<Uuid>,
+
+    #[serde(default)]
+    bookmarked: bool,
+
+    lastVisited: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct LoomsidianNode {
-    text: String,
+    text: Option<String>,
+    value: Option<String>,
     author: Option<String>,
     parentId: Option<Uuid>,
 
