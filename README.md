@@ -56,6 +56,10 @@ See [Getting Started](./Getting%20Started.md) for more information on how to use
 
 The rest of this README covers the usage of external tools which Tapestry Loom can interface with.
 
+### Migrating weaves from other Loom implementations
+
+See [migration-assistant](./migration-assistant/README.md) for more information on how to migrate weaves from other Loom implementations to Tapestry Loom.
+
 ### Local inference
 
 [llama.cpp](https://github.com/ggml-org/llama.cpp)'s llama-server is recommended, as it has been confirmed to work properly with *all* of the features within Tapestry Loom.
@@ -96,10 +100,6 @@ Once a tokenization endpoint is configured for a model, enabling the setting "(O
 This setting requires the inference backend to support returning token IDs (to check if this is working, hover over generated tokens in the text editor to see if they contain a token identifier). This is a non-standard addition to the OpenAI Completions API which is currently supported by very few inference backends ([llama.cpp](https://github.com/ggml-org/llama.cpp) has been confirmed to work properly with this feature).
 
 If your inference backend returns token IDs in OpenAI-style Completions responses but they do not appear in your weaves, please file an issue.
-
-### Migrating weaves from other Loom implementations
-
-See [migration-assistant](./migration-assistant/README.md) for more information on how to migrate weaves from other Loom implementations to Tapestry Loom.
 
 ## Plans
 
