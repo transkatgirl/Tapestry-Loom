@@ -29,7 +29,7 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<V
             .collect();
 
         let mut id_map = HashMap::with_capacity(65536);
-        let mut output = new_weave(65536, created, "Loom");
+        let mut output = new_weave(65536, created, "PyLoom");
 
         convert_node(
             &mut output,
@@ -80,6 +80,15 @@ fn convert_node(
         metadata.insert("modified".to_string(), modified.to_string());
     }
 
+    let suffix = if let Some(attributes) = node.text_attributes
+        && let Some(append) = attributes.active_append
+    {
+        metadata.insert("active_append".to_string(), append.clone());
+        append
+    } else {
+        String::new()
+    };
+
     if let Some(chapter) = chapter {
         metadata.insert("chapter".to_string(), chapter.clone());
     }
@@ -87,6 +96,9 @@ fn convert_node(
     if !node.tags.is_empty() {
         metadata.insert("tags".to_string(), serde_json::to_string(&node.tags)?);
     }
+
+    let mut text = node.text;
+    text.push_str(&suffix);
 
     assert!(
         weave.weave.add_node(DependentNode {
@@ -96,7 +108,7 @@ fn convert_node(
             active: &node.id == selected,
             bookmarked: chapter.is_some(),
             contents: NodeContent {
-                content: InnerNodeContent::Snippet(node.text.into_bytes()),
+                content: InnerNodeContent::Snippet(text.into_bytes()),
                 metadata,
                 model: if node
                     .meta
@@ -153,11 +165,17 @@ struct PyloomNode {
     parent_id: Option<String>,
     chapter_id: Option<String>,
     text: String,
+    text_attributes: Option<PyloomTextAttr>,
     children: Vec<PyloomNode>,
     meta: Option<PyloomMeta>,
 
     #[serde(default)]
     tags: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct PyloomTextAttr {
+    active_append: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
