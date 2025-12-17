@@ -192,6 +192,7 @@ Add ability to manually controll refreshing of model tokenization identifier
 		- [ ] (Hide) Generated node text (only showing metadata & probabilities)
 	- [ ] Better handle valid UTF-8 character split across multiple nodes
 	- [ ] Improve graph/canvas layout algorithm
+		- [ ] Add generate buttons (displayed on hover) to canvas
 	- [ ] Improve clarity of error messages
 	- [ ] Better file manager
 	- [ ] Support keyboard shortcuts for all aspects of the UI, not just the weave editor
