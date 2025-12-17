@@ -540,6 +540,10 @@ fn render_expand_button(ui: &mut Ui, state: &mut SharedState, node: &Ulid, strok
     if ui
         .add(
             Button::new(RichText::new("...").size(ui.text_style_height(&TextStyle::Monospace)))
+                .min_size(Vec2 {
+                    x: ui.text_style_height(&TextStyle::Monospace) * 1.75,
+                    y: ui.text_style_height(&TextStyle::Monospace) * 1.75,
+                })
                 .fill(Color32::TRANSPARENT)
                 .stroke(stroke),
         )
