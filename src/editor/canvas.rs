@@ -409,7 +409,13 @@ impl CanvasView {
                             .max_rect(canvas_node.button_rect)
                             .layout(Layout::left_to_right(Align::Center)),
                         |ui| {
-                            render_expand_button(ui, render_state.2, node, *inactive_stroke);
+                            render_expand_button(
+                                ui,
+                                render_state.0,
+                                render_state.2,
+                                node,
+                                *inactive_stroke,
+                            );
                         },
                     );
                 }
@@ -539,23 +545,42 @@ fn should_render_expand_button(node: &Ulid, weave: &WeaveWrapper) -> bool {
     }
 }
 
-fn render_expand_button(ui: &mut Ui, state: &mut SharedState, node: &Ulid, stroke: Stroke) {
-    if ui
-        .add(
+fn render_expand_button(
+    ui: &mut Ui,
+    weave: &mut WeaveWrapper,
+    state: &mut SharedState,
+    node: &Ulid,
+    stroke: Stroke,
+) {
+    if let Some(weave_node) = weave.get_node(node).cloned()
+        && let Some(hover_node) = weave_node.to.first().copied().map(Ulid)
+    {
+        let is_hovered = state.get_hovered_node() == NodeIndex::Node(hover_node);
+
+        let response = ui.add(
             Button::new(RichText::new("...").size(ui.text_style_height(&TextStyle::Monospace)))
                 .min_size(Vec2 {
                     x: ui.text_style_height(&TextStyle::Monospace) * 1.75,
                     y: ui.text_style_height(&TextStyle::Monospace) * 1.75,
                 })
-                .fill(Color32::TRANSPARENT)
+                .fill(if !is_hovered {
+                    Color32::TRANSPARENT
+                } else {
+                    ui.style().visuals.widgets.hovered.weak_bg_fill
+                })
                 .stroke(stroke),
-        )
-        .clicked()
-    {
-        state.set_open(*node, true);
-    }
+        );
 
-    ui.set_max_width(ui.min_rect().width());
+        if response.contains_pointer() {
+            state.set_hovered_node(NodeIndex::Node(hover_node));
+        }
+
+        if response.clicked() {
+            state.set_open(*node, true);
+        }
+
+        ui.set_max_width(ui.min_rect().width());
+    }
 }
 
 fn calculate_size(ui: &Ui, hash: impl Hash, contents: impl FnOnce(&mut Ui)) -> Vec2 {
