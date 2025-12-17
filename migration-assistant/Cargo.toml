@@ -28,7 +28,9 @@ serde = { version = "1.0.228", features = [
 serde_json = { version = "1.0.145", features = [
 	"preserve_order",
 ] }
-chrono = "0.4.42"
+chrono = { version = "0.4.42", features = [
+	"serde",
+] }
 uuid = { version = "1.19.0", features = [
 	"serde",
 ] }

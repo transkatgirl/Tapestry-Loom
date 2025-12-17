@@ -4,7 +4,7 @@ A tool for converting weaves from other Loom implementations into the Tapestry L
 
 Supported input formats:
 - [Original Tapestry Loom](https://github.com/transkatgirl/Tapestry-Loom/tree/47561a4386ca9c0f09afb293d4e21eb4d7fe0c54)
-- [loomsidian](https://github.com/cosmicoptima/loom)*
+- [loomsidian](https://github.com/cosmicoptima/loom)*, last tested with commit afbb3519f10d668d4688c68370d7b9305c9f80dc
 
 \* = Supported on a best-effort basis
 
@@ -24,6 +24,9 @@ cp target/release/tapestry-loom-migration-assistant tapestry-migration-assistant
 ```
 
 ## Usage
+
+> [!WARNING]
+> Conversion is often lossy and may contain bugs. It is highly recommended that you keep your original input files after conversion.
 
 The migration assistant requires the following CLI arguments:
 
