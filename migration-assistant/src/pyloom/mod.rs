@@ -80,11 +80,21 @@ fn convert_node(
         metadata.insert("modified".to_string(), modified.to_string());
     }
 
-    let suffix = if let Some(attributes) = node.text_attributes
-        && let Some(append) = attributes.active_append
-    {
-        metadata.insert("active_append".to_string(), append.clone());
-        append
+    let suffix = if let Some(attributes) = node.text_attributes {
+        if let Some(preview) = attributes.child_preview {
+            metadata.insert("child_preview".to_string(), preview.clone());
+        }
+
+        if let Some(preview) = attributes.nav_preview {
+            metadata.insert("nav_preview".to_string(), preview.clone());
+        }
+
+        if let Some(append) = attributes.active_append {
+            metadata.insert("active_append".to_string(), append.clone());
+            append
+        } else {
+            String::new()
+        }
     } else {
         String::new()
     };
@@ -176,6 +186,8 @@ struct PyloomNode {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct PyloomTextAttr {
     active_append: Option<String>,
+    child_preview: Option<String>,
+    nav_preview: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -183,4 +195,48 @@ struct PyloomMeta {
     creation_timestamp: Option<String>,
     source: Option<String>,
     modified: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct PyloomSimpleNode {
+    text: String,
+    children: Vec<PyloomSimpleNode>,
+}
+
+pub fn migrate_simple(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<Vec<u8>>> {
+    if let Ok(data) = serde_json::from_str::<PyloomSimpleNode>(input) {
+        let mut output = new_weave(65536, created, "PyLoomSimple");
+
+        convert_export_node(&mut output, data, SystemTime::from(created), None);
+
+        Ok(Some(output.to_versioned_bytes()?))
+    } else {
+        Ok(None)
+    }
+}
+
+fn convert_export_node(
+    weave: &mut TapestryWeave,
+    node: PyloomSimpleNode,
+    created: SystemTime,
+    parent: Option<Ulid>,
+) {
+    let id = Ulid::from_datetime(created);
+
+    assert!(weave.weave.add_node(DependentNode {
+        id: id.0,
+        from: parent.map(|id| id.0),
+        to: IndexSet::default(),
+        active: false,
+        bookmarked: false,
+        contents: NodeContent {
+            content: InnerNodeContent::Snippet(node.text.into_bytes()),
+            metadata: IndexMap::default(),
+            model: None,
+        },
+    }));
+
+    for child in node.children {
+        convert_export_node(weave, child, created, Some(id));
+    }
 }

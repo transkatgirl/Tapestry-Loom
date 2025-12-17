@@ -156,7 +156,13 @@ fn migrate_json_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<(
         return Ok(());
     }
 
-    // TODO
+    if let Some(weave_data) = pyloom::migrate_simple(&input, created)? {
+        println!("{} -> {}", input_path.display(), output_path.display());
+
+        fs::write(output_path, weave_data)?;
+
+        return Ok(());
+    }
 
     println!("Skipping {}", input_path.display());
 
