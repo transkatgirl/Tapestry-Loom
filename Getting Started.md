@@ -192,8 +192,40 @@ The current shift-click actions are listed below:
 
 ### Node metadata
 
+Nodes contain metadata which can be displayed by hovering over them within the interface. Most subviews only display node-level metadata (unless the node contains only 1 token), but the (text) editor subview can display token-level metadata as well.
+
+The following metadata is stored per-node:
+- UTC Timestamp
+- Generation parameters
+- Some response fields (such as finish_reason)
+- Tokenization boundaries (if applicable)
+- Model
+	- Label
+	- Label color
+
+In addition, the following metadata is stored per-token:
+- Probability
+	- Whether or not probability is influenced by sampling parameters (such as temperature) will vary depending on the inference backend used.
+- "[Confidence](https://arxiv.org/pdf/2508.15260)"
+	- Confidence is a measure of how spread out the token distribution is. Higher confidence indicate a peaked token distribution (the model is more certain in its predictions), while lower confidence indicates a more spread out (higher model uncertainty) token distribution.
+	- Confidence values are only directly comparable if they use the same k value (k = number of tokens used in the calculation).
+- Token ID
+	- Some inference backends can opportunistically reuse output Token IDs when [configured to do so](./README.md#tokenization-server-optional), allowing for use cases such as looming over emoji token-by-token.
+
+(Note: It's important to keep in mind tokenization boundaries when working with base models, as feeding the model very unlikely tokens in your prompt, such as "Hello " instead of " Hello" can significantly worsen model performance.)
+
 ### Inference parameter configuration
+
+TODO
 
 <!--
 Remember to bring up logprob nodes
 -->
+
+## Thank you
+
+Thank you for using Tapestry Loom.
+
+Tapestry Loom aims to advance what a Loom can be. If you have any ideas on how to improve it further, please let us know by [creating a discussion](https://github.com/transkatgirl/Tapestry-Loom/discussions) or [filing an issue](https://github.com/transkatgirl/Tapestry-Loom/issues).
+
+Please [consider donating](https://github.com/sponsors/transkatgirl) to help fund further development. We want to keep Tapestry Loom free and open source for everybody forever, but **we can't do it without your help**.
