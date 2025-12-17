@@ -172,6 +172,18 @@ Shared state can be accessed by multiple subviews, while local state is not shar
 - Info
 	- Weave metadata editor
 
+### Inference parameter configuration
+
+The menu subview allows you to specify the models used for generation, the number of requests per model to send, and the parameters sent to the model's inference backend (such as temperature, max_tokens, logprobs, etc).
+
+Multiple models can be specified, allowing you to generate completions using multiple models at a time.
+
+Nodes can be recursively generated to a specified depth using the "Recursion" parameter. Be careful when using this parameter, as the number of requests generated exponentially increases as the recursion depth is increased.
+
+Parameter presets can be specified in Settings > Editor inference presets. Once presets are specified, they will appear as buttons at the top of this subview.
+
+Setting max_tokens = 1 and logprobs > 1 will generate single-token nodes for each of the top_logprobs, which can be useful for looming over individual tokens. When doing so, it is highly recommended that you set the request count to 1x, as token probabilities can vary depending on the inference backend batch size (causing node deduplication to deliver poor results).
+
 ### Keyboard shortcuts
 
 Keyboard shortcuts for common actions can be configured in Settings > Shortcuts. Click on a shortcut button to change it, and press escape while a shortcut is being edited in order to clear it.
@@ -212,15 +224,7 @@ In addition, the following metadata is stored per-token:
 - Token ID
 	- Some inference backends can opportunistically reuse output Token IDs when [configured to do so](./README.md#tokenization-server-optional), allowing for use cases such as looming over emoji token-by-token.
 
-(Note: It's important to keep in mind tokenization boundaries when working with base models, as feeding the model very unlikely tokens in your prompt, such as "Hello " instead of " Hello" can significantly worsen model performance.)
-
-### Inference parameter configuration
-
-TODO
-
-<!--
-Remember to bring up logprob nodes
--->
+Note: It's important to keep in mind tokenization boundaries when working with base models, as feeding the model very unlikely tokens in your prompt (such as "Hello " instead of " Hello") can significantly worsen model performance.
 
 ## Thank you
 
