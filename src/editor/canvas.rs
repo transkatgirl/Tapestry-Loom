@@ -362,16 +362,18 @@ impl CanvasView {
         let canvas_node = self.nodes.get(node).unwrap();
 
         if ui.clip_rect().min.x > canvas_node.max_x && !disable_culling {
-            for child in &canvas_node.to {
-                self.traverse_and_paint(
-                    ui,
-                    child,
-                    active_stroke,
-                    inactive_stroke,
-                    show_tooltip,
-                    render_state,
-                    disable_culling,
-                );
+            if render_state.2.is_open(node) {
+                for child in &canvas_node.to {
+                    self.traverse_and_paint(
+                        ui,
+                        child,
+                        active_stroke,
+                        inactive_stroke,
+                        show_tooltip,
+                        render_state,
+                        disable_culling,
+                    );
+                }
             }
         } else {
             if ui.clip_rect().max.x >= canvas_node.rect.max.x || disable_culling {
