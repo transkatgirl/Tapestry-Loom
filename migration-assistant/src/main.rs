@@ -61,6 +61,8 @@ fn main() -> anyhow::Result<()> {
                     fs::create_dir_all(parent)?;
                 }
 
+                assert_ne!(entry.path(), output);
+
                 if let Some(weave) = VersionedWeave::from_bytes(&fs::read(entry.path())?) {
                     let weave = weave?;
 
