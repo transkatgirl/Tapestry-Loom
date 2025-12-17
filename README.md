@@ -153,7 +153,7 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 - [x] Add ability to override model colors
 - [ ] Support for migrating weaves from other Loom implementations
 	- [x] [loomsidian](https://github.com/cosmicoptima/loom)
-	- [ ] [exoloom](https://exoloom.io)
+	- [x] [exoloom](https://exoloom.io)
 	- [ ] [loom](https://github.com/socketteer/loom)
 	- [x] Package migration assistant in releases
 - [ ] Better documentation & onboarding
