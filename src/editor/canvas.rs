@@ -1,6 +1,12 @@
 #![allow(clippy::too_many_arguments)]
 
-use std::{collections::HashSet, hash::Hash, time::Instant};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    hash::Hash,
+    rc::Rc,
+    time::Instant,
+};
 
 use eframe::{
     egui::{
@@ -18,7 +24,7 @@ use crate::{
         lists::{render_horizontal_node_label_buttons_ltr, render_node_context_menu},
         shared::{
             NodeIndex, SharedState,
-            layout::{ArrangedWeave, WeaveLayout, wire_bezier_3},
+            layout::{WeaveLayout, wire_bezier_3},
             render_node_metadata_tooltip, render_node_text_or_empty, render_token_tooltip,
             weave::WeaveWrapper,
         },
@@ -28,22 +34,30 @@ use crate::{
 
 #[derive(Debug)]
 pub struct CanvasView {
-    rect: Rect,
+    rect: Rc<RefCell<Rect>>,
     layout: WeaveLayout,
-    arranged: ArrangedWeave,
-    lines: Vec<([Pos2; 4], PathStroke)>,
+    nodes: HashMap<Ulid, CanvasNode>,
+    roots: Vec<Ulid>,
     active: HashSet<Ulid>,
     last_changed: Instant,
     new: bool,
 }
 
+#[derive(Debug)]
+struct CanvasNode {
+    rect: Rect,
+    to: Vec<Ulid>,
+    to_lines: Vec<([Pos2; 4], PathStroke)>,
+    max_x: f32,
+}
+
 impl Default for CanvasView {
     fn default() -> Self {
         Self {
-            rect: Rect::ZERO,
+            rect: Rc::new(RefCell::new(Rect::ZERO)),
             layout: WeaveLayout::with_capacity(65535, 131072),
-            arranged: ArrangedWeave::default(),
-            lines: Vec::with_capacity(131072),
+            nodes: HashMap::with_capacity(65535),
+            roots: Vec::with_capacity(128),
             active: HashSet::with_capacity(65535),
             last_changed: Instant::now(),
             new: true,
@@ -53,8 +67,8 @@ impl Default for CanvasView {
 
 impl CanvasView {
     /*pub fn reset(&mut self) {
-        self.rect = Rect::ZERO;
-        self.arranged = ArrangedWeave::default();
+        *self.rect.borrow_mut() = Rect::ZERO;
+        self.roots.clear();
         self.new = true;
     }*/
     pub fn update(
@@ -66,7 +80,7 @@ impl CanvasView {
         _shortcuts: FlagSet<Shortcuts>,
     ) {
         if state.has_weave_changed || state.has_theme_changed {
-            self.arranged = ArrangedWeave::default();
+            self.roots.clear();
         }
     }
     fn update_layout(
@@ -80,9 +94,11 @@ impl CanvasView {
 
         let active = HashSet::new();
 
-        let sizes: Vec<_> = weave
-            .dump_identifiers_ordered_u128_rev()
-            .into_iter()
+        let identifiers = weave.dump_identifiers_ordered_u128_rev();
+
+        let sizes: Vec<_> = identifiers
+            .iter()
+            .copied()
             .map(|id| {
                 let size = calculate_size(ui, id, |ui| {
                     render_node(
@@ -108,10 +124,10 @@ impl CanvasView {
             .collect();
 
         self.layout.load_weave(weave, sizes.into_iter());
-        self.arranged = self.layout.layout_weave(padding_base * 3.0);
+        let mut arranged = self.layout.layout_weave(padding_base * 3.0);
         self.last_changed = Instant::now();
 
-        for (_, rect) in self.arranged.rects.iter_mut() {
+        for (_, rect) in arranged.rects.iter_mut() {
             *rect = Rect {
                 min: Pos2 {
                     x: rect.min.y,
@@ -124,7 +140,8 @@ impl CanvasView {
             };
         }
 
-        self.lines.clear();
+        self.nodes.clear();
+        self.roots.extend(weave.get_roots());
 
         self.active = weave.get_active_thread().collect();
 
@@ -134,69 +151,58 @@ impl CanvasView {
 
         let padding_base = padding_base as f32;
 
-        for (item, rect) in self.arranged.rects.iter() {
-            if !self.active.contains(item)
-                && let Some(node) = weave.get_node(item)
-                && let Some(p_rect) = node.from.and_then(|id| self.arranged.rects.get(&Ulid(id)))
-            {
-                self.lines.push((
-                    wire_bezier_3(
-                        ui.style().spacing.interact_size.y * 2.0,
-                        Pos2 {
-                            x: p_rect.max.x - padding_base,
-                            y: (p_rect.min.y + (p_rect.max.y - p_rect.min.y) / 2.0),
-                        },
-                        Pos2 {
-                            x: rect.min.x + padding_base,
-                            y: (rect.min.y + (rect.max.y - rect.min.y) / 2.0),
-                        },
-                    ),
-                    PathStroke {
-                        width: stroke_width,
-                        color: ColorMode::Solid(stroke_color),
-                        kind: StrokeKind::Middle,
-                    },
-                ));
-            }
-        }
+        for item in identifiers.into_iter().map(Ulid) {
+            let rect = *arranged.rects.get(&item).unwrap();
 
-        for (item, rect) in self.arranged.rects.iter() {
-            if self.active.contains(item)
-                && let Some(node) = weave.get_node(item)
-                && let Some(p_rect) = node.from.and_then(|id| self.arranged.rects.get(&Ulid(id)))
-            {
-                self.lines.push((
-                    wire_bezier_3(
-                        ui.style().spacing.interact_size.y * 2.0,
-                        Pos2 {
-                            x: p_rect.max.x - padding_base,
-                            y: (p_rect.min.y + (p_rect.max.y - p_rect.min.y) / 2.0),
+            if let Some(node) = weave.get_node(&item) {
+                self.nodes.insert(
+                    item,
+                    CanvasNode {
+                        rect: Rect {
+                            min: Pos2 {
+                                x: rect.min.x + padding_base,
+                                y: rect.min.y,
+                            },
+                            max: Pos2 {
+                                x: rect.max.x - padding_base,
+                                y: rect.max.y,
+                            },
                         },
-                        Pos2 {
-                            x: rect.min.x + padding_base,
-                            y: (rect.min.y + (rect.max.y - rect.min.y) / 2.0),
-                        },
-                    ),
-                    PathStroke {
-                        width: stroke_width,
-                        color: ColorMode::Solid(active_stroke_color),
-                        kind: StrokeKind::Middle,
+                        to: node.to.iter().copied().map(Ulid).collect(),
+                        to_lines: Vec::with_capacity(node.to.len()),
+                        max_x: rect.max.x + (padding_base * 3.0),
                     },
-                ));
-            }
-        }
+                );
 
-        for (_, rect) in self.arranged.rects.iter_mut() {
-            *rect = Rect {
-                min: Pos2 {
-                    x: rect.min.x + padding_base,
-                    y: rect.min.y,
-                },
-                max: Pos2 {
-                    x: rect.max.x - padding_base,
-                    y: rect.max.y,
-                },
-            };
+                if let Some(parent) = node.from.map(Ulid) {
+                    let p_node = self.nodes.get_mut(&parent).unwrap();
+                    let p_rect = *arranged.rects.get(&parent).unwrap();
+
+                    p_node.max_x = p_node.max_x.max(rect.min.x + padding_base);
+                    p_node.to_lines.push((
+                        wire_bezier_3(
+                            ui.style().spacing.interact_size.y * 2.0,
+                            Pos2 {
+                                x: p_rect.max.x - padding_base,
+                                y: (p_rect.min.y + (p_rect.max.y - p_rect.min.y) / 2.0),
+                            },
+                            Pos2 {
+                                x: rect.min.x + padding_base,
+                                y: (rect.min.y + (rect.max.y - rect.min.y) / 2.0),
+                            },
+                        ),
+                        PathStroke {
+                            width: stroke_width,
+                            color: ColorMode::Solid(if !self.active.contains(&item) {
+                                stroke_color
+                            } else {
+                                active_stroke_color
+                            }),
+                            kind: StrokeKind::Middle,
+                        },
+                    ));
+                }
+            }
         }
     }
     pub fn render(
@@ -214,7 +220,7 @@ impl CanvasView {
             None
         };
 
-        if self.arranged.width == 0.0 && self.arranged.height == 0.0 {
+        if self.roots.is_empty() {
             self.update_layout(ui, weave, settings, state);
 
             if self.new {
@@ -225,7 +231,7 @@ impl CanvasView {
 
         let mut focus: Option<Rect> = None;
 
-        let last_rect = self.rect;
+        let last_rect = *self.rect.borrow();
 
         let clip_rect = ui.clip_rect();
         let outer_rect = ui.available_rect_before_wrap();
@@ -239,9 +245,9 @@ impl CanvasView {
             color: ui.visuals().widgets.active.fg_stroke.color,
         };
 
-        Scene::new().show(ui, &mut self.rect, |ui| {
-            let painter = ui.painter();
+        let scene_rect = self.rect.clone();
 
+        Scene::new().show(ui, &mut scene_rect.borrow_mut(), |ui| {
             if clip_rect.contains(ui.ctx().pointer_hover_pos().unwrap_or_default())
                 && last_rect != Rect::ZERO
             {
@@ -252,7 +258,70 @@ impl CanvasView {
                 changed_node = state.get_cursor_node().into_node();
             }
 
-            for (points, stroke) in self.lines.iter().cloned() {
+            if ui.is_visible() {
+                let show_tooltip = self.last_changed.elapsed().as_secs_f32()
+                    >= ui.style().interaction.tooltip_delay;
+
+                for root in &self.roots {
+                    self.traverse_and_paint(
+                        ui,
+                        root,
+                        &mut focus,
+                        &active_stroke,
+                        &inactive_stroke,
+                        &outer_rect,
+                        changed_node,
+                        show_tooltip,
+                        &mut (weave, settings, state),
+                    );
+                }
+            }
+        });
+
+        if let Some(focus) = focus {
+            *self.rect.borrow_mut() = focus;
+        }
+
+        if shortcuts.contains(Shortcuts::FitToWeave) {
+            *self.rect.borrow_mut() = Rect::ZERO;
+        }
+
+        if *self.rect.borrow() != last_rect {
+            self.last_changed = Instant::now();
+        }
+    }
+    fn traverse_and_paint(
+        &self,
+        ui: &mut Ui,
+        node: &Ulid,
+        focus: &mut Option<Rect>,
+        active_stroke: &Stroke,
+        inactive_stroke: &Stroke,
+        outer_rect: &Rect,
+        changed_node: Option<Ulid>,
+        show_tooltip: bool,
+        render_state: &mut (&mut WeaveWrapper, &Settings, &mut SharedState),
+    ) {
+        let canvas_node = self.nodes.get(node).unwrap();
+
+        if ui.clip_rect().min.x > canvas_node.max_x {
+            for child in &canvas_node.to {
+                self.traverse_and_paint(
+                    ui,
+                    child,
+                    focus,
+                    active_stroke,
+                    inactive_stroke,
+                    outer_rect,
+                    changed_node,
+                    show_tooltip,
+                    render_state,
+                );
+            }
+        } else {
+            let painter = ui.painter();
+
+            for (points, stroke) in canvas_node.to_lines.iter().cloned() {
                 painter.add(CubicBezierShape {
                     points,
                     closed: false,
@@ -261,52 +330,51 @@ impl CanvasView {
                 });
             }
 
-            let show_tooltip =
-                self.last_changed.elapsed().as_secs_f32() >= ui.style().interaction.tooltip_delay;
+            ui.scope_builder(UiBuilder::new().max_rect(canvas_node.rect), |ui| {
+                if ui.is_rect_visible(canvas_node.rect) {
+                    render_node(
+                        ui,
+                        render_state.0,
+                        &self.active,
+                        render_state.1,
+                        render_state.2,
+                        node,
+                        if self.active.contains(node) {
+                            *active_stroke
+                        } else {
+                            *inactive_stroke
+                        },
+                        show_tooltip,
+                    );
+                }
+            });
 
-            for (node, rect) in &self.arranged.rects {
-                ui.scope_builder(UiBuilder::new().max_rect(*rect), |ui| {
-                    if ui.is_rect_visible(*rect) {
-                        render_node(
-                            ui,
-                            weave,
-                            &self.active,
-                            settings,
-                            state,
-                            node,
-                            if self.active.contains(node) {
-                                active_stroke
-                            } else {
-                                inactive_stroke
-                            },
-                            show_tooltip,
-                        );
-                    }
-                });
+            if Some(*node) == changed_node {
+                let rect = canvas_node.rect;
+                let scale = (outer_rect.size() / rect.size()).min_elem();
 
-                if Some(*node) == changed_node {
-                    let rect = *rect;
-                    let scale = (outer_rect.size() / rect.size()).min_elem();
-
-                    if scale > 0.9 {
-                        focus = Some(rect.scale_from_center(scale * (1.0 / 0.9)));
-                    } else {
-                        focus = Some(rect);
-                    }
+                if scale > 0.9 {
+                    *focus = Some(rect.scale_from_center(scale * (1.0 / 0.9)));
+                } else {
+                    *focus = Some(rect);
                 }
             }
-        });
 
-        if let Some(focus) = focus {
-            self.rect = focus;
-        }
-
-        if shortcuts.contains(Shortcuts::FitToWeave) {
-            self.rect = Rect::ZERO;
-        }
-
-        if self.rect != last_rect {
-            self.last_changed = Instant::now();
+            if ui.clip_rect().max.x >= canvas_node.rect.min.x {
+                for child in &canvas_node.to {
+                    self.traverse_and_paint(
+                        ui,
+                        child,
+                        focus,
+                        active_stroke,
+                        inactive_stroke,
+                        outer_rect,
+                        changed_node,
+                        show_tooltip,
+                        render_state,
+                    );
+                }
+            }
         }
     }
 }
