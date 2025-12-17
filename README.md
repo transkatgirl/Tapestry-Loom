@@ -2,9 +2,6 @@
 
 A power user focused interface for LLM base models, inspired by the designs of [loom](https://github.com/socketteer/loom), [loomsidian](https://github.com/cosmicoptima/loom), [exoloom](https://exoloom.io), [logitloom](https://github.com/vgel/logitloom), and [wool](https://github.com/lyramakesmusic/wool).
 
-> [!WARNING]
-> This is a work in progress; Please make backups and report any bugs that you find.
-
 ## Known issues
 
 - Some documents may cause the text editor to render token boundaries incorrectly
@@ -15,6 +12,9 @@ A power user focused interface for LLM base models, inspired by the designs of [
 If you are experiencing an issue not listed here or in this [repository's active issues](https://github.com/transkatgirl/Tapestry-Loom/issues), please file an issue so that it can be fixed.
 
 ## Getting started
+
+> [!IMPORTANT]
+> This is a work in progress; Please make backups and report any bugs that you find.
 
 ### Binary releases
 

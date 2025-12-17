@@ -673,7 +673,7 @@ fn calculate_boundaries_and_update_scroll(
     }
 
     if let Some(rect) = scroll_to {
-        ui.scroll_to_rect(rect, Some(Align::Max));
+        ui.scroll_to_rect(rect, None);
     }
 }
 
