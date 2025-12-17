@@ -165,6 +165,16 @@ Add ability to manually controll refreshing of model tokenization identifier
 
 ### Plans for next major version
 
+- [ ] Support for DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
+	- [ ] FIM completions
+		- [ ] Selected text is used to determine FIM location
+	- [ ] Node copying & moving
+	- [ ] Perform heavy testing of data structures and/or formal verification to prevent bugs that could result in data loss
+	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
+	- [ ] Fully immutable nodes; Node splitting is implemented through duplication
+	- [ ] Prefix-based duplication
+- [ ] Embedding model support
+	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Add a plugin API & custom inference API
 	- [ ] Support the following use cases:
 		- [ ] LLM research
@@ -177,15 +187,6 @@ Add ability to manually controll refreshing of model tokenization identifier
 		- [ ] Allow adjusting proportion of completions from each model
 		- [ ] When working with multiple models, allow dynamically adjusting proportions based on usage
 			- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count
-- [ ] Support for DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
-	- [ ] FIM completions
-		- [ ] Selected text is used to determine FIM location
-	- [ ] Node copying & moving
-	- [ ] Perform heavy testing of data structures and/or formal verification to prevent bugs that could result in data loss
-	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
-	- [ ] Prefix-based duplication
-- [ ] Embedding model support
-	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Further UI improvements
 	- [ ] Blind comparison modes
 		- [ ] (Hide) Models & token probabilities / boundaries
