@@ -76,14 +76,7 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<V
             let bookmarked = bookmarks.contains(&id);
             let pruned = pruned.contains(&id);
 
-            let parent = node.parentId.and_then(|parent| {
-                if let Some(parent) = id_map.get(&parent) {
-                    Some(parent)
-                } else {
-                    eprintln!("Warning: Node {} has missing parents", id);
-                    None
-                }
-            });
+            let parent = node.parentId.map(|parent| id_map.get(&parent).unwrap());
 
             assert!(output.weave.add_node(DependentNode {
                 id: new_id.0,
