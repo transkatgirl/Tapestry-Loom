@@ -507,6 +507,9 @@ fn render_node(
         tooltip.show(|ui| {
             ui.horizontal(|ui| {
                 render_horizontal_node_label_buttons_ltr(ui, settings, state, weave, &node);
+                if !node.to.is_empty() {
+                    render_collapsing_button(ui, state, &Ulid(node.id));
+                }
             });
 
             if let InnerNodeContent::Tokens(tokens) = &node.contents.content
@@ -563,4 +566,18 @@ fn calculate_size(ui: &Ui, hash: impl Hash, contents: impl FnOnce(&mut Ui)) -> V
     );
     contents(&mut ui);
     ui.min_size()
+}
+
+fn render_collapsing_button(ui: &mut Ui, state: &mut SharedState, node: &Ulid) {
+    let is_open = state.is_open(node);
+
+    let label = if is_open { "\u{E43C}" } else { "\u{E43E}" };
+    let hover_text = if is_open {
+        "Collapse node"
+    } else {
+        "Expand node"
+    };
+    if ui.button(label).on_hover_text(hover_text).clicked() {
+        state.toggle_open(*node);
+    };
 }
