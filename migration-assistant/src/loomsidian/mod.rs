@@ -94,7 +94,9 @@ fn build_node_list(
     let id = *node;
     if let Some(node) = weave.nodes.get(node) {
         let new_id = if let Some(last_visited) = node.lastVisited {
-            Ulid::from_datetime(SystemTime::UNIX_EPOCH + Duration::from_secs(last_visited))
+            Ulid::from_datetime(
+                SystemTime::UNIX_EPOCH + Duration::from_secs_f64(last_visited as f64 / 1000.0),
+            )
         } else {
             Ulid::from_datetime(created)
         };
