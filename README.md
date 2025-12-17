@@ -14,7 +14,7 @@ If you are experiencing an issue not listed here or in this [repository's active
 ## Getting started
 
 > [!IMPORTANT]
-> This is a work in progress; Please make backups and report any bugs that you find.
+> This application is a work in progress; Please make backups and report any bugs that you find.
 
 ### Binary releases
 
@@ -157,8 +157,8 @@ If your inference backend returns token IDs in OpenAI-style Completions response
 	- [x] [loom](https://github.com/socketteer/loom)
 	- [x] Package migration assistant in releases
 - [ ] Add ability to manually control refreshing of model tokenization identifier
-- [ ] Better documentation & onboarding
-	- [ ] Finish manual
+- [x] Better documentation & onboarding
+	- [x] Finish documentation
 	- [x] Binary releases
 
 ### Plans for next major version

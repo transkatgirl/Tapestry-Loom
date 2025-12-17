@@ -125,7 +125,7 @@ Things to try:
 - Deleting a file
 - Deleting a folder
 
-## Advanced editor usage (WIP)
+## Advanced editor usage
 
 In this section, we'll explore the power user features of Tapestry Loom.
 
