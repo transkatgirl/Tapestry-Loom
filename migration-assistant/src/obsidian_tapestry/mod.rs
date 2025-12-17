@@ -15,8 +15,10 @@ use tapestry_weave::{
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
-    v0::{InnerNodeContent, Model, NodeContent, TapestryWeave},
+    v0::{InnerNodeContent, Model, NodeContent},
 };
+
+use crate::new_weave;
 
 pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<Vec<u8>>> {
     if let Ok((Some(Yaml::Hash(mut frontmatter)), _)) = parse_and_find_content(input) {
@@ -73,17 +75,7 @@ fn convert_weave(input: String, created: DateTime<Local>) -> anyhow::Result<Vec<
         input.build_node_list(*node, &mut input_nodes);
     }
 
-    let mut output = TapestryWeave::with_capacity(
-        input.nodes.len(),
-        IndexMap::from([
-            (
-                "converted_from".to_string(),
-                "LegacyTapestryLoom".to_string(),
-            ),
-            ("created".to_string(), created.to_rfc3339()),
-            ("converted".to_string(), Local::now().to_rfc3339()),
-        ]),
-    );
+    let mut output = new_weave(input.nodes.len(), created, "LegacyTapestryLoom");
 
     for node in input_nodes {
         if let Some(node) = input.nodes.get(&node).cloned() {

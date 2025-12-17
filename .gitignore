@@ -3,4 +3,4 @@ target
 /tapestry-tokenize/models
 /tapestry-tokenize/models.toml
 Rocket.toml
-/reference
+/migration-assistant/reference

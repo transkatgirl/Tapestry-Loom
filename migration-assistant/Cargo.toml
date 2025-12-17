@@ -29,6 +29,7 @@ serde_json = { version = "1.0.145", features = [
 	"preserve_order",
 ] }
 chrono = "0.4.42"
+uuid = { version = "1.19.0", features = ["serde"] }
 
 [profile.release]
 strip = "symbols"

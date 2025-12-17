@@ -7,8 +7,10 @@ use std::{
 
 use chrono::{DateTime, Local};
 use clap::Parser;
+use tapestry_weave::{universal_weave::indexmap::IndexMap, v0::TapestryWeave};
 use walkdir::WalkDir;
 
+mod loomsidian;
 mod obsidian_tapestry;
 
 #[derive(Parser)]
@@ -60,7 +62,7 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn migrate_markdown_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<()> {
+fn migrate_markdown_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<()> {
     assert_ne!(input_path, output_path);
 
     let input = fs::read_to_string(input_path)?;
@@ -79,12 +81,48 @@ pub fn migrate_markdown_weave(input_path: &Path, output_path: &Path) -> anyhow::
     Ok(())
 }
 
-pub fn migrate_json_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<()> {
+fn migrate_json_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<()> {
     assert_ne!(input_path, output_path);
+
+    let input = fs::read_to_string(input_path)?;
+    let created: DateTime<Local> = DateTime::from(fs::metadata(input_path)?.created()?);
+
+    {
+        let output_weaves = loomsidian::migrate(&input, created)?;
+
+        let has_outputs = !output_weaves.is_empty();
+
+        for (filename, weave_data) in output_weaves {
+            let output_path = output_path.to_path_buf().join(filename);
+
+            println!("{} -> {}", input_path.display(), output_path.display());
+
+            fs::write(output_path, weave_data)?;
+        }
+
+        if has_outputs {
+            return Ok(());
+        }
+    }
 
     // TODO
 
     println!("Skipping {}", input_path.display());
 
     Ok(())
+}
+
+fn new_weave(
+    capacity: usize,
+    created: DateTime<Local>,
+    converted_from: &'static str,
+) -> TapestryWeave {
+    TapestryWeave::with_capacity(
+        capacity,
+        IndexMap::from([
+            ("converted_from".to_string(), converted_from.to_string()),
+            ("created".to_string(), created.to_rfc3339()),
+            ("converted".to_string(), Local::now().to_rfc3339()),
+        ]),
+    )
 }

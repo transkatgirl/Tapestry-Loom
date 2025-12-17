@@ -1568,6 +1568,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tapestry-weave",
+ "uuid",
  "walkdir",
 ]
 
@@ -1814,6 +1815,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2e054861b4bd027cd373e18e8d8d8e6548085000e41290d95ce0c373a654b4a"
 dependencies = [
  "js-sys",
+ "serde_core",
  "wasm-bindgen",
 ]
 
