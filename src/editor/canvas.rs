@@ -258,15 +258,12 @@ impl CanvasView {
                 changed_node = state.get_cursor_node().into_node();
             }
 
-            for root in &self.roots {
-                self.traverse_and_focus(root, &mut focus, &outer_rect, changed_node);
-            }
-
             if ui.is_visible() {
                 let show_tooltip = self.last_changed.elapsed().as_secs_f32()
                     >= ui.style().interaction.tooltip_delay;
 
                 for root in &self.roots {
+                    self.traverse_and_focus(root, &mut focus, &outer_rect, changed_node);
                     self.traverse_and_paint(
                         ui,
                         root,
