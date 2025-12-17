@@ -7,7 +7,7 @@ use std::{
 
 use chrono::{DateTime, Local};
 use clap::Parser;
-use tapestry_weave::{universal_weave::indexmap::IndexMap, v0::TapestryWeave};
+use tapestry_weave::{VersionedWeave, universal_weave::indexmap::IndexMap, v0::TapestryWeave};
 use walkdir::WalkDir;
 
 mod exoloom;
@@ -56,6 +56,20 @@ fn main() -> anyhow::Result<()> {
                 }
 
                 migrate_json_weave(entry.path(), &output)?;
+            } else if extension == "tapestry" {
+                if let Some(parent) = output.parent() {
+                    fs::create_dir_all(parent)?;
+                }
+
+                if let Some(weave) = VersionedWeave::from_bytes(&fs::read(entry.path())?) {
+                    let weave = weave?;
+
+                    println!("{} -> {}", entry.path().display(), output.display());
+
+                    fs::write(output, weave.into_latest().to_versioned_bytes()?)?;
+                } else {
+                    println!("Skipping {}", entry.path().display());
+                }
             }
         }
     }
