@@ -174,7 +174,21 @@ Shared state can be accessed by multiple subviews, while local state is not shar
 
 ### Keyboard shortcuts
 
+Keyboard shortcuts for common actions can be configured in Settings > Shortcuts. Click on a shortcut button to change it, and press escape while a shortcut is being edited in order to clear it.
+
+(Note: On MacOS, shortcuts containing Ctrl can be pressed using either the control or command buttons.)
+
+Keyboard shortcuts are prioritized in the order they are listed in the settings menu.
+
+When the settings view is visible, keyboards shortcuts are prioritized below all other keyboard input handlers. When the settings view is hidden, keyboards shortcuts are prioritized above all other keyboard input handlers.
+
 ### Menu shift-click
+
+When performing actions on nodes using UI buttons, some actions can be performed differently if the shift button is being held when the button is being pressed.
+
+The current shift-click actions are listed below:
+- Shift clicking a node generation button will mark the parent of the generated nodes as active.
+- Shift clicking a node creation button will mark the creative node is active.
 
 ### Node metadata
 

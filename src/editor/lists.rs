@@ -666,7 +666,7 @@ pub fn render_horizontal_node_label_buttons_ltr(
         .on_hover_text(if !is_shift_pressed {
             "Add node"
         } else {
-            "Add focused node"
+            "Add active node"
         })
         .clicked()
     {
@@ -748,7 +748,7 @@ pub fn render_horizontal_node_label_buttons_rtl(
         .on_hover_text(if !is_shift_pressed {
             "Add node"
         } else {
-            "Add focused node"
+            "Add active node"
         })
         .clicked()
     {
@@ -1153,7 +1153,7 @@ pub fn render_node_context_menu(
         .button(if !is_shift_pressed {
             "Create child"
         } else {
-            "Create focused child"
+            "Create active child"
         })
         .clicked()
     {
@@ -1184,7 +1184,7 @@ pub fn render_node_context_menu(
         .button(if !is_shift_pressed {
             "Create sibling"
         } else {
-            "Create focused sibling"
+            "Create active sibling"
         })
         .clicked()
     {
