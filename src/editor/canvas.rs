@@ -263,7 +263,7 @@ impl CanvasView {
                     >= ui.style().interaction.tooltip_delay;
 
                 for root in &self.roots {
-                    self.traverse_and_focus(root, &mut focus, &outer_rect, changed_node);
+                    self.traverse_and_focus(root, &mut focus, &outer_rect, changed_node, state);
                     self.traverse_and_paint(
                         ui,
                         root,
@@ -294,21 +294,24 @@ impl CanvasView {
         focus: &mut Option<Rect>,
         outer_rect: &Rect,
         changed_node: Option<Ulid>,
+        state: &SharedState,
     ) {
         let canvas_node = self.nodes.get(node).unwrap();
 
-        for child in &canvas_node.to {
-            self.traverse_and_focus(child, focus, outer_rect, changed_node);
+        if Some(*node) == changed_node {
+            let rect = canvas_node.rect;
+            let scale = (outer_rect.size() / rect.size()).min_elem();
 
-            if Some(*node) == changed_node {
-                let rect = canvas_node.rect;
-                let scale = (outer_rect.size() / rect.size()).min_elem();
+            if scale > 0.9 {
+                *focus = Some(rect.scale_from_center(scale * (1.0 / 0.9)));
+            } else {
+                *focus = Some(rect);
+            }
+        }
 
-                if scale > 0.9 {
-                    *focus = Some(rect.scale_from_center(scale * (1.0 / 0.9)));
-                } else {
-                    *focus = Some(rect);
-                }
+        if state.is_open(node) {
+            for child in &canvas_node.to {
+                self.traverse_and_focus(child, focus, outer_rect, changed_node, state);
             }
         }
     }
