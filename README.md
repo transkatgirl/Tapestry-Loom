@@ -190,6 +190,7 @@ Add ability to manually controll refreshing of model tokenization identifier
 	- [ ] Blind comparison modes
 		- [ ] (Hide) Models & token probabilities / boundaries
 		- [ ] (Hide) Generated node text (only showing metadata & probabilities)
+	- [ ] Improve handling of hovered + omitted/collapsed nodes
 	- [ ] Better handle valid UTF-8 character split across multiple nodes
 	- [ ] Improve graph/canvas layout algorithm
 		- [ ] Add generate buttons (displayed on hover) to canvas
