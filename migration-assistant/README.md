@@ -6,11 +6,12 @@ Supported input formats:
 - Tapestry Loom
 	- Useful for verifying that all weaves within a folder are valid
 - [Original Tapestry Loom](https://github.com/transkatgirl/Tapestry-Loom/tree/47561a4386ca9c0f09afb293d4e21eb4d7fe0c54)
-- [loomsidian](https://github.com/cosmicoptima/loom)*, last tested with commit afbb3519f10d668d4688c68370d7b9305c9f80dc
+- [loom](https://github.com/socketteer/loom)*, tested with commit 91ca920551120ad4508540e8da057c0b94067afc
+- [loomsidian](https://github.com/cosmicoptima/loom)*, tested with commit afbb3519f10d668d4688c68370d7b9305c9f80dc
 - [exoloom](https://exoloom.io)*, last tested on December 17, 2025
 	- Note: Exoloom's export format does not contain information on which nodes are active
 
-\* = Supported on a best-effort basis; Please file any bugs that you find
+\* = Supported on a best-effort basis & likely incomplete; Please file any bugs that you find
 
 ## Getting Started
 

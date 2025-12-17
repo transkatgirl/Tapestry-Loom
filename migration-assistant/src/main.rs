@@ -13,6 +13,7 @@ use walkdir::WalkDir;
 mod exoloom;
 mod loomsidian;
 mod obsidian_tapestry;
+mod pyloom;
 
 #[derive(Parser)]
 #[command(version)]
@@ -140,6 +141,14 @@ fn migrate_json_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<(
     }
 
     if let Some(weave_data) = exoloom::migrate(&input, created)? {
+        println!("{} -> {}", input_path.display(), output_path.display());
+
+        fs::write(output_path, weave_data)?;
+
+        return Ok(());
+    }
+
+    if let Some(weave_data) = pyloom::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
         fs::write(output_path, weave_data)?;

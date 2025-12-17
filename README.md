@@ -231,6 +231,7 @@ Add ability to manually controll refreshing of model tokenization identifier
 		- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
 	- [ ] Optimize memory usage to be as low as reasonably possible
 - [ ] Add support for more weave migrations
+	- [ ] bonsai (using [damask](https://github.com/tel-0s/damask))
 	- [ ] [wool](https://github.com/lyramakesmusic/wool)
 	- [ ] [helm](https://github.com/Shoalstone/helm)
 	- [ ] (subset of) [miniloom](https://github.com/JD-P/miniloom)
