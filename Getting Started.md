@@ -155,11 +155,11 @@ Shared state can be accessed by multiple subviews, while local state is not shar
 ### Subview descriptions
 
 - Canvas
-	- Content graph of all nodes within the weave <!-- TODO: Content graph of all expanded nodes within the weave -->
+	- Content graph of all expanded nodes within the weave
 - Graph
 	- Graph of all nodes within the weave
 - Tree
-	- Treelist of nodes nearby the cursor node
+	- Treelist of expanded nodes nearby the cursor node
 - List
 	- List of nodes which are children of the cursor node
 - Bookmarks

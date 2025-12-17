@@ -151,9 +151,6 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 - [x] Allow saving and switching between multiple inference presets
 	- [x] Add keyboard shortcuts for inference presets
 - [x] Add ability to override model colors
-- [ ] Further canvas view improvements
-	- [x] Add node collapsing
-	- [ ] Add node creation button
 - [ ] Support for migrating weaves from other Loom implementations
 	- [ ] [loomsidian](https://github.com/cosmicoptima/loom)
 	- [ ] [exoloom](https://exoloom.io)
