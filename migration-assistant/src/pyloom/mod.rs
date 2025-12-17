@@ -34,6 +34,7 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<V
         convert_node(
             &mut output,
             &mut id_map,
+            SystemTime::from(created),
             data.root,
             &data.selected_node_id,
             &chapters,
@@ -48,6 +49,7 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<V
 fn convert_node(
     weave: &mut TapestryWeave,
     id_map: &mut HashMap<String, Ulid>,
+    created: SystemTime,
     node: PyloomNode,
     selected: &String,
     chapters: &IndexMap<String, String>,
@@ -58,7 +60,8 @@ fn convert_node(
         .and_then(|meta| meta.creation_timestamp.clone())
         .and_then(|timestamp| NaiveDateTime::parse_from_str(&timestamp, "%Y-%m-%d-%H.%M.%S").ok())
         .and_then(|timestamp| timestamp.and_local_timezone(Local).earliest())
-        .map(SystemTime::from);
+        .map(SystemTime::from)
+        .unwrap_or(created);
     let new_id = map_id(id_map, node.id.clone(), time);
 
     let parent = node.parent_id.and_then(|parent| {
@@ -138,22 +141,16 @@ fn convert_node(
     );
 
     for child in node.children {
-        convert_node(weave, id_map, child, selected, chapters)?;
+        convert_node(weave, id_map, created, child, selected, chapters)?;
     }
 
     Ok(())
 }
 
-fn map_id(id_map: &mut HashMap<String, Ulid>, id: String, time: Option<SystemTime>) -> Ulid {
+fn map_id(id_map: &mut HashMap<String, Ulid>, id: String, time: SystemTime) -> Ulid {
     match id_map.entry(id) {
         Entry::Occupied(occupied) => *occupied.get(),
-        Entry::Vacant(vacant) => *vacant
-            .insert_entry(if let Some(time) = time {
-                Ulid::from_datetime(time)
-            } else {
-                Ulid::new()
-            })
-            .get(),
+        Entry::Vacant(vacant) => *vacant.insert_entry(Ulid::from_datetime(time)).get(),
     }
 }
 
