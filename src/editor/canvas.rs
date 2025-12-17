@@ -304,6 +304,7 @@ impl CanvasView {
                         &inactive_stroke,
                         show_tooltip,
                         &mut (weave, settings, state),
+                        last_rect == Rect::ZERO,
                     );
                 }
             }
@@ -356,10 +357,11 @@ impl CanvasView {
         inactive_stroke: &Stroke,
         show_tooltip: bool,
         render_state: &mut (&mut WeaveWrapper, &Settings, &mut SharedState),
+        disable_culling: bool,
     ) {
         let canvas_node = self.nodes.get(node).unwrap();
 
-        if ui.clip_rect().min.x > canvas_node.max_x {
+        if ui.clip_rect().min.x > canvas_node.max_x && !disable_culling {
             for child in &canvas_node.to {
                 self.traverse_and_paint(
                     ui,
@@ -368,10 +370,11 @@ impl CanvasView {
                     inactive_stroke,
                     show_tooltip,
                     render_state,
+                    disable_culling,
                 );
             }
         } else {
-            if ui.clip_rect().max.x >= canvas_node.rect.max.x {
+            if ui.clip_rect().max.x >= canvas_node.rect.max.x || disable_culling {
                 if render_state.2.is_open(node) {
                     let painter = ui.painter();
 
@@ -392,9 +395,10 @@ impl CanvasView {
                             inactive_stroke,
                             show_tooltip,
                             render_state,
+                            disable_culling,
                         );
                     }
-                } else if ui.is_rect_visible(canvas_node.button_rect)
+                } else if (ui.is_rect_visible(canvas_node.button_rect) || disable_culling)
                     && should_render_expand_button(node, render_state.0)
                 {
                     let painter = ui.painter();
@@ -422,7 +426,7 @@ impl CanvasView {
             }
 
             ui.scope_builder(UiBuilder::new().max_rect(canvas_node.rect), |ui| {
-                if ui.is_rect_visible(canvas_node.rect) {
+                if ui.is_rect_visible(canvas_node.rect) || disable_culling {
                     render_node(
                         ui,
                         render_state.0,
