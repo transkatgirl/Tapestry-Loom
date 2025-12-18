@@ -224,6 +224,7 @@ In addition, the following metadata is stored per-token:
 	- Confidence values are only directly comparable if they use the same k value (k = number of tokens used in the calculation).
 - Token ID
 	- Some inference backends can opportunistically reuse output Token IDs when [configured to do so](./README.md#tokenization-server-optional), allowing for use cases such as looming over emoji token-by-token.
+	- The identifier used to match Token IDs to the model which generated them is automatically refreshed when the model's configuration is changed in settings.
 
 Note: It's important to keep in mind tokenization boundaries when working with base models, as feeding the model very unlikely tokens in your prompt (such as "Hello " instead of " Hello") can significantly worsen model performance.
 
