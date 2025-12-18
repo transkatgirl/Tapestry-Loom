@@ -227,6 +227,15 @@ In addition, the following metadata is stored per-token:
 
 Note: It's important to keep in mind tokenization boundaries when working with base models, as feeding the model very unlikely tokens in your prompt (such as "Hello " instead of " Hello") can significantly worsen model performance.
 
+### Debug logging
+
+Running Tapestry Loom in a console window can provide you with additional debugging information and more detailed error messages (the error messages shown in the application are often shortened to be more legible on the limited screen space available).
+
+Compiling Tapestry Loom from source code in debug mode (so, without the `--release` flag) will enable the following features:
+- Trace-level logging (useful if you need to see the exact inputs/outputs of a model request).
+- Node identifiers displayed in hover information
+- Additional assertions to catch invalid application states earlier
+
 ## Thank you
 
 Thank you for using Tapestry Loom.
