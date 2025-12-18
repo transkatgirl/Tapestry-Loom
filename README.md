@@ -2,6 +2,18 @@
 
 A power user focused interface for LLM base models, inspired by the designs of [loom](https://github.com/socketteer/loom), [loomsidian](https://github.com/cosmicoptima/loom), [exoloom](https://exoloom.io), [logitloom](https://github.com/vgel/logitloom), and [wool](https://github.com/lyramakesmusic/wool).
 
+<details>
+
+<summary>Screenshots</summary>
+
+![](./docs/screenshots/1.png)
+![](./docs/screenshots/2.png)
+![](./docs/screenshots/3.png)
+![](./docs/screenshots/4.png)
+![](./docs/screenshots/5.png)
+
+</details>
+
 ## Known issues
 
 - Some documents may cause the text editor to render token boundaries incorrectly

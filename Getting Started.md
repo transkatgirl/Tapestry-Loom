@@ -4,7 +4,7 @@ Tapestry Loom consists of three types of views: The file manager, (application-w
 
 Editors can either be temporary, or they can be backed by a file on disk (Tapestry Loom's document format has the file extension `.tapestry`). When an editor is backed by a file on disk, changes will be automatically saved to disk. This way, if the application crashes, only very recent changes will be lost.
 
-Note: If you'd like to test out Tapestry Loom's interface without configuring an inference provider, see the [example-weaves](./example-weaves/) folder for some sample documents.
+Note: If you'd like to test out Tapestry Loom's interface without configuring an inference provider, see the [docs/example-weaves](./docs/example-weaves) folder for some sample documents.
 
 ## Adding a model in Settings
 
@@ -74,7 +74,7 @@ welcome to the world you never knew existed.
 so, how does it feel to step into the unknown?
 ```
 
-> A sample document containing this prompt can be found in [example-weaves/welcome.tapestry](./example-weaves/welcome.tapestry).
+> A sample document containing this prompt can be found in [docs/example-weaves/welcome.tapestry](./docs/example-weaves/welcome.tapestry).
 
 After you have a node in the tree view, hover over it and click the speech bubble icon with a robot in it to generate some completions. If you're not satisfied with the completions you initially get, you can hover over the node he want to continue from and click the icon again to generate more completions.
 
