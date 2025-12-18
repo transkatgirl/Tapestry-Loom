@@ -156,7 +156,6 @@ If your inference backend returns token IDs in OpenAI-style Completions response
 	- [x] [exoloom](https://exoloom.io)
 	- [x] [loom](https://github.com/socketteer/loom)
 	- [x] Package migration assistant in releases
-- [ ] Add ability to manually control refreshing of model tokenization identifier
 - [x] Better documentation & onboarding
 	- [x] Finish documentation
 	- [x] Binary releases
@@ -186,6 +185,7 @@ If your inference backend returns token IDs in OpenAI-style Completions response
 		- [ ] When working with multiple models, allow dynamically adjusting proportions based on usage
 			- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count
 - [ ] Further UI improvements
+	- [ ] Add ability to manually control refreshing of model tokenization identifier
 	- [ ] Blind comparison modes
 		- [ ] (Hide) Models & token probabilities / boundaries
 		- [ ] (Hide) Generated node text (only showing metadata & probabilities)

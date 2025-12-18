@@ -1,6 +1,6 @@
 [package]
 name = "tapestry-loom"
-version = "0.10.3"
+version = "0.10.4"
 authors = [
 	"transkatgirl",
 ]
