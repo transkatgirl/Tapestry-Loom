@@ -14,7 +14,7 @@ If you are experiencing an issue not listed here or in this [repository's active
 ## Getting started
 
 > [!IMPORTANT]
-> This application is a work in progress; Please make backups and report any bugs that you find.
+> This application is a work in progress; Please make backups and [report any bugs that you find](https://github.com/transkatgirl/Tapestry-Loom/issues).
 
 ### Binary releases
 
