@@ -103,62 +103,9 @@ If your inference backend returns token IDs in OpenAI-style Completions response
 
 ## Plans
 
-- [x] Migrate to a desktop app rather than an Obsidian plugin
-	- [x] Implement conversion from the old Weave format to the new one
-	- [x] Implement all functionality supported by the original Obsidian plugin
-- [x] Full UI redesign
-	- [x] Resizable, dragable, scrollable, and collapsible settings
-	- [x] Three user-switchable UIs:
-		- [x] Interactive canvas + textbox, similar to [wool](https://github.com/lyramakesmusic/wool)
-			- [x] Implement dragable and scrollable canvas
-			- [x] Implement draggable canvas nodes
-				- [x] Implement canvas node left click
-				- [x] Implement canvas node right click
-			- [x] Implement canvas actions
-			- [x] Implement resizable & dragable textbox
-			- [x] Automatically adjust canvas position & highlighting based on textbox cursor location
-			- [x] Automatically scroll textbox based on canvas cursor
-			- [x] Scroll newly generated nodes into view
-		- [x] Compact tree + compact treelist + textbox, similar to [loomsidian](https://github.com/cosmicoptima/loom) & old Tapestry Loom
-			- [x] Implement resizable, dragable & scrollable tree
-			- [x] Implement tree nodes
-				- [x] Implement tree node content display on hover
-				- [x] Implement tree node left click
-				- [x] Implement tree node right click
-			- [x] Implement resizable & scrollable treelist
-			- [x] Implement resizable and scrollable textbox
-			- [x] Automatically adjust tree position & highlighting based on textbox cursor location
-			- [x] Automatically scroll textbox based on tree cursor location
-			- [x] Scroll newly generated nodes into view
-		- [x] Compact tree + node child list + textbox, similar to [exoloom](https://exoloom.io)
-			- [x] Implement resizable, dragable & scrollable tree
-			- [x] Implement tree nodes
-				- [x] Implement tree node content display on hover
-				- [x] Implement tree node left click
-				- [x] Implement tree node right click
-			- [x] Implement resizable and scrollable node child list
-			- [x] Implement resizable and scrollable textbox
-			- [x] Automatically adjust tree position & highlighting based on textbox cursor location
-			- [x] Automatically scroll textbox based on tree cursor location
-			- [x] Scroll newly generated nodes into view
-	- [x] Weave metadata tab
-	- [x] Better UI error handling
-- [x] Keyboard shortcut implementation
-	- [x] Automatically adapt keyboards shortcuts based on OS (such as Mac vs Windows/Linux)
-	- [x] Repeat keypresses when a keyboard be cut is held down
-- [x] Store model output token IDs in nodes and reuse them when applicable
-- [x] Tapestry Loom tokenization server
-- [x] Allow saving and switching between multiple inference presets
-	- [x] Add keyboard shortcuts for inference presets
-- [x] Add ability to override model colors
-- [x] Support for migrating weaves from other Loom implementations
-	- [x] [loomsidian](https://github.com/cosmicoptima/loom)
-	- [x] [exoloom](https://exoloom.io)
-	- [x] [loom](https://github.com/socketteer/loom)
-	- [x] Package migration assistant in releases
-- [x] Better documentation & onboarding
-	- [x] Finish documentation
-	- [x] Binary releases
+At the moment, all major features planned for the initial release have been implemented. Development will slow down for the next few months, as the focus shifts towards fixing bugs and improving documentation.
+
+Development of the next major version of Tapestry Loom will begin in Q1 2026. Please [consider donating](https://github.com/sponsors/transkatgirl) to help fund further development.
 
 ### Plans for next major version
 
