@@ -85,6 +85,10 @@ Explanation of arguments:
 - The default sampling parameters (those specified by the CLI arguments) should leave the model's output distribution unchanged. **Sampling parameter defaults for chat models do not generalize to how base models are used.**
 	- The sampling parameters specified in the CLI arguments will be overridden by any sampling parameters that are specified in a request.
 
+Additional useful arguments (depending on your use case):
+- `--no-cont-batching`
+	- Continuous batching significantly improves response determinism at the expense of performance. Should be used if you plan on analyzing logprobs or using greedy sampling.
+
 If you are running llama-server on the same device as Tapestry Loom (and you are using the default port), you do not need to explicitly specify an endpoint URL when filling out the "OpenAI-style Completions" and "OpenAI-style ChatCompletions" templates.
 
 #### Recommended models
