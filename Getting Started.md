@@ -132,6 +132,7 @@ In this section, we'll explore the power user features of Tapestry Loom.
 ### Subview state
 
 The subviews in the editor have three different types of state:
+
 - Shared + persistent:
 	- Node contents, relationships, identifiers, active/bookmarked statuses, metadata
 	- Weave metadata
@@ -166,7 +167,7 @@ Shared state can be accessed by multiple subviews, while local state is not shar
 	- List of all bookmarked nodes in the weave
 - Editor
 	- Editor of active text within the document
-	- Currently the only view which allows the user to change the cursor position without changing the active nodes
+	- Allows you to quickly change the cursor position without changing the active nodes
 - Menu
 	- Inference parameters editor
 - Info

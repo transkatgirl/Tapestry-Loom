@@ -188,6 +188,7 @@ There are already good chat looms (such as [miniloom](https://github.com/JD-P/mi
 
 ### Speculative ideas
 
+- [ ] Support weaves of arbitrarily large size using a database-based format
 - [ ] Self-contained packaging: All documentation and tools in one app, rather than being spread out over multiple
 - [ ] Collaborative weave editing
 - [ ] Server-client, multi-user WebUI
