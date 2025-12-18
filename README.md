@@ -6,10 +6,10 @@ A power user focused interface for LLM base models, inspired by the designs of [
 
 <summary>Screenshots</summary>
 
-![](./docs/screenshots/1.png)
-![](./docs/screenshots/2.png)
-![](./docs/screenshots/3.png)
-![](./docs/screenshots/4.png)
+![](./docs/screenshots/tree+edit.png)
+![](./docs/screenshots/graph+edit.png)
+![](./docs/screenshots/canvas+edit.png)
+![](./docs/screenshots/inference-settings.png)
 
 </details>
 
