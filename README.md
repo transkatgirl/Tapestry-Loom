@@ -10,7 +10,6 @@ A power user focused interface for LLM base models, inspired by the designs of [
 ![](./docs/screenshots/2.png)
 ![](./docs/screenshots/3.png)
 ![](./docs/screenshots/4.png)
-![](./docs/screenshots/5.png)
 
 </details>
 
