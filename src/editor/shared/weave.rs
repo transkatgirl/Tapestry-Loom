@@ -203,7 +203,7 @@ impl WeaveWrapper {
     }
     pub fn set_node_active_status_u128(&mut self, id: &u128, value: bool) -> bool {
         self.changed = true;
-        self.weave.weave.set_node_active_status(id, value)
+        self.weave.weave.set_node_active_status(id, value, false)
     }
     pub fn merge_with_parent(&mut self, id: &Ulid) -> bool {
         self.changed = true;
