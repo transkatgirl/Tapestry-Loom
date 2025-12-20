@@ -44,8 +44,13 @@ static GLOBAL: MiMalloc = MiMalloc;
 fn main() -> eframe::Result {
     env_logger::Builder::from_env(Env::default().default_filter_or("debug,tapestry_loom=trace,winit=info,layouting=warn,coordinate_calculation=warn,crossing_reduction=warn,ranking=warn,Cycle Removal=warn,connected_components=warn,rust_sugiyama::algorithm=warn")).init();
     let options = NativeOptions {
+        #[cfg(target_os = "macos")]
         viewport: ViewportBuilder::default()
             .with_fullscreen(true)
+            .with_icon(Arc::new(IconData::default())),
+        #[cfg(not(target_os = "macos"))]
+        viewport: ViewportBuilder::default()
+            .with_maximized(true)
             .with_icon(Arc::new(IconData::default())),
         persist_window: true,
         ..Default::default()
