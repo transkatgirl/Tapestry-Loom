@@ -1,6 +1,6 @@
 [package]
 name = "tapestry-loom"
-version = "0.10.4"
+version = "0.10.5"
 authors = [
 	"transkatgirl",
 ]
@@ -39,7 +39,7 @@ ron = { version = "0.12.0", features = [
 	"integer128",
 	"unicode-segmentation",
 ] }
-reqwest = { version = "0.12.25", features = [
+reqwest = { version = "0.12.26", features = [
 	"json",
 	"gzip",
 	"brotli",
