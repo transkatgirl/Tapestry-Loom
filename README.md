@@ -132,6 +132,7 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
 	- [ ] Fully immutable nodes; Node splitting is implemented through duplication
 	- [ ] Prefix-based duplication
+	- [ ] Implement counterfactual logprobs choosing, similar to [loom](https://github.com/socketteer/loom)
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Add a plugin API & custom inference API
@@ -148,13 +149,14 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 			- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count
 - [ ] Further UI improvements
 	- [ ] Add ability to manually control refreshing of model tokenization identifier
+	- [ ] Improve graph/canvas layout algorithm
+		- [ ] Add generate buttons (displayed on hover) to canvas
+	- [ ] Support arbitrary color gradients for logprob highlighting
 	- [ ] Blind comparison modes
 		- [ ] (Hide) Models & token probabilities / boundaries
 		- [ ] (Hide) Generated node text (only showing metadata & probabilities)
 	- [ ] Improve handling of hovered + omitted/collapsed nodes
 	- [ ] Better handle valid UTF-8 character split across multiple nodes
-	- [ ] Improve graph/canvas layout algorithm
-		- [ ] Add generate buttons (displayed on hover) to canvas
 	- [ ] Improve clarity of error messages
 	- [ ] Better file manager
 	- [ ] Support keyboard shortcuts for all aspects of the UI, not just the weave editor
