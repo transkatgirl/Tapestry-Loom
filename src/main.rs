@@ -308,7 +308,6 @@ impl TapestryLoomApp {
 
         let root = tiles.insert_tab_tile(tabs);
 
-        cc.egui_ctx.style_mut(|style| style.animation_time = 0.0);
         behavior.settings.borrow().interface.apply(&cc.egui_ctx);
 
         let last_ui_settings = behavior.settings.borrow().interface;

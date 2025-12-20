@@ -456,7 +456,7 @@ impl ModelInferenceParameters {
         });
 
         ui.label("Request parameters:");
-        render_config_map(ui, &mut self.parameters, 0.55, 0.45, false);
+        render_config_map(ui, &mut self.parameters, 0.55, 0.45);
     }
 }
 
@@ -944,7 +944,6 @@ pub fn render_config_map(
     value: &mut Vec<(String, String)>,
     key_width: f32,
     value_width: f32,
-    clip_text: bool,
 ) {
     let mut remove = None;
 
@@ -956,12 +955,10 @@ pub fn render_config_map(
             TextEdit::singleline(key)
                 .hint_text("key")
                 .desired_width(key_width)
-                .clip_text(clip_text)
                 .ui(ui);
             TextEdit::singleline(value)
                 .hint_text("value")
                 .desired_width(value_width)
-                .clip_text(clip_text)
                 .ui(ui);
             if ui.button("\u{E28F}").on_hover_text("Remove item").clicked() {
                 remove = Some(index);
@@ -984,7 +981,6 @@ pub fn render_config_list(
     hint_text: Option<&str>,
     new_item_text: Option<&str>,
     item_width: f32,
-    clip_text: bool,
 ) {
     let mut remove = None;
 
@@ -995,7 +991,6 @@ pub fn render_config_list(
             TextEdit::singleline(item)
                 .hint_text(hint_text.unwrap_or("item"))
                 .desired_width(item_width)
-                .clip_text(clip_text)
                 .ui(ui);
             if ui.button("\u{E28F}").on_hover_text("Remove item").clicked() {
                 remove = Some(index);

@@ -321,12 +321,12 @@ impl Endpoint for OpenAICompletionsConfig {
 
         ui.group(|ui| {
             ui.label("Request parameters:");
-            render_config_map(ui, &mut self.parameters, 0.9, 1.1, true);
+            render_config_map(ui, &mut self.parameters, 0.9, 1.1);
         });
 
         ui.group(|ui| {
             ui.label("Request headers:");
-            render_config_map(ui, &mut self.headers, 0.9, 1.1, true);
+            render_config_map(ui, &mut self.headers, 0.9, 1.1);
         });
 
         *self != old
@@ -539,7 +539,7 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
         ui.group(|ui| {
             ui.label("Request parameters:");
-            render_config_map(ui, &mut self.parameters, 0.9, 1.1, true);
+            render_config_map(ui, &mut self.parameters, 0.9, 1.1);
         });
 
         ui.group(|ui| {
@@ -550,7 +550,6 @@ impl Endpoint for OpenAIChatCompletionsConfig {
                 Some("{\"role\": \"user\",\"content\": \"\"}"),
                 Some("{\"role\": \"user\",\"content\": \"\"}"),
                 2.0,
-                true,
             );
         });
 
@@ -573,13 +572,12 @@ impl Endpoint for OpenAIChatCompletionsConfig {
                 Some("{\"role\": \"user\",\"content\": \"\"}"),
                 Some("{\"role\": \"user\",\"content\": \"\"}"),
                 2.0,
-                true,
             );
         });
 
         ui.group(|ui| {
             ui.label("Request headers:");
-            render_config_map(ui, &mut self.headers, 0.9, 1.1, true);
+            render_config_map(ui, &mut self.headers, 0.9, 1.1);
         });
 
         *self != old
@@ -724,7 +722,7 @@ impl NonStandardOpenAIModifications {
         if is_chat {
             ui.group(|ui| {
                 ui.label("Additional input message parameters:");
-                render_config_map(ui, &mut self.chat_message_custom_fields, 0.675, 0.825, true);
+                render_config_map(ui, &mut self.chat_message_custom_fields, 0.675, 0.825);
             });
         } else {
             TextEdit::singleline(&mut self.tokenization_endpoint)

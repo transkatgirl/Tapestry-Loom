@@ -142,7 +142,10 @@ impl Display for UIFonts {
 impl UISettings {
     pub fn apply(&self, ctx: &Context) {
         ctx.set_zoom_factor(self.ui_scale);
-        ctx.set_visuals(self.ui_theme.get_visuals());
+        ctx.style_mut(|style| {
+            style.animation_time = 0.0;
+            style.visuals = self.ui_theme.get_visuals();
+        });
     }
     fn render(&mut self, ui: &mut Ui) {
         ComboBox::from_label("Theme")
