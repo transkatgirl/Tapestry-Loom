@@ -98,7 +98,7 @@ Explanation of arguments:
 
 Additional useful arguments (depending on your use case):
 - `--no-cont-batching`
-	- Continuous batching significantly improves response determinism at the expense of performance. Should be used if you plan on analyzing logprobs or using greedy sampling.
+	- Disabling continuous batching significantly improves response determinism at the expense of performance. Should be used if you plan on analyzing logprobs or using greedy sampling.
 
 If you are running llama-server on the same device as Tapestry Loom (and you are using the default port), you do not need to explicitly specify an endpoint URL when filling out the "OpenAI-style Completions" and "OpenAI-style ChatCompletions" templates.
 
