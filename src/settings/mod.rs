@@ -363,14 +363,14 @@ impl Settings {
                         ui.heading("Interface");
                         self.interface.render(ui);
                         ui.separator();
-                        ui.heading("Shortcuts");
-                        self.shortcuts.render(ui);
+                        ui.heading("Inference");
+                        self.inference.render(ui);
                         ui.separator();
                         ui.heading("Document");
                         self.documents.render(ui);
                         ui.separator();
-                        ui.heading("Inference");
-                        self.inference.render(ui);
+                        ui.heading("Shortcuts");
+                        self.shortcuts.render(ui);
                         ui.separator();
                         ui.hyperlink_to(
                             format!(
