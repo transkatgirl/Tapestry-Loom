@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, hash_map::Entry},
     fmt::Display,
+    hash::BuildHasherDefault,
     rc::Rc,
     sync::Arc,
     time::Duration,
@@ -16,6 +17,7 @@ use poll_promise::Promise;
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tapestry_weave::{
+    hashers::UlidHasher,
     ulid::Ulid,
     universal_weave::{
         dependent::DependentNode,
@@ -460,6 +462,8 @@ impl ModelInferenceParameters {
     }
 }
 
+type WeaveNode = DependentNode<u128, NodeContent, BuildHasherDefault<UlidHasher>>;
+
 #[allow(clippy::too_many_arguments)]
 impl InferenceParameters {
     pub fn reset(&mut self, settings: &InferenceSettings) {
@@ -687,7 +691,7 @@ impl InferenceParameters {
         client: Option<&InferenceClient>,
         cache: &InferenceCache,
         input: &mut HashMap<Ulid, InferenceHandle>,
-        output: &mut Vec<Result<DependentNode<NodeContent>, anyhow::Error>>,
+        output: &mut Vec<Result<WeaveNode, anyhow::Error>>,
     ) {
         let keys: Vec<Ulid> = input.keys().cloned().collect();
 

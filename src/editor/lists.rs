@@ -27,7 +27,8 @@ use tapestry_weave::{
 use crate::{
     editor::shared::{
         NodeIndex, SharedState, change_color_opacity, get_node_color, render_node_metadata_tooltip,
-        render_node_text_or_empty, render_token_tooltip, weave::WeaveWrapper,
+        render_node_text_or_empty, render_token_tooltip,
+        weave::{WeaveNode, WeaveWrapper},
     },
     listing_margin,
     settings::{Settings, shortcuts::Shortcuts},
@@ -631,7 +632,7 @@ pub fn render_horizontal_node_label_buttons_ltr(
     settings: &Settings,
     state: &mut SharedState,
     weave: &mut WeaveWrapper,
-    node: &DependentNode<NodeContent>,
+    node: &WeaveNode,
 ) {
     let is_shift_pressed = ui.input(|input| input.modifiers.shift);
 
@@ -719,7 +720,7 @@ pub fn render_horizontal_node_label_buttons_rtl(
     settings: &Settings,
     state: &mut SharedState,
     weave: &mut WeaveWrapper,
-    node: &DependentNode<NodeContent>,
+    node: &WeaveNode,
 ) {
     let is_shift_pressed = ui.input(|input| input.modifiers.shift);
 
@@ -952,21 +953,9 @@ fn render_horizontal_node_label(
     settings: &Settings,
     state: &mut SharedState,
     weave: &mut WeaveWrapper,
-    node: &DependentNode<NodeContent>,
-    mut buttons: impl FnMut(
-        &mut Ui,
-        &Settings,
-        &mut SharedState,
-        &mut WeaveWrapper,
-        &DependentNode<NodeContent>,
-    ),
-    mut context_menu: impl FnMut(
-        &mut Ui,
-        &Settings,
-        &mut SharedState,
-        &mut WeaveWrapper,
-        &DependentNode<NodeContent>,
-    ),
+    node: &WeaveNode,
+    mut buttons: impl FnMut(&mut Ui, &Settings, &mut SharedState, &mut WeaveWrapper, &WeaveNode),
+    mut context_menu: impl FnMut(&mut Ui, &Settings, &mut SharedState, &mut WeaveWrapper, &WeaveNode),
     show_node_info: bool,
 ) {
     let mut mouse_hovered = false;
@@ -1122,7 +1111,7 @@ pub fn render_node_context_menu(
     settings: &Settings,
     state: &mut SharedState,
     weave: &mut WeaveWrapper,
-    node: &DependentNode<NodeContent>,
+    node: &WeaveNode,
     collapsing: bool,
 ) {
     let is_shift_pressed = ui.input(|input| input.modifiers.shift);

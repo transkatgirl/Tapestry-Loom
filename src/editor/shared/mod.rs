@@ -19,7 +19,7 @@ use tapestry_weave::{
 use tokio::runtime::Runtime;
 
 use crate::{
-    editor::shared::weave::WeaveWrapper,
+    editor::shared::weave::{WeaveNode, WeaveWrapper},
     settings::{
         Settings, UISettings,
         inference::{
@@ -51,7 +51,7 @@ pub struct SharedState {
     next_opened_updated: bool,
     pub has_opened_changed: bool,
     requests: HashMap<Ulid, InferenceHandle>,
-    responses: Vec<Result<DependentNode<NodeContent>, anyhow::Error>>,
+    responses: Vec<Result<WeaveNode, anyhow::Error>>,
     last_ui_settings: UISettings,
     pub has_theme_changed: bool,
     last_activated_hovered: bool,
@@ -630,7 +630,7 @@ impl From<InnerNodeContent> for TokensOrBytes {
     }
 }
 
-pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &DependentNode<NodeContent>) {
+pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &WeaveNode) {
     ui.set_max_width(ui.spacing().tooltip_width);
 
     if let Some(model) = &node.contents.model {
@@ -764,7 +764,7 @@ pub fn get_token_color(
     }
 }
 
-pub fn get_node_color(node: &DependentNode<NodeContent>, settings: &Settings) -> Option<Color32> {
+pub fn get_node_color(node: &WeaveNode, settings: &Settings) -> Option<Color32> {
     if settings.interface.show_model_colors {
         if settings.interface.override_model_colors
             && let Some(color_override) = settings.interface.model_color_override
@@ -789,7 +789,7 @@ pub fn get_node_color(node: &DependentNode<NodeContent>, settings: &Settings) ->
 
 /*pub fn render_node_text(
     ui: &Ui,
-    node: &DependentNode<NodeContent>,
+    node: &WeaveNode,
     settings: &Settings,
     override_color: Option<Color32>,
 ) -> LayoutJob {
@@ -858,7 +858,7 @@ pub fn get_node_color(node: &DependentNode<NodeContent>, settings: &Settings) ->
 
 pub fn render_node_text_or_first_token_bytes(
     ui: &Ui,
-    node: &DependentNode<NodeContent>,
+    node: &WeaveNode,
     settings: &Settings,
     override_color: Option<Color32>,
 ) -> LayoutJob {
@@ -939,7 +939,7 @@ pub fn render_node_text_or_first_token_bytes(
 
 pub fn render_node_text_or_empty(
     ui: &Ui,
-    node: &DependentNode<NodeContent>,
+    node: &WeaveNode,
     settings: &Settings,
     override_color: Option<Color32>,
 ) -> LayoutJob {

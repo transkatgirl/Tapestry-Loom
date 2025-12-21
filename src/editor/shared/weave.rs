@@ -5,15 +5,18 @@ use std::{
 
 use chrono::Local;
 use tapestry_weave::{
+    hashers::UlidHasher,
     ulid::Ulid,
     universal_weave::{
         Weave,
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
-        rkyv::{hash::FxHasher64, rancor},
+        rkyv::rancor,
     },
     v0::{NodeContent, TapestryWeave},
 };
+
+pub type WeaveNode = DependentNode<u128, NodeContent, BuildHasherDefault<UlidHasher>>;
 
 pub struct WeaveWrapper {
     weave: TapestryWeave,
@@ -77,10 +80,10 @@ impl WeaveWrapper {
     pub fn contains(&self, id: &Ulid) -> bool {
         self.weave.contains(id)
     }
-    pub fn get_node(&self, id: &Ulid) -> Option<&DependentNode<NodeContent>> {
+    pub fn get_node(&self, id: &Ulid) -> Option<&WeaveNode> {
         self.weave.get_node(id)
     }
-    pub fn get_node_u128(&self, id: &u128) -> Option<&DependentNode<NodeContent>> {
+    pub fn get_node_u128(&self, id: &u128) -> Option<&WeaveNode> {
         self.weave.weave.get_node(id)
     }
 
@@ -96,7 +99,7 @@ impl WeaveWrapper {
             .map(Ulid)
     }*/
     pub fn get_thread_from_u128(&mut self, id: &u128) -> impl DoubleEndedIterator<Item = u128> {
-        self.weave.weave.get_thread_from(id).iter().copied()
+        self.weave.weave.get_thread_from(id)
     }
     /*pub fn get_active_thread(&mut self) -> impl DoubleEndedIterator<Item = Ulid> {
         self.weave
@@ -144,26 +147,16 @@ impl WeaveWrapper {
         }
     }
     pub fn get_active_thread_u128(&mut self) -> impl DoubleEndedIterator<Item = u128> {
-        self.weave.weave.get_active_thread().iter().copied()
+        self.weave.weave.get_active_thread()
     }
     pub fn get_active_thread(&mut self) -> impl DoubleEndedIterator<Item = Ulid> {
-        self.weave
-            .weave
-            .get_active_thread()
-            .iter()
-            .copied()
-            .map(Ulid)
+        self.weave.weave.get_active_thread().map(Ulid)
     }
     /*pub fn get_active_thread_nodes(&mut self) -> impl Iterator<Item = &DependentNode<NodeContent>> {
         self.weave.get_active_thread()
     }*/
     pub fn get_active_thread_first(&mut self) -> Option<Ulid> {
-        self.weave
-            .weave
-            .get_active_thread()
-            .front()
-            .copied()
-            .map(Ulid)
+        self.weave.weave.get_active_thread().next().map(Ulid)
     }
     pub fn get_active_thread_len(&mut self) -> usize {
         self.weave.weave.get_active_thread().len()
@@ -174,7 +167,7 @@ impl WeaveWrapper {
     pub fn get_roots_u128(&self) -> impl Iterator<Item = u128> {
         self.weave.weave.get_roots().iter().copied()
     }
-    pub fn get_roots_u128_direct(&self) -> &IndexSet<u128, BuildHasherDefault<FxHasher64>> {
+    pub fn get_roots_u128_direct(&self) -> &IndexSet<u128, BuildHasherDefault<UlidHasher>> {
         self.weave.weave.get_roots()
     }
     pub fn has_changed(&mut self) -> bool {
@@ -188,7 +181,7 @@ impl WeaveWrapper {
         value
     }
 
-    pub fn add_node(&mut self, node: DependentNode<NodeContent>) -> bool {
+    pub fn add_node(&mut self, node: WeaveNode) -> bool {
         self.changed = true;
         self.layout_changed = true;
         self.weave.add_node(node)
