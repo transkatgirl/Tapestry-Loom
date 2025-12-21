@@ -79,6 +79,8 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 
 KoboldCpp is not recommended due to a lack of request queuing and a poor implementation of logprobs (the number of requested logprobs is entirely ignored).
 
+LM Studio is not recommended due to a lack of support for logprobs.
+
 The recommended CLI arguments for [llama-server](https://github.com/ggml-org/llama.cpp/tree/master/tools/server) are listed below:
 
 ```bash
