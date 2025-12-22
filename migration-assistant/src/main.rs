@@ -7,7 +7,7 @@ use std::{
 
 use chrono::{DateTime, Local};
 use clap::Parser;
-use tapestry_weave::{VersionedWeave, universal_weave::indexmap::IndexMap, v0::TapestryWeave};
+use tapestry_weave::{VersionedWeave, universal_weave::indexmap::IndexMap, v0};
 use walkdir::WalkDir;
 
 mod exoloom;
@@ -25,6 +25,10 @@ struct Cli {
     /// Folder to output migrated weaves into
     #[arg(short, long)]
     output: PathBuf,
+
+    /// Use the oldest tapestry-weave format version possible
+    #[arg(long)]
+    disable_upgrade: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -50,13 +54,13 @@ fn main() -> anyhow::Result<()> {
                     fs::create_dir_all(parent)?;
                 }
 
-                migrate_markdown_weave(entry.path(), &output)?;
+                migrate_markdown_weave(entry.path(), &output, !args.disable_upgrade)?;
             } else if extension == "json" {
                 if let Some(parent) = output.parent() {
                     fs::create_dir_all(parent)?;
                 }
 
-                migrate_json_weave(entry.path(), &output)?;
+                migrate_json_weave(entry.path(), &output, !args.disable_upgrade)?;
             } else if extension == "tapestry" {
                 if let Some(parent) = output.parent() {
                     fs::create_dir_all(parent)?;
@@ -69,7 +73,15 @@ fn main() -> anyhow::Result<()> {
 
                     println!("{} -> {}", entry.path().display(), output.display());
 
-                    fs::write(output, weave.into_latest().to_versioned_bytes()?)?;
+                    fs::write(
+                        output,
+                        if !args.disable_upgrade {
+                            weave.into_latest().to_versioned_weave()
+                        } else {
+                            weave
+                        }
+                        .to_bytes()?,
+                    )?;
                 } else {
                     println!("Skipping {}", entry.path().display());
                 }
@@ -80,7 +92,11 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn migrate_markdown_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<()> {
+fn migrate_markdown_weave(
+    input_path: &Path,
+    output_path: &Path,
+    upgrade: bool,
+) -> anyhow::Result<()> {
     assert_ne!(input_path, output_path);
 
     let input = fs::read_to_string(input_path)?;
@@ -89,7 +105,15 @@ fn migrate_markdown_weave(input_path: &Path, output_path: &Path) -> anyhow::Resu
     if let Some(weave_data) = obsidian_tapestry::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
-        fs::write(output_path, weave_data)?;
+        fs::write(
+            output_path,
+            if upgrade {
+                weave_data.into_latest().to_versioned_weave()
+            } else {
+                weave_data
+            }
+            .to_bytes()?,
+        )?;
 
         return Ok(());
     }
@@ -99,7 +123,7 @@ fn migrate_markdown_weave(input_path: &Path, output_path: &Path) -> anyhow::Resu
     Ok(())
 }
 
-fn migrate_json_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<()> {
+fn migrate_json_weave(input_path: &Path, output_path: &Path, upgrade: bool) -> anyhow::Result<()> {
     assert_ne!(input_path, output_path);
 
     let input = fs::read_to_string(input_path)?;
@@ -124,7 +148,15 @@ fn migrate_json_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<(
 
             println!("{} -> {}", input_path.display(), output_path.display());
 
-            fs::write(output_path, weave_data)?;
+            fs::write(
+                output_path,
+                if upgrade {
+                    weave_data.into_latest().to_versioned_weave()
+                } else {
+                    weave_data
+                }
+                .to_bytes()?,
+            )?;
         }
 
         if has_outputs {
@@ -135,7 +167,15 @@ fn migrate_json_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<(
     if let Some(weave_data) = loomsidian::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
-        fs::write(output_path, weave_data)?;
+        fs::write(
+            output_path,
+            if upgrade {
+                weave_data.into_latest().to_versioned_weave()
+            } else {
+                weave_data
+            }
+            .to_bytes()?,
+        )?;
 
         return Ok(());
     }
@@ -143,7 +183,15 @@ fn migrate_json_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<(
     if let Some(weave_data) = exoloom::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
-        fs::write(output_path, weave_data)?;
+        fs::write(
+            output_path,
+            if upgrade {
+                weave_data.into_latest().to_versioned_weave()
+            } else {
+                weave_data
+            }
+            .to_bytes()?,
+        )?;
 
         return Ok(());
     }
@@ -151,7 +199,15 @@ fn migrate_json_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<(
     if let Some(weave_data) = pyloom::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
-        fs::write(output_path, weave_data)?;
+        fs::write(
+            output_path,
+            if upgrade {
+                weave_data.into_latest().to_versioned_weave()
+            } else {
+                weave_data
+            }
+            .to_bytes()?,
+        )?;
 
         return Ok(());
     }
@@ -159,7 +215,15 @@ fn migrate_json_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<(
     if let Some(weave_data) = pyloom::migrate_simple(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
-        fs::write(output_path, weave_data)?;
+        fs::write(
+            output_path,
+            if upgrade {
+                weave_data.into_latest().to_versioned_weave()
+            } else {
+                weave_data
+            }
+            .to_bytes()?,
+        )?;
 
         return Ok(());
     }
@@ -169,12 +233,12 @@ fn migrate_json_weave(input_path: &Path, output_path: &Path) -> anyhow::Result<(
     Ok(())
 }
 
-fn new_weave(
+fn new_weave_v0(
     capacity: usize,
     created: DateTime<Local>,
     converted_from: &'static str,
-) -> TapestryWeave {
-    TapestryWeave::with_capacity(
+) -> v0::TapestryWeave {
+    v0::TapestryWeave::with_capacity(
         capacity,
         IndexMap::from([
             ("converted_from".to_string(), converted_from.to_string()),

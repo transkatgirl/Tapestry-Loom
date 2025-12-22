@@ -8,6 +8,7 @@ use std::{
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use tapestry_weave::{
+    VersionedWeave,
     ulid::Ulid,
     universal_weave::{
         Weave,
@@ -18,12 +19,12 @@ use tapestry_weave::{
 };
 use uuid::Uuid;
 
-use crate::new_weave;
+use crate::new_weave_v0;
 
 pub fn migrate_all(
     input: &str,
     created: DateTime<Local>,
-) -> anyhow::Result<Vec<(PathBuf, Vec<u8>)>> {
+) -> anyhow::Result<Vec<(PathBuf, VersionedWeave)>> {
     if let Ok(data) = serde_json::from_str::<LoomsidianData>(input) {
         let mut output = Vec::with_capacity(data.state.len());
 
@@ -37,7 +38,7 @@ pub fn migrate_all(
     }
 }
 
-pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<Vec<u8>>> {
+pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<VersionedWeave>> {
     if let Ok(data) = serde_json::from_str::<LoomsidianWeave>(input) {
         Ok(Some(convert_weave(data, created)?))
     } else {
@@ -45,7 +46,10 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<V
     }
 }
 
-fn convert_weave(input: LoomsidianWeave, created: DateTime<Local>) -> anyhow::Result<Vec<u8>> {
+fn convert_weave(
+    input: LoomsidianWeave,
+    created: DateTime<Local>,
+) -> anyhow::Result<VersionedWeave> {
     let mut nodes = input.nodes.into_map();
 
     let mut id_map = IndexMap::with_capacity(nodes.len());
@@ -54,7 +58,7 @@ fn convert_weave(input: LoomsidianWeave, created: DateTime<Local>) -> anyhow::Re
         build_node_list(&nodes, id, &mut id_map, SystemTime::from(created));
     }
 
-    let mut output = new_weave(nodes.len(), created, "Loomsidian");
+    let mut output = new_weave_v0(nodes.len(), created, "Loomsidian");
 
     for (id, new_id) in id_map.iter().map(|(a, b)| (*a, *b)) {
         let node = nodes.swap_remove(&id).unwrap();
@@ -93,7 +97,7 @@ fn convert_weave(input: LoomsidianWeave, created: DateTime<Local>) -> anyhow::Re
         }));
     }
 
-    Ok(output.to_versioned_bytes()?)
+    Ok(output.to_versioned_weave())
 }
 
 fn build_node_list(

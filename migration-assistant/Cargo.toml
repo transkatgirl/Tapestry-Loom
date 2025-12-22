@@ -1,6 +1,6 @@
 [package]
 name = "tapestry-loom-migration-assistant"
-version = "0.3.1"
+version = "0.4.0"
 authors = [
 	"transkatgirl",
 ]

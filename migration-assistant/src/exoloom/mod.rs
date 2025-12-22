@@ -9,6 +9,7 @@ use std::{
 use chrono::{DateTime, Local, Utc};
 use serde::{Deserialize, Serialize};
 use tapestry_weave::{
+    VersionedWeave,
     ulid::Ulid,
     universal_weave::{
         Weave,
@@ -18,9 +19,9 @@ use tapestry_weave::{
     v0::{InnerNodeContent, Model, NodeContent},
 };
 
-use crate::new_weave;
+use crate::new_weave_v0;
 
-pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<Vec<u8>>> {
+pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<VersionedWeave>> {
     if let Ok(mut data) = serde_json::from_str::<ExoloomWeave>(input) {
         assert!(data.loomType == "Exoloom" && data.schemaVersion == 1);
 
@@ -30,7 +31,7 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<V
             created
         };
 
-        let mut output = new_weave(data.tree.nodes.len(), created, "Exoloom");
+        let mut output = new_weave_v0(data.tree.nodes.len(), created, "Exoloom");
 
         if let Some(version) = data.version {
             output
@@ -116,7 +117,7 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<V
                 .insert("notes".to_string(), description);
         }
 
-        Ok(Some(output.to_versioned_bytes()?))
+        Ok(Some(output.to_versioned_weave()))
     } else {
         Ok(None)
     }

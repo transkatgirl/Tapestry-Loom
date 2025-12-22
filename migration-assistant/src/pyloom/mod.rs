@@ -9,6 +9,7 @@ use std::{
 use chrono::{DateTime, Local, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use tapestry_weave::{
+    VersionedWeave,
     ulid::Ulid,
     universal_weave::{
         Weave,
@@ -18,9 +19,9 @@ use tapestry_weave::{
     v0::{InnerNodeContent, Model, NodeContent, TapestryWeave},
 };
 
-use crate::new_weave;
+use crate::new_weave_v0;
 
-pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<Vec<u8>>> {
+pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<VersionedWeave>> {
     if let Ok(data) = serde_json::from_str::<PyloomWeave>(input) {
         let chapters: IndexMap<String, String> = data
             .chapters
@@ -29,7 +30,7 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<V
             .collect();
 
         let mut id_map = HashMap::with_capacity(65536);
-        let mut output = new_weave(65536, created, "PyLoom");
+        let mut output = new_weave_v0(65536, created, "PyLoom");
 
         convert_node(
             &mut output,
@@ -40,7 +41,7 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<V
             &chapters,
         )?;
 
-        Ok(Some(output.to_versioned_bytes()?))
+        Ok(Some(output.to_versioned_weave()))
     } else {
         Ok(None)
     }
@@ -200,13 +201,16 @@ struct PyloomSimpleNode {
     children: Vec<PyloomSimpleNode>,
 }
 
-pub fn migrate_simple(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<Vec<u8>>> {
+pub fn migrate_simple(
+    input: &str,
+    created: DateTime<Local>,
+) -> anyhow::Result<Option<VersionedWeave>> {
     if let Ok(data) = serde_json::from_str::<PyloomSimpleNode>(input) {
-        let mut output = new_weave(65536, created, "PyLoomSimple");
+        let mut output = new_weave_v0(65536, created, "PyLoomSimple");
 
         convert_export_node(&mut output, data, SystemTime::from(created), None);
 
-        Ok(Some(output.to_versioned_bytes()?))
+        Ok(Some(output.to_versioned_weave()))
     } else {
         Ok(None)
     }

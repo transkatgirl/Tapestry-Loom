@@ -9,6 +9,7 @@ use frontmatter::{Yaml, parse_and_find_content};
 use miniz_oxide::inflate::decompress_to_vec_zlib;
 use serde::{Deserialize, Serialize};
 use tapestry_weave::{
+    VersionedWeave,
     ulid::Ulid,
     universal_weave::{
         Weave,
@@ -18,9 +19,9 @@ use tapestry_weave::{
     v0::{InnerNodeContent, Model, NodeContent},
 };
 
-use crate::new_weave;
+use crate::new_weave_v0;
 
-pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<Vec<u8>>> {
+pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<VersionedWeave>> {
     if let Ok((Some(Yaml::Hash(mut frontmatter)), _)) = parse_and_find_content(input) {
         let weave = if let Some(Yaml::String(compressed_weave)) =
             frontmatter.remove(&Yaml::String("TapestryLoomWeaveCompressed".to_string()))
@@ -45,7 +46,7 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<V
     Ok(None)
 }
 
-fn convert_weave(input: String, created: DateTime<Local>) -> anyhow::Result<Vec<u8>> {
+fn convert_weave(input: String, created: DateTime<Local>) -> anyhow::Result<VersionedWeave> {
     let mut context = Context::default();
 
     context
@@ -75,7 +76,7 @@ fn convert_weave(input: String, created: DateTime<Local>) -> anyhow::Result<Vec<
         input.build_node_list(*node, &mut input_nodes);
     }
 
-    let mut output = new_weave(input.nodes.len(), created, "LegacyTapestryLoom");
+    let mut output = new_weave_v0(input.nodes.len(), created, "LegacyTapestryLoom");
 
     for node in input_nodes {
         if let Some(node) = input.nodes.get(&node).cloned() {
@@ -131,7 +132,7 @@ fn convert_weave(input: String, created: DateTime<Local>) -> anyhow::Result<Vec<
         }
     }
 
-    Ok(output.to_versioned_bytes()?)
+    Ok(output.to_versioned_weave())
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
