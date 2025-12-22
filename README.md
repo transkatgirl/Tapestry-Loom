@@ -84,7 +84,7 @@ LM Studio is not recommended due to a lack of support for logprobs.
 The recommended CLI arguments for [llama-server](https://github.com/ggml-org/llama.cpp/tree/master/tools/server) are listed below:
 
 ```bash
-llama-server --models-dir $MODEL_DIRECTORY --models-max 1 --jinja --chat-template "message.content" --ctx-size 4096 --temp 1 --top-k 0 --top-p 1 --min-p 0
+llama-server --models-dir $MODEL_DIRECTORY --models-max 1 --sleep-idle-seconds 1200 --jinja --chat-template "message.content" --ctx-size 4096 --temp 1 --top-k 0 --top-p 1 --min-p 0
 ```
 
 Where `$MODEL_DIRECTORY` is set to the directory where model gguf files are stored.
@@ -93,6 +93,7 @@ Where `$MODEL_DIRECTORY` is set to the directory where model gguf files are stor
 
 Explanation of arguments:
 - Only one model loaded into VRAM at a time; old models are automatically unloaded to make room for new ones
+- Models are automatically unloaded after 20 minutes of inactivity
 - The specified chat template passes user input directly to the model without further changes.
 - Reducing the maximum context length helps reduce VRAM usage without sacrificing quality.
 - The default sampling parameters (those specified by the CLI arguments) should leave the model's output distribution unchanged. **Sampling parameter defaults for chat models do not generalize to how base models are used.**
