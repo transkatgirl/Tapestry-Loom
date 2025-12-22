@@ -9,14 +9,11 @@ use tapestry_weave::{
     ulid::Ulid,
     universal_weave::{
         Weave,
-        dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
         rkyv::rancor,
     },
-    v0::{NodeContent, TapestryWeave},
+    v0::{TapestryNode, TapestryWeave},
 };
-
-pub type WeaveNode = DependentNode<u128, NodeContent, BuildHasherDefault<UlidHasher>>;
 
 pub struct WeaveWrapper {
     weave: TapestryWeave,
@@ -80,10 +77,10 @@ impl WeaveWrapper {
     pub fn contains(&self, id: &Ulid) -> bool {
         self.weave.contains(id)
     }
-    pub fn get_node(&self, id: &Ulid) -> Option<&WeaveNode> {
+    pub fn get_node(&self, id: &Ulid) -> Option<&TapestryNode> {
         self.weave.get_node(id)
     }
-    pub fn get_node_u128(&self, id: &u128) -> Option<&WeaveNode> {
+    pub fn get_node_u128(&self, id: &u128) -> Option<&TapestryNode> {
         self.weave.weave.get_node(id)
     }
 
@@ -181,7 +178,7 @@ impl WeaveWrapper {
         value
     }
 
-    pub fn add_node(&mut self, node: WeaveNode) -> bool {
+    pub fn add_node(&mut self, node: TapestryNode) -> bool {
         self.changed = true;
         self.layout_changed = true;
         self.weave.add_node(node)
