@@ -138,6 +138,17 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 	- [ ] Implement counterfactual logprobs choosing, similar to [loom](https://github.com/socketteer/loom)
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
+- [ ] Request post-processing arguments (using prefix of `T#`)
+	- [ ] Single-token node pruning:
+		- [ ] `T#keep_top_p`
+		- [ ] `T#keep_top_k`
+	- [ ] Basic adaptive looming:
+		- [ ] `T#min_tokens`
+		- [ ] `T#p_threshold`
+		- [ ] `T#conf_threshold`
+	- [ ] Force single token node creation using `T#force_single_token`
+	- [ ] Context window wrapping using `T#ctx_length`
+- [ ] Improve token confidence calculation to work properly with vLLM
 - [ ] Add a plugin API & custom inference API
 	- [ ] Support the following use cases:
 		- [ ] LLM research
