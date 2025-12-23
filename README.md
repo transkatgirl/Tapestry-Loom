@@ -145,11 +145,12 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 	- [ ] Single-token node pruning:
 		- [ ] `T#keep_top_p`
 		- [ ] `T#keep_top_k`
+		- [ ] `T#prune_empty`
 	- [ ] Node pruning:
-		- [ ] `T#min_node_conf`
-		- [ ] `T#max_node_conf`
-		- [ ] `T#min_node_avg_p`
-		- [ ] `T#max_node_avg_p`
+		- [ ] `T#node_min_conf`
+		- [ ] `T#node_max_conf`
+		- [ ] `T#node_min_avg_p`
+		- [ ] `T#node_max_avg_p`
 		- [ ] `T#prune_empty`
 	- [ ] Basic adaptive looming:
 		- [ ] `T#min_tokens`
@@ -157,6 +158,7 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 		- [ ] `T#conf_threshold`
 	- [ ] Force single token node creation using `T#force_single_token`
 	- [ ] Context window wrapping using `T#ctx_length`
+- [ ] Support opening weaves using CLI arguments to tapestry loom
 - [ ] Add a plugin API & custom inference API
 	- [ ] Support the following use cases:
 		- [ ] LLM research
@@ -227,10 +229,11 @@ There are already good chat looms (such as [miniloom](https://github.com/JD-P/mi
 
 ### Speculative ideas
 
+- [ ] Collaborative weave editing
+- [ ] WASM version of Tapestry Loom
 - [ ] Support multimodal weaves
 - [ ] Support weaves of arbitrarily large size using a database-based format
 - [ ] Self-contained packaging: All documentation and tools in one app, rather than being spread out over multiple
-- [ ] Collaborative weave editing
 - [ ] Server-client, multi-user WebUI
 - [ ] Efficiently store full edit history in weave for lossless unbounded undo/redo
 - [ ] Alternate input devices
