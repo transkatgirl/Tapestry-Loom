@@ -657,7 +657,12 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
         build_json_list(&mut messages, self.prefix_messages.clone());
 
-        messages.push(Value::Object(message));
+        if !(request_bytes.is_empty()
+            && !self.prefix_messages.is_empty()
+            && self.suffix_messages.is_empty())
+        {
+            messages.push(Value::Object(message));
+        }
 
         build_json_list(&mut messages, self.suffix_messages.clone());
 
