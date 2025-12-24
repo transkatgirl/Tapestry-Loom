@@ -29,8 +29,8 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<V
             .map(|(id, chapter)| (id, chapter.title))
             .collect();
 
-        let mut id_map = HashMap::with_capacity(65536);
-        let mut output = new_weave_v0(65536, created, "PyLoom");
+        let mut id_map = HashMap::with_capacity(16384);
+        let mut output = new_weave_v0(16384, created, "PyLoom");
 
         convert_node(
             &mut output,
@@ -206,7 +206,7 @@ pub fn migrate_simple(
     created: DateTime<Local>,
 ) -> anyhow::Result<Option<VersionedWeave>> {
     if let Ok(data) = serde_json::from_str::<PyloomSimpleNode>(input) {
-        let mut output = new_weave_v0(65536, created, "PyLoomSimple");
+        let mut output = new_weave_v0(16384, created, "PyLoomSimple");
 
         convert_export_node(&mut output, data, SystemTime::from(created), None);
 

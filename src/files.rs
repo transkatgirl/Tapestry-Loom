@@ -78,7 +78,7 @@ impl FileManager {
             path,
             roots: BTreeSet::new(),
             items: BTreeMap::new(),
-            item_list: Vec::with_capacity(65536),
+            item_list: Vec::with_capacity(32768),
             scanned: false,
             finished: false,
             file_count: 0,

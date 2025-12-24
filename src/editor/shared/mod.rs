@@ -103,7 +103,7 @@ impl SharedState {
             has_hover_node_changed: false,
             has_weave_changed: false,
             has_weave_layout_changed: false,
-            opened: HashMap::with_capacity(65535),
+            opened: HashMap::with_capacity(16384),
             next_opened_updated: false,
             has_opened_changed: false,
             requests: HashMap::with_capacity(128),

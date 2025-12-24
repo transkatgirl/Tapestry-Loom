@@ -57,10 +57,10 @@ impl Default for CanvasView {
     fn default() -> Self {
         Self {
             rect: Rc::new(RefCell::new(Rect::ZERO)),
-            layout: WeaveLayout::with_capacity(65535, 131072),
-            nodes: HashMap::with_capacity(65535),
+            layout: WeaveLayout::with_capacity(16384, 32768),
+            nodes: HashMap::with_capacity(16384),
             roots: Vec::with_capacity(128),
-            active: HashSet::with_capacity(65535),
+            active: HashSet::with_capacity(16384),
             last_changed: Instant::now(),
             new: true,
         }

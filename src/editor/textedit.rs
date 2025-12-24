@@ -64,12 +64,12 @@ impl Default for TextEditorView {
         );
 
         Self {
-            text: String::with_capacity(262144),
-            bytes: Rc::new(RefCell::new(Vec::with_capacity(262144))),
-            buffer: Vec::with_capacity(262144),
-            snippets: Rc::new(RefCell::new(Vec::with_capacity(65536))),
-            node_snippets: HashMap::with_capacity(65536),
-            rects: Vec::with_capacity(65536),
+            text: String::with_capacity(131072),
+            bytes: Rc::new(RefCell::new(Vec::with_capacity(131072))),
+            buffer: Vec::with_capacity(131072),
+            snippets: Rc::new(RefCell::new(Vec::with_capacity(16384))),
+            node_snippets: HashMap::with_capacity(16384),
+            rects: Vec::with_capacity(16384),
             last_seen_cursor_node: NodeIndex::None,
             last_seen_hovered_node: NodeIndex::None,
             last_text_edit_cursor: None,

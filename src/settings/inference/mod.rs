@@ -1114,7 +1114,7 @@ impl RequestTokensOrBytes {
                     }
                     Entry::Vacant(vacant) => {
                         let occupied = vacant
-                            .insert_entry(Arc::new(Mutex::new(HashMap::with_capacity(65536))));
+                            .insert_entry(Arc::new(Mutex::new(HashMap::with_capacity(16384))));
                         occupied.get().clone().lock_owned().await
                     }
                 };

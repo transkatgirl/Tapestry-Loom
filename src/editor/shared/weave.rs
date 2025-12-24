@@ -24,10 +24,10 @@ pub struct WeaveWrapper {
 impl Default for WeaveWrapper {
     fn default() -> Self {
         TapestryWeave::with_capacity(
-            65536,
+            16384,
             IndexMap::from_iter([
                 ("created".to_string(), Local::now().to_rfc3339()),
-                ("notes".to_string(), String::with_capacity(65536)),
+                ("notes".to_string(), String::with_capacity(16384)),
             ]),
         )
         .into()

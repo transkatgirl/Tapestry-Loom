@@ -31,8 +31,8 @@ pub struct GraphView {
 impl Default for GraphView {
     fn default() -> Self {
         Self {
-            layout: WeaveLayout::with_capacity(65535, 131072),
-            items: Vec::with_capacity(65535 + 131072),
+            layout: WeaveLayout::with_capacity(16384, 32768),
+            items: Vec::with_capacity(16384 + 32768),
             arranged: ArrangedWeave::default(),
             context_menu_node: None,
         }

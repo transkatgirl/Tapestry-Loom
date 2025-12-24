@@ -274,8 +274,8 @@ pub struct TreeListView {
 impl Default for TreeListView {
     fn default() -> Self {
         Self {
-            last_active_nodes: HashSet::with_capacity(65536),
-            last_rendered_nodes: HashSet::with_capacity(65536),
+            last_active_nodes: HashSet::with_capacity(16384),
+            last_rendered_nodes: HashSet::with_capacity(16384),
             lists: HashMap::with_capacity(256),
             needs_list_refresh: false,
             last_max_depth: Settings::default().interface.max_tree_depth,
