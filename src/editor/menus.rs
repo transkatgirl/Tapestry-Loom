@@ -57,10 +57,15 @@ impl MenuView {
         if request_count > 0 {
             ui.add(Spinner::new());
             if request_count > 1 {
-                ui.label(format!("{request_count} requests"));
+                ui.label(format!("{request_count} requests"))
             } else {
-                ui.label("1 request");
+                ui.label("1 request")
             }
+            .on_hover_ui(|ui| {
+                if ui.button("Cancel requests").clicked() {
+                    state.cancel_requests();
+                }
+            });
         } else {
             let node_count = weave.len();
             let bookmarked_node_count = weave.get_bookmarks().len();

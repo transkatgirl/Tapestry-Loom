@@ -590,6 +590,10 @@ impl SharedState {
     pub fn get_request_count(&self) -> usize {
         self.requests.len()
     }
+    pub fn cancel_requests(&mut self) {
+        self.requests.clear();
+        self.requests.clear();
+    }
 }
 
 impl From<InnerNodeContent> for TokensOrBytes {
