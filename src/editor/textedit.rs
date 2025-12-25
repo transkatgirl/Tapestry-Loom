@@ -234,7 +234,7 @@ impl TextEditorView {
                         }
 
                         if textedit.response.changed() {
-                            self.update_weave(weave);
+                            self.update_weave(state, weave);
                             self.last_text_edit_cursor = None;
                             self.last_text_edit_highlighting_hover_update = Instant::now();
                         } else {
@@ -442,7 +442,7 @@ impl TextEditorView {
 
         cursor_node
     }
-    fn update_weave(&mut self, weave: &mut WeaveWrapper) {
+    fn update_weave(&mut self, state: &mut SharedState, weave: &mut WeaveWrapper) {
         self.buffer.clear();
         self.buffer.extend_from_slice(self.text.as_bytes());
 
@@ -455,6 +455,7 @@ impl TextEditorView {
         }
 
         weave.set_active_content(&self.buffer, IndexMap::default());
+        state.set_cursor_node(NodeIndex::None);
     }
 }
 
