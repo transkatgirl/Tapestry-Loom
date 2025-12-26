@@ -221,7 +221,7 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 	- [ ] Aim to have acceptable performance on weaves with ~1 million nodes, ~200k active and ~10MB of active text on low-end hardware (such as a Raspberry Pi)
 		- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
 	- [ ] Optimize memory usage to be as low as reasonably possible
-	- [ ] Initially load weaves with zero-copy deserialization, only perform full deserialization on the first modification
+	- [ ] Initially load weaves with zero-copy deserialization, perform full deserialization in the background
 - [ ] Add support for more weave migrations
 	- [ ] bonsai (using [damask](https://github.com/tel-0s/damask))
 	- [ ] [wool](https://github.com/lyramakesmusic/wool)
