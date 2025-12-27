@@ -39,12 +39,8 @@ jobs:
                   sudo apt -y install pkg-config libssl-dev libfreetype6-dev libfontconfig1-dev
             - name: Install latest Rust toolchain
               uses: actions-rust-lang/setup-rust-toolchain@v1
-              with:
-                  cache: false
-            - name: Rust Cache
-              uses: Swatinem/rust-cache@v2.8.2
-              with:
-                  cache-targets: false
+            #- name: Rust Cache
+            #  uses: Swatinem/rust-cache@v2.8.2
             - name: Build
               run: |
                   cargo build --release --locked
