@@ -54,15 +54,15 @@ jobs:
               if: startsWith(matrix.os, 'windows')
               run: |
                   copy target/release/tapestry-loom.exe tapestry-loom.exe
-                  copy tapestry-tokenize/target/release/tapestry-tokenize.exe tapestry-tokenize.exe
-                  copy migration-assistant/target/release/tapestry-loom-migration-assistant.exe tapestry-migration-assistant.exe
+                  copy target/release/tapestry-tokenize.exe tapestry-tokenize.exe
+                  copy target/release/tapestry-loom-migration-assistant.exe tapestry-migration-assistant.exe
                   7z a -mx=9 tapestry-loom.zip tapestry-loom.exe tapestry-tokenize.exe tapestry-migration-assistant.exe
             - name: Compress
               if: startsWith(matrix.os, 'macos')
               run: |
                   cp target/release/tapestry-loom tapestry-loom
-                  cp tapestry-tokenize/target/release/tapestry-tokenize tapestry-tokenize_
-                  cp migration-assistant/target/release/tapestry-loom-migration-assistant tapestry-migration-assistant
+                  cp target/release/tapestry-tokenize tapestry-tokenize_
+                  cp target/release/tapestry-loom-migration-assistant tapestry-migration-assistant
                   mv tapestry-tokenize tapestry-tokenize__
                   mv tapestry-tokenize_ tapestry-tokenize
                   7z a -m0=lzma -mx=9 tapestry-loom.zip tapestry-loom tapestry-tokenize tapestry-migration-assistant
@@ -70,8 +70,8 @@ jobs:
               if: startsWith(matrix.os, 'ubuntu')
               run: |
                   cp target/release/tapestry-loom tapestry-loom
-                  cp tapestry-tokenize/target/release/tapestry-tokenize tapestry-tokenize_
-                  cp migration-assistant/target/release/tapestry-loom-migration-assistant tapestry-migration-assistant
+                  cp target/release/tapestry-tokenize tapestry-tokenize_
+                  cp target/release/tapestry-loom-migration-assistant tapestry-migration-assistant
                   mv tapestry-tokenize tapestry-tokenize__
                   mv tapestry-tokenize_ tapestry-tokenize
                   tar -cf tapestry-loom.tar tapestry-loom tapestry-tokenize tapestry-migration-assistant
