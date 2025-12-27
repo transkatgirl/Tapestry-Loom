@@ -25,3 +25,6 @@ universal-weave = { path = "../universal-weave", features = [
 serde = { version = "1.0.228", features = [
 	"derive",
 ], optional = true }
+rustc-hash = { version = "2.1.1", features = [
+	"rand",
+] }

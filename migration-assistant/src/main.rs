@@ -240,7 +240,7 @@ fn new_weave_v0(
 ) -> v0::TapestryWeave {
     v0::TapestryWeave::with_capacity(
         capacity,
-        IndexMap::from([
+        IndexMap::from_iter([
             ("converted_from".to_string(), converted_from.to_string()),
             ("created".to_string(), created.to_rfc3339()),
             ("converted".to_string(), Local::now().to_rfc3339()),

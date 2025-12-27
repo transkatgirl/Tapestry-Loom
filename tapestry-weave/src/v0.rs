@@ -1,6 +1,7 @@
 use std::{borrow::Cow, collections::HashSet, hash::BuildHasherDefault};
 
 use contracts::ensures;
+use rustc_hash::FxBuildHasher;
 use ulid::Ulid;
 use universal_weave::{
     DeduplicatableContents, DeduplicatableWeave, DiscreteContentResult, DiscreteContents,
@@ -25,7 +26,7 @@ use crate::{
 #[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub struct NodeContent {
     pub content: InnerNodeContent,
-    pub metadata: IndexMap<String, String>,
+    pub metadata: MetadataMap,
     pub model: Option<Model>,
 }
 
@@ -89,7 +90,7 @@ impl DeduplicatableContents for NodeContent {
 #[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub enum InnerNodeContent {
     Snippet(Vec<u8>),
-    Tokens(Vec<(Vec<u8>, IndexMap<String, String>)>),
+    Tokens(Vec<(Vec<u8>, MetadataMap)>),
 }
 
 impl InnerNodeContent {
@@ -208,14 +209,14 @@ impl InnerNodeContent {
 #[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub struct Model {
     pub label: String,
-    pub metadata: IndexMap<String, String>,
+    pub metadata: MetadataMap,
 }
 
 pub type TapestryNode = DependentNode<u128, NodeContent, BuildHasherDefault<UlidHasher>>;
+pub type MetadataMap = IndexMap<String, String, FxBuildHasher>;
 
 pub struct TapestryWeave {
-    pub weave:
-        DependentWeave<u128, NodeContent, IndexMap<String, String>, BuildHasherDefault<UlidHasher>>,
+    pub weave: DependentWeave<u128, NodeContent, MetadataMap, BuildHasherDefault<UlidHasher>>,
 }
 
 impl TapestryWeave {
@@ -238,7 +239,7 @@ impl TapestryWeave {
     pub fn to_versioned_weave(self) -> VersionedWeave {
         VersionedWeave::V0(self)
     }
-    pub fn with_capacity(capacity: usize, metadata: IndexMap<String, String>) -> Self {
+    pub fn with_capacity(capacity: usize, metadata: MetadataMap) -> Self {
         Self {
             weave: DependentWeave::with_capacity(capacity, metadata),
         }
@@ -321,7 +322,7 @@ impl TapestryWeave {
     pub fn set_active_content<F>(
         &mut self,
         value: &[u8],
-        metadata: IndexMap<String, String>,
+        metadata: MetadataMap,
         mut id_generator: F,
     ) -> bool
     where

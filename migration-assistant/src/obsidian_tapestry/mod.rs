@@ -16,7 +16,7 @@ use tapestry_weave::{
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
-    v0::{InnerNodeContent, Model, NodeContent},
+    v0::{InnerNodeContent, MetadataMap, Model, NodeContent},
 };
 
 use crate::new_weave_v0;
@@ -105,7 +105,7 @@ fn convert_weave(input: String, created: DateTime<Local>) -> anyhow::Result<Vers
                                     .map(|(probability, token)| {
                                         (
                                             token.into_bytes(),
-                                            IndexMap::from([(
+                                            IndexMap::from_iter([(
                                                 "probability".to_string(),
                                                 probability.to_string(),
                                             )]),
@@ -121,7 +121,7 @@ fn convert_weave(input: String, created: DateTime<Local>) -> anyhow::Result<Vers
                             .map(|model| Model {
                                 label: model.label,
                                 metadata: if let Some(color) = model.color {
-                                    IndexMap::from([("color".to_string(), color)])
+                                    IndexMap::from_iter([("color".to_string(), color)])
                                 } else {
                                     IndexMap::default()
                                 },
@@ -192,7 +192,7 @@ struct LegacyDocumentNode {
     content: LegacyNodeContent,
     model: Option<Ulid>,
     parentNode: Option<Ulid>,
-    parameters: Option<IndexMap<String, String>>,
+    parameters: Option<MetadataMap>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

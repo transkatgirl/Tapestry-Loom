@@ -4,6 +4,7 @@
 
 use universal_weave::rkyv::rancor::Error;
 
+pub use rustc_hash;
 pub use ulid;
 pub use universal_weave;
 

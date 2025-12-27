@@ -681,7 +681,7 @@ pub fn render_horizontal_node_label_buttons_ltr(
             bookmarked: false,
             contents: NodeContent {
                 content: InnerNodeContent::Snippet(vec![]),
-                metadata: IndexMap::new(),
+                metadata: IndexMap::default(),
                 model: None,
             },
         }) {
@@ -763,7 +763,7 @@ pub fn render_horizontal_node_label_buttons_rtl(
             bookmarked: false,
             contents: NodeContent {
                 content: InnerNodeContent::Snippet(vec![]),
-                metadata: IndexMap::new(),
+                metadata: IndexMap::default(),
                 model: None,
             },
         }) {
@@ -895,7 +895,7 @@ fn render_empty_tree_label(
                         bookmarked: false,
                         contents: NodeContent {
                             content: InnerNodeContent::Snippet(vec![]),
-                            metadata: IndexMap::new(),
+                            metadata: IndexMap::default(),
                             model: None,
                         },
                     }) {
@@ -1156,7 +1156,7 @@ pub fn render_node_context_menu(
             bookmarked: false,
             contents: NodeContent {
                 content: InnerNodeContent::Snippet(vec![]),
-                metadata: IndexMap::new(),
+                metadata: IndexMap::default(),
                 model: None,
             },
         }) {
@@ -1187,7 +1187,7 @@ pub fn render_node_context_menu(
             bookmarked: false,
             contents: NodeContent {
                 content: InnerNodeContent::Snippet(vec![]),
-                metadata: IndexMap::new(),
+                metadata: IndexMap::default(),
                 model: None,
             },
         }) && active

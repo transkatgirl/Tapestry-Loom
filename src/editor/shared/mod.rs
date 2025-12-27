@@ -14,7 +14,7 @@ use tapestry_weave::{
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
-    v0::{InnerNodeContent, NodeContent, TapestryNode},
+    v0::{InnerNodeContent, MetadataMap, NodeContent, TapestryNode},
 };
 use tokio::runtime::Runtime;
 
@@ -187,7 +187,7 @@ impl SharedState {
                         bookmarked: false,
                         contents: NodeContent {
                             content: InnerNodeContent::Snippet(vec![]),
-                            metadata: IndexMap::new(),
+                            metadata: IndexMap::default(),
                             model: None,
                         },
                     }) && node.active
@@ -205,7 +205,7 @@ impl SharedState {
                     bookmarked: false,
                     contents: NodeContent {
                         content: InnerNodeContent::Snippet(vec![]),
-                        metadata: IndexMap::new(),
+                        metadata: IndexMap::default(),
                         model: None,
                     },
                 }) {
@@ -229,7 +229,7 @@ impl SharedState {
                 bookmarked: false,
                 contents: NodeContent {
                     content: InnerNodeContent::Snippet(vec![]),
-                    metadata: IndexMap::new(),
+                    metadata: IndexMap::default(),
                     model: None,
                 },
             }) && node.active
@@ -659,7 +659,7 @@ pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &TapestryNode) {
     ui.label(Ulid(node.id).to_string());
 }
 
-pub fn render_token_tooltip(ui: &mut Ui, token: &[u8], token_metadata: &IndexMap<String, String>) {
+pub fn render_token_tooltip(ui: &mut Ui, token: &[u8], token_metadata: &MetadataMap) {
     if token_metadata
         .get("original_length")
         .and_then(|value| value.parse::<usize>().ok())
@@ -694,11 +694,7 @@ pub fn render_token_tooltip(ui: &mut Ui, token: &[u8], token_metadata: &IndexMap
     render_token_metadata_tooltip(ui, token.len(), token_metadata);
 }*/
 
-pub fn render_token_metadata_tooltip(
-    ui: &mut Ui,
-    token_len: usize,
-    token_metadata: &IndexMap<String, String>,
-) {
+pub fn render_token_metadata_tooltip(ui: &mut Ui, token_len: usize, token_metadata: &MetadataMap) {
     for (key, value) in token_metadata {
         if key == "probability"
             && let Ok(probability) = value.parse::<f32>()
@@ -738,7 +734,7 @@ pub fn render_token_metadata_tooltip(
 
 pub fn get_token_color(
     node_color: Color32,
-    token_metadata: &IndexMap<String, String>,
+    token_metadata: &MetadataMap,
     settings: &Settings,
 ) -> Option<Color32> {
     if settings.interface.show_token_probabilities

@@ -12,7 +12,7 @@ use tapestry_weave::{
         indexmap::{IndexMap, IndexSet},
         rkyv::rancor,
     },
-    v0::{TapestryNode, TapestryWeave},
+    v0::{MetadataMap, TapestryNode, TapestryWeave},
 };
 
 pub struct WeaveWrapper {
@@ -48,10 +48,10 @@ impl WeaveWrapper {
     pub fn to_versioned_bytes(&self) -> Result<Vec<u8>, rancor::Error> {
         self.weave.to_versioned_bytes()
     }
-    pub fn metadata(&self) -> &IndexMap<String, String> {
+    pub fn metadata(&self) -> &MetadataMap {
         &self.weave.weave.metadata
     }
-    pub fn metadata_mut(&mut self) -> &mut IndexMap<String, String> {
+    pub fn metadata_mut(&mut self) -> &mut MetadataMap {
         &mut self.weave.weave.metadata
     }
 
@@ -224,7 +224,7 @@ impl WeaveWrapper {
         self.layout_changed = true;
         self.weave.weave.remove_node(id).is_some()
     }
-    pub fn set_active_content(&mut self, value: &[u8], metadata: IndexMap<String, String>) -> bool {
+    pub fn set_active_content(&mut self, value: &[u8], metadata: MetadataMap) -> bool {
         self.changed = true;
         self.layout_changed = true;
         self.weave.set_active_content(value, metadata, |timestamp| {

@@ -3,7 +3,7 @@
 use std::{borrow::Cow, cmp::Ordering, collections::HashSet, hash::BuildHasherDefault};
 
 use contracts::ensures;
-use rkyv::{collections::swiss_table::ArchivedIndexSet, hash::FxHasher64, rend::u128_le};
+use rustc_hash::FxBuildHasher;
 use ulid::Ulid;
 use universal_weave::{
     ArchivedWeave, DeduplicatableContents, DeduplicatableWeave, DiscreteContentResult,
@@ -11,7 +11,8 @@ use universal_weave::{
     independent::{ArchivedIndependentNode, IndependentNode, IndependentWeave},
     indexmap::{IndexMap, IndexSet},
     rkyv::{
-        Archive, Deserialize, Serialize, from_bytes, rancor::Error, to_bytes, util::AlignedVec,
+        Archive, Deserialize, Serialize, collections::swiss_table::ArchivedIndexSet, from_bytes,
+        rancor::Error, rend::u128_le, to_bytes, util::AlignedVec,
     },
 };
 
@@ -30,7 +31,7 @@ use crate::{
 pub struct NodeContent {
     pub modified: bool,
     pub content: InnerNodeContent,
-    pub metadata: IndexMap<String, String, BuildHasherDefault<FxHasher64>>,
+    pub metadata: MetadataMap,
     pub creator: Option<Creator>,
 }
 
@@ -107,7 +108,7 @@ pub enum InnerNodeContent {
 #[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub struct InnerNodeToken {
     bytes: Vec<u8>,
-    metadata: IndexMap<String, String, BuildHasherDefault<FxHasher64>>,
+    metadata: MetadataMap,
     modified: bool,
 }
 
@@ -300,7 +301,7 @@ pub enum Creator {
 pub struct Model {
     pub label: String,
     pub identifier: Option<u128>,
-    pub metadata: IndexMap<String, String, BuildHasherDefault<FxHasher64>>,
+    pub metadata: MetadataMap,
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
@@ -311,14 +312,11 @@ pub struct Author {
 }
 
 pub type TapestryNode = IndependentNode<u128, NodeContent, BuildHasherDefault<UlidHasher>>;
+pub type MetadataMap = IndexMap<String, String, FxBuildHasher>;
 pub type ArchivedTapestryNode =
     ArchivedIndependentNode<u128, NodeContent, BuildHasherDefault<UlidHasher>>;
-pub type TapestryWeaveInner = IndependentWeave<
-    u128,
-    NodeContent,
-    IndexMap<String, String, BuildHasherDefault<FxHasher64>>,
-    BuildHasherDefault<UlidHasher>,
->;
+pub type TapestryWeaveInner =
+    IndependentWeave<u128, NodeContent, MetadataMap, BuildHasherDefault<UlidHasher>>;
 
 pub struct TapestryWeave {
     weave: TapestryWeaveInner,
@@ -371,10 +369,7 @@ impl TapestryWeave {
     /*pub fn to_versioned_weave(self) -> VersionedWeave {
         VersionedWeave::V1(self)
     }*/
-    pub fn with_capacity(
-        capacity: usize,
-        metadata: IndexMap<String, String, BuildHasherDefault<FxHasher64>>,
-    ) -> Self {
+    pub fn with_capacity(capacity: usize, metadata: MetadataMap) -> Self {
         Self {
             weave: IndependentWeave::with_capacity(capacity, metadata),
             active: Vec::with_capacity(capacity),
@@ -394,7 +389,7 @@ impl TapestryWeave {
         self.weave.shrink_to(min_capacity);
         self.active.shrink_to(min_capacity);
     }
-    pub fn metadata(&mut self) -> &mut IndexMap<String, String, BuildHasherDefault<FxHasher64>> {
+    pub fn metadata(&mut self) -> &mut MetadataMap {
         &mut self.weave.metadata
     }
     pub fn len(&self) -> usize {
@@ -799,11 +794,9 @@ impl From<OldNodeContent> for NodeContent {
 }
 
 impl From<OldTapestryWeave> for TapestryWeave {
-    fn from(mut value: OldTapestryWeave) -> Self {
-        let mut output = TapestryWeave::with_capacity(
-            value.capacity(),
-            IndexMap::from_iter(value.weave.metadata.drain(..)),
-        );
+    fn from(value: OldTapestryWeave) -> Self {
+        let mut output =
+            TapestryWeave::with_capacity(value.capacity(), value.weave.metadata.clone());
 
         for identifier in value.weave.get_ordered_node_identifiers() {
             let node = value.weave.get_node(&identifier).unwrap().clone();
