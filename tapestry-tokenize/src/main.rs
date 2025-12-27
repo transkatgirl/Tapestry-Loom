@@ -110,7 +110,7 @@ async fn tokenize(
 }
 
 #[get("/<model>/tokenizer.json")]
-async fn tokenizer<'a>(state: &'a State<SharedState>, model: &str) -> Result<Arc<[u8]>, Status> {
+async fn tokenizer(state: &State<SharedState>, model: &str) -> Result<Arc<[u8]>, Status> {
     if let Some((_, data)) = state.tokenizers.get(model) {
         info!("Sending tokenizer file for {:?}", model);
 

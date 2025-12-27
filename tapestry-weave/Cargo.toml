@@ -1,0 +1,27 @@
+[package]
+name = "tapestry-weave"
+version = "0.0.0"
+authors = [
+	"transkatgirl",
+]
+license = "Unlicense"
+description = "An implementation of Tapestry Loom's document format."
+edition = "2024"
+
+[features]
+serde = [
+	"dep:serde",
+	"ulid/serde",
+	"universal-weave/serde",
+]
+
+[dependencies]
+contracts = "0.6.7"
+ulid = "1.2.1"
+rkyv = "*"
+universal-weave = { path = "../universal-weave", features = [
+	"legacy",
+] }
+serde = { version = "1.0.228", features = [
+	"derive",
+], optional = true }

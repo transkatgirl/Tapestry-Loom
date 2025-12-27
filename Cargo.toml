@@ -10,7 +10,7 @@ description = "A power user focused interface for LLM base models."
 edition = "2024"
 
 [dependencies]
-tapestry-weave = { path = "universal-weave/tapestry-weave", features = [
+tapestry-weave = { path = "tapestry-weave", features = [
 	"serde",
 ] }
 eframe = { version = "0.33.3", features = [
@@ -84,3 +84,10 @@ opt-level = 3
 
 [profile.release]
 strip = "symbols"
+
+[workspace]
+members = [
+	"tapestry-weave",
+	"migration-assistant",
+	"tapestry-tokenize",
+]

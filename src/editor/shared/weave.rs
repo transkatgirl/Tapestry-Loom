@@ -112,7 +112,7 @@ impl WeaveWrapper {
     pub fn dump_identifiers_ordered_u128(&self) -> Vec<u128> {
         let mut identifiers = Vec::with_capacity(self.weave.len());
 
-        for root in self.weave.weave.get_roots() {
+        for root in self.weave.weave.roots() {
             self.add_node_identifiers(root, &mut identifiers);
         }
 
@@ -121,7 +121,7 @@ impl WeaveWrapper {
     pub fn dump_identifiers_ordered_u128_rev(&self) -> Vec<u128> {
         let mut identifiers = Vec::with_capacity(self.weave.len());
 
-        for root in self.weave.weave.get_roots() {
+        for root in self.weave.weave.roots() {
             self.add_node_identifiers_rev(root, &mut identifiers);
         }
 
@@ -162,10 +162,10 @@ impl WeaveWrapper {
         self.weave.get_roots()
     }
     pub fn get_roots_u128(&self) -> impl Iterator<Item = u128> {
-        self.weave.weave.get_roots().iter().copied()
+        self.weave.weave.roots().iter().copied()
     }
     pub fn get_roots_u128_direct(&self) -> &IndexSet<u128, BuildHasherDefault<UlidHasher>> {
-        self.weave.weave.get_roots()
+        self.weave.weave.roots()
     }
     pub fn has_changed(&mut self) -> bool {
         let value = self.changed;

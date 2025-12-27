@@ -14,7 +14,7 @@ base64 = "0.22.1"
 miniz_oxide = "0.8.9"
 frontmatter = "0.4.0"
 boa_engine = "0.21.0"
-tapestry-weave = { path = "../universal-weave/tapestry-weave", features = [
+tapestry-weave = { path = "../tapestry-weave", features = [
 	"serde",
 ] }
 clap = { version = "4.5.53", features = [
@@ -34,10 +34,3 @@ chrono = { version = "0.4.42", features = [
 uuid = { version = "1.19.0", features = [
 	"serde",
 ] }
-
-[profile.dev]
-opt-level = 3
-
-[profile.release]
-strip = "symbols"
-panic = "abort"
