@@ -294,6 +294,7 @@ impl ArchivedInnerNodeContent {
 pub enum Creator {
     Model(Model),
     Human(Author),
+    Unknown,
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
@@ -439,7 +440,13 @@ impl TapestryWeave {
             node.from
                 .iter()
                 .filter_map(|parent| self.weave.get_node(parent))
-                .flat_map(|parent| parent.to.iter().copied())
+                .flat_map(|parent| {
+                    parent.to.iter().copied().filter(|sibling| {
+                        *sibling != node.id
+                            && !node.from.contains(sibling)
+                            && !node.to.contains(sibling)
+                    })
+                })
         })
     }
     pub fn get_node_siblings_or_roots<'s>(
@@ -448,14 +455,23 @@ impl TapestryWeave {
     ) -> Option<Box<dyn DoubleEndedIterator<Item = u128> + 's>> {
         self.weave.get_node(id).map(|node| {
             if node.from.is_empty() {
-                Box::new(self.weave.roots().iter().copied())
-                    as Box<dyn DoubleEndedIterator<Item = u128>>
+                Box::new(self.weave.roots().iter().copied().filter(|sibling| {
+                    *sibling != node.id
+                        && !node.from.contains(sibling)
+                        && !node.to.contains(sibling)
+                })) as Box<dyn DoubleEndedIterator<Item = u128>>
             } else {
                 Box::new(
                     node.from
                         .iter()
                         .filter_map(|parent| self.weave.get_node(parent))
-                        .flat_map(|parent| parent.to.iter().copied()),
+                        .flat_map(|parent| {
+                            parent.to.iter().copied().filter(|sibling| {
+                                *sibling != node.id
+                                    && !node.from.contains(sibling)
+                                    && !node.to.contains(sibling)
+                            })
+                        }),
                 ) as Box<dyn DoubleEndedIterator<Item = u128>>
             }
         })
@@ -718,7 +734,13 @@ impl ArchivedTapestryWeave {
             node.from
                 .iter()
                 .filter_map(|parent| self.weave.get_node(parent))
-                .flat_map(|parent| parent.to.iter().copied())
+                .flat_map(|parent| {
+                    parent.to.iter().copied().filter(|sibling| {
+                        *sibling != node.id
+                            && !node.from.contains(sibling)
+                            && !node.to.contains(sibling)
+                    })
+                })
         })
     }
     pub fn get_node_siblings_or_roots<'s>(
@@ -727,13 +749,23 @@ impl ArchivedTapestryWeave {
     ) -> Option<Box<dyn Iterator<Item = u128_le> + 's>> {
         self.weave.get_node(id).map(|node| {
             if node.from.is_empty() {
-                Box::new(self.weave.roots().iter().copied()) as Box<dyn Iterator<Item = u128_le>>
+                Box::new(self.weave.roots().iter().copied().filter(|sibling| {
+                    *sibling != node.id
+                        && !node.from.contains(sibling)
+                        && !node.to.contains(sibling)
+                })) as Box<dyn Iterator<Item = u128_le>>
             } else {
                 Box::new(
                     node.from
                         .iter()
                         .filter_map(|parent| self.weave.get_node(parent))
-                        .flat_map(|parent| parent.to.iter().copied()),
+                        .flat_map(|parent| {
+                            parent.to.iter().copied().filter(|sibling| {
+                                *sibling != node.id
+                                    && !node.from.contains(sibling)
+                                    && !node.to.contains(sibling)
+                            })
+                        }),
                 ) as Box<dyn Iterator<Item = u128_le>>
             }
         })
