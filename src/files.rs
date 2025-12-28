@@ -641,7 +641,7 @@ impl FileManager {
         let tx = self.channel.0.clone();
 
         self.action_threadpool
-            .execute(move || match fs::create_dir(&path) {
+            .execute(move || match fs::create_dir_all(&path) {
                 Ok(_) => {
                     let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
                         path,
