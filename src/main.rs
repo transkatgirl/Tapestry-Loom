@@ -5,7 +5,7 @@ use std::{cell::RefCell, collections::HashSet, fs, path::PathBuf, rc::Rc, sync::
 use eframe::{
     App, CreationContext, Frame, NativeOptions,
     egui::{
-        self, CentralPanel, Context, FontData, FontDefinitions, IconData, Modal, Sides, Ui,
+        self, CentralPanel, Context, FontData, FontDefinitions, IconData, Memory, Modal, Sides, Ui,
         ViewportBuilder, WidgetText,
     },
     epaint::MarginF32,
@@ -101,6 +101,10 @@ impl TapestryLoomApp {
             Settings::default()
         };
         let settings = Rc::new(RefCell::new(settings));
+
+        cc.egui_ctx.memory_mut(|memory| {
+            *memory = Memory::default();
+        });
 
         let mut fonts = FontDefinitions::default();
         fonts.font_data.insert(
