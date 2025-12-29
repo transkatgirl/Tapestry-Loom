@@ -19,6 +19,8 @@ A power user focused interface for LLM base models, inspired by the designs of [
 	- This is due to a bug in egui regarding textedit underline rendering
 - Tab bars are not read by screen readers
 	- This is due to a bug in egui_tiles
+- The application slowly leaks memory as UI state for closed weaves persists after the UI is closed
+	- This is due to a bug in egui
 
 If you are experiencing an issue not listed here or in this [repository's active issues](https://github.com/transkatgirl/Tapestry-Loom/issues), please file an issue so that it can be fixed.
 
