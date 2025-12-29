@@ -405,6 +405,12 @@ impl TapestryWeave {
     pub fn contains_u128(&self, id: &u128) -> bool {
         self.weave.contains(id)
     }
+    pub fn contains_active(&self, id: &Ulid) -> bool {
+        self.weave.contains_active(&id.0)
+    }
+    pub fn contains_active_u128(&self, id: &u128) -> bool {
+        self.weave.contains_active(id)
+    }
     pub fn has_changed(&mut self) -> bool {
         let changed = self.changed;
         self.changed = false;
@@ -698,7 +704,9 @@ impl TapestryWeave {
     }
 }
 
-// TODO: (diff-based) set_active_content, dump_identifiers_ordered
+impl TapestryWeave {
+    // TODO: (diff-based) set_active_content, insert_node_at, dump_identifiers_ordered
+}
 
 pub struct ArchivedTapestryWeave {
     pub weave: <TapestryWeaveInner as Archive>::Archived,
@@ -719,6 +727,9 @@ impl ArchivedTapestryWeave {
     }
     pub fn contains(&self, id: &u128_le) -> bool {
         self.weave.contains(id)
+    }
+    pub fn contains_active(&self, id: &u128_le) -> bool {
+        self.weave.contains_active(id)
     }
     pub fn get_node(&self, id: &u128_le) -> Option<&ArchivedTapestryNode> {
         self.weave.get_node(id)
