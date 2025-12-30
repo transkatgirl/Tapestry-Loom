@@ -134,6 +134,7 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 - [ ] Add model configuration sharing functionality
 	- [ ] Automatically redact sensitive information (such as API keys)
 	- [ ] Allow the user to manually redact sensitive information
+- [ ] Add file manager keyboard shortcuts
 
 ### Plans for next major version
 
