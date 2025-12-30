@@ -19,7 +19,7 @@ A power user focused interface for LLM base models, inspired by the designs of [
 	- This is due to a bug in egui regarding textedit underline rendering
 - Tab bars are not read by screen readers
 	- This is due to a bug in egui_tiles
-- The application slowly leaks memory as UI state for closed weaves persists after the weave editor UI is closed
+- UI state for closed weaves persists in memory after the weave editor UI is closed, creating a slow memory leak
 	- This is due to a bug in egui
 
 If you are experiencing an issue not listed here or in this [repository's active issues](https://github.com/transkatgirl/Tapestry-Loom/issues), please file an issue so that it can be fixed.
@@ -127,6 +127,14 @@ At the moment, all major features planned for the initial release have been impl
 
 Development of the next major version of Tapestry Loom will begin in Q1 2026. Please [consider donating](https://github.com/sponsors/transkatgirl) to help fund further development.
 
+### Short-term TODOs
+- [ ] Better handle enter in dialogs
+- [ ] Add generate buttons (displayed on hover) to canvas
+- [ ] Allow temporarilly overriding color in inference menu
+- [ ] Add model configuration sharing functionality
+	- [ ] Automatically redact sensitive information (such as API keys)
+	- [ ] Allow the user to manually redact sensitive information
+
 ### Plans for next major version
 
 - [ ] Support for DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
@@ -137,7 +145,7 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
 	- [ ] Fully immutable nodes; Node splitting is implemented through duplication
 	- [ ] Prefix-based duplication
-	- [ ] Implement counterfactual logprobs choosing, similar to [loom](https://github.com/socketteer/loom)
+	- [ ] Implement counterfactual logprobs, similar to [loom](https://github.com/socketteer/loom)
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Node confidence calculation
@@ -174,14 +182,8 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 		- [ ] When working with multiple models, allow dynamically adjusting proportions based on usage
 			- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count
 - [ ] Further UI improvements
-	- [ ] Better handle enter in dialogs
-	- [ ] Allow temporarilly overriding color in inference menu
-	- [ ] Add model configuration sharing functionality
-		- [ ] Automatically redact sensitive information (such as API keys)
-		- [ ] Allow the user to manually redact sensitive information
 	- [ ] Add ability to manually control refreshing of model tokenization identifier
 	- [ ] Improve graph/canvas layout algorithm
-		- [ ] Add generate buttons (displayed on hover) to canvas
 	- [ ] Support arbitrary color gradients for logprob highlighting
 	- [ ] Blind comparison modes
 		- [ ] (Hide) Models & token probabilities / boundaries
