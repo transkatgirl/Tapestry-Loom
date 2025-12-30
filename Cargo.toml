@@ -84,6 +84,7 @@ opt-level = 3
 
 [profile.release]
 strip = "symbols"
+panic = "abort"
 
 [workspace]
 members = [
