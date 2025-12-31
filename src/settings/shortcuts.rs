@@ -438,6 +438,10 @@ impl KeyboardShortcuts {
     pub fn get_pressed(&self, ctx: &Context) -> FlagSet<Shortcuts> {
         let mut flags = FlagSet::<Shortcuts>::empty();
 
+        if ctx.memory(|memory| memory.top_modal_layer().is_some()) {
+            return flags;
+        }
+
         ctx.input_mut(|input| {
             if let Some(shortcut) = &self.generate_at_cursor
                 && consume_shortcut(input, shortcut)
