@@ -341,11 +341,19 @@ impl Endpoint for OpenAICompletionsConfig {
         &self.endpoint
     }
     fn default_parameters(&self) -> Vec<(String, String)> {
-        vec![
-            ("temperature".to_string(), "1".to_string()),
-            ("max_tokens".to_string(), "10".to_string()),
-            ("logprobs".to_string(), "20".to_string()),
-        ]
+        if self.endpoint.contains("openrouter.ai/api/v1") {
+            // OpenRouter doesn't handle logprobs properly
+            vec![
+                ("temperature".to_string(), "1".to_string()),
+                ("max_tokens".to_string(), "10".to_string()),
+            ]
+        } else {
+            vec![
+                ("temperature".to_string(), "1".to_string()),
+                ("max_tokens".to_string(), "10".to_string()),
+                ("logprobs".to_string(), "20".to_string()),
+            ]
+        }
     }
     async fn perform_request(
         &self,
@@ -592,12 +600,20 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         &self.endpoint
     }
     fn default_parameters(&self) -> Vec<(String, String)> {
-        vec![
-            ("temperature".to_string(), "1".to_string()),
-            ("max_tokens".to_string(), "10".to_string()),
-            ("logprobs".to_string(), "true".to_string()),
-            ("top_logprobs".to_string(), "20".to_string()),
-        ]
+        if self.endpoint.contains("openrouter.ai/api/v1") {
+            // OpenRouter doesn't handle logprobs properly
+            vec![
+                ("temperature".to_string(), "1".to_string()),
+                ("max_tokens".to_string(), "10".to_string()),
+            ]
+        } else {
+            vec![
+                ("temperature".to_string(), "1".to_string()),
+                ("max_tokens".to_string(), "10".to_string()),
+                ("logprobs".to_string(), "true".to_string()),
+                ("top_logprobs".to_string(), "20".to_string()),
+            ]
+        }
     }
     async fn perform_request(
         &self,
