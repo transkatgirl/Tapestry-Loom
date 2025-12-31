@@ -15,7 +15,7 @@ use std::{
 };
 
 use eframe::egui::{
-    Align, Button, Frame, Layout, Modal, OutputCommand, RichText, ScrollArea, Sides, Spinner,
+    Align, Button, Frame, Key, Layout, Modal, OutputCommand, RichText, ScrollArea, Sides, Spinner,
     TextStyle, TopBottomPanel, Ui,
 };
 use egui_notify::Toasts;
@@ -426,7 +426,9 @@ impl FileManager {
                                 if ui.button("Cancel").clicked() {
                                     ui.close();
                                 }
-                                if ui.button("Save").clicked() {
+                                if ui.button("Save").clicked()
+                                    || ui.input(|input| input.key_pressed(Key::Enter))
+                                {
                                     let path = PathBuf::from(path.clone());
                                     if !self
                                         .open_documents
@@ -459,7 +461,9 @@ impl FileManager {
                                 if ui.button("Cancel").clicked() {
                                     ui.close();
                                 }
-                                if ui.button("Save").clicked() {
+                                if ui.button("Save").clicked()
+                                    || ui.input(|input| input.key_pressed(Key::Enter))
+                                {
                                     let path = PathBuf::from(path.clone());
                                     if !self
                                         .open_documents
@@ -492,7 +496,9 @@ impl FileManager {
                                 if ui.button("Cancel").clicked() {
                                     ui.close();
                                 }
-                                if ui.button("Save").clicked() {
+                                if ui.button("Save").clicked()
+                                    || ui.input(|input| input.key_pressed(Key::Enter))
+                                {
                                     let to = PathBuf::from(to.clone());
                                     if from != &to
                                         && !self
@@ -526,7 +532,9 @@ impl FileManager {
                                 if ui.button("Cancel").clicked() {
                                     ui.close();
                                 }
-                                if ui.button("Save").clicked() {
+                                if ui.button("Save").clicked()
+                                    || ui.input(|input| input.key_pressed(Key::Enter))
+                                {
                                     let to = PathBuf::from(to.clone());
                                     if from != &to
                                         && !self
@@ -560,7 +568,9 @@ impl FileManager {
                                 if ui.button("Cancel").clicked() {
                                     ui.close();
                                 }
-                                if ui.button("Confirm").clicked() {
+                                if ui.button("Confirm").clicked()
+                                    || ui.input(|input| input.key_pressed(Key::Enter))
+                                {
                                     self.remove_item(path.clone());
                                     ui.close();
                                 }

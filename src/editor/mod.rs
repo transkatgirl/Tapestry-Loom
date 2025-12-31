@@ -23,7 +23,7 @@ mod textedit;
 // TODO: Implement node search
 
 use eframe::egui::{
-    Align, Layout, Modal, OutputCommand, Sides, Spinner, TopBottomPanel, Ui, WidgetText,
+    Align, Key, Layout, Modal, OutputCommand, Sides, Spinner, TopBottomPanel, Ui, WidgetText,
 };
 use egui_notify::Toasts;
 use egui_tiles::{
@@ -363,7 +363,10 @@ impl Editor {
                             if ui.button("Cancel").clicked() {
                                 ui.close();
                             }
-                            if ui.button("Save").clicked() && !self.save_as_input_box.is_empty() {
+                            if (ui.button("Save").clicked()
+                                || ui.input(|input| input.key_pressed(Key::Enter)))
+                                && !self.save_as_input_box.is_empty()
+                            {
                                 let mut new_path =
                                     settings.documents.location.join(&self.save_as_input_box);
                                 if new_path.extension().is_none() {

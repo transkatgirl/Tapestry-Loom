@@ -128,7 +128,7 @@ At the moment, all major features planned for the initial release have been impl
 Development of the next major version of Tapestry Loom will begin in Q1 2026. Please [consider donating](https://github.com/sponsors/transkatgirl) to help fund further development.
 
 ### Short-term TODOs
-- [ ] Better handle enter in dialogs
+- [x] Better handle enter in dialogs
 - [ ] Add generate buttons (displayed on hover) to canvas
 - [ ] Allow temporarilly overriding color in inference menu
 - [ ] Add model configuration sharing functionality
