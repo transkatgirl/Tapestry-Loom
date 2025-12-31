@@ -405,9 +405,22 @@ impl CanvasView {
                 {
                     let painter = ui.painter();
 
+                    let has_active_parents =
+                        canvas_node.to.iter().any(|node| self.active.contains(node));
+
                     painter.line(
                         canvas_node.button_line.0.to_vec(),
-                        canvas_node.button_line.1.clone(),
+                        if has_active_parents {
+                            Stroke {
+                                width: canvas_node.button_line.1.width,
+                                color: active_stroke.color,
+                            }
+                        } else {
+                            Stroke {
+                                width: canvas_node.button_line.1.width,
+                                color: inactive_stroke.color,
+                            }
+                        },
                     );
 
                     ui.scope_builder(
