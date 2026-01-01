@@ -109,7 +109,15 @@ pub enum InnerNodeContent {
 pub struct InnerNodeToken {
     bytes: Vec<u8>,
     metadata: MetadataMap,
-    modified: bool,
+    counterfactual: Vec<CounterfactualToken>,
+    original: Option<Vec<u8>>,
+}
+
+#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
+pub struct CounterfactualToken {
+    bytes: Vec<u8>,
+    metadata: MetadataMap,
 }
 
 impl InnerNodeContent {
@@ -158,9 +166,10 @@ impl InnerNodeContent {
                         left.push(InnerNodeToken {
                             bytes: left_token,
                             metadata: right[0].metadata.clone(),
-                            modified: true,
+                            counterfactual: right[0].counterfactual.clone(),
+                            original: Some(right[0].bytes.clone()),
                         });
-                        right[0].modified = true;
+                        right[0].original = Some(right[0].bytes.clone());
                     }
                     right[0].bytes = right_token;
 
