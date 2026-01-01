@@ -301,7 +301,7 @@ impl ArchivedInnerNodeContent {
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub enum Creator {
-    Model(Model),
+    Model(Option<Model>),
     Human(Option<Author>),
     Unknown,
 }
