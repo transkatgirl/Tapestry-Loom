@@ -90,14 +90,18 @@ struct TapestryLoomApp {
 
 impl TapestryLoomApp {
     fn new(cc: &CreationContext<'_>, runtime: Arc<Runtime>) -> Self {
-        let ctrlc_context = cc.egui_ctx.clone();
+        let mut toasts = Toasts::new();
 
         // Hack to work around eframe's lack of signal handling
-        let _ = ctrlc::set_handler(move || {
-            ctrlc_context.send_viewport_cmd(egui::ViewportCommand::Close);
-        });
-
-        let mut toasts = Toasts::new();
+        {
+            let ctrlc_context = cc.egui_ctx.clone();
+            if let Err(error) = ctrlc::set_handler(move || {
+                ctrlc_context.send_viewport_cmd(egui::ViewportCommand::Close);
+            }) {
+                toasts.error("Failed to initalize signal handler");
+                error!("Failed to initalize signal handler: {error:#?}");
+            }
+        }
 
         let settings = if let Some(storage) = cc.storage {
             if let Some(data) = storage.get_string("settings") {
@@ -142,30 +146,6 @@ impl TapestryLoomApp {
                 "../fonts/NotoEmoji.ttf"
             ))),
         );
-        /*fonts.font_data.insert(
-            "phosphor".into(),
-            Arc::new(FontData::from_static(include_bytes!(
-                "../icons/Phosphor.ttf"
-            ))),
-        );
-        fonts.font_data.insert(
-            "phosphor-light".into(),
-            Arc::new(FontData::from_static(include_bytes!(
-                "../icons/Phosphor-Light.ttf"
-            ))),
-        );
-        fonts.font_data.insert(
-            "phosphor-bold".into(),
-            Arc::new(FontData::from_static(include_bytes!(
-                "../icons/Phosphor-Bold.ttf"
-            ))),
-        );
-        fonts.font_data.insert(
-            "phosphor-fill".into(),
-            Arc::new(FontData::from_static(include_bytes!(
-                "../icons/Phosphor-Fill.ttf"
-            ))),
-        );*/
         if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Monospace) {
             font_keys.push("unifontex".into());
             font_keys.insert(1, "noto-emoji".into());
@@ -177,26 +157,6 @@ impl TapestryLoomApp {
         if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Proportional) {
             font_keys.insert(1, "lucide".into());
         }
-        /*fonts.families.insert(
-            FontFamily::Name("lucide".into()),
-            vec!["Ubuntu-Light".into(), "phosphor-bold".into()],
-        );
-        fonts.families.insert(
-            FontFamily::Name("phosphor".into()),
-            vec!["Ubuntu-Light".into(), "phosphor".into()],
-        );
-        fonts.families.insert(
-            FontFamily::Name("phosphor-light".into()),
-            vec!["Ubuntu-Light".into(), "phosphor-light".into()],
-        );
-        fonts.families.insert(
-            FontFamily::Name("phosphor-bold".into()),
-            vec!["Ubuntu-Light".into(), "phosphor-bold".into()],
-        );
-        fonts.families.insert(
-            FontFamily::Name("phosphor-fill".into()),
-            vec!["Ubuntu-Light".into(), "phosphor-fill".into()],
-        );*/
 
         if settings.borrow().interface.ui_fonts == UIFonts::System {
             debug!("Loading system monospace font");
@@ -305,9 +265,9 @@ impl TapestryLoomApp {
                 runtime.clone(),
                 open_documents.clone(),
             ))),
-            new_editor_queue: Vec::with_capacity(16),
-            focus_queue: Vec::with_capacity(16),
-            close_queue: Vec::with_capacity(16),
+            new_editor_queue: Vec::with_capacity(8),
+            focus_queue: Vec::with_capacity(8),
+            close_queue: Vec::with_capacity(8),
             settings,
             client: Rc::new(RefCell::new(client)),
             toasts,
