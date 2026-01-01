@@ -372,6 +372,8 @@ impl CanvasView {
         render_state: &mut (&mut WeaveWrapper, &Settings, &mut SharedState, Option<Pos2>),
         disable_culling: bool,
     ) {
+        // TODO: Paint lines underneath all other UI objects
+
         let canvas_node = self.nodes.get(node).unwrap();
 
         if ui.clip_rect().min.x > canvas_node.max_x && !disable_culling {
@@ -716,7 +718,9 @@ fn render_generate_button(
     node: Ulid,
     stroke: Stroke,
 ) {
-    let is_hovered = state.get_hovered_node() == NodeIndex::Node(node);
+    // TODO: Implement hover handling
+
+    //let is_hovered = state.get_hovered_node() == NodeIndex::Node(node);
 
     let response = ui.add(
         Button::new(RichText::new("+").size(ui.text_style_height(&TextStyle::Monospace)))
