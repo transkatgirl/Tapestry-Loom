@@ -391,6 +391,25 @@ impl CanvasView {
                 }
             }
         } else {
+            ui.scope_builder(UiBuilder::new().max_rect(canvas_node.rect), |ui| {
+                if ui.is_rect_visible(canvas_node.rect) || disable_culling {
+                    render_node(
+                        ui,
+                        render_state.0,
+                        &self.active,
+                        render_state.1,
+                        render_state.2,
+                        node,
+                        if self.active.contains(node) {
+                            *active_stroke
+                        } else {
+                            *inactive_stroke
+                        },
+                        show_tooltip,
+                    );
+                }
+            });
+
             if ui.clip_rect().max.x >= canvas_node.rect.max.x || disable_culling {
                 if render_state.2.is_open(node) {
                     let painter = ui.painter();
@@ -547,25 +566,6 @@ impl CanvasView {
                     }
                 }
             }
-
-            ui.scope_builder(UiBuilder::new().max_rect(canvas_node.rect), |ui| {
-                if ui.is_rect_visible(canvas_node.rect) || disable_culling {
-                    render_node(
-                        ui,
-                        render_state.0,
-                        &self.active,
-                        render_state.1,
-                        render_state.2,
-                        node,
-                        if self.active.contains(node) {
-                            *active_stroke
-                        } else {
-                            *inactive_stroke
-                        },
-                        show_tooltip,
-                    );
-                }
-            });
         }
     }
 }
