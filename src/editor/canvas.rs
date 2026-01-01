@@ -50,6 +50,7 @@ struct CanvasNode {
     to_lines: Vec<([Pos2; 4], PathStroke)>,
     max_x: f32,
     button_rect: Rect,
+    button_hover_rect: Rect,
     button_line: ([Pos2; 2], PathStroke),
 }
 
@@ -167,13 +168,14 @@ impl CanvasView {
                         y: rect.max.y,
                     },
                 };
+                let max_x = rect.max.x + (padding_base * 4.0);
                 let button_rect = Rect {
                     min: Pos2 {
                         x: rect.max.x + padding_base,
                         y: rect.min.y,
                     },
                     max: Pos2 {
-                        x: rect.max.x + (padding_base * 5.0),
+                        x: max_x,
                         y: rect.max.y,
                     },
                 };
@@ -184,8 +186,12 @@ impl CanvasView {
                         rect,
                         to: node.to.iter().copied().map(Ulid).collect(),
                         to_lines: Vec::with_capacity(node.to.len()),
-                        max_x: rect.max.x + (padding_base * 4.0),
+                        max_x,
                         button_rect,
+                        button_hover_rect: Rect {
+                            min: rect.min,
+                            max: button_rect.max,
+                        },
                         button_line: (
                             [
                                 Pos2 {
@@ -295,6 +301,18 @@ impl CanvasView {
                 let show_tooltip = self.last_changed.elapsed().as_secs_f32()
                     >= ui.style().interaction.tooltip_delay;
 
+                let layer_transform = ui
+                    .ctx()
+                    .layer_transform_from_global(ui.painter().layer_id())
+                    .unwrap_or_default();
+
+                let mouse_position = ui.input(|input| {
+                    input
+                        .pointer
+                        .latest_pos()
+                        .map(|pos| layer_transform.mul_pos(pos))
+                });
+
                 for root in &self.roots {
                     self.traverse_and_focus(root, &mut focus, &outer_rect, changed_node, state);
                     self.traverse_and_paint(
@@ -303,7 +321,7 @@ impl CanvasView {
                         &active_stroke,
                         &inactive_stroke,
                         show_tooltip,
-                        &mut (weave, settings, state),
+                        &mut (weave, settings, state, mouse_position),
                         last_rect == Rect::ZERO,
                     );
                 }
@@ -356,7 +374,7 @@ impl CanvasView {
         active_stroke: &Stroke,
         inactive_stroke: &Stroke,
         show_tooltip: bool,
-        render_state: &mut (&mut WeaveWrapper, &Settings, &mut SharedState),
+        render_state: &mut (&mut WeaveWrapper, &Settings, &mut SharedState, Option<Pos2>),
         disable_culling: bool,
     ) {
         let canvas_node = self.nodes.get(node).unwrap();
@@ -400,43 +418,142 @@ impl CanvasView {
                             disable_culling,
                         );
                     }
-                } else if (ui.is_rect_visible(canvas_node.button_rect) || disable_culling)
-                    && should_render_expand_button(node, render_state.0)
-                {
+
+                    if (ui.is_rect_visible(canvas_node.button_rect) || disable_culling)
+                        && render_state
+                            .3
+                            .map(|mouse| {
+                                Rect {
+                                    min: Pos2 {
+                                        x: canvas_node.rect.max.x,
+                                        y: canvas_node.rect.min.y,
+                                    },
+                                    max: Pos2 {
+                                        x: canvas_node.max_x,
+                                        y: canvas_node.rect.max.y,
+                                    },
+                                }
+                                .contains(mouse)
+                            })
+                            .unwrap_or_default()
+                    {
+                        let painter = ui.painter();
+
+                        painter.line(
+                            canvas_node.button_line.0.to_vec(),
+                            if self.active.contains(node) {
+                                Stroke {
+                                    width: canvas_node.button_line.1.width,
+                                    color: active_stroke.color,
+                                }
+                            } else {
+                                Stroke {
+                                    width: canvas_node.button_line.1.width,
+                                    color: inactive_stroke.color,
+                                }
+                            },
+                        );
+
+                        ui.scope_builder(
+                            UiBuilder::new()
+                                .max_rect(canvas_node.button_rect)
+                                .layout(Layout::left_to_right(Align::Center)),
+                            |ui| {
+                                render_generate_button(
+                                    ui,
+                                    render_state.0,
+                                    render_state.2,
+                                    render_state.1,
+                                    *node,
+                                    *inactive_stroke,
+                                );
+                            },
+                        );
+                    }
+                } else if ui.is_rect_visible(canvas_node.button_rect) || disable_culling {
                     let painter = ui.painter();
 
-                    let has_active_parents =
-                        canvas_node.to.iter().any(|node| self.active.contains(node));
+                    if should_render_expand_button(node, render_state.0) {
+                        let has_active_parents =
+                            canvas_node.to.iter().any(|node| self.active.contains(node));
 
-                    painter.line(
-                        canvas_node.button_line.0.to_vec(),
-                        if has_active_parents {
-                            Stroke {
-                                width: canvas_node.button_line.1.width,
-                                color: active_stroke.color,
-                            }
-                        } else {
-                            Stroke {
-                                width: canvas_node.button_line.1.width,
-                                color: inactive_stroke.color,
-                            }
-                        },
-                    );
+                        painter.line(
+                            canvas_node.button_line.0.to_vec(),
+                            if has_active_parents {
+                                Stroke {
+                                    width: canvas_node.button_line.1.width,
+                                    color: active_stroke.color,
+                                }
+                            } else {
+                                Stroke {
+                                    width: canvas_node.button_line.1.width,
+                                    color: inactive_stroke.color,
+                                }
+                            },
+                        );
 
-                    ui.scope_builder(
-                        UiBuilder::new()
-                            .max_rect(canvas_node.button_rect)
-                            .layout(Layout::left_to_right(Align::Center)),
-                        |ui| {
-                            render_expand_button(
-                                ui,
-                                render_state.0,
-                                render_state.2,
-                                node,
-                                *inactive_stroke,
-                            );
-                        },
-                    );
+                        ui.scope_builder(
+                            UiBuilder::new()
+                                .max_rect(canvas_node.button_rect)
+                                .layout(Layout::left_to_right(Align::Center)),
+                            |ui| {
+                                render_expand_button(
+                                    ui,
+                                    render_state.0,
+                                    render_state.2,
+                                    node,
+                                    *inactive_stroke,
+                                );
+                            },
+                        );
+                    } else if render_state
+                        .3
+                        .map(|mouse| {
+                            Rect {
+                                min: Pos2 {
+                                    x: canvas_node.rect.max.x,
+                                    y: canvas_node.rect.min.y,
+                                },
+                                max: Pos2 {
+                                    x: canvas_node.max_x,
+                                    y: canvas_node.rect.max.y,
+                                },
+                            }
+                            .contains(mouse)
+                        })
+                        .unwrap_or_default()
+                    {
+                        painter.line(
+                            canvas_node.button_line.0.to_vec(),
+                            if self.active.contains(node) {
+                                Stroke {
+                                    width: canvas_node.button_line.1.width,
+                                    color: active_stroke.color,
+                                }
+                            } else {
+                                Stroke {
+                                    width: canvas_node.button_line.1.width,
+                                    color: inactive_stroke.color,
+                                }
+                            },
+                        );
+
+                        ui.scope_builder(
+                            UiBuilder::new()
+                                .max_rect(canvas_node.button_rect)
+                                .layout(Layout::left_to_right(Align::Center)),
+                            |ui| {
+                                render_generate_button(
+                                    ui,
+                                    render_state.0,
+                                    render_state.2,
+                                    render_state.1,
+                                    *node,
+                                    *inactive_stroke,
+                                );
+                            },
+                        );
+                    }
                 }
             }
 
@@ -600,6 +717,41 @@ fn render_expand_button(
 
         ui.set_max_width(ui.min_rect().width());
     }
+}
+
+fn render_generate_button(
+    ui: &mut Ui,
+    weave: &mut WeaveWrapper,
+    state: &mut SharedState,
+    settings: &Settings,
+    node: Ulid,
+    stroke: Stroke,
+) {
+    let is_hovered = state.get_hovered_node() == NodeIndex::Node(node);
+
+    let response = ui.add(
+        Button::new(RichText::new("+").size(ui.text_style_height(&TextStyle::Monospace)))
+            .min_size(Vec2 {
+                x: ui.text_style_height(&TextStyle::Monospace) * 1.75,
+                y: ui.text_style_height(&TextStyle::Monospace) * 1.75,
+            })
+            .fill(if !is_hovered {
+                ui.style().visuals.widgets.noninteractive.bg_fill
+            } else {
+                ui.style().visuals.widgets.hovered.weak_bg_fill
+            })
+            .stroke(stroke),
+    );
+
+    if response.contains_pointer() {
+        state.set_hovered_node(NodeIndex::Node(node));
+    }
+
+    if response.clicked() {
+        state.generate_children(weave, Some(node), settings);
+    }
+
+    ui.set_max_width(ui.min_rect().width());
 }
 
 fn calculate_size(ui: &Ui, hash: impl Hash, contents: impl FnOnce(&mut Ui)) -> Vec2 {
