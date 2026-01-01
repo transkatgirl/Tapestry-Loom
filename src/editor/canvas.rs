@@ -391,135 +391,152 @@ impl CanvasView {
                 }
             }
         } else {
-            ui.scope_builder(UiBuilder::new().max_rect(canvas_node.rect), |ui| {
-                if ui.is_rect_visible(canvas_node.rect) || disable_culling {
-                    render_node(
-                        ui,
-                        render_state.0,
-                        &self.active,
-                        render_state.1,
-                        render_state.2,
-                        node,
-                        if self.active.contains(node) {
-                            *active_stroke
-                        } else {
-                            *inactive_stroke
-                        },
-                        show_tooltip,
-                    );
-                }
-            });
+            self.paint_first_pass(
+                ui,
+                node,
+                canvas_node,
+                active_stroke,
+                inactive_stroke,
+                show_tooltip,
+                render_state,
+                disable_culling,
+            );
+            self.paint_second_pass(
+                ui,
+                node,
+                canvas_node,
+                active_stroke,
+                inactive_stroke,
+                show_tooltip,
+                render_state,
+                disable_culling,
+            );
+            self.paint_children(
+                ui,
+                node,
+                active_stroke,
+                inactive_stroke,
+                show_tooltip,
+                render_state,
+                disable_culling,
+            );
+        }
+    }
+    fn paint_children(
+        &self,
+        ui: &mut Ui,
+        node: &Ulid,
+        active_stroke: &Stroke,
+        inactive_stroke: &Stroke,
+        show_tooltip: bool,
+        render_state: &mut (&mut WeaveWrapper, &Settings, &mut SharedState, Option<Pos2>),
+        disable_culling: bool,
+    ) {
+        let canvas_node = self.nodes.get(node).unwrap();
 
-            if ui.clip_rect().max.x >= canvas_node.rect.max.x || disable_culling {
-                if render_state.2.is_open(node) {
-                    let painter = ui.painter();
+        if (ui.clip_rect().max.x >= canvas_node.rect.max.x || disable_culling)
+            && render_state.2.is_open(node)
+        {
+            for child in &canvas_node.to {
+                let canvas_child = self.nodes.get(child).unwrap();
 
-                    for (points, stroke) in canvas_node.to_lines.iter().cloned() {
-                        painter.add(CubicBezierShape {
-                            points,
-                            closed: false,
-                            fill: Color32::TRANSPARENT,
-                            stroke,
-                        });
-                    }
+                self.paint_first_pass(
+                    ui,
+                    child,
+                    canvas_child,
+                    active_stroke,
+                    inactive_stroke,
+                    show_tooltip,
+                    render_state,
+                    disable_culling,
+                );
+                self.paint_children(
+                    ui,
+                    child,
+                    active_stroke,
+                    inactive_stroke,
+                    show_tooltip,
+                    render_state,
+                    disable_culling,
+                );
+            }
+        }
 
-                    for child in &canvas_node.to {
-                        self.traverse_and_paint(
-                            ui,
-                            child,
-                            active_stroke,
-                            inactive_stroke,
-                            show_tooltip,
-                            render_state,
-                            disable_culling,
-                        );
-                    }
+        for child in &canvas_node.to {
+            let canvas_child = self.nodes.get(child).unwrap();
 
-                    if (ui.is_rect_visible(canvas_node.button_rect) || disable_culling)
-                        && render_state
-                            .3
-                            .map(|mouse| {
-                                Rect {
-                                    min: canvas_node.rect.min,
-                                    max: Pos2 {
-                                        x: canvas_node.max_x,
-                                        y: canvas_node.rect.max.y,
-                                    },
-                                }
-                                .contains(mouse)
-                            })
-                            .unwrap_or_default()
-                    {
-                        let painter = ui.painter();
+            self.paint_second_pass(
+                ui,
+                child,
+                canvas_child,
+                active_stroke,
+                inactive_stroke,
+                show_tooltip,
+                render_state,
+                disable_culling,
+            );
+        }
+    }
+    fn paint_first_pass(
+        &self,
+        ui: &mut Ui,
+        node: &Ulid,
+        canvas_node: &CanvasNode,
+        _active_stroke: &Stroke,
+        _inactive_stroke: &Stroke,
+        _show_tooltip: bool,
+        render_state: &mut (&mut WeaveWrapper, &Settings, &mut SharedState, Option<Pos2>),
+        disable_culling: bool,
+    ) {
+        if (ui.clip_rect().max.x >= canvas_node.rect.max.x || disable_culling)
+            && render_state.2.is_open(node)
+        {
+            let painter = ui.painter();
 
-                        painter.line(
-                            canvas_node.button_line.0.to_vec(),
-                            if self.active.contains(node) {
-                                Stroke {
-                                    width: canvas_node.button_line.1.width,
-                                    color: active_stroke.color,
-                                }
-                            } else {
-                                Stroke {
-                                    width: canvas_node.button_line.1.width,
-                                    color: inactive_stroke.color,
-                                }
-                            },
-                        );
+            for (points, stroke) in canvas_node.to_lines.iter().cloned() {
+                painter.add(CubicBezierShape {
+                    points,
+                    closed: false,
+                    fill: Color32::TRANSPARENT,
+                    stroke,
+                });
+            }
+        }
+    }
+    fn paint_second_pass(
+        &self,
+        ui: &mut Ui,
+        node: &Ulid,
+        canvas_node: &CanvasNode,
+        active_stroke: &Stroke,
+        inactive_stroke: &Stroke,
+        show_tooltip: bool,
+        render_state: &mut (&mut WeaveWrapper, &Settings, &mut SharedState, Option<Pos2>),
+        disable_culling: bool,
+    ) {
+        ui.scope_builder(UiBuilder::new().max_rect(canvas_node.rect), |ui| {
+            if ui.is_rect_visible(canvas_node.rect) || disable_culling {
+                render_node(
+                    ui,
+                    render_state.0,
+                    &self.active,
+                    render_state.1,
+                    render_state.2,
+                    node,
+                    if self.active.contains(node) {
+                        *active_stroke
+                    } else {
+                        *inactive_stroke
+                    },
+                    show_tooltip,
+                );
+            }
+        });
 
-                        ui.scope_builder(
-                            UiBuilder::new()
-                                .max_rect(canvas_node.button_rect)
-                                .layout(Layout::left_to_right(Align::Center)),
-                            |ui| {
-                                render_generate_button(
-                                    ui,
-                                    render_state.0,
-                                    render_state.2,
-                                    render_state.1,
-                                    *node,
-                                    *inactive_stroke,
-                                );
-                            },
-                        );
-                    }
-                } else if ui.is_rect_visible(canvas_node.button_rect) || disable_culling {
-                    let painter = ui.painter();
-
-                    if should_render_expand_button(node, render_state.0) {
-                        let has_active_parents =
-                            canvas_node.to.iter().any(|node| self.active.contains(node));
-
-                        painter.line(
-                            canvas_node.button_line.0.to_vec(),
-                            if has_active_parents {
-                                Stroke {
-                                    width: canvas_node.button_line.1.width,
-                                    color: active_stroke.color,
-                                }
-                            } else {
-                                Stroke {
-                                    width: canvas_node.button_line.1.width,
-                                    color: inactive_stroke.color,
-                                }
-                            },
-                        );
-
-                        ui.scope_builder(
-                            UiBuilder::new()
-                                .max_rect(canvas_node.button_rect)
-                                .layout(Layout::left_to_right(Align::Center)),
-                            |ui| {
-                                render_expand_button(
-                                    ui,
-                                    render_state.0,
-                                    render_state.2,
-                                    node,
-                                    *inactive_stroke,
-                                );
-                            },
-                        );
-                    } else if render_state
+        if ui.clip_rect().max.x >= canvas_node.rect.max.x || disable_culling {
+            if render_state.2.is_open(node) {
+                if (ui.is_rect_visible(canvas_node.button_rect) || disable_culling)
+                    && render_state
                         .3
                         .map(|mouse| {
                             Rect {
@@ -532,38 +549,120 @@ impl CanvasView {
                             .contains(mouse)
                         })
                         .unwrap_or_default()
-                    {
-                        painter.line(
-                            canvas_node.button_line.0.to_vec(),
-                            if self.active.contains(node) {
-                                Stroke {
-                                    width: canvas_node.button_line.1.width,
-                                    color: active_stroke.color,
-                                }
-                            } else {
-                                Stroke {
-                                    width: canvas_node.button_line.1.width,
-                                    color: inactive_stroke.color,
-                                }
-                            },
-                        );
+                {
+                    let painter = ui.painter();
 
-                        ui.scope_builder(
-                            UiBuilder::new()
-                                .max_rect(canvas_node.button_rect)
-                                .layout(Layout::left_to_right(Align::Center)),
-                            |ui| {
-                                render_generate_button(
-                                    ui,
-                                    render_state.0,
-                                    render_state.2,
-                                    render_state.1,
-                                    *node,
-                                    *inactive_stroke,
-                                );
+                    painter.line(
+                        canvas_node.button_line.0.to_vec(),
+                        if self.active.contains(node) {
+                            Stroke {
+                                width: canvas_node.button_line.1.width,
+                                color: active_stroke.color,
+                            }
+                        } else {
+                            Stroke {
+                                width: canvas_node.button_line.1.width,
+                                color: inactive_stroke.color,
+                            }
+                        },
+                    );
+
+                    ui.scope_builder(
+                        UiBuilder::new()
+                            .max_rect(canvas_node.button_rect)
+                            .layout(Layout::left_to_right(Align::Center)),
+                        |ui| {
+                            render_generate_button(
+                                ui,
+                                render_state.0,
+                                render_state.2,
+                                render_state.1,
+                                *node,
+                                *inactive_stroke,
+                            );
+                        },
+                    );
+                }
+            } else if ui.is_rect_visible(canvas_node.button_rect) || disable_culling {
+                let painter = ui.painter();
+
+                if should_render_expand_button(node, render_state.0) {
+                    let has_active_parents =
+                        canvas_node.to.iter().any(|node| self.active.contains(node));
+
+                    painter.line(
+                        canvas_node.button_line.0.to_vec(),
+                        if has_active_parents {
+                            Stroke {
+                                width: canvas_node.button_line.1.width,
+                                color: active_stroke.color,
+                            }
+                        } else {
+                            Stroke {
+                                width: canvas_node.button_line.1.width,
+                                color: inactive_stroke.color,
+                            }
+                        },
+                    );
+
+                    ui.scope_builder(
+                        UiBuilder::new()
+                            .max_rect(canvas_node.button_rect)
+                            .layout(Layout::left_to_right(Align::Center)),
+                        |ui| {
+                            render_expand_button(
+                                ui,
+                                render_state.0,
+                                render_state.2,
+                                node,
+                                *inactive_stroke,
+                            );
+                        },
+                    );
+                } else if render_state
+                    .3
+                    .map(|mouse| {
+                        Rect {
+                            min: canvas_node.rect.min,
+                            max: Pos2 {
+                                x: canvas_node.max_x,
+                                y: canvas_node.rect.max.y,
                             },
-                        );
-                    }
+                        }
+                        .contains(mouse)
+                    })
+                    .unwrap_or_default()
+                {
+                    painter.line(
+                        canvas_node.button_line.0.to_vec(),
+                        if self.active.contains(node) {
+                            Stroke {
+                                width: canvas_node.button_line.1.width,
+                                color: active_stroke.color,
+                            }
+                        } else {
+                            Stroke {
+                                width: canvas_node.button_line.1.width,
+                                color: inactive_stroke.color,
+                            }
+                        },
+                    );
+
+                    ui.scope_builder(
+                        UiBuilder::new()
+                            .max_rect(canvas_node.button_rect)
+                            .layout(Layout::left_to_right(Align::Center)),
+                        |ui| {
+                            render_generate_button(
+                                ui,
+                                render_state.0,
+                                render_state.2,
+                                render_state.1,
+                                *node,
+                                *inactive_stroke,
+                            );
+                        },
+                    );
                 }
             }
         }
@@ -599,7 +698,7 @@ fn render_node(
         }
 
         let mut button = Button::new(render_node_text_or_empty(ui, &node, settings, None))
-            .fill(Color32::TRANSPARENT)
+            .fill(ui.style().visuals.widgets.noninteractive.bg_fill)
             .stroke(stroke)
             .min_size(Vec2 {
                 x: ui.spacing().text_edit_width * 1.2,
@@ -692,7 +791,7 @@ fn render_expand_button(
                         y: ui.text_style_height(&TextStyle::Monospace) * 1.75,
                     })
                     .fill(if !is_hovered {
-                        Color32::TRANSPARENT
+                        ui.style().visuals.widgets.noninteractive.bg_fill
                     } else {
                         ui.style().visuals.widgets.hovered.weak_bg_fill
                     })
