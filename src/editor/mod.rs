@@ -35,7 +35,6 @@ use parking_lot::Mutex;
 use tapestry_weave::{
     VERSIONED_WEAVE_FILE_EXTENSION, VersionedWeave, ulid::Ulid, universal_weave::rkyv::rancor,
 };
-use threadpool::ThreadPool;
 use tokio::runtime::Runtime;
 
 use crate::{
@@ -53,7 +52,6 @@ use crate::{
 pub struct Editor {
     settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
-    threadpool: Rc<ThreadPool>,
     open_documents: Rc<RefCell<HashSet<PathBuf>>>,
     pub title: String,
     path: Arc<Mutex<Option<PathBuf>>>,
@@ -78,7 +76,6 @@ impl Editor {
     pub fn new(
         settings: Rc<RefCell<Settings>>,
         toasts: Rc<RefCell<Toasts>>,
-        threadpool: Rc<ThreadPool>,
         open_documents: Rc<RefCell<HashSet<PathBuf>>>,
         runtime: Arc<Runtime>,
         client: Rc<RefCell<Option<InferenceClient>>>,
@@ -129,7 +126,6 @@ impl Editor {
         Self {
             settings: settings.clone(),
             toasts: toasts.clone(),
-            threadpool,
             open_documents,
             title: generate_title(&path),
             path: Arc::new(Mutex::new(path.clone())),
@@ -225,7 +221,7 @@ impl Editor {
                     let error_sender = self.error_channel.0.clone();
                     let file_size = self.last_filesize.clone();
 
-                    self.threadpool.execute(move || {
+                    self.behavior.shared_state.runtime.spawn_blocking(move || {
                         let mut weave_dest = weave.lock();
                         let mut path = path.lock();
                         thread_barrier.wait();
@@ -410,7 +406,7 @@ impl Editor {
         let thread_barrier = barrier.clone();
         let file_size = self.last_filesize.clone();
 
-        self.threadpool.execute(move || {
+        self.behavior.shared_state.runtime.spawn_blocking(move || {
             let mut weave_lock = weave.lock();
             let mut path_lock = path.lock();
             thread_barrier.wait();

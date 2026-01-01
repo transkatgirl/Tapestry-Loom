@@ -34,7 +34,7 @@ pub(super) mod weave;
 
 pub struct SharedState {
     pub identifier: Ulid,
-    runtime: Arc<Runtime>,
+    pub runtime: Arc<Runtime>,
     client: Rc<RefCell<Option<InferenceClient>>>,
     cache: InferenceCache,
     pub inference: InferenceParameters,

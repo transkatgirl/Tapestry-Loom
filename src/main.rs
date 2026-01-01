@@ -1,6 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{cell::RefCell, collections::HashSet, fs, path::PathBuf, rc::Rc, sync::Arc};
+use std::{
+    cell::RefCell, collections::HashSet, fs, path::PathBuf, rc::Rc, sync::Arc, time::Duration,
+};
 
 use eframe::{
     App, CreationContext, Frame, NativeOptions,
@@ -295,13 +297,12 @@ impl TapestryLoomApp {
             settings,
             client: Rc::new(RefCell::new(client)),
             toasts,
-            runtime: Arc::new(
+            runtime: Some(Arc::new(
                 tokio::runtime::Builder::new_multi_thread()
                     .enable_all()
                     .build()
                     .unwrap(),
-            ),
-            threadpool,
+            )),
             open_documents,
             pressed_shortcuts: FlagSet::empty(),
             settings_visible: false,
@@ -382,9 +383,8 @@ impl App for TapestryLoomApp {
                                 .insert_pane(Pane::Editor(Box::new(Editor::new(
                                     self.behavior.settings.clone(),
                                     self.behavior.toasts.clone(),
-                                    self.behavior.threadpool.clone(),
                                     self.behavior.open_documents.clone(),
-                                    self.behavior.runtime.clone(),
+                                    self.behavior.runtime.clone().unwrap(),
                                     self.behavior.client.clone(),
                                     path,
                                     Box::new(move |_| {
@@ -511,9 +511,17 @@ impl App for TapestryLoomApp {
                 editor.close();
             }
         }
+        self.tree.tiles = Tiles::default();
 
-        debug!("Waiting for IO threads to terminate...");
-        self.behavior.threadpool.join();
+        debug!("Waiting for async runtime to terminate...");
+        let runtime = self.behavior.runtime.clone().unwrap();
+        self.behavior.runtime = None;
+
+        Arc::try_unwrap(runtime)
+            .unwrap()
+            .shutdown_timeout(Duration::from_secs(600));
+
+        debug!("Terminated async runtime")
     }
 }
 
@@ -525,8 +533,7 @@ struct TapestryLoomBehavior {
     close_queue: Vec<TileId>,
     file_manager: Rc<RefCell<FileManager>>,
     toasts: Rc<RefCell<Toasts>>,
-    threadpool: Rc<ThreadPool>,
-    runtime: Arc<Runtime>,
+    runtime: Option<Arc<Runtime>>,
     open_documents: Rc<RefCell<HashSet<PathBuf>>>,
     pressed_shortcuts: FlagSet<Shortcuts>,
     settings_visible: bool,
