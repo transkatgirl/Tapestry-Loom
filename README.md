@@ -141,12 +141,13 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 - [ ] Support for DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- [ ] FIM completions
 		- [ ] Selected text is used to determine FIM location
+	- [ ] Diff-based editor content application
 	- [ ] Node copying & moving
-	- [ ] Perform heavy testing of data structures and/or formal verification to prevent bugs that could result in data loss
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
 	- [ ] Fully immutable nodes; Node splitting is implemented through duplication
 	- [ ] Prefix-based duplication
 	- [ ] Implement counterfactual logprobs, similar to [loom](https://github.com/socketteer/loom)
+	- [ ] Perform heavy testing of data structures and/or formal verification to prevent bugs that could result in data loss
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Node confidence calculation
