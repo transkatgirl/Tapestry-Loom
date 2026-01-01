@@ -44,6 +44,14 @@ static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() -> eframe::Result {
     env_logger::Builder::from_env(Env::default().default_filter_or("debug,tapestry_loom=trace,winit=info,layouting=warn,coordinate_calculation=warn,crossing_reduction=warn,ranking=warn,Cycle Removal=warn,connected_components=warn,rust_sugiyama::algorithm=warn")).init();
+    debug!("Initalizing...");
+
+    let runtime = Arc::new(
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap(),
+    );
     let options = NativeOptions {
         #[cfg(target_os = "macos")]
         viewport: ViewportBuilder::default()
@@ -56,25 +64,19 @@ fn main() -> eframe::Result {
         persist_window: true,
         ..Default::default()
     };
-    let runtime = Arc::new(
-        tokio::runtime::Builder::new_multi_thread()
-            .enable_all()
-            .build()
-            .unwrap(),
-    );
     eframe::run_native(
         "Tapestry Loom",
         options,
         Box::new(|cc| Ok(Box::new(TapestryLoomApp::new(cc, runtime.clone())))),
     )?;
 
-    debug!("Waiting for async runtime to terminate...");
+    debug!("Shutting down async runtime...");
 
     Arc::try_unwrap(runtime)
         .unwrap()
         .shutdown_timeout(Duration::from_secs(600));
 
-    debug!("Terminated async runtime");
+    debug!("Async runtime terminated");
 
     Ok(())
 }
@@ -92,8 +94,9 @@ impl TapestryLoomApp {
     fn new(cc: &CreationContext<'_>, runtime: Arc<Runtime>) -> Self {
         let mut toasts = Toasts::new();
 
-        // Hack to work around eframe's lack of signal handling
         {
+            // Hack to work around eframe's lack of signal handling
+
             let ctrlc_context = cc.egui_ctx.clone();
             if let Err(error) = ctrlc::set_handler(move || {
                 ctrlc_context.send_viewport_cmd(egui::ViewportCommand::Close);
@@ -102,6 +105,10 @@ impl TapestryLoomApp {
                 error!("Failed to initalize signal handler: {error:#?}");
             }
         }
+
+        cc.egui_ctx.memory_mut(|memory| {
+            *memory = Memory::default();
+        });
 
         let settings = if let Some(storage) = cc.storage {
             if let Some(data) = storage.get_string("settings") {
@@ -121,11 +128,13 @@ impl TapestryLoomApp {
             error!("Settings storage not found");
             Settings::default()
         };
-        let settings = Rc::new(RefCell::new(settings));
 
-        cc.egui_ctx.memory_mut(|memory| {
-            *memory = Memory::default();
-        });
+        settings.interface.apply(&cc.egui_ctx);
+
+        let last_ui_settings = settings.interface;
+        let last_client_settings = settings.inference.client.clone();
+
+        let settings = Rc::new(RefCell::new(settings));
 
         let mut fonts = FontDefinitions::default();
         fonts.font_data.insert(
@@ -287,10 +296,7 @@ impl TapestryLoomApp {
 
         let root = tiles.insert_tab_tile(tabs);
 
-        behavior.settings.borrow().interface.apply(&cc.egui_ctx);
-
-        let last_ui_settings = behavior.settings.borrow().interface;
-        let last_client_settings = behavior.settings.borrow().inference.client.clone();
+        debug!("Initialized application context");
 
         Self {
             behavior,
@@ -486,13 +492,16 @@ impl App for TapestryLoomApp {
 struct TapestryLoomBehavior {
     settings: Rc<RefCell<Settings>>,
     client: Rc<RefCell<Option<InferenceClient>>>,
+    toasts: Rc<RefCell<Toasts>>,
+    runtime: Arc<Runtime>,
+
+    file_manager: Rc<RefCell<FileManager>>,
+
+    open_documents: Rc<RefCell<HashSet<PathBuf>>>,
     new_editor_queue: Vec<(Option<PathBuf>, Option<TileId>)>,
     focus_queue: Vec<TileId>,
     close_queue: Vec<TileId>,
-    file_manager: Rc<RefCell<FileManager>>,
-    toasts: Rc<RefCell<Toasts>>,
-    runtime: Arc<Runtime>,
-    open_documents: Rc<RefCell<HashSet<PathBuf>>>,
+
     pressed_shortcuts: FlagSet<Shortcuts>,
     settings_visible: bool,
     settings_last_visible: bool,
