@@ -331,73 +331,7 @@ impl App for TapestryLoomApp {
             .frame(egui::Frame::central_panel(&ctx.style()).inner_margin(0.0))
             .show(ctx, |ui| {
                 self.tree.ui(&mut self.behavior, ui);
-
-                for tile in self.behavior.close_queue.drain(..) {
-                    self.tree.remove_recursively(tile);
-                }
-
-                for tile in self.behavior.focus_queue.drain(..) {
-                    focus_tile(&mut self.tree.tiles, tile);
-                }
-
-                if !self.behavior.new_editor_queue.is_empty() {
-                    let mut new_tiles = Vec::with_capacity(self.behavior.new_editor_queue.len());
-
-                    for (path, parent) in self.behavior.new_editor_queue.drain(..) {
-                        if let Some(path) = &path
-                            && self.behavior.open_documents.borrow().contains(path)
-                        {
-                            continue;
-                        }
-
-                        let file_manager = self.behavior.file_manager.clone();
-
-                        let identifier =
-                            self.tree
-                                .tiles
-                                .insert_pane(Pane::Editor(Box::new(Editor::new(
-                                    self.behavior.settings.clone(),
-                                    self.behavior.toasts.clone(),
-                                    self.behavior.open_documents.clone(),
-                                    self.behavior.runtime.clone(),
-                                    self.behavior.client.clone(),
-                                    path,
-                                    Box::new(move |_| {
-                                        file_manager.borrow_mut().update();
-                                    }),
-                                ))));
-
-                        if let Some(Tile::Container(parent)) =
-                            parent.and_then(|root| self.tree.tiles.get_mut(root))
-                        {
-                            parent.add_child(identifier);
-                            if let egui_tiles::Container::Tabs(tabs) = parent {
-                                tabs.set_active(identifier);
-                            }
-                        } else {
-                            new_tiles.push(identifier);
-                        }
-                    }
-
-                    if let Some(Tile::Container(root)) = self
-                        .tree
-                        .root
-                        .and_then(|root| self.tree.tiles.get_mut(root))
-                    {
-                        for id in new_tiles {
-                            root.add_child(id);
-                            if let egui_tiles::Container::Tabs(tabs) = root {
-                                tabs.set_active(id);
-                            }
-                        }
-                    } else {
-                        self.behavior
-                            .toasts
-                            .borrow_mut()
-                            .error("Unable to find window root");
-                        error!("Unable to find window root");
-                    }
-                }
+                self.behavior.update(&mut self.tree);
             });
         self.behavior.toasts.borrow_mut().show(ctx);
 
@@ -504,6 +438,68 @@ struct TapestryLoomBehavior {
     pressed_shortcuts: FlagSet<Shortcuts>,
     settings_visible: bool,
     settings_last_visible: bool,
+}
+
+impl TapestryLoomBehavior {
+    fn update(&mut self, tree: &mut Tree<Pane>) {
+        for tile in self.close_queue.drain(..) {
+            tree.remove_recursively(tile);
+        }
+
+        for tile in self.focus_queue.drain(..) {
+            focus_tile(&mut tree.tiles, tile);
+        }
+
+        if !self.new_editor_queue.is_empty() {
+            let mut new_tiles = Vec::with_capacity(self.new_editor_queue.len());
+
+            for (path, parent) in self.new_editor_queue.drain(..) {
+                if let Some(path) = &path
+                    && self.open_documents.borrow().contains(path)
+                {
+                    continue;
+                }
+
+                let file_manager = self.file_manager.clone();
+
+                let identifier = tree.tiles.insert_pane(Pane::Editor(Box::new(Editor::new(
+                    self.settings.clone(),
+                    self.toasts.clone(),
+                    self.open_documents.clone(),
+                    self.runtime.clone(),
+                    self.client.clone(),
+                    path,
+                    Box::new(move |_| {
+                        file_manager.borrow_mut().update();
+                    }),
+                ))));
+
+                if let Some(Tile::Container(parent)) =
+                    parent.and_then(|root| tree.tiles.get_mut(root))
+                {
+                    parent.add_child(identifier);
+                    if let egui_tiles::Container::Tabs(tabs) = parent {
+                        tabs.set_active(identifier);
+                    }
+                } else {
+                    new_tiles.push(identifier);
+                }
+            }
+
+            if let Some(Tile::Container(root)) = tree.root.and_then(|root| tree.tiles.get_mut(root))
+            {
+                for id in new_tiles {
+                    root.add_child(id);
+                    if let egui_tiles::Container::Tabs(tabs) = root {
+                        tabs.set_active(id);
+                    }
+                }
+            } else {
+                self.toasts.borrow_mut().error("Unable to find window root");
+                error!("Unable to find window root");
+            }
+        }
+    }
 }
 
 enum Pane {
