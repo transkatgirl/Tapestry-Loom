@@ -167,17 +167,17 @@ impl CanvasView {
                         y: rect.max.y,
                     },
                 };
-                let max_x = rect.max.x + (padding_base * 4.0);
                 let button_rect = Rect {
                     min: Pos2 {
                         x: rect.max.x + padding_base,
                         y: rect.min.y,
                     },
                     max: Pos2 {
-                        x: max_x,
+                        x: rect.max.x + (padding_base * 4.0),
                         y: rect.max.y,
                     },
                 };
+                let max_x = rect.max.x + (padding_base * 5.0);
 
                 self.nodes.insert(
                     item,
@@ -212,7 +212,6 @@ impl CanvasView {
                     let p_node = self.nodes.get_mut(&parent).unwrap();
                     let p_rect = *arranged.rects.get(&parent).unwrap();
 
-                    p_node.max_x = p_node.max_x.max(rect.min.x + padding_base);
                     p_node.to_lines.push((
                         wire_bezier_3(
                             ui.style().spacing.interact_size.y * 2.0,
@@ -374,10 +373,12 @@ impl CanvasView {
     ) {
         let canvas_node = self.nodes.get(node).unwrap();
 
-        if ui.clip_rect().min.x > canvas_node.max_x && !disable_culling {
+        if ui.clip_rect().min.x > canvas_node.max_x + (canvas_node.max_x - canvas_node.rect.min.x)
+            && !disable_culling
+        {
             if render_state.2.is_open(node) {
                 for child in &canvas_node.to {
-                    self.traverse_and_paint(
+                    self.paint_children(
                         ui,
                         child,
                         active_stroke,
@@ -432,22 +433,11 @@ impl CanvasView {
     ) {
         let canvas_node = self.nodes.get(node).unwrap();
 
-        if (ui.clip_rect().max.x >= canvas_node.rect.max.x || disable_culling)
+        if ui.clip_rect().min.x > canvas_node.max_x + (canvas_node.max_x - canvas_node.rect.min.x)
+            && !disable_culling
             && render_state.2.is_open(node)
         {
             for child in &canvas_node.to {
-                let canvas_child = self.nodes.get(child).unwrap();
-
-                self.paint_first_pass(
-                    ui,
-                    child,
-                    canvas_child,
-                    active_stroke,
-                    inactive_stroke,
-                    show_tooltip,
-                    render_state,
-                    disable_culling,
-                );
                 self.paint_children(
                     ui,
                     child,
@@ -457,6 +447,35 @@ impl CanvasView {
                     render_state,
                     disable_culling,
                 );
+            }
+            return;
+        }
+
+        if render_state.2.is_open(node) {
+            if ui.clip_rect().max.x >= canvas_node.rect.max.x || disable_culling {
+                for child in &canvas_node.to {
+                    let canvas_child = self.nodes.get(child).unwrap();
+
+                    self.paint_first_pass(
+                        ui,
+                        child,
+                        canvas_child,
+                        active_stroke,
+                        inactive_stroke,
+                        show_tooltip,
+                        render_state,
+                        disable_culling,
+                    );
+                    self.paint_children(
+                        ui,
+                        child,
+                        active_stroke,
+                        inactive_stroke,
+                        show_tooltip,
+                        render_state,
+                        disable_culling,
+                    );
+                }
             }
 
             for child in &canvas_node.to {
