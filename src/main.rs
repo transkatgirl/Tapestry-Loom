@@ -23,7 +23,6 @@ use font_kit::{
 };
 use log::{debug, error, warn};
 use mimalloc::MiMalloc;
-use threadpool::ThreadPool;
 use tokio::runtime::Runtime;
 
 use crate::{
@@ -281,28 +280,28 @@ impl TapestryLoomApp {
         };
 
         let toasts = Rc::new(RefCell::new(toasts));
-        let threadpool = Rc::new(ThreadPool::new(16));
         let open_documents = Rc::new(RefCell::new(HashSet::with_capacity(64)));
+        let runtime = Arc::new(
+            tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .unwrap(),
+        );
 
         let behavior = TapestryLoomBehavior {
-            file_manager: Rc::new(RefCell::new(FileManager::new(
+            file_manager: Rc::new(RefCell::new(Some(FileManager::new(
                 settings.clone(),
                 toasts.clone(),
-                threadpool.clone(),
+                runtime.clone(),
                 open_documents.clone(),
-            ))),
+            )))),
             new_editor_queue: Vec::with_capacity(16),
             focus_queue: Vec::with_capacity(16),
             close_queue: Vec::with_capacity(16),
             settings,
             client: Rc::new(RefCell::new(client)),
             toasts,
-            runtime: Some(Arc::new(
-                tokio::runtime::Builder::new_multi_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap(),
-            )),
+            runtime: Some(runtime),
             open_documents,
             pressed_shortcuts: FlagSet::empty(),
             settings_visible: false,
@@ -388,7 +387,7 @@ impl App for TapestryLoomApp {
                                     self.behavior.client.clone(),
                                     path,
                                     Box::new(move |_| {
-                                        file_manager.borrow_mut().update();
+                                        file_manager.borrow_mut().as_mut().unwrap().update();
                                     }),
                                 ))));
 
@@ -516,6 +515,7 @@ impl App for TapestryLoomApp {
         debug!("Waiting for async runtime to terminate...");
         let runtime = self.behavior.runtime.clone().unwrap();
         self.behavior.runtime = None;
+        *self.behavior.file_manager.borrow_mut() = None;
 
         Arc::try_unwrap(runtime)
             .unwrap()
@@ -531,7 +531,7 @@ struct TapestryLoomBehavior {
     new_editor_queue: Vec<(Option<PathBuf>, Option<TileId>)>,
     focus_queue: Vec<TileId>,
     close_queue: Vec<TileId>,
-    file_manager: Rc<RefCell<FileManager>>,
+    file_manager: Rc<RefCell<Option<FileManager>>>,
     toasts: Rc<RefCell<Toasts>>,
     runtime: Option<Arc<Runtime>>,
     open_documents: Rc<RefCell<HashSet<PathBuf>>>,
@@ -564,6 +564,8 @@ impl Behavior<Pane> for TapestryLoomBehavior {
                 for path in self
                     .file_manager
                     .borrow_mut()
+                    .as_mut()
+                    .unwrap()
                     .render(ui, self.pressed_shortcuts)
                 {
                     self.new_editor_queue.push((Some(path), None));

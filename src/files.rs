@@ -23,6 +23,7 @@ use flagset::FlagSet;
 use log::warn;
 use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, treeless::FILE_EXTENSION};
 use threadpool::ThreadPool;
+use tokio::runtime::Runtime;
 use unicode_segmentation::UnicodeSegmentation;
 use walkdir::WalkDir;
 
@@ -39,7 +40,7 @@ pub struct FileManager {
     toasts: Rc<RefCell<Toasts>>,
     open_documents: Rc<RefCell<HashSet<PathBuf>>>,
     scan_threadpool: ThreadPool,
-    action_threadpool: Rc<ThreadPool>,
+    runtime: Arc<Runtime>,
     channel: (Sender<ScanResult>, Receiver<ScanResult>),
     path: PathBuf,
     roots: BTreeSet<PathBuf>,
@@ -61,7 +62,7 @@ impl FileManager {
     pub fn new(
         settings: Rc<RefCell<Settings>>,
         toasts: Rc<RefCell<Toasts>>,
-        action_threadpool: Rc<ThreadPool>,
+        runtime: Arc<Runtime>,
         open_documents: Rc<RefCell<HashSet<PathBuf>>>,
     ) -> Self {
         let path = settings.borrow().documents.location.clone();
@@ -74,7 +75,7 @@ impl FileManager {
             open_documents,
             channel: (sender, receiver),
             scan_threadpool: ThreadPool::new(1),
-            action_threadpool,
+            runtime,
             path,
             roots: BTreeSet::new(),
             items: BTreeMap::new(),
@@ -628,8 +629,8 @@ impl FileManager {
         let path = self.path.join(item);
         let tx = self.channel.0.clone();
 
-        self.action_threadpool
-            .execute(move || match blank_weave_bytes() {
+        self.runtime
+            .spawn_blocking(move || match blank_weave_bytes() {
                 Ok(bytes) => match fs::write(&path, bytes) {
                     Ok(_) => {
                         let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
@@ -650,8 +651,8 @@ impl FileManager {
         let path = self.path.join(item);
         let tx = self.channel.0.clone();
 
-        self.action_threadpool
-            .execute(move || match fs::create_dir_all(&path) {
+        self.runtime
+            .spawn_blocking(move || match fs::create_dir_all(&path) {
                 Ok(_) => {
                     let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
                         path,
@@ -669,8 +670,8 @@ impl FileManager {
         let tx = self.channel.0.clone();
         let stop_scanning = self.stop_scanning.clone();
 
-        self.action_threadpool
-            .execute(move || match fs::rename(&from, &to) {
+        self.runtime
+            .spawn_blocking(move || match fs::rename(&from, &to) {
                 Ok(_) => {
                     let _ = tx.send(Ok(ItemScanEvent::Delete(from)));
                     match to.metadata() {
@@ -730,82 +731,80 @@ impl FileManager {
         let tx = self.channel.0.clone();
         let stop_scanning = self.stop_scanning.clone();
 
-        self.action_threadpool
-            .execute(move || match from.metadata() {
-                Ok(metadata) => {
-                    if metadata.is_dir() {
-                        match copy_dir_all(&from, &to) {
-                            Ok(_) => {
-                                let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
-                                    path: to.clone(),
-                                    r#type: if metadata.is_dir() {
-                                        ScannedItemType::Directory
-                                    } else if metadata.is_file() {
-                                        ScannedItemType::File
-                                    } else {
-                                        ScannedItemType::Other
-                                    },
-                                })));
-                                for entry in WalkDir::new(&to) {
-                                    if stop_scanning.load(Ordering::SeqCst) {
-                                        break;
+        self.runtime.spawn_blocking(move || match from.metadata() {
+            Ok(metadata) => {
+                if metadata.is_dir() {
+                    match copy_dir_all(&from, &to) {
+                        Ok(_) => {
+                            let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
+                                path: to.clone(),
+                                r#type: if metadata.is_dir() {
+                                    ScannedItemType::Directory
+                                } else if metadata.is_file() {
+                                    ScannedItemType::File
+                                } else {
+                                    ScannedItemType::Other
+                                },
+                            })));
+                            for entry in WalkDir::new(&to) {
+                                if stop_scanning.load(Ordering::SeqCst) {
+                                    break;
+                                }
+
+                                match entry {
+                                    Ok(entry) => {
+                                        let filetype = entry.file_type();
+
+                                        let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
+                                            path: entry.path().to_path_buf(),
+                                            r#type: if filetype.is_file() {
+                                                ScannedItemType::File
+                                            } else if filetype.is_dir() {
+                                                ScannedItemType::Directory
+                                            } else {
+                                                ScannedItemType::Other
+                                            },
+                                        })));
                                     }
-
-                                    match entry {
-                                        Ok(entry) => {
-                                            let filetype = entry.file_type();
-
-                                            let _ =
-                                                tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
-                                                    path: entry.path().to_path_buf(),
-                                                    r#type: if filetype.is_file() {
-                                                        ScannedItemType::File
-                                                    } else if filetype.is_dir() {
-                                                        ScannedItemType::Directory
-                                                    } else {
-                                                        ScannedItemType::Other
-                                                    },
-                                                })));
-                                        }
-                                        Err(error) => {
-                                            let _ = tx.send(Err(error.into()));
-                                        }
+                                    Err(error) => {
+                                        let _ = tx.send(Err(error.into()));
                                     }
                                 }
                             }
-                            Err(error) => {
-                                let _ = tx.send(Err(error.into()));
-                            }
                         }
-                    } else {
-                        match fs::copy(&from, &to) {
-                            Ok(_) => {
-                                let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
-                                    path: to.clone(),
-                                    r#type: if metadata.is_file() {
-                                        ScannedItemType::File
-                                    } else {
-                                        ScannedItemType::Other
-                                    },
-                                })));
-                            }
-                            Err(error) => {
-                                let _ = tx.send(Err(error.into()));
-                            }
+                        Err(error) => {
+                            let _ = tx.send(Err(error.into()));
+                        }
+                    }
+                } else {
+                    match fs::copy(&from, &to) {
+                        Ok(_) => {
+                            let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
+                                path: to.clone(),
+                                r#type: if metadata.is_file() {
+                                    ScannedItemType::File
+                                } else {
+                                    ScannedItemType::Other
+                                },
+                            })));
+                        }
+                        Err(error) => {
+                            let _ = tx.send(Err(error.into()));
                         }
                     }
                 }
-                Err(error) => {
-                    let _ = tx.send(Err(error.into()));
-                }
-            });
+            }
+            Err(error) => {
+                let _ = tx.send(Err(error.into()));
+            }
+        });
     }
     fn remove_item(&self, item: PathBuf) {
         let path = self.path.join(item);
         let tx = self.channel.0.clone();
 
-        self.action_threadpool
-            .execute(move || match trash::delete(&path) {
+        self.runtime
+            .spawn_blocking(move || match trash::delete(&path) {
                 Ok(_) => {
                     let _ = tx.send(Ok(ItemScanEvent::Delete(path)));
                 }
