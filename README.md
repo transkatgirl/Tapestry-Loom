@@ -111,6 +111,17 @@ If you are running llama-server on the same device as Tapestry Loom (and you are
 
 If you are new to working with LLM base models, [Trinity-Mini-Base-Pre-Anneal](https://huggingface.co/mradermacher/Trinity-Mini-Base-Pre-Anneal-GGUF) or ([Trinity-Nano-Base-Pre-Anneal](https://huggingface.co/mradermacher/Trinity-Nano-Base-Pre-Anneal-GGUF) if you have <32GB of VRAM) is a good first model to try.
 
+### Inference providers
+
+Most inference providers support OpenAI-compatible clients and should work with minimal configuration.
+
+However, every inference provider implements OpenAI compatibility in their own way, which may cause unexpected issues. Known issues with popular inference providers are listed below:
+
+- OpenRouter
+	- Logprobs seem to not work properly; some models will return errors if `logprobs` is included as a request argument
+- Featherless
+	- Untested; Logprobs are not supported according to documentation
+
 ### Tokenization server (optional)
 
 See [tapestry-tokenize](./tapestry-tokenize/README.md) for more information on how to configure and use the (optional) tokenization server.
