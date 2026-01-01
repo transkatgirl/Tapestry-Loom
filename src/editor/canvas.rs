@@ -50,7 +50,6 @@ struct CanvasNode {
     to_lines: Vec<([Pos2; 4], PathStroke)>,
     max_x: f32,
     button_rect: Rect,
-    button_hover_rect: Rect,
     button_line: ([Pos2; 2], PathStroke),
 }
 
@@ -188,10 +187,6 @@ impl CanvasView {
                         to_lines: Vec::with_capacity(node.to.len()),
                         max_x,
                         button_rect,
-                        button_hover_rect: Rect {
-                            min: rect.min,
-                            max: button_rect.max,
-                        },
                         button_line: (
                             [
                                 Pos2 {
@@ -424,10 +419,7 @@ impl CanvasView {
                             .3
                             .map(|mouse| {
                                 Rect {
-                                    min: Pos2 {
-                                        x: canvas_node.rect.max.x,
-                                        y: canvas_node.rect.min.y,
-                                    },
+                                    min: canvas_node.rect.min,
                                     max: Pos2 {
                                         x: canvas_node.max_x,
                                         y: canvas_node.rect.max.y,
@@ -510,10 +502,7 @@ impl CanvasView {
                         .3
                         .map(|mouse| {
                             Rect {
-                                min: Pos2 {
-                                    x: canvas_node.rect.max.x,
-                                    y: canvas_node.rect.min.y,
-                                },
+                                min: canvas_node.rect.min,
                                 max: Pos2 {
                                     x: canvas_node.max_x,
                                     y: canvas_node.rect.max.y,
@@ -735,17 +724,20 @@ fn render_generate_button(
                 x: ui.text_style_height(&TextStyle::Monospace) * 1.75,
                 y: ui.text_style_height(&TextStyle::Monospace) * 1.75,
             })
-            .fill(if !is_hovered {
-                ui.style().visuals.widgets.noninteractive.bg_fill
-            } else {
-                ui.style().visuals.widgets.hovered.weak_bg_fill
-            })
+            .fill(
+                /*if !is_hovered {
+                    ui.style().visuals.widgets.noninteractive.bg_fill
+                } else {
+                    ui.style().visuals.widgets.hovered.weak_bg_fill
+                }*/
+                ui.style().visuals.widgets.noninteractive.bg_fill,
+            )
             .stroke(stroke),
     );
 
-    if response.contains_pointer() {
+    /*if response.contains_pointer() {
         state.set_hovered_node(NodeIndex::Node(node));
-    }
+    }*/
 
     if response.clicked() {
         state.generate_children(weave, Some(node), settings);
