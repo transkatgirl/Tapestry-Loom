@@ -533,13 +533,19 @@ impl CanvasView {
                         .3
                         .map(|mouse| {
                             Rect {
-                                min: canvas_node.rect.min,
+                                min: Pos2 {
+                                    x: canvas_node.rect.max.x,
+                                    y: canvas_node.rect.min.y,
+                                },
                                 max: Pos2 {
                                     x: canvas_node.max_x,
                                     y: canvas_node.rect.max.y,
                                 },
                             }
                             .contains(mouse)
+                                || (canvas_node.rect.contains(mouse)
+                                    && (render_state.2.get_hovered_node().into_node()
+                                        == Some(*node)))
                         })
                         .unwrap_or_default()
                 {
@@ -616,13 +622,18 @@ impl CanvasView {
                     .3
                     .map(|mouse| {
                         Rect {
-                            min: canvas_node.rect.min,
+                            min: Pos2 {
+                                x: canvas_node.rect.max.x,
+                                y: canvas_node.rect.min.y,
+                            },
                             max: Pos2 {
                                 x: canvas_node.max_x,
                                 y: canvas_node.rect.max.y,
                             },
                         }
                         .contains(mouse)
+                            || (canvas_node.rect.contains(mouse)
+                                && (render_state.2.get_hovered_node().into_node() == Some(*node)))
                     })
                     .unwrap_or_default()
                 {
