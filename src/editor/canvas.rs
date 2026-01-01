@@ -684,19 +684,21 @@ fn render_expand_button(
     {
         let is_hovered = state.get_hovered_node() == NodeIndex::Node(hover_node);
 
-        let response = ui.add(
-            Button::new(RichText::new("...").size(ui.text_style_height(&TextStyle::Monospace)))
-                .min_size(Vec2 {
-                    x: ui.text_style_height(&TextStyle::Monospace) * 1.75,
-                    y: ui.text_style_height(&TextStyle::Monospace) * 1.75,
-                })
-                .fill(if !is_hovered {
-                    Color32::TRANSPARENT
-                } else {
-                    ui.style().visuals.widgets.hovered.weak_bg_fill
-                })
-                .stroke(stroke),
-        );
+        let response = ui
+            .add(
+                Button::new(RichText::new("...").size(ui.text_style_height(&TextStyle::Monospace)))
+                    .min_size(Vec2 {
+                        x: ui.text_style_height(&TextStyle::Monospace) * 1.75,
+                        y: ui.text_style_height(&TextStyle::Monospace) * 1.75,
+                    })
+                    .fill(if !is_hovered {
+                        Color32::TRANSPARENT
+                    } else {
+                        ui.style().visuals.widgets.hovered.weak_bg_fill
+                    })
+                    .stroke(stroke),
+            )
+            .on_hover_text("Expand node");
 
         if response.contains_pointer() {
             state.set_hovered_node(NodeIndex::Node(hover_node));
@@ -722,22 +724,24 @@ fn render_generate_button(
 
     //let is_hovered = state.get_hovered_node() == NodeIndex::Node(node);
 
-    let response = ui.add(
-        Button::new(RichText::new("+").size(ui.text_style_height(&TextStyle::Monospace)))
-            .min_size(Vec2 {
-                x: ui.text_style_height(&TextStyle::Monospace) * 1.75,
-                y: ui.text_style_height(&TextStyle::Monospace) * 1.75,
-            })
-            .fill(
-                /*if !is_hovered {
-                    ui.style().visuals.widgets.noninteractive.bg_fill
-                } else {
-                    ui.style().visuals.widgets.hovered.weak_bg_fill
-                }*/
-                ui.style().visuals.widgets.noninteractive.bg_fill,
-            )
-            .stroke(stroke),
-    );
+    let response = ui
+        .add(
+            Button::new(RichText::new("+").size(ui.text_style_height(&TextStyle::Monospace)))
+                .min_size(Vec2 {
+                    x: ui.text_style_height(&TextStyle::Monospace) * 1.75,
+                    y: ui.text_style_height(&TextStyle::Monospace) * 1.75,
+                })
+                .fill(
+                    /*if !is_hovered {
+                        ui.style().visuals.widgets.noninteractive.bg_fill
+                    } else {
+                        ui.style().visuals.widgets.hovered.weak_bg_fill
+                    }*/
+                    ui.style().visuals.widgets.noninteractive.bg_fill,
+                )
+                .stroke(stroke),
+        )
+        .on_hover_text("Generate children");
 
     /*if response.contains_pointer() {
         state.set_hovered_node(NodeIndex::Node(node));
