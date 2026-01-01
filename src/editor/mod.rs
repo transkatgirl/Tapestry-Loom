@@ -188,7 +188,6 @@ impl Editor {
                                 ui.close();
                             }
                             if ui.button("No").clicked() {
-                                self.allow_close = false;
                                 ui.close();
                             }
                         },
