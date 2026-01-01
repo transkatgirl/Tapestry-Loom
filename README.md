@@ -131,9 +131,6 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 - [x] Better handle enter in dialogs
 - [x] Add generate buttons (displayed on hover) to canvas
 - [ ] Allow temporarilly overriding color in inference menu
-- [ ] Add model configuration sharing functionality
-	- [ ] Automatically redact sensitive information (such as API keys)
-	- [ ] Allow the user to manually redact sensitive information
 - [ ] Add file manager keyboard shortcuts
 
 ### Plans for next major version
@@ -184,6 +181,9 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 		- [ ] When working with multiple models, allow dynamically adjusting proportions based on usage
 			- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count
 - [ ] Further UI improvements
+	- [ ] Add model configuration sharing functionality
+		- [ ] Automatically redact sensitive information (such as API keys)
+		- [ ] Allow the user to manually redact sensitive information
 	- [ ] Add ability to manually control refreshing of model tokenization identifier
 	- [ ] Improve graph/canvas layout algorithm
 	- [ ] Support arbitrary color gradients for logprob highlighting
