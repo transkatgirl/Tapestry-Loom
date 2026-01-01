@@ -457,6 +457,11 @@ impl CanvasView {
                     render_state,
                     disable_culling,
                 );
+            }
+
+            for child in &canvas_node.to {
+                let canvas_child = self.nodes.get(child).unwrap();
+
                 self.paint_second_pass(
                     ui,
                     child,
