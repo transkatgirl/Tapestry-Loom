@@ -3,7 +3,7 @@ use std::{
     cell::RefCell,
     collections::{BTreeMap, BTreeSet, HashSet},
     ffi::OsString,
-    fs, io,
+    fs, io, mem,
     ops::DerefMut,
     path::{MAIN_SEPARATOR_STR, Path, PathBuf},
     rc::Rc,
@@ -21,9 +21,9 @@ use eframe::egui::{
 use egui_notify::Toasts;
 use flagset::FlagSet;
 use log::warn;
+use poll_promise::Promise;
 use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, treeless::FILE_EXTENSION};
-use threadpool::ThreadPool;
-use tokio::runtime::Runtime;
+use tokio::{runtime::Runtime, task::JoinHandle};
 use unicode_segmentation::UnicodeSegmentation;
 use walkdir::WalkDir;
 
@@ -39,7 +39,7 @@ pub struct FileManager {
     settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
     open_documents: Rc<RefCell<HashSet<PathBuf>>>,
-    scan_threadpool: ThreadPool,
+    scan_handle: Option<JoinHandle<()>>,
     runtime: Arc<Runtime>,
     channel: (Sender<ScanResult>, Receiver<ScanResult>),
     path: PathBuf,
@@ -74,7 +74,7 @@ impl FileManager {
             toasts,
             open_documents,
             channel: (sender, receiver),
-            scan_threadpool: ThreadPool::new(1),
+            scan_handle: None,
             runtime,
             path,
             roots: BTreeSet::new(),
@@ -864,13 +864,16 @@ impl FileManager {
             self.file_count = 0;
             self.folder_count = 0;
             self.stop_scanning.store(true, Ordering::SeqCst);
-            self.scan_threadpool.join();
+            if let Some(scan_handle) = mem::take(&mut self.scan_handle) {
+                let _guard = self.runtime.enter();
+                Promise::spawn_async(scan_handle).block_until_ready();
+            }
             while self.channel.1.try_recv().is_ok() {}
             self.stop_scanning.store(false, Ordering::SeqCst);
             let tx = self.channel.0.clone();
             let path = self.path.clone();
             let stop_scanning = self.stop_scanning.clone();
-            self.scan_threadpool.execute(move || {
+            self.scan_handle = Some(self.runtime.spawn_blocking(move || {
                 match fs::exists(&path) {
                     Ok(exists) => {
                         if !exists && let Err(error) = fs::create_dir_all(&path) {
@@ -909,7 +912,7 @@ impl FileManager {
                 }
 
                 let _ = tx.send(Ok(ItemScanEvent::Finish));
-            });
+            }));
 
             self.scanned = true;
         }

@@ -132,7 +132,6 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 - [x] Add generate buttons (displayed on hover) to canvas
 - [ ] Allow temporarilly overriding color in inference menu
 - [ ] Add file manager keyboard shortcuts
-- [ ] Use a unified threadpool for all filesystem actions rather than creating a new threadpool for each editor
 
 ### Plans for next major version
 

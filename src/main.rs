@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::{
-    cell::RefCell, collections::HashSet, fs, path::PathBuf, rc::Rc, sync::Arc, time::Duration,
+    cell::RefCell, collections::HashSet, fs, mem, path::PathBuf, rc::Rc, sync::Arc, time::Duration,
 };
 
 use eframe::{
@@ -513,8 +513,7 @@ impl App for TapestryLoomApp {
         self.tree.tiles = Tiles::default();
 
         debug!("Waiting for async runtime to terminate...");
-        let runtime = self.behavior.runtime.clone().unwrap();
-        self.behavior.runtime = None;
+        let runtime = mem::take(&mut self.behavior.runtime).unwrap();
         *self.behavior.file_manager.borrow_mut() = None;
 
         Arc::try_unwrap(runtime)
