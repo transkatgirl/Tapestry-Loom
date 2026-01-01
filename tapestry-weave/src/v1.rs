@@ -32,7 +32,7 @@ pub struct NodeContent {
     pub modified: bool,
     pub content: InnerNodeContent,
     pub metadata: MetadataMap,
-    pub creator: Option<Creator>,
+    pub creator: Creator,
 }
 
 impl IndependentContents for NodeContent {}
@@ -302,7 +302,7 @@ impl ArchivedInnerNodeContent {
 #[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub enum Creator {
     Model(Model),
-    Human(Author),
+    Human(Option<Author>),
     Unknown,
 }
 
