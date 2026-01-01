@@ -1013,6 +1013,12 @@ impl FileManager {
     }
 }
 
+impl Drop for FileManager {
+    fn drop(&mut self) {
+        self.stop_scanning.store(true, Ordering::SeqCst);
+    }
+}
+
 enum ItemScanEvent {
     Insert(ScannedItem),
     Delete(PathBuf),
