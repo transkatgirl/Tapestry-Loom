@@ -372,8 +372,6 @@ impl CanvasView {
         render_state: &mut (&mut WeaveWrapper, &Settings, &mut SharedState, Option<Pos2>),
         disable_culling: bool,
     ) {
-        // TODO: Paint lines underneath all other UI objects
-
         let canvas_node = self.nodes.get(node).unwrap();
 
         if ui.clip_rect().min.x > canvas_node.max_x && !disable_culling {
@@ -401,19 +399,19 @@ impl CanvasView {
                 render_state,
                 disable_culling,
             );
-            self.paint_second_pass(
+            self.paint_children(
                 ui,
                 node,
-                canvas_node,
                 active_stroke,
                 inactive_stroke,
                 show_tooltip,
                 render_state,
                 disable_culling,
             );
-            self.paint_children(
+            self.paint_second_pass(
                 ui,
                 node,
+                canvas_node,
                 active_stroke,
                 inactive_stroke,
                 show_tooltip,
@@ -459,22 +457,17 @@ impl CanvasView {
                     render_state,
                     disable_culling,
                 );
+                self.paint_second_pass(
+                    ui,
+                    child,
+                    canvas_child,
+                    active_stroke,
+                    inactive_stroke,
+                    show_tooltip,
+                    render_state,
+                    disable_culling,
+                );
             }
-        }
-
-        for child in &canvas_node.to {
-            let canvas_child = self.nodes.get(child).unwrap();
-
-            self.paint_second_pass(
-                ui,
-                child,
-                canvas_child,
-                active_stroke,
-                inactive_stroke,
-                show_tooltip,
-                render_state,
-                disable_culling,
-            );
         }
     }
     fn paint_first_pass(
