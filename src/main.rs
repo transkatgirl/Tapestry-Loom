@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::{
-    cell::RefCell, collections::HashSet, fs, mem, path::PathBuf, rc::Rc, sync::Arc, time::Duration,
+    cell::RefCell, collections::HashSet, fs, path::PathBuf, rc::Rc, sync::Arc, time::Duration,
 };
 
 use eframe::{
@@ -56,11 +56,27 @@ fn main() -> eframe::Result {
         persist_window: true,
         ..Default::default()
     };
+    let runtime = Arc::new(
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap(),
+    );
     eframe::run_native(
         "Tapestry Loom",
         options,
-        Box::new(|cc| Ok(Box::new(TapestryLoomApp::new(cc)))),
-    )
+        Box::new(|cc| Ok(Box::new(TapestryLoomApp::new(cc, runtime.clone())))),
+    )?;
+
+    debug!("Waiting for async runtime to terminate...");
+
+    Arc::try_unwrap(runtime)
+        .unwrap()
+        .shutdown_timeout(Duration::from_secs(600));
+
+    debug!("Terminated async runtime");
+
+    Ok(())
 }
 
 struct TapestryLoomApp {
@@ -73,7 +89,7 @@ struct TapestryLoomApp {
 }
 
 impl TapestryLoomApp {
-    fn new(cc: &CreationContext<'_>) -> Self {
+    fn new(cc: &CreationContext<'_>, runtime: Arc<Runtime>) -> Self {
         let ctrlc_context = cc.egui_ctx.clone();
 
         // Hack to work around eframe's lack of signal handling
@@ -281,27 +297,21 @@ impl TapestryLoomApp {
 
         let toasts = Rc::new(RefCell::new(toasts));
         let open_documents = Rc::new(RefCell::new(HashSet::with_capacity(64)));
-        let runtime = Arc::new(
-            tokio::runtime::Builder::new_multi_thread()
-                .enable_all()
-                .build()
-                .unwrap(),
-        );
 
         let behavior = TapestryLoomBehavior {
-            file_manager: Rc::new(RefCell::new(Some(FileManager::new(
+            file_manager: Rc::new(RefCell::new(FileManager::new(
                 settings.clone(),
                 toasts.clone(),
                 runtime.clone(),
                 open_documents.clone(),
-            )))),
+            ))),
             new_editor_queue: Vec::with_capacity(16),
             focus_queue: Vec::with_capacity(16),
             close_queue: Vec::with_capacity(16),
             settings,
             client: Rc::new(RefCell::new(client)),
             toasts,
-            runtime: Some(runtime),
+            runtime,
             open_documents,
             pressed_shortcuts: FlagSet::empty(),
             settings_visible: false,
@@ -383,11 +393,11 @@ impl App for TapestryLoomApp {
                                     self.behavior.settings.clone(),
                                     self.behavior.toasts.clone(),
                                     self.behavior.open_documents.clone(),
-                                    self.behavior.runtime.clone().unwrap(),
+                                    self.behavior.runtime.clone(),
                                     self.behavior.client.clone(),
                                     path,
                                     Box::new(move |_| {
-                                        file_manager.borrow_mut().as_mut().unwrap().update();
+                                        file_manager.borrow_mut().update();
                                     }),
                                 ))));
 
@@ -510,17 +520,6 @@ impl App for TapestryLoomApp {
                 editor.close();
             }
         }
-        self.tree.tiles = Tiles::default();
-
-        debug!("Waiting for async runtime to terminate...");
-        let runtime = mem::take(&mut self.behavior.runtime).unwrap();
-        *self.behavior.file_manager.borrow_mut() = None;
-
-        Arc::try_unwrap(runtime)
-            .unwrap()
-            .shutdown_timeout(Duration::from_secs(600));
-
-        debug!("Terminated async runtime")
     }
 }
 
@@ -530,9 +529,9 @@ struct TapestryLoomBehavior {
     new_editor_queue: Vec<(Option<PathBuf>, Option<TileId>)>,
     focus_queue: Vec<TileId>,
     close_queue: Vec<TileId>,
-    file_manager: Rc<RefCell<Option<FileManager>>>,
+    file_manager: Rc<RefCell<FileManager>>,
     toasts: Rc<RefCell<Toasts>>,
-    runtime: Option<Arc<Runtime>>,
+    runtime: Arc<Runtime>,
     open_documents: Rc<RefCell<HashSet<PathBuf>>>,
     pressed_shortcuts: FlagSet<Shortcuts>,
     settings_visible: bool,
@@ -563,8 +562,6 @@ impl Behavior<Pane> for TapestryLoomBehavior {
                 for path in self
                     .file_manager
                     .borrow_mut()
-                    .as_mut()
-                    .unwrap()
                     .render(ui, self.pressed_shortcuts)
                 {
                     self.new_editor_queue.push((Some(path), None));
