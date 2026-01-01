@@ -131,7 +131,8 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 - [x] Better handle enter in dialogs
 - [x] Add generate buttons (displayed on hover) to canvas
 - [ ] Allow temporarilly overriding color in inference menu
-- [ ] Add file manager keyboard shortcuts
+- [ ] Improve handling of hovered + omitted/collapsed nodes
+- [ ] Improve token confidence calculation to work properly with vLLM
 
 ### Plans for next major version
 
@@ -149,7 +150,6 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Node confidence calculation
 	- [ ] Node ordering by confidence
-- [ ] Improve token confidence calculation to work properly with vLLM
 - [ ] Request post-processing arguments (using prefix of `T#`)
 	- [ ] Single-token node pruning:
 		- [ ] `T#keep_top_p`
@@ -168,7 +168,7 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 	- [ ] Force single token node creation using `T#force_single_token`
 	- [ ] Context window wrapping using `T#ctx_length`
 - [ ] Support opening weaves using CLI arguments to tapestry loom
-- [ ] Add a plugin API & custom inference API
+<!-- - [ ] Add a plugin API & custom inference API
 	- [ ] Support the following use cases:
 		- [ ] LLM research
 			- [ ] Support adding custom UI elements and editor subviews
@@ -179,7 +179,7 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 		- [ ] Context window wrapping
 		- [ ] Allow adjusting proportion of completions from each model
 		- [ ] When working with multiple models, allow dynamically adjusting proportions based on usage
-			- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count
+			- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count -->
 - [ ] Further UI improvements
 	- [ ] Add model configuration sharing functionality
 		- [ ] Automatically redact sensitive information (such as API keys)
@@ -190,7 +190,6 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 	- [ ] Blind comparison modes
 		- [ ] (Hide) Models & token probabilities / boundaries
 		- [ ] (Hide) Generated node text (only showing metadata & probabilities)
-	- [ ] Improve handling of hovered + omitted/collapsed nodes
 	- [ ] Better handle valid UTF-8 character split across multiple nodes
 	- [ ] Improve clarity of error messages
 	- [ ] Better file manager
