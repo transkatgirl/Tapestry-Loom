@@ -231,13 +231,7 @@ impl FileTreeManager {
                         Ok(_) => {
                             let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
                                 path: to.clone(),
-                                r#type: if metadata.is_dir() {
-                                    ScannedItemType::Directory
-                                } else if metadata.is_file() {
-                                    ScannedItemType::File
-                                } else {
-                                    ScannedItemType::Other
-                                },
+                                r#type: ScannedItemType::Directory,
                             })));
                             for entry in WalkDir::new(&to) {
                                 if stop_scanning.load(Ordering::SeqCst) {
