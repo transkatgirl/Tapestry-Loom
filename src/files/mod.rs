@@ -73,7 +73,12 @@ impl FileManager {
     pub fn update(&mut self) {
         self.tree.refresh();
     }
-    pub fn render(&mut self, ui: &mut Ui, _shortcuts: FlagSet<Shortcuts>) -> Vec<PathBuf> {
+    pub fn render(
+        &mut self,
+        ui: &mut Ui,
+        _shortcuts: FlagSet<Shortcuts>,
+        mut open_callback: impl FnMut(&PathBuf),
+    ) {
         self.update_items();
 
         TopBottomPanel::bottom("filemanager-bottom-panel").show_animated_inside(ui, true, |ui| {
@@ -127,8 +132,6 @@ impl FileManager {
                 });
             });
         });
-
-        let mut selected_items = Vec::new();
 
         let items = self.item_list.clone();
 
@@ -252,7 +255,7 @@ impl FileManager {
                                                     == Some(&file_extension_treeless))
                                         {
                                             if ui.button("Open weave").clicked() {
-                                                selected_items.push(full_path.clone());
+                                                open_callback(&full_path);
                                             }
                                             ui.separator();
                                         };
@@ -294,7 +297,7 @@ impl FileManager {
 
                                 if button_response.clicked() {
                                     if item.r#type == ScannedItemType::File {
-                                        selected_items.push(full_path.clone());
+                                        open_callback(&full_path);
                                     } else {
                                         if self.open_folders.contains(&item.path) {
                                             self.open_folders.remove(&item.path);
@@ -567,8 +570,6 @@ impl FileManager {
             }
             ModalType::None => {}
         }
-
-        selected_items
     }
     fn update_item_list(&mut self) {
         self.item_list.clear();

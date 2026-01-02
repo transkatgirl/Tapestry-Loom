@@ -523,13 +523,11 @@ impl Behavior<Pane> for TapestryLoomBehavior {
                 self.settings.borrow_mut().render(ui);
             }
             Pane::FileManager => {
-                for path in self
-                    .file_manager
+                self.file_manager
                     .borrow_mut()
-                    .render(ui, self.pressed_shortcuts)
-                {
-                    self.new_editor_queue.push((Some(path), None));
-                }
+                    .render(ui, self.pressed_shortcuts, |path| {
+                        self.new_editor_queue.push((Some(path.clone()), None));
+                    })
             }
             Pane::Editor(editor) => editor.render(
                 ui,
