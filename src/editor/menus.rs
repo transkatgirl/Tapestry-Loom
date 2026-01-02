@@ -5,6 +5,7 @@ use tapestry_weave::universal_weave::indexmap::IndexMap;
 
 use crate::{
     editor::shared::{SharedState, weave::WeaveWrapper},
+    format_file_size, format_large_number,
     settings::{Settings, inference::render_config_map, shortcuts::Shortcuts},
 };
 
@@ -69,78 +70,24 @@ impl MenuView {
         } else {
             let node_count = weave.len();
             let bookmarked_node_count = weave.get_bookmarks().len();
-            let node_count_label = if node_count >= 100_000_000 {
-                format!("{:.0}M nodes", node_count as f32 / 1_000_000.0)
-            } else if node_count >= 1_000_000 {
-                format!("{:.1}M nodes", node_count as f32 / 1_000_000.0)
-            } else if node_count >= 100_000 {
-                format!("{:.0}k nodes", node_count as f32 / 1_000.0)
-            } else if node_count >= 1_000 {
-                format!("{:.1}k nodes", node_count as f32 / 1_000.0)
-            } else if node_count == 1 {
-                "1 node".to_string()
-            } else {
-                format!("{} nodes", node_count)
-            };
-            let active_node_count_label = if self.active_node_count >= 100_000_000 {
-                format!("{:.0}M active", self.active_node_count as f32 / 1_000_000.0)
-            } else if self.active_node_count >= 1_000_000 {
-                format!("{:.1}M active", self.active_node_count as f32 / 1_000_000.0)
-            } else if self.active_node_count >= 100_000 {
-                format!("{:.0}k active", self.active_node_count as f32 / 1_000.0)
-            } else if self.active_node_count >= 1_000 {
-                format!("{:.1}k active", self.active_node_count as f32 / 1_000.0)
-            } else if self.active_node_count == 1 {
-                "1 active".to_string()
-            } else {
-                format!("{} active", self.active_node_count)
-            };
-            let bookmarked_node_count_label = if bookmarked_node_count >= 100_000_000 {
-                format!(
-                    "{:.0}M bookmarked",
-                    bookmarked_node_count as f32 / 1_000_000.0
-                )
-            } else if bookmarked_node_count >= 1_000_000 {
-                format!(
-                    "{:.1}M bookmarked",
-                    bookmarked_node_count as f32 / 1_000_000.0
-                )
-            } else if bookmarked_node_count >= 100_000 {
-                format!("{:.0}k bookmarked", bookmarked_node_count as f32 / 1_000.0)
-            } else if bookmarked_node_count >= 1_000 {
-                format!("{:.1}k bookmarked", bookmarked_node_count as f32 / 1_000.0)
-            } else if bookmarked_node_count == 1 {
-                "1 bookmarked".to_string()
-            } else {
-                format!("{} bookmarked", bookmarked_node_count)
-            };
             let label = ui.label(if bookmarked_node_count > 0 {
                 format!(
-                    "{node_count_label}, {active_node_count_label}, {bookmarked_node_count_label}"
+                    "{}, {}, {}",
+                    format_large_number(node_count, "node", "nodes"),
+                    format_large_number(self.active_node_count, "active", "active"),
+                    format_large_number(bookmarked_node_count, "bookmarked", "bookmarked"),
                 )
             } else {
-                format!("{node_count_label}, {active_node_count_label}")
+                format!(
+                    "{}, {}",
+                    format_large_number(node_count, "node", "nodes"),
+                    format_large_number(self.active_node_count, "active", "active")
+                )
             });
 
             if file_size > 0 {
                 label.on_hover_ui(|ui| {
-                    let file_size_label = if file_size >= 100_000_000_000 {
-                        format!("{:.0} GB", file_size as f32 / 1_000_000_000.0)
-                    } else if file_size >= 1_000_000_000 {
-                        format!("{:.1} GB", file_size as f32 / 1_000_000_000.0)
-                    } else if file_size >= 100_000_000 {
-                        format!("{:.0} MB", file_size as f32 / 1_000_000.0)
-                    } else if file_size >= 1_000_000 {
-                        format!("{:.1} MB", file_size as f32 / 1_000_000.0)
-                    } else if file_size >= 100_000 {
-                        format!("{:.0} kB", file_size as f32 / 1_000.0)
-                    } else if file_size >= 1_000 {
-                        format!("{:.1} kB", file_size as f32 / 1_000.0)
-                    } else {
-                        format!("{} bytes", file_size)
-                    };
-
-                    ui.label(file_size_label);
+                    ui.label(format_file_size(file_size));
                 });
             }
         }

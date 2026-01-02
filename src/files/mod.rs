@@ -25,7 +25,7 @@ mod tree;
 use crate::{
     editor::blank_weave_bytes,
     files::tree::{FileTreeManager, ScannedItem, ScannedItemType, TreeItem},
-    listing_margin,
+    format_large_number_detailed, listing_margin,
     settings::{Settings, shortcuts::Shortcuts},
 };
 
@@ -87,20 +87,10 @@ impl FileManager {
                     if !contents.finished {
                         ui.add(Spinner::new());
                     }
-                    let file_label = if *contents.file_count == 1 {
-                        "file"
-                    } else {
-                        "files"
-                    };
-                    let folder_label = if contents.folder_count.saturating_sub(1) == 1 {
-                        "folder"
-                    } else {
-                        "folders"
-                    };
                     ui.label(format!(
-                        "{} {file_label}, {} {folder_label}",
-                        contents.file_count,
-                        contents.folder_count.saturating_sub(1)
+                        "{}, {}",
+                        format_large_number_detailed(*contents.file_count, "file", "files"),
+                        format_large_number_detailed(*contents.folder_count, "folder", "folders"),
                     ))
                     .on_hover_text(contents.path.to_string_lossy())
                     .context_menu(|ui| {
