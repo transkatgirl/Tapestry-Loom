@@ -154,16 +154,6 @@ impl FileTreeManager {
                     let _ = tx.send(Ok(ItemScanEvent::Delete(from)));
                     match to.metadata() {
                         Ok(metadata) => {
-                            let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
-                                path: to.clone(),
-                                r#type: if metadata.is_dir() {
-                                    ScannedItemType::Directory
-                                } else if metadata.is_file() {
-                                    ScannedItemType::File
-                                } else {
-                                    ScannedItemType::Other
-                                },
-                            })));
                             if metadata.is_dir() {
                                 for entry in WalkDir::new(&to) {
                                     if stop_scanning.load(Ordering::SeqCst) {
@@ -191,6 +181,15 @@ impl FileTreeManager {
                                         }
                                     }
                                 }
+                            } else {
+                                let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
+                                    path: to.clone(),
+                                    r#type: if metadata.is_file() {
+                                        ScannedItemType::File
+                                    } else {
+                                        ScannedItemType::Other
+                                    },
+                                })));
                             }
                         }
                         Err(error) => {
@@ -229,10 +228,6 @@ impl FileTreeManager {
                 if metadata.is_dir() {
                     match copy_dir_all(&from, &to) {
                         Ok(_) => {
-                            let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
-                                path: to.clone(),
-                                r#type: ScannedItemType::Directory,
-                            })));
                             for entry in WalkDir::new(&to) {
                                 if stop_scanning.load(Ordering::SeqCst) {
                                     break;
