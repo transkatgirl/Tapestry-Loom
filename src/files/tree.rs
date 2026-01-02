@@ -21,7 +21,7 @@ use crate::settings::Settings;
 
 pub struct FileTreeManager {
     settings: Rc<RefCell<Settings>>,
-    scan_handle: Option<JoinHandle<()>>,
+    action_handle: Option<JoinHandle<()>>,
     runtime: Arc<Runtime>,
     channel: (Sender<ScanResult>, Receiver<ScanResult>),
     path: PathBuf,
@@ -54,7 +54,7 @@ impl FileTreeManager {
         Self {
             settings,
             channel: (sender, receiver),
-            scan_handle: None,
+            action_handle: None,
             runtime,
             path,
             roots: BTreeSet::new(),
@@ -79,11 +79,11 @@ impl FileTreeManager {
     pub fn refresh(&mut self) {
         self.scanned = false;
     }
-    pub fn create_file(&self, item: PathBuf, content: Vec<u8>, fail_if_exists: bool) {
+    pub fn create_file(&mut self, item: PathBuf, content: Vec<u8>, fail_if_exists: bool) {
         let path = self.path.join(item);
         let tx = self.channel.0.clone();
 
-        self.runtime.spawn_blocking(move || {
+        let handle = self.runtime.spawn_blocking(move || {
             if fail_if_exists {
                 match path.try_exists() {
                     Ok(exists) => {
@@ -110,12 +110,17 @@ impl FileTreeManager {
                 }
             }
         });
+
+        if self.action_handle.is_none() {
+            self.action_handle = Some(handle);
+        }
     }
-    pub fn create_directory(&self, item: PathBuf) {
+    pub fn create_directory(&mut self, item: PathBuf) {
         let path = self.path.join(item);
         let tx = self.channel.0.clone();
 
-        self.runtime
+        let handle = self
+            .runtime
             .spawn_blocking(move || match fs::create_dir_all(&path) {
                 Ok(_) => {
                     let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
@@ -127,14 +132,18 @@ impl FileTreeManager {
                     let _ = tx.send(Err(error.into()));
                 }
             });
+
+        if self.action_handle.is_none() {
+            self.action_handle = Some(handle);
+        }
     }
-    pub fn move_item(&self, item: PathBuf, to: PathBuf, fail_if_exists: bool) {
+    pub fn move_item(&mut self, item: PathBuf, to: PathBuf, fail_if_exists: bool) {
         let from = self.path.join(item);
         let to = self.path.join(to);
         let tx = self.channel.0.clone();
         let stop_scanning = self.stop_scanning.clone();
 
-        self.runtime.spawn_blocking(move || {
+        let handle = self.runtime.spawn_blocking(move || {
             if fail_if_exists {
                 match to.try_exists() {
                     Ok(exists) => {
@@ -202,14 +211,18 @@ impl FileTreeManager {
                 }
             }
         });
+
+        if self.action_handle.is_none() {
+            self.action_handle = Some(handle);
+        }
     }
-    pub fn copy_item(&self, item: PathBuf, to: PathBuf, fail_if_exists: bool) {
+    pub fn copy_item(&mut self, item: PathBuf, to: PathBuf, fail_if_exists: bool) {
         let from = self.path.join(item);
         let to = self.path.join(to);
         let tx = self.channel.0.clone();
         let stop_scanning = self.stop_scanning.clone();
 
-        self.runtime.spawn_blocking(move || match from.metadata() {
+        let handle = self.runtime.spawn_blocking(move || match from.metadata() {
             Ok(metadata) => {
                 if fail_if_exists {
                     match to.try_exists() {
@@ -280,12 +293,17 @@ impl FileTreeManager {
                 let _ = tx.send(Err(error.into()));
             }
         });
+
+        if self.action_handle.is_none() {
+            self.action_handle = Some(handle);
+        }
     }
-    pub fn remove_item(&self, item: PathBuf) {
+    pub fn remove_item(&mut self, item: PathBuf) {
         let path = self.path.join(item);
         let tx = self.channel.0.clone();
 
-        self.runtime
+        let handle = self
+            .runtime
             .spawn_blocking(move || match trash::delete(&path) {
                 Ok(_) => {
                     let _ = tx.send(Ok(ItemScanEvent::Delete(path)));
@@ -320,6 +338,10 @@ impl FileTreeManager {
                     }
                 }
             });
+
+        if self.action_handle.is_none() {
+            self.action_handle = Some(handle);
+        }
     }
     pub fn update_items(
         &mut self,
@@ -347,16 +369,16 @@ impl FileTreeManager {
             self.file_count = 0;
             self.folder_count = 0;
             self.stop_scanning.store(true, Ordering::SeqCst);
-            if let Some(scan_handle) = mem::take(&mut self.scan_handle) {
+            if let Some(handle) = mem::take(&mut self.action_handle) {
                 let _guard = self.runtime.enter();
-                Promise::spawn_async(scan_handle).block_until_ready();
+                Promise::spawn_async(handle).block_until_ready();
             }
             while self.channel.1.try_recv().is_ok() {}
             self.stop_scanning.store(false, Ordering::SeqCst);
             let tx = self.channel.0.clone();
             let path = self.path.clone();
             let stop_scanning = self.stop_scanning.clone();
-            self.scan_handle = Some(self.runtime.spawn_blocking(move || {
+            self.action_handle = Some(self.runtime.spawn_blocking(move || {
                 match fs::exists(&path) {
                     Ok(exists) => {
                         if !exists && let Err(error) = fs::create_dir_all(&path) {
@@ -470,6 +492,7 @@ impl FileTreeManager {
                     }
                     ItemScanEvent::Finish => {
                         self.finished = true;
+                        self.action_handle = None;
                     }
                 },
                 Err(error) => {

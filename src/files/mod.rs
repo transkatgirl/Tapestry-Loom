@@ -404,7 +404,11 @@ impl FileManager {
                                         .borrow()
                                         .contains(&root_path.join(&path))
                                     {
-                                        self.create_weave(path);
+                                        self.tree.create_file(
+                                            path,
+                                            blank_weave_bytes().unwrap(),
+                                            true,
+                                        );
                                         ui.close();
                                     }
                                 }
@@ -599,10 +603,6 @@ impl FileManager {
                 self.build_item_list(children.iter().cloned().collect::<Vec<_>>());
             }
         }
-    }
-    fn create_weave(&self, item: PathBuf) {
-        self.tree
-            .create_file(item, blank_weave_bytes().unwrap(), true);
     }
     fn update_items(&mut self) {
         let mut toasts = self.toasts.borrow_mut();
