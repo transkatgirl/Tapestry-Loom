@@ -144,6 +144,7 @@ Development of the next major version of Tapestry Loom will begin in Q1 2026. Pl
 - [ ] Allow temporarilly overriding color in inference menu
 - [ ] Improve handling of hovered + omitted/collapsed nodes
 - [ ] Improve token confidence calculation to work properly with vLLM
+- [ ] Replace is_shift_pressed with response.clicked_with_open_in_background()
 
 ### Plans for next major version
 
