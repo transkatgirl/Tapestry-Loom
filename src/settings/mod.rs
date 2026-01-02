@@ -373,7 +373,7 @@ impl Settings {
                                 });
                             },
                             |ui| {
-                                let response = ui.button("\u{E2D7} Donate");
+                                let response = ui.button("\u{E2D7} Donate").on_hover_text("Tapestry Loom is free to use, but it isn't free to make. Please consider donating to help make further development possible.");
 
                                 if response.clicked() {
                                     if response.clicked_with_open_in_background() {
