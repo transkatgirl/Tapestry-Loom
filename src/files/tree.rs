@@ -332,7 +332,6 @@ impl FileTreeManager {
 
         if settings.documents.location != self.path {
             self.scanned = false;
-            has_changed = true;
             let settings_location = settings.documents.location.clone();
             drop(settings);
             self.path = settings_location;
@@ -341,6 +340,7 @@ impl FileTreeManager {
         }
 
         if !self.scanned {
+            has_changed = true;
             self.items.clear();
             self.roots.clear();
             self.finished = false;
