@@ -8,6 +8,9 @@ use eframe::egui::{
 use flagset::FlagSet;
 use serde::{Deserialize, Serialize};
 
+#[cfg(feature = "donation-link")]
+use eframe::egui::{Layout, OpenUrl, Sides};
+
 use crate::settings::{
     inference::InferenceSettings,
     shortcuts::{KeyboardShortcuts, Shortcuts},
@@ -360,8 +363,40 @@ impl Settings {
                 Frame::new()
                     .outer_margin(ui.style().spacing.menu_margin)
                     .show(ui, |ui| {
-                        ui.heading("Interface");
-                        self.interface.render(ui);
+                        #[cfg(feature = "donation-link")]
+                        Sides::new().show(
+                            ui,
+                            |ui| {
+                                ui.with_layout(Layout::default(), |ui| {
+                                    ui.heading("Interface");
+                                    self.interface.render(ui);
+                                });
+                            },
+                            |ui| {
+                                let response = ui.button("\u{E2D7} Donate");
+
+                                if response.clicked() {
+                                    if response.clicked_with_open_in_background() {
+                                        ui.ctx().open_url(OpenUrl {
+                                            url: env!("DONATION_LINK").to_string(),
+                                            new_tab: true,
+                                        });
+                                    } else {
+                                        ui.ctx().open_url(OpenUrl {
+                                            url: env!("DONATION_LINK").to_string(),
+                                            new_tab: false,
+                                        });
+                                    }
+                                }
+                            },
+                        );
+
+                        #[cfg(not(feature = "donation-link"))]
+                        {
+                            ui.heading("Interface");
+                            self.interface.render(ui);
+                        }
+
                         ui.separator();
                         ui.heading("Inference");
                         self.inference.render(ui);
@@ -373,10 +408,7 @@ impl Settings {
                         self.shortcuts.render(ui);
                         ui.separator();
                         ui.hyperlink_to(
-                            format!(
-                                "Tapestry Loom v{} by transkatgirl",
-                                env!("CARGO_PKG_VERSION")
-                            ),
+                            format!("Tapestry Loom v{} by transkatgirl", env!("BUILD_VERSION")),
                             env!("CARGO_PKG_HOMEPAGE"),
                         );
 

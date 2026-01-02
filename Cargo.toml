@@ -9,6 +9,12 @@ license = "AGPL-3.0-or-later"
 description = "A power user focused interface for LLM base models."
 edition = "2024"
 
+[package.metadata]
+donate = "https://github.com/sponsors/transkatgirl"
+
+[features]
+donation-link = [  ]
+
 [dependencies]
 tapestry-weave = { path = "tapestry-weave", features = [
 	"serde",
@@ -77,6 +83,9 @@ egui_virtual_list = "0.9.0"
 egui_plot = "0.34.0"
 rust-sugiyama = "0.4.0"
 #egui_dnd = "0.14.0"
+
+[build-dependencies]
+cargo_metadata = "0.23.1"
 
 [profile.dev]
 opt-level = 3
