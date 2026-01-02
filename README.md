@@ -134,11 +134,10 @@ If your inference backend returns token IDs in OpenAI-style Completions response
 
 ## Plans
 
-At the moment, all major features planned for the initial release have been implemented. Development will slow down for the next few months, as the focus shifts towards fixing bugs and improving documentation.
-
-Development of the next major version of Tapestry Loom will begin in Q1 2026. Please [consider donating](https://github.com/sponsors/transkatgirl) to help fund further development.
+Development of the next major version of Tapestry Loom is planned to start in Q1 2026. Please [consider donating](https://github.com/sponsors/transkatgirl) to help fund further development.
 
 ### Short-term TODOs
+
 - [x] Better handle enter in dialogs
 - [x] Add generate buttons (displayed on hover) to canvas
 - [ ] Allow temporarilly overriding color in inference menu
