@@ -128,14 +128,28 @@ impl FileTreeManager {
                 }
             });
     }
-    pub fn move_item(&self, item: PathBuf, to: PathBuf) {
+    pub fn move_item(&self, item: PathBuf, to: PathBuf, fail_if_exists: bool) {
         let from = self.path.join(item);
         let to = self.path.join(to);
         let tx = self.channel.0.clone();
         let stop_scanning = self.stop_scanning.clone();
 
-        self.runtime
-            .spawn_blocking(move || match fs::rename(&from, &to) {
+        self.runtime.spawn_blocking(move || {
+            if fail_if_exists {
+                match to.try_exists() {
+                    Ok(exists) => {
+                        if exists {
+                            let _ = tx.send(Err(anyhow::Error::msg("Path already exists")));
+                            return;
+                        }
+                    }
+                    Err(error) => {
+                        let _ = tx.send(Err(error.into()));
+                    }
+                }
+            }
+
+            match fs::rename(&from, &to) {
                 Ok(_) => {
                     let _ = tx.send(Ok(ItemScanEvent::Delete(from)));
                     match to.metadata() {
@@ -187,9 +201,10 @@ impl FileTreeManager {
                 Err(error) => {
                     let _ = tx.send(Err(error.into()));
                 }
-            });
+            }
+        });
     }
-    pub fn copy_item(&self, item: PathBuf, to: PathBuf) {
+    pub fn copy_item(&self, item: PathBuf, to: PathBuf, fail_if_exists: bool) {
         let from = self.path.join(item);
         let to = self.path.join(to);
         let tx = self.channel.0.clone();
@@ -197,6 +212,20 @@ impl FileTreeManager {
 
         self.runtime.spawn_blocking(move || match from.metadata() {
             Ok(metadata) => {
+                if fail_if_exists {
+                    match to.try_exists() {
+                        Ok(exists) => {
+                            if exists {
+                                let _ = tx.send(Err(anyhow::Error::msg("Path already exists")));
+                                return;
+                            }
+                        }
+                        Err(error) => {
+                            let _ = tx.send(Err(error.into()));
+                        }
+                    }
+                }
+
                 if metadata.is_dir() {
                     match copy_dir_all(&from, &to) {
                         Ok(_) => {

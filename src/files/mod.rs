@@ -29,8 +29,6 @@ use crate::{
     settings::{Settings, shortcuts::Shortcuts},
 };
 
-// TODO: Update this to use logical ordering (directories before files, 1000.txt > 1.txt)
-
 pub struct FileManager {
     //settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
@@ -346,21 +344,6 @@ impl FileManager {
                                         }
                                     }
 
-                                    /*if ui
-                                        .button("\u{E225}")
-                                        .on_hover_text("Copy item path")
-                                        .clicked()
-                                    {
-                                        ui.output_mut(|o| {
-                                            o.commands.push(OutputCommand::CopyText(
-                                                self.path
-                                                    .join(&item.path)
-                                                    .to_string_lossy()
-                                                    .to_string(),
-                                            ))
-                                        });
-                                    };*/
-
                                     if ui
                                         .button("\u{E09E}")
                                         .on_hover_text("Duplicate item")
@@ -492,7 +475,7 @@ impl FileManager {
                                             .borrow()
                                             .contains(&root_path.join(&to))
                                     {
-                                        self.tree.move_item(from.clone(), to);
+                                        self.tree.move_item(from.clone(), to, true);
                                         ui.close();
                                     }
                                 }
@@ -528,7 +511,7 @@ impl FileManager {
                                             .borrow()
                                             .contains(&root_path.join(&to))
                                     {
-                                        self.tree.copy_item(from.clone(), to);
+                                        self.tree.copy_item(from.clone(), to, true);
                                         ui.close();
                                     }
                                 }
