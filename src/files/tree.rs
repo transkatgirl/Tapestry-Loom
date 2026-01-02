@@ -111,7 +111,7 @@ impl FileTreeManager {
             }
         });
 
-        if self.action_handle.is_none() {
+        if self.finished {
             self.action_handle = Some(handle);
         }
     }
@@ -133,7 +133,7 @@ impl FileTreeManager {
                 }
             });
 
-        if self.action_handle.is_none() {
+        if self.finished {
             self.action_handle = Some(handle);
         }
     }
@@ -212,7 +212,7 @@ impl FileTreeManager {
             }
         });
 
-        if self.action_handle.is_none() {
+        if self.finished {
             self.action_handle = Some(handle);
         }
     }
@@ -294,7 +294,7 @@ impl FileTreeManager {
             }
         });
 
-        if self.action_handle.is_none() {
+        if self.finished {
             self.action_handle = Some(handle);
         }
     }
@@ -339,7 +339,7 @@ impl FileTreeManager {
                 }
             });
 
-        if self.action_handle.is_none() {
+        if self.finished {
             self.action_handle = Some(handle);
         }
     }
