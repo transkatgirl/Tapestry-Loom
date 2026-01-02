@@ -470,7 +470,7 @@ impl TapestryLoomBehavior {
                     self.client.clone(),
                     path,
                     Box::new(move |_| {
-                        file_manager.borrow_mut().update();
+                        file_manager.borrow_mut().refresh();
                     }),
                 ))));
 

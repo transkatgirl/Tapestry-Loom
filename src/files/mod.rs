@@ -68,7 +68,7 @@ impl FileManager {
             modal: RefCell::new(ModalType::None),
         }
     }
-    pub fn update(&mut self) {
+    pub fn refresh(&mut self) {
         self.tree.refresh();
     }
     pub fn render(

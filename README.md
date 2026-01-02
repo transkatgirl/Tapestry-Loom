@@ -140,9 +140,13 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 
 - [x] Better handle enter in dialogs
 - [x] Add generate buttons (displayed on hover) to canvas
+- [ ] Review and refactor application modules
+	- [x] main
+	- [ ] files
+	- [ ] settings
+- [ ] Improve token confidence calculation to work properly with vLLM
 - [ ] Allow temporarilly overriding color in inference menu
 - [ ] Improve handling of hovered + omitted/collapsed nodes
-- [ ] Improve token confidence calculation to work properly with vLLM
 - [ ] Replace is_shift_pressed with response.clicked_with_open_in_background()
 
 ### Plans for next major version
