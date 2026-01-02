@@ -451,12 +451,15 @@ impl FileTreeManager {
                         }
                     }
                     ItemScanEvent::Delete(delete) => {
-                        if let Some(item) = self.items.remove(
-                            &delete
-                                .strip_prefix(&self.path)
-                                .map(|p| p.to_path_buf())
-                                .unwrap_or_default(),
-                        ) {
+                        let delete_path = delete
+                            .strip_prefix(&self.path)
+                            .map(|p| p.to_path_buf())
+                            .unwrap_or_default();
+
+                        let (removed_folders, removed_files) =
+                            item_count_recursive(&self.items, &delete_path);
+
+                        if let Some(item) = self.items.remove(&delete_path) {
                             self.roots.remove(item.path());
                             if let Some(parent) = item.path().parent()
                                 && let Some(TreeItem::Directory(_, children)) =
@@ -465,17 +468,8 @@ impl FileTreeManager {
                                 children.remove(item.path());
                             }
 
-                            match item {
-                                TreeItem::Directory(_, _) => {
-                                    self.folder_count -= 1;
-                                }
-                                TreeItem::File(_) => {
-                                    self.file_count -= 1;
-                                }
-                                TreeItem::Other(_) => {
-                                    self.file_count -= 1;
-                                }
-                            }
+                            self.folder_count -= removed_folders;
+                            self.file_count -= removed_files;
                         }
                         has_changed = true;
                     }
@@ -570,4 +564,27 @@ fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> 
         }
     }
     Ok(())
+}
+
+fn item_count_recursive(items: &BTreeMap<PathBuf, TreeItem>, path: &PathBuf) -> (usize, usize) {
+    if let Some(item) = items.get(path) {
+        match item {
+            TreeItem::Directory(_, children) => {
+                let mut folder_count = 1;
+                let mut file_count = 0;
+
+                for child in children {
+                    let (child_folder_count, child_file_count) = item_count_recursive(items, child);
+                    folder_count += child_folder_count;
+                    file_count += child_file_count;
+                }
+
+                (folder_count, file_count)
+            }
+            TreeItem::File(_) => (0, 1),
+            TreeItem::Other(_) => (0, 1),
+        }
+    } else {
+        (0, 0)
+    }
 }
