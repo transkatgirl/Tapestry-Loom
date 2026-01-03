@@ -29,8 +29,6 @@ use crate::{
     settings::{Settings, shortcuts::Shortcuts},
 };
 
-// TODO: Fix context menus on files that are not weaves
-
 pub struct FileManager {
     //settings: Rc<RefCell<Settings>>,
     toasts: Rc<RefCell<Toasts>>,
@@ -230,7 +228,13 @@ impl FileManager {
                                             button = button.fill(ui.style().visuals.extreme_bg_color);
                                         }
 
-                                        let button_response = ui.add_enabled(enabled, button);
+                                        let button_response = if enabled {
+                                            ui.add(button)
+                                        } else {
+                                            ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                                                ui.add_enabled(enabled, button)
+                                            }).response
+                                        };
 
                                         if !self.open_documents.borrow().contains(&full_path) {
                                             button_response.context_menu(|ui| {
