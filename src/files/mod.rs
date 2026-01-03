@@ -447,7 +447,7 @@ impl FileManager {
                                 if ui.button("Cancel").clicked() {
                                     ui.close();
                                 }
-                                if ui.button("Save").clicked()
+                                if ui.button("Apply").clicked()
                                     || ui.input(|input| input.key_pressed(Key::Enter))
                                 {
                                     let path = PathBuf::from(path.clone());
@@ -487,7 +487,7 @@ impl FileManager {
                                 if ui.button("Cancel").clicked() {
                                     ui.close();
                                 }
-                                if ui.button("Save").clicked()
+                                if ui.button("Apply").clicked()
                                     || ui.input(|input| input.key_pressed(Key::Enter))
                                 {
                                     let path = PathBuf::from(path.clone());
@@ -523,7 +523,7 @@ impl FileManager {
                                 if ui.button("Cancel").clicked() {
                                     ui.close();
                                 }
-                                if ui.button("Save").clicked()
+                                if ui.button("Apply").clicked()
                                     || ui.input(|input| input.key_pressed(Key::Enter))
                                 {
                                     let to = PathBuf::from(to.clone());
@@ -560,7 +560,7 @@ impl FileManager {
                                 if ui.button("Cancel").clicked() {
                                     ui.close();
                                 }
-                                if ui.button("Save").clicked()
+                                if ui.button("Apply").clicked()
                                     || ui.input(|input| input.key_pressed(Key::Enter))
                                 {
                                     let to = PathBuf::from(to.clone());
