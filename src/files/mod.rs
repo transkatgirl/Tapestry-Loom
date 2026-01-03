@@ -124,187 +124,7 @@ impl FileManager {
         });
 
         self.render_items(ui, shortcuts, open_callback);
-
-        let root_path = self.tree.contents().path.clone();
-
-        let mut modal = self.modal.borrow_mut();
-        match &mut modal.deref_mut() {
-            ModalType::CreateWeave(path) => {
-                if Modal::new("filemanager-create-weave-modal".into())
-                    .show(ui.ctx(), |ui| {
-                        ui.set_width(280.0);
-                        ui.heading("Create Weave");
-                        let label = ui.label("Path:");
-                        ui.text_edit_singleline(path).labelled_by(label.id);
-                        Sides::new().show(
-                            ui,
-                            |_ui| {},
-                            |ui| {
-                                if ui.button("Cancel").clicked() {
-                                    ui.close();
-                                }
-                                if ui.button("Save").clicked()
-                                    || ui.input(|input| input.key_pressed(Key::Enter))
-                                {
-                                    let path = PathBuf::from(path.clone());
-                                    if !self
-                                        .open_documents
-                                        .borrow()
-                                        .contains(&root_path.join(&path))
-                                    {
-                                        self.tree.create_file(
-                                            path,
-                                            blank_weave_bytes().unwrap(),
-                                            true,
-                                        );
-                                        ui.close();
-                                    }
-                                }
-                            },
-                        );
-                    })
-                    .should_close()
-                {
-                    *modal = ModalType::None;
-                };
-            }
-            ModalType::CreateDirectory(path) => {
-                if Modal::new("filemanager-create-directory-modal".into())
-                    .show(ui.ctx(), |ui| {
-                        ui.set_width(280.0);
-                        ui.heading("Create Folder");
-                        let label = ui.label("Path:");
-                        ui.text_edit_singleline(path).labelled_by(label.id);
-                        Sides::new().show(
-                            ui,
-                            |_ui| {},
-                            |ui| {
-                                if ui.button("Cancel").clicked() {
-                                    ui.close();
-                                }
-                                if ui.button("Save").clicked()
-                                    || ui.input(|input| input.key_pressed(Key::Enter))
-                                {
-                                    let path = PathBuf::from(path.clone());
-                                    if !self
-                                        .open_documents
-                                        .borrow()
-                                        .contains(&root_path.join(&path))
-                                    {
-                                        self.tree.create_directory(path);
-                                        ui.close();
-                                    }
-                                }
-                            },
-                        );
-                    })
-                    .should_close()
-                {
-                    *modal = ModalType::None;
-                };
-            }
-            ModalType::Rename((from, to)) => {
-                if Modal::new("filemanager-rename-item-modal".into())
-                    .show(ui.ctx(), |ui| {
-                        ui.set_width(280.0);
-                        ui.heading("Move or Rename Item");
-                        let label = ui.label("New Path:");
-                        ui.text_edit_singleline(to).labelled_by(label.id);
-                        Sides::new().show(
-                            ui,
-                            |_ui| {},
-                            |ui| {
-                                if ui.button("Cancel").clicked() {
-                                    ui.close();
-                                }
-                                if ui.button("Save").clicked()
-                                    || ui.input(|input| input.key_pressed(Key::Enter))
-                                {
-                                    let to = PathBuf::from(to.clone());
-                                    if from != &to
-                                        && !self
-                                            .open_documents
-                                            .borrow()
-                                            .contains(&root_path.join(&to))
-                                    {
-                                        self.tree.move_item(from.clone(), to, true);
-                                        ui.close();
-                                    }
-                                }
-                            },
-                        );
-                    })
-                    .should_close()
-                {
-                    *modal = ModalType::None;
-                };
-            }
-            ModalType::Copy((from, to)) => {
-                if Modal::new("filemanager-copy-item-modal".into())
-                    .show(ui.ctx(), |ui| {
-                        ui.set_width(280.0);
-                        ui.heading("Duplicate Item");
-                        let label = ui.label("New Path:");
-                        ui.text_edit_singleline(to).labelled_by(label.id);
-                        Sides::new().show(
-                            ui,
-                            |_ui| {},
-                            |ui| {
-                                if ui.button("Cancel").clicked() {
-                                    ui.close();
-                                }
-                                if ui.button("Save").clicked()
-                                    || ui.input(|input| input.key_pressed(Key::Enter))
-                                {
-                                    let to = PathBuf::from(to.clone());
-                                    if from != &to
-                                        && !self
-                                            .open_documents
-                                            .borrow()
-                                            .contains(&root_path.join(&to))
-                                    {
-                                        self.tree.copy_item(from.clone(), to, true);
-                                        ui.close();
-                                    }
-                                }
-                            },
-                        );
-                    })
-                    .should_close()
-                {
-                    *modal = ModalType::None;
-                };
-            }
-            ModalType::Delete(path) => {
-                if Modal::new("filemanager-confirmed-deletion-modal".into())
-                    .show(ui.ctx(), |ui| {
-                        ui.set_width(280.0);
-                        ui.heading("Confirm Deletion");
-                        ui.label("The following item will be deleted:");
-                        ui.label(path.to_string_lossy());
-                        Sides::new().show(
-                            ui,
-                            |_ui| {},
-                            |ui| {
-                                if ui.button("Cancel").clicked() {
-                                    ui.close();
-                                }
-                                if ui.button("Confirm").clicked()
-                                    || ui.input(|input| input.key_pressed(Key::Enter))
-                                {
-                                    self.tree.remove_item(path.clone());
-                                    ui.close();
-                                }
-                            },
-                        );
-                    })
-                    .should_close()
-                {
-                    *modal = ModalType::None;
-                };
-            }
-            ModalType::None => {}
-        }
+        self.render_modals(ui);
     }
     fn render_items(
         &mut self,
@@ -557,6 +377,188 @@ impl FileManager {
                         }
                     });
             });
+    }
+    pub fn render_modals(&mut self, ui: &mut Ui) {
+        let root_path = self.tree.contents().path.clone();
+
+        let mut modal = self.modal.borrow_mut();
+        match &mut modal.deref_mut() {
+            ModalType::CreateWeave(path) => {
+                if Modal::new("filemanager-create-weave-modal".into())
+                    .show(ui.ctx(), |ui| {
+                        ui.set_width(280.0);
+                        ui.heading("Create Weave");
+                        let label = ui.label("Path:");
+                        ui.text_edit_singleline(path).labelled_by(label.id);
+                        Sides::new().show(
+                            ui,
+                            |_ui| {},
+                            |ui| {
+                                if ui.button("Cancel").clicked() {
+                                    ui.close();
+                                }
+                                if ui.button("Save").clicked()
+                                    || ui.input(|input| input.key_pressed(Key::Enter))
+                                {
+                                    let path = PathBuf::from(path.clone());
+                                    if !self
+                                        .open_documents
+                                        .borrow()
+                                        .contains(&root_path.join(&path))
+                                    {
+                                        self.tree.create_file(
+                                            path,
+                                            blank_weave_bytes().unwrap(),
+                                            true,
+                                        );
+                                        ui.close();
+                                    }
+                                }
+                            },
+                        );
+                    })
+                    .should_close()
+                {
+                    *modal = ModalType::None;
+                };
+            }
+            ModalType::CreateDirectory(path) => {
+                if Modal::new("filemanager-create-directory-modal".into())
+                    .show(ui.ctx(), |ui| {
+                        ui.set_width(280.0);
+                        ui.heading("Create Folder");
+                        let label = ui.label("Path:");
+                        ui.text_edit_singleline(path).labelled_by(label.id);
+                        Sides::new().show(
+                            ui,
+                            |_ui| {},
+                            |ui| {
+                                if ui.button("Cancel").clicked() {
+                                    ui.close();
+                                }
+                                if ui.button("Save").clicked()
+                                    || ui.input(|input| input.key_pressed(Key::Enter))
+                                {
+                                    let path = PathBuf::from(path.clone());
+                                    if !self
+                                        .open_documents
+                                        .borrow()
+                                        .contains(&root_path.join(&path))
+                                    {
+                                        self.tree.create_directory(path);
+                                        ui.close();
+                                    }
+                                }
+                            },
+                        );
+                    })
+                    .should_close()
+                {
+                    *modal = ModalType::None;
+                };
+            }
+            ModalType::Rename((from, to)) => {
+                if Modal::new("filemanager-rename-item-modal".into())
+                    .show(ui.ctx(), |ui| {
+                        ui.set_width(280.0);
+                        ui.heading("Move or Rename Item");
+                        let label = ui.label("New Path:");
+                        ui.text_edit_singleline(to).labelled_by(label.id);
+                        Sides::new().show(
+                            ui,
+                            |_ui| {},
+                            |ui| {
+                                if ui.button("Cancel").clicked() {
+                                    ui.close();
+                                }
+                                if ui.button("Save").clicked()
+                                    || ui.input(|input| input.key_pressed(Key::Enter))
+                                {
+                                    let to = PathBuf::from(to.clone());
+                                    if from != &to
+                                        && !self
+                                            .open_documents
+                                            .borrow()
+                                            .contains(&root_path.join(&to))
+                                    {
+                                        self.tree.move_item(from.clone(), to, true);
+                                        ui.close();
+                                    }
+                                }
+                            },
+                        );
+                    })
+                    .should_close()
+                {
+                    *modal = ModalType::None;
+                };
+            }
+            ModalType::Copy((from, to)) => {
+                if Modal::new("filemanager-copy-item-modal".into())
+                    .show(ui.ctx(), |ui| {
+                        ui.set_width(280.0);
+                        ui.heading("Duplicate Item");
+                        let label = ui.label("New Path:");
+                        ui.text_edit_singleline(to).labelled_by(label.id);
+                        Sides::new().show(
+                            ui,
+                            |_ui| {},
+                            |ui| {
+                                if ui.button("Cancel").clicked() {
+                                    ui.close();
+                                }
+                                if ui.button("Save").clicked()
+                                    || ui.input(|input| input.key_pressed(Key::Enter))
+                                {
+                                    let to = PathBuf::from(to.clone());
+                                    if from != &to
+                                        && !self
+                                            .open_documents
+                                            .borrow()
+                                            .contains(&root_path.join(&to))
+                                    {
+                                        self.tree.copy_item(from.clone(), to, true);
+                                        ui.close();
+                                    }
+                                }
+                            },
+                        );
+                    })
+                    .should_close()
+                {
+                    *modal = ModalType::None;
+                };
+            }
+            ModalType::Delete(path) => {
+                if Modal::new("filemanager-confirmed-deletion-modal".into())
+                    .show(ui.ctx(), |ui| {
+                        ui.set_width(280.0);
+                        ui.heading("Confirm Deletion");
+                        ui.label("The following item will be deleted:");
+                        ui.label(path.to_string_lossy());
+                        Sides::new().show(
+                            ui,
+                            |_ui| {},
+                            |ui| {
+                                if ui.button("Cancel").clicked() {
+                                    ui.close();
+                                }
+                                if ui.button("Confirm").clicked()
+                                    || ui.input(|input| input.key_pressed(Key::Enter))
+                                {
+                                    self.tree.remove_item(path.clone());
+                                    ui.close();
+                                }
+                            },
+                        );
+                    })
+                    .should_close()
+                {
+                    *modal = ModalType::None;
+                };
+            }
+            ModalType::None => {}
+        }
     }
     fn update_item_list(&mut self) {
         self.item_list.clear();
