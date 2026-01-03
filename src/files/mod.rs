@@ -405,6 +405,7 @@ impl FileManager {
                                         .open_documents
                                         .borrow()
                                         .contains(&root_path.join(&path))
+                                        && !self.tree.contents().items.contains_key(&path)
                                     {
                                         self.tree.create_file(
                                             path,
@@ -444,6 +445,7 @@ impl FileManager {
                                         .open_documents
                                         .borrow()
                                         .contains(&root_path.join(&path))
+                                        && !self.tree.contents().items.contains_key(&path)
                                     {
                                         self.tree.create_directory(path);
                                         ui.close();
@@ -480,6 +482,7 @@ impl FileManager {
                                             .open_documents
                                             .borrow()
                                             .contains(&root_path.join(&to))
+                                        && !self.tree.contents().items.contains_key(&to)
                                     {
                                         self.tree.move_item(from.clone(), to, true);
                                         ui.close();
@@ -516,6 +519,7 @@ impl FileManager {
                                             .open_documents
                                             .borrow()
                                             .contains(&root_path.join(&to))
+                                        && !self.tree.contents().items.contains_key(&to)
                                     {
                                         self.tree.copy_item(from.clone(), to, true);
                                         ui.close();
