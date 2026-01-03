@@ -173,7 +173,7 @@ impl FileTreeManager {
             match fs::rename(&from, &to) {
                 Ok(_) => {
                     let _ = tx.send(Ok(ItemScanEvent::Delete(from)));
-                    match to.metadata() {
+                    match to.symlink_metadata() {
                         Ok(metadata) => {
                             if metadata.is_dir() {
                                 for entry in WalkDir::new(&to) {
@@ -234,77 +234,80 @@ impl FileTreeManager {
         let tx = self.channel.0.clone();
         let stop_scanning = self.stop_scanning.clone();
 
-        let handle = self.runtime.spawn_blocking(move || match from.metadata() {
-            Ok(metadata) => {
-                if fail_if_exists {
-                    match to.try_exists() {
-                        Ok(exists) => {
-                            if exists {
-                                let _ = tx.send(Err(anyhow::Error::msg("Path already exists")));
-                                return;
+        let handle = self
+            .runtime
+            .spawn_blocking(move || match from.symlink_metadata() {
+                Ok(metadata) => {
+                    if fail_if_exists {
+                        match to.try_exists() {
+                            Ok(exists) => {
+                                if exists {
+                                    let _ = tx.send(Err(anyhow::Error::msg("Path already exists")));
+                                    return;
+                                }
+                            }
+                            Err(error) => {
+                                let _ = tx.send(Err(error.into()));
                             }
                         }
-                        Err(error) => {
-                            let _ = tx.send(Err(error.into()));
+                    }
+
+                    if metadata.is_dir() {
+                        match copy_dir_all(&from, &to) {
+                            Ok(_) => {
+                                for entry in WalkDir::new(&to) {
+                                    if stop_scanning.load(Ordering::SeqCst) {
+                                        break;
+                                    }
+
+                                    match entry {
+                                        Ok(entry) => {
+                                            let filetype = entry.file_type();
+
+                                            let _ =
+                                                tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
+                                                    path: entry.path().to_path_buf(),
+                                                    r#type: if filetype.is_file() {
+                                                        ScannedItemType::File
+                                                    } else if filetype.is_dir() {
+                                                        ScannedItemType::Directory
+                                                    } else {
+                                                        ScannedItemType::Other
+                                                    },
+                                                })));
+                                        }
+                                        Err(error) => {
+                                            let _ = tx.send(Err(error.into()));
+                                        }
+                                    }
+                                }
+                            }
+                            Err(error) => {
+                                let _ = tx.send(Err(error.into()));
+                            }
+                        }
+                    } else {
+                        match fs::copy(&from, &to) {
+                            Ok(_) => {
+                                let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
+                                    path: to.clone(),
+                                    r#type: if metadata.is_file() {
+                                        ScannedItemType::File
+                                    } else {
+                                        ScannedItemType::Other
+                                    },
+                                })));
+                            }
+                            Err(error) => {
+                                let _ = tx.send(Err(error.into()));
+                            }
                         }
                     }
                 }
-
-                if metadata.is_dir() {
-                    match copy_dir_all(&from, &to) {
-                        Ok(_) => {
-                            for entry in WalkDir::new(&to) {
-                                if stop_scanning.load(Ordering::SeqCst) {
-                                    break;
-                                }
-
-                                match entry {
-                                    Ok(entry) => {
-                                        let filetype = entry.file_type();
-
-                                        let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
-                                            path: entry.path().to_path_buf(),
-                                            r#type: if filetype.is_file() {
-                                                ScannedItemType::File
-                                            } else if filetype.is_dir() {
-                                                ScannedItemType::Directory
-                                            } else {
-                                                ScannedItemType::Other
-                                            },
-                                        })));
-                                    }
-                                    Err(error) => {
-                                        let _ = tx.send(Err(error.into()));
-                                    }
-                                }
-                            }
-                        }
-                        Err(error) => {
-                            let _ = tx.send(Err(error.into()));
-                        }
-                    }
-                } else {
-                    match fs::copy(&from, &to) {
-                        Ok(_) => {
-                            let _ = tx.send(Ok(ItemScanEvent::Insert(ScannedItem {
-                                path: to.clone(),
-                                r#type: if metadata.is_file() {
-                                    ScannedItemType::File
-                                } else {
-                                    ScannedItemType::Other
-                                },
-                            })));
-                        }
-                        Err(error) => {
-                            let _ = tx.send(Err(error.into()));
-                        }
-                    }
+                Err(error) => {
+                    let _ = tx.send(Err(error.into()));
                 }
-            }
-            Err(error) => {
-                let _ = tx.send(Err(error.into()));
-            }
-        });
+            });
 
         if self.finished {
             self.action_handle = Some(handle);
@@ -322,7 +325,7 @@ impl FileTreeManager {
                 }
                 Err(error) => {
                     let _ = tx.send(Err(error.into()));
-                    match path.metadata() {
+                    match path.symlink_metadata() {
                         Ok(metadata) => {
                             if metadata.is_dir() {
                                 match fs::remove_dir_all(&path) {
