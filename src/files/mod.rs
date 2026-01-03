@@ -584,7 +584,7 @@ impl FileManager {
                 };
             }
             ModalType::Delete(path) => {
-                if Modal::new("filemanager-confirmed-deletion-modal".into())
+                if Modal::new("filemanager-confirm-deletion-modal".into())
                     .show(ui.ctx(), |ui| {
                         ui.set_width(280.0);
                         ui.heading("Confirm Deletion");
