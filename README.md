@@ -144,7 +144,6 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [x] main
 	- [x] files
 	- [ ] settings
-- [ ] Don't include ignored files in file/folder count
 - [ ] Improve token confidence calculation to work properly with vLLM
 - [ ] Allow temporarilly overriding color in inference menu
 - [ ] Improve handling of hovered + omitted/collapsed nodes

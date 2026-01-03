@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, HashSet},
     fs, io, mem,
     path::{Path, PathBuf},
     rc::Rc,
@@ -31,6 +31,7 @@ pub struct FileTreeManager {
     finished: bool,
     file_count: usize,
     folder_count: usize,
+    ignore_list: HashSet<&'static str>,
     stop_scanning: Arc<AtomicBool>,
 }
 
@@ -63,6 +64,17 @@ impl FileTreeManager {
             finished: false,
             file_count: 0,
             folder_count: 0,
+            ignore_list: HashSet::from_iter([
+                ".directory",
+                ".ds_store",
+                "__macosx",
+                ".appledouble",
+                ".lsoverride",
+                "thumbs.db",
+                "thumbs.db:encryptable",
+                "ehthumbs.db",
+                "desktop.ini",
+            ]),
             stop_scanning: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -434,37 +446,49 @@ impl FileTreeManager {
                                 .map(|p| p.to_path_buf())
                                 .unwrap_or_default();
 
-                            if let Some(parent) = path.parent() {
-                                if let Some(TreeItem::Directory(_, children)) =
-                                    self.items.get_mut(parent)
-                                {
-                                    children.insert(path.clone());
-                                }
-                                if parent == PathBuf::default() {
+                            if insert.r#type != ScannedItemType::File
+                                || !(self.ignore_list.contains(
+                                    insert
+                                        .path
+                                        .file_name()
+                                        .map(|s| s.to_string_lossy())
+                                        .unwrap_or_default()
+                                        .to_ascii_lowercase()
+                                        .as_str(),
+                                ))
+                            {
+                                if let Some(parent) = path.parent() {
+                                    if let Some(TreeItem::Directory(_, children)) =
+                                        self.items.get_mut(parent)
+                                    {
+                                        children.insert(path.clone());
+                                    }
+                                    if parent == PathBuf::default() {
+                                        self.roots.insert(path.clone());
+                                    }
+                                } else if path != PathBuf::default() {
                                     self.roots.insert(path.clone());
                                 }
-                            } else if path != PathBuf::default() {
-                                self.roots.insert(path.clone());
-                            }
 
-                            self.items.insert(
-                                path.clone(),
-                                match insert.r#type {
-                                    ScannedItemType::Directory => {
-                                        self.folder_count += 1;
-                                        TreeItem::Directory(path, BTreeSet::new())
-                                    }
-                                    ScannedItemType::File => {
-                                        self.file_count += 1;
-                                        TreeItem::File(path)
-                                    }
-                                    ScannedItemType::Other => {
-                                        self.file_count += 1;
-                                        TreeItem::Other(path)
-                                    }
-                                },
-                            );
-                            has_changed = true;
+                                self.items.insert(
+                                    path.clone(),
+                                    match insert.r#type {
+                                        ScannedItemType::Directory => {
+                                            self.folder_count += 1;
+                                            TreeItem::Directory(path, BTreeSet::new())
+                                        }
+                                        ScannedItemType::File => {
+                                            self.file_count += 1;
+                                            TreeItem::File(path)
+                                        }
+                                        ScannedItemType::Other => {
+                                            self.file_count += 1;
+                                            TreeItem::Other(path)
+                                        }
+                                    },
+                                );
+                                has_changed = true;
+                            }
                         }
                     }
                     ItemScanEvent::Delete(delete) => {

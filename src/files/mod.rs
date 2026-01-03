@@ -36,7 +36,6 @@ pub struct FileManager {
     open_documents: Rc<RefCell<HashSet<PathBuf>>>,
     item_list: Vec<ScannedItem>,
     open_folders: HashSet<PathBuf>,
-    ignore_list: HashSet<&'static str>,
     modal: RefCell<ModalType>,
 }
 
@@ -54,17 +53,6 @@ impl FileManager {
             open_documents,
             item_list: Vec::with_capacity(32768),
             open_folders: HashSet::with_capacity(256),
-            ignore_list: HashSet::from_iter([
-                ".directory",
-                ".ds_store",
-                "__macosx",
-                ".appledouble",
-                ".lsoverride",
-                "thumbs.db",
-                "thumbs.db:encryptable",
-                "ehthumbs.db",
-                "desktop.ini",
-            ]),
             modal: RefCell::new(ModalType::None),
         }
     }
@@ -642,20 +630,7 @@ impl FileManager {
                 continue;
             }
 
-            let lowercase_name = item
-                .path()
-                .file_name()
-                .map(|s| s.to_os_string())
-                .unwrap_or_default()
-                .to_ascii_lowercase();
-
-            if !(lowercase_name.is_empty()
-                || self
-                    .ignore_list
-                    .contains(lowercase_name.to_string_lossy().as_ref()))
-            {
-                self.item_list.push(item.clone().into());
-            }
+            self.item_list.push(item.clone().into());
 
             if let TreeItem::Directory(_, children) = &item
                 && (self.open_folders.contains(item.path()))
