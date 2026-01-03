@@ -150,6 +150,8 @@ impl FileManager {
                 });
         }
 
+        let mut should_full_refresh = false;
+
         let text_style = TextStyle::Monospace;
         let row_height = ui.spacing().interact_size.y;
         let ch = ui.fonts_mut(|f| f.glyph_width(&text_style.resolve(ui.style()), ' '));
@@ -392,8 +394,7 @@ impl FileManager {
                                     });
 
                                     ui.response().context_menu(|ui| {
-                                        let mut modals = self.modal.borrow_mut();
-                                        render_global_context_menu(ui, contents.path, &mut modals);
+                                        render_global_context_menu(ui, contents.path, &mut self.modal.borrow_mut(), &mut should_full_refresh);
                                     });
                                 });
                             });
@@ -406,9 +407,18 @@ impl FileManager {
             });
 
         ui.response().context_menu(|ui| {
-            let mut modals = self.modal.borrow_mut();
-            render_global_context_menu(ui, self.tree.contents().path, &mut modals);
+            render_global_context_menu(
+                ui,
+                self.tree.contents().path,
+                &mut self.modal.borrow_mut(),
+                &mut should_full_refresh,
+            );
         });
+
+        if should_full_refresh {
+            self.open_folders.clear();
+            self.tree.refresh();
+        }
     }
     pub fn render_modals(&mut self, ui: &mut Ui) {
         let root_path = self.tree.contents().path.clone();
@@ -669,19 +679,23 @@ enum ModalType {
     None,
 }
 
-fn render_global_context_menu(ui: &mut Ui, path: &Path, modal: &mut ModalType) {
+fn render_global_context_menu(ui: &mut Ui, path: &Path, modal: &mut ModalType, refresh: &mut bool) {
     if ui.button("New weave").clicked() {
         *modal = ModalType::CreateWeave(["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION].concat());
     }
     if ui.button("New folder").clicked() {
         *modal = ModalType::CreateDirectory("Untitled Folder".to_string());
     }
+
     ui.separator();
 
-    if ui.button("Copy item path").clicked() {
+    if ui.button("Copy path").clicked() {
         ui.output_mut(|o| {
             o.commands
                 .push(OutputCommand::CopyText(path.to_string_lossy().to_string()))
         });
+    };
+    if ui.button("Refresh").clicked() {
+        *refresh = true;
     };
 }
