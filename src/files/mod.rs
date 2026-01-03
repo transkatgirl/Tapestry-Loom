@@ -597,8 +597,12 @@ impl FileManager {
                                 if ui.button("Cancel").clicked() {
                                     ui.close();
                                 }
-                                if ui.button("Confirm").clicked()
-                                    || ui.input(|input| input.key_pressed(Key::Enter))
+                                if (ui.button("Confirm").clicked()
+                                    || ui.input(|input| input.key_pressed(Key::Enter)))
+                                    && !self
+                                        .open_documents
+                                        .borrow()
+                                        .contains(&root_path.join(&path))
                                 {
                                     self.tree.remove_item(path.clone());
                                     ui.close();
