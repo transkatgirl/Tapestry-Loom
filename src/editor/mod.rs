@@ -719,6 +719,7 @@ impl Behavior<Pane> for EditorTilingBehavior {
     fn simplification_options(&self) -> SimplificationOptions {
         SimplificationOptions {
             all_panes_must_have_tabs: true,
+            prune_single_child_containers: true,
             ..Default::default()
         }
     }
