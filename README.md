@@ -142,7 +142,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 - [x] Add generate buttons (displayed on hover) to canvas
 - [ ] Review and refactor application modules
 	- [x] main
-	- [ ] files
+	- [x] files
 	- [ ] settings
 - [ ] Improve token confidence calculation to work properly with vLLM
 - [ ] Allow temporarilly overriding color in inference menu
