@@ -39,6 +39,8 @@ mod editor;
 mod files;
 mod settings;
 
+// TODO: Improve system font selection
+
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
