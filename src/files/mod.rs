@@ -310,7 +310,7 @@ impl FileManager {
                                             });
                                         }
 
-                                        if button_response.clicked() {
+                                        if enabled && button_response.clicked() {
                                             if item.r#type == ScannedItemType::File {
                                                 open_callback(&full_path);
                                             } else {
