@@ -189,7 +189,7 @@ impl FileManager {
                             let (icon, suffix) = match item.r#type {
                                 ScannedItemType::File => ("📄", ""),
                                 ScannedItemType::Directory => ("📂", MAIN_SEPARATOR_STR),
-                                ScannedItemType::Other => ("?", ""),
+                                ScannedItemType::Other => ("❔", ""),
                             };
 
                             ui.horizontal(|ui| {
@@ -201,7 +201,7 @@ impl FileManager {
                                             RichText::new(format!("{icon} {label}{suffix}"))
                                                 .family(eframe::egui::FontFamily::Monospace),
                                         );
-                                        let mut enabled = true;
+                                        let mut enabled = item.r#type != ScannedItemType::Other;
 
                                         if item.r#type == ScannedItemType::File {
                                             if !(item.path.extension() == Some(&file_extension_normal)
@@ -626,10 +626,6 @@ impl FileManager {
             .collect::<Vec<_>>();
 
         for item in items {
-            if let TreeItem::Other(_) = item {
-                continue;
-            }
-
             self.item_list.push(item.clone().into());
 
             if let TreeItem::Directory(_, children) = &item
