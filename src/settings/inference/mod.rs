@@ -842,10 +842,10 @@ impl Display for EndpointTemplate {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::None => f.write_str("Choose template..."),
-            Self::OpenAICompletions(_) => f.write_str("OpenAI-style Completions"),
+            Self::OpenAICompletions(_) => f.write_str("OpenAI-style Completions (Recommended)"),
             Self::OpenAIChatCompletions(_) => f.write_str("OpenAI-style ChatCompletions"),
             Self::TapestryTokenizeOpenAICompletions(_) => {
-                f.write_str("OpenAI-style Completions + Tapestry Tokenize")
+                f.write_str("OpenAI-style Completions (Recommended) + Tapestry Tokenize")
             }
         }
     }
