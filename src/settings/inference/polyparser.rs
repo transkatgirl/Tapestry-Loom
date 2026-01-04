@@ -142,6 +142,18 @@ pub struct LogprobToken {
                 }
             })
             .collect()
+    } else if let Some(Value::Array(data)) = json.remove("data") {
+        let mut items = Vec::with_capacity(data.len());
+
+        for item in data {
+            if let Value::Object(item) = item {
+                items.extend(parse_embedding_response(item));
+            } else {
+                items.push(None);
+            }
+        }
+
+        items
     } else {
         vec![]
     }
