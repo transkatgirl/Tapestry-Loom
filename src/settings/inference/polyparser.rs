@@ -49,7 +49,7 @@ pub struct ResponseItem {
 }
 
 impl ResponseItem {
-    fn clear_normal(&mut self) {
+    pub fn clear_normal(&mut self) {
         if let Some(role) = &self.role
             && role == "assistant"
         {
@@ -80,7 +80,7 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn cleanup(&mut self, requested_top: usize) {
+    pub fn remove_selected_from_top(&mut self, requested_top: usize) {
         if self.top_tokens.len() == requested_top + 1 {
             let index = self
                 .top_tokens

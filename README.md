@@ -148,6 +148,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Improve token confidence calculation to work properly with vLLM
 	- [ ] Add support for additional tokenization endpoints
 	- [ ] Add support for Anthropic-style APIs
+	- [ ] Add support for Gemini-style APIs
 - [ ] Use logprob text_offset value when present
 - [ ] Allow temporarilly overriding color in inference menu
 - [ ] Improve handling of hovered + omitted/collapsed nodes
