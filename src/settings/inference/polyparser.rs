@@ -19,6 +19,16 @@ Based on the following:
 - https://platform.claude.com/docs/en/api/messages/create
 - llama-cpp experimentation
 - vllm experimentation
+
+TODO:
+
+- support https://platform.claude.com/docs/en/build-with-claude/streaming
+- support all openai responses-streaming objects
+- support https://learn.microsoft.com/en-us/azure/ai-foundry/
+- support https://docs.aws.amazon.com/bedrock/
+- support https://ai.google.dev/gemini-api/docs
+- support all response types supported by https://mozilla-ai.github.io/any-llm/providers/
+- unit tests
 */
 
 use serde_json::{Map, Value};
