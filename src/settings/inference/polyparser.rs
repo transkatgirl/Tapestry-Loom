@@ -431,27 +431,33 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         None
     };
 
-    let tokens = if let Some(Value::Object(mut logprobs_json)) = json.remove("logprobs") {
-        if let Some(Value::Array(logprobs_list_json)) = logprobs_json.remove("content") {
+    let tokens = if let Some(logprobs_json) = json.remove("logprobs") {
+        if let Value::Object(mut logprobs_json) = logprobs_json {
+            if let Some(Value::Array(logprobs_list_json)) = logprobs_json.remove("content") {
+                parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
+            } else {
+                let token_ids = json
+                    .remove("token_ids") // vllm
+                    .and_then(|item| {
+                        if let Value::Array(item) = item {
+                            Some(item)
+                        } else {
+                            None
+                        }
+                    });
+
+                let text = if let Some(Value::String(text)) = json.get("text") {
+                    Some(text.as_ref())
+                } else {
+                    None
+                };
+
+                parse_openai_completion_logprobs(logprobs_json, text, token_ids)
+            }
+        } else if let Value::Array(logprobs_list_json) = logprobs_json {
             parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
         } else {
-            let token_ids = json
-                .remove("token_ids") // vllm
-                .and_then(|item| {
-                    if let Value::Array(item) = item {
-                        Some(item)
-                    } else {
-                        None
-                    }
-                });
-
-            let text = if let Some(Value::String(text)) = json.get("text") {
-                Some(text.as_ref())
-            } else {
-                None
-            };
-
-            parse_openai_completion_logprobs(logprobs_json, text, token_ids)
+            None
         }
     } else if let Some(Value::Object(logprobs_json)) = json.remove("logprobsResult") {
         parse_gemma_logprobs(logprobs_json)
