@@ -7,6 +7,7 @@ However, it intentionally omits the following features:
 - Multimodal outputs
 - Reasoning outputs
 - Structured outputs
+- Output annotations
 
 Based on the following:
 - https://platform.openai.com/docs/api-reference/completions/object
@@ -259,12 +260,27 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         && content_type == "output_text"
         && let Some(Value::String(text)) = content.remove("text")
     {
-        Some(ResponseItem {
-            index,
-            role,
-            finish_reason,
-            contents: ResponseContents::Text(text.into_bytes()),
-        })
+        let tokens = if let Some(Value::Array(logprobs_list_json)) = content.remove("logprobs") {
+            parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
+        } else {
+            None
+        };
+
+        if let Some(tokens) = tokens {
+            Some(ResponseItem {
+                index,
+                role,
+                finish_reason,
+                contents: ResponseContents::Tokens(tokens),
+            })
+        } else {
+            Some(ResponseItem {
+                index,
+                role,
+                finish_reason,
+                contents: ResponseContents::Text(text.into_bytes()),
+            })
+        }
     } else {
         todo!()
     }
