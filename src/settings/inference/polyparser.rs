@@ -69,6 +69,13 @@ impl ResponseItem {
             self.finish_reason = None;
         }
     }
+    pub fn remove_selected_from_top(&mut self, requested_top: usize) {
+        if let ResponseContents::Tokens(tokens) = &mut self.contents {
+            for token in tokens {
+                token.remove_selected_from_top(requested_top);
+            }
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -78,7 +85,7 @@ pub enum ResponseContents {
     Empty,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub token: LogprobToken,
     pub top_tokens: Vec<LogprobToken>,
@@ -106,7 +113,7 @@ impl Token {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct LogprobToken {
     pub id: Option<i128>,
     pub contents: Vec<u8>,
