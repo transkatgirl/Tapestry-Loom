@@ -24,12 +24,18 @@ TODO:
 
 - support https://platform.claude.com/docs/en/build-with-claude/streaming
 - support all openai responses-streaming objects
-- support https://ai.google.dev/gemini-api/docs
+- support https://ai.google.dev/gemini-api/docs/text-generation
+- support https://ai.google.dev/api/palm
 - support https://docs.ollama.com/api/generate
 - support https://docs.ollama.com/api/chat
 - do testing with sglang
 - do testing with ollama
 - do testing with koboldcpp
+- support embedding APIs
+    - https://platform.openai.com/docs/api-reference/embeddings
+    - https://ai.google.dev/gemini-api/docs/embeddings
+    - https://docs.litellm.ai/docs/embedding/supported_embedding#output-from-litellmembedding
+    - https://docs.ollama.com/api/embed
 - unit tests
 */
 
@@ -634,4 +640,9 @@ fn parse_openai_chatcompletion_logprob_content_subitem(
     } else {
         None
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
 }
