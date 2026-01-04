@@ -873,18 +873,7 @@ fn parse_openai_response(
                 }),
                 polyparser::ResponseContents::Tokens(tokens) => {
                     if single_token && let Some(token) = tokens.first().cloned() {
-                        let mut base_token_metadata_capacity = 2;
-
-                        if token.token.id.is_some() {
-                            base_token_metadata_capacity += 2;
-                        }
-
-                        if token.top_tokens.len() >= 10 {
-                            base_token_metadata_capacity += 2;
-                        }
-
-                        let mut base_token_metadata = MetadataMap::default();
-                        base_token_metadata.reserve_exact(base_token_metadata_capacity);
+                        let mut base_token_metadata = Vec::new();
 
                         if token.top_tokens.len() >= 10 {
                             let mut confidence = 0.0;
@@ -907,7 +896,14 @@ fn parse_openai_response(
                         }
 
                         outputs.extend(token.top_tokens.into_iter().map(|top_token| {
-                            let mut token_metadata = base_token_metadata.clone();
+                            let mut token_metadata_capacity = 2 + base_token_metadata.len();
+
+                            if top_token.id.is_some() {
+                                token_metadata_capacity += 2;
+                            }
+
+                            let mut token_metadata = MetadataMap::default();
+                            token_metadata.reserve_exact(token_metadata_capacity);
 
                             token_metadata.extend([
                                 (
@@ -927,6 +923,8 @@ fn parse_openai_response(
                                     ("model_id".to_string(), tokenization_identifier.to_string()),
                                 ]);
                             }
+
+                            token_metadata.extend(base_token_metadata.clone());
 
                             EndpointResponse {
                                 content: InnerNodeContent::Tokens(vec![(

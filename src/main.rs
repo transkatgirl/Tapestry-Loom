@@ -45,7 +45,7 @@ mod settings;
 static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() -> eframe::Result {
-    env_logger::Builder::from_env(Env::default().default_filter_or("debug,tapestry_loom=trace,winit=info,layouting=warn,coordinate_calculation=warn,crossing_reduction=warn,ranking=warn,Cycle Removal=warn,connected_components=warn,rust_sugiyama::algorithm=warn")).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("debug,tapestry_loom=trace,tapestry_loom::settings::inference::polyparser=debug,winit=info,layouting=warn,coordinate_calculation=warn,crossing_reduction=warn,ranking=warn,Cycle Removal=warn,connected_components=warn,rust_sugiyama::algorithm=warn")).init();
     debug!("Initalizing...");
 
     let runtime = Arc::new(
