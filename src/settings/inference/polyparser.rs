@@ -24,10 +24,12 @@ TODO:
 
 - support https://platform.claude.com/docs/en/build-with-claude/streaming
 - support all openai responses-streaming objects
-- support https://learn.microsoft.com/en-us/azure/ai-foundry/
-- support https://docs.aws.amazon.com/bedrock/
 - support https://ai.google.dev/gemini-api/docs
-- support all response types supported by https://mozilla-ai.github.io/any-llm/providers/
+- support https://docs.ollama.com/api/generate
+- support https://docs.ollama.com/api/chat
+- do testing with sglang
+- do testing with ollama
+- do testing with koboldcpp
 - unit tests
 */
 
