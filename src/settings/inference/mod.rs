@@ -31,6 +31,7 @@ use crate::settings::inference::openai::{
 };
 
 mod openai;
+mod polyparser;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct InferenceSettings {
