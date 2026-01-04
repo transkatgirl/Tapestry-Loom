@@ -24,6 +24,7 @@ Based on the following:
 - https://platform.claude.com/docs/en/api/completions/create
 - https://platform.claude.com/docs/en/api/messages/create
 - https://platform.claude.com/docs/en/build-with-claude/streaming
+- https://ai.google.dev/api/palm
 - https://ai.google.dev/api/embeddings
 - https://docs.ollama.com/api/embed
 - llama-cpp experimentation
@@ -31,9 +32,7 @@ Based on the following:
 
 TODO:
 
-- support https://platform.claude.com/docs/en/build-with-claude/streaming
 - support https://ai.google.dev/gemini-api/docs/text-generation
-- support https://ai.google.dev/api/palm
 - support https://docs.ollama.com/api/generate
 - support https://docs.ollama.com/api/chat
 - do testing with llama-cpp
@@ -115,11 +114,14 @@ pub struct LogprobToken {
 }
 
 /*pub fn parse_embedding_response(mut json: Map<String, Value>) -> Vec<Option<Vec<f32>>> {
-    if let Some(embedding) = json
-        .remove("embedding")
-        .and_then(|v| serde_json::from_value::<Vec<f32>>(v).ok())
-    {
-        vec![Some(embedding)]
+    if let Some(embedding) = json.remove("embedding") {
+        vec![if let Value::Object(mut embedding) = embedding {
+            embedding
+                .remove("values")
+                .and_then(|v| serde_json::from_value::<Vec<f32>>(v).ok())
+        } else {
+            serde_json::from_value::<Vec<f32>>(embedding).ok()
+        }]
     } else if let Some(Value::Array(embeddings)) = json.remove("embeddings") {
         embeddings
             .into_iter()
@@ -147,6 +149,16 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
         for choice in choices {
             if let Value::Object(choice) = choice
                 && let Some(item) = parse_item(choice)
+            {
+                items.push(item);
+            }
+        }
+    } else if let Some(Value::Array(candidates)) = json.remove("candidates") {
+        items.reserve_exact(candidates.len());
+
+        for candidate in candidates {
+            if let Value::Object(candidate) = candidate
+                && let Some(item) = parse_item(candidate)
             {
                 items.push(item);
             }
@@ -379,6 +391,8 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
 
     let mut role = if let Some(Value::String(role)) = json.remove("role") {
         Some(role)
+    } else if let Some(Value::String(author)) = json.remove("author") {
+        Some(author)
     } else {
         None
     };
@@ -422,6 +436,13 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             role,
             finish_reason,
             contents: ResponseContents::Text(text.into_bytes()),
+        })
+    } else if let Some(Value::String(output)) = json.remove("output") {
+        Some(ResponseItem {
+            index,
+            role,
+            finish_reason,
+            contents: ResponseContents::Text(output.into_bytes()),
         })
     } else if let Some(Value::String(completion)) = json.remove("completion") {
         Some(ResponseItem {
@@ -481,45 +502,59 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             }),
             _ => None,
         }
-    } else if let Some(Value::Object(mut content)) = json.remove("content")
-        && let Some(Value::String(content_type)) = content.get("type")
-    {
-        if content_type == "text" {
-            if let Some(Value::String(text)) = content.remove("text") {
-                Some(ResponseItem {
-                    index,
-                    role,
-                    finish_reason,
-                    contents: ResponseContents::Text(text.into_bytes()),
-                })
-            } else {
-                None
-            }
-        } else if content_type == "output_text"
-            && let Some(Value::String(text)) = content.remove("text")
-        {
-            let tokens = if let Some(Value::Array(logprobs_list_json)) = content.remove("logprobs")
-            {
-                parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
-            } else {
-                None
-            };
+    } else if let Some(content) = json.remove("content") {
+        if let Value::Object(mut content) = content {
+            if let Some(Value::String(content_type)) = content.get("type") {
+                if content_type == "text" {
+                    if let Some(Value::String(text)) = content.remove("text") {
+                        Some(ResponseItem {
+                            index,
+                            role,
+                            finish_reason,
+                            contents: ResponseContents::Text(text.into_bytes()),
+                        })
+                    } else {
+                        None
+                    }
+                } else if content_type == "output_text"
+                    && let Some(Value::String(text)) = content.remove("text")
+                {
+                    let tokens = if let Some(Value::Array(logprobs_list_json)) =
+                        content.remove("logprobs")
+                    {
+                        parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
+                    } else {
+                        None
+                    };
 
-            if let Some(tokens) = tokens {
-                Some(ResponseItem {
-                    index,
-                    role,
-                    finish_reason,
-                    contents: ResponseContents::Tokens(tokens),
-                })
+                    if let Some(tokens) = tokens {
+                        Some(ResponseItem {
+                            index,
+                            role,
+                            finish_reason,
+                            contents: ResponseContents::Tokens(tokens),
+                        })
+                    } else {
+                        Some(ResponseItem {
+                            index,
+                            role,
+                            finish_reason,
+                            contents: ResponseContents::Text(text.into_bytes()),
+                        })
+                    }
+                } else {
+                    None
+                }
             } else {
-                Some(ResponseItem {
-                    index,
-                    role,
-                    finish_reason,
-                    contents: ResponseContents::Text(text.into_bytes()),
-                })
+                None
             }
+        } else if let Value::String(content) = content {
+            Some(ResponseItem {
+                index,
+                role,
+                finish_reason,
+                contents: ResponseContents::Text(content.into_bytes()),
+            })
         } else {
             None
         }
