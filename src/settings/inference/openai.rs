@@ -917,14 +917,14 @@ fn parse_openai_response(
                                 ),
                             ]);
 
+                            token_metadata.extend(base_token_metadata.clone());
+
                             if let Some(token_id) = top_token.id {
                                 token_metadata.extend([
                                     ("token_id".to_string(), token_id.to_string()),
                                     ("model_id".to_string(), tokenization_identifier.to_string()),
                                 ]);
                             }
-
-                            token_metadata.extend(base_token_metadata.clone());
 
                             EndpointResponse {
                                 content: InnerNodeContent::Tokens(vec![(
@@ -964,13 +964,6 @@ fn parse_openai_response(
                                 ),
                             ]);
 
-                            if let Some(token_id) = token.token.id {
-                                token_metadata.extend([
-                                    ("token_id".to_string(), token_id.to_string()),
-                                    ("model_id".to_string(), tokenization_identifier.to_string()),
-                                ]);
-                            }
-
                             if token.top_tokens.len() >= 10 {
                                 let mut confidence = 0.0;
 
@@ -988,6 +981,13 @@ fn parse_openai_response(
                                         ((confidence * -100.0).round() / 100.0).to_string(),
                                     ),
                                     ("confidence_k".to_string(), top_token_count.to_string()),
+                                ]);
+                            }
+
+                            if let Some(token_id) = token.token.id {
+                                token_metadata.extend([
+                                    ("token_id".to_string(), token_id.to_string()),
+                                    ("model_id".to_string(), tokenization_identifier.to_string()),
                                 ]);
                             }
 
