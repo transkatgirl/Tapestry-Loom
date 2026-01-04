@@ -899,6 +899,8 @@ fn parse_gemma_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<Tok
                     && let Some(token) = parse_gemma_logprob_candidate(chosen_candidate)
                 {
                     tokens.push(Token { token, top_tokens });
+                } else {
+                    return None;
                 }
             }
         } else {
@@ -910,6 +912,8 @@ fn parse_gemma_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<Tok
                         token,
                         top_tokens: Vec::new(),
                     });
+                } else {
+                    return None;
                 }
             }
         }
