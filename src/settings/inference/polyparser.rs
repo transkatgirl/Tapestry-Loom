@@ -91,50 +91,56 @@ fn parse(mut json: Map<String, Value>) -> Vec<ResponseItem> {
         };
 
         for output in output {
-            if let Value::Object(output) = output
-                && let Some(Value::String(output_type)) = output.get("type")
-                && output_type == "message"
-                && let Some(item) = parse_item(output)
-            {
-                if item.index.is_some() {
-                    break;
-                }
+            if let Value::Object(output) = output {
+                if let Some(Value::String(output_type)) = output.get("type")
+                    && output_type == "message"
+                    && let Some(Value::Object(content)) = output.get("content")
+                    && let Some(Value::String(_)) = content.get("type")
+                {
+                    if let Some(item) = parse_item(output) {
+                        if item.index.is_some() {
+                            break;
+                        }
 
-                if let Some(role) = item.role {
-                    if let Some(sum_role) = &item_sum.role
-                        && *sum_role != role
-                    {
-                        break;
-                    } else {
-                        item_sum.role = Some(role);
+                        if let Some(role) = item.role {
+                            if let Some(sum_role) = &item_sum.role
+                                && *sum_role != role
+                            {
+                                break;
+                            } else {
+                                item_sum.role = Some(role);
+                            }
+                        }
+
+                        match item.contents {
+                            ResponseContents::Tokens(tokens) => match &mut item_sum.contents {
+                                ResponseContents::Tokens(sum_tokens) => {
+                                    sum_tokens.extend(tokens);
+                                }
+                                ResponseContents::Text(_) => {
+                                    break;
+                                }
+                                ResponseContents::Empty => {}
+                            },
+                            ResponseContents::Text(text) => match &mut item_sum.contents {
+                                ResponseContents::Tokens(_) => {
+                                    break;
+                                }
+                                ResponseContents::Text(sum_text) => {
+                                    sum_text.extend(text);
+                                }
+                                ResponseContents::Empty => {}
+                            },
+                            ResponseContents::Empty => {}
+                        }
+
+                        if let Some(finish_reason) = item.finish_reason {
+                            item_sum.finish_reason = Some(finish_reason);
+                            break;
+                        }
                     }
-                }
-
-                match item.contents {
-                    ResponseContents::Tokens(tokens) => match &mut item_sum.contents {
-                        ResponseContents::Tokens(sum_tokens) => {
-                            sum_tokens.extend(tokens);
-                        }
-                        ResponseContents::Text(_) => {
-                            break;
-                        }
-                        ResponseContents::Empty => {}
-                    },
-                    ResponseContents::Text(text) => match &mut item_sum.contents {
-                        ResponseContents::Tokens(_) => {
-                            break;
-                        }
-                        ResponseContents::Text(sum_text) => {
-                            sum_text.extend(text);
-                        }
-                        ResponseContents::Empty => {}
-                    },
-                    ResponseContents::Empty => {}
-                }
-
-                if let Some(finish_reason) = item.finish_reason {
-                    item_sum.finish_reason = Some(finish_reason);
-                    break;
+                } else if let Some(item) = parse_item(output) {
+                    items.push(item);
                 }
             }
         }
@@ -255,7 +261,9 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             finish_reason,
             contents: ResponseContents::Text(content.into_bytes()),
         })
-    } else if let Some(Value::Object(mut content)) = json.remove("content")
+    } else if let Some(Value::String(output_type)) = json.get("type")
+        && output_type == "message"
+        && let Some(Value::Object(mut content)) = json.remove("content")
         && let Some(Value::String(content_type)) = content.get("type")
         && content_type == "output_text"
         && let Some(Value::String(text)) = content.remove("text")
