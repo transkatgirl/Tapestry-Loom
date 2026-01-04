@@ -106,7 +106,7 @@ pub struct LogprobToken {
     pub logprob: f64,
 }
 
-pub fn parse_embedding_response(mut json: Map<String, Value>) -> Vec<Option<Vec<f32>>> {
+/*pub fn parse_embedding_response(mut json: Map<String, Value>) -> Vec<Option<Vec<f32>>> {
     if let Some(embedding) = json
         .remove("embedding")
         .and_then(|v| serde_json::from_value::<Vec<f32>>(v).ok())
@@ -128,7 +128,7 @@ pub fn parse_embedding_response(mut json: Map<String, Value>) -> Vec<Option<Vec<
     } else {
         vec![]
     }
-}
+}*/
 
 pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
     let mut items = Vec::new();
@@ -248,12 +248,15 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         None
     };
 
-    // TODO: handle incomplete_details
-
-    if let Some(Value::String(status)) = json.remove("status")
-        && (status == "in_progress")
-    {
-        finish_reason = None;
+    if let Some(Value::String(status)) = json.remove("status") {
+        if status == "in_progress" {
+            finish_reason = None;
+        } else if status == "incomplete"
+            && let Some(Value::Object(mut incomplete_details)) = json.remove("incomplete_details")
+            && let Some(Value::String(reason)) = incomplete_details.remove("reason")
+        {
+            finish_reason = Some(reason);
+        }
     }
 
     let mut role = if let Some(Value::String(role)) = json.remove("role") {

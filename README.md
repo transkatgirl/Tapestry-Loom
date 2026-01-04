@@ -146,7 +146,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] settings
 - [ ] Refactor API client
 	- [ ] Improve token confidence calculation to work properly with vLLM
-	- [ ] Add support for additional tokenization endpoints
+	- [ ] Add support for OpenAI Responses
 	- [ ] Add support for Anthropic-style APIs
 	- [ ] Add support for Gemini-style APIs
 - [ ] Use logprob text_offset value when present
