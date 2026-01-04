@@ -16,6 +16,7 @@ Based on the following:
 - https://platform.openai.com/docs/api-reference/responses/object
 - https://platform.openai.com/docs/api-reference/responses-streaming/response/output_text/delta
 - https://platform.claude.com/docs/en/api/completions/create
+- https://platform.claude.com/docs/en/api/messages/create
 - llama-cpp experimentation
 - vllm experimentation
 */
@@ -38,7 +39,9 @@ impl ResponseItem {
         }
 
         if let Some(finish_reason) = &self.finish_reason
-            && (finish_reason == "stop" || finish_reason == "stop_sequence")
+            && (finish_reason == "stop"
+                || finish_reason == "stop_sequence"
+                || finish_reason == "end_turn")
         {
             self.finish_reason = None;
         }
@@ -319,29 +322,45 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         }
     } else if let Some(Value::Object(mut content)) = json.remove("content")
         && let Some(Value::String(content_type)) = content.get("type")
-        && content_type == "output_text"
-        && let Some(Value::String(text)) = content.remove("text")
     {
-        let tokens = if let Some(Value::Array(logprobs_list_json)) = content.remove("logprobs") {
-            parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
+        if content_type == "text" {
+            if let Some(Value::String(text)) = content.remove("text") {
+                Some(ResponseItem {
+                    index,
+                    role,
+                    finish_reason,
+                    contents: ResponseContents::Text(text.into_bytes()),
+                })
+            } else {
+                None
+            }
+        } else if content_type == "output_text"
+            && let Some(Value::String(text)) = content.remove("text")
+        {
+            let tokens = if let Some(Value::Array(logprobs_list_json)) = content.remove("logprobs")
+            {
+                parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
+            } else {
+                None
+            };
+
+            if let Some(tokens) = tokens {
+                Some(ResponseItem {
+                    index,
+                    role,
+                    finish_reason,
+                    contents: ResponseContents::Tokens(tokens),
+                })
+            } else {
+                Some(ResponseItem {
+                    index,
+                    role,
+                    finish_reason,
+                    contents: ResponseContents::Text(text.into_bytes()),
+                })
+            }
         } else {
             None
-        };
-
-        if let Some(tokens) = tokens {
-            Some(ResponseItem {
-                index,
-                role,
-                finish_reason,
-                contents: ResponseContents::Tokens(tokens),
-            })
-        } else {
-            Some(ResponseItem {
-                index,
-                role,
-                finish_reason,
-                contents: ResponseContents::Text(text.into_bytes()),
-            })
         }
     } else {
         None
