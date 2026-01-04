@@ -15,8 +15,11 @@ Based on the following:
 - https://platform.openai.com/docs/api-reference/chat-streaming/streaming
 - https://platform.openai.com/docs/api-reference/responses/object
 - https://platform.openai.com/docs/api-reference/responses-streaming/response/output_text/delta
+- https://platform.openai.com/docs/api-reference/embeddings
 - https://platform.claude.com/docs/en/api/completions/create
 - https://platform.claude.com/docs/en/api/messages/create
+- https://ai.google.dev/api/embeddings
+- https://docs.ollama.com/api/embed
 - llama-cpp experimentation
 - vllm experimentation
 
@@ -31,11 +34,6 @@ TODO:
 - do testing with sglang
 - do testing with ollama
 - do testing with koboldcpp
-- support embedding APIs
-    - https://platform.openai.com/docs/api-reference/embeddings
-    - https://ai.google.dev/gemini-api/docs/embeddings
-    - https://docs.litellm.ai/docs/embedding/supported_embedding#output-from-litellmembedding
-    - https://docs.ollama.com/api/embed
 - unit tests
 */
 
@@ -108,7 +106,31 @@ pub struct LogprobToken {
     pub logprob: f64,
 }
 
-fn parse(mut json: Map<String, Value>) -> Vec<ResponseItem> {
+pub fn parse_embedding_response(mut json: Map<String, Value>) -> Vec<Option<Vec<f32>>> {
+    if let Some(embedding) = json
+        .remove("embedding")
+        .and_then(|v| serde_json::from_value::<Vec<f32>>(v).ok())
+    {
+        vec![Some(embedding)]
+    } else if let Some(Value::Array(embeddings)) = json.remove("embeddings") {
+        embeddings
+            .into_iter()
+            .map(|embedding| {
+                if let Value::Object(mut embedding) = embedding {
+                    embedding
+                        .remove("values")
+                        .and_then(|v| serde_json::from_value::<Vec<f32>>(v).ok())
+                } else {
+                    serde_json::from_value::<Vec<f32>>(embedding).ok()
+                }
+            })
+            .collect()
+    } else {
+        vec![]
+    }
+}
+
+pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
     let mut items = Vec::new();
 
     if let Some(Value::Array(choices)) = json.remove("choices") {
@@ -188,7 +210,7 @@ fn parse(mut json: Map<String, Value>) -> Vec<ResponseItem> {
             items.push(item_sum);
         }
     } else if let Some(Value::Object(response)) = json.remove("response") {
-        return parse(response);
+        return parse_response(response);
     } else if let Some(item) = parse_item(json) {
         items.push(item);
     }
