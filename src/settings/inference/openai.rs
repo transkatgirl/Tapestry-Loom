@@ -838,55 +838,144 @@ fn parse_openai_response(
     let mut outputs = Vec::with_capacity(items.len());
 
     for mut item in items {
+        item.clear_normal();
         if let Some(requested_top) = requested_top {
-            item.clear_normal();
             item.remove_selected_from_top(requested_top);
+        }
 
-            let mut metadata = metadata.clone();
+        let mut metadata = metadata.clone();
 
-            let mut metadata_capacity = 0;
+        let mut metadata_capacity = 0;
 
-            if item.role.is_some() {
-                metadata_capacity += 1;
-            }
+        if item.role.is_some() {
+            metadata_capacity += 1;
+        }
 
-            if item.finish_reason.is_some() {
-                metadata_capacity += 1;
-            }
+        if item.finish_reason.is_some() {
+            metadata_capacity += 1;
+        }
 
-            if metadata_capacity > 0 {
-                metadata.reserve_exact(metadata_capacity);
-            }
+        if metadata_capacity > 0 {
+            metadata.reserve_exact(metadata_capacity);
+        }
 
-            if let Some(role) = item.role {
-                metadata.push(("role".to_string(), role));
-            }
+        if let Some(role) = item.role {
+            metadata.push(("role".to_string(), role));
+        }
 
-            if let Some(finish_reason) = item.finish_reason {
-                metadata.push(("finish_reason".to_string(), finish_reason));
-            }
+        if let Some(finish_reason) = item.finish_reason {
+            metadata.push(("finish_reason".to_string(), finish_reason));
+        }
 
-            match item.contents {
-                polyparser::ResponseContents::Text(text) => outputs.push(EndpointResponse {
-                    content: InnerNodeContent::Snippet(text),
-                    metadata,
-                }),
-                polyparser::ResponseContents::Tokens(tokens) => {
-                    if single_token && let Some(token) = tokens.first().cloned() {
-                        let mut base_token_metadata = Vec::new();
+        match item.contents {
+            polyparser::ResponseContents::Text(text) => outputs.push(EndpointResponse {
+                content: InnerNodeContent::Snippet(text),
+                metadata,
+            }),
+            polyparser::ResponseContents::Tokens(tokens) => {
+                if single_token && let Some(token) = tokens.first().cloned() {
+                    let mut base_token_metadata = Vec::new();
+
+                    if token.top_tokens.len() >= 10 {
+                        let mut confidence = 0.0;
+
+                        let top_token_count = token.top_tokens.len();
+
+                        for top_token in &token.top_tokens {
+                            confidence += top_token.logprob;
+                        }
+
+                        confidence /= top_token_count as f64;
+
+                        base_token_metadata.extend([
+                            (
+                                "confidence".to_string(),
+                                ((confidence * -100.0).round() / 100.0).to_string(),
+                            ),
+                            ("confidence_k".to_string(), top_token_count.to_string()),
+                        ]);
+                    }
+
+                    outputs.extend(token.top_tokens.into_iter().map(|top_token| {
+                        let mut token_metadata_capacity = 2 + base_token_metadata.len();
+
+                        if top_token.id.is_some() {
+                            token_metadata_capacity += 2;
+                        }
+
+                        let mut token_metadata = MetadataMap::default();
+                        token_metadata.reserve_exact(token_metadata_capacity);
+
+                        token_metadata.extend([
+                            (
+                                "probability".to_string(),
+                                ((top_token.logprob.exp() * 10000.0).round() / 10000.0).to_string(),
+                            ),
+                            (
+                                "original_length".to_string(),
+                                top_token.contents.len().to_string(),
+                            ),
+                        ]);
+
+                        token_metadata.extend(base_token_metadata.clone());
+
+                        if let Some(token_id) = top_token.id {
+                            token_metadata.extend([
+                                ("token_id".to_string(), token_id.to_string()),
+                                ("model_id".to_string(), tokenization_identifier.to_string()),
+                            ]);
+                        }
+
+                        EndpointResponse {
+                            content: InnerNodeContent::Tokens(vec![(
+                                top_token.contents,
+                                token_metadata,
+                            )]),
+                            metadata: metadata.clone(),
+                        }
+                    }));
+                }
+
+                let tokens = tokens
+                    .into_iter()
+                    .map(|token| {
+                        let mut token_metadata_capacity = 2;
+
+                        if token.token.id.is_some() {
+                            token_metadata_capacity += 2;
+                        }
+
+                        if token.top_tokens.len() >= 10 {
+                            token_metadata_capacity += 2;
+                        }
+
+                        let mut token_metadata = MetadataMap::default();
+                        token_metadata.reserve_exact(token_metadata_capacity);
+
+                        token_metadata.extend([
+                            (
+                                "probability".to_string(),
+                                ((token.token.logprob.exp() * 10000.0).round() / 10000.0)
+                                    .to_string(),
+                            ),
+                            (
+                                "original_length".to_string(),
+                                token.token.contents.len().to_string(),
+                            ),
+                        ]);
 
                         if token.top_tokens.len() >= 10 {
                             let mut confidence = 0.0;
 
                             let top_token_count = token.top_tokens.len();
 
-                            for top_token in &token.top_tokens {
+                            for top_token in token.top_tokens {
                                 confidence += top_token.logprob;
                             }
 
                             confidence /= top_token_count as f64;
 
-                            base_token_metadata.extend([
+                            token_metadata.extend([
                                 (
                                     "confidence".to_string(),
                                     ((confidence * -100.0).round() / 100.0).to_string(),
@@ -895,117 +984,27 @@ fn parse_openai_response(
                             ]);
                         }
 
-                        outputs.extend(token.top_tokens.into_iter().map(|top_token| {
-                            let mut token_metadata_capacity = 2 + base_token_metadata.len();
-
-                            if top_token.id.is_some() {
-                                token_metadata_capacity += 2;
-                            }
-
-                            let mut token_metadata = MetadataMap::default();
-                            token_metadata.reserve_exact(token_metadata_capacity);
-
+                        if let Some(token_id) = token.token.id {
                             token_metadata.extend([
-                                (
-                                    "probability".to_string(),
-                                    ((top_token.logprob.exp() * 10000.0).round() / 10000.0)
-                                        .to_string(),
-                                ),
-                                (
-                                    "original_length".to_string(),
-                                    top_token.contents.len().to_string(),
-                                ),
+                                ("token_id".to_string(), token_id.to_string()),
+                                ("model_id".to_string(), tokenization_identifier.to_string()),
                             ]);
+                        }
 
-                            token_metadata.extend(base_token_metadata.clone());
+                        (token.token.contents, token_metadata)
+                    })
+                    .collect();
 
-                            if let Some(token_id) = top_token.id {
-                                token_metadata.extend([
-                                    ("token_id".to_string(), token_id.to_string()),
-                                    ("model_id".to_string(), tokenization_identifier.to_string()),
-                                ]);
-                            }
-
-                            EndpointResponse {
-                                content: InnerNodeContent::Tokens(vec![(
-                                    top_token.contents,
-                                    token_metadata,
-                                )]),
-                                metadata: metadata.clone(),
-                            }
-                        }));
-                    }
-
-                    let tokens = tokens
-                        .into_iter()
-                        .map(|token| {
-                            let mut token_metadata_capacity = 2;
-
-                            if token.token.id.is_some() {
-                                token_metadata_capacity += 2;
-                            }
-
-                            if token.top_tokens.len() >= 10 {
-                                token_metadata_capacity += 2;
-                            }
-
-                            let mut token_metadata = MetadataMap::default();
-                            token_metadata.reserve_exact(token_metadata_capacity);
-
-                            token_metadata.extend([
-                                (
-                                    "probability".to_string(),
-                                    ((token.token.logprob.exp() * 10000.0).round() / 10000.0)
-                                        .to_string(),
-                                ),
-                                (
-                                    "original_length".to_string(),
-                                    token.token.contents.len().to_string(),
-                                ),
-                            ]);
-
-                            if token.top_tokens.len() >= 10 {
-                                let mut confidence = 0.0;
-
-                                let top_token_count = token.top_tokens.len();
-
-                                for top_token in token.top_tokens {
-                                    confidence += top_token.logprob;
-                                }
-
-                                confidence /= top_token_count as f64;
-
-                                token_metadata.extend([
-                                    (
-                                        "confidence".to_string(),
-                                        ((confidence * -100.0).round() / 100.0).to_string(),
-                                    ),
-                                    ("confidence_k".to_string(), top_token_count.to_string()),
-                                ]);
-                            }
-
-                            if let Some(token_id) = token.token.id {
-                                token_metadata.extend([
-                                    ("token_id".to_string(), token_id.to_string()),
-                                    ("model_id".to_string(), tokenization_identifier.to_string()),
-                                ]);
-                            }
-
-                            (token.token.contents, token_metadata)
-                        })
-                        .collect();
-
-                    outputs.push(EndpointResponse {
-                        content: InnerNodeContent::Tokens(tokens),
-                        metadata,
-                    });
-                }
-                polyparser::ResponseContents::Empty => outputs.push(EndpointResponse {
-                    content: InnerNodeContent::Snippet(Vec::new()),
+                outputs.push(EndpointResponse {
+                    content: InnerNodeContent::Tokens(tokens),
                     metadata,
-                }),
-            };
-        }
+                });
+            }
+            polyparser::ResponseContents::Empty => outputs.push(EndpointResponse {
+                content: InnerNodeContent::Snippet(Vec::new()),
+                metadata,
+            }),
+        };
     }
 
     outputs
