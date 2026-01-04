@@ -48,10 +48,33 @@ pub struct LogprobToken {
     pub logprob: f64,
 }
 
-fn parse_openai_logprobs(
-    mut logprobs_json: Map<String, Value>,
-    requested_top: Option<usize>,
-) -> Option<Vec<Token>> {
+fn parse_choice(mut choice_json: Map<String, Value>) -> Option<Vec<Token>> {
+    let tokens = if let Some(Value::Object(mut logprobs_json)) = choice_json.remove("logprobs") {
+        if let Some(Value::Array(logprobs_list_json)) = logprobs_json.remove("content") {
+            parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
+        } else {
+            let token_ids = choice_json
+                .remove("token_ids") // vllm
+                .and_then(|item| {
+                    if let Value::Array(item) = item {
+                        Some(item)
+                    } else {
+                        None
+                    }
+                });
+
+            let text = if let Some(Value::String(text)) = choice_json.get("text") {
+                Some(text.as_ref())
+            } else {
+                None // TODO
+            };
+
+            parse_openai_completion_logprobs(logprobs_json, text, token_ids)
+        }
+    } else {
+        None
+    };
+
     // vllm: token_ids is in contents
 
     todo!()
@@ -59,7 +82,7 @@ fn parse_openai_logprobs(
 
 fn parse_openai_completion_logprobs(
     mut logprobs_json: Map<String, Value>,
-    text: Option<String>,
+    text: Option<&str>,
     token_ids: Option<Vec<Value>>,
 ) -> Option<Vec<Token>> {
     let mut top_tokens_list = Vec::new();
@@ -131,7 +154,7 @@ fn parse_openai_completion_logprobs(
             && let Some(text) = text
             && text_offset.len() == token_logprobs.len()
         {
-            let bytes = text.into_bytes();
+            let bytes = text.as_bytes();
 
             for index in 0..token_logprobs.len() {
                 let next_text_offset = text_offset.get(index + 1);
@@ -172,8 +195,8 @@ fn parse_openai_completion_logprobs(
             }
         }
 
-        if let Some(Value::Array(tokens)) = logprobs_json.remove("tokens")
-            && token_list.is_empty()
+        if token_list.is_empty()
+            && let Some(Value::Array(tokens)) = logprobs_json.remove("tokens")
             && tokens.len() == token_logprobs.len()
         {
             for (token, logprob) in tokens.into_iter().zip(token_logprobs.into_iter()) {
@@ -222,7 +245,25 @@ fn parse_openai_completion_logprobs(
     }
 }
 
-fn parse_openai_chatcompletion_logprob_content(
+fn parse_openai_chatcompletion_logprobs_content(
+    logprobs_list_json: Vec<Value>,
+) -> Option<Vec<Token>> {
+    let mut tokens = Vec::with_capacity(logprobs_list_json.len());
+
+    for logprob_json in logprobs_list_json {
+        if let Value::Object(logprob_json) = logprob_json
+            && let Some(token) = parse_openai_chatcompletion_logprob_content_item(logprob_json)
+        {
+            tokens.push(token);
+        } else {
+            return None;
+        }
+    }
+
+    Some(tokens)
+}
+
+fn parse_openai_chatcompletion_logprob_content_item(
     mut logprob_json: Map<String, Value>,
 ) -> Option<Token> {
     let mut top_tokens = Vec::new();
@@ -233,7 +274,7 @@ fn parse_openai_chatcompletion_logprob_content(
         for top_logprob_json in top_logprobs_json.into_iter() {
             if let Value::Object(top_logprob_json) = top_logprob_json
                 && let Some(top_logprob) =
-                    parse_openai_chatcompletion_logprob_content_item(top_logprob_json)
+                    parse_openai_chatcompletion_logprob_content_subitem(top_logprob_json)
             {
                 top_tokens.push(top_logprob);
             } else {
@@ -244,11 +285,11 @@ fn parse_openai_chatcompletion_logprob_content(
         }
     }
 
-    parse_openai_chatcompletion_logprob_content_item(logprob_json)
+    parse_openai_chatcompletion_logprob_content_subitem(logprob_json)
         .map(|token| Token { token, top_tokens })
 }
 
-fn parse_openai_chatcompletion_logprob_content_item(
+fn parse_openai_chatcompletion_logprob_content_subitem(
     mut logprob_json: Map<String, Value>,
 ) -> Option<LogprobToken> {
     let contents = if let Some(bytes) = logprob_json
