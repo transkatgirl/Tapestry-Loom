@@ -16,7 +16,6 @@ Based on the following:
 - https://platform.openai.com/docs/api-reference/chat/object
 - https://platform.openai.com/docs/api-reference/chat-streaming/streaming
 - https://platform.openai.com/docs/api-reference/responses/object
-- https://platform.openai.com/docs/api-reference/responses-streaming/response/created
 - https://platform.openai.com/docs/api-reference/responses-streaming/response/output_text/delta
 - https://platform.openai.com/docs/api-reference/responses-streaming/response/incomplete
 - https://platform.openai.com/docs/api-reference/responses-streaming/response/failed
@@ -65,7 +64,8 @@ impl ResponseItem {
         if let Some(finish_reason) = &self.finish_reason
             && (finish_reason == "stop"
                 || finish_reason == "stop_sequence"
-                || finish_reason == "end_turn")
+                || finish_reason == "end_turn"
+                || finish_reason == "completed")
         {
             self.finish_reason = None;
         }
@@ -160,8 +160,6 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
                 contents: ResponseContents::Empty,
             };
 
-            let is_empty = output.is_empty();
-
             for output in output {
                 if let Value::Object(output) = output {
                     if let Some(Value::String(output_type)) = output.get("type")
@@ -217,7 +215,7 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
                 }
             }
 
-            if item_sum.contents != ResponseContents::Empty || is_empty {
+            if item_sum.contents != ResponseContents::Empty {
                 if let Some(Value::String(status)) = json.remove("status") {
                     if status == "in_progress" {
                         item_sum.finish_reason = None;
@@ -251,18 +249,46 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
                 }
             }
         }
-    } else if let Some(Value::Object(response)) = json.remove("response") {
-        if let Some(Value::String(output_type)) = json.get("type")
-            && (output_type == "response.output_text.delta"
-                || output_type == "response.created"
-                || output_type == "response.failed"
-                || output_type == "response.incomplete")
-        {
-            // TODO: Avoid using parse_response for items which aren't response.output_text.delta
-            return parse_response(response);
-        } else {
-            return items;
-        }
+    } else if let Some(Value::String(output_type)) = json.get("type")
+        && output_type == "response.output_text.delta"
+        && let Some(Value::Object(response)) = json.remove("response")
+    {
+        return parse_response(response);
+    } else if let Some(Value::String(output_type)) = json.get("type")
+        && output_type == "response.completed"
+    {
+        items.push(ResponseItem {
+            index: None,
+            role: None,
+            finish_reason: Some("completed".to_string()),
+            contents: ResponseContents::Empty,
+        });
+    } else if let Some(Value::String(output_type)) = json.get("type")
+        && output_type == "response.failed"
+    {
+        items.push(ResponseItem {
+            index: None,
+            role: None,
+            finish_reason: Some("failed".to_string()),
+            contents: ResponseContents::Empty,
+        });
+    } else if let Some(Value::String(output_type)) = json.get("type")
+        && output_type == "response.incomplete"
+    {
+        items.push(ResponseItem {
+            index: None,
+            role: if let Some(Value::Object(mut response)) = json.remove("response")
+                && let Some(Value::Object(mut incomplete_details)) =
+                    response.remove("incomplete_details")
+                && let Some(Value::String(reason)) = incomplete_details.remove("reason")
+            {
+                Some(reason)
+            } else {
+                Some("incomplete".to_string())
+            },
+            finish_reason: None,
+            contents: ResponseContents::Empty,
+        });
     } else if let Some(Value::String(output_type)) = json.get("type")
         && output_type == "message_start"
         && let Some(Value::Object(mut message)) = json.remove("message")
