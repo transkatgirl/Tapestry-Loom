@@ -25,6 +25,7 @@ Based on the following:
 - https://platform.claude.com/docs/en/api/messages/create
 - https://platform.claude.com/docs/en/build-with-claude/streaming
 - https://ai.google.dev/api/palm
+- https://ai.google.dev/gemini-api/docs/text-generation
 - https://ai.google.dev/api/embeddings
 - https://docs.ollama.com/api/embed
 - llama-cpp experimentation
@@ -32,7 +33,6 @@ Based on the following:
 
 TODO:
 
-- support https://ai.google.dev/gemini-api/docs/text-generation
 - support https://docs.ollama.com/api/generate
 - support https://docs.ollama.com/api/chat
 - do testing with llama-cpp
@@ -386,8 +386,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         None
     };
 
-    // TODO: json.logprobsResult
-
     if let Some(Value::String(status)) = json.remove("status") {
         if status == "in_progress" {
             finish_reason = None;
@@ -434,6 +432,8 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
 
             parse_openai_completion_logprobs(logprobs_json, text, token_ids)
         }
+    } else if let Some(Value::Object(logprobs_json)) = json.remove("logprobsResult") {
+        parse_gemma_logprobs(logprobs_json)
     } else {
         None
     };
@@ -860,6 +860,82 @@ fn parse_openai_chatcompletion_logprob_content_subitem(
         } else {
             None
         }
+    } else {
+        None
+    }
+}
+
+fn parse_gemma_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<Token>> {
+    if let Some(Value::Array(chosen_candidates)) = logprobs_json.remove("chosenCandidates") {
+        let mut tokens = Vec::with_capacity(chosen_candidates.len());
+
+        if let Some(Value::Array(top_candidates)) = logprobs_json.remove("topCandidates")
+            && top_candidates.len() == chosen_candidates.len()
+        {
+            for (chosen_candidate, top_candidates) in
+                chosen_candidates.into_iter().zip(top_candidates)
+            {
+                let mut top_tokens = Vec::new();
+
+                if let Value::Object(mut top_candidates) = top_candidates
+                    && let Some(Value::Array(candidates)) = top_candidates.remove("candidates")
+                {
+                    top_tokens.reserve_exact(candidates.len());
+
+                    for candidate in candidates {
+                        if let Value::Object(candidate) = candidate
+                            && let Some(top_logprob) = parse_gemma_logprob_candidate(candidate)
+                        {
+                            top_tokens.push(top_logprob);
+                        } else {
+                            top_tokens.clear();
+                            top_tokens.shrink_to_fit();
+                            break;
+                        }
+                    }
+                }
+
+                if let Value::Object(chosen_candidate) = chosen_candidate
+                    && let Some(token) = parse_gemma_logprob_candidate(chosen_candidate)
+                {
+                    tokens.push(Token { token, top_tokens });
+                }
+            }
+        } else {
+            for chosen_candidate in chosen_candidates {
+                if let Value::Object(chosen_candidate) = chosen_candidate
+                    && let Some(token) = parse_gemma_logprob_candidate(chosen_candidate)
+                {
+                    tokens.push(Token {
+                        token,
+                        top_tokens: Vec::new(),
+                    });
+                }
+            }
+        }
+
+        Some(tokens)
+    } else {
+        None
+    }
+}
+
+fn parse_gemma_logprob_candidate(mut logprob_json: Map<String, Value>) -> Option<LogprobToken> {
+    if let Some(Value::String(token)) = logprob_json.remove("token")
+        && let Some(Value::Number(logprob)) = logprob_json.remove("logProbability")
+        && let Some(logprob) = logprob.as_f64()
+    {
+        Some(LogprobToken {
+            id: if let Some(Value::Number(token_id)) = logprob_json.remove("tokenId")
+                && let Some(token_id) = token_id.as_i128()
+            {
+                Some(token_id)
+            } else {
+                None
+            },
+            contents: token.into_bytes(),
+            logprob,
+        })
     } else {
         None
     }
