@@ -195,7 +195,31 @@ fn parse_openai_completion_logprobs(
         return None;
     }
 
-    todo!()
+    if token_list.len() == token_id_list.len() {
+        for (token, token_id) in token_list.iter_mut().zip(token_id_list.into_iter()) {
+            token.id = Some(token_id);
+        }
+    }
+
+    if token_list.len() == top_tokens_list.len() {
+        Some(
+            token_list
+                .into_iter()
+                .zip(top_tokens_list)
+                .map(|(token, top_tokens)| Token { token, top_tokens })
+                .collect(),
+        )
+    } else {
+        Some(
+            token_list
+                .into_iter()
+                .map(|token| Token {
+                    token,
+                    top_tokens: Vec::new(),
+                })
+                .collect(),
+        )
+    }
 }
 
 fn parse_openai_chatcompletion_logprob_content(
