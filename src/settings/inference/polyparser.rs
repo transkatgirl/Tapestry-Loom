@@ -156,10 +156,20 @@ fn parse(mut json: Map<String, Value>) -> Vec<ResponseItem> {
 }
 
 fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
+    if let Some(Value::String(output_type)) = json.get("type")
+        && !(output_type == "message" || output_type == "response.output_text.delta")
+    {
+        return None;
+    }
+
     let index = if let Some(Value::Number(index)) = json.remove("index")
         && let Some(index) = index.as_u64()
     {
         Some(index as usize)
+    } else if let Some(Value::Number(content_index)) = json.remove("content_index")
+        && let Some(content_index) = content_index.as_u64()
+    {
+        Some(content_index as usize)
     } else {
         None
     };
@@ -242,28 +252,39 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             finish_reason,
             contents: ResponseContents::Text(content.into_bytes()),
         })
-    } else if let Some(Value::Object(mut delta)) = json.remove("delta")
-        && let Some(Value::String(content)) = delta.remove("content")
-    {
-        if let Some(Value::String(role_value)) = delta.remove("role") {
-            role = Some(role_value);
-        }
+    } else if let Some(delta) = json.remove("delta") {
+        match delta {
+            Value::Object(mut delta) => {
+                if let Some(Value::String(role_value)) = delta.remove("role") {
+                    role = Some(role_value);
+                }
 
-        if finish_reason.is_none()
-            && let Some(Value::String(finish_reason_value)) = delta.remove("finish_reason")
-        {
-            finish_reason = Some(finish_reason_value);
-        }
+                if finish_reason.is_none()
+                    && let Some(Value::String(finish_reason_value)) = delta.remove("finish_reason")
+                {
+                    finish_reason = Some(finish_reason_value);
+                }
 
-        Some(ResponseItem {
-            index,
-            role,
-            finish_reason,
-            contents: ResponseContents::Text(content.into_bytes()),
-        })
-    } else if let Some(Value::String(output_type)) = json.get("type")
-        && output_type == "message"
-        && let Some(Value::Object(mut content)) = json.remove("content")
+                if let Some(Value::String(content)) = delta.remove("content") {
+                    Some(ResponseItem {
+                        index,
+                        role,
+                        finish_reason,
+                        contents: ResponseContents::Text(content.into_bytes()),
+                    })
+                } else {
+                    None
+                }
+            }
+            Value::String(delta) => Some(ResponseItem {
+                index,
+                role,
+                finish_reason,
+                contents: ResponseContents::Text(delta.into_bytes()),
+            }),
+            _ => None,
+        }
+    } else if let Some(Value::Object(mut content)) = json.remove("content")
         && let Some(Value::String(content_type)) = content.get("type")
         && content_type == "output_text"
         && let Some(Value::String(text)) = content.remove("text")
@@ -290,7 +311,7 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             })
         }
     } else {
-        todo!()
+        None
     }
 }
 
