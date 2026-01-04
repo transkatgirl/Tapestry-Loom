@@ -1,10 +1,19 @@
-// A robust completion API response parser which aims to support as many different APIs and API implementations as possible, while continuing to be somewhat resilient to malformed responses
+/* A robust completion API response parser which aims to support as many different APIs and API implementations as possible, while continuing to be somewhat resilient to malformed responses
 
-// However, it intentionally omits the following features:
-// - Usage tracking
-// - Tool calling
-// - Refusal messages
-// - Multimodal outputs
+However, it intentionally omits the following features:
+- Usage tracking
+- Tool calling
+- Refusal messages
+- Reasoning outputs
+- Multimodal outputs
+
+Based on the following:
+- https://platform.openai.com/docs/api-reference/completions/object
+- https://platform.openai.com/docs/api-reference/chat/object
+- https://platform.openai.com/docs/api-reference/chat-streaming/streaming
+- llama-cpp experimentation
+- vllm experimentation
+*/
 
 use serde_json::{Map, Value};
 
@@ -146,6 +155,25 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
 
         if finish_reason.is_none()
             && let Some(Value::String(finish_reason_value)) = message.remove("finish_reason")
+        {
+            finish_reason = Some(finish_reason_value);
+        }
+
+        Some(ResponseItem {
+            index,
+            role,
+            finish_reason,
+            contents: ResponseContents::Text(content.into_bytes()),
+        })
+    } else if let Some(Value::Object(mut delta)) = json.remove("delta")
+        && let Some(Value::String(content)) = delta.remove("content")
+    {
+        if let Some(Value::String(role_value)) = delta.remove("role") {
+            role = Some(role_value);
+        }
+
+        if finish_reason.is_none()
+            && let Some(Value::String(finish_reason_value)) = delta.remove("finish_reason")
         {
             finish_reason = Some(finish_reason_value);
         }
