@@ -1,5 +1,7 @@
 // A robust completion API response parser which aims to support as many different APIs as possible
 
+use std::ops::RangeBounds;
+
 use serde_json::{Map, Value};
 
 pub struct ResponseChoice {
@@ -57,6 +59,7 @@ fn parse_openai_logprobs(
 
 fn parse_openai_completion_logprobs(
     mut logprobs_json: Map<String, Value>,
+    text: Option<String>,
     token_ids: Option<Vec<Value>>,
 ) -> Option<Vec<Token>> {
     let mut top_tokens_list = Vec::new();
@@ -119,12 +122,78 @@ fn parse_openai_completion_logprobs(
         }
     }
 
-    //let mut token_list = Vec::new();
+    let mut token_list = Vec::new();
 
-    if let Some(Value::Array(mut tokens)) = logprobs_json.remove("tokens")
-        && let Some(Value::Array(mut token_logprobs)) = logprobs_json.remove("token_logprobs")
-        && tokens.len() == token_logprobs.len()
-    {}
+    if let Some(Value::Array(token_logprobs)) = logprobs_json.remove("token_logprobs") {
+        token_list.reserve_exact(token_logprobs.len());
+
+        if let Some(Value::Array(text_offset)) = logprobs_json.remove("text_offset")
+            && let Some(text) = text
+            && text_offset.len() == token_logprobs.len()
+        {
+            let bytes = text.into_bytes();
+
+            for index in 0..token_logprobs.len() {
+                let next_text_offset = text_offset.get(index + 1);
+
+                if let Value::Number(text_offset) = &text_offset[index]
+                    && let Value::Number(logprob) = &token_logprobs[index]
+                    && let Some(text_offset) = text_offset.as_u64()
+                    && let Some(logprob) = logprob.as_f64()
+                {
+                    let contents = if let Some(next_text_offset) = next_text_offset {
+                        if let Value::Number(next_text_offset) = next_text_offset
+                            && let Some(next_text_offset) = next_text_offset.as_u64()
+                        {
+                            bytes.get(text_offset as usize..next_text_offset as usize)
+                        } else {
+                            None
+                        }
+                    } else {
+                        bytes.get(text_offset as usize..)
+                    };
+
+                    if let Some(contents) = contents.map(|contents| contents.to_owned()) {
+                        token_list.push(LogprobToken {
+                            id: None,
+                            contents,
+                            logprob,
+                        });
+                    } else {
+                        token_list.clear();
+                        token_list.shrink_to_fit();
+                        break;
+                    }
+                } else {
+                    token_list.clear();
+                    token_list.shrink_to_fit();
+                    break;
+                }
+            }
+        }
+
+        if let Some(Value::Array(tokens)) = logprobs_json.remove("tokens")
+            && token_list.is_empty()
+            && tokens.len() == token_logprobs.len()
+        {
+            for (token, logprob) in tokens.into_iter().zip(token_logprobs.into_iter()) {
+                if let Value::String(token) = token
+                    && let Value::Number(logprob) = logprob
+                    && let Some(logprob) = logprob.as_f64()
+                {
+                    token_list.push(LogprobToken {
+                        id: None,
+                        contents: token.into_bytes(),
+                        logprob,
+                    });
+                } else {
+                    return None;
+                }
+            }
+        }
+    } else {
+        return None;
+    }
 
     todo!()
 }
