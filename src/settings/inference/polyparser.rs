@@ -1,6 +1,10 @@
 // A robust completion API response parser which aims to support as many different APIs and API implementations as possible, while continuing to be somewhat resilient to malformed responses
 
-// This supports chat completion APIs to an extent, but intentionally omits features such as tool calling and multimodal outputs
+// However, it intentionally omits the following features:
+// - Usage tracking
+// - Tool calling
+// - Refusal messages
+// - Multimodal outputs
 
 use serde_json::{Map, Value};
 
@@ -22,7 +26,7 @@ pub struct Token {
 }
 
 impl Token {
-    fn cleanup(&mut self, requested_top: usize) {
+    pub fn cleanup(&mut self, requested_top: usize) {
         if self.top_tokens.len() == requested_top + 1 {
             let index = self
                 .top_tokens
@@ -49,9 +53,46 @@ pub struct LogprobToken {
     pub logprob: f64,
 }
 
+fn parse(mut json: Map<String, Value>) -> Vec<ResponseItem> {
+    let mut items = Vec::new();
+
+    if let Some(Value::Array(choices)) = json.remove("choices") {
+        items.reserve_exact(choices.len());
+
+        for choice in choices {
+            if let Value::Object(choice) = choice
+                && let Some(item) = parse_item(choice)
+            {
+                items.push(item);
+            }
+        }
+    } else if let Some(Value::Array(output)) = json.remove("output") {
+        todo!()
+    } else if let Some(item) = parse_item(json) {
+        items.push(item);
+    }
+
+    items
+}
+
 fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
-    let finish_reason = if let Some(Value::String(finish_reason)) = json.remove("finish_reason") {
+    let index = if let Some(Value::Number(index)) = json.remove("index")
+        && let Some(index) = index.as_u64()
+    {
+        Some(index as usize)
+    } else {
+        None
+    };
+
+    let mut finish_reason = if let Some(Value::String(finish_reason)) = json.remove("finish_reason")
+    {
         Some(finish_reason)
+    } else {
+        None
+    };
+
+    let mut role = if let Some(Value::String(role)) = json.remove("role") {
+        Some(role)
     } else {
         None
     };
@@ -73,7 +114,7 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             let text = if let Some(Value::String(text)) = json.get("text") {
                 Some(text.as_ref())
             } else {
-                None // TODO
+                None
             };
 
             parse_openai_completion_logprobs(logprobs_json, text, token_ids)
@@ -82,9 +123,42 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         None
     };
 
-    // vllm: token_ids is in contents
+    if let Some(tokens) = tokens {
+        Some(ResponseItem {
+            index,
+            role,
+            finish_reason,
+            contents: ResponseContents::Tokens(tokens),
+        })
+    } else if let Some(Value::String(text)) = json.remove("text") {
+        Some(ResponseItem {
+            index,
+            role,
+            finish_reason,
+            contents: ResponseContents::Text(text.into_bytes()),
+        })
+    } else if let Some(Value::Object(mut message)) = json.remove("message")
+        && let Some(Value::String(content)) = message.remove("content")
+    {
+        if let Some(Value::String(role_value)) = message.remove("role") {
+            role = Some(role_value);
+        }
 
-    todo!()
+        if finish_reason.is_none()
+            && let Some(Value::String(finish_reason_value)) = message.remove("finish_reason")
+        {
+            finish_reason = Some(finish_reason_value);
+        }
+
+        Some(ResponseItem {
+            index,
+            role,
+            finish_reason,
+            contents: ResponseContents::Text(content.into_bytes()),
+        })
+    } else {
+        todo!()
+    }
 }
 
 fn parse_openai_completion_logprobs(
