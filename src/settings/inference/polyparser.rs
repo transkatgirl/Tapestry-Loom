@@ -14,6 +14,8 @@ Based on the following:
 - https://platform.openai.com/docs/api-reference/chat/object
 - https://platform.openai.com/docs/api-reference/chat-streaming/streaming
 - https://platform.openai.com/docs/api-reference/responses/object
+- https://platform.openai.com/docs/api-reference/responses-streaming/response/output_text/delta
+- https://platform.claude.com/docs/en/api/completions/create
 - llama-cpp experimentation
 - vllm experimentation
 */
@@ -25,6 +27,22 @@ pub struct ResponseItem {
     pub role: Option<String>,
     pub finish_reason: Option<String>,
     pub contents: ResponseContents,
+}
+
+impl ResponseItem {
+    fn clear_normal(&mut self) {
+        if let Some(role) = &self.role
+            && role == "assistant"
+        {
+            self.role = None;
+        }
+
+        if let Some(finish_reason) = &self.finish_reason
+            && (finish_reason == "stop" || finish_reason == "stop_sequence")
+        {
+            self.finish_reason = None;
+        }
+    }
 }
 
 #[derive(PartialEq)]
@@ -157,7 +175,9 @@ fn parse(mut json: Map<String, Value>) -> Vec<ResponseItem> {
 
 fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     if let Some(Value::String(output_type)) = json.get("type")
-        && !(output_type == "message" || output_type == "response.output_text.delta")
+        && !(output_type == "message"
+            || output_type == "response.output_text.delta"
+            || output_type == "completion")
     {
         return None;
     }
@@ -177,9 +197,13 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     let mut finish_reason = if let Some(Value::String(finish_reason)) = json.remove("finish_reason")
     {
         Some(finish_reason)
+    } else if let Some(Value::String(stop_reason)) = json.remove("stop_reason") {
+        Some(stop_reason)
     } else {
         None
     };
+
+    // TODO: handle incomplete_details
 
     if let Some(Value::String(status)) = json.remove("status")
         && (status == "in_progress")
@@ -232,6 +256,13 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             role,
             finish_reason,
             contents: ResponseContents::Text(text.into_bytes()),
+        })
+    } else if let Some(Value::String(completion)) = json.remove("completion") {
+        Some(ResponseItem {
+            index,
+            role,
+            finish_reason,
+            contents: ResponseContents::Text(completion.into_bytes()),
         })
     } else if let Some(Value::Object(mut message)) = json.remove("message")
         && let Some(Value::String(content)) = message.remove("content")
