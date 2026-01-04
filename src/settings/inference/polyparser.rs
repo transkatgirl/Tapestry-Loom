@@ -33,8 +33,6 @@ Based on the following:
 
 TODO:
 
-- support https://docs.ollama.com/api/generate
-- support https://docs.ollama.com/api/chat
 - do testing with llama-cpp
 - do testing with koboldcpp
 - do testing with vllm
@@ -43,8 +41,10 @@ TODO:
 - unit tests
 */
 
+use log::trace;
 use serde_json::{Map, Value};
 
+#[derive(Debug)]
 pub struct ResponseItem {
     pub index: Option<usize>,
     pub role: Option<String>,
@@ -71,14 +71,14 @@ impl ResponseItem {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum ResponseContents {
     Text(Vec<u8>),
     Tokens(Vec<Token>),
     Empty,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Token {
     pub token: LogprobToken,
     pub top_tokens: Vec<LogprobToken>,
@@ -106,7 +106,7 @@ impl Token {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct LogprobToken {
     pub id: Option<i128>,
     pub contents: Vec<u8>,
@@ -350,6 +350,8 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
     } else if let Some(item) = parse_item(json) {
         items.push(item);
     }
+
+    trace!("{:#?}", &items);
 
     items
 }
