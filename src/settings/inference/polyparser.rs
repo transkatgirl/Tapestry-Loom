@@ -3,12 +3,13 @@
 use serde_json::{Map, Value};
 
 pub struct ResponseChoice {
+    role: Option<String>,
     finish_reason: Option<String>,
     contents: ResponseContents,
 }
 
 enum ResponseContents {
-    Textual(Vec<u8>),
+    Text(Vec<u8>),
     Tokens(Vec<Token>),
 }
 
@@ -45,7 +46,86 @@ pub struct LogprobToken {
     pub logprob: f64,
 }
 
-fn parse_openai_completion_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<Token>> {
+fn parse_openai_logprobs(
+    mut logprobs_json: Map<String, Value>,
+    requested_top: Option<usize>,
+) -> Option<Vec<Token>> {
+    // vllm: token_ids is in contents
+
+    todo!()
+}
+
+fn parse_openai_completion_logprobs(
+    mut logprobs_json: Map<String, Value>,
+    token_ids: Option<Vec<Value>>,
+) -> Option<Vec<Token>> {
+    let mut top_tokens_list = Vec::new();
+
+    if let Some(Value::Array(top_logprobs_json)) = logprobs_json.remove("top_logprobs") {
+        top_tokens_list.reserve_exact(top_logprobs_json.len());
+
+        for top_logprob_json in top_logprobs_json.into_iter() {
+            let mut top_tokens = Vec::new();
+
+            if let Value::Object(top_logprob_json) = top_logprob_json {
+                top_tokens.reserve_exact(top_logprob_json.len());
+
+                for (contents, logprob) in top_logprob_json {
+                    if let Value::Number(logprob) = logprob
+                        && let Some(logprob) = logprob.as_f64()
+                    {
+                        top_tokens.push(LogprobToken {
+                            id: None,
+                            contents: contents.into_bytes(),
+                            logprob,
+                        });
+                    } else {
+                        top_tokens.clear();
+                        top_tokens.shrink_to_fit();
+                        break;
+                    }
+                }
+            }
+
+            top_tokens_list.push(top_tokens);
+        }
+    }
+
+    let mut token_id_list = Vec::new();
+
+    if let Some(token_ids) = token_ids.or_else(|| {
+        logprobs_json
+            .remove("token_ids") // unknown origin
+            .and_then(|item| {
+                if let Value::Array(item) = item {
+                    Some(item)
+                } else {
+                    None
+                }
+            })
+    }) {
+        token_id_list.reserve_exact(token_ids.len());
+
+        for token_id in token_ids {
+            if let Value::Number(id) = token_id
+                && let Some(id) = id.as_i128()
+            {
+                token_id_list.push(id);
+            } else {
+                token_id_list.clear();
+                token_id_list.shrink_to_fit();
+                break;
+            }
+        }
+    }
+
+    //let mut token_list = Vec::new();
+
+    if let Some(Value::Array(mut tokens)) = logprobs_json.remove("tokens")
+        && let Some(Value::Array(mut token_logprobs)) = logprobs_json.remove("token_logprobs")
+        && tokens.len() == token_logprobs.len()
+    {}
+
     todo!()
 }
 
@@ -55,9 +135,7 @@ fn parse_openai_chatcompletion_logprob_content(
     let mut top_tokens = Vec::new();
 
     if let Some(Value::Array(top_logprobs_json)) = logprob_json.remove("top_logprobs") {
-        let top_logprob_count = top_logprobs_json.len();
-
-        top_tokens.reserve_exact(top_logprob_count);
+        top_tokens.reserve_exact(top_logprobs_json.len());
 
         for top_logprob_json in top_logprobs_json.into_iter() {
             if let Value::Object(top_logprob_json) = top_logprob_json
@@ -65,12 +143,11 @@ fn parse_openai_chatcompletion_logprob_content(
                     parse_openai_chatcompletion_logprob_content_item(top_logprob_json)
             {
                 top_tokens.push(top_logprob);
+            } else {
+                top_tokens.clear();
+                top_tokens.shrink_to_fit();
+                break;
             }
-        }
-
-        if top_tokens.len() != top_logprob_count {
-            top_tokens.clear();
-            top_tokens.shrink_to_fit();
         }
     }
 
@@ -93,7 +170,7 @@ fn parse_openai_chatcompletion_logprob_content_item(
         None
     };
 
-    let id = if let Some(Value::Number(id)) = logprob_json.remove("id")
+    let id = if let Some(Value::Number(id)) = logprob_json.remove("id") // llama-cpp
         && let Some(id) = id.as_i128()
     {
         Some(id)
@@ -110,7 +187,7 @@ fn parse_openai_chatcompletion_logprob_content_item(
                 contents,
                 logprob,
             })
-        } else if let Some(Value::Number(prob)) = logprob_json.remove("prob")
+        } else if let Some(Value::Number(prob)) = logprob_json.remove("prob") // llama-cpp
             && let Some(prob) = prob.as_f64()
         {
             Some(LogprobToken {
