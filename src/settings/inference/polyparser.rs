@@ -1,4 +1,6 @@
-/* A robust completion API response parser which aims to support as many different APIs and API implementations as possible, while continuing to be somewhat resilient to malformed responses
+/* WIP!
+
+A robust completion API response parser which aims to support as many different APIs and API implementations as possible, while continuing to be somewhat resilient to malformed responses
 
 However, it intentionally omits the following features:
 - Usage tracking
@@ -31,9 +33,11 @@ TODO:
 - support https://ai.google.dev/api/palm
 - support https://docs.ollama.com/api/generate
 - support https://docs.ollama.com/api/chat
+- do testing with llama-cpp
+- do testing with koboldcpp
+- do testing with vllm
 - do testing with sglang
 - do testing with ollama
-- do testing with koboldcpp
 - unit tests
 */
 
@@ -262,11 +266,14 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     if let Some(Value::String(status)) = json.remove("status") {
         if status == "in_progress" {
             finish_reason = None;
-        } else if status == "incomplete"
-            && let Some(Value::Object(mut incomplete_details)) = json.remove("incomplete_details")
-            && let Some(Value::String(reason)) = incomplete_details.remove("reason")
-        {
-            finish_reason = Some(reason);
+        } else if status == "incomplete" {
+            if let Some(Value::Object(mut incomplete_details)) = json.remove("incomplete_details")
+                && let Some(Value::String(reason)) = incomplete_details.remove("reason")
+            {
+                finish_reason = Some(reason);
+            } else {
+                finish_reason = Some("incomplete".to_string())
+            }
         }
     }
 
@@ -676,9 +683,4 @@ fn parse_openai_chatcompletion_logprob_content_subitem(
     } else {
         None
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
 }
