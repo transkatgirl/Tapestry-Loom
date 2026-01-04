@@ -1,10 +1,11 @@
-// A robust completion API response parser which aims to support as many different APIs as possible
+// A robust completion API response parser which aims to support as many different APIs and API implementations as possible, while continuing to be somewhat resilient to malformed responses
 
-use std::ops::RangeBounds;
+// This supports chat completion APIs to an extent, but intentionally omits features such as tool calling and multimodal outputs
 
 use serde_json::{Map, Value};
 
-pub struct ResponseChoice {
+pub struct ResponseItem {
+    index: Option<usize>,
     role: Option<String>,
     finish_reason: Option<String>,
     contents: ResponseContents,
@@ -48,12 +49,18 @@ pub struct LogprobToken {
     pub logprob: f64,
 }
 
-fn parse_choice(mut choice_json: Map<String, Value>) -> Option<Vec<Token>> {
-    let tokens = if let Some(Value::Object(mut logprobs_json)) = choice_json.remove("logprobs") {
+fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
+    let finish_reason = if let Some(Value::String(finish_reason)) = json.remove("finish_reason") {
+        Some(finish_reason)
+    } else {
+        None
+    };
+
+    let tokens = if let Some(Value::Object(mut logprobs_json)) = json.remove("logprobs") {
         if let Some(Value::Array(logprobs_list_json)) = logprobs_json.remove("content") {
             parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
         } else {
-            let token_ids = choice_json
+            let token_ids = json
                 .remove("token_ids") // vllm
                 .and_then(|item| {
                     if let Value::Array(item) = item {
@@ -63,7 +70,7 @@ fn parse_choice(mut choice_json: Map<String, Value>) -> Option<Vec<Token>> {
                     }
                 });
 
-            let text = if let Some(Value::String(text)) = choice_json.get("text") {
+            let text = if let Some(Value::String(text)) = json.get("text") {
                 Some(text.as_ref())
             } else {
                 None // TODO
