@@ -166,6 +166,8 @@ fn parse(mut json: Map<String, Value>) -> Vec<ResponseItem> {
         if item_sum.contents != ResponseContents::Empty {
             items.push(item_sum);
         }
+    } else if let Some(Value::Object(response)) = json.remove("response") {
+        return parse(response);
     } else if let Some(item) = parse_item(json) {
         items.push(item);
     }
@@ -186,10 +188,10 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         && let Some(index) = index.as_u64()
     {
         Some(index as usize)
-    } else if let Some(Value::Number(content_index)) = json.remove("content_index")
-        && let Some(content_index) = content_index.as_u64()
+    } else if let Some(Value::Number(output_index)) = json.remove("output_index")
+        && let Some(output_index) = output_index.as_u64()
     {
-        Some(content_index as usize)
+        Some(output_index as usize)
     } else {
         None
     };
