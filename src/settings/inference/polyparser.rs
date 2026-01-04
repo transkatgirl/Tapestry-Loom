@@ -4,13 +4,15 @@ However, it intentionally omits the following features:
 - Usage tracking
 - Tool calling
 - Refusal messages
-- Reasoning outputs
 - Multimodal outputs
+- Reasoning outputs
+- Structured outputs
 
 Based on the following:
 - https://platform.openai.com/docs/api-reference/completions/object
 - https://platform.openai.com/docs/api-reference/chat/object
 - https://platform.openai.com/docs/api-reference/chat-streaming/streaming
+- https://platform.openai.com/docs/api-reference/responses/object
 - llama-cpp experimentation
 - vllm experimentation
 */
@@ -18,17 +20,20 @@ Based on the following:
 use serde_json::{Map, Value};
 
 pub struct ResponseItem {
-    index: Option<usize>,
-    role: Option<String>,
-    finish_reason: Option<String>,
-    contents: ResponseContents,
+    pub index: Option<usize>,
+    pub role: Option<String>,
+    pub finish_reason: Option<String>,
+    pub contents: ResponseContents,
 }
 
-enum ResponseContents {
+#[derive(PartialEq)]
+pub enum ResponseContents {
     Text(Vec<u8>),
     Tokens(Vec<Token>),
+    Empty,
 }
 
+#[derive(PartialEq)]
 pub struct Token {
     pub token: LogprobToken,
     pub top_tokens: Vec<LogprobToken>,
@@ -56,6 +61,7 @@ impl Token {
     }
 }
 
+#[derive(PartialEq)]
 pub struct LogprobToken {
     pub id: Option<i128>,
     pub contents: Vec<u8>,
@@ -76,7 +82,65 @@ fn parse(mut json: Map<String, Value>) -> Vec<ResponseItem> {
             }
         }
     } else if let Some(Value::Array(output)) = json.remove("output") {
-        todo!()
+        let mut item_sum = ResponseItem {
+            index: None,
+            role: None,
+            finish_reason: None,
+            contents: ResponseContents::Empty,
+        };
+
+        for output in output {
+            if let Value::Object(output) = output
+                && let Some(Value::String(output_type)) = output.get("type")
+                && output_type == "message"
+                && let Some(item) = parse_item(output)
+            {
+                if item.index.is_some() {
+                    break;
+                }
+
+                if let Some(role) = item.role {
+                    if let Some(sum_role) = &item_sum.role
+                        && *sum_role != role
+                    {
+                        break;
+                    } else {
+                        item_sum.role = Some(role);
+                    }
+                }
+
+                match item.contents {
+                    ResponseContents::Tokens(tokens) => match &mut item_sum.contents {
+                        ResponseContents::Tokens(sum_tokens) => {
+                            sum_tokens.extend(tokens);
+                        }
+                        ResponseContents::Text(_) => {
+                            break;
+                        }
+                        ResponseContents::Empty => {}
+                    },
+                    ResponseContents::Text(text) => match &mut item_sum.contents {
+                        ResponseContents::Tokens(_) => {
+                            break;
+                        }
+                        ResponseContents::Text(sum_text) => {
+                            sum_text.extend(text);
+                        }
+                        ResponseContents::Empty => {}
+                    },
+                    ResponseContents::Empty => {}
+                }
+
+                if let Some(finish_reason) = item.finish_reason {
+                    item_sum.finish_reason = Some(finish_reason);
+                    break;
+                }
+            }
+        }
+
+        if item_sum.contents != ResponseContents::Empty {
+            items.push(item_sum);
+        }
     } else if let Some(item) = parse_item(json) {
         items.push(item);
     }
@@ -99,6 +163,12 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     } else {
         None
     };
+
+    if let Some(Value::String(status)) = json.remove("status")
+        && (status == "in_progress")
+    {
+        finish_reason = None;
+    }
 
     let mut role = if let Some(Value::String(role)) = json.remove("role") {
         Some(role)
@@ -183,6 +253,17 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             role,
             finish_reason,
             contents: ResponseContents::Text(content.into_bytes()),
+        })
+    } else if let Some(Value::Object(mut content)) = json.remove("content")
+        && let Some(Value::String(content_type)) = content.get("type")
+        && content_type == "output_text"
+        && let Some(Value::String(text)) = content.remove("text")
+    {
+        Some(ResponseItem {
+            index,
+            role,
+            finish_reason,
+            contents: ResponseContents::Text(text.into_bytes()),
         })
     } else {
         todo!()
