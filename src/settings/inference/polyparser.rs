@@ -24,6 +24,7 @@ Based on the following:
 - https://platform.openai.com/docs/api-reference/embeddings
 - https://platform.claude.com/docs/en/api/completions/create
 - https://platform.claude.com/docs/en/api/messages/create
+- https://platform.claude.com/docs/en/build-with-claude/streaming
 - https://ai.google.dev/api/embeddings
 - https://docs.ollama.com/api/embed
 - llama-cpp experimentation
@@ -257,10 +258,46 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
                 || output_type == "response.failed"
                 || output_type == "response.incomplete")
         {
+            // TODO: Avoid using parse_response for items which aren't response.output_text.delta
             return parse_response(response);
         } else {
             return items;
         }
+    } else if let Some(Value::String(output_type)) = json.get("type")
+        && output_type == "message_start"
+        && let Some(Value::Object(mut message)) = json.remove("message")
+        && let Some(Value::String(role)) = message.remove("role")
+    {
+        items.push(ResponseItem {
+            index: None,
+            role: Some(role),
+            finish_reason: None,
+            contents: ResponseContents::Empty,
+        });
+    } else if let Some(Value::String(output_type)) = json.get("type")
+        && output_type == "message_delta"
+        && let Some(Value::Object(mut delta)) = json.remove("delta")
+        && let Some(Value::String(stop_reason)) = delta.remove("stop_reason")
+    {
+        items.push(ResponseItem {
+            index: None,
+            role: None,
+            finish_reason: Some(stop_reason),
+            contents: ResponseContents::Empty,
+        });
+    } else if let Some(Value::String(output_type)) = json.get("type")
+        && output_type == "content_block_delta"
+        && let Some(Value::Object(mut delta)) = json.remove("delta")
+        && let Some(Value::String(delta_type)) = delta.remove("type")
+        && delta_type == "text_delta"
+        && let Some(Value::String(text)) = delta.remove("text")
+    {
+        items.push(ResponseItem {
+            index: None,
+            role: None,
+            finish_reason: None,
+            contents: ResponseContents::Text(text.into_bytes()),
+        });
     } else if let Some(item) = parse_item(json) {
         items.push(item);
     }
