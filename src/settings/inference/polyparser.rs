@@ -207,6 +207,17 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
         }
 
         if item_sum.contents != ResponseContents::Empty {
+            if let Some(Value::String(status)) = json.remove("status") {
+                if status == "in_progress" {
+                    item_sum.finish_reason = None;
+                } else if status == "incomplete"
+                    && let Some(Value::Object(mut incomplete_details)) =
+                        json.remove("incomplete_details")
+                    && let Some(Value::String(reason)) = incomplete_details.remove("reason")
+                {
+                    item_sum.finish_reason = Some(reason);
+                }
+            }
             items.push(item_sum);
         }
     } else if let Some(Value::Object(response)) = json.remove("response") {
