@@ -141,45 +141,40 @@ pub struct LogprobToken {
 }*/
 
 pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
-    let mut items = Vec::new();
+    let mut items = Vec::with_capacity(1);
 
-    if let Some(Value::Array(choices)) = json.remove("choices") {
-        items.reserve_exact(choices.len());
+    if let Some(Value::String(output_object)) = json.get("object") {
+        match output_object.as_ref() {
+            "text_completion" | "chat.completion" | "chat.completion.chunk" => {
+                if let Some(Value::Array(choices)) = json.remove("choices") {
+                    items.reserve_exact(choices.len());
 
-        for choice in choices {
-            if let Value::Object(choice) = choice
-                && let Some(item) = parse_item(choice)
-            {
-                items.push(item);
+                    for choice in choices {
+                        if let Value::Object(choice) = choice
+                            && let Some(item) = parse_item(choice)
+                        {
+                            items.push(item);
+                        }
+                    }
+                }
             }
-        }
-    } else if let Some(Value::Array(candidates)) = json.remove("candidates") {
-        items.reserve_exact(candidates.len());
+            "response" => {
+                if let Some(Value::Array(output)) = json.remove("output") {
+                    let mut item_sum = ResponseItem {
+                        index: None,
+                        role: None,
+                        finish_reason: None,
+                        contents: ResponseContents::Empty,
+                    };
 
-        for candidate in candidates {
-            if let Value::Object(candidate) = candidate
-                && let Some(item) = parse_item(candidate)
-            {
-                items.push(item);
-            }
-        }
-    } else if let Some(Value::Array(output)) = json.remove("output") {
-        if json.get("object") == Some(&Value::String("response".to_string())) {
-            let mut item_sum = ResponseItem {
-                index: None,
-                role: None,
-                finish_reason: None,
-                contents: ResponseContents::Empty,
-            };
-
-            for output in output {
-                if let Value::Object(output) = output {
-                    if let Some(Value::String(output_type)) = output.get("type")
-                        && output_type == "message"
-                        && let Some(Value::Object(content)) = output.get("content")
-                        && let Some(Value::String(_)) = content.get("type")
-                    {
-                        if let Some(item) = parse_item(output) {
+                    for output in output {
+                        if let Value::Object(output) = output
+                            && let Some(Value::String(output_type)) = output.get("type")
+                            && output_type == "message"
+                            && let Some(Value::Object(content)) = output.get("content")
+                            && let Some(Value::String(_)) = content.get("type")
+                            && let Some(item) = parse_item(output)
+                        {
                             if item.index.is_some() {
                                 break;
                             }
@@ -221,42 +216,31 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
                                 break;
                             }
                         }
-                    } else if let Some(item) = parse_item(output) {
-                        items.push(item);
                     }
-                }
-            }
 
-            if item_sum.contents != ResponseContents::Empty {
-                if let Some(Value::String(status)) = json.remove("status") {
-                    if status == "in_progress" {
-                        item_sum.finish_reason = None;
-                    } else if status == "incomplete" {
-                        if let Some(Value::Object(mut incomplete_details)) =
-                            json.remove("incomplete_details")
-                            && let Some(Value::String(reason)) = incomplete_details.remove("reason")
-                        {
-                            item_sum.finish_reason = Some(reason);
-                        } else {
-                            item_sum.finish_reason = Some("incomplete".to_string())
+                    if let Some(Value::String(status)) = json.remove("status") {
+                        if status == "in_progress" {
+                            item_sum.finish_reason = None;
+                        } else if status == "incomplete" {
+                            if let Some(Value::Object(mut incomplete_details)) =
+                                json.remove("incomplete_details")
+                                && let Some(Value::String(reason)) =
+                                    incomplete_details.remove("reason")
+                            {
+                                item_sum.finish_reason = Some(reason);
+                            } else {
+                                item_sum.finish_reason = Some("incomplete".to_string())
+                            }
+                        } else if status == "failed" {
+                            item_sum.finish_reason = Some("failed".to_string());
                         }
-                    } else if status == "failed" {
-                        item_sum.finish_reason = Some("failed".to_string());
                     }
+                    items.push(item_sum);
                 }
-                items.push(item_sum);
             }
-        } else {
-            for output in output {
-                if let Value::Object(output) = output {
-                    if let Some(Value::String(output_type)) = output.get("type")
-                        && output_type == "message"
-                        && let Some(Value::Object(content)) = output.get("content")
-                        && let Some(Value::String(_)) = content.get("type")
-                    {
-                    } else if let Some(item) = parse_item(output) {
-                        items.push(item);
-                    }
+            _ => {
+                if let Some(item) = parse_item(json) {
+                    items.push(item);
                 }
             }
         }
@@ -337,7 +321,31 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
                     });
                 }
             }
-            _ => {}
+            _ => {
+                if let Some(item) = parse_item(json) {
+                    items.push(item);
+                }
+            }
+        }
+    } else if let Some(Value::Array(choices)) = json.remove("choices") {
+        items.reserve_exact(choices.len());
+
+        for choice in choices {
+            if let Value::Object(choice) = choice
+                && let Some(item) = parse_item(choice)
+            {
+                items.push(item);
+            }
+        }
+    } else if let Some(Value::Array(candidates)) = json.remove("candidates") {
+        items.reserve_exact(candidates.len());
+
+        for candidate in candidates {
+            if let Value::Object(candidate) = candidate
+                && let Some(item) = parse_item(candidate)
+            {
+                items.push(item);
+            }
         }
     } else if let Some(item) = parse_item(json) {
         items.push(item);
