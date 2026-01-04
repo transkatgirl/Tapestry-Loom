@@ -16,7 +16,11 @@ Based on the following:
 - https://platform.openai.com/docs/api-reference/chat/object
 - https://platform.openai.com/docs/api-reference/chat-streaming/streaming
 - https://platform.openai.com/docs/api-reference/responses/object
+- https://platform.openai.com/docs/api-reference/responses-streaming/response/created
 - https://platform.openai.com/docs/api-reference/responses-streaming/response/output_text/delta
+- https://platform.openai.com/docs/api-reference/responses-streaming/response/incomplete
+- https://platform.openai.com/docs/api-reference/responses-streaming/response/failed
+- https://platform.openai.com/docs/api-reference/responses-streaming/response/completed
 - https://platform.openai.com/docs/api-reference/embeddings
 - https://platform.claude.com/docs/en/api/completions/create
 - https://platform.claude.com/docs/en/api/messages/create
@@ -28,7 +32,6 @@ Based on the following:
 TODO:
 
 - support https://platform.claude.com/docs/en/build-with-claude/streaming
-- support all openai responses-streaming objects
 - support https://ai.google.dev/gemini-api/docs/text-generation
 - support https://ai.google.dev/api/palm
 - support https://docs.ollama.com/api/generate
@@ -217,12 +220,17 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
                 if let Some(Value::String(status)) = json.remove("status") {
                     if status == "in_progress" {
                         item_sum.finish_reason = None;
-                    } else if status == "incomplete"
-                        && let Some(Value::Object(mut incomplete_details)) =
+                    } else if status == "incomplete" {
+                        if let Some(Value::Object(mut incomplete_details)) =
                             json.remove("incomplete_details")
-                        && let Some(Value::String(reason)) = incomplete_details.remove("reason")
-                    {
-                        item_sum.finish_reason = Some(reason);
+                            && let Some(Value::String(reason)) = incomplete_details.remove("reason")
+                        {
+                            item_sum.finish_reason = Some(reason);
+                        } else {
+                            item_sum.finish_reason = Some("incomplete".to_string())
+                        }
+                    } else if status == "failed" {
+                        item_sum.finish_reason = Some("failed".to_string());
                     }
                 }
                 items.push(item_sum);
@@ -243,7 +251,16 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
             }
         }
     } else if let Some(Value::Object(response)) = json.remove("response") {
-        return parse_response(response);
+        if let Some(Value::String(output_type)) = json.get("type")
+            && (output_type == "response.output_text.delta"
+                || output_type == "response.created"
+                || output_type == "response.failed"
+                || output_type == "response.incomplete")
+        {
+            return parse_response(response);
+        } else {
+            return items;
+        }
     } else if let Some(item) = parse_item(json) {
         items.push(item);
     }
@@ -292,6 +309,8 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             } else {
                 finish_reason = Some("incomplete".to_string())
             }
+        } else if status == "failed" {
+            finish_reason = Some("failed".to_string());
         }
     }
 
