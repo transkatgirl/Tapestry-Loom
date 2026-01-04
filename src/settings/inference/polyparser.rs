@@ -380,9 +380,13 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         Some(finish_reason)
     } else if let Some(Value::String(stop_reason)) = json.remove("stop_reason") {
         Some(stop_reason)
+    } else if let Some(Value::String(finish_reason)) = json.remove("finishReason") {
+        Some(finish_reason)
     } else {
         None
     };
+
+    // TODO: json.logprobsResult
 
     if let Some(Value::String(status)) = json.remove("status") {
         if status == "in_progress" {
@@ -515,6 +519,10 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         }
     } else if let Some(content) = json.remove("content") {
         if let Value::Object(mut content) = content {
+            if let Some(Value::String(role_value)) = content.remove("role") {
+                role = Some(role_value);
+            }
+
             if let Some(Value::String(content_type)) = content.get("type") {
                 if content_type == "text" {
                     if let Some(Value::String(text)) = content.remove("text") {
@@ -556,6 +564,32 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                 } else {
                     None
                 }
+            } else if let Some(Value::Array(parts)) = content.remove("parts") {
+                let text: Vec<u8> = parts
+                    .into_iter()
+                    .flat_map(|part| {
+                        if let Value::Object(mut part) = part {
+                            if let Some(Value::Bool(thought)) = part.get("thought")
+                                && *thought
+                            {
+                                Vec::new()
+                            } else if let Some(Value::String(text)) = part.remove("text") {
+                                text.into_bytes()
+                            } else {
+                                Vec::new()
+                            }
+                        } else {
+                            Vec::new()
+                        }
+                    })
+                    .collect();
+
+                Some(ResponseItem {
+                    index,
+                    role,
+                    finish_reason,
+                    contents: ResponseContents::Text(text),
+                })
             } else {
                 None
             }
