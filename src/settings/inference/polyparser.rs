@@ -254,88 +254,91 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
                         && let Some(Value::Object(content)) = output.get("content")
                         && let Some(Value::String(_)) = content.get("type")
                     {
-                        continue;
                     } else if let Some(item) = parse_item(output) {
                         items.push(item);
                     }
                 }
             }
         }
-    } else if let Some(Value::String(output_type)) = json.get("type")
-        && output_type == "response.output_text.delta"
-        && let Some(Value::Object(response)) = json.remove("response")
-    {
-        return parse_response(response);
-    } else if let Some(Value::String(output_type)) = json.get("type")
-        && output_type == "response.completed"
-    {
-        items.push(ResponseItem {
-            index: None,
-            role: None,
-            finish_reason: Some("completed".to_string()),
-            contents: ResponseContents::Empty,
-        });
-    } else if let Some(Value::String(output_type)) = json.get("type")
-        && output_type == "response.failed"
-    {
-        items.push(ResponseItem {
-            index: None,
-            role: None,
-            finish_reason: Some("failed".to_string()),
-            contents: ResponseContents::Empty,
-        });
-    } else if let Some(Value::String(output_type)) = json.get("type")
-        && output_type == "response.incomplete"
-    {
-        items.push(ResponseItem {
-            index: None,
-            role: if let Some(Value::Object(mut response)) = json.remove("response")
-                && let Some(Value::Object(mut incomplete_details)) =
-                    response.remove("incomplete_details")
-                && let Some(Value::String(reason)) = incomplete_details.remove("reason")
-            {
-                Some(reason)
-            } else {
-                Some("incomplete".to_string())
-            },
-            finish_reason: None,
-            contents: ResponseContents::Empty,
-        });
-    } else if let Some(Value::String(output_type)) = json.get("type")
-        && output_type == "message_start"
-        && let Some(Value::Object(mut message)) = json.remove("message")
-        && let Some(Value::String(role)) = message.remove("role")
-    {
-        items.push(ResponseItem {
-            index: None,
-            role: Some(role),
-            finish_reason: None,
-            contents: ResponseContents::Empty,
-        });
-    } else if let Some(Value::String(output_type)) = json.get("type")
-        && output_type == "message_delta"
-        && let Some(Value::Object(mut delta)) = json.remove("delta")
-        && let Some(Value::String(stop_reason)) = delta.remove("stop_reason")
-    {
-        items.push(ResponseItem {
-            index: None,
-            role: None,
-            finish_reason: Some(stop_reason),
-            contents: ResponseContents::Empty,
-        });
-    } else if let Some(Value::String(output_type)) = json.get("type")
-        && output_type == "content_block_delta"
-        && let Some(Value::Object(mut delta)) = json.remove("delta")
-        && let Some(Value::String(delta_type)) = delta.remove("type")
-        && delta_type == "text_delta"
-        && let Some(Value::String(text)) = delta.remove("text")
-    {
-        items.push(ResponseItem {
-            index: None,
-            role: None,
-            finish_reason: None,
-            contents: ResponseContents::Text(text.into_bytes()),
-        });
+    } else if let Some(Value::String(output_type)) = json.get("type") {
+        match output_type.as_ref() {
+            "response.output_text.delta" => {
+                if let Some(Value::Object(response)) = json.remove("response") {
+                    return parse_response(response);
+                }
+            }
+            "response.completed" => {
+                items.push(ResponseItem {
+                    index: None,
+                    role: None,
+                    finish_reason: Some("completed".to_string()),
+                    contents: ResponseContents::Empty,
+                });
+            }
+            "response.failed" => {
+                items.push(ResponseItem {
+                    index: None,
+                    role: None,
+                    finish_reason: Some("failed".to_string()),
+                    contents: ResponseContents::Empty,
+                });
+            }
+            "response.incomplete" => {
+                items.push(ResponseItem {
+                    index: None,
+                    role: if let Some(Value::Object(mut response)) = json.remove("response")
+                        && let Some(Value::Object(mut incomplete_details)) =
+                            response.remove("incomplete_details")
+                        && let Some(Value::String(reason)) = incomplete_details.remove("reason")
+                    {
+                        Some(reason)
+                    } else {
+                        Some("incomplete".to_string())
+                    },
+                    finish_reason: None,
+                    contents: ResponseContents::Empty,
+                });
+            }
+            "message_start" => {
+                if let Some(Value::Object(mut message)) = json.remove("message")
+                    && let Some(Value::String(role)) = message.remove("role")
+                {
+                    items.push(ResponseItem {
+                        index: None,
+                        role: Some(role),
+                        finish_reason: None,
+                        contents: ResponseContents::Empty,
+                    });
+                }
+            }
+            "message_delta" => {
+                if let Some(Value::Object(mut delta)) = json.remove("delta")
+                    && let Some(Value::String(stop_reason)) = delta.remove("stop_reason")
+                {
+                    items.push(ResponseItem {
+                        index: None,
+                        role: None,
+                        finish_reason: Some(stop_reason),
+                        contents: ResponseContents::Empty,
+                    });
+                }
+            }
+            "content_block_delta" => {
+                if let Some(Value::Object(mut delta)) = json.remove("delta")
+                    && let Some(Value::String(delta_type)) = delta.remove("type")
+                    && delta_type == "text_delta"
+                    && let Some(Value::String(text)) = delta.remove("text")
+                {
+                    items.push(ResponseItem {
+                        index: None,
+                        role: None,
+                        finish_reason: None,
+                        contents: ResponseContents::Text(text.into_bytes()),
+                    });
+                }
+            }
+            _ => {}
+        }
     } else if let Some(item) = parse_item(json) {
         items.push(item);
     }
