@@ -194,7 +194,8 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
                             && let Some(Value::String(output_type)) = output.get("type")
                             && output_type == "message"
                             && let Some(Value::Object(content)) = output.get("content")
-                            && let Some(Value::String(_)) = content.get("type")
+                            && let Some(Value::String(content_type)) = content.get("type")
+                            && content_type == "output_text"
                             && let Some(item) = parse_item(output)
                         {
                             if item.index.is_some() {
