@@ -147,87 +147,182 @@ impl FileManager {
             .auto_shrink(false)
             .animated(false)
             .show_rows(ui, row_height, items.len(), |ui, range| {
-                Frame::new()
-                    .outer_margin(listing_margin(ui))
-                    .show(ui, |ui| {
-                        let contents = self.tree.contents();
-                        let mut should_refresh = false;
+                ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                    Frame::new()
+                        .outer_margin(listing_margin(ui))
+                        .show(ui, |ui| {
+                            let contents = self.tree.contents();
+                            let mut should_refresh = false;
 
-                        for item in &items[range] {
-                            let (padding, label) = if let Some(parent) = item.path.parent() {
-                                if let Ok(without_prefix) = item.path.strip_prefix(parent) {
-                                    let parent_length: usize = UnicodeSegmentation::graphemes(
-                                        parent.to_string_lossy().as_ref(),
-                                        true,
-                                    )
-                                    .map(|_| 1)
-                                    .sum();
-                                    if parent_length > 0 && contents.items.contains_key(parent) {
-                                        (
-                                            parent_length - 1,
-                                            Cow::Owned(
-                                                [
-                                                    ".",
-                                                    MAIN_SEPARATOR_STR,
-                                                    without_prefix.to_string_lossy().as_ref(),
-                                                ]
-                                                .concat(),
-                                            ),
+                            for item in &items[range] {
+                                let (padding, label) = if let Some(parent) = item.path.parent() {
+                                    if let Ok(without_prefix) = item.path.strip_prefix(parent) {
+                                        let parent_length: usize = UnicodeSegmentation::graphemes(
+                                            parent.to_string_lossy().as_ref(),
+                                            true,
                                         )
+                                        .map(|_| 1)
+                                        .sum();
+                                        if parent_length > 0 && contents.items.contains_key(parent) {
+                                            (
+                                                parent_length - 1,
+                                                Cow::Owned(
+                                                    [
+                                                        ".",
+                                                        MAIN_SEPARATOR_STR,
+                                                        without_prefix.to_string_lossy().as_ref(),
+                                                    ]
+                                                    .concat(),
+                                                ),
+                                            )
+                                        } else {
+                                            (0, item.path.to_string_lossy())
+                                        }
                                     } else {
                                         (0, item.path.to_string_lossy())
                                     }
                                 } else {
                                     (0, item.path.to_string_lossy())
-                                }
-                            } else {
-                                (0, item.path.to_string_lossy())
-                            };
+                                };
 
-                            let full_path = contents.path.join(&item.path);
+                                let full_path = contents.path.join(&item.path);
 
-                            let (icon, suffix) = match item.r#type {
-                                ScannedItemType::File => ("📄", ""),
-                                ScannedItemType::Directory => ("📂", MAIN_SEPARATOR_STR),
-                                ScannedItemType::Other => ("❔", ""),
-                            };
+                                let (icon, suffix) = match item.r#type {
+                                    ScannedItemType::File => ("📄", ""),
+                                    ScannedItemType::Directory => ("📂", MAIN_SEPARATOR_STR),
+                                    ScannedItemType::Other => ("❔", ""),
+                                };
 
-                            ui.horizontal(|ui| {
-                                ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                                ui.horizontal(|ui| {
                                     ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
-                                        ui.add_space(ch * padding as f32);
+                                        ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                                            ui.add_space(ch * padding as f32);
 
-                                        let mut button = Button::new(
-                                            RichText::new(format!("{icon} {label}{suffix}"))
-                                                .family(eframe::egui::FontFamily::Monospace),
-                                        );
-                                        let mut enabled = item.r#type != ScannedItemType::Other;
+                                            let mut button = Button::new(
+                                                RichText::new(format!("{icon} {label}{suffix}"))
+                                                    .family(eframe::egui::FontFamily::Monospace),
+                                            );
+                                            let mut enabled = item.r#type != ScannedItemType::Other;
 
-                                        if item.r#type == ScannedItemType::File {
-                                            if !(item.path.extension() == Some(&file_extension_normal)
-                                                || item.path.extension()
-                                                    == Some(&file_extension_treeless))
-                                                || self.open_documents.borrow().contains(&full_path)
-                                            {
-                                                enabled = false;
+                                            if item.r#type == ScannedItemType::File {
+                                                if !(item.path.extension() == Some(&file_extension_normal)
+                                                    || item.path.extension()
+                                                        == Some(&file_extension_treeless))
+                                                    || self.open_documents.borrow().contains(&full_path)
+                                                {
+                                                    enabled = false;
+                                                }
+                                            } else if self.open_folders.contains(&item.path) {
+                                                //button = button.selected(true);
+                                                button = button.fill(ui.style().visuals.extreme_bg_color);
                                             }
-                                        } else if self.open_folders.contains(&item.path) {
-                                            //button = button.selected(true);
-                                            button = button.fill(ui.style().visuals.extreme_bg_color);
-                                        }
 
-                                        let button_response = if enabled {
-                                            ui.add(button)
-                                        } else {
-                                            ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
-                                                ui.add_enabled(enabled, button)
-                                            }).response
-                                        };
+                                            let button_response = if enabled {
+                                                ui.add(button)
+                                            } else {
+                                                ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                                                    ui.add_enabled(enabled, button)
+                                                }).response
+                                            };
 
-                                        if !self.open_documents.borrow().contains(&full_path) {
-                                            button_response.context_menu(|ui| {
-                                                if item.r#type == ScannedItemType::Directory {
-                                                    if ui.button("New weave").clicked() {
+                                            if !self.open_documents.borrow().contains(&full_path) {
+                                                button_response.context_menu(|ui| {
+                                                    if item.r#type == ScannedItemType::Directory {
+                                                        if ui.button("New weave").clicked() {
+                                                            *self.modal.borrow_mut() = ModalType::CreateWeave(
+                                                                item.path
+                                                                    .join(
+                                                                        [
+                                                                            "Untitled.",
+                                                                            VERSIONED_WEAVE_FILE_EXTENSION,
+                                                                        ]
+                                                                        .concat(),
+                                                                    )
+                                                                    .to_string_lossy()
+                                                                    .to_string(),
+                                                            );
+                                                        }
+                                                        if ui.button("New folder").clicked() {
+                                                            *self.modal.borrow_mut() =
+                                                                ModalType::CreateDirectory(
+                                                                    item.path
+                                                                        .join("Untitled Folder")
+                                                                        .to_string_lossy()
+                                                                        .to_string(),
+                                                                );
+                                                        }
+                                                        ui.separator();
+                                                    } else if item.r#type == ScannedItemType::File
+                                                        && (item.path.extension()
+                                                            == Some(&file_extension_normal)
+                                                            || item.path.extension()
+                                                                == Some(&file_extension_treeless))
+                                                    {
+                                                        if ui.button("Open weave").clicked() {
+                                                            open_callback(&full_path);
+                                                        }
+                                                        ui.separator();
+                                                    };
+
+                                                    if ui.button("Copy item path").clicked() {
+                                                        ui.output_mut(|o| {
+                                                            o.commands.push(OutputCommand::CopyText(
+                                                                contents
+                                                                    .path
+                                                                    .join(&item.path)
+                                                                    .to_string_lossy()
+                                                                    .to_string(),
+                                                            ))
+                                                        });
+                                                    };
+
+                                                    ui.separator();
+
+                                                    if ui.button("Duplicate item").clicked() {
+                                                        *self.modal.borrow_mut() = ModalType::Copy((
+                                                            item.path.clone(),
+                                                            item.path.to_string_lossy().to_string(),
+                                                        ));
+                                                    }
+
+                                                    if ui.button("Rename item").clicked() {
+                                                        *self.modal.borrow_mut() = ModalType::Rename((
+                                                            item.path.clone(),
+                                                            item.path.to_string_lossy().to_string(),
+                                                        ));
+                                                    };
+
+                                                    if ui.button("Delete item").clicked() {
+                                                        *self.modal.borrow_mut() =
+                                                            ModalType::Delete(item.path.clone());
+                                                    };
+                                                });
+                                            }
+
+                                            if enabled && button_response.clicked() {
+                                                if item.r#type == ScannedItemType::File {
+                                                    open_callback(&full_path);
+                                                } else {
+                                                    if self.open_folders.contains(&item.path) {
+                                                        self.open_folders.remove(&item.path);
+                                                    } else {
+                                                        self.open_folders.insert(item.path.clone());
+                                                    }
+                                                    should_refresh = true;
+                                                }
+                                            };
+
+                                            if ui.rect_contains_pointer(ui.max_rect())
+                                                && !self.open_documents.borrow().contains(&full_path)
+                                            {
+                                                if item.r#type == ScannedItemType::Directory
+                                                    && self.open_folders.contains(&item.path)
+                                                {
+                                                    if ui
+                                                        .button("\u{E0C9}")
+                                                        .on_hover_text("New weave")
+                                                        .clicked()
+                                                    {
                                                         *self.modal.borrow_mut() = ModalType::CreateWeave(
                                                             item.path
                                                                 .join(
@@ -241,7 +336,11 @@ impl FileManager {
                                                                 .to_string(),
                                                         );
                                                     }
-                                                    if ui.button("New folder").clicked() {
+                                                    if ui
+                                                        .button("\u{E0D9}")
+                                                        .on_hover_text("New folder")
+                                                        .clicked()
+                                                    {
                                                         *self.modal.borrow_mut() =
                                                             ModalType::CreateDirectory(
                                                                 item.path
@@ -250,156 +349,63 @@ impl FileManager {
                                                                     .to_string(),
                                                             );
                                                     }
-                                                    ui.separator();
-                                                } else if item.r#type == ScannedItemType::File
-                                                    && (item.path.extension()
-                                                        == Some(&file_extension_normal)
-                                                        || item.path.extension()
-                                                            == Some(&file_extension_treeless))
+                                                }
+
+                                                if ui
+                                                    .button("\u{E09E}")
+                                                    .on_hover_text("Duplicate item")
+                                                    .clicked()
                                                 {
-                                                    if ui.button("Open weave").clicked() {
-                                                        open_callback(&full_path);
-                                                    }
-                                                    ui.separator();
-                                                };
-
-                                                if ui.button("Copy item path").clicked() {
-                                                    ui.output_mut(|o| {
-                                                        o.commands.push(OutputCommand::CopyText(
-                                                            contents
-                                                                .path
-                                                                .join(&item.path)
-                                                                .to_string_lossy()
-                                                                .to_string(),
-                                                        ))
-                                                    });
-                                                };
-
-                                                ui.separator();
-
-                                                if ui.button("Duplicate item").clicked() {
                                                     *self.modal.borrow_mut() = ModalType::Copy((
                                                         item.path.clone(),
                                                         item.path.to_string_lossy().to_string(),
                                                     ));
-                                                }
+                                                };
 
-                                                if ui.button("Rename item").clicked() {
+                                                if ui
+                                                    .button("\u{E4F0}")
+                                                    .on_hover_text("Rename item")
+                                                    .clicked()
+                                                {
                                                     *self.modal.borrow_mut() = ModalType::Rename((
                                                         item.path.clone(),
                                                         item.path.to_string_lossy().to_string(),
                                                     ));
                                                 };
 
-                                                if ui.button("Delete item").clicked() {
+                                                if ui
+                                                    .button("\u{E18E}")
+                                                    .on_hover_text("Delete item")
+                                                    .clicked()
+                                                {
                                                     *self.modal.borrow_mut() =
                                                         ModalType::Delete(item.path.clone());
                                                 };
-                                            });
-                                        }
-
-                                        if enabled && button_response.clicked() {
-                                            if item.r#type == ScannedItemType::File {
-                                                open_callback(&full_path);
-                                            } else {
-                                                if self.open_folders.contains(&item.path) {
-                                                    self.open_folders.remove(&item.path);
-                                                } else {
-                                                    self.open_folders.insert(item.path.clone());
-                                                }
-                                                should_refresh = true;
-                                            }
-                                        };
-
-                                        if ui.rect_contains_pointer(ui.max_rect())
-                                            && !self.open_documents.borrow().contains(&full_path)
-                                        {
-                                            if item.r#type == ScannedItemType::Directory
-                                                && self.open_folders.contains(&item.path)
-                                            {
-                                                if ui
-                                                    .button("\u{E0C9}")
-                                                    .on_hover_text("New weave")
-                                                    .clicked()
-                                                {
-                                                    *self.modal.borrow_mut() = ModalType::CreateWeave(
-                                                        item.path
-                                                            .join(
-                                                                [
-                                                                    "Untitled.",
-                                                                    VERSIONED_WEAVE_FILE_EXTENSION,
-                                                                ]
-                                                                .concat(),
-                                                            )
-                                                            .to_string_lossy()
-                                                            .to_string(),
-                                                    );
-                                                }
-                                                if ui
-                                                    .button("\u{E0D9}")
-                                                    .on_hover_text("New folder")
-                                                    .clicked()
-                                                {
-                                                    *self.modal.borrow_mut() =
-                                                        ModalType::CreateDirectory(
-                                                            item.path
-                                                                .join("Untitled Folder")
-                                                                .to_string_lossy()
-                                                                .to_string(),
-                                                        );
-                                                }
-                                            }
-
-                                            if ui
-                                                .button("\u{E09E}")
-                                                .on_hover_text("Duplicate item")
-                                                .clicked()
-                                            {
-                                                *self.modal.borrow_mut() = ModalType::Copy((
-                                                    item.path.clone(),
-                                                    item.path.to_string_lossy().to_string(),
-                                                ));
                                             };
 
-                                            if ui
-                                                .button("\u{E4F0}")
-                                                .on_hover_text("Rename item")
-                                                .clicked()
-                                            {
-                                                *self.modal.borrow_mut() = ModalType::Rename((
-                                                    item.path.clone(),
-                                                    item.path.to_string_lossy().to_string(),
-                                                ));
-                                            };
+                                            ui.add_space(ui.spacing().menu_spacing);
+                                        });
 
-                                            if ui
-                                                .button("\u{E18E}")
-                                                .on_hover_text("Delete item")
-                                                .clicked()
-                                            {
-                                                *self.modal.borrow_mut() =
-                                                    ModalType::Delete(item.path.clone());
-                                            };
-                                        };
+                                        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                            ui.add_space(0.0);
+                                        });
 
-                                        ui.add_space(ui.spacing().menu_spacing);
-                                    });
-
-                                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                        ui.add_space(0.0);
-                                    });
-
-                                    ui.response().context_menu(|ui| {
-                                        render_global_context_menu(ui, contents.path, &mut self.modal.borrow_mut(), &mut should_full_refresh);
+                                        ui.response().context_menu(|ui| {
+                                            render_global_context_menu(ui, contents.path, &mut self.modal.borrow_mut(), &mut should_full_refresh);
+                                        });
                                     });
                                 });
-                            });
-                        }
+                            }
 
-                        if should_refresh {
-                            self.update_item_list();
-                        }
+                            if should_refresh {
+                                self.update_item_list();
+                            }
+                        });
+
+                    ui.response().context_menu(|ui| {
+                        render_global_context_menu(ui, self.tree.contents().path, &mut self.modal.borrow_mut(), &mut should_full_refresh);
                     });
+                });
             });
 
         ui.response().context_menu(|ui| {
