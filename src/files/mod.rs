@@ -193,10 +193,23 @@ impl FileManager {
                                     ScannedItemType::Other => ("❔", ""),
                                 };
 
+                                let mut spacing = ch * padding as f32;
+
+                                let menu_spacing = if spacing >= ui.spacing().menu_spacing {
+                                    spacing -= ui.spacing().menu_spacing;
+                                    true
+                                } else {
+                                    false
+                                };
+
                                 ui.horizontal(|ui| {
                                     ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                                        ui.add_space(spacing);
+
                                         ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
-                                            ui.add_space(ch * padding as f32);
+                                            if menu_spacing {
+                                                ui.add_space(ui.spacing().menu_spacing);
+                                            }
 
                                             let mut button = Button::new(
                                                 RichText::new(format!("{icon} {label}{suffix}"))
