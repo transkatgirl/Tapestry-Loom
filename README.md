@@ -241,6 +241,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 		- [ ] Saving & loading custom presets
 			- [ ] Importing & exporting custom presets
 	- [ ] Support touchscreen-only devices
+	- [ ] Add "autoloom" mode where clicking a node generates children, similar to [inkstream](https://inkstream.ai)
 	- [ ] Show hovered child of active node in editor, similar to [exoloom](https://exoloom.io)
 	- [ ] Add ability to add custom labels to bookmarks/nodes
 	- [ ] Add ability to add custom attributes to nodes, rather than just bookmarks
