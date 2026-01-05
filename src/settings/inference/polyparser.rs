@@ -776,7 +776,6 @@ fn parse_openai_completion_logprobs(
                         });
                     } else {
                         token_list.clear();
-                        token_list.shrink_to_fit();
                         break;
                     }
                 } else {
@@ -786,23 +785,26 @@ fn parse_openai_completion_logprobs(
             }
         }
 
-        if token_list.is_empty()
-            && let Some(Value::Array(tokens)) = logprobs_json.remove("tokens")
-            && tokens.len() == token_logprobs.len()
-        {
-            for (token, logprob) in tokens.into_iter().zip(token_logprobs.into_iter()) {
-                if let Value::String(token) = token
-                    && let Value::Number(logprob) = logprob
-                    && let Some(logprob) = logprob.as_f64()
-                {
-                    token_list.push(LogprobToken {
-                        id: None,
-                        contents: token.into_bytes(),
-                        logprob,
-                    });
-                } else {
-                    return None;
+        if token_list.is_empty() {
+            if let Some(Value::Array(tokens)) = logprobs_json.remove("tokens")
+                && tokens.len() == token_logprobs.len()
+            {
+                for (token, logprob) in tokens.into_iter().zip(token_logprobs.into_iter()) {
+                    if let Value::String(token) = token
+                        && let Value::Number(logprob) = logprob
+                        && let Some(logprob) = logprob.as_f64()
+                    {
+                        token_list.push(LogprobToken {
+                            id: None,
+                            contents: token.into_bytes(),
+                            logprob,
+                        });
+                    } else {
+                        return None;
+                    }
                 }
+            } else {
+                return None;
             }
         }
     } else {
