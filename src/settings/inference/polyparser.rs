@@ -105,7 +105,9 @@ impl Token {
                 .iter()
                 .enumerate()
                 .find(|(_index, top_token)| {
-                    top_token.id == self.token.id
+                    (top_token.id == self.token.id
+                        || top_token.id.is_none()
+                        || self.token.id.is_none())
                         && top_token.contents == self.token.contents
                         && top_token.logprob == self.token.logprob
                 })
