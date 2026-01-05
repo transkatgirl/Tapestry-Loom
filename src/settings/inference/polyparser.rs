@@ -902,11 +902,13 @@ fn parse_openai_chatcompletion_logprob_content_item(
 fn parse_openai_chatcompletion_logprob_content_subitem(
     mut logprob_json: Map<String, Value>,
 ) -> Option<LogprobToken> {
-    let contents = if let Some(bytes) = logprob_json
-        .remove("bytes")
-        .and_then(|v| serde_json::from_value::<Vec<u8>>(v).ok())
-        && !bytes.is_empty()
-    {
+    let contents = if let Some(bytes) = logprob_json.remove("bytes").and_then(|v| {
+        if !v.is_null() {
+            serde_json::from_value::<Vec<u8>>(v).ok()
+        } else {
+            None
+        }
+    }) {
         Some(bytes)
     } else if let Some(Value::String(token)) = logprob_json.remove("token") {
         Some(token.into_bytes())
