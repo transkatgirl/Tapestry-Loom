@@ -166,9 +166,10 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Fully immutable nodes; Node splitting is implemented through duplication
 	- [ ] Prefix-based duplication
 	- [ ] Implement counterfactual logprobs, similar to [loom](https://github.com/socketteer/loom)
-	- [ ] Perform heavy testing of data structures and/or formal verification to prevent bugs that could result in data loss
+	- [ ] Perform heavy unit testing of data structures and/or formal verification to prevent bugs that could result in data loss
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
+- [ ] Write unit tests for API response parser
 - [ ] Node confidence calculation
 	- [ ] Node ordering by confidence
 - [ ] Request post-processing arguments (using prefix of `T#`)
