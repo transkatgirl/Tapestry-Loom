@@ -147,9 +147,6 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 - [ ] Refactor API client
 	- [x] Improve token confidence calculation to work properly with vLLM
 	- [x] Use logprob text_offset value when present
-	- [ ] Add support for OpenAI Responses
-	- [ ] Add support for Anthropic-style APIs
-	- [ ] Add support for Gemini-style APIs
 - [ ] Allow temporarilly overriding color in inference menu
 - [ ] Improve handling of hovered + omitted/collapsed nodes
 - [ ] Add setting to swap shift-click and normal click behavior
@@ -167,6 +164,13 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Prefix-based duplication
 	- [ ] Implement counterfactual logprobs, similar to [loom](https://github.com/socketteer/loom)
 	- [ ] Perform heavy unit testing of data structures and/or formal verification to prevent bugs that could result in data loss
+- [ ] Improve API client
+	- [ ] Add support for OpenAI Responses
+	- [ ] Add support for OpenAI Embeddings
+	- [ ] Add support for Anthropic-style APIs
+	- [ ] Add support for Gemini-style APIs
+	- [ ] Add support for Ollama-style APIs
+	- [ ] Add support for response streaming
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Write unit tests for API response parser
