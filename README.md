@@ -146,10 +146,10 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] settings
 - [ ] Refactor API client
 	- [x] Improve token confidence calculation to work properly with vLLM
+	- [x] Use logprob text_offset value when present
 	- [ ] Add support for OpenAI Responses
 	- [ ] Add support for Anthropic-style APIs
 	- [ ] Add support for Gemini-style APIs
-- [ ] Use logprob text_offset value when present
 - [ ] Allow temporarilly overriding color in inference menu
 - [ ] Improve handling of hovered + omitted/collapsed nodes
 - [ ] Add setting to swap shift-click and normal click behavior

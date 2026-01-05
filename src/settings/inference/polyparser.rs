@@ -13,6 +13,7 @@ However, it intentionally omits the following features:
 
 Based on the following:
 - https://platform.openai.com/docs/api-reference/completions/object
+    - TODO: Handle "echo": true
 - https://platform.openai.com/docs/api-reference/chat/object
 - https://platform.openai.com/docs/api-reference/chat-streaming/streaming
 - https://platform.openai.com/docs/api-reference/responses/object
@@ -25,7 +26,7 @@ Based on the following:
 - https://platform.claude.com/docs/en/api/messages/create
 - https://platform.claude.com/docs/en/build-with-claude/streaming
 - https://ai.google.dev/api/palm
-- https://ai.google.dev/gemini-api/docs/text-generation
+- https://ai.google.dev/api/generate-content
 - https://ai.google.dev/api/embeddings
 - https://docs.ollama.com/api/generate
 - https://docs.ollama.com/api/chat
