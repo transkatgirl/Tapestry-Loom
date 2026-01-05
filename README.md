@@ -246,6 +246,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Add ability to add custom labels to bookmarks/nodes
 	- [ ] Add ability to add custom attributes to nodes, rather than just bookmarks
 	- [ ] Complete additional node metadata using prompt logprobs
+- [ ] Token healing
 - [ ] Weave statistical analysis tools
 	- [ ] Predictability analysis using logprobs
 	- [ ] Statistical analysis of various metrics (model usage, text length, logprobs, number of branches, etc)
