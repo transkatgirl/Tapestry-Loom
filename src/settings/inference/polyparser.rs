@@ -861,6 +861,22 @@ fn parse_openai_chatcompletion_logprob_content_item(
                 break;
             }
         }
+    } else if let Some(Value::Array(top_probs_json)) = logprob_json.remove("top_probs") {
+        // llama-cpp
+        top_tokens.reserve_exact(top_probs_json.len());
+
+        for top_prob_json in top_probs_json.into_iter() {
+            if let Value::Object(top_prob_json) = top_prob_json
+                && let Some(top_prob) =
+                    parse_openai_chatcompletion_logprob_content_subitem(top_prob_json)
+            {
+                top_tokens.push(top_prob);
+            } else {
+                top_tokens.clear();
+                top_tokens.shrink_to_fit();
+                break;
+            }
+        }
     }
 
     parse_openai_chatcompletion_logprob_content_subitem(logprob_json)
