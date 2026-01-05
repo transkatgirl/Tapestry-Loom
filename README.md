@@ -147,7 +147,6 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 - [x] Refactor API client
 	- [x] Improve token confidence calculation to work properly with vLLM
 	- [x] Use logprob text_offset value when present
-- [ ] Allow temporarilly overriding color in inference menu
 - [ ] Improve handling of hovered + omitted/collapsed nodes
 - [ ] Add setting to swap shift-click and normal click behavior
 - [ ] Replace is_shift_pressed with response.clicked_with_open_in_background()
@@ -207,6 +206,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 		- [ ] When working with multiple models, allow dynamically adjusting proportions based on usage
 			- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count -->
 - [ ] Further UI improvements
+	- [ ] Allow temporarilly overriding color in inference menu
 	- [ ] Add model configuration sharing functionality
 		- [ ] Automatically redact sensitive information (such as API keys)
 		- [ ] Allow the user to manually redact sensitive information
