@@ -13,6 +13,7 @@ However, it intentionally omits the following features:
 
 Based on the following:
 - https://platform.openai.com/docs/api-reference/completions/object
+    - TODO: Test vLLM chatcompletions w/ return_token_ids: true
     - TODO: Handle "echo": true
     - TODO: Handle vLLM-specific "choices.prompt_token_ids"
     - TODO: Handle vLLM-specific "choices.prompt_logprobs"
