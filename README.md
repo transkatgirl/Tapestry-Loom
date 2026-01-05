@@ -144,7 +144,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [x] main
 	- [x] files
 	- [ ] settings
-- [ ] Refactor API client
+- [x] Refactor API client
 	- [x] Improve token confidence calculation to work properly with vLLM
 	- [x] Use logprob text_offset value when present
 - [ ] Allow temporarilly overriding color in inference menu
@@ -171,9 +171,9 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Add support for Gemini-style APIs
 	- [ ] Add support for Ollama-style APIs
 	- [ ] Add support for response streaming
+	- [ ] Write unit tests for response parser
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
-- [ ] Write unit tests for API response parser
 - [ ] Node confidence calculation
 	- [ ] Node ordering by confidence
 - [ ] Request post-processing arguments (using prefix of `T#`)
