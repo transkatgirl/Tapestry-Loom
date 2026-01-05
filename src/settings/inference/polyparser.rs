@@ -123,42 +123,54 @@ pub struct LogprobToken {
     pub logprob: f64,
 }
 
-/*pub fn parse_embedding_response(mut json: Map<String, Value>) -> Vec<Option<Vec<f32>>> {
-    if let Some(embedding) = json.remove("embedding") {
-        vec![if let Value::Object(mut embedding) = embedding {
-            embedding
-                .remove("values")
-                .and_then(|v| serde_json::from_value::<Vec<f32>>(v).ok())
-        } else {
-            serde_json::from_value::<Vec<f32>>(embedding).ok()
-        }]
-    } else if let Some(Value::Array(embeddings)) = json.remove("embeddings") {
-        embeddings
-            .into_iter()
-            .map(|embedding| {
-                if let Value::Object(mut embedding) = embedding {
-                    embedding
-                        .remove("values")
-                        .and_then(|v| serde_json::from_value::<Vec<f32>>(v).ok())
-                } else {
-                    serde_json::from_value::<Vec<f32>>(embedding).ok()
-                }
-            })
-            .collect()
-    } else if let Some(Value::Array(data)) = json.remove("data") {
-        let mut items = Vec::with_capacity(data.len());
-
-        for item in data {
-            if let Value::Object(item) = item {
-                items.extend(parse_embedding_response(item));
+/*pub fn parse_embedding_response(json: Value) -> Vec<Option<Vec<f32>>> {
+    if let Value::Object(mut json) = json {
+        if let Some(embedding) = json.remove("embedding") {
+            vec![if let Value::Object(mut embedding) = embedding {
+                embedding
+                    .remove("values")
+                    .and_then(|v| serde_json::from_value::<Vec<f32>>(v).ok())
             } else {
-                items.push(None);
+                serde_json::from_value::<Vec<f32>>(embedding).ok()
+            }]
+        } else if let Some(Value::Array(embeddings)) = json.remove("embeddings") {
+            embeddings
+                .into_iter()
+                .map(|embedding| {
+                    if let Value::Object(mut embedding) = embedding {
+                        embedding
+                            .remove("values")
+                            .and_then(|v| serde_json::from_value::<Vec<f32>>(v).ok())
+                    } else {
+                        serde_json::from_value::<Vec<f32>>(embedding).ok()
+                    }
+                })
+                .collect()
+        } else if let Some(Value::Array(data)) = json.remove("data") {
+            let mut items = Vec::with_capacity(data.len());
+
+            for item in data {
+                items.extend(parse_embedding_response(item));
             }
+
+            items
+        } else {
+            vec![None]
+        }
+    } else if let Value::Array(json_list) = json {
+        if let Ok(embedding) = serde_json::from_value::<Vec<f32>>(Value::Array(json_list.clone())) {
+            return vec![Some(embedding)];
+        }
+
+        let mut items = Vec::with_capacity(json_list.len());
+
+        for item in json_list {
+            items.extend(parse_embedding_response(item));
         }
 
         items
     } else {
-        vec![]
+        vec![None]
     }
 }*/
 
