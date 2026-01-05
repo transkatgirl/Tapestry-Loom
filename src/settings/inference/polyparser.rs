@@ -27,6 +27,8 @@ Based on the following:
 - https://ai.google.dev/api/palm
 - https://ai.google.dev/gemini-api/docs/text-generation
 - https://ai.google.dev/api/embeddings
+- https://docs.ollama.com/api/generate
+- https://docs.ollama.com/api/chat
 - https://docs.ollama.com/api/embed
 - llama-cpp experimentation
 - vllm experimentation
@@ -403,6 +405,8 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         Some(stop_reason)
     } else if let Some(Value::String(finish_reason)) = json.remove("finishReason") {
         Some(finish_reason)
+    } else if let Some(Value::String(done_reason)) = json.remove("done_reason") {
+        Some(done_reason)
     } else {
         None
     };
@@ -420,6 +424,16 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             }
         } else if status == "failed" {
             finish_reason = Some("failed".to_string());
+        }
+    }
+
+    if let Some(Value::Bool(done)) = json.remove("done") {
+        if done {
+            if finish_reason.is_none() {
+                finish_reason = Some("completed".to_string())
+            }
+        } else if finish_reason.is_some() {
+            finish_reason = None;
         }
     }
 
@@ -630,6 +644,13 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         } else {
             None
         }
+    } else if let Some(Value::String(response)) = json.remove("response") {
+        Some(ResponseItem {
+            index,
+            role,
+            finish_reason,
+            contents: ResponseContents::Text(response.into_bytes()),
+        })
     } else {
         None
     }
