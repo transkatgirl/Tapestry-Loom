@@ -361,6 +361,11 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
                     });
                 }
             }
+            "completion" => {
+                if let Some(item) = parse_item(json) {
+                    items.push(item);
+                }
+            }
             _ => {
                 if let Some(item) = parse_item(json) {
                     items.push(item);
