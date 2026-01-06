@@ -155,7 +155,7 @@ pub struct LogprobToken {
             let mut items = Vec::with_capacity(data.len());
 
             for item in data {
-                items.extend(parse_embedding_response(item));
+                items.append(&mut parse_embedding_response(item));
             }
 
             items
@@ -170,7 +170,7 @@ pub struct LogprobToken {
         let mut items = Vec::with_capacity(json_list.len());
 
         for item in json_list {
-            items.extend(parse_embedding_response(item));
+            items.append(&mut parse_embedding_response(item));
         }
 
         items
@@ -228,21 +228,23 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
                             }
 
                             match item.contents {
-                                ResponseContents::Tokens(tokens) => match &mut item_sum.contents {
-                                    ResponseContents::Tokens(sum_tokens) => {
-                                        sum_tokens.extend(tokens);
+                                ResponseContents::Tokens(mut tokens) => {
+                                    match &mut item_sum.contents {
+                                        ResponseContents::Tokens(sum_tokens) => {
+                                            sum_tokens.append(&mut tokens);
+                                        }
+                                        ResponseContents::Text(_) => {
+                                            break;
+                                        }
+                                        ResponseContents::Empty => {}
                                     }
-                                    ResponseContents::Text(_) => {
-                                        break;
-                                    }
-                                    ResponseContents::Empty => {}
-                                },
-                                ResponseContents::Text(text) => match &mut item_sum.contents {
+                                }
+                                ResponseContents::Text(mut text) => match &mut item_sum.contents {
                                     ResponseContents::Tokens(_) => {
                                         break;
                                     }
                                     ResponseContents::Text(sum_text) => {
-                                        sum_text.extend(text);
+                                        sum_text.append(&mut text);
                                     }
                                     ResponseContents::Empty => {}
                                 },
@@ -671,17 +673,17 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                         if should_accum_logprobs
                             && let Some(Value::Array(logprobs_list_json)) =
                                 content.remove("logprobs")
-                            && let Some(logprobs_value) =
+                            && let Some(mut logprobs_value) =
                                 parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
                         {
-                            tokens.extend(logprobs_value);
+                            tokens.append(&mut logprobs_value);
                         } else {
                             should_accum_logprobs = false;
                             tokens.clear();
                             tokens.shrink_to_fit();
                         };
 
-                        bytes.extend(text.into_bytes());
+                        bytes.append(&mut text.into_bytes());
                     }
                 } else {
                     return None;
