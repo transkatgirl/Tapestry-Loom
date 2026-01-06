@@ -91,6 +91,19 @@ pub enum ResponseContents {
     Empty,
 }
 
+impl ResponseContents {
+    fn into_text_bytes(self) -> Vec<u8> {
+        match self {
+            Self::Text(text) => text,
+            Self::Tokens(tokens) => tokens
+                .into_iter()
+                .flat_map(|token| token.token.contents)
+                .collect(),
+            Self::Empty => Vec::new(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub token: LogprobToken,
@@ -233,20 +246,29 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
                                         ResponseContents::Tokens(sum_tokens) => {
                                             sum_tokens.append(&mut tokens);
                                         }
-                                        ResponseContents::Text(_) => {
-                                            break;
+                                        ResponseContents::Text(sum_text) => {
+                                            sum_text.append(
+                                                &mut ResponseContents::Tokens(tokens)
+                                                    .into_text_bytes(),
+                                            );
                                         }
-                                        ResponseContents::Empty => {}
+                                        ResponseContents::Empty => {
+                                            item_sum.contents = ResponseContents::Tokens(tokens);
+                                        }
                                     }
                                 }
                                 ResponseContents::Text(mut text) => match &mut item_sum.contents {
                                     ResponseContents::Tokens(_) => {
-                                        break;
+                                        let mut sum_text = item_sum.contents.into_text_bytes();
+                                        sum_text.append(&mut text);
+                                        item_sum.contents = ResponseContents::Text(sum_text);
                                     }
                                     ResponseContents::Text(sum_text) => {
                                         sum_text.append(&mut text);
                                     }
-                                    ResponseContents::Empty => {}
+                                    ResponseContents::Empty => {
+                                        item_sum.contents = ResponseContents::Text(text);
+                                    }
                                 },
                                 ResponseContents::Empty => {}
                             }
