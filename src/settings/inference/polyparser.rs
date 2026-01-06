@@ -210,9 +210,7 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
                         if let Value::Object(output) = output
                             && let Some(Value::String(output_type)) = output.get("type")
                             && output_type == "message"
-                            && let Some(Value::Object(content)) = output.get("content")
-                            && let Some(Value::String(content_type)) = content.get("type")
-                            && content_type == "output_text"
+                            && let Some(Value::Array(_)) = output.get("content")
                             && let Some(item) = parse_item(output)
                         {
                             if item.index.is_some() {
@@ -657,6 +655,50 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                 })
             } else {
                 None
+            }
+        } else if let Value::Array(content) = content {
+            let mut bytes = Vec::new();
+            let mut tokens = Vec::new();
+            let mut should_accum_logprobs = true;
+
+            for content in content {
+                if let Value::Object(mut content) = content
+                    && let Some(Value::String(content_type)) = content.get("type")
+                    && content_type == "output_text"
+                    && let Some(Value::String(text)) = content.remove("text")
+                {
+                    if should_accum_logprobs
+                        && let Some(Value::Array(logprobs_list_json)) = content.remove("logprobs")
+                        && let Some(logprobs_value) =
+                            parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
+                    {
+                        tokens.extend(logprobs_value);
+                    } else {
+                        should_accum_logprobs = false;
+                        tokens.clear();
+                        tokens.shrink_to_fit();
+                    };
+
+                    bytes.extend(text.into_bytes());
+                } else {
+                    return None;
+                }
+            }
+
+            if !tokens.is_empty() {
+                Some(ResponseItem {
+                    index,
+                    role,
+                    finish_reason,
+                    contents: ResponseContents::Tokens(tokens),
+                })
+            } else {
+                Some(ResponseItem {
+                    index,
+                    role,
+                    finish_reason,
+                    contents: ResponseContents::Text(bytes),
+                })
             }
         } else if let Value::String(content) = content {
             Some(ResponseItem {
