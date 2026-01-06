@@ -286,6 +286,11 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
         }
     } else if let Some(Value::String(output_type)) = json.get("type") {
         match output_type.as_ref() {
+            "completion" | "message" => {
+                if let Some(item) = parse_item(json) {
+                    items.push(item);
+                }
+            }
             "response.output_text.delta" => {
                 if let Some(Value::Object(response)) = json.remove("response") {
                     return parse_response(response);
@@ -359,11 +364,6 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
                         finish_reason: None,
                         contents: ResponseContents::Text(text.into_bytes()),
                     });
-                }
-            }
-            "completion" => {
-                if let Some(item) = parse_item(json) {
-                    items.push(item);
                 }
             }
             _ => {
