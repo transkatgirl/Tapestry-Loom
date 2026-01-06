@@ -585,16 +585,18 @@ impl Endpoint for OpenAIChatCompletionsConfig {
             });
         });
 
-        ui.group(|ui| {
-            ui.label("Suffix messages:");
-            render_config_list(
-                ui,
-                &mut self.suffix_messages,
-                Some("{\"role\": \"user\",\"content\": \"\"}"),
-                Some("{\"role\": \"user\",\"content\": \"\"}"),
-                2.0,
-            );
-        });
+        if !self.suffix_messages.is_empty() {
+            ui.group(|ui| {
+                ui.label("Suffix messages:");
+                render_config_list(
+                    ui,
+                    &mut self.suffix_messages,
+                    Some("{\"role\": \"user\",\"content\": \"\"}"),
+                    Some("{\"role\": \"user\",\"content\": \"\"}"),
+                    2.0,
+                );
+            });
+        }
 
         ui.group(|ui| {
             ui.label("Request headers:");
