@@ -664,22 +664,25 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             for content in content {
                 if let Value::Object(mut content) = content
                     && let Some(Value::String(content_type)) = content.get("type")
-                    && content_type == "output_text"
-                    && let Some(Value::String(text)) = content.remove("text")
                 {
-                    if should_accum_logprobs
-                        && let Some(Value::Array(logprobs_list_json)) = content.remove("logprobs")
-                        && let Some(logprobs_value) =
-                            parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
+                    if content_type == "output_text"
+                        && let Some(Value::String(text)) = content.remove("text")
                     {
-                        tokens.extend(logprobs_value);
-                    } else {
-                        should_accum_logprobs = false;
-                        tokens.clear();
-                        tokens.shrink_to_fit();
-                    };
+                        if should_accum_logprobs
+                            && let Some(Value::Array(logprobs_list_json)) =
+                                content.remove("logprobs")
+                            && let Some(logprobs_value) =
+                                parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
+                        {
+                            tokens.extend(logprobs_value);
+                        } else {
+                            should_accum_logprobs = false;
+                            tokens.clear();
+                            tokens.shrink_to_fit();
+                        };
 
-                    bytes.extend(text.into_bytes());
+                        bytes.extend(text.into_bytes());
+                    }
                 } else {
                     return None;
                 }
