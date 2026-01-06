@@ -291,7 +291,8 @@ impl FileManager {
 
                                                     ui.separator();
 
-                                                    if ui.button("Duplicate item").clicked() {
+                                                    if item.r#type != ScannedItemType::Other
+                                                        && ui.button("Duplicate item").clicked() {
                                                         *self.modal.borrow_mut() = ModalType::Copy((
                                                             item.path.clone(),
                                                             item.path.to_string_lossy().to_string(),
@@ -364,10 +365,11 @@ impl FileManager {
                                                     }
                                                 }
 
-                                                if ui
-                                                    .button("\u{E09E}")
-                                                    .on_hover_text("Duplicate item")
-                                                    .clicked()
+                                                if item.r#type != ScannedItemType::Other
+                                                    && ui
+                                                        .button("\u{E09E}")
+                                                        .on_hover_text("Duplicate item")
+                                                        .clicked()
                                                 {
                                                     *self.modal.borrow_mut() = ModalType::Copy((
                                                         item.path.clone(),
