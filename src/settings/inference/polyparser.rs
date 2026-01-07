@@ -44,7 +44,10 @@ TODO:
 - do testing with koboldcpp
 - do testing with vllm
 - do testing with sglang
+- do testing with text-generation-inference
+- do testing with lm-studio
 - do testing with ollama
+- do testing with swama
 - unit tests
 */
 
@@ -545,6 +548,13 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             contents: ResponseContents::Tokens(tokens),
         })
     } else if let Some(Value::String(text)) = json.remove("text") {
+        Some(ResponseItem {
+            index,
+            role,
+            finish_reason,
+            contents: ResponseContents::Text(text.into_bytes()),
+        })
+    } else if let Some(Value::String(text)) = json.remove("generated_text") {
         Some(ResponseItem {
             index,
             role,
