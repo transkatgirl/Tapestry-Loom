@@ -5619,6 +5619,7 @@ dependencies = [
  "env_logger",
  "flagset",
  "font-kit",
+ "linked-hash-map",
  "log",
  "mimalloc",
  "ml-distance",

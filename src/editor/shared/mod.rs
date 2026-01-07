@@ -609,7 +609,7 @@ impl From<InnerNodeContent> for TokensOrBytes {
                 for (token, mut token_metadata) in tokens {
                     if let Some(token_id) = token_metadata
                         .swap_remove("token_id")
-                        .and_then(|id| id.parse::<i128>().ok())
+                        .and_then(|id| id.parse::<u64>().ok())
                         && let Some(model_id) = token_metadata
                             .swap_remove("model_id")
                             .and_then(|id| Ulid::from_string(&id).ok())

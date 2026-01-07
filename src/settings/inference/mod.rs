@@ -11,6 +11,7 @@ use eframe::egui::{
     TextStyle, Ui, Widget, WidgetText,
     color_picker::{Alpha, color_edit_button_srgba},
 };
+use linked_hash_map::LinkedHashMap;
 use log::trace;
 use poll_promise::Promise;
 use reqwest::{Client, ClientBuilder};
@@ -98,18 +99,22 @@ pub struct InferenceClient {
 
 #[derive(Clone)]
 pub struct InferenceCache {
-    tokens: Arc<Mutex<InferenceTokenCache>>,
+    embeddings: Arc<Mutex<EmbeddingCache>>,
+    tokens: Arc<Mutex<TokenizationCache>>,
 }
 
 impl Default for InferenceCache {
     fn default() -> Self {
         Self {
+            embeddings: Arc::new(Mutex::new(LinkedHashMap::with_capacity(128))),
             tokens: Arc::new(Mutex::new(HashMap::with_capacity(16))),
         }
     }
 }
 
-type InferenceTokenCache = HashMap<Ulid, Arc<Mutex<HashMap<Vec<u8>, Vec<i128>>>>>;
+type EmbeddingCache = LinkedHashMap<Vec<u8>, Vec<f32>>;
+
+type TokenizationCache = HashMap<Ulid, Arc<Mutex<LinkedHashMap<Vec<u8>, Vec<u64>>>>>;
 
 impl InferenceSettings {
     pub(super) fn render(&mut self, ui: &mut Ui) {
@@ -1018,7 +1023,7 @@ pub fn render_config_list(
 
 #[derive(Debug, Clone)]
 pub enum TokensOrBytes {
-    TokensAndBytes(Vec<(Vec<u8>, i128, Ulid)>),
+    TokensAndBytes(Vec<(Vec<u8>, u64, Ulid)>),
     Bytes(Vec<u8>),
 }
 
@@ -1035,7 +1040,7 @@ impl TokensOrBytes {
 }
 
 enum RequestTokensOrBytes {
-    Tokens(Vec<i128>),
+    Tokens(Vec<u64>),
     Bytes(Vec<u8>),
 }
 
@@ -1104,9 +1109,9 @@ impl RequestTokensOrBytes {
     async fn cached_into_tokens_async(
         self,
         identifier: Ulid,
-        cache: &Mutex<InferenceTokenCache>,
-        byte_handler: impl AsyncFnOnce(Vec<u8>) -> Result<Vec<i128>, anyhow::Error>,
-    ) -> Result<Vec<i128>, anyhow::Error> {
+        cache: &Mutex<TokenizationCache>,
+        byte_handler: impl AsyncFnOnce(Vec<u8>) -> Result<Vec<u64>, anyhow::Error>,
+    ) -> Result<Vec<u64>, anyhow::Error> {
         match self {
             Self::Bytes(bytes) => {
                 let mut model_cache = match cache.lock().await.entry(identifier) {
@@ -1122,8 +1127,9 @@ impl RequestTokensOrBytes {
                         }
                     }
                     Entry::Vacant(vacant) => {
-                        let occupied = vacant
-                            .insert_entry(Arc::new(Mutex::new(HashMap::with_capacity(16384))));
+                        let occupied = vacant.insert_entry(Arc::new(Mutex::new(
+                            LinkedHashMap::with_capacity(16384),
+                        )));
                         occupied.get().clone().lock_owned().await
                     }
                 };
@@ -1135,6 +1141,10 @@ impl RequestTokensOrBytes {
                 trace!("{:?} = {:?}", String::from_utf8_lossy(&bytes), tokens);
 
                 model_cache.insert(bytes, tokens.clone());
+
+                while model_cache.len() >= 16383 {
+                    model_cache.pop_front();
+                }
 
                 Ok(tokens)
             }

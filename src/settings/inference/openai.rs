@@ -439,7 +439,7 @@ impl Endpoint for OpenAICompletionsConfig {
                     token_segments
                         .into_iter()
                         .flatten()
-                        .map(|t| Value::Number(Number::from_i128(t).unwrap()))
+                        .map(|t| Value::Number(Number::from_u128(t.into()).unwrap()))
                         .collect(),
                 ),
             );

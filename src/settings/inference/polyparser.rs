@@ -46,7 +46,6 @@ TODO:
 - do testing with ollama
 - do testing with swama
 - unit tests
-- add support for text-generation-inference responses
 */
 
 use base64::{Engine, prelude::BASE64_STANDARD};
@@ -125,7 +124,7 @@ impl Token {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LogprobToken {
-    pub id: Option<i128>,
+    pub id: Option<u64>,
     pub contents: Vec<u8>,
     pub logprob: f64,
 }
@@ -861,7 +860,7 @@ fn parse_openai_completion_logprobs(
 
         for token_id in token_ids {
             if let Value::Number(id) = token_id
-                && let Some(id) = id.as_i128()
+                && let Some(id) = id.as_u64()
             {
                 token_id_list.push(id);
             } else {
@@ -984,7 +983,7 @@ fn parse_openai_chatcompletion_logprobs_content(
 
         for token_id in token_ids {
             if let Value::Number(id) = token_id
-                && let Some(id) = id.as_i128()
+                && let Some(id) = id.as_u64()
             {
                 token_id_list.push(id);
             } else {
@@ -1076,7 +1075,7 @@ fn parse_openai_chatcompletion_logprob_content_subitem(
     };
 
     let id = if let Some(Value::Number(id)) = logprob_json.remove("id") // llama-cpp
-        && let Some(id) = id.as_i128()
+        && let Some(id) = id.as_u64()
     {
         Some(id)
     } else {
@@ -1174,7 +1173,7 @@ fn parse_gemma_logprob_candidate(mut logprob_json: Map<String, Value>) -> Option
     {
         Some(LogprobToken {
             id: if let Some(Value::Number(token_id)) = logprob_json.remove("tokenId")
-                && let Some(token_id) = token_id.as_i128()
+                && let Some(token_id) = token_id.as_u64()
             {
                 Some(token_id)
             } else {
