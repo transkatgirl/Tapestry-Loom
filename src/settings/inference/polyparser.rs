@@ -14,9 +14,6 @@ However, it intentionally omits the following features:
 Based on the following:
 - https://platform.openai.com/docs/api-reference/completions/object
     - TODO: Test vLLM chatcompletions w/ return_token_ids: true
-    - TODO: Handle "echo": true
-    - TODO: Handle vLLM-specific "choices.prompt_token_ids"
-    - TODO: Handle vLLM-specific "choices.prompt_logprobs"
 - https://platform.openai.com/docs/api-reference/chat/object
 - https://platform.openai.com/docs/api-reference/chat-streaming/streaming
 - https://platform.openai.com/docs/api-reference/responses/object
@@ -49,6 +46,7 @@ TODO:
 - do testing with ollama
 - do testing with swama
 - unit tests
+- add support for text-generation-inference responses
 */
 
 use log::trace;
