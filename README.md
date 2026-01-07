@@ -149,7 +149,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 - [x] Refactor API client
 	- [x] Improve token confidence calculation to work properly with vLLM
 	- [x] Use logprob text_offset value when present
-- [ ] Place responses with `echo: true` at the root of the tree
+- [x] Place responses with `echo: true` at the root of the tree
 - [ ] Improve handling of hovered + omitted/collapsed nodes
 - [ ] Add setting to swap shift-click and normal click behavior
 - [ ] Replace is_shift_pressed with response.clicked_with_open_in_background()

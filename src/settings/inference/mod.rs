@@ -669,11 +669,14 @@ impl InferenceParameters {
                                 responses
                                     .into_iter()
                                     .map(|response| {
-                                        Ok(NodeContent {
-                                            content: response.content,
-                                            metadata: IndexMap::from_iter(response.metadata),
-                                            model: Some(content_model.clone()),
-                                        })
+                                        Ok((
+                                            NodeContent {
+                                                content: response.content,
+                                                metadata: IndexMap::from_iter(response.metadata),
+                                                model: Some(content_model.clone()),
+                                            },
+                                            response.root,
+                                        ))
                                     })
                                     .collect()
                             }),
@@ -721,7 +724,7 @@ impl InferenceParameters {
 
                     for (i, item) in content.iter().enumerate() {
                         let mut parent_content = value.parent_content.as_ref().clone();
-                        parent_content.push(item.content.clone().into());
+                        parent_content.push(item.0.content.clone().into());
 
                         parameters.create_request_inner(
                             value.models.clone(),
@@ -740,11 +743,15 @@ impl InferenceParameters {
                         for (i, content) in contents.into_iter().enumerate() {
                             output.push(Ok(DependentNode {
                                 id: identifiers[i].0,
-                                from: value.parent.map(|id| id.0),
+                                from: if !content.1 {
+                                    value.parent.map(|id| id.0)
+                                } else {
+                                    None
+                                },
                                 to: IndexSet::default(),
                                 active: false,
                                 bookmarked: false,
-                                contents: content,
+                                contents: content.0,
                             }));
                         }
                     }
@@ -760,7 +767,7 @@ pub struct InferenceHandle {
     parent_content: Arc<Vec<TokensOrBytes>>,
     models: Rc<IndexMap<Ulid, InferenceModel>>,
     parameters: Rc<InferenceParameters>,
-    handle: Promise<Result<Vec<NodeContent>, anyhow::Error>>,
+    handle: Promise<Result<Vec<(NodeContent, bool)>, anyhow::Error>>,
 }
 
 #[derive(Default, Debug, PartialEq)]
@@ -915,6 +922,7 @@ struct EndpointRequest {
 }
 
 struct EndpointResponse {
+    root: bool,
     content: InnerNodeContent,
     metadata: Vec<(String, String)>,
 }

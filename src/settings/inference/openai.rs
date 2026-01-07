@@ -379,6 +379,8 @@ impl Endpoint for OpenAICompletionsConfig {
         build_json_object(&mut body, self.parameters.clone());
         build_json_object(&mut body, request.parameters.as_ref().clone());
 
+        let echo = body.get("echo").and_then(|t| t.as_bool()).unwrap_or(false);
+
         let single_token = body
             .get("max_tokens")
             .and_then(|t| t.as_u64())
@@ -505,6 +507,7 @@ impl Endpoint for OpenAICompletionsConfig {
             response,
             metadata,
             tokenization_identifier,
+            echo,
             single_token,
             requested_top,
         );
@@ -727,6 +730,7 @@ impl Endpoint for OpenAIChatCompletionsConfig {
             response,
             metadata,
             tokenization_identifier,
+            false,
             single_token,
             requested_top,
         );
@@ -835,6 +839,7 @@ fn parse_openai_response(
     response: Map<String, Value>,
     metadata: Vec<(String, String)>,
     tokenization_identifier: Ulid,
+    echo: bool,
     single_token: bool,
     requested_top: Option<usize>,
 ) -> Vec<EndpointResponse> {
@@ -873,6 +878,7 @@ fn parse_openai_response(
 
         match item.contents {
             polyparser::ResponseContents::Text(text) => outputs.push(EndpointResponse {
+                root: echo,
                 content: InnerNodeContent::Snippet(text),
                 metadata,
             }),
@@ -931,6 +937,7 @@ fn parse_openai_response(
                         }
 
                         EndpointResponse {
+                            root: false,
                             content: InnerNodeContent::Tokens(vec![(
                                 top_token.contents,
                                 token_metadata,
@@ -1000,11 +1007,13 @@ fn parse_openai_response(
                     .collect();
 
                 outputs.push(EndpointResponse {
+                    root: echo,
                     content: InnerNodeContent::Tokens(tokens),
                     metadata,
                 });
             }
             polyparser::ResponseContents::Empty => outputs.push(EndpointResponse {
+                root: echo,
                 content: InnerNodeContent::Snippet(Vec::new()),
                 metadata,
             }),
