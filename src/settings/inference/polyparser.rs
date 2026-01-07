@@ -21,6 +21,7 @@ Based on the following:
 - https://platform.openai.com/docs/api-reference/chat-streaming/streaming
 - https://platform.openai.com/docs/api-reference/responses/object
 - https://platform.openai.com/docs/api-reference/responses-streaming/response/output_text/delta
+- https://platform.openai.com/docs/api-reference/responses-streaming/response/content_part/added
 - https://platform.openai.com/docs/api-reference/responses-streaming/response/incomplete
 - https://platform.openai.com/docs/api-reference/responses-streaming/response/failed
 - https://platform.openai.com/docs/api-reference/responses-streaming/response/completed
@@ -92,7 +93,7 @@ pub enum ResponseContents {
 }
 
 impl ResponseContents {
-    fn into_text_bytes(self) -> Vec<u8> {
+    pub fn into_text_bytes(self) -> Vec<u8> {
         match self {
             Self::Text(text) => text,
             Self::Tokens(tokens) => tokens
@@ -308,14 +309,23 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
         }
     } else if let Some(Value::String(output_type)) = json.get("type") {
         match output_type.as_ref() {
-            "completion" | "message" => {
+            "completion" | "message" | "response.output_text.delta" => {
                 if let Some(item) = parse_item(json) {
                     items.push(item);
                 }
             }
-            "response.output_text.delta" => {
-                if let Some(Value::Object(response)) = json.remove("response") {
-                    return parse_response(response);
+            "response.content_part.added" => {
+                if let Some(Value::Object(part)) = json.remove("part")
+                    && let Some(mut item) = parse_item(part)
+                {
+                    if item.index.is_none()
+                        && let Some(Value::Number(output_index)) = json.remove("output_index")
+                        && let Some(output_index) = output_index.as_u64()
+                    {
+                        item.index = Some(output_index as usize);
+                    }
+
+                    items.push(item);
                 }
             }
             "response.completed" => {
@@ -427,7 +437,8 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     if let Some(Value::String(output_type)) = json.get("type")
         && !(output_type == "message"
             || output_type == "response.output_text.delta"
-            || output_type == "completion")
+            || output_type == "completion"
+            || output_type == "output_text")
     {
         return None;
     }
