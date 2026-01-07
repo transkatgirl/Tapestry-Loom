@@ -49,6 +49,7 @@ TODO:
 - add support for text-generation-inference responses
 */
 
+use base64::{Engine, prelude::BASE64_STANDARD};
 use log::trace;
 use serde_json::{Map, Value};
 
@@ -129,8 +130,6 @@ pub struct LogprobToken {
     pub logprob: f64,
 }
 
-// TODO: Decode base64 responses (as array of float32 values)
-
 pub fn parse_embedding_response(json: Value) -> Vec<Option<Vec<f32>>> {
     if let Value::Object(mut json) = json {
         if let Some(embedding) = json.remove("embedding") {
@@ -138,6 +137,21 @@ pub fn parse_embedding_response(json: Value) -> Vec<Option<Vec<f32>>> {
                 embedding
                     .remove("values")
                     .and_then(|v| serde_json::from_value::<Vec<f32>>(v).ok())
+            } else if let Value::String(embedding) = embedding {
+                if let Ok(embedding) = BASE64_STANDARD.decode(embedding)
+                    && embedding.len() % 4 == 0
+                {
+                    Some(
+                        embedding
+                            .as_chunks::<4>()
+                            .0
+                            .iter()
+                            .map(|chunk| f32::from_le_bytes(*chunk))
+                            .collect(),
+                    )
+                } else {
+                    None
+                }
             } else {
                 serde_json::from_value::<Vec<f32>>(embedding).ok()
             }]

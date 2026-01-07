@@ -84,6 +84,7 @@ egui_plot = "0.34.0"
 rust-sugiyama = "0.4.0"
 ml-distance = "1.0.1"
 elkai-rs = "0.1.7"
+base64 = "0.22.1"
 #egui_dnd = "0.14.0"
 
 [build-dependencies]

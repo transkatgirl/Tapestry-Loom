@@ -5602,6 +5602,7 @@ name = "tapestry-loom"
 version = "0.10.13"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "bytes",
  "cargo_metadata",
  "chrono",
