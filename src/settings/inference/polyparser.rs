@@ -68,10 +68,17 @@ impl ResponseItem {
             self.role = None;
         }
     }
-    pub fn remove_selected_from_top(&mut self, requested_top: usize) {
+    fn sort_top(&mut self) {
         if let ResponseContents::Tokens(tokens) = &mut self.contents {
             for token in tokens {
-                token.remove_selected_from_top(requested_top);
+                token.sort_top();
+            }
+        }
+    }
+    fn remove_excess_tokens(&mut self, requested_top: usize) {
+        if let ResponseContents::Tokens(tokens) = &mut self.contents {
+            for token in tokens {
+                token.remove_excess_tokens(requested_top);
             }
         }
     }
@@ -104,25 +111,13 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn remove_selected_from_top(&mut self, requested_top: usize) {
-        if self.top_tokens.len() == requested_top + 1 {
-            let index = self
-                .top_tokens
-                .iter()
-                .enumerate()
-                .find(|(_index, top_token)| {
-                    (top_token.id == self.token.id
-                        || top_token.id.is_none()
-                        || self.token.id.is_none())
-                        && top_token.contents == self.token.contents
-                        && top_token.logprob == self.token.logprob
-                })
-                .map(|(index, _)| index);
-
-            if let Some(index) = index {
-                self.top_tokens.remove(index);
-                self.top_tokens.shrink_to_fit();
-            }
+    fn sort_top(&mut self) {
+        self.top_tokens
+            .sort_unstable_by(|a, b| a.logprob.total_cmp(&b.logprob));
+    }
+    fn remove_excess_tokens(&mut self, requested_top: usize) {
+        while self.top_tokens.len() > requested_top {
+            self.top_tokens.pop();
         }
     }
 }
@@ -185,7 +180,10 @@ pub struct LogprobToken {
     }
 }*/
 
-pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
+pub fn parse_response(
+    mut json: Map<String, Value>,
+    requested_top_tokens: Option<usize>,
+) -> Vec<ResponseItem> {
     let mut items = Vec::with_capacity(1);
 
     if let Some(Value::String(output_object)) = json.get("object") {
@@ -419,6 +417,13 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
         }
     } else if let Some(item) = parse_item(json) {
         items.push(item);
+    }
+
+    for item in &mut items {
+        item.sort_top();
+        if let Some(requested_top) = requested_top_tokens {
+            item.remove_excess_tokens(requested_top);
+        }
     }
 
     trace!("{:#?}", &items);

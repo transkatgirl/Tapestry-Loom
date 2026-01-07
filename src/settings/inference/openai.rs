@@ -835,15 +835,12 @@ fn parse_openai_response(
 ) -> Vec<EndpointResponse> {
     trace!("{:#?}", &response);
 
-    let items = polyparser::parse_response(response);
+    let items = polyparser::parse_response(response, requested_top);
 
     let mut outputs = Vec::with_capacity(items.len());
 
     for mut item in items {
         item.clear_normal();
-        if let Some(requested_top) = requested_top {
-            item.remove_selected_from_top(requested_top);
-        }
 
         let mut metadata = metadata.clone();
 
