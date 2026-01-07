@@ -386,7 +386,7 @@ impl Endpoint for OpenAICompletionsConfig {
             .unwrap_or(false);
 
         let requested_top = body
-            .get("max_tokens")
+            .get("logprobs")
             .and_then(|t| t.as_u64())
             .map(|t| t as usize);
 
@@ -657,6 +657,11 @@ impl Endpoint for OpenAIChatCompletionsConfig {
             .map(|t| t == 1)
             .unwrap_or(false);
 
+        let requested_top = body
+            .get("logprobs")
+            .and_then(|t| t.as_u64())
+            .map(|t| t as usize);
+
         if body.remove("stream").is_some() {
             body.insert("stream".to_string(), Value::Bool(false));
         };
@@ -723,7 +728,7 @@ impl Endpoint for OpenAIChatCompletionsConfig {
             metadata,
             tokenization_identifier,
             single_token,
-            None,
+            requested_top,
         );
 
         if !endpoint_response.is_empty() {
