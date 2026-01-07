@@ -844,10 +844,10 @@ fn parse_openai_completion_logprobs(
                 let next_text_offset = text_offset.get(index + 1);
 
                 if let Value::Number(text_offset) = &text_offset[index]
-                    && let Value::Number(logprob) = &token_logprobs[index]
                     && let Some(text_offset) = text_offset.as_u64()
-                    && let Some(logprob) = logprob.as_f64()
                 {
+                    let logprob = &token_logprobs[index];
+
                     let contents = if let Some(next_text_offset) = next_text_offset {
                         if let Value::Number(next_text_offset) = next_text_offset
                             && let Some(next_text_offset) = next_text_offset.as_u64()
@@ -864,7 +864,7 @@ fn parse_openai_completion_logprobs(
                         token_list.push(LogprobToken {
                             id: None,
                             contents,
-                            logprob,
+                            logprob: logprob.as_f64().unwrap_or(f64::NAN), // vllm
                         });
                     } else {
                         token_list.clear();
