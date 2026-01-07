@@ -83,6 +83,7 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 - /v1/completions
 	- `return_token_ids` = `true`
 		- Optional; Allows (partial) reuse of output token IDs when using Tapestry Tokenize. However, (unlike llama.cpp) token IDs are only returned for the selected token, not for all top_logprobs.
+		- Must be removed when using `echo` = `true`
 - /v1/chat/completions
 	- `return_token_ids` = `true`
 		- Optional; Allows (partial) reuse of output token IDs when using Tapestry Tokenize. However, (unlike llama.cpp) token IDs are only returned for the selected token, not for all top_logprobs.
