@@ -77,7 +77,17 @@ See [migration-assistant](./migration-assistant/README.md) for more information 
 
 ### Local inference
 
-[llama.cpp](https://github.com/ggml-org/llama.cpp)'s llama-server is recommended, as it has been confirmed to work properly with *all* of the features within Tapestry Loom.
+[llama.cpp](https://github.com/ggml-org/llama.cpp)'s llama-server is recommended, as it has been confirmed to work properly with *all* of the features within Tapestry Loom (except [returning prompt logprobs](https://github.com/ggml-org/llama.cpp/pull/17935)).
+
+[vLLM](https://vllm.ai) requires additional request arguments to work properly with Tapestry Loom:
+- /v1/completions
+	- `return_token_ids` = `true`
+		- Optional; Allows (partial) reuse of output token IDs when using Tapestry Tokenize. However, (unlike llama.cpp) token IDs are only returned for the selected token, not for all top_logprobs.
+- /v1/chat/completions
+	- `return_token_ids` = `true`
+		- Optional; Allows (partial) reuse of output token IDs when using Tapestry Tokenize. However, (unlike llama.cpp) token IDs are only returned for the selected token, not for all top_logprobs.
+	- `continue_final_message` = `true`
+	- `add_generation_prompt` = `false`
 
 **Ollama should *not* be used** due to [bad sampling settings](https://docs.ollama.com/modelfile#valid-parameters-and-values) which [cannot be overridden in API requests](https://github.com/ollama/ollama/issues/11325), along with a lack of available base models.
 
