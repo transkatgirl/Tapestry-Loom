@@ -316,14 +316,14 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
             }
             "response.content_part.added" => {
                 if let Some(Value::Object(part)) = json.remove("part")
-                    && let Some(mut item) = parse_item(part)
+                    && let Some(item) = parse_item(part)
                 {
-                    if item.index.is_none()
+                    /*if item.index.is_none()
                         && let Some(Value::Number(output_index)) = json.remove("output_index")
                         && let Some(output_index) = output_index.as_u64()
                     {
                         item.index = Some(output_index as usize);
-                    }
+                    }*/
 
                     items.push(item);
                 }
@@ -448,10 +448,10 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         && let Some(index) = index.as_u64()
     {
         Some(index as usize)
-    } else if let Some(Value::Number(output_index)) = json.remove("output_index")
+    /*} else if let Some(Value::Number(output_index)) = json.remove("output_index")
         && let Some(output_index) = output_index.as_u64()
     {
-        Some(output_index as usize)
+        Some(output_index as usize)*/
     } else {
         None
     };
