@@ -69,15 +69,6 @@ impl ResponseItem {
         {
             self.role = None;
         }
-
-        if let Some(finish_reason) = &self.finish_reason
-            && (finish_reason == "stop"
-                || finish_reason == "stop_sequence"
-                || finish_reason == "end_turn"
-                || finish_reason == "completed")
-        {
-            self.finish_reason = None;
-        }
     }
     pub fn remove_selected_from_top(&mut self, requested_top: usize) {
         if let ResponseContents::Tokens(tokens) = &mut self.contents {
@@ -468,6 +459,10 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         Some(finish_reason)
     } else if let Some(Value::String(done_reason)) = json.remove("done_reason") {
         Some(done_reason)
+    } else if let Some(Value::Object(details)) = json.get_mut("details")
+        && let Some(Value::String(finish_reason)) = details.remove("finish_reason")
+    {
+        Some(finish_reason)
     } else {
         None
     };
