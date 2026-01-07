@@ -347,7 +347,9 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
             "response.incomplete" => {
                 items.push(ResponseItem {
                     index: None,
-                    role: if let Some(Value::Object(mut response)) = json.remove("response")
+                    role: None,
+                    finish_reason: if let Some(Value::Object(mut response)) =
+                        json.remove("response")
                         && let Some(Value::Object(mut incomplete_details)) =
                             response.remove("incomplete_details")
                         && let Some(Value::String(reason)) = incomplete_details.remove("reason")
@@ -356,7 +358,6 @@ pub fn parse_response(mut json: Map<String, Value>) -> Vec<ResponseItem> {
                     } else {
                         Some("incomplete".to_string())
                     },
-                    finish_reason: None,
                     contents: ResponseContents::Empty,
                 });
             }
