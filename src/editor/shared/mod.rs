@@ -30,6 +30,7 @@ use crate::{
 };
 
 pub(super) mod layout;
+pub(super) mod seriate;
 pub(super) mod weave;
 
 pub struct SharedState {

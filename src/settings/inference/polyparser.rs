@@ -129,7 +129,9 @@ pub struct LogprobToken {
     pub logprob: f64,
 }
 
-/*pub fn parse_embedding_response(json: Value) -> Vec<Option<Vec<f32>>> {
+// TODO: Decode base64 responses (as array of float32 values)
+
+pub fn parse_embedding_response(json: Value) -> Vec<Option<Vec<f32>>> {
     if let Value::Object(mut json) = json {
         if let Some(embedding) = json.remove("embedding") {
             vec![if let Value::Object(mut embedding) = embedding {
@@ -178,7 +180,7 @@ pub struct LogprobToken {
     } else {
         vec![None]
     }
-}*/
+}
 
 pub fn parse_response(
     mut json: Map<String, Value>,
