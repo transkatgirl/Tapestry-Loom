@@ -113,7 +113,7 @@ pub struct Token {
 impl Token {
     fn sort_top(&mut self) {
         self.top_tokens
-            .sort_unstable_by(|a, b| a.logprob.total_cmp(&b.logprob));
+            .sort_unstable_by(|a, b| b.logprob.total_cmp(&a.logprob));
     }
     fn remove_excess_tokens(&mut self, requested_top: usize) {
         while self.top_tokens.len() > requested_top {
