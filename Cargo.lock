@@ -264,6 +264,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
 
 [[package]]
+name = "approx"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cab112f0a86d568ea0e627cc1d6be74a1e9cd55214684db5561995f6dad897c6"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "arboard"
 version = "3.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1847,6 +1856,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
+name = "elkai-rs"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58480e9dfb1ffe6f0f1afa9b42cf14f26dcfec92fd57759ae67e808c15b4c699"
+dependencies = [
+ "cc",
+ "glob",
+ "libc",
+ "num-traits",
+]
+
+[[package]]
 name = "emath"
 version = "0.33.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3408,6 +3429,15 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "ml-distance"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c43d932eccd4586886212643f047cf7d36023284c6b8d30aa2e69967324a443"
+dependencies = [
+ "approx",
 ]
 
 [[package]]
@@ -5584,11 +5614,13 @@ dependencies = [
  "egui_solarized",
  "egui_tiles",
  "egui_virtual_list",
+ "elkai-rs",
  "env_logger",
  "flagset",
  "font-kit",
  "log",
  "mimalloc",
+ "ml-distance",
  "parking_lot",
  "poll-promise",
  "reqwest",
