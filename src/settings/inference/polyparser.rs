@@ -13,7 +13,7 @@ However, it intentionally omits the following features:
 
 Based on the following:
 - https://platform.openai.com/docs/api-reference/completions/object
-    - TODO: Test vLLM chatcompletions w/ return_token_ids: true
+    - TODO: Test vLLM responses w/ return_token_ids: true
 - https://platform.openai.com/docs/api-reference/chat/object
 - https://platform.openai.com/docs/api-reference/chat-streaming/streaming
 - https://platform.openai.com/docs/api-reference/responses/object
@@ -506,19 +506,19 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
 
     let tokens = if let Some(logprobs_json) = json.remove("logprobs") {
         if let Value::Object(mut logprobs_json) = logprobs_json {
-            if let Some(Value::Array(logprobs_list_json)) = logprobs_json.remove("content") {
-                parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
-            } else {
-                let token_ids = json
-                    .remove("token_ids") // vllm
-                    .and_then(|item| {
-                        if let Value::Array(item) = item {
-                            Some(item)
-                        } else {
-                            None
-                        }
-                    });
+            let token_ids = json
+                .remove("token_ids") // vllm
+                .and_then(|item| {
+                    if let Value::Array(item) = item {
+                        Some(item)
+                    } else {
+                        None
+                    }
+                });
 
+            if let Some(Value::Array(logprobs_list_json)) = logprobs_json.remove("content") {
+                parse_openai_chatcompletion_logprobs_content(logprobs_list_json, token_ids)
+            } else {
                 let text = if let Some(Value::String(text)) = json.get("text") {
                     Some(text.as_ref())
                 } else {
@@ -528,7 +528,7 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                 parse_openai_completion_logprobs(logprobs_json, text, token_ids)
             }
         } else if let Value::Array(logprobs_list_json) = logprobs_json {
-            parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
+            parse_openai_chatcompletion_logprobs_content(logprobs_list_json, None)
         } else {
             None
         }
@@ -648,7 +648,18 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                     let tokens = if let Some(Value::Array(logprobs_list_json)) =
                         content.remove("logprobs")
                     {
-                        parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
+                        parse_openai_chatcompletion_logprobs_content(
+                            logprobs_list_json,
+                            content
+                                .remove("token_ids") // vllm
+                                .and_then(|item| {
+                                    if let Value::Array(item) = item {
+                                        Some(item)
+                                    } else {
+                                        None
+                                    }
+                                }),
+                        )
                     } else {
                         None
                     };
@@ -716,7 +727,18 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                             && let Some(Value::Array(logprobs_list_json)) =
                                 content.remove("logprobs")
                             && let Some(mut logprobs_value) =
-                                parse_openai_chatcompletion_logprobs_content(logprobs_list_json)
+                                parse_openai_chatcompletion_logprobs_content(
+                                    logprobs_list_json,
+                                    content
+                                        .remove("token_ids") // vllm
+                                        .and_then(|item| {
+                                            if let Value::Array(item) = item {
+                                                Some(item)
+                                            } else {
+                                                None
+                                            }
+                                        }),
+                                )
                         {
                             tokens.append(&mut logprobs_value);
                         } else {
@@ -937,7 +959,26 @@ fn parse_openai_completion_logprobs(
 
 fn parse_openai_chatcompletion_logprobs_content(
     logprobs_list_json: Vec<Value>,
+    token_ids: Option<Vec<Value>>,
 ) -> Option<Vec<Token>> {
+    let mut token_id_list = Vec::new();
+
+    if let Some(token_ids) = token_ids {
+        token_id_list.reserve_exact(token_ids.len());
+
+        for token_id in token_ids {
+            if let Value::Number(id) = token_id
+                && let Some(id) = id.as_i128()
+            {
+                token_id_list.push(id);
+            } else {
+                token_id_list.clear();
+                token_id_list.shrink_to_fit();
+                break;
+            }
+        }
+    }
+
     let mut tokens = Vec::with_capacity(logprobs_list_json.len());
 
     for logprob_json in logprobs_list_json {
@@ -947,6 +988,12 @@ fn parse_openai_chatcompletion_logprobs_content(
             tokens.push(token);
         } else {
             return None;
+        }
+    }
+
+    if tokens.len() == token_id_list.len() {
+        for (token, token_id) in tokens.iter_mut().zip(token_id_list) {
+            token.token.id = Some(token_id)
         }
     }
 
