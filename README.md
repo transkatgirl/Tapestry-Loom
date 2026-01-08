@@ -100,7 +100,7 @@ LM Studio is not recommended due to a lack of support for logprobs.
 The recommended CLI arguments for [llama-server](https://github.com/ggml-org/llama.cpp/tree/master/tools/server) are listed below:
 
 ```bash
-llama-server --models-dir $MODEL_DIRECTORY --models-max 1 --sleep-idle-seconds 1200 --jinja --chat-template "message.content" --ctx-size 4096 --temp 1 --top-k 0 --top-p 1 --min-p 0
+llama-server --embeddings --models-dir $MODEL_DIRECTORY --models-max 1 --sleep-idle-seconds 1200 --jinja --chat-template "message.content" --ctx-size 4096 --temp 1 --top-k 0 --top-p 1 --min-p 0
 ```
 
 Where `$MODEL_DIRECTORY` is set to the directory where model gguf files are stored.
@@ -124,6 +124,8 @@ If you are running llama-server on the same device as Tapestry Loom (and you are
 #### Recommended models
 
 If you are new to working with LLM base models, [Trinity-Mini-Base-Pre-Anneal](https://huggingface.co/mradermacher/Trinity-Mini-Base-Pre-Anneal-GGUF) or ([Trinity-Nano-Base-Pre-Anneal](https://huggingface.co/mradermacher/Trinity-Nano-Base-Pre-Anneal-GGUF) if you have <32GB of VRAM) is a good first model to try.
+
+<!-- If you plan on using seriation, [embeddinggemma-300m](https://huggingface.co/unsloth/embeddinggemma-300m-GGUF) is a good small embedding model. -->
 
 ### Inference providers
 
