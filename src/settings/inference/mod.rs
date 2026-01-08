@@ -106,7 +106,7 @@ pub struct InferenceCache {
 impl Default for InferenceCache {
     fn default() -> Self {
         Self {
-            embeddings: Arc::new(Mutex::new(LinkedHashMap::with_capacity(128))),
+            embeddings: Arc::new(Mutex::new(LinkedHashMap::with_capacity(512))),
             tokens: Arc::new(Mutex::new(HashMap::with_capacity(16))),
         }
     }
@@ -943,6 +943,17 @@ trait Endpoint: Serialize + DeserializeOwned + Clone {
         request: EndpointRequest,
         tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error>;
+}
+
+trait EmbeddingEndpoint: Serialize + DeserializeOwned + Clone {
+    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid) -> bool;
+    fn label(&self) -> &str;
+    async fn perform_request(
+        &self,
+        client: &InferenceClient,
+        cache: &InferenceCache,
+        requests: Vec<Vec<u8>>,
+    ) -> Result<Vec<Vec<f32>>, anyhow::Error>;
 }
 
 trait Template<T>: Default + Clone

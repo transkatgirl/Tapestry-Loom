@@ -195,6 +195,27 @@ pub fn parse_embedding_response(json: Value) -> Vec<Option<Vec<f32>>> {
     }
 }
 
+pub fn convert_embedding_response(
+    response: Vec<Option<Vec<f32>>>,
+    target_len: usize,
+) -> Option<Vec<Vec<f32>>> {
+    if response.len() == target_len {
+        let mut output = Vec::with_capacity(response.len());
+
+        for item in response {
+            if let Some(item) = item {
+                output.push(item);
+            } else {
+                return None;
+            }
+        }
+
+        Some(output)
+    } else {
+        None
+    }
+}
+
 pub fn parse_response(
     mut json: Map<String, Value>,
     requested_top_tokens: Option<usize>,
