@@ -214,9 +214,8 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 		- [ ] mlc-llm
 		- [ ] shimmy
 	- [ ] Write unit tests for response parser
-- [ ] Embedding model support
+- [x] Embedding model support
 	- [x] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
-	- [ ] Automatic node seriation
 - [ ] Node confidence calculation
 	- [ ] Node ordering by confidence
 - [ ] Request post-processing arguments (using prefix of `T#`)
