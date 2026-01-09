@@ -35,17 +35,7 @@ Based on the following:
 - llama-cpp experimentation
 - vllm experimentation
 
-TODO:
-
-- do testing with llama-cpp
-- do testing with koboldcpp
-- do testing with vllm
-- do testing with sglang
-- do testing with text-generation-inference
-- do testing with lm-studio
-- do testing with ollama
-- do testing with swama
-- unit tests
+TODO: write unit tests
 */
 
 use base64::{Engine, prelude::BASE64_STANDARD};

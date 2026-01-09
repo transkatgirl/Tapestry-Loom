@@ -171,6 +171,22 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Add support for Gemini-style APIs
 	- [ ] Add support for Ollama-style APIs
 - [ ] Perform API client testing with all commonly used inference backends
+	- [ ] llama-cpp
+	- [ ] koboldcpp
+	- [ ] vllm
+	- [ ] sglang
+	- [ ] tensorrt-llm
+	- [ ] text-generation-inference
+	- [ ] text-embeddings-inference
+	- [ ] lm-studio
+	- [ ] lemonade
+	- [ ] infinity
+	- [ ] ollama
+	- [ ] swama
+	- [ ] litellm
+	- [ ] exllamav2
+	- [ ] lmdeploy
+	- [ ] mlc-llm
 - [ ] Improve handling of hovered + omitted/collapsed nodes
 - [ ] Add setting to swap shift-click and normal click behavior
 - [ ] Replace is_shift_pressed with response.clicked_with_open_in_background()
@@ -282,6 +298,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] [helm](https://github.com/Shoalstone/helm)
 	- [ ] (subset of) [miniloom](https://github.com/JD-P/miniloom)
 - [ ] Support [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
+- [ ] Do testing with using llamafile for easier onboarding?
 
 Note: Tapestry Loom will be *entirely* focused on base and/or embedding models for the foreseeable future.
 
