@@ -162,7 +162,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 - [x] Place responses with `echo: true` at the root of the tree
 - [ ] Improve API response building
 	- [ ] Add support for OpenAI Responses
-	- [ ] Add support for OpenAI Embeddings
+	- [x] Add support for OpenAI Embeddings
 	- [ ] Add support for Anthropic Complete
 	- [ ] Add support for Anthropic Messages
 	- [ ] Add support for Gemini generateText
@@ -215,7 +215,8 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 		- [ ] shimmy
 	- [ ] Write unit tests for response parser
 - [ ] Embedding model support
-	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
+	- [x] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
+	- [ ] Automatic node seriation
 - [ ] Node confidence calculation
 	- [ ] Node ordering by confidence
 - [ ] Request post-processing arguments (using prefix of `T#`)
