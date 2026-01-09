@@ -11,6 +11,7 @@ use eframe::egui::{
     TextStyle, Ui, Widget, WidgetText,
     color_picker::{Alpha, color_edit_button_srgba},
 };
+use futures::future::join_all;
 use linked_hash_map::LinkedHashMap;
 use log::trace;
 use poll_promise::Promise;
@@ -24,7 +25,7 @@ use tapestry_weave::{
     },
     v0::{InnerNodeContent, Model, NodeContent, TapestryNode},
 };
-use tokio::{runtime::Runtime, sync::Mutex};
+use tokio::{runtime::Runtime, sync::Mutex, task};
 
 use crate::settings::inference::openai::{
     OpenAIChatCompletionsConfig, OpenAIChatCompletionsTemplate, OpenAICompletionsConfig,
@@ -808,32 +809,43 @@ impl InferenceSettings {
 
         let endpoint = Arc::new(self.embedding_model.clone());
 
+        let client = client.clone();
+        let cache = cache.clone();
+
         output.insert(
             request.0,
             SeriationInferenceHandle {
-                handle: request
-                    .1
-                    .into_iter()
-                    .map(|request| {
+                handle: Promise::spawn_async(async move {
+                    if clear_embedding_cache {
+                        cache.embeddings.lock().await.clear();
+                    }
+
+                    let results = join_all(request.1.into_iter().map(|request| {
                         let endpoint = endpoint.clone();
                         let client = client.clone();
                         let cache = cache.clone();
-                        let request_content = request.1;
-                        (
-                            request.0,
-                            Promise::spawn_async(async move {
-                                if clear_embedding_cache {
-                                    cache.embeddings.lock().await.clear();
-                                }
 
+                        tokio::spawn(async move {
+                            (
+                                request.0,
                                 endpoint
                                     .as_ref()
-                                    .perform_request(&client, &cache, request_content)
-                                    .await
-                            }),
-                        )
-                    })
-                    .collect(),
+                                    .perform_request(&client, &cache, request.1)
+                                    .await,
+                            )
+                        })
+                    }))
+                    .await;
+
+                    let mut output = Vec::with_capacity(results.len());
+
+                    for result in results {
+                        let result = result?;
+                        output.push((result.0, result.1?));
+                    }
+
+                    Ok(task::block_in_place(|| seriate::seriate(output)))
+                }),
             },
         );
     }
@@ -847,32 +859,21 @@ impl InferenceSettings {
             let mut is_ready = false;
 
             if let Some(value) = input.get(&key)
-                && value.handle.iter().all(|handle| handle.1.ready().is_some())
+                && value.handle.ready().is_some()
             {
                 is_ready = true;
             }
 
             if is_ready && let Some(value) = input.remove(&key) {
-                let mut embeddings = Vec::with_capacity(value.handle.len());
-
-                for (id, handle) in value.handle {
-                    let result = handle.block_and_take();
-
-                    match result {
-                        Ok(contents) => {
-                            embeddings.push((id, contents));
-                        }
-                        Err(error) => {
-                            output.push(Err(error));
-                            continue 'outer;
-                        }
+                match value.handle.block_and_take() {
+                    Ok(items) => {
+                        output.push(Ok(SeriationResponse { id: key, items }));
+                    }
+                    Err(error) => {
+                        output.push(Err(error));
+                        continue 'outer;
                     }
                 }
-
-                output.push(Ok(SeriationResponse {
-                    id: key,
-                    items: seriate::seriate(embeddings),
-                }));
             }
         }
     }
@@ -888,7 +889,7 @@ pub struct InferenceHandle {
 
 #[allow(clippy::type_complexity)]
 pub struct SeriationInferenceHandle {
-    handle: Vec<(Ulid, Promise<Result<Vec<f32>, anyhow::Error>>)>,
+    handle: Promise<Result<Vec<Ulid>, anyhow::Error>>,
 }
 
 pub struct SeriationResponse {
