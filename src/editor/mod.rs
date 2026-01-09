@@ -341,7 +341,11 @@ impl Editor {
             },
         );
 
+        drop(settings);
+
         self.tree.ui(&mut self.behavior, ui);
+
+        let settings = self.settings.borrow();
 
         if self.show_modal
             && Modal::new(self.modal_identifier.clone().into())
@@ -628,14 +632,14 @@ impl Behavior<Pane> for EditorTilingBehavior {
         let mut weave = self.weave.lock();
 
         if let Some(weave) = weave.as_mut() {
-            let settings = self.settings.borrow();
+            let mut settings = self.settings.borrow_mut();
             let mut toasts = self.toasts.borrow_mut();
 
             match pane {
                 Pane::Canvas => self.canvas_view.render(
                     ui,
                     weave,
-                    &settings,
+                    &mut settings,
                     &mut toasts,
                     &mut self.shared_state,
                     self.shortcuts,
@@ -643,7 +647,7 @@ impl Behavior<Pane> for EditorTilingBehavior {
                 Pane::Graph => self.graph_view.render(
                     ui,
                     weave,
-                    &settings,
+                    &mut settings,
                     &mut toasts,
                     &mut self.shared_state,
                     self.shortcuts,
@@ -651,7 +655,7 @@ impl Behavior<Pane> for EditorTilingBehavior {
                 Pane::TreeList => self.tree_list_view.render(
                     ui,
                     weave,
-                    &settings,
+                    &mut settings,
                     &mut toasts,
                     &mut self.shared_state,
                     self.shortcuts,
@@ -659,7 +663,7 @@ impl Behavior<Pane> for EditorTilingBehavior {
                 Pane::List => self.list_view.render(
                     ui,
                     weave,
-                    &settings,
+                    &mut settings,
                     &mut toasts,
                     &mut self.shared_state,
                     self.shortcuts,
@@ -667,7 +671,7 @@ impl Behavior<Pane> for EditorTilingBehavior {
                 Pane::BookmarkList => self.bookmark_list_view.render(
                     ui,
                     weave,
-                    &settings,
+                    &mut settings,
                     &mut toasts,
                     &mut self.shared_state,
                     self.shortcuts,

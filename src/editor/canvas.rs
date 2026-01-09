@@ -89,7 +89,7 @@ impl CanvasView {
         &mut self,
         ui: &mut Ui,
         weave: &mut WeaveWrapper,
-        settings: &Settings,
+        settings: &mut Settings,
         state: &mut SharedState,
     ) {
         let padding_base = ui.text_style_height(&TextStyle::Monospace) as f64;
@@ -242,7 +242,7 @@ impl CanvasView {
         &mut self,
         ui: &mut Ui,
         weave: &mut WeaveWrapper,
-        settings: &Settings,
+        settings: &mut Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
         shortcuts: FlagSet<Shortcuts>,
@@ -368,7 +368,12 @@ impl CanvasView {
         active_stroke: &Stroke,
         inactive_stroke: &Stroke,
         show_tooltip: bool,
-        render_state: &mut (&mut WeaveWrapper, &Settings, &mut SharedState, Option<Pos2>),
+        render_state: &mut (
+            &mut WeaveWrapper,
+            &mut Settings,
+            &mut SharedState,
+            Option<Pos2>,
+        ),
         disable_culling: bool,
     ) {
         let canvas_node = self.nodes.get(node).unwrap();
@@ -428,7 +433,12 @@ impl CanvasView {
         active_stroke: &Stroke,
         inactive_stroke: &Stroke,
         show_tooltip: bool,
-        render_state: &mut (&mut WeaveWrapper, &Settings, &mut SharedState, Option<Pos2>),
+        render_state: &mut (
+            &mut WeaveWrapper,
+            &mut Settings,
+            &mut SharedState,
+            Option<Pos2>,
+        ),
         disable_culling: bool,
     ) {
         let canvas_node = self.nodes.get(node).unwrap();
@@ -502,7 +512,12 @@ impl CanvasView {
         _active_stroke: &Stroke,
         _inactive_stroke: &Stroke,
         _show_tooltip: bool,
-        render_state: &mut (&mut WeaveWrapper, &Settings, &mut SharedState, Option<Pos2>),
+        render_state: &mut (
+            &mut WeaveWrapper,
+            &mut Settings,
+            &mut SharedState,
+            Option<Pos2>,
+        ),
         disable_culling: bool,
     ) {
         if (ui.clip_rect().max.x >= canvas_node.rect.max.x || disable_culling)
@@ -528,7 +543,12 @@ impl CanvasView {
         active_stroke: &Stroke,
         inactive_stroke: &Stroke,
         show_tooltip: bool,
-        render_state: &mut (&mut WeaveWrapper, &Settings, &mut SharedState, Option<Pos2>),
+        render_state: &mut (
+            &mut WeaveWrapper,
+            &mut Settings,
+            &mut SharedState,
+            Option<Pos2>,
+        ),
         disable_culling: bool,
     ) {
         ui.scope_builder(UiBuilder::new().max_rect(canvas_node.rect), |ui| {
@@ -701,7 +721,7 @@ fn render_node(
     ui: &mut Ui,
     weave: &mut WeaveWrapper,
     active: &HashSet<Ulid>,
-    settings: &Settings,
+    settings: &mut Settings,
     state: &mut SharedState,
     node: &Ulid,
     mut stroke: Stroke,

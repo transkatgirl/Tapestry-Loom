@@ -160,7 +160,7 @@ impl GraphView {
         &mut self,
         ui: &mut Ui,
         weave: &mut WeaveWrapper,
-        settings: &Settings,
+        settings: &mut Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
         shortcuts: FlagSet<Shortcuts>,
@@ -332,7 +332,7 @@ fn render_context_menu(
     ui: &mut Ui,
     weave: &mut WeaveWrapper,
     node: &Ulid,
-    settings: &Settings,
+    settings: &mut Settings,
     state: &mut SharedState,
 ) {
     if let Some(node) = weave.get_node(node).cloned() {

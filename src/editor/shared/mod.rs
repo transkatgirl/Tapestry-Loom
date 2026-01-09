@@ -639,9 +639,9 @@ impl SharedState {
     }
     pub fn sort_children(&mut self, weave: &mut WeaveWrapper, parent: Option<Ulid>) {
         if let Some(parent) = parent {
-            weave.sort_node_children_u128(&parent.0);
+            weave.sort_node_children_u128_by(&parent.0, |a, b| a.id.cmp(&b.id));
         } else {
-            weave.sort_roots();
+            weave.sort_roots_by(|a, b| a.id.cmp(&b.id));
         }
     }
     pub fn generate_children(

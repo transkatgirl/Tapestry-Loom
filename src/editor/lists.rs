@@ -67,7 +67,7 @@ impl ListView {
         &mut self,
         ui: &mut Ui,
         weave: &mut WeaveWrapper,
-        settings: &Settings,
+        settings: &mut Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
@@ -111,7 +111,7 @@ impl ListView {
     }
     fn render_item(
         weave: &mut WeaveWrapper,
-        settings: &Settings,
+        settings: &mut Settings,
         state: &mut SharedState,
         ui: &mut Ui,
         item: &Ulid,
@@ -176,7 +176,7 @@ impl BookmarkListView {
         &mut self,
         ui: &mut Ui,
         weave: &mut WeaveWrapper,
-        settings: &Settings,
+        settings: &mut Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
@@ -223,7 +223,7 @@ impl BookmarkListView {
     }
     fn render_bookmark(
         weave: &mut WeaveWrapper,
-        settings: &Settings,
+        settings: &mut Settings,
         state: &mut SharedState,
         ui: &mut Ui,
         item: &Ulid,
@@ -333,7 +333,7 @@ impl TreeListView {
         &mut self,
         ui: &mut Ui,
         weave: &mut WeaveWrapper,
-        settings: &Settings,
+        settings: &mut Settings,
         _toasts: &mut Toasts,
         state: &mut SharedState,
         shortcuts: FlagSet<Shortcuts>,
@@ -437,7 +437,7 @@ impl TreeListView {
 
 fn render_node_tree(
     weave: &mut WeaveWrapper,
-    settings: &Settings,
+    settings: &mut Settings,
     state: &mut SharedState,
     ui: &mut Ui,
     editor_id: Ulid,
@@ -516,7 +516,7 @@ fn render_node_tree(
 
 fn render_node_tree_row(
     weave: &mut WeaveWrapper,
-    settings: &Settings,
+    settings: &mut Settings,
     state: &mut SharedState,
     ui: &mut Ui,
     editor_id: Ulid,
@@ -949,12 +949,18 @@ fn render_label_separator(ui: &mut Ui, settings: &Settings) {
 
 fn render_horizontal_node_label(
     ui: &mut Ui,
-    settings: &Settings,
+    settings: &mut Settings,
     state: &mut SharedState,
     weave: &mut WeaveWrapper,
     node: &TapestryNode,
-    mut buttons: impl FnMut(&mut Ui, &Settings, &mut SharedState, &mut WeaveWrapper, &TapestryNode),
-    mut context_menu: impl FnMut(&mut Ui, &Settings, &mut SharedState, &mut WeaveWrapper, &TapestryNode),
+    mut buttons: impl FnMut(&mut Ui, &mut Settings, &mut SharedState, &mut WeaveWrapper, &TapestryNode),
+    mut context_menu: impl FnMut(
+        &mut Ui,
+        &mut Settings,
+        &mut SharedState,
+        &mut WeaveWrapper,
+        &TapestryNode,
+    ),
     show_node_info: bool,
 ) {
     let mut mouse_hovered = false;
@@ -1107,7 +1113,7 @@ fn render_horizontal_node_label(
 
 pub fn render_node_context_menu(
     ui: &mut Ui,
-    settings: &Settings,
+    settings: &mut Settings,
     state: &mut SharedState,
     weave: &mut WeaveWrapper,
     node: &TapestryNode,
@@ -1214,6 +1220,16 @@ pub fn render_node_context_menu(
 
             ui.separator();
         }
+
+        if ui.button("Sort children by timestamp").clicked() {
+            state.sort_children(weave, Some(Ulid(node.id)));
+        }
+
+        if ui.button("Seriate children").clicked() {
+            state.seriate_children(weave, Some(Ulid(node.id)), settings);
+        }
+
+        ui.separator();
 
         if ui.button("Delete all children").clicked() {
             for child in node.to.iter().copied() {
