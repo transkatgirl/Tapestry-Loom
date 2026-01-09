@@ -27,15 +27,14 @@ use crate::{
     settings::{
         Settings, UISettings,
         inference::{
-            EmbeddingInferenceHandle, EmbeddingResponse, InferenceCache, InferenceClient,
-            InferenceHandle, InferenceParameters, InferenceSettings, TokensOrBytes,
+            InferenceCache, InferenceClient, InferenceHandle, InferenceParameters,
+            InferenceSettings, SeriationInferenceHandle, SeriationResponse, TokensOrBytes,
         },
         shortcuts::Shortcuts,
     },
 };
 
 pub(super) mod layout;
-pub(super) mod seriate;
 pub(super) mod weave;
 
 pub struct SharedState {
@@ -58,8 +57,8 @@ pub struct SharedState {
     pub has_opened_changed: bool,
     requests: HashMap<Ulid, InferenceHandle>,
     responses: Vec<Result<TapestryNode, anyhow::Error>>,
-    embedding_requests: HashMap<Option<Ulid>, EmbeddingInferenceHandle>,
-    embedding_responses: Vec<Result<EmbeddingResponse, anyhow::Error>>,
+    seriation_requests: HashMap<Option<Ulid>, SeriationInferenceHandle>,
+    seriation_responses: Vec<Result<SeriationResponse, anyhow::Error>>,
     last_ui_settings: UISettings,
     pub has_theme_changed: bool,
     last_activated_hovered: bool,
@@ -116,8 +115,8 @@ impl SharedState {
             has_opened_changed: false,
             requests: HashMap::with_capacity(128),
             responses: Vec::with_capacity(128),
-            embedding_requests: HashMap::with_capacity(32),
-            embedding_responses: Vec::with_capacity(32),
+            seriation_requests: HashMap::with_capacity(32),
+            seriation_responses: Vec::with_capacity(32),
             last_ui_settings: settings.interface,
             has_theme_changed: false,
             last_activated_hovered: false,
@@ -156,9 +155,9 @@ impl SharedState {
             &mut self.requests,
             &mut self.responses,
         );
-        InferenceSettings::get_embedding_responses(
-            &mut self.embedding_requests,
-            &mut self.embedding_responses,
+        InferenceSettings::get_seriation_responses(
+            &mut self.seriation_requests,
+            &mut self.seriation_responses,
         );
 
         if shortcuts.contains(Shortcuts::GenerateAtCursor) {
@@ -519,12 +518,13 @@ impl SharedState {
                 }
             }
         }
-        for response in self.embedding_responses.drain(..) {
+        for response in self.seriation_responses.drain(..) {
             match response {
                 Ok(response) => {
                     let seriated: HashMap<u128, usize, BuildHasherDefault<UlidHasher>> =
                         HashMap::from_iter(
-                            seriate::seriate(response.embeddings)
+                            response
+                                .items
                                 .into_iter()
                                 .enumerate()
                                 .map(|(index, id)| (id.0, index)),
@@ -587,7 +587,12 @@ impl SharedState {
     pub fn set_hovered_node(&mut self, value: NodeIndex) {
         self.hovered_node = value;
     }
-    pub fn seriate_children(&mut self, weave: &mut WeaveWrapper, parent: Option<Ulid>) {
+    pub fn seriate_children(
+        &mut self,
+        weave: &mut WeaveWrapper,
+        parent: Option<Ulid>,
+        settings: &mut Settings,
+    ) {
         let parent_content: Vec<u8> = if let Some(parent) = parent {
             let thread: Vec<u128> = weave.get_thread_from_u128(&parent.0).rev().collect();
 
@@ -600,7 +605,37 @@ impl SharedState {
             vec![]
         };
 
-        todo!()
+        let request: Vec<(Ulid, Vec<u8>)> = if let Some(parent) = parent {
+            if let Some(children) = weave.get_node(&parent).map(|parent| &parent.to) {
+                children
+            } else {
+                return;
+            }
+        } else {
+            weave.get_roots_u128_direct()
+        }
+        .iter()
+        .filter_map(|id| weave.get_node_u128(id))
+        .map(|child| {
+            let mut content = parent_content.clone();
+            content.extend(child.contents.content.as_bytes().iter());
+
+            (Ulid(child.id), content)
+        })
+        .collect();
+
+        if let Some(client) = self.client.borrow().as_ref() {
+            settings.inference.create_seriation_request(
+                &self.runtime,
+                client,
+                &self.cache,
+                (parent, request),
+                &mut self.seriation_requests,
+            );
+        } else {
+            self.responses
+                .push(Err(anyhow::Error::msg("Client is not initialized")));
+        }
     }
     pub fn sort_children(&mut self, weave: &mut WeaveWrapper, parent: Option<Ulid>) {
         if let Some(parent) = parent {
@@ -649,13 +684,13 @@ impl SharedState {
         }
     }
     pub fn get_request_count(&self) -> usize {
-        self.requests.len() + self.embedding_requests.len()
+        self.requests.len() + self.seriation_requests.len()
     }
     pub fn cancel_requests(&mut self) {
         self.requests.clear();
         self.responses.clear();
-        self.embedding_requests.clear();
-        self.embedding_responses.clear();
+        self.seriation_requests.clear();
+        self.seriation_responses.clear();
     }
 }
 

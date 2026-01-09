@@ -33,6 +33,7 @@ use crate::settings::inference::openai::{
 
 mod openai;
 mod polyparser;
+mod seriate;
 mod shared;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -788,13 +789,13 @@ impl InferenceParameters {
 }
 
 impl InferenceSettings {
-    pub fn create_embedding_request(
+    pub fn create_seriation_request(
         &mut self,
         runtime: &Runtime,
         client: &InferenceClient,
         cache: &InferenceCache,
         request: (Option<Ulid>, Vec<(Ulid, Vec<u8>)>),
-        output: &mut HashMap<Option<Ulid>, EmbeddingInferenceHandle>,
+        output: &mut HashMap<Option<Ulid>, SeriationInferenceHandle>,
     ) {
         let clear_embedding_cache = self.clear_embedding_cache;
         if self.clear_embedding_cache {
@@ -807,7 +808,7 @@ impl InferenceSettings {
 
         output.insert(
             request.0,
-            EmbeddingInferenceHandle {
+            SeriationInferenceHandle {
                 handle: request
                     .1
                     .into_iter()
@@ -834,9 +835,9 @@ impl InferenceSettings {
             },
         );
     }
-    pub fn get_embedding_responses(
-        input: &mut HashMap<Option<Ulid>, EmbeddingInferenceHandle>,
-        output: &mut Vec<Result<EmbeddingResponse, anyhow::Error>>,
+    pub fn get_seriation_responses(
+        input: &mut HashMap<Option<Ulid>, SeriationInferenceHandle>,
+        output: &mut Vec<Result<SeriationResponse, anyhow::Error>>,
     ) {
         let keys: Vec<Option<Ulid>> = input.keys().cloned().collect();
 
@@ -866,9 +867,9 @@ impl InferenceSettings {
                     }
                 }
 
-                output.push(Ok(EmbeddingResponse {
+                output.push(Ok(SeriationResponse {
                     id: key,
-                    embeddings,
+                    items: seriate::seriate(embeddings),
                 }));
             }
         }
@@ -884,13 +885,13 @@ pub struct InferenceHandle {
 }
 
 #[allow(clippy::type_complexity)]
-pub struct EmbeddingInferenceHandle {
+pub struct SeriationInferenceHandle {
     handle: Vec<(Ulid, Promise<Result<Vec<f32>, anyhow::Error>>)>,
 }
 
-pub struct EmbeddingResponse {
+pub struct SeriationResponse {
     pub id: Option<Ulid>,
-    pub embeddings: Vec<(Ulid, Vec<f32>)>,
+    pub items: Vec<Ulid>,
 }
 
 #[derive(Default, Debug, PartialEq)]
