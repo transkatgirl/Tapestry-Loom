@@ -167,9 +167,10 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 - [ ] Improve API response building
 	- [ ] Add support for OpenAI Responses
 	- [ ] Add support for OpenAI Embeddings
-	- [ ] Add support for Anthropic-style APIs
-	- [ ] Add support for Gemini-style APIs
-	- [ ] Add support for Ollama-style APIs
+	- [ ] Add support for Anthropic Complete
+	- [ ] Add support for Anthropic Messages
+	- [ ] Add support for Gemini generateText
+	- [ ] Add support for Gemini generateContent
 - [ ] Perform API client testing with all commonly used inference backends
 	- [ ] llama-cpp
 	- [ ] koboldcpp
