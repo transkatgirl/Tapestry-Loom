@@ -25,7 +25,7 @@ use tokio::runtime::Runtime;
 use crate::{
     editor::shared::weave::WeaveWrapper,
     settings::{
-        Settings, UISettings,
+        NodeSorting, Settings, UISettings,
         inference::{
             InferenceCache, InferenceClient, InferenceHandle, InferenceParameters,
             InferenceSettings, SeriationInferenceHandle, SeriationResponse, TokensOrBytes,
@@ -144,7 +144,7 @@ impl SharedState {
         &mut self,
         ctx: &Context,
         weave: &mut WeaveWrapper,
-        settings: &Settings,
+        settings: &mut Settings,
         toasts: &mut Toasts,
         shortcuts: FlagSet<Shortcuts>,
     ) {
@@ -492,7 +492,9 @@ impl SharedState {
         self.has_opened_changed = self.next_opened_updated;
         self.next_opened_updated = false;
 
-        for response in self.responses.drain(..) {
+        let responses: Vec<_> = self.responses.drain(..).collect();
+
+        for response in responses {
             match response {
                 Ok(node) => {
                     let identifier = node.id;
@@ -503,10 +505,30 @@ impl SharedState {
                             self.last_changed_node = Some(Ulid(identifier));
                         }
 
-                        if let Some(parent) = parent {
-                            weave.sort_node_children_u128(&parent);
-                        } else {
-                            weave.sort_roots();
+                        match settings.interface.node_sorting {
+                            NodeSorting::None => {}
+                            NodeSorting::Model => {
+                                let compare = |a: &TapestryNode, b: &TapestryNode| {
+                                    a.contents
+                                        .model
+                                        .as_ref()
+                                        .map(|model| model.label.clone())
+                                        .cmp(
+                                            &b.contents
+                                                .model
+                                                .as_ref()
+                                                .map(|model| model.label.clone()),
+                                        )
+                                };
+                                if let Some(parent) = parent {
+                                    weave.sort_node_children_u128_by(&parent, compare);
+                                } else {
+                                    weave.sort_roots_by(compare);
+                                }
+                            }
+                            NodeSorting::Seriation => {
+                                self.seriate_children(weave, parent.map(Ulid), settings);
+                            }
                         }
                     } else {
                         debug!("Failed to add node to weave");

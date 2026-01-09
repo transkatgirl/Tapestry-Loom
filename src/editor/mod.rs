@@ -333,6 +333,7 @@ impl Editor {
                             self.show_modal = true;
                         }
                     });
+                    drop(settings);
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         self.behavior
                             .panel_rtl(ui, self.last_filesize.load(Ordering::Relaxed));
@@ -340,8 +341,6 @@ impl Editor {
                 });
             },
         );
-
-        drop(settings);
 
         self.tree.ui(&mut self.behavior, ui);
 
@@ -561,10 +560,10 @@ impl EditorTilingBehavior {
         let mut weave = self.weave.lock();
 
         if let Some(weave) = weave.as_mut() {
-            let settings = self.settings.borrow();
+            let mut settings = self.settings.borrow_mut();
             let mut toasts = self.toasts.borrow_mut();
             self.shared_state
-                .update(ui.ctx(), weave, &settings, &mut toasts, self.shortcuts);
+                .update(ui.ctx(), weave, &mut settings, &mut toasts, self.shortcuts);
             self.canvas_view.update(
                 weave,
                 &settings,

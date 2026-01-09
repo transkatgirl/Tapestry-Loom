@@ -58,6 +58,9 @@ pub struct UISettings {
     pub auto_scroll: bool,
     pub optimize_tree: bool,
 
+    #[serde(default)]
+    pub node_sorting: NodeSorting,
+
     #[serde(skip)]
     fonts_changed: bool,
 }
@@ -89,6 +92,7 @@ impl Default for UISettings {
             opened_by_default: false,
             auto_scroll: true,
             optimize_tree: false,
+            node_sorting: NodeSorting::Model,
 
             fonts_changed: false,
         }
@@ -142,6 +146,24 @@ impl Display for UIFonts {
     }
 }
 
+#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NodeSorting {
+    None,
+    #[default]
+    Model,
+    Seriation,
+}
+
+impl Display for NodeSorting {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::None => f.write_str("None"),
+            Self::Model => f.write_str("Model only"),
+            Self::Seriation => f.write_str("Seriate"),
+        }
+    }
+}
+
 impl UISettings {
     pub fn apply(&self, ctx: &Context) {
         ctx.set_zoom_factor(self.ui_scale);
@@ -185,7 +207,7 @@ impl UISettings {
         if !(ui_slider.has_focus() || ui_slider.contains_pointer()) {
             self.ui_scale = self.displayed_ui_scale;
         }
-        ComboBox::from_label("Primary Font")
+        ComboBox::from_label("Primary font")
             .selected_text(self.ui_fonts.to_string())
             .show_ui(ui, |ui| {
                 if ui
@@ -297,6 +319,27 @@ impl UISettings {
                 "Perform additional tree rendering optimizations (experimental)",
             );
         }
+        ComboBox::from_label("Generated node sorting")
+            .selected_text(self.node_sorting.to_string())
+            .show_ui(ui, |ui| {
+                ui.selectable_value(
+                    &mut self.node_sorting,
+                    NodeSorting::None,
+                    NodeSorting::None.to_string(),
+                );
+                ui.selectable_value(
+                    &mut self.node_sorting,
+                    NodeSorting::Model,
+                    NodeSorting::Model.to_string(),
+                );
+                ui.selectable_value(
+                    &mut self.node_sorting,
+                    NodeSorting::Seriation,
+                    NodeSorting::Seriation.to_string(),
+                );
+            })
+            .response
+            .on_hover_text("Changes how generated nodes are sorted.");
 
         // TODO: Add editor layout presets
     }
