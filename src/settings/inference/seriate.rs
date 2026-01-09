@@ -5,6 +5,10 @@ use ml_distance::distance::euclidean;
 use tapestry_weave::ulid::Ulid;
 
 pub fn seriate(embeddings: Vec<(Ulid, Vec<f32>)>) -> Vec<Ulid> {
+    if embeddings.len() < 3 {
+        return embeddings.into_iter().map(|(id, _)| id).collect();
+    }
+
     let mut index_map = HashMap::with_capacity(embeddings.len());
     let mut embedding_list = Vec::with_capacity(embeddings.len());
 
