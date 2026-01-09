@@ -156,10 +156,6 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 
 - [x] Better handle enter in dialogs
 - [x] Add generate buttons (displayed on hover) to canvas
-- [ ] Review and refactor application modules
-	- [x] main
-	- [x] files
-	- [ ] settings
 - [x] Refactor API client
 	- [x] Improve token confidence calculation to work properly with vLLM
 	- [x] Use logprob text_offset value when present
@@ -183,6 +179,11 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] koboldcpp
 	- [ ] lm-studio
 	- [ ] litellm
+- [ ] Add API client HTTP proxy override
+- [ ] Review and refactor application modules
+	- [x] main
+	- [x] files
+	- [ ] settings/inference
 - [ ] Improve handling of hovered + omitted/collapsed nodes
 - [ ] Add setting to swap shift-click and normal click behavior
 - [ ] Replace is_shift_pressed with response.clicked_with_open_in_background()
@@ -199,9 +200,11 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Prefix-based duplication
 	- [ ] Implement counterfactual logprobs, similar to [loom](https://github.com/socketteer/loom)
 	- [ ] Perform heavy unit testing of data structures and/or formal verification to prevent bugs that could result in data loss
+- [ ] Review and refactor application modules
+	- [ ] settings
+	- [ ] editor
 - [ ] Improve API client
 	- [ ] Add support for response streaming
-	- [ ] Write unit tests for response parser
 	- [ ] Perform API client testing with less commonly used inference backends
 		- [ ] lemonade
 		- [ ] infinity
@@ -209,6 +212,8 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 		- [ ] exllamav2
 		- [ ] lmdeploy
 		- [ ] mlc-llm
+		- [ ] shimmy
+	- [ ] Write unit tests for response parser
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Node confidence calculation
