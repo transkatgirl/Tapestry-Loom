@@ -1221,12 +1221,12 @@ pub fn render_node_context_menu(
             ui.separator();
         }
 
-        if ui.button("Sort children by timestamp").clicked() {
-            state.sort_children(weave, Some(Ulid(node.id)));
-        }
-
         if ui.button("Seriate children").clicked() {
             state.seriate_children(weave, Some(Ulid(node.id)), settings);
+        }
+
+        if ui.button("Sort children by timestamp").clicked() {
+            state.sort_children(weave, Some(Ulid(node.id)));
         }
 
         ui.separator();
