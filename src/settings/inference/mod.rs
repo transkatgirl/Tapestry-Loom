@@ -786,13 +786,14 @@ impl InferenceParameters {
     }
 }
 
+#[allow(clippy::type_complexity)]
 impl InferenceSettings {
     fn create_embedding_request(
         &mut self,
         runtime: &Runtime,
         client: &InferenceClient,
         cache: &InferenceCache,
-        content: TokensOrBytes,
+        request: Vec<(Ulid, Vec<u8>)>,
         output: &mut HashMap<Ulid, EmbeddingInferenceHandle>,
     ) {
         let clear_embedding_cache = self.clear_embedding_cache;
@@ -803,49 +804,68 @@ impl InferenceSettings {
         let _guard = runtime.enter();
 
         let endpoint = Arc::new(self.embedding_model.clone());
-        let request = content.into_bytes();
-        let client = client.clone();
-        let cache = cache.clone();
+
         output.insert(
             Ulid::new(),
             EmbeddingInferenceHandle {
-                handle: Promise::spawn_async(async move {
-                    if clear_embedding_cache {
-                        cache.embeddings.lock().await.clear();
-                    }
+                handle: request
+                    .into_iter()
+                    .map(|request| {
+                        let endpoint = endpoint.clone();
+                        let client = client.clone();
+                        let cache = cache.clone();
+                        let request_content = request.1;
+                        (
+                            request.0,
+                            Promise::spawn_async(async move {
+                                if clear_embedding_cache {
+                                    cache.embeddings.lock().await.clear();
+                                }
 
-                    endpoint
-                        .as_ref()
-                        .perform_request(&client, &cache, request)
-                        .await
-                }),
+                                endpoint
+                                    .as_ref()
+                                    .perform_request(&client, &cache, request_content)
+                                    .await
+                            }),
+                        )
+                    })
+                    .collect(),
             },
         );
     }
     fn get_embedding_responses(
         input: &mut HashMap<Ulid, EmbeddingInferenceHandle>,
-        output: &mut Vec<Result<(Ulid, Vec<f32>), anyhow::Error>>,
+        output: &mut Vec<Result<Vec<(Ulid, Vec<f32>)>, anyhow::Error>>,
     ) {
         let keys: Vec<Ulid> = input.keys().cloned().collect();
 
-        for key in keys {
+        'outer: for key in keys {
             let mut is_ready = false;
 
             if let Some(value) = input.get(&key)
-                && value.handle.ready().is_some()
+                && value.handle.iter().all(|handle| handle.1.ready().is_some())
             {
                 is_ready = true;
             }
 
             if is_ready && let Some(value) = input.remove(&key) {
-                let result = value.handle.block_and_take();
+                let mut result_list = Vec::with_capacity(value.handle.len());
 
-                match result {
-                    Ok(contents) => {
-                        output.push(Ok((key, contents)));
+                for (id, handle) in value.handle {
+                    let result = handle.block_and_take();
+
+                    match result {
+                        Ok(contents) => {
+                            result_list.push((id, contents));
+                        }
+                        Err(error) => {
+                            output.push(Err(error));
+                            continue 'outer;
+                        }
                     }
-                    Err(error) => output.push(Err(error)),
                 }
+
+                output.push(Ok(result_list));
             }
         }
     }
@@ -859,8 +879,9 @@ pub struct InferenceHandle {
     handle: Promise<Result<Vec<(NodeContent, bool)>, anyhow::Error>>,
 }
 
+#[allow(clippy::type_complexity)]
 pub struct EmbeddingInferenceHandle {
-    handle: Promise<Result<Vec<f32>, anyhow::Error>>,
+    handle: Vec<(Ulid, Promise<Result<Vec<f32>, anyhow::Error>>)>,
 }
 
 #[derive(Default, Debug, PartialEq)]
