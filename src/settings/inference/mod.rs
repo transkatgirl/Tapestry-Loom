@@ -792,8 +792,8 @@ impl InferenceSettings {
         runtime: &Runtime,
         client: &InferenceClient,
         cache: &InferenceCache,
-        request: (Ulid, Vec<(Ulid, Vec<u8>)>),
-        output: &mut HashMap<Ulid, EmbeddingInferenceHandle>,
+        request: (Option<Ulid>, Vec<(Ulid, Vec<u8>)>),
+        output: &mut HashMap<Option<Ulid>, EmbeddingInferenceHandle>,
     ) {
         let clear_embedding_cache = self.clear_embedding_cache;
         if self.clear_embedding_cache {
@@ -834,10 +834,10 @@ impl InferenceSettings {
         );
     }
     pub fn get_embedding_responses(
-        input: &mut HashMap<Ulid, EmbeddingInferenceHandle>,
+        input: &mut HashMap<Option<Ulid>, EmbeddingInferenceHandle>,
         output: &mut Vec<Result<EmbeddingResponse, anyhow::Error>>,
     ) {
-        let keys: Vec<Ulid> = input.keys().cloned().collect();
+        let keys: Vec<Option<Ulid>> = input.keys().cloned().collect();
 
         'outer: for key in keys {
             let mut is_ready = false;
@@ -888,7 +888,7 @@ pub struct EmbeddingInferenceHandle {
 }
 
 pub struct EmbeddingResponse {
-    pub id: Ulid,
+    pub id: Option<Ulid>,
     pub embeddings: Vec<(Ulid, Vec<f32>)>,
 }
 

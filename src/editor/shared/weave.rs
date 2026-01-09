@@ -267,4 +267,9 @@ impl WeaveWrapper {
                 .cmp(&b.contents.model.as_ref().map(|model| model.label.clone()))
         })
     }
+    pub fn sort_roots_by(&mut self, compare: impl FnMut(&TapestryNode, &TapestryNode) -> Ordering) {
+        self.changed = true;
+        self.layout_changed = true;
+        self.weave.weave.sort_roots_by(compare)
+    }
 }

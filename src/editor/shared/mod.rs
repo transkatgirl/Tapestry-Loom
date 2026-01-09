@@ -58,7 +58,7 @@ pub struct SharedState {
     pub has_opened_changed: bool,
     requests: HashMap<Ulid, InferenceHandle>,
     responses: Vec<Result<TapestryNode, anyhow::Error>>,
-    embedding_requests: HashMap<Ulid, EmbeddingInferenceHandle>,
+    embedding_requests: HashMap<Option<Ulid>, EmbeddingInferenceHandle>,
     embedding_responses: Vec<Result<EmbeddingResponse, anyhow::Error>>,
     last_ui_settings: UISettings,
     pub has_theme_changed: bool,
@@ -530,9 +530,13 @@ impl SharedState {
                                 .map(|(index, id)| (id.0, index)),
                         );
 
-                    weave.sort_node_children_u128_by(&response.id.0, |a, b| {
-                        seriated.get(&a.id).cmp(&seriated.get(&b.id))
-                    });
+                    if let Some(parent) = response.id {
+                        weave.sort_node_children_u128_by(&parent.0, |a, b| {
+                            seriated.get(&a.id).cmp(&seriated.get(&b.id))
+                        });
+                    } else {
+                        weave.sort_roots_by(|a, b| seriated.get(&a.id).cmp(&seriated.get(&b.id)));
+                    }
                 }
                 Err(error) => {
                     toasts.error(format!("Inference failed: {error}"));
@@ -583,6 +587,28 @@ impl SharedState {
     pub fn set_hovered_node(&mut self, value: NodeIndex) {
         self.hovered_node = value;
     }
+    pub fn seriate_children(&mut self, weave: &mut WeaveWrapper, parent: Option<Ulid>) {
+        let parent_content: Vec<u8> = if let Some(parent) = parent {
+            let thread: Vec<u128> = weave.get_thread_from_u128(&parent.0).rev().collect();
+
+            thread
+                .into_iter()
+                .filter_map(|id| weave.get_node_u128(&id))
+                .flat_map(|node| node.contents.content.as_bytes().to_vec())
+                .collect()
+        } else {
+            vec![]
+        };
+
+        todo!()
+    }
+    pub fn sort_children(&mut self, weave: &mut WeaveWrapper, parent: Option<Ulid>) {
+        if let Some(parent) = parent {
+            weave.sort_node_children_u128(&parent.0);
+        } else {
+            weave.sort_roots();
+        }
+    }
     pub fn generate_children(
         &mut self,
         weave: &mut WeaveWrapper,
@@ -623,11 +649,13 @@ impl SharedState {
         }
     }
     pub fn get_request_count(&self) -> usize {
-        self.requests.len()
+        self.requests.len() + self.embedding_requests.len()
     }
     pub fn cancel_requests(&mut self) {
         self.requests.clear();
-        self.requests.clear();
+        self.responses.clear();
+        self.embedding_requests.clear();
+        self.embedding_responses.clear();
     }
 }
 
