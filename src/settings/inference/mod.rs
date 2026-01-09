@@ -661,6 +661,7 @@ impl InferenceParameters {
                 let content_model = inference_model.content_model();
                 let request = EndpointRequest {
                     content: content.clone(),
+                    suffix: None,
                     parameters: Arc::new(model.parameters.clone()),
                 };
                 let endpoint = Arc::new(inference_model.endpoint.clone());
@@ -1108,6 +1109,7 @@ impl EmbeddingEndpoint for EmbeddingEndpointConfig {
 #[derive(Debug, Clone)]
 struct EndpointRequest {
     content: Arc<Vec<TokensOrBytes>>,
+    suffix: Option<Arc<Vec<TokensOrBytes>>>,
     parameters: Arc<Vec<(String, String)>>,
 }
 

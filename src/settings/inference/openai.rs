@@ -483,6 +483,22 @@ impl Endpoint for OpenAICompletionsConfig {
             }
         }
 
+        if let Some(suffix) = request.suffix {
+            let suffix_bytes: Vec<u8> = suffix
+                .as_ref()
+                .clone()
+                .into_iter()
+                .flat_map(|t| t.into_bytes())
+                .collect();
+
+            if !suffix_bytes.is_empty() {
+                body.insert(
+                    "suffix".to_string(),
+                    Value::String(String::from_utf8_lossy(&suffix_bytes).to_string()),
+                );
+            }
+        }
+
         trace!("{:#?}", &body);
 
         if let Some(prompt) = body.get_mut("prompt")
@@ -644,6 +660,10 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         request: EndpointRequest,
         tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
+        if request.suffix.is_some() {
+            return Err(anyhow::Error::msg("Endpoint does not support FIM"));
+        }
+
         let mut headers = HeaderMap::with_capacity(self.headers.len());
 
         for (key, value) in &self.headers {
