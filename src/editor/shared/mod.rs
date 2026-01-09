@@ -638,10 +638,19 @@ impl SharedState {
         }
     }
     pub fn sort_children(&mut self, weave: &mut WeaveWrapper, parent: Option<Ulid>) {
+        let compare = |a: &TapestryNode, b: &TapestryNode| {
+            a.contents
+                .model
+                .as_ref()
+                .map(|model| model.label.clone())
+                .cmp(&b.contents.model.as_ref().map(|model| model.label.clone()))
+                .then(a.id.cmp(&b.id))
+        };
+
         if let Some(parent) = parent {
-            weave.sort_node_children_u128_by(&parent.0, |a, b| a.id.cmp(&b.id));
+            weave.sort_node_children_u128_by(&parent.0, compare);
         } else {
-            weave.sort_roots_by(|a, b| a.id.cmp(&b.id));
+            weave.sort_roots_by(compare);
         }
     }
     pub fn generate_children(

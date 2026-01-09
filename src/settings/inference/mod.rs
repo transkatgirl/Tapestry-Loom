@@ -794,9 +794,11 @@ impl InferenceSettings {
         runtime: &Runtime,
         client: &InferenceClient,
         cache: &InferenceCache,
-        request: (Option<Ulid>, Vec<(Ulid, Vec<u8>)>),
+        mut request: (Option<Ulid>, Vec<(Ulid, Vec<u8>)>),
         output: &mut HashMap<Option<Ulid>, SeriationInferenceHandle>,
     ) {
+        request.1.sort_by_key(|item| item.0);
+
         let clear_embedding_cache = self.clear_embedding_cache;
         if self.clear_embedding_cache {
             self.clear_embedding_cache = false;
