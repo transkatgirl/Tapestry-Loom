@@ -171,6 +171,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Add support for Anthropic Messages
 	- [ ] Add support for Gemini generateText
 	- [ ] Add support for Gemini generateContent
+	- [ ] Add support for Gemini embedContent
 - [ ] Perform API client testing with all commonly used inference backends
 	- [ ] llama-cpp
 	- [ ] koboldcpp
