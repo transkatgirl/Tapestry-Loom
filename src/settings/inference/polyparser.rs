@@ -538,7 +538,7 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             None
         }
     } else if let Some(Value::Object(logprobs_json)) = json.remove("logprobsResult") {
-        parse_gemma_logprobs(logprobs_json)
+        parse_gemini_logprobs(logprobs_json)
     } else {
         None
     };
@@ -1097,7 +1097,7 @@ fn parse_openai_chatcompletion_logprob_content_subitem(
     }
 }
 
-fn parse_gemma_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<Token>> {
+fn parse_gemini_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<Token>> {
     if let Some(Value::Array(chosen_candidates)) = logprobs_json.remove("chosenCandidates") {
         let mut tokens = Vec::with_capacity(chosen_candidates.len());
 
@@ -1116,7 +1116,7 @@ fn parse_gemma_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<Tok
 
                     for candidate in candidates {
                         if let Value::Object(candidate) = candidate
-                            && let Some(top_logprob) = parse_gemma_logprob_candidate(candidate)
+                            && let Some(top_logprob) = parse_gemini_logprob_candidate(candidate)
                         {
                             top_tokens.push(top_logprob);
                         } else {
@@ -1128,7 +1128,7 @@ fn parse_gemma_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<Tok
                 }
 
                 if let Value::Object(chosen_candidate) = chosen_candidate
-                    && let Some(token) = parse_gemma_logprob_candidate(chosen_candidate)
+                    && let Some(token) = parse_gemini_logprob_candidate(chosen_candidate)
                 {
                     tokens.push(Token { token, top_tokens });
                 } else {
@@ -1138,7 +1138,7 @@ fn parse_gemma_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<Tok
         } else {
             for chosen_candidate in chosen_candidates {
                 if let Value::Object(chosen_candidate) = chosen_candidate
-                    && let Some(token) = parse_gemma_logprob_candidate(chosen_candidate)
+                    && let Some(token) = parse_gemini_logprob_candidate(chosen_candidate)
                 {
                     tokens.push(Token {
                         token,
@@ -1156,7 +1156,7 @@ fn parse_gemma_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<Tok
     }
 }
 
-fn parse_gemma_logprob_candidate(mut logprob_json: Map<String, Value>) -> Option<LogprobToken> {
+fn parse_gemini_logprob_candidate(mut logprob_json: Map<String, Value>) -> Option<LogprobToken> {
     if let Some(Value::String(token)) = logprob_json.remove("token")
         && let Some(Value::Number(logprob)) = logprob_json.remove("logProbability")
         && let Some(logprob) = logprob.as_f64()
