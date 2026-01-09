@@ -23,7 +23,8 @@ use crate::{
     settings::{
         Settings, UISettings,
         inference::{
-            InferenceCache, InferenceClient, InferenceHandle, InferenceParameters, TokensOrBytes,
+            EmbeddingInferenceHandle, EmbeddingResponse, InferenceCache, InferenceClient,
+            InferenceHandle, InferenceParameters, InferenceSettings, TokensOrBytes,
         },
         shortcuts::Shortcuts,
     },
@@ -53,6 +54,8 @@ pub struct SharedState {
     pub has_opened_changed: bool,
     requests: HashMap<Ulid, InferenceHandle>,
     responses: Vec<Result<TapestryNode, anyhow::Error>>,
+    embedding_requests: HashMap<Ulid, EmbeddingInferenceHandle>,
+    embedding_responses: Vec<Result<EmbeddingResponse, anyhow::Error>>,
     last_ui_settings: UISettings,
     pub has_theme_changed: bool,
     last_activated_hovered: bool,
@@ -109,6 +112,8 @@ impl SharedState {
             has_opened_changed: false,
             requests: HashMap::with_capacity(128),
             responses: Vec::with_capacity(128),
+            embedding_requests: HashMap::with_capacity(32),
+            embedding_responses: Vec::with_capacity(32),
             last_ui_settings: settings.interface,
             has_theme_changed: false,
             last_activated_hovered: false,
@@ -146,6 +151,10 @@ impl SharedState {
             &self.cache,
             &mut self.requests,
             &mut self.responses,
+        );
+        InferenceSettings::get_embedding_responses(
+            &mut self.embedding_requests,
+            &mut self.embedding_responses,
         );
 
         if shortcuts.contains(Shortcuts::GenerateAtCursor) {
@@ -499,6 +508,19 @@ impl SharedState {
                     } else {
                         debug!("Failed to add node to weave");
                     }
+                }
+                Err(error) => {
+                    toasts.error(format!("Inference failed: {error}"));
+                    warn!("Inference failed: {error:#?}");
+                }
+            }
+        }
+        for response in self.embedding_responses.drain(..) {
+            match response {
+                Ok(embeddings) => {
+                    let seriated = seriate::seriate(embeddings);
+
+                    // TODO
                 }
                 Err(error) => {
                     toasts.error(format!("Inference failed: {error}"));

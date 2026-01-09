@@ -786,9 +786,8 @@ impl InferenceParameters {
     }
 }
 
-#[allow(clippy::type_complexity)]
 impl InferenceSettings {
-    fn create_embedding_request(
+    pub fn create_embedding_request(
         &mut self,
         runtime: &Runtime,
         client: &InferenceClient,
@@ -833,9 +832,9 @@ impl InferenceSettings {
             },
         );
     }
-    fn get_embedding_responses(
+    pub fn get_embedding_responses(
         input: &mut HashMap<Ulid, EmbeddingInferenceHandle>,
-        output: &mut Vec<Result<Vec<(Ulid, Vec<f32>)>, anyhow::Error>>,
+        output: &mut Vec<Result<EmbeddingResponse, anyhow::Error>>,
     ) {
         let keys: Vec<Ulid> = input.keys().cloned().collect();
 
@@ -883,6 +882,8 @@ pub struct InferenceHandle {
 pub struct EmbeddingInferenceHandle {
     handle: Vec<(Ulid, Promise<Result<Vec<f32>, anyhow::Error>>)>,
 }
+
+pub type EmbeddingResponse = Vec<(Ulid, Vec<f32>)>;
 
 #[derive(Default, Debug, PartialEq)]
 enum EndpointTemplate {
