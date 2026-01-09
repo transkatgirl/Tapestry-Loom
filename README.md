@@ -223,6 +223,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 		- [ ] When working with multiple models, allow dynamically adjusting proportions based on usage
 			- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count -->
 - [ ] Further UI improvements
+	- [ ] Add right click handling to node list background
 	- [ ] Allow temporarilly overriding color in inference menu
 	- [ ] Add model configuration sharing functionality
 		- [ ] Automatically redact sensitive information (such as API keys)
