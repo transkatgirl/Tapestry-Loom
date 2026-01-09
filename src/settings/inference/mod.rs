@@ -28,16 +28,21 @@ use tokio::{runtime::Runtime, sync::Mutex};
 
 use crate::settings::inference::openai::{
     OpenAIChatCompletionsConfig, OpenAIChatCompletionsTemplate, OpenAICompletionsConfig,
-    OpenAICompletionsTemplate, TapestryTokenizeOpenAICompletionsTemplate,
+    OpenAICompletionsTemplate, OpenAIEmbeddingsConfig, TapestryTokenizeOpenAICompletionsTemplate,
 };
 
 mod openai;
 mod polyparser;
+mod shared;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct InferenceSettings {
     pub client: ClientConfig,
     models: IndexMap<Ulid, InferenceModel>,
+
+    #[serde(default)]
+    embedding_model: EmbeddingEndpointConfig,
+
     pub default_parameters: InferenceParameters,
 
     #[serde(default)]
@@ -45,6 +50,9 @@ pub struct InferenceSettings {
 
     #[serde(skip)]
     template: EndpointTemplate,
+
+    #[serde(skip)]
+    clear_embedding_cache: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -213,6 +221,12 @@ impl InferenceSettings {
         if let Some(delete) = delete {
             self.models.shift_remove(&delete);
         }
+
+        ui.separator();
+        ui.heading("Embedding inference");
+        if self.embedding_model.render_settings(ui, &Ulid(u128::MAX)) {
+            self.clear_embedding_cache = true;
+        };
 
         ui.separator();
         ui.heading("Editor inference defaults");
@@ -767,12 +781,81 @@ impl InferenceParameters {
     }
 }
 
+impl InferenceSettings {
+    fn create_embedding_request(
+        &mut self,
+        runtime: &Runtime,
+        client: &InferenceClient,
+        cache: &InferenceCache,
+        content: TokensOrBytes,
+        output: &mut HashMap<Ulid, EmbeddingInferenceHandle>,
+    ) {
+        let clear_embedding_cache = self.clear_embedding_cache;
+        if self.clear_embedding_cache {
+            self.clear_embedding_cache = false;
+        }
+
+        let _guard = runtime.enter();
+
+        let endpoint = Arc::new(self.embedding_model.clone());
+        let request = content.into_bytes();
+        let client = client.clone();
+        let cache = cache.clone();
+        output.insert(
+            Ulid::new(),
+            EmbeddingInferenceHandle {
+                handle: Promise::spawn_async(async move {
+                    if clear_embedding_cache {
+                        cache.embeddings.lock().await.clear();
+                    }
+
+                    endpoint
+                        .as_ref()
+                        .perform_request(&client, &cache, request)
+                        .await
+                }),
+            },
+        );
+    }
+    fn get_embedding_responses(
+        input: &mut HashMap<Ulid, EmbeddingInferenceHandle>,
+        output: &mut Vec<Result<(Ulid, Vec<f32>), anyhow::Error>>,
+    ) {
+        let keys: Vec<Ulid> = input.keys().cloned().collect();
+
+        for key in keys {
+            let mut is_ready = false;
+
+            if let Some(value) = input.get(&key)
+                && value.handle.ready().is_some()
+            {
+                is_ready = true;
+            }
+
+            if is_ready && let Some(value) = input.remove(&key) {
+                let result = value.handle.block_and_take();
+
+                match result {
+                    Ok(contents) => {
+                        output.push(Ok((key, contents)));
+                    }
+                    Err(error) => output.push(Err(error)),
+                }
+            }
+        }
+    }
+}
+
 pub struct InferenceHandle {
     parent: Option<Ulid>,
     parent_content: Arc<Vec<TokensOrBytes>>,
     models: Rc<IndexMap<Ulid, InferenceModel>>,
     parameters: Rc<InferenceParameters>,
     handle: Promise<Result<Vec<(NodeContent, bool)>, anyhow::Error>>,
+}
+
+pub struct EmbeddingInferenceHandle {
+    handle: Promise<Result<Vec<f32>, anyhow::Error>>,
 }
 
 #[derive(Default, Debug, PartialEq)]
@@ -920,6 +1003,74 @@ impl Endpoint for EndpointConfig {
     }
 }
 
+#[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone)]
+enum EmbeddingEndpointConfig {
+    #[default]
+    None,
+    OpenAI(OpenAIEmbeddingsConfig),
+}
+
+impl Display for EmbeddingEndpointConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::OpenAI(endpoint) => endpoint.fmt(f),
+            Self::None => f.write_str("Choose endpoint type..."),
+        }
+    }
+}
+
+impl EmbeddingEndpoint for EmbeddingEndpointConfig {
+    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid) -> bool {
+        let mut result = false;
+
+        ui.horizontal_wrapped(|ui| {
+            let combobox_label = ui.label("Endpoint type:");
+            if ComboBox::from_id_salt("endpoint_embedding_chooser")
+                .selected_text(format!("{}", self))
+                .show_ui(ui, |ui| {
+                    let templates =
+                        vec![Self::None, Self::OpenAI(OpenAIEmbeddingsConfig::default())];
+
+                    for template in templates {
+                        let template_label = template.to_string();
+                        if ui
+                            .selectable_value(self, template, template_label)
+                            .changed()
+                        {
+                            result = true;
+                        };
+                    }
+                })
+                .response
+                .labelled_by(combobox_label.id)
+                .changed()
+            {
+                result = true;
+            };
+        });
+
+        if match self {
+            Self::OpenAI(endpoint) => endpoint.render_settings(ui, id),
+            Self::None => false,
+        } {
+            result = true;
+        }
+
+        result
+    }
+    async fn perform_request(
+        &self,
+        client: &InferenceClient,
+        cache: &InferenceCache,
+        requests: Vec<u8>,
+    ) -> Result<Vec<f32>, anyhow::Error> {
+        match self {
+            Self::OpenAI(endpoint) => endpoint.perform_request(client, cache, requests).await,
+            Self::None => Err(anyhow::Error::msg("No embedding endpoint selected")),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 struct EndpointRequest {
     content: Arc<Vec<TokensOrBytes>>,
@@ -945,15 +1096,14 @@ trait Endpoint: Serialize + DeserializeOwned + Clone {
     ) -> Result<Vec<EndpointResponse>, anyhow::Error>;
 }
 
-trait EmbeddingEndpoint: Serialize + DeserializeOwned + Clone {
+trait EmbeddingEndpoint: Serialize + DeserializeOwned + Clone + Display {
     fn render_settings(&mut self, ui: &mut Ui, id: &Ulid) -> bool;
-    fn label(&self) -> &str;
     async fn perform_request(
         &self,
         client: &InferenceClient,
         cache: &InferenceCache,
-        requests: Vec<Vec<u8>>,
-    ) -> Result<Vec<Vec<f32>>, anyhow::Error>;
+        request: Vec<u8>,
+    ) -> Result<Vec<f32>, anyhow::Error>;
 }
 
 trait Template<T>: Default + Clone
