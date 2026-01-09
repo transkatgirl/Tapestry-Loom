@@ -167,6 +167,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 - [ ] Improve handling of hovered + omitted/collapsed nodes
 - [ ] Add setting to swap shift-click and normal click behavior
 - [ ] Replace is_shift_pressed with response.clicked_with_open_in_background()
+- [ ] Perform API client testing with all commonly used inference backends
 
 ### Plans for next major version
 
