@@ -11,8 +11,9 @@ use serde_json::{Map, Number, Value};
 use tapestry_weave::ulid::Ulid;
 
 use super::{
-    EmbeddingEndpoint, Endpoint, EndpointRequest, EndpointResponse, InferenceCache,
-    InferenceClient, RequestTokensOrBytes, Template, render_config_list, render_config_map,
+    EMBEDDING_CACHE_MAX_SIZE, EmbeddingEndpoint, Endpoint, EndpointRequest, EndpointResponse,
+    InferenceCache, InferenceClient, RequestTokensOrBytes, Template, render_config_list,
+    render_config_map,
     shared::{
         build_json_list, build_json_object, error_for_status, parse_embedding_response,
         parse_response,
@@ -902,11 +903,14 @@ impl EmbeddingEndpoint for OpenAIEmbeddingsConfig {
 
         match parse_embedding_response(response) {
             Some(embedding) => {
-                cache
-                    .embeddings
-                    .lock()
-                    .await
-                    .insert(request, embedding.clone());
+                let mut embeddings_cache = cache.embeddings.lock().await;
+
+                embeddings_cache.insert(request, embedding.clone());
+
+                while embeddings_cache.len() >= EMBEDDING_CACHE_MAX_SIZE - 1 {
+                    embeddings_cache.pop_front();
+                }
+
                 Ok(embedding)
             }
             None => Err(anyhow::Error::msg("Response does not match API schema")),

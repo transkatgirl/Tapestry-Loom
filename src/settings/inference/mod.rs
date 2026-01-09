@@ -111,10 +111,15 @@ pub struct InferenceCache {
     tokens: Arc<Mutex<TokenizationCache>>,
 }
 
+const EMBEDDING_CACHE_MAX_SIZE: usize = 512;
+const TOKENIZATION_CACHE_MAX_SIZE: usize = 16384;
+
 impl Default for InferenceCache {
     fn default() -> Self {
         Self {
-            embeddings: Arc::new(Mutex::new(LinkedHashMap::with_capacity(512))),
+            embeddings: Arc::new(Mutex::new(LinkedHashMap::with_capacity(
+                EMBEDDING_CACHE_MAX_SIZE,
+            ))),
             tokens: Arc::new(Mutex::new(HashMap::with_capacity(16))),
         }
     }
@@ -1284,16 +1289,18 @@ impl RequestTokensOrBytes {
                             );
                             return Ok(tokens.clone());
                         } else {
-                            occupied.get().clone().lock_owned().await
+                            occupied.get().clone()
                         }
                     }
                     Entry::Vacant(vacant) => {
                         let occupied = vacant.insert_entry(Arc::new(Mutex::new(
-                            LinkedHashMap::with_capacity(16384),
+                            LinkedHashMap::with_capacity(TOKENIZATION_CACHE_MAX_SIZE),
                         )));
-                        occupied.get().clone().lock_owned().await
+                        occupied.get().clone()
                     }
-                };
+                }
+                .lock_owned()
+                .await;
 
                 trace!("Tokenizing {:?}", String::from_utf8_lossy(&bytes));
 
@@ -1301,9 +1308,11 @@ impl RequestTokensOrBytes {
 
                 trace!("{:?} = {:?}", String::from_utf8_lossy(&bytes), tokens);
 
+                //let mut model_cache = model_cache.lock_owned().await;
+
                 model_cache.insert(bytes, tokens.clone());
 
-                while model_cache.len() >= 16383 {
+                while model_cache.len() >= TOKENIZATION_CACHE_MAX_SIZE - 1 {
                     model_cache.pop_front();
                 }
 
