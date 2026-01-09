@@ -172,23 +172,17 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Add support for Gemini generateText
 	- [ ] Add support for Gemini generateContent
 	- [ ] Add support for Gemini embedContent
-- [ ] Perform API client testing with all commonly used inference backends
+- [ ] Perform API client testing with most commonly used inference backends
 	- [ ] llama-cpp
-	- [ ] koboldcpp
+	- [ ] ollama
 	- [ ] vllm
 	- [ ] sglang
 	- [ ] tensorrt-llm
 	- [ ] text-generation-inference
 	- [ ] text-embeddings-inference
+	- [ ] koboldcpp
 	- [ ] lm-studio
-	- [ ] lemonade
-	- [ ] infinity
-	- [ ] ollama
-	- [ ] swama
 	- [ ] litellm
-	- [ ] exllamav2
-	- [ ] lmdeploy
-	- [ ] mlc-llm
 - [ ] Improve handling of hovered + omitted/collapsed nodes
 - [ ] Add setting to swap shift-click and normal click behavior
 - [ ] Replace is_shift_pressed with response.clicked_with_open_in_background()
@@ -208,6 +202,13 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 - [ ] Improve API client
 	- [ ] Add support for response streaming
 	- [ ] Write unit tests for response parser
+	- [ ] Perform API client testing with less commonly used inference backends
+		- [ ] lemonade
+		- [ ] infinity
+		- [ ] swama
+		- [ ] exllamav2
+		- [ ] lmdeploy
+		- [ ] mlc-llm
 - [ ] Embedding model support
 	- [ ] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
 - [ ] Node confidence calculation
