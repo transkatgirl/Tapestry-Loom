@@ -224,7 +224,7 @@ impl InferenceSettings {
 
         ui.separator();
         ui.heading("Embedding inference");
-        if self.embedding_model.render_settings(ui, &Ulid(u128::MAX)) {
+        if self.embedding_model.render_settings(ui) {
             self.clear_embedding_cache = true;
         };
 
@@ -1020,7 +1020,7 @@ impl Display for EmbeddingEndpointConfig {
 }
 
 impl EmbeddingEndpoint for EmbeddingEndpointConfig {
-    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid) -> bool {
+    fn render_settings(&mut self, ui: &mut Ui) -> bool {
         let mut result = false;
 
         ui.horizontal_wrapped(|ui| {
@@ -1050,7 +1050,7 @@ impl EmbeddingEndpoint for EmbeddingEndpointConfig {
         });
 
         if match self {
-            Self::OpenAI(endpoint) => endpoint.render_settings(ui, id),
+            Self::OpenAI(endpoint) => endpoint.render_settings(ui),
             Self::None => false,
         } {
             result = true;
@@ -1097,7 +1097,7 @@ trait Endpoint: Serialize + DeserializeOwned + Clone {
 }
 
 trait EmbeddingEndpoint: Serialize + DeserializeOwned + Clone + Display {
-    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid) -> bool;
+    fn render_settings(&mut self, ui: &mut Ui) -> bool;
     async fn perform_request(
         &self,
         client: &InferenceClient,

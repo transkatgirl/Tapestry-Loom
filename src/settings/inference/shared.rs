@@ -232,7 +232,11 @@ pub(super) fn parse_response(
     outputs
 }
 
-pub(super) fn convert_embedding_response(mut response: Vec<Option<Vec<f32>>>) -> Option<Vec<f32>> {
+pub(super) fn parse_embedding_response(response: Value) -> Option<Vec<f32>> {
+    trace!("{:#?}", &response);
+
+    let mut response = polyparser::parse_embedding_response(response);
+
     if response.len() == 1 {
         response.remove(0)
     } else {

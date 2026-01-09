@@ -13,7 +13,10 @@ use tapestry_weave::ulid::Ulid;
 use super::{
     EmbeddingEndpoint, Endpoint, EndpointRequest, EndpointResponse, InferenceCache,
     InferenceClient, RequestTokensOrBytes, Template, render_config_list, render_config_map,
-    shared::{build_json_list, build_json_object, error_for_status, parse_response},
+    shared::{
+        build_json_list, build_json_object, error_for_status, parse_embedding_response,
+        parse_response,
+    },
 };
 
 #[derive(Default, Debug, Clone, PartialEq)]
@@ -799,8 +802,32 @@ impl NonStandardOpenAIModifications {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, Eq)]
-pub(super) struct OpenAIEmbeddingsConfig {}
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub(super) struct OpenAIEmbeddingsConfig {
+    pub(super) endpoint: String,
+    pub(super) parameters: Vec<(String, String)>,
+    pub(super) headers: Vec<(String, String)>,
+}
+
+impl Default for OpenAIEmbeddingsConfig {
+    fn default() -> Self {
+        Self {
+            endpoint: "http://127.0.0.1:8080/v1/embeddings".to_string(),
+            parameters: vec![
+                ("model".to_string(), "embeddinggemma-300M-F32".to_string()),
+                ("encoding_format".to_string(), "base64".to_string()),
+            ],
+            headers: vec![
+                ("User-Agent".to_string(), "TapestryLoom".to_string()),
+                (
+                    "HTTP-Referer".to_string(),
+                    "https://github.com/transkatgirl/Tapestry-Loom".to_string(),
+                ),
+                ("X-Title".to_string(), "Tapestry Loom".to_string()),
+            ],
+        }
+    }
+}
 
 impl Display for OpenAIEmbeddingsConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -809,10 +836,26 @@ impl Display for OpenAIEmbeddingsConfig {
 }
 
 impl EmbeddingEndpoint for OpenAIEmbeddingsConfig {
-    fn render_settings(&mut self, ui: &mut Ui, id: &Ulid) -> bool {
-        //todo!()
+    fn render_settings(&mut self, ui: &mut Ui) -> bool {
+        let old = self.clone();
 
-        false
+        TextEdit::singleline(&mut self.endpoint)
+            .hint_text("Endpoint URL")
+            .desired_width(ui.spacing().text_edit_width * 2.0)
+            .ui(ui)
+            .on_hover_text("Endpoint URL");
+
+        ui.group(|ui| {
+            ui.label("Request parameters:");
+            render_config_map(ui, &mut self.parameters, 0.9, 1.1);
+        });
+
+        ui.group(|ui| {
+            ui.label("Request headers:");
+            render_config_map(ui, &mut self.headers, 0.9, 1.1);
+        });
+
+        *self != old
     }
     async fn perform_request(
         &self,
@@ -820,6 +863,53 @@ impl EmbeddingEndpoint for OpenAIEmbeddingsConfig {
         cache: &InferenceCache,
         request: Vec<u8>,
     ) -> Result<Vec<f32>, anyhow::Error> {
-        todo!()
+        if let Some(embedding) = cache.embeddings.lock().await.get(&request) {
+            return Ok(embedding.clone());
+        };
+
+        let mut headers = HeaderMap::with_capacity(self.headers.len());
+
+        for (key, value) in &self.headers {
+            headers.insert(
+                HeaderName::from_bytes(key.as_bytes())?,
+                HeaderValue::from_str(value)?,
+            );
+        }
+
+        let mut body = Map::with_capacity(1 + self.parameters.len());
+
+        build_json_object(&mut body, self.parameters.clone());
+
+        body.insert(
+            "input".to_string(),
+            Value::String(String::from_utf8_lossy(&request).to_string()),
+        );
+
+        trace!("{:#?}", &body);
+
+        let response: Value = error_for_status(
+            client
+                .client
+                .request(Method::POST, Url::parse(&self.endpoint)?)
+                .headers(headers)
+                .json(&Value::Object(body))
+                .send()
+                .await?,
+        )
+        .await?
+        .json()
+        .await?;
+
+        match parse_embedding_response(response) {
+            Some(embedding) => {
+                cache
+                    .embeddings
+                    .lock()
+                    .await
+                    .insert(request, embedding.clone());
+                Ok(embedding)
+            }
+            None => Err(anyhow::Error::msg("Response does not match API schema")),
+        }
     }
 }
