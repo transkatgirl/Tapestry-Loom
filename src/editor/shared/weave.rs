@@ -1,4 +1,5 @@
 use std::{
+    cmp::Ordering,
     hash::BuildHasherDefault,
     time::{Duration, SystemTime},
 };
@@ -245,6 +246,15 @@ impl WeaveWrapper {
                 .map(|model| model.label.clone())
                 .cmp(&b.contents.model.as_ref().map(|model| model.label.clone()))
         })
+    }
+    pub fn sort_node_children_u128_by(
+        &mut self,
+        id: &u128,
+        compare: impl FnMut(&TapestryNode, &TapestryNode) -> Ordering,
+    ) -> bool {
+        self.changed = true;
+        self.layout_changed = true;
+        self.weave.weave.sort_node_children_by(id, compare)
     }
     pub fn sort_roots(&mut self) {
         self.changed = true;

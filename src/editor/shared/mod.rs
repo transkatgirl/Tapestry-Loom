@@ -1,4 +1,7 @@
-use std::{borrow::Cow, cell::RefCell, collections::HashMap, rc::Rc, sync::Arc, time::SystemTime};
+use std::{
+    borrow::Cow, cell::RefCell, collections::HashMap, hash::BuildHasherDefault, rc::Rc, sync::Arc,
+    time::SystemTime,
+};
 
 use chrono::{DateTime, offset};
 use eframe::egui::{
@@ -9,6 +12,7 @@ use egui_notify::Toasts;
 use flagset::FlagSet;
 use log::{debug, warn};
 use tapestry_weave::{
+    hashers::UlidHasher,
     ulid::Ulid,
     universal_weave::{
         dependent::DependentNode,
@@ -517,10 +521,18 @@ impl SharedState {
         }
         for response in self.embedding_responses.drain(..) {
             match response {
-                Ok(embeddings) => {
-                    let seriated = seriate::seriate(embeddings);
+                Ok(response) => {
+                    let seriated: HashMap<u128, usize, BuildHasherDefault<UlidHasher>> =
+                        HashMap::from_iter(
+                            seriate::seriate(response.embeddings)
+                                .into_iter()
+                                .enumerate()
+                                .map(|(index, id)| (id.0, index)),
+                        );
 
-                    // TODO
+                    weave.sort_node_children_u128_by(&response.id.0, |a, b| {
+                        seriated.get(&a.id).cmp(&seriated.get(&b.id))
+                    });
                 }
                 Err(error) => {
                     toasts.error(format!("Inference failed: {error}"));

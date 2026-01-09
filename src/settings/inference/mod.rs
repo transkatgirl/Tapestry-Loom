@@ -792,7 +792,7 @@ impl InferenceSettings {
         runtime: &Runtime,
         client: &InferenceClient,
         cache: &InferenceCache,
-        request: Vec<(Ulid, Vec<u8>)>,
+        request: (Ulid, Vec<(Ulid, Vec<u8>)>),
         output: &mut HashMap<Ulid, EmbeddingInferenceHandle>,
     ) {
         let clear_embedding_cache = self.clear_embedding_cache;
@@ -805,9 +805,10 @@ impl InferenceSettings {
         let endpoint = Arc::new(self.embedding_model.clone());
 
         output.insert(
-            Ulid::new(),
+            request.0,
             EmbeddingInferenceHandle {
                 handle: request
+                    .1
                     .into_iter()
                     .map(|request| {
                         let endpoint = endpoint.clone();
@@ -848,14 +849,14 @@ impl InferenceSettings {
             }
 
             if is_ready && let Some(value) = input.remove(&key) {
-                let mut result_list = Vec::with_capacity(value.handle.len());
+                let mut embeddings = Vec::with_capacity(value.handle.len());
 
                 for (id, handle) in value.handle {
                     let result = handle.block_and_take();
 
                     match result {
                         Ok(contents) => {
-                            result_list.push((id, contents));
+                            embeddings.push((id, contents));
                         }
                         Err(error) => {
                             output.push(Err(error));
@@ -864,7 +865,10 @@ impl InferenceSettings {
                     }
                 }
 
-                output.push(Ok(result_list));
+                output.push(Ok(EmbeddingResponse {
+                    id: key,
+                    embeddings,
+                }));
             }
         }
     }
@@ -883,7 +887,10 @@ pub struct EmbeddingInferenceHandle {
     handle: Vec<(Ulid, Promise<Result<Vec<f32>, anyhow::Error>>)>,
 }
 
-pub type EmbeddingResponse = Vec<(Ulid, Vec<f32>)>;
+pub struct EmbeddingResponse {
+    pub id: Ulid,
+    pub embeddings: Vec<(Ulid, Vec<f32>)>,
+}
 
 #[derive(Default, Debug, PartialEq)]
 enum EndpointTemplate {
