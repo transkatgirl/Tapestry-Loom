@@ -164,10 +164,16 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [x] Improve token confidence calculation to work properly with vLLM
 	- [x] Use logprob text_offset value when present
 - [x] Place responses with `echo: true` at the root of the tree
+- [ ] Improve API response building
+	- [ ] Add support for OpenAI Responses
+	- [ ] Add support for OpenAI Embeddings
+	- [ ] Add support for Anthropic-style APIs
+	- [ ] Add support for Gemini-style APIs
+	- [ ] Add support for Ollama-style APIs
+- [ ] Perform API client testing with all commonly used inference backends
 - [ ] Improve handling of hovered + omitted/collapsed nodes
 - [ ] Add setting to swap shift-click and normal click behavior
 - [ ] Replace is_shift_pressed with response.clicked_with_open_in_background()
-- [ ] Perform API client testing with all commonly used inference backends
 
 ### Plans for next major version
 
@@ -182,11 +188,6 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Implement counterfactual logprobs, similar to [loom](https://github.com/socketteer/loom)
 	- [ ] Perform heavy unit testing of data structures and/or formal verification to prevent bugs that could result in data loss
 - [ ] Improve API client
-	- [ ] Add support for OpenAI Responses
-	- [ ] Add support for OpenAI Embeddings
-	- [ ] Add support for Anthropic-style APIs
-	- [ ] Add support for Gemini-style APIs
-	- [ ] Add support for Ollama-style APIs
 	- [ ] Add support for response streaming
 	- [ ] Write unit tests for response parser
 - [ ] Embedding model support
