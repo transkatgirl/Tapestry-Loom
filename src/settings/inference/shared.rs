@@ -98,7 +98,11 @@ pub(super) fn parse_response(
             }),
             polyparser::ResponseContents::Tokens(tokens) => {
                 if single_token && let Some(token) = tokens.first().cloned() {
-                    let mut base_token_metadata = Vec::new();
+                    let mut base_token_metadata = if token.top_tokens.len() >= 10 {
+                        Vec::with_capacity(2)
+                    } else {
+                        Vec::new()
+                    };
 
                     if token.top_tokens.len() >= 10 {
                         let mut confidence = 0.0;
@@ -253,7 +257,6 @@ pub(super) fn parse_response(
 
                 if should_calculate_node_confidence
                     && let Some(node_confidence_k) = node_confidence_k
-                    && !tokens.is_empty()
                 {
                     metadata.extend([
                         (
