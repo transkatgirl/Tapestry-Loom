@@ -8,6 +8,7 @@ Supported input formats:
 - [Legacy Tapestry Loom Obsidian plugin](https://github.com/transkatgirl/Tapestry-Loom/tree/legacy)
 - [loom](https://github.com/socketteer/loom)*, tested with commit 91ca920551120ad4508540e8da057c0b94067afc
 	- Does not support migrating multimedia
+	- Does not support migrating tokenization metadata
 - [loomsidian](https://github.com/cosmicoptima/loom)*, tested with commit afbb3519f10d668d4688c68370d7b9305c9f80dc
 - [exoloom](https://exoloom.io)*, last tested on December 17, 2025
 	- Note: Exoloom's export format does not contain information on which nodes are active
