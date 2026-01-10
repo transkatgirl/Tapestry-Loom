@@ -253,6 +253,7 @@ pub(super) fn parse_response(
 
                 if should_calculate_node_confidence
                     && let Some(node_confidence_k) = node_confidence_k
+                    && !tokens.is_empty()
                 {
                     metadata.extend([
                         (
