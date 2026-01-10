@@ -31,10 +31,10 @@ pub(super) fn build_json_object(map: &mut Map<String, Value>, parameters: Vec<(S
 pub(super) async fn error_for_status(response: Response) -> Result<Response, anyhow::Error> {
     let status = response.status();
     if status.is_client_error() || status.is_server_error() {
-        Err(anyhow::Error::msg(match response.text().await {
-            Ok(text) => format!("HTTP {}: {}", status.as_u16(), text),
-            Err(error) => error.to_string(),
-        }))
+        Err(match response.text().await {
+            Ok(text) => anyhow::Error::msg(format!("HTTP {}: {}", status.as_u16(), text)),
+            Err(error) => error.into(),
+        })
     } else {
         Ok(response)
     }
