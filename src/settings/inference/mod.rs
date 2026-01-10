@@ -710,6 +710,19 @@ impl InferenceParameters {
                         },
                     );
                 }
+            } else {
+                output.insert(
+                    Ulid::new(),
+                    InferenceHandle {
+                        parent: parent_node,
+                        parent_content: content.clone(),
+                        models: models.clone(),
+                        parameters: parameters.clone(),
+                        handle: Promise::spawn_async(async move {
+                            Err(anyhow::Error::msg("Invalid model"))
+                        }),
+                    },
+                );
             }
         }
     }
