@@ -97,7 +97,10 @@ pub(super) fn parse_response(
                 metadata,
             }),
             polyparser::ResponseContents::Tokens(tokens) => {
-                if single_token && let Some(token) = tokens.first().cloned() {
+                if single_token
+                    && !echo
+                    && let Some(token) = tokens.first().cloned()
+                {
                     let mut base_token_metadata = if token.top_tokens.len() >= 10 {
                         Vec::with_capacity(2)
                     } else {
