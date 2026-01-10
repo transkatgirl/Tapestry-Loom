@@ -75,7 +75,7 @@ pub(super) fn parse_response(
         }
 
         if let polyparser::ResponseContents::Tokens(_) = &item.contents {
-            metadata_capacity += 2;
+            metadata_capacity += 3;
         }
 
         if metadata_capacity > 0 {
@@ -262,6 +262,7 @@ pub(super) fn parse_response(
                                 .to_string(),
                         ),
                         ("confidence_k".to_string(), node_confidence_k.to_string()),
+                        ("confidence_n".to_string(), tokens.len().to_string()),
                     ]);
                 }
 

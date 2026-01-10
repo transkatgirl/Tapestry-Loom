@@ -859,7 +859,13 @@ pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &TapestryNode) {
             if let Some(k) = node.contents.metadata.get("confidence_k")
                 && let Ok(k) = k.parse::<usize>()
             {
-                ui.label(format!("confidence: {:.2} (k = {k})", confidence,));
+                if let Some(n) = node.contents.metadata.get("confidence_n")
+                    && let Ok(n) = n.parse::<usize>()
+                {
+                    ui.label(format!("confidence: {:.2} (k = {k}, n = {n})", confidence));
+                } else {
+                    ui.label(format!("confidence: {:.2} (k = {k})", confidence));
+                }
             }
         } else if key != "confidence_k" {
             ui.label(format!("{key}: {value}"));
