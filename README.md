@@ -168,17 +168,6 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Add support for Gemini generateText
 	- [ ] Add support for Gemini generateContent
 	- [ ] Add support for Gemini embedContent
-- [ ] Perform API client testing with most commonly used inference backends
-	- [ ] llama-cpp
-	- [ ] ollama
-	- [ ] vllm
-	- [ ] sglang
-	- [ ] tensorrt-llm
-	- [ ] text-generation-inference
-	- [ ] text-embeddings-inference
-	- [ ] koboldcpp
-	- [ ] lm-studio
-	- [ ] litellm
 - [ ] Add API client HTTP proxy override
 - [ ] Review and refactor application modules
 	- [x] main
@@ -200,11 +189,24 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Prefix-based duplication
 	- [ ] Implement counterfactual logprobs, similar to [loom](https://github.com/socketteer/loom)
 	- [ ] Perform heavy unit testing of data structures and/or formal verification to prevent bugs that could result in data loss
+- [ ] Node confidence calculation
+	- [ ] Node ordering by confidence
 - [ ] Review and refactor application modules
 	- [ ] settings
 	- [ ] editor
 - [ ] Improve API client
 	- [ ] Add support for response streaming
+	- [ ] Perform API client testing with commonly used inference backends
+		- [ ] llama-cpp
+		- [ ] ollama
+		- [ ] vllm
+		- [ ] sglang
+		- [ ] tensorrt-llm
+		- [ ] text-generation-inference
+		- [ ] text-embeddings-inference
+		- [ ] koboldcpp
+		- [ ] lm-studio
+		- [ ] litellm
 	- [ ] Perform API client testing with less commonly used inference backends
 		- [ ] lemonade
 		- [ ] infinity
@@ -216,8 +218,6 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Write unit tests for response parser
 - [x] Embedding model support
 	- [x] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
-- [ ] Node confidence calculation
-	- [ ] Node ordering by confidence
 - [ ] Request post-processing arguments (using prefix of `T#`)
 	- [ ] Single-token node pruning:
 		- [ ] `T#keep_top_p`
