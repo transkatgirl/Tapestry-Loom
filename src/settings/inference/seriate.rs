@@ -44,10 +44,6 @@ fn seriate_inner(embeddings: Vec<Vec<f32>>) -> Vec<usize> {
     for (position, distance_index) in solved.iter().enumerate() {
         let mut distance: f64 = 0.0;
 
-        if *distance_index > 0 {
-            distance = distance.max(distances[*distance_index][distance_index - 1])
-        }
-
         if *distance_index < solved.len() - 1 {
             distance = distance.max(distances[*distance_index][distance_index + 1])
         }
@@ -57,7 +53,7 @@ fn seriate_inner(embeddings: Vec<Vec<f32>>) -> Vec<usize> {
         }
     }
 
-    solved.rotate_right(max.1);
+    solved.rotate_left(max.1);
 
     solved
 }
