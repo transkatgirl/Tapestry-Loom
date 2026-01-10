@@ -867,7 +867,7 @@ pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &TapestryNode) {
                     ui.label(format!("confidence: {:.2} (k = {k})", confidence));
                 }
             }
-        } else if key != "confidence_k" {
+        } else if !(key == "confidence_k" || key == "confidence_n") {
             ui.label(format!("{key}: {value}"));
         }
     }
@@ -945,7 +945,7 @@ pub fn render_token_metadata_tooltip(ui: &mut Ui, token_len: usize, token_metada
             {
                 ui.label(format!("token_id: {}", value));
             }
-        } else if key != "model_id" && key != "confidence_k" {
+        } else if !(key == "model_id" || key == "confidence_k") {
             ui.label(format!("{key}: {value}"));
         }
     }
