@@ -161,7 +161,7 @@ impl Display for NodeSorting {
             Self::None => f.write_str("None"),
             Self::Model => f.write_str("Model only"),
             Self::Confidence => f.write_str("Confidence"),
-            Self::Seriation => f.write_str("Seriate"),
+            Self::Seriation => f.write_str("Seriation"),
         }
     }
 }
