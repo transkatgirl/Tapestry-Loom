@@ -828,6 +828,9 @@ pub(super) struct OpenAIEmbeddingsConfig {
     pub(super) endpoint: String,
     pub(super) parameters: Vec<(String, String)>,
     pub(super) headers: Vec<(String, String)>,
+
+    #[serde(default)]
+    pub(super) prefix: String,
 }
 
 impl Default for OpenAIEmbeddingsConfig {
@@ -846,6 +849,7 @@ impl Default for OpenAIEmbeddingsConfig {
                 ),
                 ("X-Title".to_string(), "Tapestry Loom".to_string()),
             ],
+            prefix: String::new(),
         }
     }
 }
@@ -876,6 +880,15 @@ impl EmbeddingEndpoint for OpenAIEmbeddingsConfig {
             render_config_map(ui, &mut self.headers, 0.9, 1.1);
         });
 
+        ui.group(|ui| {
+            let label = ui.label("Input prefix:").id;
+
+            TextEdit::singleline(&mut self.prefix)
+                .desired_width(ui.spacing().text_edit_width * 2.0)
+                .ui(ui)
+                .labelled_by(label);
+        });
+
         *self != old
     }
     async fn perform_request(
@@ -903,7 +916,13 @@ impl EmbeddingEndpoint for OpenAIEmbeddingsConfig {
 
         body.insert(
             "input".to_string(),
-            Value::String(String::from_utf8_lossy(&request).to_string()),
+            Value::String(
+                [
+                    self.prefix.clone(),
+                    String::from_utf8_lossy(&request).to_string(),
+                ]
+                .concat(),
+            ),
         );
 
         trace!("{:#?}", &body);
