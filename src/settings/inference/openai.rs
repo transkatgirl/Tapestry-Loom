@@ -16,7 +16,7 @@ use super::{
     render_config_map,
     shared::{
         build_json_list, build_json_object, error_for_status, parse_embedding_response,
-        parse_response,
+        parse_response, response_schema_error,
     },
 };
 
@@ -535,7 +535,7 @@ impl Endpoint for OpenAICompletionsConfig {
         if !endpoint_response.is_empty() {
             Ok(endpoint_response)
         } else {
-            Err(anyhow::Error::msg("Response does not match API schema"))
+            Err(response_schema_error())
         }
     }
 }
@@ -762,7 +762,7 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         if !endpoint_response.is_empty() {
             Ok(endpoint_response)
         } else {
-            Err(anyhow::Error::msg("Response does not match API schema"))
+            Err(response_schema_error())
         }
     }
 }
@@ -933,7 +933,7 @@ impl EmbeddingEndpoint for OpenAIEmbeddingsConfig {
 
                 Ok(embedding)
             }
-            None => Err(anyhow::Error::msg("Response does not match API schema")),
+            None => Err(response_schema_error()),
         }
     }
 }

@@ -35,6 +35,11 @@ pub(super) async fn error_for_status(response: Response) -> Result<Response, any
             Ok(text) => anyhow::Error::msg(format!("HTTP {}: {}", status.as_u16(), text)),
             Err(error) => error.into(),
         })
+    } else if status.is_redirection() || status.is_informational() {
+        Err(anyhow::Error::msg(format!(
+            "Unexpected HTTP status: {}",
+            status
+        )))
     } else {
         Ok(response)
     }
@@ -238,4 +243,8 @@ pub(super) fn parse_embedding_response(response: Value) -> Option<Vec<f32>> {
     } else {
         None
     }
+}
+
+pub(super) fn response_schema_error() -> anyhow::Error {
+    anyhow::Error::msg("Response does not match API schema")
 }
