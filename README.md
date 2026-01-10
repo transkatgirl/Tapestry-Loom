@@ -179,15 +179,14 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 
 ### Plans for next major version
 
-- [ ] Support for DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
+- [ ] **High priority**: Support for DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
+	- [ ] Implement counterfactual logprobs, similar to [loom](https://github.com/socketteer/loom)
+	- [ ] Fully immutable nodes; Node splitting is implemented through duplication
 	- [ ] FIM completions
 		- [ ] Selected text is used to determine FIM location
 	- [ ] Diff-based editor content application
 	- [ ] Node copying & moving
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
-	- [ ] Fully immutable nodes; Node splitting is implemented through duplication
-	- [ ] Prefix-based duplication
-	- [ ] Implement counterfactual logprobs, similar to [loom](https://github.com/socketteer/loom)
 	- [ ] Perform heavy unit testing of data structures and/or formal verification to prevent bugs that could result in data loss
 - [x] Node confidence calculation
 	- [x] Node ordering by confidence
@@ -296,6 +295,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Predictability analysis using logprobs
 	- [ ] Statistical analysis of various metrics (model usage, text length, logprobs, number of branches, etc)
 - [ ] Token streaming and display of nodes being generated
+- [ ] Prefix-based deduplication
 - [ ] Optimize for performance whenever possible
 	- [ ] Aim to have acceptable performance on weaves with ~1 million nodes, ~200k active and ~10MB of active text on low-end hardware (such as a Raspberry Pi)
 		- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
