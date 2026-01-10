@@ -798,7 +798,17 @@ pub fn render_node_metadata_tooltip(ui: &mut Ui, node: &TapestryNode) {
     }
 
     for (key, value) in &node.contents.metadata {
-        ui.label(format!("{key}: {value}"));
+        if key == "confidence"
+            && let Ok(confidence) = value.parse::<f32>()
+        {
+            if let Some(k) = node.contents.metadata.get("confidence_k")
+                && let Ok(k) = k.parse::<usize>()
+            {
+                ui.label(format!("confidence: {:.2} (k = {k})", confidence,));
+            }
+        } else if key != "confidence_k" {
+            ui.label(format!("{key}: {value}"));
+        }
     }
 
     ui.label(format_time(Ulid(node.id).datetime()));

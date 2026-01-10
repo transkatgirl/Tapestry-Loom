@@ -74,6 +74,10 @@ pub(super) fn parse_response(
             metadata_capacity += 1;
         }
 
+        if let polyparser::ResponseContents::Tokens(_) = &item.contents {
+            metadata_capacity += 2;
+        }
+
         if metadata_capacity > 0 {
             metadata.reserve_exact(metadata_capacity);
         }
@@ -146,6 +150,17 @@ pub(super) fn parse_response(
                             ]);
                         }
 
+                        /*let mut node_metadata = metadata.clone();
+
+                        if let Some(confidence) = token_metadata.get("confidence")
+                            && let Some(confidence_k) = token_metadata.get("confidence_k")
+                        {
+                            node_metadata.extend([
+                                ("confidence".to_string(), confidence.to_string()),
+                                ("confidence_k".to_string(), confidence_k.to_string()),
+                            ]);
+                        }*/
+
                         EndpointResponse {
                             root: false,
                             content: InnerNodeContent::Tokens(vec![(
@@ -155,9 +170,17 @@ pub(super) fn parse_response(
                             metadata: metadata.clone(),
                         }
                     }));
+
+                    if tokens.len() == 1 {
+                        continue;
+                    }
                 }
 
-                let tokens = tokens
+                let mut confidence_sum = 0.0;
+                let mut node_confidence_k = None;
+                let mut should_calculate_node_confidence = true;
+
+                let tokens: Vec<_> = tokens
                     .into_iter()
                     .map(|token| {
                         let mut token_metadata_capacity = 2;
@@ -203,6 +226,18 @@ pub(super) fn parse_response(
                                 ),
                                 ("confidence_k".to_string(), top_token_count.to_string()),
                             ]);
+
+                            if should_calculate_node_confidence {
+                                if let Some(node_confidence_k) = node_confidence_k {
+                                    should_calculate_node_confidence =
+                                        node_confidence_k == top_token_count;
+                                } else {
+                                    node_confidence_k = Some(top_token_count);
+                                }
+                                confidence_sum += confidence;
+                            }
+                        } else {
+                            should_calculate_node_confidence = false;
                         }
 
                         if let Some(token_id) = token.token.id {
@@ -215,6 +250,19 @@ pub(super) fn parse_response(
                         (token.token.contents, token_metadata)
                     })
                     .collect();
+
+                if should_calculate_node_confidence
+                    && let Some(node_confidence_k) = node_confidence_k
+                {
+                    metadata.extend([
+                        (
+                            "confidence".to_string(),
+                            (((confidence_sum / tokens.len() as f64) * -100.0).round() / 100.0)
+                                .to_string(),
+                        ),
+                        ("confidence_k".to_string(), node_confidence_k.to_string()),
+                    ]);
+                }
 
                 outputs.push(EndpointResponse {
                     root: echo,
