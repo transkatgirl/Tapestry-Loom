@@ -37,5 +37,17 @@ fn seriate_inner(embeddings: Vec<Vec<f32>>) -> Vec<usize> {
 
     drop(embeddings);
 
-    DistanceMatrix::new(distances).solve(10)
+    let mut solved = DistanceMatrix::new(distances.clone()).solve(10);
+
+    let max = solved
+        .iter()
+        .enumerate()
+        .map(|(position, index)| (index, position))
+        .max();
+
+    if let Some((_, max)) = max {
+        solved.rotate_right(max);
+    }
+
+    solved
 }
