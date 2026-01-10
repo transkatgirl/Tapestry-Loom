@@ -151,6 +151,7 @@ pub enum NodeSorting {
     None,
     #[default]
     Model,
+    Confidence,
     Seriation,
 }
 
@@ -159,6 +160,7 @@ impl Display for NodeSorting {
         match self {
             Self::None => f.write_str("None"),
             Self::Model => f.write_str("Model only"),
+            Self::Confidence => f.write_str("Confidence"),
             Self::Seriation => f.write_str("Seriate"),
         }
     }
@@ -331,6 +333,11 @@ impl UISettings {
                     &mut self.node_sorting,
                     NodeSorting::Model,
                     NodeSorting::Model.to_string(),
+                );
+                ui.selectable_value(
+                    &mut self.node_sorting,
+                    NodeSorting::Confidence,
+                    NodeSorting::Confidence.to_string(),
                 );
                 ui.selectable_value(
                     &mut self.node_sorting,

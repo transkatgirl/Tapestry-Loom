@@ -1225,8 +1225,12 @@ pub fn render_node_context_menu(
             state.seriate_children(weave, Some(Ulid(node.id)), settings);
         }
 
+        if ui.button("Sort children by confidence").clicked() {
+            state.sort_children_by_confidence(weave, Some(Ulid(node.id)));
+        }
+
         if ui.button("Sort children by timestamp").clicked() {
-            state.sort_children(weave, Some(Ulid(node.id)));
+            state.sort_children_by_id(weave, Some(Ulid(node.id)));
         }
 
         ui.separator();

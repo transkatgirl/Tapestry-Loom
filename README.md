@@ -190,7 +190,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Implement counterfactual logprobs, similar to [loom](https://github.com/socketteer/loom)
 	- [ ] Perform heavy unit testing of data structures and/or formal verification to prevent bugs that could result in data loss
 - [x] Node confidence calculation
-	- [ ] Node ordering by confidence
+	- [x] Node ordering by confidence
 - [ ] Review and refactor application modules
 	- [ ] settings
 	- [ ] editor

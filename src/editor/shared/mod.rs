@@ -526,6 +526,33 @@ impl SharedState {
                                     weave.sort_roots_by(compare);
                                 }
                             }
+                            NodeSorting::Confidence => {
+                                let compare = |a: &TapestryNode, b: &TapestryNode| {
+                                    let a_confidence = a
+                                        .contents
+                                        .metadata
+                                        .get("confidence")
+                                        .and_then(|value| value.parse::<f32>().ok());
+                                    let b_confidence = b
+                                        .contents
+                                        .metadata
+                                        .get("confidence")
+                                        .and_then(|value| value.parse::<f32>().ok());
+
+                                    if let Some(a_confidence) = a_confidence
+                                        && let Some(b_confidence) = b_confidence
+                                    {
+                                        b_confidence.total_cmp(&a_confidence)
+                                    } else {
+                                        a_confidence.is_some().cmp(&b_confidence.is_some())
+                                    }
+                                };
+                                if let Some(parent) = parent {
+                                    weave.sort_node_children_u128_by(&parent, compare);
+                                } else {
+                                    weave.sort_roots_by(compare);
+                                }
+                            }
                             NodeSorting::Seriation => {
                                 self.seriate_children(weave, parent.map(Ulid), settings);
                             }
@@ -663,7 +690,7 @@ impl SharedState {
                 .push(Err(anyhow::Error::msg("Client is not initialized")));
         }
     }
-    pub fn sort_children(&mut self, weave: &mut WeaveWrapper, parent: Option<Ulid>) {
+    pub fn sort_children_by_id(&mut self, weave: &mut WeaveWrapper, parent: Option<Ulid>) {
         let compare = |a: &TapestryNode, b: &TapestryNode| {
             a.contents
                 .model
@@ -683,9 +710,37 @@ impl SharedState {
                     if a_single_token && b_single_token {
                         Ordering::Equal
                     } else {
-                        a_single_token.cmp(&b_single_token).then(a.id.cmp(&b.id))
+                        b_single_token.cmp(&a_single_token).then(a.id.cmp(&b.id))
                     }
                 })
+        };
+
+        if let Some(parent) = parent {
+            weave.sort_node_children_u128_by(&parent.0, compare);
+        } else {
+            weave.sort_roots_by(compare);
+        }
+    }
+    pub fn sort_children_by_confidence(&mut self, weave: &mut WeaveWrapper, parent: Option<Ulid>) {
+        let compare = |a: &TapestryNode, b: &TapestryNode| {
+            let a_confidence = a
+                .contents
+                .metadata
+                .get("confidence")
+                .and_then(|value| value.parse::<f32>().ok());
+            let b_confidence = b
+                .contents
+                .metadata
+                .get("confidence")
+                .and_then(|value| value.parse::<f32>().ok());
+
+            if let Some(a_confidence) = a_confidence
+                && let Some(b_confidence) = b_confidence
+            {
+                b_confidence.total_cmp(&a_confidence)
+            } else {
+                a_confidence.is_some().cmp(&b_confidence.is_some())
+            }
         };
 
         if let Some(parent) = parent {
