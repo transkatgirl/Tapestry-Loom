@@ -109,6 +109,7 @@ Where `$MODEL_DIRECTORY` is set to the directory where model gguf files are stor
 
 Explanation of arguments:
 - Only one model loaded into VRAM at a time; old models are automatically unloaded to make room for new ones
+	- If you plan on using an embedding model, you should start a second server instance to avoid swapping out your text generation model when generating embeddings
 - Models are automatically unloaded after 20 minutes of inactivity
 - The specified chat template passes user input directly to the model without further changes.
 - Reducing the maximum context length helps reduce VRAM usage without sacrificing quality.
@@ -125,7 +126,7 @@ If you are running llama-server on the same device as Tapestry Loom (and you are
 
 If you are new to working with LLM base models, [Trinity-Mini-Base-Pre-Anneal](https://huggingface.co/mradermacher/Trinity-Mini-Base-Pre-Anneal-GGUF) or ([Trinity-Nano-Base-Pre-Anneal](https://huggingface.co/mradermacher/Trinity-Nano-Base-Pre-Anneal-GGUF) if you have <32GB of VRAM) is a good first model to try.
 
-<!-- If you plan on using seriation, [embeddinggemma-300m](https://huggingface.co/unsloth/embeddinggemma-300m-GGUF) is a good small embedding model. -->
+If you plan on using seriation, [embeddinggemma-300m](https://huggingface.co/unsloth/embeddinggemma-300m-GGUF) is a good small embedding model.
 
 ### Inference providers
 
