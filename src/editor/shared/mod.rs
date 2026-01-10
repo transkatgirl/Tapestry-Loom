@@ -1,6 +1,6 @@
 use std::{
-    borrow::Cow, cell::RefCell, collections::HashMap, hash::BuildHasherDefault, rc::Rc, sync::Arc,
-    time::SystemTime,
+    borrow::Cow, cell::RefCell, cmp::Ordering, collections::HashMap, hash::BuildHasherDefault,
+    rc::Rc, sync::Arc, time::SystemTime,
 };
 
 use chrono::{DateTime, offset};
@@ -638,6 +638,10 @@ impl SharedState {
         }
         .iter()
         .filter_map(|id| weave.get_node_u128(id))
+        .filter(|child| match &child.contents.content {
+            InnerNodeContent::Tokens(tokens) => tokens.len() != 1,
+            InnerNodeContent::Snippet(_) => true,
+        })
         .map(|child| {
             let mut content = parent_content.clone();
             content.extend(child.contents.content.as_bytes().iter());
@@ -666,7 +670,22 @@ impl SharedState {
                 .as_ref()
                 .map(|model| model.label.clone())
                 .cmp(&b.contents.model.as_ref().map(|model| model.label.clone()))
-                .then(a.id.cmp(&b.id))
+                .then_with(|| {
+                    let a_single_token = match &a.contents.content {
+                        InnerNodeContent::Tokens(t) => t.len() == 1,
+                        _ => false,
+                    };
+                    let b_single_token = match &b.contents.content {
+                        InnerNodeContent::Tokens(t) => t.len() == 1,
+                        _ => false,
+                    };
+
+                    if a_single_token && b_single_token {
+                        Ordering::Equal
+                    } else {
+                        a_single_token.cmp(&b_single_token).then(a.id.cmp(&b.id))
+                    }
+                })
         };
 
         if let Some(parent) = parent {
