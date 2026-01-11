@@ -3,10 +3,13 @@ use reqwest::Response;
 use serde_json::{Map, Value};
 use tapestry_weave::{
     ulid::Ulid,
-    v0::{InnerNodeContent, MetadataMap},
+    v0::{InnerNodeContent, MetadataMap, serialize_counterfactual_logprobs},
 };
 
-use super::{EndpointResponse, polyparser};
+use super::{
+    EndpointResponse,
+    polyparser::{self, LogprobToken, Token},
+};
 
 pub(super) fn build_json_list(list: &mut Vec<Value>, items: Vec<String>) {
     for item in items {
@@ -97,10 +100,7 @@ pub(super) fn parse_response(
                 metadata,
             }),
             polyparser::ResponseContents::Tokens(tokens) => {
-                if single_token
-                    && !echo
-                    && let Some(token) = tokens.first().cloned()
-                {
+                let calculate_base_token_metadata = |token: &Token| {
                     let mut base_token_metadata = if token.top_tokens.len() >= 10 {
                         Vec::with_capacity(2)
                     } else {
@@ -125,12 +125,19 @@ pub(super) fn parse_response(
                             ),
                             ("confidence_k".to_string(), top_token_count.to_string()),
                         ]);
+
+                        (base_token_metadata, Some((confidence, top_token_count)))
+                    } else {
+                        (base_token_metadata, None)
                     }
+                };
+                let build_token_metadata =
+                    |token: &LogprobToken,
+                     base_metadata: &Vec<(String, String)>,
+                     excess_capacity: usize| {
+                        let mut token_metadata_capacity = 2 + base_metadata.len() + excess_capacity;
 
-                    outputs.extend(token.top_tokens.into_iter().map(|top_token| {
-                        let mut token_metadata_capacity = 2 + base_token_metadata.len();
-
-                        if top_token.id.is_some() {
+                        if token.id.is_some() {
                             token_metadata_capacity += 2;
                         }
 
@@ -140,33 +147,35 @@ pub(super) fn parse_response(
                         token_metadata.extend([
                             (
                                 "probability".to_string(),
-                                ((top_token.logprob.exp() * 10000.0).round() / 10000.0).to_string(),
+                                ((token.logprob.exp() * 10000.0).round() / 10000.0).to_string(),
                             ),
                             (
                                 "original_length".to_string(),
-                                top_token.contents.len().to_string(),
+                                token.contents.len().to_string(),
                             ),
                         ]);
 
-                        token_metadata.extend(base_token_metadata.clone());
+                        token_metadata.extend(base_metadata.clone());
 
-                        if let Some(token_id) = top_token.id {
+                        if let Some(token_id) = token.id {
                             token_metadata.extend([
                                 ("token_id".to_string(), token_id.to_string()),
                                 ("model_id".to_string(), tokenization_identifier.to_string()),
                             ]);
                         }
 
-                        /*let mut node_metadata = metadata.clone();
+                        token_metadata
+                    };
 
-                        if let Some(confidence) = token_metadata.get("confidence")
-                            && let Some(confidence_k) = token_metadata.get("confidence_k")
-                        {
-                            node_metadata.extend([
-                                ("confidence".to_string(), confidence.to_string()),
-                                ("confidence_k".to_string(), confidence_k.to_string()),
-                            ]);
-                        }*/
+                if single_token
+                    && !echo
+                    && let Some(token) = tokens.first().cloned()
+                {
+                    let (base_token_metadata, _) = calculate_base_token_metadata(&token);
+
+                    outputs.extend(token.top_tokens.into_iter().map(|top_token| {
+                        let token_metadata =
+                            build_token_metadata(&top_token, &base_token_metadata, 0);
 
                         EndpointResponse {
                             root: false,
@@ -190,68 +199,40 @@ pub(super) fn parse_response(
                 let tokens: Vec<_> = tokens
                     .into_iter()
                     .map(|token| {
-                        let mut token_metadata_capacity = 2;
+                        let (base_token_metadata, confidence) =
+                            calculate_base_token_metadata(&token);
 
-                        if token.token.id.is_some() {
-                            token_metadata_capacity += 2;
-                        }
+                        let mut token_metadata =
+                            build_token_metadata(&token.token, &base_token_metadata, 1);
 
-                        if token.top_tokens.len() >= 10 {
-                            token_metadata_capacity += 2;
-                        }
+                        let top_tokens: Vec<_> = token
+                            .top_tokens
+                            .into_iter()
+                            .map(|token| {
+                                let token_metadata =
+                                    build_token_metadata(&token, &base_token_metadata, 0);
 
-                        let mut token_metadata = MetadataMap::default();
-                        token_metadata.reserve_exact(token_metadata_capacity);
+                                (token.contents, token_metadata)
+                            })
+                            .collect();
 
-                        token_metadata.extend([
-                            (
-                                "probability".to_string(),
-                                ((token.token.logprob.exp() * 10000.0).round() / 10000.0)
-                                    .to_string(),
-                            ),
-                            (
-                                "original_length".to_string(),
-                                token.token.contents.len().to_string(),
-                            ),
-                        ]);
+                        token_metadata.insert(
+                            "counterfactual".to_string(),
+                            serialize_counterfactual_logprobs(top_tokens),
+                        );
 
-                        if token.top_tokens.len() >= 10 {
-                            let mut confidence = 0.0;
-
-                            let top_token_count = token.top_tokens.len();
-
-                            for top_token in token.top_tokens {
-                                confidence += top_token.logprob;
-                            }
-
-                            confidence /= top_token_count as f64;
-
-                            token_metadata.extend([
-                                (
-                                    "confidence".to_string(),
-                                    ((confidence * -100.0).round() / 100.0).to_string(),
-                                ),
-                                ("confidence_k".to_string(), top_token_count.to_string()),
-                            ]);
-
+                        if let Some((confidence, confidence_k)) = confidence {
                             if should_calculate_node_confidence {
                                 if let Some(node_confidence_k) = node_confidence_k {
                                     should_calculate_node_confidence =
-                                        node_confidence_k == top_token_count;
+                                        node_confidence_k == confidence_k;
                                 } else {
-                                    node_confidence_k = Some(top_token_count);
+                                    node_confidence_k = Some(confidence_k);
                                 }
                                 confidence_sum += confidence;
                             }
                         } else {
                             should_calculate_node_confidence = false;
-                        }
-
-                        if let Some(token_id) = token.token.id {
-                            token_metadata.extend([
-                                ("token_id".to_string(), token_id.to_string()),
-                                ("model_id".to_string(), tokenization_identifier.to_string()),
-                            ]);
                         }
 
                         (token.token.contents, token_metadata)

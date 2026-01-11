@@ -3,7 +3,6 @@ use std::{
     rc::Rc, sync::Arc, time::SystemTime,
 };
 
-use base64::{Engine, prelude::BASE64_URL_SAFE};
 use chrono::{DateTime, offset};
 use eframe::egui::{
     Color32, Context, Rgba, RichText, TextFormat, TextStyle, Ui,
@@ -1313,29 +1312,4 @@ fn from_utf8_lossy(v: &[u8]) -> Cow<'_, str> {
     }
 
     Cow::Owned(res)
-}
-
-pub fn serialize_counterfactual_logprobs(logprobs: Vec<(Vec<u8>, MetadataMap)>) -> String {
-    let logprobs: Vec<_> = logprobs
-        .into_iter()
-        .map(|(data, metadata)| (BASE64_URL_SAFE.encode(data), metadata))
-        .collect();
-
-    serde_json::to_string(&logprobs).unwrap()
-}
-
-pub fn deserialize_counterfactual_logprobs(logprobs: &str) -> Option<Vec<(Vec<u8>, MetadataMap)>> {
-    serde_json::from_str::<Vec<(String, MetadataMap)>>(logprobs)
-        .ok()
-        .map(|logprobs| {
-            logprobs
-                .into_iter()
-                .filter_map(|(data, metadata)| {
-                    BASE64_URL_SAFE
-                        .decode(data)
-                        .ok()
-                        .map(|data| (data, metadata))
-                })
-                .collect()
-        })
 }

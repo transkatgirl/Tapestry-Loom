@@ -5684,10 +5684,12 @@ dependencies = [
 name = "tapestry-weave"
 version = "0.0.0"
 dependencies = [
+ "base64 0.22.1",
  "contracts",
  "rkyv",
  "rustc-hash 2.1.1",
  "serde",
+ "serde_json",
  "ulid",
  "universal-weave",
 ]

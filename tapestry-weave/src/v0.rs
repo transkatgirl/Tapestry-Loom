@@ -1,5 +1,6 @@
 use std::{borrow::Cow, collections::HashSet, hash::BuildHasherDefault};
 
+use base64::{Engine, prelude::BASE64_URL_SAFE};
 use contracts::ensures;
 use rustc_hash::FxBuildHasher;
 use ulid::Ulid;
@@ -466,4 +467,29 @@ impl TapestryWeave {
     pub fn remove_node(&mut self, id: &Ulid) -> Option<TapestryNode> {
         self.weave.remove_node(&id.0)
     }
+}
+
+pub fn serialize_counterfactual_logprobs(logprobs: Vec<(Vec<u8>, MetadataMap)>) -> String {
+    let logprobs: Vec<_> = logprobs
+        .into_iter()
+        .map(|(data, metadata)| (BASE64_URL_SAFE.encode(data), metadata))
+        .collect();
+
+    serde_json::to_string(&logprobs).unwrap()
+}
+
+pub fn deserialize_counterfactual_logprobs(logprobs: &str) -> Option<Vec<(Vec<u8>, MetadataMap)>> {
+    serde_json::from_str::<Vec<(String, MetadataMap)>>(logprobs)
+        .ok()
+        .map(|logprobs| {
+            logprobs
+                .into_iter()
+                .filter_map(|(data, metadata)| {
+                    BASE64_URL_SAFE
+                        .decode(data)
+                        .ok()
+                        .map(|data| (data, metadata))
+                })
+                .collect()
+        })
 }
