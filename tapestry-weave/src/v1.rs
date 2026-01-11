@@ -59,7 +59,7 @@ impl DiscreteContents for NodeContent {
         }
     }
     fn merge(mut self, mut value: Self) -> DiscreteContentResult<Self> {
-        if self.timestamp != value.timestamp
+        if self.timestamp.1 != value.timestamp.1
             || self.metadata != value.metadata
             || self.creator != value.creator
         {
@@ -76,6 +76,7 @@ impl DiscreteContents for NodeContent {
             DiscreteContentResult::One(center) => {
                 self.content = center;
                 self.modified = true;
+                self.timestamp.0 = self.timestamp.0.max(value.timestamp.0);
                 DiscreteContentResult::One(self)
             }
         }
@@ -84,7 +85,10 @@ impl DiscreteContents for NodeContent {
 
 impl NodeContent {
     fn is_mergeable_with(&self, value: &Self) -> bool {
-        if self.metadata != value.metadata || self.creator != value.creator {
+        if self.timestamp.1 != value.timestamp.1
+            || self.metadata != value.metadata
+            || self.creator != value.creator
+        {
             return false;
         }
 
@@ -94,7 +98,10 @@ impl NodeContent {
 
 impl DeduplicatableContents for NodeContent {
     fn is_duplicate_of(&self, value: &Self) -> bool {
-        self == value
+        self.modified == value.modified
+            && self.content == value.content
+            && self.metadata == value.metadata
+            && self.creator == value.creator
     }
 }
 
