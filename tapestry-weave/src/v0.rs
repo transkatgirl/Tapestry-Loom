@@ -14,9 +14,6 @@ use universal_weave::{
     },
 };
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
-
 use crate::{
     VersionedWeave,
     hashers::UlidHasher,
@@ -24,7 +21,6 @@ use crate::{
 };
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub struct NodeContent {
     pub content: InnerNodeContent,
     pub metadata: MetadataMap,
@@ -88,7 +84,6 @@ impl DeduplicatableContents for NodeContent {
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub enum InnerNodeContent {
     Snippet(Vec<u8>),
     Tokens(Vec<(Vec<u8>, MetadataMap)>),
@@ -207,7 +202,6 @@ impl InnerNodeContent {
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub struct Model {
     pub label: String,
     pub metadata: MetadataMap,
