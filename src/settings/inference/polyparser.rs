@@ -914,14 +914,11 @@ fn parse_openai_completion_logprobs(
                 && tokens.len() == token_logprobs.len()
             {
                 for (token, logprob) in tokens.into_iter().zip(token_logprobs.into_iter()) {
-                    if let Value::String(token) = token
-                        && let Value::Number(logprob) = logprob
-                        && let Some(logprob) = logprob.as_f64()
-                    {
+                    if let Value::String(token) = token {
                         token_list.push(LogprobToken {
                             id: None,
                             contents: token.into_bytes(),
-                            logprob,
+                            logprob: logprob.as_f64().unwrap_or(f64::NAN), // vllm
                         });
                     } else {
                         return None;
