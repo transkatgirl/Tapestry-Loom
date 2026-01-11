@@ -23,7 +23,7 @@ use crate::{
     versioning::{MixedData, VersionedBytes},
 };
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct NodeContent {
     pub timestamp: (NaiveDateTime, FixedOffset),
     pub modified: bool,
@@ -105,24 +105,84 @@ impl DeduplicatableContents for NodeContent {
     }
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub enum InnerNodeContent {
     Snippet(Vec<u8>),
     Tokens(Vec<InnerNodeToken>),
     Link(String),
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+impl InnerNodeContent {
+    pub fn calculate_confidence(&self) -> Option<(f32, usize, usize)> {
+        if let Self::Tokens(tokens) = self {
+            let mut confidence_sum = 0.0;
+            let mut confidence_k = None;
+
+            for token in tokens {
+                if let Some((confidence, k)) = token.calculate_confidence_f64() {
+                    if let Some(last_k) = confidence_k
+                        && last_k != k
+                    {
+                        confidence_k = None;
+                        break;
+                    } else {
+                        confidence_k = Some(k);
+                    }
+
+                    confidence_sum += confidence;
+                } else {
+                    confidence_k = None;
+                    break;
+                }
+            }
+
+            confidence_k.map(|confidence_k| {
+                (
+                    (confidence_sum / tokens.len() as f64) as f32,
+                    confidence_k,
+                    tokens.len(),
+                )
+            })
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct InnerNodeToken {
     bytes: Vec<u8>,
+    logprob: Option<f32>,
     metadata: MetadataMap,
     counterfactual: Vec<CounterfactualToken>,
     original: Option<Vec<u8>>,
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+impl InnerNodeToken {
+    pub fn calculate_confidence(&self) -> Option<(f32, usize)> {
+        self.calculate_confidence_f64()
+            .map(|(confidence, k)| (confidence as f32, k))
+    }
+    fn calculate_confidence_f64(&self) -> Option<(f64, usize)> {
+        if !self.counterfactual.is_empty() {
+            Some((
+                self.counterfactual
+                    .iter()
+                    .map(|token| token.logprob as f64)
+                    .sum::<f64>()
+                    / self.counterfactual.len() as f64,
+                self.counterfactual.len(),
+            ))
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct CounterfactualToken {
     bytes: Vec<u8>,
+    logprob: f32,
     metadata: MetadataMap,
 }
 
@@ -171,6 +231,7 @@ impl InnerNodeContent {
                         left_token.shrink_to_fit();
                         left.push(InnerNodeToken {
                             bytes: left_token,
+                            logprob: right[0].logprob,
                             metadata: right[0].metadata.clone(),
                             counterfactual: right[0].counterfactual.clone(),
                             original: Some(right[0].bytes.clone()),
