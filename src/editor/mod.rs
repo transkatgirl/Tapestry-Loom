@@ -418,35 +418,44 @@ impl Editor {
         let file_size = self.last_filesize.clone();
 
         self.behavior.shared_state.runtime.spawn_blocking(move || {
-            let mut weave_lock = weave.lock();
-            let mut path_lock = path.lock();
+            let weave_lock = weave.lock();
+            let path_lock = path.lock();
             thread_barrier.wait();
 
-            if let Some(path) = path_lock.as_ref()
+            let data = if let Some(path) = path_lock.as_ref()
                 && let Some(weave) = weave_lock.as_ref()
             {
-                match weave.to_versioned_bytes() {
-                    Ok(bytes) => {
-                        if let Err(error) = write_bytes(path, &bytes) {
-                            file_size.store(0, Ordering::SeqCst);
-                            let _ = error_sender.send(format!("Filesystem error: {error}"));
-                            error!("Filesystem error: {:#?}", error);
-                            *path_lock = None;
-                        } else {
-                            file_size.store(bytes.len(), Ordering::SeqCst);
-                            debug!("Saved weave {} to disk", path.to_string_lossy());
-                            if unload {
-                                *weave_lock = None;
-                                *path_lock = None;
-                            }
+                Some((weave.to_versioned_bytes(), path.clone()))
+            } else {
+                None
+            };
+
+            drop(weave_lock);
+            drop(path_lock);
+
+            match data {
+                Some((Ok(bytes), pathbuf)) => {
+                    if let Err(error) = write_bytes(&pathbuf, &bytes) {
+                        file_size.store(0, Ordering::SeqCst);
+                        let _ = error_sender.send(format!("Filesystem error: {error}"));
+                        error!("Filesystem error: {:#?}", error);
+                        *path.lock() = None;
+                    } else {
+                        file_size.store(bytes.len(), Ordering::SeqCst);
+                        debug!("Saved weave {} to disk", pathbuf.to_string_lossy());
+
+                        if unload {
+                            *weave.lock() = None;
+                            *path.lock() = None;
                         }
                     }
-                    Err(error) => {
-                        file_size.store(0, Ordering::SeqCst);
-                        let _ = error_sender.send("Weave serialization failed".to_string());
-                        error!("Weave serialization failed: {:#?}", error);
-                    }
                 }
+                Some((Err(error), _)) => {
+                    file_size.store(0, Ordering::SeqCst);
+                    let _ = error_sender.send("Weave serialization failed".to_string());
+                    error!("Weave serialization failed: {:#?}", error);
+                }
+                None => {}
             }
         });
         barrier.wait();

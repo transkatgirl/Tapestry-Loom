@@ -190,9 +190,14 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Perform heavy unit testing of data structures and/or formal verification to prevent bugs that could result in data loss
 - [x] Node confidence calculation
 	- [x] Node ordering by confidence
+- [ ] Improve Weave saving & loading
+	- [ ] Initially load weaves using zero-copy deserialization, performing full deserialization in the background
+	- [ ] Perform weave saving in the background without visual glitches
+	- [ ] Support read-only weave editors using zero-copy deserialization and file memory mapping
 - [ ] Review and refactor application modules
 	- [ ] settings
 	- [ ] editor
+- [ ] Implement BERT FIM server using nonstandard `fim_tokens` parameter
 - [ ] Improve API client
 	- [ ] Add support for response streaming
 	- [ ] Perform API client testing with commonly used inference backends
@@ -301,7 +306,6 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Aim to have acceptable performance on weaves with ~1 million nodes, ~200k active and ~10MB of active text on low-end hardware (such as a Raspberry Pi)
 		- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
 	- [ ] Optimize memory usage to be as low as reasonably possible
-	- [ ] Initially load weaves with zero-copy deserialization, perform full deserialization in the background
 - [ ] Add support for more weave migrations
 	- [ ] bonsai (using [damask](https://github.com/tel-0s/damask))
 	- [ ] [wool](https://github.com/lyramakesmusic/wool)
