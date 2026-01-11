@@ -400,7 +400,9 @@ impl Editor {
             drop(path);
         }
 
-        if self.last_save.elapsed() > settings.documents.save_interval {
+        if self.last_save.elapsed() > settings.documents.save_interval
+            && self.behavior.shared_state.get_request_count() == 0
+        {
             self.last_save = Instant::now();
             self.save(false);
             ui.ctx()
