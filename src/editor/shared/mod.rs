@@ -945,7 +945,7 @@ pub fn render_token_metadata_tooltip(ui: &mut Ui, token_len: usize, token_metada
             {
                 ui.label(format!("token_id: {}", value));
             }
-        } else if !(key == "model_id" || key == "confidence_k") {
+        } else if !(key == "model_id" || key == "confidence_k" || key == "counterfactual") {
             ui.label(format!("{key}: {value}"));
         }
     }

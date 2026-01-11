@@ -633,7 +633,7 @@ pub fn render_horizontal_node_label_buttons_ltr(
     weave: &mut WeaveWrapper,
     node: &TapestryNode,
 ) {
-    let is_shift_pressed = ui.input(|input| input.modifiers.shift);
+    let is_modifier_pressed = ui.input(|input| input.modifiers.any());
 
     if weave.is_mergeable_with_parent(&Ulid(node.id))
         && ui
@@ -643,35 +643,37 @@ pub fn render_horizontal_node_label_buttons_ltr(
     {
         weave.merge_with_parent(&Ulid(node.id));
     };
-    if ui
+    let generate_response = ui
         .button("\u{E5CE}")
-        .on_hover_text(if !is_shift_pressed {
+        .on_hover_text(if !is_modifier_pressed {
             "Generate completions"
         } else {
             "Generate completions & focus node"
-        })
-        .clicked()
-    {
+        });
+    if generate_response.clicked() {
         state.generate_children(weave, Some(Ulid(node.id)), settings);
 
-        if is_shift_pressed {
+        if generate_response.clicked_with_open_in_background() {
             weave.set_node_active_status_u128(&node.id, true);
             state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
         }
 
         state.set_open(Ulid(node.id), true);
     };
-    if ui
+    let add_response = ui
         .button("\u{E40C}")
-        .on_hover_text(if !is_shift_pressed {
+        .on_hover_text(if !is_modifier_pressed {
             "Add node"
         } else {
             "Add active node"
-        })
-        .clicked()
-    {
+        });
+    if add_response.clicked() {
         let identifier = Ulid::new().0;
-        let active = if is_shift_pressed { true } else { node.active };
+        let active = if add_response.clicked_with_open_in_background() {
+            true
+        } else {
+            node.active
+        };
 
         if weave.add_node(DependentNode {
             id: identifier,
@@ -721,7 +723,7 @@ pub fn render_horizontal_node_label_buttons_rtl(
     weave: &mut WeaveWrapper,
     node: &TapestryNode,
 ) {
-    let is_shift_pressed = ui.input(|input| input.modifiers.shift);
+    let is_modifier_pressed = ui.input(|input| input.modifiers.any());
 
     if ui.button("\u{E28F}").on_hover_text("Delete node").clicked() {
         weave.remove_node(&Ulid(node.id));
@@ -743,17 +745,20 @@ pub fn render_horizontal_node_label_buttons_rtl(
     {
         weave.set_node_bookmarked_status_u128(&node.id, !node.bookmarked);
     };
-    if ui
+    let add_response = ui
         .button("\u{E40C}")
-        .on_hover_text(if !is_shift_pressed {
+        .on_hover_text(if !is_modifier_pressed {
             "Add node"
         } else {
             "Add active node"
-        })
-        .clicked()
-    {
+        });
+    if add_response.clicked() {
         let identifier = Ulid::new().0;
-        let active = if is_shift_pressed { true } else { node.active };
+        let active = if add_response.clicked_with_open_in_background() {
+            true
+        } else {
+            node.active
+        };
 
         if weave.add_node(DependentNode {
             id: identifier,
@@ -774,18 +779,17 @@ pub fn render_horizontal_node_label_buttons_rtl(
             }
         }
     };
-    if ui
+    let generate_response = ui
         .button("\u{E5CE}")
-        .on_hover_text(if !is_shift_pressed {
+        .on_hover_text(if !is_modifier_pressed {
             "Generate completions"
         } else {
             "Generate completions & focus node"
-        })
-        .clicked()
-    {
+        });
+    if generate_response.clicked() {
         state.generate_children(weave, Some(Ulid(node.id)), settings);
 
-        if is_shift_pressed {
+        if generate_response.clicked_with_open_in_background() {
             weave.set_node_active_status_u128(&node.id, true);
             state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
         }
@@ -1119,12 +1123,13 @@ pub fn render_node_context_menu(
     node: &TapestryNode,
     collapsing: bool,
 ) {
-    let is_shift_pressed = ui.input(|input| input.modifiers.shift);
+    let is_modifier_pressed = ui.input(|input| input.modifiers.any());
 
-    if ui.button("Generate completions").clicked() {
+    let generate_response = ui.button("Generate completions");
+    if generate_response.clicked() {
         state.generate_children(weave, Some(Ulid(node.id)), settings);
 
-        if is_shift_pressed {
+        if generate_response.clicked_with_open_in_background() {
             weave.set_node_active_status_u128(&node.id, true);
             state.set_cursor_node(NodeIndex::Node(Ulid(node.id)));
         }
@@ -1143,16 +1148,18 @@ pub fn render_node_context_menu(
 
     ui.separator();
 
-    if ui
-        .button(if !is_shift_pressed {
-            "Create child"
-        } else {
-            "Create active child"
-        })
-        .clicked()
-    {
+    let add_child_response = ui.button(if !is_modifier_pressed {
+        "Create child"
+    } else {
+        "Create active child"
+    });
+    if add_child_response.clicked() {
         let identifier = Ulid::new().0;
-        let active = if is_shift_pressed { true } else { node.active };
+        let active = if add_child_response.clicked_with_open_in_background() {
+            true
+        } else {
+            node.active
+        };
 
         if weave.add_node(DependentNode {
             id: identifier,
@@ -1174,16 +1181,18 @@ pub fn render_node_context_menu(
         }
     }
 
-    if ui
-        .button(if !is_shift_pressed {
-            "Create sibling"
-        } else {
-            "Create active sibling"
-        })
-        .clicked()
-    {
+    let add_sibling_response = ui.button(if !is_modifier_pressed {
+        "Create sibling"
+    } else {
+        "Create active sibling"
+    });
+    if add_sibling_response.clicked() {
         let identifier = Ulid::new().0;
-        let active = if is_shift_pressed { true } else { node.active };
+        let active = if add_sibling_response.clicked_with_open_in_background() {
+            true
+        } else {
+            node.active
+        };
 
         if weave.add_node(DependentNode {
             id: identifier,

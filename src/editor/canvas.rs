@@ -895,11 +895,9 @@ fn render_generate_button(
     }*/
 
     if response.clicked() {
-        let is_shift_pressed = ui.input(|input| input.modifiers.shift);
-
         state.generate_children(weave, Some(node), settings);
 
-        if is_shift_pressed {
+        if response.clicked_with_open_in_background() {
             weave.set_node_active_status_u128(&node.0, true);
             state.set_cursor_node(NodeIndex::Node(node));
         }
