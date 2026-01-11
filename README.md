@@ -175,7 +175,6 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [x] files
 	- [ ] settings/inference
 - [ ] Improve handling of hovered + omitted/collapsed nodes
-- [ ] Add setting to swap shift-click and normal click behavior
 - [x] Replace is_shift_pressed with response.clicked_with_open_in_background()
 
 ### Plans for next major version
@@ -249,6 +248,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 		- [ ] When working with multiple models, allow dynamically adjusting proportions based on usage
 			- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count -->
 - [ ] Further UI improvements
+	- [ ] Add setting to swap shift-click and normal click behavior
 	- [ ] Add sorting submenu to node context menu
 	- [ ] Add right click handling to node list background
 	- [ ] Allow temporarilly overriding color in inference menu
