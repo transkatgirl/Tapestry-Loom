@@ -8,28 +8,35 @@ license = "Unlicense"
 description = "An implementation of Tapestry Loom's document format."
 edition = "2024"
 
-[features]
-serde = [
-	"dep:serde",
-	"ulid/serde",
-	"universal-weave/serde",
-]
-
 [dependencies]
 contracts = "0.6.7"
-ulid = "1.2.1"
-rkyv = "*"
+rkyv = "0.8.13"
 universal-weave = { path = "../universal-weave", features = [
-	"legacy",
+	"legacy", # v0
+	"serde",  # v0
+] }
+
+rustc-hash = { version = "2.1.1", features = [
+	"rand",
+] }
+
+# v0
+ulid = { version = "1.2.1", features = [
+	"serde",
 ] }
 serde = { version = "1.0.228", features = [
 	"derive",
-], optional = true }
+] }
 serde_json = { version = "1.0.145", features = [
 	"preserve_order",
 	"arbitrary_precision",
 ] }
-rustc-hash = { version = "2.1.1", features = [
-	"rand",
-] }
 base64 = "0.22.1"
+
+# v1+
+chrono = { git = "https://github.com/transkatgirl/chrono", features = [
+	#"rkyv-64",
+	#"rkyv-validation",
+	"rkyv",
+	"rkyv-bytecheck",
+] }

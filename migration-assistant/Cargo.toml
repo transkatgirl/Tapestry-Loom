@@ -9,14 +9,14 @@ license = "Unlicense"
 description = "A tool for converting weaves from other Loom implementations into the Tapestry Loom weave format."
 edition = "2024"
 
+# TODO: Add v0 feature
+
 [dependencies]
 base64 = "0.22.1"
 miniz_oxide = "0.8.9"
 frontmatter = "0.4.0"
 boa_engine = "0.21.0"
-tapestry-weave = { path = "../tapestry-weave", features = [
-	"serde",
-] }
+tapestry-weave = { path = "../tapestry-weave" }
 clap = { version = "4.5.53", features = [
 	"derive",
 ] }

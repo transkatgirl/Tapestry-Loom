@@ -16,9 +16,7 @@ donate = "https://github.com/sponsors/transkatgirl"
 donation-link = [  ]
 
 [dependencies]
-tapestry-weave = { path = "tapestry-weave", features = [
-	"serde",
-] }
+tapestry-weave = { path = "tapestry-weave" }
 eframe = { version = "0.33.3", features = [
 	"accesskit",
 	"persistence",
