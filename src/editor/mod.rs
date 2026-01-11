@@ -419,7 +419,7 @@ impl Editor {
 
         self.behavior.shared_state.runtime.spawn_blocking(move || {
             let weave_lock = weave.lock();
-            let path_lock = path.lock();
+            let mut path_lock = path.lock();
             thread_barrier.wait();
 
             let data = if let Some(path) = path_lock.as_ref()
@@ -431,6 +431,9 @@ impl Editor {
             };
 
             drop(weave_lock);
+            if unload {
+                *path_lock = None;
+            }
             drop(path_lock);
 
             match data {
@@ -446,7 +449,6 @@ impl Editor {
 
                         if unload {
                             *weave.lock() = None;
-                            *path.lock() = None;
                         }
                     }
                 }
