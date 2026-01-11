@@ -68,6 +68,7 @@ pub struct Editor {
     behavior: EditorTilingBehavior,
     show_confirmation: bool,
     allow_close: bool,
+    last_pass_discarded: bool,
     new_path_callback: Box<dyn FnMut(&PathBuf)>,
 }
 
@@ -160,6 +161,7 @@ impl Editor {
             },
             allow_close: false,
             show_confirmation: false,
+            last_pass_discarded: false,
             new_path_callback,
         }
     }
@@ -199,6 +201,8 @@ impl Editor {
         }
 
         if let Some(mut weave) = self.weave.clone().try_lock() {
+            self.last_pass_discarded = false;
+
             match weave.as_mut() {
                 Some(_) => {
                     drop(weave);
@@ -266,6 +270,9 @@ impl Editor {
                     barrier.wait();
                 }
             }
+        } else if !self.last_pass_discarded {
+            self.last_pass_discarded = true;
+            ui.ctx().request_discard("Weave is locked");
         }
 
         TopBottomPanel::bottom(self.panel_identifier.clone()).show_animated_inside(
