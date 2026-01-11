@@ -147,12 +147,19 @@ impl InnerNodeContent {
             None
         }
     }
+    pub fn round_logprobs(&mut self) {
+        if let Self::Tokens(tokens) = self {
+            for token in tokens {
+                token.round_logprobs();
+            }
+        }
+    }
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct InnerNodeToken {
     pub bytes: Vec<u8>,
-    pub logprob: Option<f32>,
+    pub logprob: f32,
     pub metadata: MetadataMap,
     pub counterfactual: Vec<CounterfactualToken>,
     pub original: Option<Vec<u8>>,
@@ -177,6 +184,12 @@ impl InnerNodeToken {
             None
         }
     }
+    pub fn round_logprobs(&mut self) {
+        self.logprob = (self.logprob * 100.0).round() / 100.0;
+        self.counterfactual.iter_mut().for_each(|token| {
+            token.round_logprob();
+        });
+    }
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
@@ -184,6 +197,12 @@ pub struct CounterfactualToken {
     pub bytes: Vec<u8>,
     pub logprob: f32,
     pub metadata: MetadataMap,
+}
+
+impl CounterfactualToken {
+    pub fn round_logprob(&mut self) {
+        self.logprob = (self.logprob * 100.0).round() / 100.0;
+    }
 }
 
 /*impl CounterfactualToken {
