@@ -25,7 +25,7 @@ use crate::{
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct NodeContent {
-    pub timestamp: (NaiveDateTime, FixedOffset),
+    pub timestamp: Timestamp,
     pub modified: bool,
 
     pub content: InnerNodeContent,
@@ -59,7 +59,7 @@ impl DiscreteContents for NodeContent {
         }
     }
     fn merge(mut self, mut value: Self) -> DiscreteContentResult<Self> {
-        if self.timestamp.1 != value.timestamp.1
+        if self.timestamp.offset != value.timestamp.offset
             || self.metadata != value.metadata
             || self.creator != value.creator
         {
@@ -76,7 +76,7 @@ impl DiscreteContents for NodeContent {
             DiscreteContentResult::One(center) => {
                 self.content = center;
                 self.modified = true;
-                self.timestamp.0 = self.timestamp.0.max(value.timestamp.0);
+                self.timestamp.datetime = self.timestamp.datetime.max(value.timestamp.datetime);
                 DiscreteContentResult::One(self)
             }
         }
@@ -85,7 +85,7 @@ impl DiscreteContents for NodeContent {
 
 impl NodeContent {
     fn is_mergeable_with(&self, value: &Self) -> bool {
-        if self.timestamp.1 != value.timestamp.1
+        if self.timestamp.offset != value.timestamp.offset
             || self.metadata != value.metadata
             || self.creator != value.creator
         {
@@ -170,7 +170,7 @@ impl InnerNodeToken {
                     .iter()
                     .map(|token| token.logprob as f64)
                     .sum::<f64>()
-                    / self.counterfactual.len() as f64,
+                    / -(self.counterfactual.len() as f64),
                 self.counterfactual.len(),
             ))
         } else {
@@ -185,6 +185,14 @@ pub struct CounterfactualToken {
     logprob: f32,
     metadata: MetadataMap,
 }
+
+/*impl CounterfactualToken {
+    pub fn calculate_entropy<'a>(tokens: impl Iterator<Item = &'a CounterfactualToken>) -> f64 {
+        -tokens
+            .map(|token| (token.logprob as f64).exp() * (token.logprob as f64))
+            .sum::<f64>()
+    }
+}*/
 
 impl InnerNodeContent {
     fn split(self, at: usize) -> DiscreteContentResult<Self> {
@@ -388,18 +396,31 @@ pub struct Author {
     pub identifier: Option<u64>,
 }
 
+#[derive(Archive, Deserialize, Serialize, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Timestamp {
+    pub datetime: NaiveDateTime,
+    pub offset: FixedOffset,
+}
+
 pub type TapestryNode = IndependentNode<u64, NodeContent, BuildHasherDefault<RandomIdHasher>>;
 pub type MetadataMap = IndexMap<String, String, FxBuildHasher>;
 pub type ArchivedTapestryNode =
     ArchivedIndependentNode<u64, NodeContent, BuildHasherDefault<RandomIdHasher>>;
 pub type TapestryWeaveInner =
-    IndependentWeave<u64, NodeContent, MetadataMap, BuildHasherDefault<RandomIdHasher>>;
+    IndependentWeave<u64, NodeContent, TapestryWeaveMetadata, BuildHasherDefault<RandomIdHasher>>;
 
 pub struct TapestryWeave {
     weave: TapestryWeaveInner,
     active: Vec<u64>,
     changed: bool,
     changed_shape: bool,
+}
+
+#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+pub struct TapestryWeaveMetadata {
+    pub created: Timestamp,
+    pub converted_from: Option<(String, Timestamp)>,
+    pub metadata: MetadataMap,
 }
 
 impl From<TapestryWeaveInner> for TapestryWeave {
@@ -446,7 +467,7 @@ impl TapestryWeave {
     /*pub fn to_versioned_weave(self) -> VersionedWeave {
         VersionedWeave::V1(self)
     }*/
-    pub fn with_capacity(capacity: usize, metadata: MetadataMap) -> Self {
+    pub fn with_capacity(capacity: usize, metadata: TapestryWeaveMetadata) -> Self {
         Self {
             weave: IndependentWeave::with_capacity(capacity, metadata),
             active: Vec::with_capacity(capacity),
@@ -466,7 +487,7 @@ impl TapestryWeave {
         self.weave.shrink_to(min_capacity);
         self.active.shrink_to(min_capacity);
     }
-    pub fn metadata(&mut self) -> &mut MetadataMap {
+    pub fn metadata(&mut self) -> &mut TapestryWeaveMetadata {
         &mut self.weave.metadata
     }
     pub fn len(&self) -> usize {
