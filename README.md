@@ -187,6 +187,7 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Diff-based editor content application
 	- [ ] Node copying & moving
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
+	- [ ] Improve format efficiency to reduce filesize
 	- [ ] Perform heavy unit testing of data structures and/or formal verification to prevent bugs that could result in data loss
 - [x] Node confidence calculation
 	- [x] Node ordering by confidence
