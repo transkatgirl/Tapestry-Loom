@@ -227,6 +227,10 @@ impl InnerNodeContent {
                     let mut left_token = right[0].bytes.clone();
                     let right_token = left_token.split_off(at - content_index);
 
+                    if right[0].original.is_none() {
+                        right[0].original = Some(right[0].bytes.clone());
+                    }
+
                     if !left_token.is_empty() {
                         left_token.shrink_to_fit();
                         left.push(InnerNodeToken {
@@ -234,9 +238,8 @@ impl InnerNodeContent {
                             logprob: right[0].logprob,
                             metadata: right[0].metadata.clone(),
                             counterfactual: right[0].counterfactual.clone(),
-                            original: Some(right[0].bytes.clone()),
+                            original: right[0].original.clone(),
                         });
-                        right[0].original = Some(right[0].bytes.clone());
                     }
                     right[0].bytes = right_token;
 
