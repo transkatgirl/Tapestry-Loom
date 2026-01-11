@@ -499,9 +499,17 @@ impl SharedState {
 
         for response in responses {
             match response {
-                Ok(node) => {
+                Ok(mut node) => {
                     let identifier = node.id;
                     let parent = node.from;
+
+                    if !settings.documents.store_counterfactual
+                        && let InnerNodeContent::Tokens(tokens) = &mut node.contents.content
+                    {
+                        for token in tokens {
+                            token.1.shift_remove("counterfactual");
+                        }
+                    }
 
                     if weave.add_node(node) {
                         if self.last_changed_node.is_none() {

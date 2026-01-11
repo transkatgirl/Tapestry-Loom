@@ -356,6 +356,9 @@ impl UISettings {
 pub struct DocumentSettings {
     pub location: PathBuf,
     pub save_interval: Duration,
+
+    #[serde(default)]
+    pub store_counterfactual: bool, // TODO: Always store counterfactual logprobs once the weave format is more efficient
 }
 
 impl Default for DocumentSettings {
@@ -365,6 +368,7 @@ impl Default for DocumentSettings {
                 .unwrap_or_default()
                 .join("Tapestry Loom"),
             save_interval: Duration::from_secs(30),
+            store_counterfactual: false,
         }
     }
 }
@@ -401,6 +405,12 @@ impl DocumentSettings {
         {
             self.save_interval = Duration::from_secs_f32(save_interval);
         }
+
+        ui.checkbox(
+            &mut self.store_counterfactual,
+            "Store counterfactual tokens",
+        )
+        .on_hover_text("Changes whether or not counterfactual tokens are saved when possible. This can significantly increase the file size of stored weaves.");
     }
 }
 
