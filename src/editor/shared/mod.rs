@@ -18,7 +18,10 @@ use tapestry_weave::{
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
-    v0::{InnerNodeContent, MetadataMap, NodeContent, TapestryNode},
+    v0::{
+        InnerNodeContent, MetadataMap, NodeContent, TapestryNode,
+        deserialize_counterfactual_logprobs,
+    },
 };
 use tokio::runtime::Runtime;
 
@@ -945,7 +948,31 @@ pub fn render_token_metadata_tooltip(ui: &mut Ui, token_len: usize, token_metada
             {
                 ui.label(format!("token_id: {}", value));
             }
-        } else if !(key == "model_id" || key == "confidence_k" || key == "counterfactual") {
+        } else if key == "counterfactual" {
+            ui.label("counterfactual:");
+            if let Some(counterfactual) = deserialize_counterfactual_logprobs(value) {
+                for (token, metadata) in counterfactual {
+                    if let Some(value) = metadata.get("probability")
+                        && let Ok(probability) = value.parse::<f32>()
+                    {
+                        if let Ok(string) = str::from_utf8(&token) {
+                            ui.label(
+                                RichText::new(format!(
+                                    "\t{string:#?} ({:.2}%)",
+                                    probability * 100.0
+                                ))
+                                .monospace(),
+                            );
+                        } else {
+                            ui.label(
+                                RichText::new(format!("\t{token:?} ({:.2}%)", probability * 100.0))
+                                    .monospace(),
+                            );
+                        }
+                    }
+                }
+            }
+        } else if !(key == "model_id" || key == "confidence_k") {
             ui.label(format!("{key}: {value}"));
         }
     }
