@@ -218,23 +218,23 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Write unit tests for response parser
 - [x] Embedding model support
 	- [x] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
-- [ ] Request post-processing arguments (using prefix of `T#`)
+- [ ] Request post-processing arguments (using prefix of `TL#`)
 	- [ ] Single-token node pruning:
-		- [ ] `T#keep_top_p`
-		- [ ] `T#keep_top_k`
-		- [ ] `T#prune_empty`
+		- [ ] `TL#keep_top_p`
+		- [ ] `TL#keep_top_k`
+		- [ ] `TL#prune_empty`
 	- [ ] Node pruning:
-		- [ ] `T#node_min_conf`
-		- [ ] `T#node_max_conf`
-		- [ ] `T#node_min_avg_p`
-		- [ ] `T#node_max_avg_p`
-		- [ ] `T#prune_empty`
+		- [ ] `TL#node_min_conf`
+		- [ ] `TL#node_max_conf`
+		- [ ] `TL#node_min_avg_p`
+		- [ ] `TL#node_max_avg_p`
+		- [ ] `TL#prune_empty`
 	- [ ] Basic adaptive looming:
-		- [ ] `T#min_tokens`
-		- [ ] `T#p_threshold`
-		- [ ] `T#conf_threshold`
-	- [ ] Force single token node creation using `T#force_single_token`
-	- [ ] Context window wrapping using `T#ctx_length`
+		- [ ] `TL#min_tokens`
+		- [ ] `TL#p_threshold`
+		- [ ] `TL#conf_threshold`
+	- [ ] Force single token node creation using `TL#force_single_token`
+	- [ ] Context window wrapping using `TL#ctx_length`
 - [ ] Support opening weaves using CLI arguments to tapestry loom
 <!-- - [ ] Add a plugin API & custom inference API
 	- [ ] Support the following use cases:
