@@ -151,11 +151,11 @@ impl InnerNodeContent {
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct InnerNodeToken {
-    bytes: Vec<u8>,
-    logprob: Option<f32>,
-    metadata: MetadataMap,
-    counterfactual: Vec<CounterfactualToken>,
-    original: Option<Vec<u8>>,
+    pub bytes: Vec<u8>,
+    pub logprob: Option<f32>,
+    pub metadata: MetadataMap,
+    pub counterfactual: Vec<CounterfactualToken>,
+    pub original: Option<Vec<u8>>,
 }
 
 impl InnerNodeToken {
@@ -181,9 +181,9 @@ impl InnerNodeToken {
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct CounterfactualToken {
-    bytes: Vec<u8>,
-    logprob: f32,
-    metadata: MetadataMap,
+    pub bytes: Vec<u8>,
+    pub logprob: f32,
+    pub metadata: MetadataMap,
 }
 
 /*impl CounterfactualToken {
