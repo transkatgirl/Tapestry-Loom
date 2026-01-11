@@ -135,7 +135,7 @@ Most inference providers support OpenAI-compatible clients and should work with 
 However, every inference provider implements OpenAI compatibility in their own way, which may cause unexpected issues. Known issues with popular inference providers are listed below:
 
 - OpenRouter
-	- Logprobs seems to not work properly; some models will return errors if `logprobs` is included as a request argument
+	- Some providers on OpenRouter will return errors if `logprobs` is included as a request argument
 - Featherless
 	- Untested; Logprobs are not supported according to documentation
 
