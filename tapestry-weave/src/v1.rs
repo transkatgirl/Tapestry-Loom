@@ -793,6 +793,67 @@ impl TapestryWeave {
 
 impl TapestryWeave {
     // TODO: (diff-based) set_active_content, insert_node_at, dump_identifiers_ordered
+    pub fn split_out_token(
+        &mut self,
+        id: &u64,
+        index: usize,
+        mut id_generator: impl FnMut() -> u64,
+    ) -> Option<(u64, u64, Option<u64>)> {
+        if let Some(node) = self.weave.get_node(id) {
+            if let InnerNodeContent::Tokens(tokens) = &node.contents.content
+                && tokens.len() > index
+            {
+                let split_index: usize = tokens
+                    .iter()
+                    .take(index)
+                    .map(|token| token.bytes.len())
+                    .sum();
+
+                let second_split_index = if tokens.len() > index + 1 {
+                    Some(
+                        tokens
+                            .iter()
+                            .take(index)
+                            .map(|token| token.bytes.len())
+                            .sum::<usize>()
+                            - split_index,
+                    )
+                } else {
+                    None
+                };
+
+                let middle_id = id_generator();
+
+                assert!(self.weave.split_node(id, split_index, middle_id));
+
+                self.weave.get_contents_mut(id).unwrap().modified = true;
+                self.weave.get_contents_mut(&middle_id).unwrap().modified = true;
+
+                if let Some(second_split_index) = second_split_index {
+                    let tail_id = id_generator();
+
+                    assert!(
+                        self.weave
+                            .split_node(&middle_id, second_split_index, tail_id)
+                    );
+
+                    self.weave.get_contents_mut(&tail_id).unwrap().modified = true;
+
+                    self.update_shape_and_active();
+
+                    Some((*id, middle_id, Some(tail_id)))
+                } else {
+                    self.update_shape_and_active();
+
+                    Some((*id, middle_id, None))
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
 }
 
 pub struct ArchivedTapestryWeave {
