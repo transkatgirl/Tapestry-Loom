@@ -537,6 +537,12 @@ impl TapestryWeave {
 
         changed
     }
+    pub fn dump_identifiers_ordered(&self) -> Vec<u64> {
+        self.weave.get_ordered_node_identifiers()
+    }
+    pub fn dump_identifiers_ordered_rev(&self) -> Vec<u64> {
+        self.weave.get_ordered_node_identifiers_reversed_children()
+    }
     pub fn get_node(&self, id: &u64) -> Option<&TapestryNode> {
         self.weave.get_node(id)
     }
@@ -792,7 +798,7 @@ impl TapestryWeave {
 }
 
 impl TapestryWeave {
-    // TODO: (diff-based) set_active_content, insert_node_at, dump_identifiers_ordered
+    // TODO: (diff-based) set_active_content, insert_node_at
     pub fn split_out_token(
         &mut self,
         id: &u64,
