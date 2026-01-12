@@ -13,7 +13,7 @@ use tapestry_weave::{
         indexmap::{IndexMap, IndexSet},
         rkyv::rancor,
     },
-    v0::{MetadataMap, TapestryNode, TapestryWeave},
+    v0::{InnerNodeContent, MetadataMap, TapestryNode, TapestryWeave},
 };
 
 pub struct WeaveWrapper {
@@ -214,6 +214,63 @@ impl WeaveWrapper {
                 Ulid::from_datetime(SystemTime::UNIX_EPOCH + Duration::from_millis(timestamp))
             })
             .is_some()
+    }
+    pub fn split_out_token(
+        &mut self,
+        id: &Ulid,
+        index: usize,
+    ) -> Option<(Ulid, Ulid, Option<Ulid>)> {
+        if let Some(node) = self.weave.get_node(id) {
+            if let InnerNodeContent::Tokens(tokens) = &node.contents.content
+                && tokens.len() > index
+            {
+                let split_index: usize = tokens.iter().take(index).map(|token| token.0.len()).sum();
+
+                let second_split_index = if tokens.len() > index + 1 {
+                    Some(
+                        tokens
+                            .iter()
+                            .take(index)
+                            .map(|token| token.0.len())
+                            .sum::<usize>()
+                            - split_index,
+                    )
+                } else {
+                    None
+                };
+
+                self.changed = true;
+                self.layout_changed = true;
+
+                let middle_id = self
+                    .weave
+                    .split_node(id, split_index, |timestamp| {
+                        Ulid::from_datetime(
+                            SystemTime::UNIX_EPOCH + Duration::from_millis(timestamp),
+                        )
+                    })
+                    .unwrap();
+
+                if let Some(second_split_index) = second_split_index {
+                    let tail_id = self
+                        .weave
+                        .split_node(&middle_id, second_split_index, |timestamp| {
+                            Ulid::from_datetime(
+                                SystemTime::UNIX_EPOCH + Duration::from_millis(timestamp),
+                            )
+                        })
+                        .unwrap();
+
+                    Some((*id, middle_id, Some(tail_id)))
+                } else {
+                    Some((*id, middle_id, None))
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
     pub fn remove_node(&mut self, id: &Ulid) -> bool {
         self.changed = true;
