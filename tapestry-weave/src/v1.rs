@@ -160,6 +160,7 @@ impl InnerNodeContent {
 pub struct InnerNodeToken {
     pub bytes: Vec<u8>,
     pub logprob: f32,
+    pub id: Option<u64>,
     pub metadata: MetadataMap,
     pub counterfactual: Vec<CounterfactualToken>,
     pub original: Option<Vec<u8>>,
@@ -196,6 +197,7 @@ impl InnerNodeToken {
 pub struct CounterfactualToken {
     pub bytes: Vec<u8>,
     pub logprob: f32,
+    pub id: Option<u64>,
     pub metadata: MetadataMap,
 }
 
@@ -262,12 +264,14 @@ impl InnerNodeContent {
                         left_token.shrink_to_fit();
                         left.push(InnerNodeToken {
                             bytes: left_token,
+                            id: None,
                             logprob: right[0].logprob,
                             metadata: right[0].metadata.clone(),
                             counterfactual: right[0].counterfactual.clone(),
                             original: right[0].original.clone(),
                         });
                     }
+                    right[0].id = None;
                     right[0].bytes = right_token;
 
                     DiscreteContentResult::Two((Self::Tokens(left), Self::Tokens(right)))
@@ -405,14 +409,14 @@ pub enum Creator {
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Model {
     pub label: String,
-    pub identifier: Option<u64>,
+    pub identifier: Option<u128>,
     pub metadata: MetadataMap,
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Author {
     pub label: String,
-    pub identifier: Option<u64>,
+    pub identifier: Option<u128>,
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, Copy, PartialEq, Eq)]
