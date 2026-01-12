@@ -1070,21 +1070,22 @@ fn parse_openai_chatcompletion_logprob_content_subitem(
     };
 
     if let Some(contents) = contents {
-        if let Some(Value::Number(logprob)) = logprob_json.remove("logprob")
-            && let Some(logprob) = logprob.as_f64()
+        if let Some(logprob) = logprob_json.remove("logprob")
+            && (logprob.is_number() || logprob.is_null())
         {
             Some(LogprobToken {
                 id,
                 contents,
-                logprob,
+                logprob: logprob.as_f64().unwrap_or(f64::NAN),
             })
-        } else if let Some(Value::Number(prob)) = logprob_json.remove("prob") // llama-cpp
-            && let Some(prob) = prob.as_f64()
+        } else if let Some(prob) = logprob_json.remove("prob")
+            && (prob.is_number() || prob.is_null())
+        // llama-cpp
         {
             Some(LogprobToken {
                 id,
                 contents,
-                logprob: prob.ln(),
+                logprob: prob.as_f64().unwrap_or(f64::NAN).ln(),
             })
         } else {
             None
@@ -1155,8 +1156,7 @@ fn parse_gemini_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<To
 
 fn parse_gemini_logprob_candidate(mut logprob_json: Map<String, Value>) -> Option<LogprobToken> {
     if let Some(Value::String(token)) = logprob_json.remove("token")
-        && let Some(Value::Number(logprob)) = logprob_json.remove("logProbability")
-        && let Some(logprob) = logprob.as_f64()
+        && let Some(logprob) = logprob_json.remove("logProbability")
     {
         Some(LogprobToken {
             id: if let Some(Value::Number(token_id)) = logprob_json.remove("tokenId")
@@ -1167,7 +1167,7 @@ fn parse_gemini_logprob_candidate(mut logprob_json: Map<String, Value>) -> Optio
                 None
             },
             contents: token.into_bytes(),
-            logprob,
+            logprob: logprob.as_f64().unwrap_or(f64::NAN),
         })
     } else {
         None
