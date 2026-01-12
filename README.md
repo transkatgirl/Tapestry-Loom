@@ -161,7 +161,6 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [x] Improve token confidence calculation to work properly with vLLM
 	- [x] Use logprob text_offset value when present
 - [x] Place responses with `echo: true` at the root of the tree
-- [ ] Add API client HTTP proxy override
 - [x] Review and refactor application modules
 	- [x] main
 	- [x] files
