@@ -1,6 +1,6 @@
 # Tapestry Loom
 
-A power user focused interface for LLM base models, inspired by the designs of [loom](https://github.com/socketteer/loom), [loomsidian](https://github.com/cosmicoptima/loom), [exoloom](https://exoloom.io), [logitloom](https://github.com/vgel/logitloom), and [wool](https://github.com/lyramakesmusic/wool).
+A power user focused interface for LLM base models, inspired by the designs of [loom](https://github.com/socketteer/loom), [loomsidian](https://github.com/cosmicoptima/loom), [exoloom](https://exoloom.io), [logitloom](https://github.com/vgel/logitloom), and [wool](https://github.com/lyramakesmusic/wool).<!-- and [mikupad](https://github.com/lmg-anon/mikupad) -->
 
 <details>
 
@@ -161,19 +161,10 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [x] Improve token confidence calculation to work properly with vLLM
 	- [x] Use logprob text_offset value when present
 - [x] Place responses with `echo: true` at the root of the tree
-- [ ] Improve API response building
-	- [ ] Add support for OpenAI Responses
-	- [x] Add support for OpenAI Embeddings
-	- [ ] Add support for Anthropic Complete
-	- [ ] Add support for Anthropic Messages
-	- [ ] Add support for Gemini generateText
-	- [ ] Add support for Gemini generateContent
-	- [ ] Add support for Gemini embedContent
 - [ ] Add API client HTTP proxy override
-- [ ] Review and refactor application modules
+- [x] Review and refactor application modules
 	- [x] main
 	- [x] files
-	- [ ] settings/inference
 - [ ] Improve handling of hovered + omitted/collapsed nodes
 - [x] Replace is_shift_pressed with response.clicked_with_open_in_background()
 
@@ -190,6 +181,33 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
 	- [ ] Improve format efficiency to reduce filesize
 	- [ ] Perform heavy unit testing of data structures and/or formal verification to prevent bugs that could result in data loss
+- [ ] Improve API response building
+	- [ ] Add support for OpenAI Responses
+	- [x] Add support for OpenAI Embeddings
+	- [ ] Add support for Anthropic Complete
+	- [ ] Add support for Anthropic Messages
+	- [ ] Add support for Gemini generateText
+	- [ ] Add support for Gemini generateContent
+	- [ ] Add support for Gemini embedContent
+- [ ] Implement BERT FIM server using nonstandard `fim_tokens` parameter
+- [ ] Request post-processing arguments (using prefix of `TL#`)
+	- [ ] Single-token node pruning:
+		- [ ] `TL#keep_top_p`
+		- [ ] `TL#keep_top_k`
+		- [ ] `TL#prune_empty`
+	- [ ] Node pruning:
+		- [ ] `TL#node_min_conf`
+		- [ ] `TL#node_max_conf`
+		- [ ] `TL#node_min_avg_p`
+		- [ ] `TL#node_max_avg_p`
+		- [ ] `TL#prune_empty`
+	- [ ] Basic adaptive looming:
+		- [ ] `TL#min_tokens`
+		- [ ] `TL#p_threshold`
+		- [ ] `TL#conf_threshold`
+	- [ ] Force single token node creation using `TL#force_single_token`
+	- [ ] Context window wrapping using `TL#ctx_length`
+- [ ] Review and refactor settings/inference module
 - [x] Node confidence calculation
 	- [x] Node ordering by confidence
 - [ ] Improve Weave saving & loading
@@ -199,7 +217,8 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 - [ ] Review and refactor application modules
 	- [ ] settings
 	- [ ] editor
-- [ ] Implement BERT FIM server using nonstandard `fim_tokens` parameter
+- [ ] Support opening weaves using CLI arguments to tapestry loom
+- [ ] Review and refactor main module
 - [ ] Improve API client
 	- [ ] Add support for response streaming
 	- [ ] Perform API client testing with commonly used inference backends
@@ -224,24 +243,6 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 	- [ ] Write unit tests for response parser
 - [x] Embedding model support
 	- [x] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
-- [ ] Request post-processing arguments (using prefix of `TL#`)
-	- [ ] Single-token node pruning:
-		- [ ] `TL#keep_top_p`
-		- [ ] `TL#keep_top_k`
-		- [ ] `TL#prune_empty`
-	- [ ] Node pruning:
-		- [ ] `TL#node_min_conf`
-		- [ ] `TL#node_max_conf`
-		- [ ] `TL#node_min_avg_p`
-		- [ ] `TL#node_max_avg_p`
-		- [ ] `TL#prune_empty`
-	- [ ] Basic adaptive looming:
-		- [ ] `TL#min_tokens`
-		- [ ] `TL#p_threshold`
-		- [ ] `TL#conf_threshold`
-	- [ ] Force single token node creation using `TL#force_single_token`
-	- [ ] Context window wrapping using `TL#ctx_length`
-- [ ] Support opening weaves using CLI arguments to tapestry loom
 <!-- - [ ] Add a plugin API & custom inference API
 	- [ ] Support the following use cases:
 		- [ ] LLM research
