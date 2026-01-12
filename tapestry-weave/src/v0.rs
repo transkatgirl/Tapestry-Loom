@@ -136,6 +136,9 @@ impl InnerNodeContent {
                     }
                     right[0].0 = right_token;
 
+                    left.last_mut().unwrap().1.shift_remove("token_id");
+                    right[0].1.shift_remove("token_id");
+
                     DiscreteContentResult::Two((Self::Tokens(left), Self::Tokens(right)))
                 } else {
                     DiscreteContentResult::One(Self::Tokens(tokens))
