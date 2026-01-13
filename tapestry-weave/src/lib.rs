@@ -11,7 +11,7 @@ pub use universal_weave;
 pub mod hashers;
 pub mod treeless;
 pub mod v0;
-//pub mod v1;
+pub mod v1;
 pub mod versioning;
 
 pub const VERSIONED_WEAVE_FILE_EXTENSION: &str = "tapestry";

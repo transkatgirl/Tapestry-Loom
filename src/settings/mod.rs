@@ -406,11 +406,11 @@ impl DocumentSettings {
             self.save_interval = Duration::from_secs_f32(save_interval);
         }
 
-        ui.checkbox(
+        /*ui.checkbox(
             &mut self.store_counterfactual,
             "Store counterfactual tokens",
         )
-        .on_hover_text("Changes whether or not counterfactual tokens are saved when possible. This can significantly increase the file size of stored weaves.");
+        .on_hover_text("Changes whether or not counterfactual tokens are saved when possible. This can significantly increase the file size of stored weaves.");*/
     }
 }
 
