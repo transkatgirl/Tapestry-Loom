@@ -149,46 +149,36 @@ This setting requires the inference backend to support returning token IDs (to c
 
 If your inference backend returns token IDs in OpenAI-style Completions responses but they do not appear in your weaves, please file an issue.
 
-## Plans
+## Development roadmap
 
-Development of the next major version of Tapestry Loom is planned to start in Q1 2026. Please [consider donating](https://github.com/sponsors/transkatgirl) to help fund further development.
+Please [consider donating](https://github.com/sponsors/transkatgirl) to help fund further development.
 
-### Short-term TODOs
+### Milestone 0
 
-- [x] Better handle enter in dialogs
-- [x] Add generate buttons (displayed on hover) to canvas
-- [x] Refactor API client
-	- [x] Improve token confidence calculation to work properly with vLLM
-	- [x] Use logprob text_offset value when present
-- [x] Place responses with `echo: true` at the root of the tree
-- [x] Review and refactor application modules
-	- [x] main
-	- [x] files
+Goal: Completion before Feb 1st, 2026
+
 - [ ] Improve handling of hovered + omitted/collapsed nodes
-- [x] Replace is_shift_pressed with response.clicked_with_open_in_background()
+- [ ] Implement counterfactual logprobs, similar to [mikupad](https://github.com/lmg-anon/mikupad)
+- [ ] Release version 0.12.0
 
-### Plans for next major version
+### Milestone 1
 
-- [ ] **High priority**: Support for DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
-	- [ ] Implement counterfactual logprobs, similar to [loom](https://github.com/socketteer/loom)
-	- [ ] Fully immutable nodes; Node splitting is implemented through duplication
+- [ ] Implement new DAG-based Weave format, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- [ ] FIM completions
 		- [ ] Selected text is used to determine FIM location
 	- [ ] Diff-based editor content application
 	- [ ] Node copying & moving
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
 	- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
-	- [ ] Improve format efficiency to reduce filesize
-	- [ ] Perform heavy unit testing of data structures and/or formal verification to prevent bugs that could result in data loss
-- [ ] Improve API response building
-	- [ ] Add support for OpenAI Responses
-	- [x] Add support for OpenAI Embeddings
-	- [ ] Add support for Anthropic Complete
-	- [ ] Add support for Anthropic Messages
-	- [ ] Add support for Gemini generateText
-	- [ ] Add support for Gemini generateContent
-	- [ ] Add support for Gemini embedContent
-- [ ] Implement BERT FIM server using nonstandard `fim_tokens` parameter
+- [ ] Implement fully immutable nodes using duplication instead of modification
+
+### Milestone 2
+
+- [ ] UI improvements
+	- [ ] Add setting to swap shift-click and normal click behavior
+	- [ ] Add sorting submenu to node context menu
+	- [ ] Add alphabetical sorting
+	- [ ] Add right click handling to node list background
 - [ ] Request post-processing arguments (using prefix of `TL#`)
 	- [ ] Single-token node pruning:
 		- [ ] `TL#keep_top_p`
@@ -206,118 +196,124 @@ Development of the next major version of Tapestry Loom is planned to start in Q1
 		- [ ] `TL#conf_threshold`
 	- [ ] Force single token node creation using `TL#force_single_token`
 	- [ ] Context window wrapping using `TL#ctx_length`
-- [ ] Review and refactor settings/inference module
-- [x] Node confidence calculation
-	- [x] Node ordering by confidence
+- [ ] Implement BERT FIM server using nonstandard `fim_tokens` parameter
+
+### Milestone 3
+
+- [ ] UI improvements
+	- [ ] Better handle valid UTF-8 characters split across multiple nodes
+	- [ ] Support arbitrary color gradients for logprob highlighting
+	- [ ] Blind comparison modes
+		- [ ] (Hide) Models & token probabilities / boundaries
+		- [ ] (Hide) Generated node text (only showing metadata & probabilities)
+	- [ ] Node finding
+	- [ ] Customizable node color coding
+		- [ ] Probability
+		- [ ] Confidence
+
+### Milestone 4
+
 - [ ] Improve Weave saving & loading
 	- [ ] Initially load weaves using zero-copy deserialization, performing full deserialization in the background
 	- [ ] Perform weave saving in the background without visual glitches
 	- [ ] Support read-only weave editors using zero-copy deserialization and file memory mapping
+- [ ] Optimize for performance whenever possible
 - [ ] Review and refactor application modules
 	- [ ] settings
 	- [ ] editor
 - [ ] Support opening weaves using CLI arguments to tapestry loom
 - [ ] Review and refactor main module
-- [ ] Improve API client
-	- [ ] Add support for response streaming
-	- [ ] Perform API client testing with commonly used inference backends
-		- [ ] llama-cpp
-		- [ ] ollama
-		- [ ] vllm
-		- [ ] sglang
-		- [ ] tensorrt-llm
-		- [ ] text-generation-inference
-		- [ ] text-embeddings-inference
-		- [ ] koboldcpp
-		- [ ] lm-studio
-		- [ ] litellm
-	- [ ] Perform API client testing with less commonly used inference backends
-		- [ ] lemonade
-		- [ ] infinity
-		- [ ] swama
-		- [ ] exllamav2
-		- [ ] lmdeploy
-		- [ ] mlc-llm
-		- [ ] shimmy
-	- [ ] Write unit tests for response parser
-- [x] Embedding model support
-	- [x] Node ordering by [seriation](https://www.lesswrong.com/posts/u2ww8yKp9xAB6qzcr/if-you-re-not-sure-how-to-sort-a-list-or-grid-seriate-it)
-<!-- - [ ] Add a plugin API & custom inference API
-	- [ ] Support the following use cases:
-		- [ ] LLM research
-			- [ ] Support adding custom UI elements and editor subviews
-		- [ ] Autolooms (looms where node choices are picked by a user-determined algorithm)
-		- [ ] Adaptive looming (node lengths are picked by a user-determined algorithm)
-	- [ ] Implement an optional inference server using llama.cpp
-		- [ ] Adaptive looming using token entropy or [confidence](https://arxiv.org/pdf/2508.15260)
-		- [ ] Context window wrapping
-		- [ ] Allow adjusting proportion of completions from each model
-		- [ ] When working with multiple models, allow dynamically adjusting proportions based on usage
-			- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count -->
-- [ ] Further UI improvements
-	- [ ] Add setting to swap shift-click and normal click behavior
-	- [ ] Add sorting submenu to node context menu
-	- [ ] Add right click handling to node list background
+
+### Milestone 5
+
+- [ ] UI improvements
 	- [ ] Allow temporarilly overriding color in inference menu
 	- [ ] Add model configuration sharing functionality
 		- [ ] Automatically redact sensitive information (such as API keys)
 		- [ ] Allow the user to manually redact sensitive information
 	- [ ] Add ability to manually control refreshing of model tokenization identifier
-	- [ ] Improve graph/canvas layout algorithm
-	- [ ] Support arbitrary color gradients for logprob highlighting
-	- [ ] Blind comparison modes
-		- [ ] (Hide) Models & token probabilities / boundaries
-		- [ ] (Hide) Generated node text (only showing metadata & probabilities)
-	- [ ] Better handle valid UTF-8 character split across multiple nodes
-	- [ ] Improve clarity of error messages
-	- [ ] Better file manager
-	- [ ] Support keyboard shortcuts for all aspects of the UI, not just the weave editor
-		- [ ] Aim to support navigating the entirety of the UI without a mouse
-	- [ ] Improve built-in color schemes
-	- [ ] Node finding
-	- [ ] Customizable node sorting
-		- [ ] Time added
-		- [ ] Alphabetical
-		- [ ] Semantic sorting
-	- [ ] Customizable node color coding
-		- [ ] Probability
-		- [ ] Confidence
-	- [ ] Node bulk selection
-	- [ ] Node custom ordering via drag and drop
-		- [ ] Support reordering nodes in canvas and graph views as well
-	- [ ] Keyboard shortcut presets
-		- [ ] Built-in presets
-			- [ ] [loomsidian](https://github.com/cosmicoptima/loom)-like
-			- [ ] [exoloom](https://exoloom.io)-like
-			- [ ] Tapestry Loom
-		- [ ] Saving & loading custom presets
-			- [ ] Importing & exporting custom presets
-	- [ ] Support touchscreen-only devices
-	- [ ] Add "autoloom" mode where clicking a node generates children, similar to [inkstream](https://inkstream.ai)
+- [ ] Improve API response building
+	- [ ] Add support for OpenAI Responses
+	- [ ] Add support for Anthropic Complete
+	- [ ] Add support for Anthropic Messages
+	- [ ] Add support for Gemini generateText
+	- [ ] Add support for Gemini generateContent
+	- [ ] Add support for Gemini embedContent
+
+### Milestone 6
+
+- [ ] Add support for response streaming
+- [ ] Review and refactor settings/inference module
+- [ ] Perform API client testing with commonly used inference backends
+	- [ ] llama-cpp
+	- [ ] ollama
+	- [ ] vllm
+	- [ ] sglang
+	- [ ] tensorrt-llm
+	- [ ] text-generation-inference
+	- [ ] text-embeddings-inference
+	- [ ] koboldcpp
+	- [ ] lm-studio
+	- [ ] litellm
+- [ ] Perform API client testing with less commonly used inference backends
+	- [ ] lemonade
+	- [ ] infinity
+	- [ ] swama
+	- [ ] exllamav2
+	- [ ] lmdeploy
+	- [ ] mlc-llm
+	- [ ] shimmy
+- [ ] Improve clarity of error messages
+
+### Milestone 7
+
+- [ ] Write unit tests for response parser
+- [ ] Perform heavy unit testing and/or formal verification of `universal-weave` to prevent bugs that could result in data loss
+- [ ] Release `universal-weave` version 1.0.0
+- [ ] Release Tapestry Loom version 1.0.0-rc.1
+
+### Milestone 8
+
+- [ ] UI improvements
 	- [ ] Show hovered child of active node in editor, similar to [exoloom](https://exoloom.io)
-	- [ ] Add ability to add custom labels to bookmarks/nodes
-	- [ ] Add ability to add custom attributes to nodes, rather than just bookmarks
-	- [ ] Complete additional node metadata using prompt logprobs
-- [ ] Token healing
-- [ ] Weave statistical analysis tools
+	- [ ] Add "autoloom" mode where clicking a node generates children, similar to [inkstream](https://inkstream.ai)
+- [ ] Implement token healing
+- [ ] Add weave statistical analysis tools
 	- [ ] Predictability analysis using logprobs
 	- [ ] Statistical analysis of various metrics (model usage, text length, logprobs, number of branches, etc)
-- [ ] Video-based documentation
-- [ ] Token streaming and display of nodes being generated
-- [ ] Optimize for performance whenever possible
+- [ ] Do testing with using llamafile for easier onboarding?
+- [ ] Create video-based documentation
 - [ ] Add support for more weave migrations
 	- [ ] bonsai (using [damask](https://github.com/tel-0s/damask))
 	- [ ] [wool](https://github.com/lyramakesmusic/wool)
 	- [ ] [helm](https://github.com/Shoalstone/helm)
 	- [ ] (subset of) [miniloom](https://github.com/JD-P/miniloom)
-- [ ] Support [Standard Completions](https://standardcompletions.org) (after the specification is finalized)
-- [ ] Do testing with using llamafile for easier onboarding?
+
+### Post-v1 plans
+
+- [ ] Improve graph/canvas layout algorithm
+- [ ] Improve file manager
+- [ ] Support keyboard shortcuts for all aspects of the UI, not just the weave editor
+	- [ ] Aim to support navigating the entirety of the UI without a mouse
+- [ ] Improve built-in color schemes
+- [ ] Node bulk selection
+- [ ] Node custom ordering via drag and drop in all views
+- [ ] Keyboard shortcut presets
+	- [ ] Built-in presets
+		- [ ] [loomsidian](https://github.com/cosmicoptima/loom)-like
+		- [ ] [exoloom](https://exoloom.io)-like
+		- [ ] Tapestry Loom
+	- [ ] Saving & loading custom presets
+		- [ ] Importing & exporting custom presets
+- [ ] Support touchscreen-only devices
+- [ ] Add ability to add custom labels to bookmarks/nodes
+- [ ] Add ability to add custom attributes to nodes, rather than just bookmarks
 
 Note: Tapestry Loom will be *entirely* focused on base and/or embedding models for the foreseeable future.
 
 There are already good chat looms (such as [miniloom](https://github.com/JD-P/miniloom)) and base model looms which heavily integrate assistant functionality (such as [helm](https://github.com/Shoalstone/helm)); Tapestry Loom will **not** be one of them.
 
-### Speculative ideas
+### Speculative ideas for v2
 
 - [ ] Prefix-based deduplication
 - [ ] Collaborative weave editing
@@ -344,6 +340,18 @@ There are already good chat looms (such as [miniloom](https://github.com/JD-P/mi
 - [ ] Compression support
 	- [ ] Brotli compression for static assets
 	- [ ] LZ4 compression for websocket data
+- [ ] Add a plugin API & custom inference API
+	- [ ] Support the following use cases:
+		- [ ] LLM research
+			- [ ] Support adding custom UI elements and editor subviews
+		- [ ] Autolooms (looms where node choices are picked by a user-determined algorithm)
+		- [ ] Adaptive looming (node lengths are picked by a user-determined algorithm)
+	- [ ] Implement an optional inference server using llama.cpp
+		- [ ] Adaptive looming using token entropy or [confidence](https://arxiv.org/pdf/2508.15260)
+		- [ ] Context window wrapping
+		- [ ] Allow adjusting proportion of completions from each model
+		- [ ] When working with multiple models, allow dynamically adjusting proportions based on usage
+			- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count
 -->
 
 See also: the [original rewrite plans](https://github.com/transkatgirl/Tapestry-Loom/blob/c8ccca0079ae186fcc7a70b955b2d2b123082d63/README.md)
