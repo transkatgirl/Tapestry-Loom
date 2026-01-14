@@ -167,14 +167,14 @@ Goal: Completion before Feb 1st, 2026
 	- [ ] FIM completions
 		- [ ] Selected text is used to determine FIM location
 	- [ ] Diff-based editor content application
-	- [ ] Node copying & moving
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
 	- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
-- [ ] Implement fully immutable nodes using duplication instead of modification
+- [ ] Implement fully immutable nodes using node duplication instead of direct modification
 
 ### Milestone 2
 
 - [ ] UI improvements
+	- [ ] Add content copying to node context menu
 	- [ ] Add setting to swap shift-click and normal click behavior
 	- [ ] Add sorting submenu to node context menu
 	- [ ] Add alphabetical sorting
@@ -215,15 +215,15 @@ Goal: Completion before Feb 1st, 2026
 - [ ] Show hovered child of active node in editor, similar to [exoloom](https://exoloom.io)
 - [ ] Add "autoloom" mode where clicking a node generates children, similar to [inkstream](https://inkstream.ai)
 - [ ] Add node finding
+- [ ] Perform UX testing with all built-in color schemes
 
 ### Milestone 5
 
-- [ ] Perform UX testing with all built-in color schemes
 - [ ] Improve Weave saving & loading
 	- [ ] Initially load weaves using zero-copy deserialization, performing full deserialization in the background
 	- [ ] Perform weave saving in the background without visual glitches
 	- [ ] Support read-only weave editors using zero-copy deserialization and file memory mapping
-- [ ] Optimize for performance whenever possible
+- [ ] Optimize performance whenever reasonably possible
 - [ ] Review and refactor application modules
 	- [ ] settings
 	- [ ] editor
