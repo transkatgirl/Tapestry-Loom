@@ -169,6 +169,7 @@ Goal: Completion before Feb 1st, 2026
 	- [ ] Diff-based editor content application
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
 	- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
+- [ ] Enable counterfactual logprobs by default
 - [ ] Implement fully immutable nodes using node duplication instead of direct modification
 
 ### Milestone 2
@@ -280,6 +281,7 @@ Goal: Completion before Feb 1st, 2026
 ### Milestone 9
 
 - [ ] Implement token healing
+- [ ] Implement support for instruct templating, similar to [mikupad](https://github.com/lmg-anon/mikupad)
 - [ ] Do testing with using llamafile for easier onboarding?
 - [ ] Create video-based documentation
 - [ ] Add support for more weave migrations
@@ -308,10 +310,6 @@ Goal: Completion before Feb 1st, 2026
 - [ ] Support touchscreen-only devices
 - [ ] Add ability to add custom labels to bookmarks/nodes
 - [ ] Add ability to add custom attributes to nodes, rather than just bookmarks
-
-Note: Tapestry Loom will be *entirely* focused on base and/or embedding models for the foreseeable future.
-
-There are already good chat looms (such as [miniloom](https://github.com/JD-P/miniloom)) and base model looms which heavily integrate assistant functionality (such as [helm](https://github.com/Shoalstone/helm)); Tapestry Loom will **not** be one of them.
 
 ### Speculative ideas for v2
 
