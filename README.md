@@ -200,19 +200,25 @@ Goal: Completion before Feb 1st, 2026
 
 ### Milestone 3
 
-- [ ] UI improvements
-	- [ ] Better handle valid UTF-8 characters split across multiple nodes
-	- [ ] Support arbitrary color gradients for logprob highlighting
-	- [ ] Blind comparison modes
-		- [ ] (Hide) Models & token probabilities / boundaries
-		- [ ] (Hide) Generated node text (only showing metadata & probabilities)
-	- [ ] Node finding
-	- [ ] Customizable node color coding
-		- [ ] Probability
-		- [ ] Confidence
+- [ ] Better handle valid UTF-8 characters split across multiple nodes
+- [ ] Support arbitrary color gradients for logprob highlighting
+- [ ] Add blind comparison modes
+	- [ ] (Hide) Models & token probabilities / boundaries
+	- [ ] (Hide) Generated node text (only showing metadata & probabilities)
+- [ ] Add weave statistical analysis tools
+- [ ] Add customizable node color coding
+	- [ ] Probability
+	- [ ] Confidence
 
 ### Milestone 4
 
+- [ ] Show hovered child of active node in editor, similar to [exoloom](https://exoloom.io)
+- [ ] Add "autoloom" mode where clicking a node generates children, similar to [inkstream](https://inkstream.ai)
+- [ ] Add node finding
+
+### Milestone 5
+
+- [ ] Perform UX testing with all built-in color schemes
 - [ ] Improve Weave saving & loading
 	- [ ] Initially load weaves using zero-copy deserialization, performing full deserialization in the background
 	- [ ] Perform weave saving in the background without visual glitches
@@ -224,14 +230,13 @@ Goal: Completion before Feb 1st, 2026
 - [ ] Support opening weaves using CLI arguments to tapestry loom
 - [ ] Review and refactor main module
 
-### Milestone 5
+### Milestone 6
 
-- [ ] UI improvements
-	- [ ] Allow temporarilly overriding color in inference menu
-	- [ ] Add model configuration sharing functionality
-		- [ ] Automatically redact sensitive information (such as API keys)
-		- [ ] Allow the user to manually redact sensitive information
-	- [ ] Add ability to manually control refreshing of model tokenization identifier
+- [ ] Allow temporarilly overriding color in inference menu
+- [ ] Add model configuration sharing functionality
+	- [ ] Automatically redact sensitive information (such as API keys)
+	- [ ] Allow the user to manually redact sensitive information
+- [ ] Add ability to manually control refreshing of model tokenization identifier
 - [ ] Improve API response building
 	- [ ] Add support for OpenAI Responses
 	- [ ] Add support for Anthropic Complete
@@ -240,7 +245,7 @@ Goal: Completion before Feb 1st, 2026
 	- [ ] Add support for Gemini generateContent
 	- [ ] Add support for Gemini embedContent
 
-### Milestone 6
+### Milestone 7
 
 - [ ] Add support for response streaming
 - [ ] Review and refactor settings/inference module
@@ -265,25 +270,20 @@ Goal: Completion before Feb 1st, 2026
 	- [ ] shimmy
 - [ ] Improve clarity of error messages
 
-### Milestone 7
-
-- [ ] Write unit tests for response parser
-- [ ] Perform heavy unit testing and/or formal verification of `universal-weave` to prevent bugs that could result in data loss
-- [ ] Release `universal-weave` version 1.0.0
-- [ ] Release Tapestry Loom version 1.0.0-rc.1
-
 ### Milestone 8
 
-- [ ] UI improvements
-	- [ ] Show hovered child of active node in editor, similar to [exoloom](https://exoloom.io)
-	- [ ] Add "autoloom" mode where clicking a node generates children, similar to [inkstream](https://inkstream.ai)
+- [ ] Perform heavy unit testing and/or formal verification of `universal-weave` to prevent bugs that could result in data loss
+- [ ] Release `universal-weave` version 1.0.0
+- [ ] Write unit tests for response parser
+- [ ] Release Tapestry Loom version 1.0.0-rc.1
+
+### Milestone 9
+
 - [ ] Implement token healing
-- [ ] Add weave statistical analysis tools
-	- [ ] Predictability analysis using logprobs
-	- [ ] Statistical analysis of various metrics (model usage, text length, logprobs, number of branches, etc)
 - [ ] Do testing with using llamafile for easier onboarding?
 - [ ] Create video-based documentation
 - [ ] Add support for more weave migrations
+	- [ ] improve [loom](https://github.com/socketteer/loom) migration
 	- [ ] bonsai (using [damask](https://github.com/tel-0s/damask))
 	- [ ] [wool](https://github.com/lyramakesmusic/wool)
 	- [ ] [helm](https://github.com/Shoalstone/helm)
