@@ -249,6 +249,8 @@ Goal: Completion before Feb 1st, 2026
 
 ### Milestone 7
 
+Goal: Completion before June 1st, 2026
+
 - [ ] Add support for response streaming
 - [ ] Review and refactor settings/inference module
 - [ ] Perform API client testing with commonly used inference backends
