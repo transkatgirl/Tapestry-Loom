@@ -1,5 +1,7 @@
 //! Experimental & untested
 
+// TODO: Longest common prefix deduplication, token ID based deduplication
+
 use std::{borrow::Cow, cmp::Ordering, collections::HashSet, hash::BuildHasherDefault};
 
 use chrono::{FixedOffset, NaiveDateTime};
