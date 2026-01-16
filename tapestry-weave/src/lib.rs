@@ -2,7 +2,7 @@
 // TODO: Duplicate nodes before splitting/merging/moving
 // TODO: Add temporary nodes which are not actually stored in the IndependentWeave?
 
-use universal_weave::rkyv::rancor::Error;
+use universal_weave::{rkyv::rancor::Error, versioning::VersionedBytes};
 
 pub use rustc_hash;
 pub use ulid;
@@ -11,12 +11,9 @@ pub use universal_weave;
 pub mod hashers;
 pub mod treeless;
 pub mod v0;
-//pub mod v1;
-pub mod versioning; // TODO: Use universal_weave versioning API
+pub mod v1;
 
 pub const VERSIONED_WEAVE_FILE_EXTENSION: &str = "tapestry";
-
-use crate::versioning::{MixedData, VersionedBytes};
 
 #[non_exhaustive]
 pub enum VersionedWeave {
@@ -24,18 +21,14 @@ pub enum VersionedWeave {
     //V1(v1::TapestryWeave),
 }
 
+const FORMAT_IDENTIFIER: [u8; 24] = *b"VersionedTapestryWeave__";
+
 impl VersionedWeave {
     pub fn from_bytes(value: &[u8]) -> Option<Result<Self, Error>> {
-        if let Some(versioned) = VersionedBytes::from_bytes(value) {
+        if let Some(versioned) = VersionedBytes::try_from_bytes(value, FORMAT_IDENTIFIER) {
             match versioned.version {
-                0 => Some(
-                    v0::TapestryWeave::from_unversioned_bytes(versioned.data.as_ref())
-                        .map(Self::V0),
-                ),
-                /*1 => Some(
-                    v1::TapestryWeave::from_unversioned_bytes(versioned.data.as_ref())
-                        .map(Self::V1),
-                ),*/
+                0 => Some(v0::TapestryWeave::from_unversioned_bytes(versioned.data).map(Self::V0)),
+                //1 => Some(v1::TapestryWeave::from_unversioned_bytes(versioned.data).map(Self::V1)),
                 _ => None,
             }
         } else {
@@ -59,12 +52,21 @@ impl VersionedWeave {
             //Self::V1(weave) => (1, weave.to_unversioned_bytes()?),
         };
 
-        Ok(VersionedBytes {
-            version,
-            data: MixedData::Output(bytes),
-        }
-        .to_bytes())
+        Ok(to_versioned_bytes(version, &bytes))
     }
+}
+
+fn to_versioned_bytes(version: u64, data: &[u8]) -> Vec<u8> {
+    let versioned = VersionedBytes {
+        format_identifier: FORMAT_IDENTIFIER,
+        version,
+        data,
+    };
+
+    let mut output = Vec::with_capacity(versioned.output_length());
+    versioned.to_bytes(&mut output);
+
+    output
 }
 
 // TODO:

@@ -21,8 +21,8 @@ use universal_weave::{
 use crate::{
     VersionedWeave,
     hashers::RandomIdHasher,
+    to_versioned_bytes,
     v0::{NodeContent as OldNodeContent, TapestryWeave as OldTapestryWeave},
-    versioning::{MixedData, VersionedBytes},
 };
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
@@ -487,11 +487,7 @@ impl TapestryWeave {
         to_bytes::<Error>(&self.weave)
     }
     pub fn to_versioned_bytes(&self) -> Result<Vec<u8>, Error> {
-        Ok(VersionedBytes {
-            version: 1,
-            data: MixedData::Output(self.to_unversioned_bytes()?),
-        }
-        .to_bytes())
+        Ok(to_versioned_bytes(1, &self.to_unversioned_bytes()?))
     }
     /*pub fn to_versioned_weave(self) -> VersionedWeave {
         VersionedWeave::V1(self)
