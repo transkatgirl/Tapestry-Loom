@@ -204,6 +204,7 @@ Goal: Completion before Feb 1st, 2026
 
 - [ ] Better handle valid UTF-8 characters split across multiple nodes
 - [ ] Support arbitrary color gradients for logprob highlighting
+- [ ] Add OKLCH-based color picker
 - [ ] Add blind comparison modes
 	- [ ] (Hide) Models & token probabilities / boundaries
 	- [ ] (Hide) Generated node text (only showing metadata & probabilities)
