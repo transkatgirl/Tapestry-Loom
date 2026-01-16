@@ -12,7 +12,7 @@ pub mod hashers;
 pub mod treeless;
 pub mod v0;
 //pub mod v1;
-pub mod versioning;
+pub mod versioning; // TODO: Use universal_weave versioning API
 
 pub const VERSIONED_WEAVE_FILE_EXTENSION: &str = "tapestry";
 

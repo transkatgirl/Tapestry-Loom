@@ -210,17 +210,23 @@ pub struct Model {
     pub metadata: MetadataMap,
 }
 
+pub type TapestryWeaveInner =
+    DependentWeave<u128, NodeContent, MetadataMap, BuildHasherDefault<UlidHasher>>;
 pub type TapestryNode = DependentNode<u128, NodeContent, BuildHasherDefault<UlidHasher>>;
 pub type MetadataMap = IndexMap<String, String, FxBuildHasher>;
 
 pub struct TapestryWeave {
-    pub weave: DependentWeave<u128, NodeContent, MetadataMap, BuildHasherDefault<UlidHasher>>,
+    pub weave: TapestryWeaveInner,
+    scratchpad: Vec<u128>,
 }
 
 impl TapestryWeave {
     pub fn from_unversioned_bytes(bytes: &[u8]) -> Result<Self, Error> {
+        let weave = from_bytes::<TapestryWeaveInner, Error>(bytes)?;
+
         Ok(Self {
-            weave: from_bytes::<_, Error>(bytes)?,
+            scratchpad: Vec::with_capacity(weave.len()),
+            weave,
         })
     }
     pub fn to_unversioned_bytes(&self) -> Result<AlignedVec, Error> {
@@ -240,6 +246,7 @@ impl TapestryWeave {
     pub fn with_capacity(capacity: usize, metadata: MetadataMap) -> Self {
         Self {
             weave: DependentWeave::with_capacity(capacity, metadata),
+            scratchpad: Vec::with_capacity(capacity),
         }
     }
     pub fn capacity(&self) -> usize {
@@ -247,9 +254,15 @@ impl TapestryWeave {
     }
     pub fn reserve(&mut self, additional: usize) {
         self.weave.reserve(additional);
+        self.scratchpad.reserve(
+            self.weave
+                .capacity()
+                .saturating_sub(self.scratchpad.capacity()),
+        );
     }
     pub fn shrink_to(&mut self, min_capacity: usize) {
         self.weave.shrink_to(min_capacity);
+        self.scratchpad.shrink_to(min_capacity);
     }
     pub fn len(&self) -> usize {
         self.weave.len()
@@ -270,15 +283,22 @@ impl TapestryWeave {
         self.weave.bookmarks().iter().copied().map(Ulid)
     }
     pub fn get_active_thread(&mut self) -> impl DoubleEndedIterator<Item = &TapestryNode> {
-        let active: Vec<u128> = self.weave.get_active_thread().collect();
+        self.weave.get_active_thread(&mut self.scratchpad);
 
-        active.into_iter().filter_map(|id| self.weave.get_node(&id))
+        self.scratchpad
+            .drain(..)
+            .filter_map(|id| self.weave.get_node(&id))
+    }
+    pub fn get_active_thread_ids(&mut self) -> impl DoubleEndedIterator<Item = u128> {
+        self.weave.get_active_thread(&mut self.scratchpad);
+
+        self.scratchpad.drain(..)
     }
 
     pub fn add_node(&mut self, node: TapestryNode) -> bool {
         let identifier = node.id;
         let last_active_set: HashSet<u128> = if node.active {
-            HashSet::from_iter(self.weave.get_active_thread())
+            HashSet::from_iter(self.get_active_thread_ids())
         } else {
             HashSet::default()
         };
@@ -331,12 +351,12 @@ impl TapestryWeave {
 
         let value_len = value.len();
 
-        let active_thread: Vec<u128> = self.weave.get_active_thread().rev().collect();
-        let active_node = active_thread.iter().copied().last();
+        self.weave.get_active_thread(&mut self.scratchpad);
+        let active_node = self.scratchpad.iter().rev().copied().last();
 
         let mut last_node = None;
 
-        for active_identifier in active_thread {
+        for active_identifier in self.scratchpad.drain(..).rev() {
             let node = self.weave.get_node(&active_identifier).unwrap();
             let content_bytes = node.contents.content.as_bytes();
 
@@ -427,10 +447,11 @@ impl TapestryWeave {
         modified
     }
     pub fn get_active_content(&mut self) -> Vec<u8> {
-        let active_thread: Vec<u128> = self.weave.get_active_thread().rev().collect();
+        self.weave.get_active_thread(&mut self.scratchpad);
 
-        active_thread
-            .into_iter()
+        self.scratchpad
+            .drain(..)
+            .rev()
             .filter_map(|id| self.weave.get_node(&id))
             .flat_map(|node| node.contents.content.as_bytes().to_vec())
             .collect()

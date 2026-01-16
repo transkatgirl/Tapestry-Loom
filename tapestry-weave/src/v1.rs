@@ -437,6 +437,7 @@ pub type TapestryWeaveInner =
 pub struct TapestryWeave {
     weave: TapestryWeaveInner,
     active: Vec<u64>,
+    scratchpad: Vec<u64>,
     changed: bool,
     changed_shape: bool,
 }
@@ -451,10 +452,11 @@ pub struct TapestryWeaveMetadata {
 impl From<TapestryWeaveInner> for TapestryWeave {
     fn from(mut value: TapestryWeaveInner) -> Self {
         let mut active = Vec::with_capacity(value.capacity());
-        active.extend(value.get_active_thread());
+        value.get_active_thread(&mut active);
 
         Self {
             active,
+            scratchpad: Vec::with_capacity(value.capacity()),
             weave: value,
             changed: false,
             changed_shape: false,
@@ -496,6 +498,7 @@ impl TapestryWeave {
         Self {
             weave: IndependentWeave::with_capacity(capacity, metadata),
             active: Vec::with_capacity(capacity),
+            scratchpad: Vec::with_capacity(capacity),
             changed: false,
             changed_shape: false,
         }
@@ -507,10 +510,16 @@ impl TapestryWeave {
         self.weave.reserve(additional);
         self.active
             .reserve(self.weave.capacity().saturating_sub(self.active.capacity()));
+        self.scratchpad.reserve(
+            self.weave
+                .capacity()
+                .saturating_sub(self.scratchpad.capacity()),
+        );
     }
     pub fn shrink_to(&mut self, min_capacity: usize) {
         self.weave.shrink_to(min_capacity);
         self.active.shrink_to(min_capacity);
+        self.scratchpad.shrink_to(min_capacity);
     }
     pub fn metadata(&mut self) -> &mut TapestryWeaveMetadata {
         &mut self.weave.metadata
@@ -539,11 +548,12 @@ impl TapestryWeave {
 
         changed
     }
-    pub fn dump_identifiers_ordered(&self) -> Vec<u64> {
-        self.weave.get_ordered_node_identifiers()
+    pub fn dump_identifiers_ordered(&mut self, output: &mut Vec<u64>) {
+        self.weave.get_ordered_node_identifiers(output);
     }
-    pub fn dump_identifiers_ordered_rev(&self) -> Vec<u64> {
-        self.weave.get_ordered_node_identifiers_reversed_children()
+    pub fn dump_identifiers_ordered_rev(&mut self, output: &mut Vec<u64>) {
+        self.weave
+            .get_ordered_node_identifiers_reversed_children(output)
     }
     pub fn get_node(&self, id: &u64) -> Option<&TapestryNode> {
         self.weave.get_node(id)
@@ -616,21 +626,20 @@ impl TapestryWeave {
         self.active.iter().copied()
     }
     pub fn get_thread_from(&mut self, id: &u64) -> impl DoubleEndedIterator<Item = &TapestryNode> {
-        let thread: Vec<u64> = self.weave.get_thread_from(id).collect();
+        self.weave.get_thread_from(id, &mut self.scratchpad);
 
-        thread.into_iter().filter_map(|id| self.weave.get_node(&id))
+        self.scratchpad
+            .drain(..)
+            .filter_map(|id| self.weave.get_node(&id))
     }
-    pub fn get_thread_from_ids(
-        &mut self,
-        id: &u64,
-    ) -> impl DoubleEndedIterator<Item = u64> + ExactSizeIterator<Item = u64> {
-        self.weave.get_thread_from(id)
+    pub fn get_thread_from_ids(&mut self, id: &u64) -> &Vec<u64> {
+        self.weave.get_thread_from(id, &mut self.scratchpad);
+        &self.scratchpad
     }
     fn update_shape_and_active(&mut self) {
         self.changed = true;
         self.changed_shape = true;
-        self.active.clear();
-        self.active.extend(self.weave.get_active_thread());
+        self.weave.get_active_thread(&mut self.active)
     }
     pub fn add_node(&mut self, node: TapestryNode) -> bool {
         let identifier = node.id;
@@ -944,21 +953,33 @@ impl ArchivedTapestryWeave {
         self.weave.bookmarks().iter().copied()
     }
     pub fn get_active_thread(&mut self) -> impl DoubleEndedIterator<Item = &ArchivedTapestryNode> {
-        self.weave
-            .get_active_thread()
+        let mut scratchpad = Vec::with_capacity(self.weave.len());
+
+        self.weave.get_active_thread(&mut scratchpad);
+
+        scratchpad
+            .into_iter()
             .filter_map(|id| self.weave.get_node(&id))
     }
     pub fn get_thread_from(
         &mut self,
         id: &u64_le,
     ) -> impl DoubleEndedIterator<Item = &ArchivedTapestryNode> {
-        self.weave
-            .get_thread_from(id)
+        let mut scratchpad = Vec::with_capacity(self.weave.len());
+
+        self.weave.get_thread_from(id, &mut scratchpad);
+
+        scratchpad
+            .into_iter()
             .filter_map(|id| self.weave.get_node(&id))
     }
     pub fn get_active_content(&self) -> Vec<u8> {
-        self.weave
-            .get_active_thread()
+        let mut scratchpad = Vec::with_capacity(self.weave.len());
+
+        self.weave.get_active_thread(&mut scratchpad);
+
+        scratchpad
+            .into_iter()
             .rev()
             .filter_map(|id| self.weave.get_node(&id))
             .flat_map(|node| node.contents.content.as_bytes())

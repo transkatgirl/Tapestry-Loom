@@ -18,6 +18,7 @@ use tapestry_weave::{
 
 pub struct WeaveWrapper {
     weave: TapestryWeave,
+    scratchpad: Vec<u128>,
     changed: bool,
     layout_changed: bool,
 }
@@ -38,6 +39,7 @@ impl Default for WeaveWrapper {
 impl From<TapestryWeave> for WeaveWrapper {
     fn from(value: TapestryWeave) -> Self {
         Self {
+            scratchpad: Vec::with_capacity(value.capacity()),
             weave: value,
             changed: false, // Does not react to metadata changes
             layout_changed: false,
@@ -97,7 +99,9 @@ impl WeaveWrapper {
             .map(Ulid)
     }*/
     pub fn get_thread_from_u128(&mut self, id: &u128) -> impl DoubleEndedIterator<Item = u128> {
-        self.weave.weave.get_thread_from(id)
+        self.weave.weave.get_thread_from(id, &mut self.scratchpad);
+
+        self.scratchpad.drain(..)
     }
     /*pub fn get_active_thread(&mut self) -> impl DoubleEndedIterator<Item = Ulid> {
         self.weave
@@ -145,19 +149,27 @@ impl WeaveWrapper {
         }
     }
     pub fn get_active_thread_u128(&mut self) -> impl DoubleEndedIterator<Item = u128> {
-        self.weave.weave.get_active_thread()
+        self.weave.weave.get_active_thread(&mut self.scratchpad);
+
+        self.scratchpad.drain(..)
     }
     pub fn get_active_thread(&mut self) -> impl DoubleEndedIterator<Item = Ulid> {
-        self.weave.weave.get_active_thread().map(Ulid)
+        self.weave.weave.get_active_thread(&mut self.scratchpad);
+
+        self.scratchpad.drain(..).map(Ulid)
     }
     /*pub fn get_active_thread_nodes(&mut self) -> impl Iterator<Item = &DependentNode<NodeContent>> {
         self.weave.get_active_thread()
     }*/
     pub fn get_active_thread_first(&mut self) -> Option<Ulid> {
-        self.weave.weave.get_active_thread().next().map(Ulid)
+        self.weave.weave.get_active_thread(&mut self.scratchpad);
+
+        self.scratchpad.drain(..).next().map(Ulid)
     }
     pub fn get_active_thread_len(&mut self) -> usize {
-        self.weave.weave.get_active_thread().len()
+        self.weave.weave.get_active_thread(&mut self.scratchpad);
+
+        self.scratchpad.len()
     }
     pub fn get_roots(&self) -> impl Iterator<Item = Ulid> {
         self.weave.get_roots()
