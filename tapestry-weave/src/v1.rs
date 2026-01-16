@@ -411,6 +411,7 @@ pub enum Creator {
 pub struct Model {
     pub label: String,
     pub identifier: Option<u128>,
+    pub seed: Option<i64>,
     pub metadata: MetadataMap,
 }
 
