@@ -297,6 +297,7 @@ Goal: Completion before June 1st, 2026
 
 ### Post-v1 plans
 
+- [ ] Prefix-based deduplication
 - [ ] Improve graph/canvas layout algorithm
 - [ ] Improve file manager
 - [ ] Support keyboard shortcuts for all aspects of the UI, not just the weave editor
@@ -317,7 +318,6 @@ Goal: Completion before June 1st, 2026
 
 ### Speculative ideas for v2
 
-- [ ] Prefix-based deduplication
 - [ ] Collaborative weave editing
 - [ ] WASM version of Tapestry Loom
 - [ ] Support multimodal weaves
