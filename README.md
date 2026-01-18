@@ -219,6 +219,7 @@ Goal: Completion before Feb 1st, 2026
 - [ ] Add "autoloom" mode where clicking a node generates children, similar to [inkstream](https://inkstream.ai)
 - [ ] Add node finding
 - [ ] Perform UX testing with all built-in color schemes
+- [ ] Create a website for Tapestry Loom's downloads and documentation
 
 ### Milestone 5
 
