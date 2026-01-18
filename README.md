@@ -319,6 +319,9 @@ Goal: Completion before June 1st, 2026
 ### Speculative ideas for v2
 
 - [ ] Collaborative weave editing
+- [ ] Interfaces for AI agents to use Tapestry Loom
+- [ ] Human as token-predictor mode
+	- "The LLM looms you"
 - [ ] WASM version of Tapestry Loom
 - [ ] Support multimodal weaves
 - [ ] Support weaves of arbitrarily large size using a database-based format
