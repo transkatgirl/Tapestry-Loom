@@ -588,19 +588,20 @@ fn absolute_snippet_positions(
             snippet_index >= snippets.len()
         };
 
+    let first_row_rect = galley.rows.first().map(|row| row.rect());
+
     let mut should_break = increment_callback(
         0,
-        top_left,
-        galley
-            .rows
-            .first()
-            .map(|row| {
-                let row_rect = row.rect();
-
-                Pos2 {
-                    x: top_left.x + row_rect.min.x,
-                    y: top_left.y + row_rect.max.y,
-                }
+        first_row_rect
+            .map(|row_rect| Pos2 {
+                x: top_left.x + row_rect.min.x,
+                y: top_left.y + row_rect.min.y,
+            })
+            .unwrap_or(top_left),
+        first_row_rect
+            .map(|row_rect| Pos2 {
+                x: top_left.x + row_rect.min.x,
+                y: top_left.y + row_rect.max.y,
             })
             .unwrap_or(top_left),
     );
@@ -644,11 +645,11 @@ fn absolute_snippet_positions(
 
         if row.ends_with_newline {
             let (char_start_pos, char_end_pos) = (
-                row_start_pos,
                 Pos2 {
-                    x: row_start_pos.x,
-                    y: row_end_pos.y,
+                    x: row_end_pos.x,
+                    y: row_start_pos.y,
                 },
+                row_end_pos,
             );
 
             should_break = increment_callback(offset, char_start_pos, char_end_pos);
