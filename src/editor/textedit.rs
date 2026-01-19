@@ -548,7 +548,32 @@ fn absolute_snippet_positions(
 
     let mut start_pos = top_left;
 
-    let mut last_row_ends_with_newline = false;
+    let mut should_break = false;
+
+    let mut increment_callback =
+        |offset: usize, char_start_pos: Pos2, char_end_pos: Pos2| -> bool {
+            while snippet_offset <= offset && snippet_index < snippets.len() {
+                callback(
+                    &snippets[snippet_index],
+                    Rect {
+                        min: start_pos,
+                        max: Pos2 {
+                            x: char_start_pos.x,
+                            y: char_end_pos.y,
+                        },
+                    },
+                );
+                if snippet_index < snippets.len() - 1 {
+                    snippet_index += 1;
+                    snippet_offset += snippets[snippet_index].0;
+                    start_pos = char_start_pos;
+                } else {
+                    break;
+                }
+            }
+
+            snippet_index >= snippets.len()
+        };
 
     for row in &galley.rows {
         let row_rect = row.rect();
@@ -563,35 +588,7 @@ fn absolute_snippet_positions(
             y: top_left.y + row_rect.max.y,
         };
 
-        if last_row_ends_with_newline {
-            let (char_start_pos, char_end_pos) = (
-                row_start_pos,
-                Pos2 {
-                    x: row_start_pos.x,
-                    y: row_end_pos.y,
-                },
-            );
-
-            if snippet_offset == offset && snippet_index < snippets.len() - 1 {
-                callback(
-                    &snippets[snippet_index],
-                    Rect {
-                        min: start_pos,
-                        max: Pos2 {
-                            x: char_start_pos.x,
-                            y: char_end_pos.y,
-                        },
-                    },
-                );
-                snippet_index += 1;
-                snippet_offset += snippets[snippet_index].0;
-                start_pos = char_start_pos;
-            }
-
-            offset += 1;
-        }
-
-        if snippet_index > snippets.len() {
+        if should_break {
             break;
         }
 
@@ -610,29 +607,27 @@ fn absolute_snippet_positions(
                 y: row_start_pos.y + char_rect.max.y,
             };
 
-            if snippet_offset == offset && snippet_index < snippets.len() - 1 {
-                callback(
-                    &snippets[snippet_index],
-                    Rect {
-                        min: start_pos,
-                        max: Pos2 {
-                            x: char_start_pos.x,
-                            y: char_end_pos.y,
-                        },
-                    },
-                );
-                snippet_index += 1;
-                snippet_offset += snippets[snippet_index].0;
-                start_pos = char_start_pos;
-            }
+            should_break = increment_callback(offset, char_start_pos, char_end_pos);
 
             offset += char_len;
         }
 
-        last_row_ends_with_newline = row.ends_with_newline;
+        if row.ends_with_newline {
+            let (char_start_pos, char_end_pos) = (
+                row_start_pos,
+                Pos2 {
+                    x: row_start_pos.x,
+                    y: row_end_pos.y,
+                },
+            );
+
+            should_break = increment_callback(offset, char_start_pos, char_end_pos);
+
+            offset += 1;
+        }
     }
 
-    if snippet_offset == offset && snippet_index < snippets.len() {
+    if !should_break {
         let last_row_rect = galley.rows.last().unwrap().rect();
 
         let row_start_pos = Pos2 {
@@ -653,16 +648,7 @@ fn absolute_snippet_positions(
             },
         );
 
-        callback(
-            &snippets[snippet_index],
-            Rect {
-                min: start_pos,
-                max: Pos2 {
-                    x: char_start_pos.x,
-                    y: char_end_pos.y,
-                },
-            },
-        );
+        increment_callback(offset, char_start_pos, char_end_pos);
     }
 }
 
