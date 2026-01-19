@@ -225,7 +225,6 @@ Goal: Completion before Feb 1st, 2026
 - [ ] Add "autoloom" mode where clicking a node generates children, similar to [inkstream](https://inkstream.ai)
 - [ ] Add node finding
 - [ ] Perform UX testing with all built-in color schemes
-- [ ] Create a website for Tapestry Loom's downloads and documentation
 
 ### Milestone 5
 
@@ -295,6 +294,11 @@ Goal: Completion before June 1st, 2026
 - [ ] Implement support for instruct templating, similar to [mikupad](https://github.com/lmg-anon/mikupad)
 - [ ] Do testing with using llamafile for easier onboarding?
 - [ ] Create video-based documentation
+- [ ] Create a website for Tapestry Loom's downloads and documentation
+
+### Milestone 10
+
+- [ ] Refactor migration-assistant to natively use v1 format
 - [ ] Add support for more weave migrations
 	- [ ] improve [loom](https://github.com/socketteer/loom) migration
 	- [ ] bonsai (using [damask](https://github.com/tel-0s/damask))
