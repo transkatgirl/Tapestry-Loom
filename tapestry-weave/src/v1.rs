@@ -413,7 +413,7 @@ pub enum Creator {
 pub struct Model {
     pub label: String,
     pub identifier: Option<u128>,
-    pub seed: Option<i64>,
+    pub seed: Option<u32>,
     pub metadata: MetadataMap,
 }
 
@@ -447,7 +447,7 @@ pub struct TapestryWeave {
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct TapestryWeaveMetadata {
     pub created: Timestamp,
-    pub converted_from: Option<(String, Timestamp)>,
+    pub converted_from: Option<(String, Timestamp)>, // TODO: Make into an enum
     pub metadata: MetadataMap,
 }
 
