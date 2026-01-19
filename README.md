@@ -153,6 +153,12 @@ If your inference backend returns token IDs in OpenAI-style Completions response
 
 Please [consider donating](https://github.com/sponsors/transkatgirl) to help fund further development.
 
+### Roadmap TODOs
+
+- [ ] Take inspiration from [multiverse](https://motform.org/multiverse)
+- [ ] Take inspiration from [mikupad](https://github.com/lmg-anon/mikupad)
+- [ ] Do more experimentation with [loom](https://github.com/socketteer/loom)'s UI in order to find UX improvements which may be worth including in Tapestry Loom
+
 ### Milestone 0
 
 Goal: Completion before Feb 1st, 2026
