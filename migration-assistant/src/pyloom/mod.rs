@@ -10,7 +10,7 @@ use chrono::{DateTime, Local, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use tapestry_weave::{
     VersionedWeave,
-    rustc_hash::FxBuildHasher,
+    hashers::RandomState,
     ulid::Ulid,
     universal_weave::{
         Weave,
@@ -77,7 +77,7 @@ fn convert_node(
 
     let chapter = node.chapter_id.and_then(|chapter| chapters.get(&chapter));
 
-    let mut metadata = IndexMap::with_capacity_and_hasher(3, FxBuildHasher);
+    let mut metadata = IndexMap::with_capacity_and_hasher(3, RandomState::default());
 
     if let Some(meta) = &node.meta
         && let Some(modified) = meta.modified

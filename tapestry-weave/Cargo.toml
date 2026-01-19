@@ -15,10 +15,7 @@ universal-weave = { path = "../universal-weave", features = [
 	"legacy", # v0
 	"serde",  # v0
 ] }
-
-rustc-hash = { version = "2.1.1", features = [
-	"rand",
-] }
+foldhash = "0.2.0"
 
 # v0
 ulid = { version = "1.2.1", features = [

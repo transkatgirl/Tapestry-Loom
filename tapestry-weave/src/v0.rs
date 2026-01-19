@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::HashSet, hash::BuildHasherDefault};
 
 use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
 use contracts::ensures;
-use rustc_hash::FxBuildHasher;
+use foldhash::fast::RandomState;
 use ulid::Ulid;
 use universal_weave::{
     DeduplicatableContents, DeduplicatableWeave, DiscreteContentResult, DiscreteContents,
@@ -209,7 +209,7 @@ pub struct Model {
 pub type TapestryWeaveInner =
     DependentWeave<u128, NodeContent, MetadataMap, BuildHasherDefault<UlidHasher>>;
 pub type TapestryNode = DependentNode<u128, NodeContent, BuildHasherDefault<UlidHasher>>;
-pub type MetadataMap = IndexMap<String, String, FxBuildHasher>;
+pub type MetadataMap = IndexMap<String, String, RandomState>;
 
 pub struct TapestryWeave {
     pub weave: TapestryWeaveInner,

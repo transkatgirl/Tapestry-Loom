@@ -4,7 +4,7 @@
 
 use universal_weave::{rkyv::rancor::Error, versioning::VersionedBytes};
 
-pub use rustc_hash;
+pub use foldhash;
 pub use ulid;
 pub use universal_weave;
 

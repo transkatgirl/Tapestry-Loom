@@ -6,7 +6,7 @@ use std::{borrow::Cow, cmp::Ordering, collections::HashSet, hash::BuildHasherDef
 
 use chrono::{FixedOffset, NaiveDateTime};
 use contracts::ensures;
-use rustc_hash::FxBuildHasher;
+use foldhash::fast::RandomState;
 use universal_weave::{
     ArchivedWeave, DeduplicatableContents, DeduplicatableWeave, DiscreteContentResult,
     DiscreteContents, DiscreteWeave, IndependentContents, SemiIndependentWeave, Weave,
@@ -430,7 +430,7 @@ pub struct Timestamp {
 }
 
 pub type TapestryNode = IndependentNode<u64, NodeContent, BuildHasherDefault<RandomIdHasher>>;
-pub type MetadataMap = IndexMap<String, String, FxBuildHasher>;
+pub type MetadataMap = IndexMap<String, String, RandomState>;
 pub type ArchivedTapestryNode =
     ArchivedIndependentNode<u64, NodeContent, BuildHasherDefault<RandomIdHasher>>;
 pub type TapestryWeaveInner =

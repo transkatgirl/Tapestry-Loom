@@ -1,6 +1,6 @@
 use std::hash::Hasher;
 
-pub use rustc_hash::FxBuildHasher;
+pub use foldhash::fast::RandomState;
 
 #[derive(Default)]
 pub struct UlidHasher(u64);
