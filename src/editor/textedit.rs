@@ -536,7 +536,7 @@ fn absolute_snippet_positions(
     snippets: &[Snippet],
     top_left: Pos2,
     galley: &Galley,
-    mut callback: impl FnMut(&Snippet, Rect),
+    mut callback: impl FnMut(&Snippet, (Pos2, Pos2)),
 ) {
     if snippets.is_empty() {
         return;
@@ -546,27 +546,40 @@ fn absolute_snippet_positions(
     let mut snippet_index = 0;
     let mut snippet_offset = snippets[0].0;
 
-    let mut start_pos = top_left;
-
-    let mut should_break = false;
+    let mut min_y = top_left.y;
+    let mut min_x = top_left.x;
+    let mut max_x = top_left.x;
 
     let mut increment_callback =
         |offset: usize, char_start_pos: Pos2, char_end_pos: Pos2| -> bool {
+            min_x = min_x.min(char_start_pos.x);
+            if snippet_offset > offset {
+                max_x = max_x.max(char_end_pos.x);
+            } else {
+                max_x = max_x.max(char_start_pos.x);
+            }
+
             while snippet_offset <= offset && snippet_index < snippets.len() {
                 callback(
                     &snippets[snippet_index],
-                    Rect {
-                        min: start_pos,
-                        max: Pos2 {
-                            x: char_start_pos.x,
+                    (
+                        Pos2 { x: min_x, y: min_y },
+                        Pos2 {
+                            x: max_x,
                             y: char_end_pos.y,
                         },
-                    },
+                    ),
                 );
                 if snippet_index < snippets.len() - 1 {
                     snippet_index += 1;
                     snippet_offset += snippets[snippet_index].0;
-                    start_pos = char_start_pos;
+                    min_y = char_start_pos.y;
+                    min_x = char_start_pos.x;
+                    max_x = if snippets[snippet_index].0 > 0 {
+                        char_end_pos.x
+                    } else {
+                        char_start_pos.x
+                    };
                 } else {
                     break;
                 }
@@ -574,6 +587,23 @@ fn absolute_snippet_positions(
 
             snippet_index >= snippets.len()
         };
+
+    let mut should_break = increment_callback(
+        0,
+        top_left,
+        galley
+            .rows
+            .first()
+            .map(|row| {
+                let row_rect = row.rect();
+
+                Pos2 {
+                    x: top_left.x + row_rect.min.x,
+                    y: top_left.y + row_rect.max.y,
+                }
+            })
+            .unwrap_or(top_left),
+    );
 
     for row in &galley.rows {
         let row_rect = row.rect();
