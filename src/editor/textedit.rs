@@ -538,9 +538,13 @@ fn absolute_snippet_positions(
     galley: &Galley,
     mut callback: impl FnMut(&Snippet, Rect),
 ) {
+    if snippets.is_empty() {
+        return;
+    }
+
     let mut offset = 0;
     let mut snippet_index = 0;
-    let mut snippet_offset = 0;
+    let mut snippet_offset = snippets[0].0;
 
     let mut start_pos = top_left;
 
@@ -568,17 +572,20 @@ fn absolute_snippet_positions(
                 },
             );
 
-            while offset >= snippet_offset && snippet_index < snippets.len() {
+            if snippet_offset == offset && snippet_index < snippets.len() - 1 {
                 callback(
                     &snippets[snippet_index],
                     Rect {
                         min: start_pos,
-                        max: char_end_pos,
+                        max: Pos2 {
+                            x: char_start_pos.x,
+                            y: char_end_pos.y,
+                        },
                     },
                 );
+                snippet_index += 1;
                 snippet_offset += snippets[snippet_index].0;
                 start_pos = char_start_pos;
-                snippet_index += 1;
             }
 
             offset += 1;
@@ -603,23 +610,59 @@ fn absolute_snippet_positions(
                 y: row_start_pos.y + char_rect.max.y,
             };
 
-            while offset >= snippet_offset && snippet_index < snippets.len() {
+            if snippet_offset == offset && snippet_index < snippets.len() - 1 {
                 callback(
                     &snippets[snippet_index],
                     Rect {
                         min: start_pos,
-                        max: char_end_pos,
+                        max: Pos2 {
+                            x: char_start_pos.x,
+                            y: char_end_pos.y,
+                        },
                     },
                 );
+                snippet_index += 1;
                 snippet_offset += snippets[snippet_index].0;
                 start_pos = char_start_pos;
-                snippet_index += 1;
             }
 
             offset += char_len;
         }
 
         last_row_ends_with_newline = row.ends_with_newline;
+    }
+
+    if snippet_offset == offset && snippet_index < snippets.len() {
+        let last_row_rect = galley.rows.last().unwrap().rect();
+
+        let row_start_pos = Pos2 {
+            x: top_left.x + last_row_rect.min.x,
+            y: top_left.y + last_row_rect.min.y,
+        };
+
+        let row_end_pos = Pos2 {
+            x: top_left.x + last_row_rect.max.x,
+            y: top_left.y + last_row_rect.max.y,
+        };
+
+        let (char_start_pos, char_end_pos) = (
+            row_start_pos,
+            Pos2 {
+                x: row_start_pos.x,
+                y: row_end_pos.y,
+            },
+        );
+
+        callback(
+            &snippets[snippet_index],
+            Rect {
+                min: start_pos,
+                max: Pos2 {
+                    x: char_start_pos.x,
+                    y: char_end_pos.y,
+                },
+            },
+        );
     }
 }
 
