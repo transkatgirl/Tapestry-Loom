@@ -532,6 +532,97 @@ fn calculate_highlighting(
     sections
 }
 
+fn absolute_snippet_positions(
+    snippets: &[Snippet],
+    top_left: Pos2,
+    galley: &Galley,
+    mut callback: impl FnMut(&Snippet, Rect),
+) {
+    let mut offset = 0;
+    let mut snippet_index = 0;
+    let mut snippet_offset = 0;
+
+    let mut start_pos = top_left;
+
+    let mut last_row_ends_with_newline = false;
+
+    for row in &galley.rows {
+        let row_rect = row.rect();
+
+        let row_start_pos = Pos2 {
+            x: top_left.x + row_rect.min.x,
+            y: top_left.y + row_rect.min.y,
+        };
+
+        let row_end_pos = Pos2 {
+            x: top_left.x + row_rect.max.x,
+            y: top_left.y + row_rect.max.y,
+        };
+
+        if last_row_ends_with_newline {
+            let (char_start_pos, char_end_pos) = (
+                row_start_pos,
+                Pos2 {
+                    x: row_start_pos.x,
+                    y: row_end_pos.y,
+                },
+            );
+
+            while offset >= snippet_offset && snippet_index < snippets.len() {
+                callback(
+                    &snippets[snippet_index],
+                    Rect {
+                        min: start_pos,
+                        max: char_end_pos,
+                    },
+                );
+                snippet_offset += snippets[snippet_index].0;
+                start_pos = char_start_pos;
+                snippet_index += 1;
+            }
+
+            offset += 1;
+        }
+
+        if snippet_index > snippets.len() {
+            break;
+        }
+
+        for char in row.glyphs.iter() {
+            let char_len = char.chr.len_utf8();
+
+            let char_rect = char.logical_rect();
+
+            let char_start_pos = Pos2 {
+                x: row_start_pos.x + char_rect.min.x,
+                y: row_start_pos.y + char_rect.min.y,
+            };
+
+            let char_end_pos = Pos2 {
+                x: row_start_pos.x + char_rect.max.x,
+                y: row_start_pos.y + char_rect.max.y,
+            };
+
+            while offset >= snippet_offset && snippet_index < snippets.len() {
+                callback(
+                    &snippets[snippet_index],
+                    Rect {
+                        min: start_pos,
+                        max: char_end_pos,
+                    },
+                );
+                snippet_offset += snippets[snippet_index].0;
+                start_pos = char_start_pos;
+                snippet_index += 1;
+            }
+
+            offset += char_len;
+        }
+
+        last_row_ends_with_newline = row.ends_with_newline;
+    }
+}
+
 #[allow(clippy::collapsible_if)]
 fn calculate_boundaries_and_update_scroll(
     ui: &mut Ui,
