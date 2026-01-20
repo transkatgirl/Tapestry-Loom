@@ -207,6 +207,7 @@ Goal: Completion before Feb 1st, 2026
 	- [ ] Force single token node creation using `TL#force_single_token`
 	- [ ] Context window wrapping using `TL#ctx_length`
 - [ ] Implement BERT FIM server using nonstandard `fim_tokens` parameter
+- [ ] Add documentation to `universal-weave` library
 
 ### Milestone 3
 
