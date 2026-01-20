@@ -226,6 +226,36 @@ impl TextEditorView {
                                 },
                                 &mut self.rects,
                             );
+                            /*absolute_snippet_positions(
+                                &self.snippets.borrow(),
+                                top_left,
+                                &textedit.galley,
+                                |snippet, bounds, mut start, mut end| {
+                                    ui.painter().rect_stroke(
+                                        bounds,
+                                        0.0,
+                                        (1.0, eframe::egui::Color32::WHITE),
+                                        eframe::egui::StrokeKind::Inside,
+                                    );
+
+                                    start.max.x += 1.0;
+                                    end.min.x += 1.0;
+                                    end.max.x += 2.0;
+
+                                    ui.painter().rect_stroke(
+                                        start,
+                                        0.0,
+                                        (1.0, eframe::egui::Color32::GREEN),
+                                        eframe::egui::StrokeKind::Inside,
+                                    );
+                                    ui.painter().rect_stroke(
+                                        end,
+                                        0.0,
+                                        (1.0, eframe::egui::Color32::RED),
+                                        eframe::egui::StrokeKind::Inside,
+                                    );
+                                },
+                            );*/
                             self.last_text_edit_rect = textedit.response.rect;
                             self.should_update_rects = false;
                             if !self.rects.is_empty() {
@@ -536,7 +566,7 @@ fn absolute_snippet_positions(
     snippets: &[Snippet],
     top_left: Pos2,
     galley: &Galley,
-    mut callback: impl FnMut(&Snippet, (Pos2, Pos2)),
+    mut callback: impl FnMut(&Snippet, Rect, Rect, Rect),
 ) {
     if snippets.is_empty() {
         return;
@@ -546,6 +576,14 @@ fn absolute_snippet_positions(
     let mut snippet_index = 0;
     let mut snippet_offset = snippets[0].0;
 
+    let first_row_rect = galley.rows.first().map(|row| row.rect());
+
+    let mut start_pos = first_row_rect
+        .map(|row_rect| row_rect.min)
+        .unwrap_or(top_left);
+    let mut start_height = first_row_rect
+        .map(|row_rect| row_rect.max.y - row_rect.min.y)
+        .unwrap_or(0.0);
     let mut min_y = top_left.y;
     let mut min_x = top_left.x;
     let mut max_x = top_left.x;
@@ -553,26 +591,43 @@ fn absolute_snippet_positions(
     let mut increment_callback =
         |offset: usize, char_start_pos: Pos2, char_end_pos: Pos2| -> bool {
             min_x = min_x.min(char_start_pos.x);
-            if snippet_offset > offset {
-                max_x = max_x.max(char_end_pos.x);
+            let pos_x = if snippet_offset > offset {
+                char_end_pos.x
             } else {
-                max_x = max_x.max(char_start_pos.x);
-            }
+                char_start_pos.x
+            };
+            max_x = max_x.max(pos_x);
 
             while snippet_offset <= offset && snippet_index < snippets.len() {
                 callback(
                     &snippets[snippet_index],
-                    (
-                        Pos2 { x: min_x, y: min_y },
-                        Pos2 {
+                    Rect {
+                        min: Pos2 { x: min_x, y: min_y },
+                        max: Pos2 {
                             x: max_x,
                             y: char_end_pos.y,
                         },
-                    ),
+                    },
+                    Rect {
+                        min: start_pos,
+                        max: Pos2 {
+                            x: start_pos.x,
+                            y: start_pos.y + start_height,
+                        },
+                    },
+                    Rect {
+                        min: char_start_pos,
+                        max: Pos2 {
+                            x: pos_x,
+                            y: char_end_pos.y,
+                        },
+                    },
                 );
                 if snippet_index < snippets.len() - 1 {
                     snippet_index += 1;
                     snippet_offset += snippets[snippet_index].0;
+                    start_pos = char_start_pos;
+                    start_height = char_end_pos.y - char_start_pos.y;
                     min_y = char_start_pos.y;
                     min_x = char_start_pos.x;
                     max_x = if snippets[snippet_index].0 > 0 {
@@ -587,8 +642,6 @@ fn absolute_snippet_positions(
 
             snippet_index >= snippets.len()
         };
-
-    let first_row_rect = galley.rows.first().map(|row| row.rect());
 
     let mut should_break = increment_callback(
         0,
