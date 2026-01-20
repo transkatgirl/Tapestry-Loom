@@ -143,7 +143,9 @@ However, every inference provider implements OpenAI compatibility in their own w
 
 See [tapestry-tokenize](./tapestry-tokenize/README.md) for more information on how to configure and use the (optional) tokenization server.
 
-Once a tokenization endpoint is configured for a model, enabling the setting "(Opportunistically) reuse output token IDs" can *slightly* improve output quality. However, the benefit is largest when generating single-token nodes using non-ASCII characters and a single model (output token IDs cannot be reused across models).
+Once a tokenization endpoint is configured for a model, enabling the setting "(Opportunistically) reuse output token IDs" can *slightly* improve output quality by giving you more control over tokenization. In this mode, model output token IDs are reused whenever possible and tokenization is performed per-node.
+
+However, the benefit of reusing the model's output tokenization is greatest when generating single-token nodes using non-ASCII characters and a single model (output token IDs cannot be reused across models).
 
 This setting requires the inference backend to support returning token IDs (to check if this is working, hover over generated tokens in the text editor to see if they contain a token identifier). This is a non-standard addition to the OpenAI Completions API which is currently supported by very few inference backends ([llama.cpp](https://github.com/ggml-org/llama.cpp) has been confirmed to work properly with this feature).
 

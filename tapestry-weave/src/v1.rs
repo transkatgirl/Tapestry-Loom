@@ -717,6 +717,7 @@ impl TapestryWeave {
         duplicate: bool,
         mut id_generator: impl FnMut() -> u64,
     ) -> Option<(u64, u64)> {
+        // TODO: Implement splitting duplication similarly to split_out_token(); Only duplicate if splitting within a token, and only duplicate the specific token being split
         if duplicate {
             if let Some(mut node) = self.weave.get_node(id).cloned() {
                 let from = id_generator();
