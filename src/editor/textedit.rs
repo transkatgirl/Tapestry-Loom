@@ -230,7 +230,7 @@ impl TextEditorView {
                                 &self.snippets.borrow(),
                                 top_left,
                                 &textedit.galley,
-                                |snippet, bounds, mut start, mut end| {
+                                |snippet, bounds, mut start| {
                                     ui.painter().rect_stroke(
                                         bounds,
                                         0.0,
@@ -239,19 +239,11 @@ impl TextEditorView {
                                     );
 
                                     start.max.x += 1.0;
-                                    end.min.x += 1.0;
-                                    end.max.x += 2.0;
 
                                     ui.painter().rect_stroke(
                                         start,
                                         0.0,
                                         (1.0, eframe::egui::Color32::GREEN),
-                                        eframe::egui::StrokeKind::Inside,
-                                    );
-                                    ui.painter().rect_stroke(
-                                        end,
-                                        0.0,
-                                        (1.0, eframe::egui::Color32::RED),
                                         eframe::egui::StrokeKind::Inside,
                                     );
                                 },
@@ -566,7 +558,7 @@ fn absolute_snippet_positions(
     snippets: &[Snippet],
     top_left: Pos2,
     galley: &Galley,
-    mut callback: impl FnMut(&Snippet, Rect, Rect, Rect),
+    mut callback: impl FnMut(&Snippet, Rect, Rect),
 ) {
     if snippets.is_empty() {
         return;
@@ -613,13 +605,6 @@ fn absolute_snippet_positions(
                         max: Pos2 {
                             x: start_pos.x,
                             y: start_pos.y + start_height,
-                        },
-                    },
-                    Rect {
-                        min: char_start_pos,
-                        max: Pos2 {
-                            x: pos_x,
-                            y: char_end_pos.y,
                         },
                     },
                 );
