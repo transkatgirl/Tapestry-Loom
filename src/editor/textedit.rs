@@ -8,8 +8,8 @@ use std::{
 
 use eframe::{
     egui::{
-        Align, Color32, Frame, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit,
-        TextFormat, TextStyle, Tooltip, Ui, Vec2,
+        Color32, Frame, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit, TextFormat,
+        TextStyle, Tooltip, Ui, Vec2,
         text::{CCursor, CCursorRange, LayoutJob, LayoutSection, TextWrapping},
     },
     epaint::{MarginF32, Vertex, WHITE_UV},
@@ -231,21 +231,21 @@ impl TextEditorView {
                                 top_left,
                                 &textedit.galley,
                                 |snippet, bounds, mut start| {
-                                    /*ui.painter().rect_stroke(
+                                    ui.painter().rect_stroke(
                                         bounds,
                                         0.0,
                                         (1.0, eframe::egui::Color32::WHITE),
                                         eframe::egui::StrokeKind::Inside,
-                                    );*/
+                                    );
 
-                                    start.max.x += 1.0;
+                                    /*start.max.x += 1.0;
 
                                     ui.painter().rect_stroke(
                                         start,
                                         0.0,
                                         (1.0, eframe::egui::Color32::GREEN),
                                         eframe::egui::StrokeKind::Inside,
-                                    );
+                                    );*/
                                 },
                             );*/
                             self.last_text_edit_rect = textedit.response.rect;
@@ -566,7 +566,6 @@ fn absolute_snippet_positions(
         return;
     }
 
-    let mut offset = 0;
     let mut snippet_index = 0;
     let mut snippet_offset = snippets[0].0;
 
@@ -582,8 +581,10 @@ fn absolute_snippet_positions(
     let mut min_x = top_left.x;
     let mut max_x = top_left.x;
 
-    let mut increment_callback =
-        |offset: usize, char_start_pos: Pos2, char_end_pos: Pos2| -> bool {
+    absolute_galley_character_positions(
+        top_left,
+        galley,
+        |offset, char_start_pos, char_end_pos| {
             min_x = min_x.min(char_start_pos.x);
             let pos_x = if snippet_offset > offset {
                 char_end_pos.x
@@ -628,9 +629,20 @@ fn absolute_snippet_positions(
             }
 
             snippet_index >= snippets.len()
-        };
+        },
+    );
+}
 
-    let mut should_break = increment_callback(
+fn absolute_galley_character_positions(
+    top_left: Pos2,
+    galley: &Galley,
+    mut callback: impl FnMut(usize, Pos2, Pos2) -> bool,
+) {
+    let mut offset = 0;
+
+    let first_row_rect = galley.rows.first().map(|row| row.rect());
+
+    let mut should_break = callback(
         0,
         first_row_rect
             .map(|row_rect| Pos2 {
@@ -678,7 +690,7 @@ fn absolute_snippet_positions(
                 y: row_start_pos.y + char_rect.max.y,
             };
 
-            should_break = increment_callback(offset, char_start_pos, char_end_pos);
+            should_break = callback(offset, char_start_pos, char_end_pos);
 
             offset += char_len;
         }
@@ -692,7 +704,7 @@ fn absolute_snippet_positions(
                 row_end_pos,
             );
 
-            should_break = increment_callback(offset, char_start_pos, char_end_pos);
+            should_break = callback(offset, char_start_pos, char_end_pos);
 
             offset += 1;
         }
@@ -719,11 +731,10 @@ fn absolute_snippet_positions(
             },
         );
 
-        increment_callback(offset, char_start_pos, char_end_pos);
+        callback(offset, char_start_pos, char_end_pos);
     }
 }
 
-#[allow(clippy::collapsible_if)]
 fn calculate_boundaries_and_update_scroll(
     ui: &mut Ui,
     snippets: &[Snippet],
