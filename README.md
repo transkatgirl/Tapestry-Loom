@@ -295,15 +295,9 @@ Goal: Completion before June 1st, 2026
 
 ### Milestone 9
 
-- [ ] Implement token healing
-- [ ] Implement support for instruct templating, similar to [mikupad](https://github.com/lmg-anon/mikupad)
-- [ ] Do testing with using llamafile for easier onboarding?
+- [ ] Refactor migration-assistant to natively use v1 format
 - [ ] Create video-based documentation
 - [ ] Create a website for Tapestry Loom's downloads and documentation
-
-### Milestone 10
-
-- [ ] Refactor migration-assistant to natively use v1 format
 - [ ] Add support for more weave migrations
 	- [ ] improve [loom](https://github.com/socketteer/loom) migration
 	- [ ] bonsai (using [damask](https://github.com/tel-0s/damask))
@@ -313,6 +307,9 @@ Goal: Completion before June 1st, 2026
 
 ### Post-v1 plans
 
+- [ ] Token healing
+- [ ] Instruct templating, similar to [mikupad](https://github.com/lmg-anon/mikupad)
+- [ ] Do testing with using llamafile for easier onboarding?
 - [ ] Prefix-based deduplication
 - [ ] Improve graph/canvas layout algorithm
 - [ ] Improve file manager
