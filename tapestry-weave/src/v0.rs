@@ -126,14 +126,16 @@ impl InnerNodeContent {
                     let mut left_token = right[0].0.clone();
                     let right_token = left_token.split_off(at - content_index);
 
+                    debug_assert!(!right_token.is_empty() || left_token.is_empty());
+
                     if !left_token.is_empty() {
                         left_token.shrink_to_fit();
-                        left.push((left_token, right[0].1.clone()));
+                        let mut left_metadata = right[0].1.clone();
+                        left_metadata.shift_remove("token_id");
+                        left.push((left_token, left_metadata));
+                        right[0].1.shift_remove("token_id");
                     }
                     right[0].0 = right_token;
-
-                    left.last_mut().unwrap().1.shift_remove("token_id");
-                    right[0].1.shift_remove("token_id");
 
                     DiscreteContentResult::Two((Self::Tokens(left), Self::Tokens(right)))
                 } else {

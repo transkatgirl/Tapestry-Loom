@@ -163,6 +163,7 @@ pub struct InnerNodeToken {
     pub bytes: Vec<u8>,
     pub logprob: f32,
     pub id: Option<u64>,
+    pub entropy: Option<f32>,
     pub metadata: MetadataMap,
     pub counterfactual: Vec<CounterfactualToken>,
     pub original: Option<Vec<u8>>,
@@ -209,13 +210,13 @@ impl CounterfactualToken {
     }
 }
 
-/*impl CounterfactualToken {
+impl CounterfactualToken {
     pub fn calculate_entropy<'a>(tokens: impl Iterator<Item = &'a CounterfactualToken>) -> f64 {
         -tokens
             .map(|token| (token.logprob as f64).exp() * (token.logprob as f64))
             .sum::<f64>()
     }
-}*/
+}
 
 const EMPTY_VEC_REF: &Vec<u8> = &Vec::new();
 
@@ -260,22 +261,27 @@ impl InnerNodeContent {
                     let mut left_token = right[0].bytes.clone();
                     let right_token = left_token.split_off(at - content_index);
 
-                    if right[0].original.is_none() {
-                        right[0].original = Some(right[0].bytes.clone());
-                    }
+                    debug_assert!(!right_token.is_empty() || left_token.is_empty());
 
                     if !left_token.is_empty() {
+                        if right[0].original.is_none() {
+                            right[0].original = Some(right[0].bytes.clone());
+                        }
+
                         left_token.shrink_to_fit();
                         left.push(InnerNodeToken {
                             bytes: left_token,
                             id: None,
+                            entropy: None,
                             logprob: right[0].logprob,
                             metadata: right[0].metadata.clone(),
-                            counterfactual: right[0].counterfactual.clone(),
+                            counterfactual: Vec::new(),
                             original: right[0].original.clone(),
                         });
+                        right[0].id = None;
+                        right[0].entropy = None;
+                        right[0].counterfactual = Vec::new();
                     }
-                    right[0].id = None;
                     right[0].bytes = right_token;
 
                     DiscreteContentResult::Two((Self::Tokens(left), Self::Tokens(right)))
