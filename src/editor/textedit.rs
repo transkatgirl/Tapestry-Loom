@@ -8,8 +8,8 @@ use std::{
 
 use eframe::{
     egui::{
-        Color32, Frame, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit, TextFormat,
-        TextStyle, Tooltip, Ui, Vec2,
+        Align, Color32, Frame, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit,
+        TextFormat, TextStyle, Tooltip, Ui, Vec2,
         text::{CCursor, CCursorRange, LayoutJob, LayoutSection, TextWrapping},
     },
     epaint::{MarginF32, Vertex, WHITE_UV},
@@ -124,7 +124,7 @@ impl TextEditorView {
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
     ) {
-        let available_height = ui.available_height();
+        //let available_height = ui.available_height();
 
         if self.text.is_empty() {
             self.update_contents(weave, settings, ui.visuals().widgets.inactive.text_color());
@@ -226,7 +226,7 @@ impl TextEditorView {
                                 } else {
                                     None
                                 },
-                                available_height,
+                                //available_height,
                                 &mut self.rects,
                             );
                             /*absolute_snippet_positions(
@@ -733,7 +733,7 @@ fn calculate_boundaries_and_update_scroll(
     top_left: Pos2,
     galley: &Galley,
     changed: Option<Ulid>,
-    max_height: f32,
+    //max_height: f32,
     output: &mut Vec<(Rect, Color32)>,
 ) {
     if snippets.len() < 2 {
@@ -742,7 +742,7 @@ fn calculate_boundaries_and_update_scroll(
 
     let mut last_node = None;
     let mut scroll_to = None;
-    let mut scroll_to_boundary = false;
+    //let mut scroll_to_boundary = false;
 
     let boundary_color = ui.style().visuals.widgets.inactive.bg_fill;
     //let boundary_color_strong = ui.style().visuals.widgets.inactive.fg_stroke.color;
@@ -767,11 +767,13 @@ fn calculate_boundaries_and_update_scroll(
                 ));
 
                 if (last_node.is_some() && changed == last_node) || changed == Some(snippet.1) {
-                    (scroll_to, scroll_to_boundary) = if bounds.height() > max_height {
+                    /*(scroll_to, scroll_to_boundary) = if bounds.height() > max_height {
                         (Some(boundary), true)
                     } else {
                         (Some(bounds), false)
-                    };
+                    };*/
+
+                    scroll_to = Some(bounds);
                 }
 
                 last_node = Some(snippet.1);
@@ -779,23 +781,23 @@ fn calculate_boundaries_and_update_scroll(
                 && changed == last_node
                 && let Some(scroll_to) = &mut scroll_to
             {
-                if scroll_to_boundary {
+                /*if scroll_to_boundary {
                     *scroll_to = boundary;
-                } else {
-                    scroll_to.extend_with(bounds.min);
-                    scroll_to.extend_with(bounds.max);
+                } else {*/
+                scroll_to.extend_with(bounds.min);
+                scroll_to.extend_with(bounds.max);
 
-                    if scroll_to.height() > max_height {
+                /*if scroll_to.height() > max_height {
                         *scroll_to = boundary;
                         scroll_to_boundary = true;
                     }
-                }
+                }*/
             }
         },
     );
 
     if let Some(rect) = scroll_to {
-        ui.scroll_to_rect(rect, None);
+        ui.scroll_to_rect(rect, Some(Align::Max));
     }
 }
 
