@@ -124,6 +124,8 @@ impl TextEditorView {
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
     ) {
+        let available_height = ui.available_height();
+
         if self.text.is_empty() {
             self.update_contents(weave, settings, ui.visuals().widgets.inactive.text_color());
         }
@@ -224,6 +226,7 @@ impl TextEditorView {
                                 } else {
                                     None
                                 },
+                                available_height,
                                 &mut self.rects,
                             );
                             /*absolute_snippet_positions(
@@ -231,12 +234,12 @@ impl TextEditorView {
                                 top_left,
                                 &textedit.galley,
                                 |snippet, bounds, mut start| {
-                                    ui.painter().rect_stroke(
+                                    /*ui.painter().rect_stroke(
                                         bounds,
                                         0.0,
                                         (1.0, eframe::egui::Color32::WHITE),
                                         eframe::egui::StrokeKind::Inside,
-                                    );
+                                    );*/
 
                                     start.max.x += 1.0;
 
@@ -554,6 +557,8 @@ fn calculate_highlighting(
     sections
 }
 
+// TODO: Add bounding boxes per row, with each row's boxes being added in reverse order
+
 fn absolute_snippet_positions(
     snippets: &[Snippet],
     top_left: Pos2,
@@ -728,139 +733,66 @@ fn calculate_boundaries_and_update_scroll(
     top_left: Pos2,
     galley: &Galley,
     changed: Option<Ulid>,
+    max_height: f32,
     output: &mut Vec<(Rect, Color32)>,
 ) {
     if snippets.len() < 2 {
         return;
     }
 
-    let mut offset = 0;
-    let mut snippet_index = 0;
-    let mut snippet_offset = 0;
+    let mut last_node = None;
+    let mut scroll_to = None;
+    let mut scroll_to_boundary = false;
 
     let boundary_color = ui.style().visuals.widgets.inactive.bg_fill;
-    let boundary_color_strong = ui.style().visuals.widgets.inactive.fg_stroke.color;
+    //let boundary_color_strong = ui.style().visuals.widgets.inactive.fg_stroke.color;
     let boundary_width = ui.style().visuals.widgets.hovered.fg_stroke.width;
 
-    let mut draw_row_boundary = |row_pos: Pos2, row_size: Vec2, x: f32, is_token: bool| {
-        let x = row_pos.x + x;
+    absolute_snippet_positions(
+        snippets,
+        top_left,
+        galley,
+        |snippet, bounds, mut boundary| {
+            boundary.min.x -= boundary_width / 2.0;
+            boundary.max.x += boundary_width / 2.0;
 
-        let rect = Rect {
-            min: Pos2 {
-                x: (x - (boundary_width / 2.0)),
-                y: row_pos.y,
-            },
-            max: Pos2 {
-                x: (x + (boundary_width / 2.0)),
-                y: row_pos.y + row_size.y,
-            },
-        };
+            if last_node != Some(snippet.1) {
+                output.push((
+                    boundary,
+                    /*if is_token {
+                        boundary_color_strong
+                    } else {*/
+                    boundary_color,
+                    //},
+                ));
 
-        output.push((
-            rect,
-            if is_token {
-                boundary_color_strong
-            } else {
-                boundary_color
-            },
-        ))
-    };
-
-    let mut scroll_to: Option<Rect> = None;
-    let mut scroll_boundary_into_view = |row_pos: Pos2, row_size: Vec2, x: f32| {
-        let x = row_pos.x + x;
-
-        match &mut scroll_to {
-            Some(scroll_to) => {
-                scroll_to.extend_with_y(row_pos.y + row_size.y);
-            }
-            None => {
-                scroll_to = Some(Rect {
-                    min: Pos2 { x, y: row_pos.y },
-                    max: Pos2 {
-                        x,
-                        y: row_pos.y + row_size.y,
-                    },
-                });
-            }
-        }
-    };
-
-    let mut last_node = None;
-
-    for row in &galley.rows {
-        let row_position = Pos2 {
-            x: row.pos.x + top_left.x,
-            y: row.pos.y + top_left.y,
-        };
-
-        if snippet_index > snippets.len() {
-            if last_node.is_some() && changed == last_node {
-                scroll_boundary_into_view(row_position, row.size, 0.0);
-            }
-            break;
-        }
-
-        for char in row.glyphs.iter() {
-            let char_len = char.chr.len_utf8();
-
-            while offset >= snippet_offset && snippet_index < snippets.len() {
-                if last_node != Some(snippets[snippet_index].1) {
-                    if offset > 0 {
-                        draw_row_boundary(row_position, row.size, char.pos.x, false);
-                    }
-                    if (last_node.is_some() && changed == last_node)
-                        || changed == Some(snippets[snippet_index].1)
-                    {
-                        scroll_boundary_into_view(row_position, row.size, char.pos.x);
-                    }
-                    last_node = Some(snippets[snippet_index].1);
-                } /*else if hover == Some(snippets[snippet_index].1) {
-                draw_row_boundary(row_position, row.size, char.pos.x, true);
-                }*/
-
-                if changed == last_node {
-                    scroll_boundary_into_view(row_position, row.size, char.pos.x);
+                if (last_node.is_some() && changed == last_node) || changed == Some(snippet.1) {
+                    (scroll_to, scroll_to_boundary) = if bounds.height() > max_height {
+                        (Some(boundary), true)
+                    } else {
+                        (Some(bounds), false)
+                    };
                 }
 
-                snippet_offset += snippets[snippet_index].0;
-                snippet_index += 1;
-            }
+                last_node = Some(snippet.1);
+            } else if last_node.is_some()
+                && changed == last_node
+                && let Some(scroll_to) = &mut scroll_to
+            {
+                if scroll_to_boundary {
+                    *scroll_to = boundary;
+                } else {
+                    scroll_to.extend_with(bounds.min);
+                    scroll_to.extend_with(bounds.max);
 
-            offset += char_len;
-        }
-
-        if row.ends_with_newline {
-            while offset >= snippet_offset && snippet_index < snippets.len() {
-                if last_node != Some(snippets[snippet_index].1) {
-                    if offset > 0 {
-                        draw_row_boundary(row_position, row.size, row.size.x, false);
+                    if scroll_to.height() > max_height {
+                        *scroll_to = boundary;
+                        scroll_to_boundary = true;
                     }
-                    if (last_node.is_some() && changed == last_node)
-                        || changed == Some(snippets[snippet_index].1)
-                    {
-                        scroll_boundary_into_view(row_position, row.size, row.size.x);
-                    }
-                    last_node = Some(snippets[snippet_index].1);
-                } /*else if hover == Some(snippets[snippet_index].1) {
-                draw_row_boundary(row_position, row.size, row.size.x, true);
-                }*/
-
-                if changed == last_node {
-                    scroll_boundary_into_view(row_position, row.size, row.size.x);
                 }
-
-                snippet_offset += snippets[snippet_index].0;
-                snippet_index += 1;
             }
-
-            offset += 1;
-        }
-
-        if last_node.is_some() && changed == last_node {
-            scroll_boundary_into_view(row_position, row.size, row.size.x);
-        }
-    }
+        },
+    );
 
     if let Some(rect) = scroll_to {
         ui.scroll_to_rect(rect, None);
