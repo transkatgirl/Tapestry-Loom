@@ -191,7 +191,7 @@ Goal: Completion before Feb 1st, 2026
 - [ ] Add "autoloom" setting where clicking a node generates children, similar to [inkstream](https://inkstream.ai)
 - [ ] Implement additional sorting methods
 	- [ ] Average token probability
-	- [ ] Culmulative node probability
+	- [ ] Cumulative node probability
 	- [ ] Alphabetical (content)
 - [ ] UI improvements
 	- [ ] Automatically calculate when to display "show more" based on available screen space

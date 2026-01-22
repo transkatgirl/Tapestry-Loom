@@ -134,6 +134,13 @@ impl InnerNodeContent {
             None
         }
     }
+    pub fn calculate_cumulative_logprob(&self) -> Option<f32> {
+        if let Self::Tokens(tokens) = self {
+            Some(tokens.iter().map(|token| token.logprob as f64).sum::<f64>() as f32)
+        } else {
+            None
+        }
+    }
     pub fn calculate_confidence(&self) -> Option<(f32, usize, usize)> {
         if let Self::Tokens(tokens) = self {
             let mut confidence_sum = 0.0;
