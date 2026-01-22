@@ -26,8 +26,9 @@ use tapestry_weave::{
 
 use crate::{
     editor::shared::{
-        NodeIndex, SharedState, change_color_opacity, get_node_color, render_node_metadata_tooltip,
-        render_node_text_or_empty, render_token_tooltip, weave::WeaveWrapper,
+        INSTANT_SCROLL, NodeIndex, SharedState, change_color_opacity, get_node_color,
+        render_node_metadata_tooltip, render_node_text_or_empty, render_token_tooltip,
+        weave::WeaveWrapper,
     },
     listing_margin,
     settings::{Settings, shortcuts::Shortcuts},
@@ -82,6 +83,10 @@ impl ListView {
             weave.get_roots().collect()
         };
 
+        let contains_cursor = ui
+            .clip_rect()
+            .contains(ui.ctx().pointer_hover_pos().unwrap_or_default());
+
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
@@ -91,7 +96,15 @@ impl ListView {
                     .show(ui, |ui| {
                         if settings.interface.auto_scroll {
                             for (index, item) in items.into_iter().enumerate() {
-                                Self::render_item(weave, settings, state, ui, &item, index == 0);
+                                Self::render_item(
+                                    weave,
+                                    settings,
+                                    state,
+                                    ui,
+                                    &item,
+                                    index == 0,
+                                    contains_cursor,
+                                );
                             }
                         } else {
                             self.list.ui_custom_layout(ui, items.len(), |ui, index| {
@@ -102,6 +115,7 @@ impl ListView {
                                     ui,
                                     &items[index],
                                     index == 0,
+                                    contains_cursor,
                                 );
                                 1
                             });
@@ -116,6 +130,7 @@ impl ListView {
         ui: &mut Ui,
         item: &Ulid,
         is_start: bool,
+        contains_cursor: bool,
     ) {
         if let Some(node) = weave.get_node(item).cloned() {
             if !is_start {
@@ -136,6 +151,7 @@ impl ListView {
                         render_node_context_menu(ui, settings, state, weave, node, false);
                     },
                     true,
+                    contains_cursor,
                 );
             });
         }
@@ -187,6 +203,10 @@ impl BookmarkListView {
             self.list.reset();
         }
 
+        let contains_cursor = ui
+            .clip_rect()
+            .contains(ui.ctx().pointer_hover_pos().unwrap_or_default());
+
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
@@ -203,6 +223,7 @@ impl BookmarkListView {
                                     ui,
                                     &item,
                                     index == 0,
+                                    contains_cursor,
                                 );
                             }
                         } else {
@@ -214,6 +235,7 @@ impl BookmarkListView {
                                     ui,
                                     &items[index],
                                     index == 0,
+                                    contains_cursor,
                                 );
                                 1
                             });
@@ -228,6 +250,7 @@ impl BookmarkListView {
         ui: &mut Ui,
         item: &Ulid,
         is_start: bool,
+        contains_cursor: bool,
     ) {
         if let Some(node) = weave.get_node(item).cloned() {
             if !is_start {
@@ -256,6 +279,7 @@ impl BookmarkListView {
                         render_node_context_menu(ui, settings, state, weave, node, false);
                     },
                     false,
+                    contains_cursor,
                 );
             });
         }
@@ -395,6 +419,10 @@ impl TreeListView {
 
         self.last_rendered_nodes.clear();
 
+        let contains_cursor = ui
+            .clip_rect()
+            .contains(ui.ctx().pointer_hover_pos().unwrap_or_default());
+
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
@@ -428,6 +456,7 @@ impl TreeListView {
                                 &mut self.needs_list_refresh,
                                 true,
                                 true,
+                                contains_cursor,
                             );
                         }
                     });
@@ -450,6 +479,7 @@ fn render_node_tree(
     needs_list_refresh: &mut bool,
     is_display_root: bool,
     show_separators: bool,
+    contains_cursor: bool,
 ) {
     let indent_compensation = ui.spacing().icon_width + ui.spacing().icon_spacing;
 
@@ -472,6 +502,7 @@ fn render_node_tree(
                 is_display_root,
                 show_separators && !(is_display_root && index == 0),
                 show_separators,
+                contains_cursor,
             );
         }
     } else if items.len() > 0 {
@@ -508,6 +539,7 @@ fn render_node_tree(
                     is_display_root,
                     show_separators && !(is_display_root && index == 0),
                     show_separators,
+                    contains_cursor,
                 );
                 1
             });
@@ -530,6 +562,7 @@ fn render_node_tree_row(
     is_display_root: bool,
     show_separator: bool,
     show_child_separators: bool,
+    contains_cursor: bool,
 ) {
     let needs_list_refresh = RefCell::new(needs_list_refresh);
 
@@ -570,6 +603,7 @@ fn render_node_tree_row(
                         render_node_context_menu(ui, settings, state, weave, node, true);
                     },
                     true,
+                    contains_cursor,
                 );
             });
         };
@@ -598,6 +632,7 @@ fn render_node_tree_row(
                             &mut needs_list_refresh.borrow_mut(),
                             false,
                             show_child_separators,
+                            contains_cursor,
                         );
                     } else {
                         if show_separator {
@@ -813,8 +848,6 @@ fn render_omitted_node_label(
     hover_node: Ulid,
     label: impl Into<String>,
 ) {
-    let has_changed_cursor = state.has_cursor_node_changed;
-
     let response = ui
         .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
             let mut frame = Frame::new();
@@ -835,7 +868,7 @@ fn render_omitted_node_label(
                 let label_button_response =
                     ui.add(Button::new(label).frame(false).fill(Color32::TRANSPARENT));
 
-                if label_button_response.contains_pointer() && !has_changed_cursor {
+                if label_button_response.contains_pointer() {
                     state.set_hovered_node(NodeIndex::Node(hover_node));
                 }
 
@@ -850,7 +883,7 @@ fn render_omitted_node_label(
         })
         .response;
 
-    if response.contains_pointer() && !has_changed_cursor {
+    if response.contains_pointer() {
         state.set_hovered_node(NodeIndex::Node(hover_node));
     }
 
@@ -968,9 +1001,8 @@ fn render_horizontal_node_label(
         &TapestryNode,
     ),
     show_node_info: bool,
+    contains_pointer: bool,
 ) {
-    let has_changed_cursor = state.has_cursor_node_changed;
-
     let mut mouse_hovered = false;
 
     let response = ui
@@ -1035,15 +1067,16 @@ fn render_horizontal_node_label(
                     render_node_metadata_tooltip(ui, node)
                 });
 
-                if settings.interface.auto_scroll && is_changed {
-                    label_button_response.scroll_to_me(None);
+                if settings.interface.auto_scroll && is_changed && (is_cursor || !contains_pointer)
+                {
+                    label_button_response.scroll_to_me_animation(None, INSTANT_SCROLL);
                 }
 
                 label_button_response.context_menu(|ui| {
                     context_menu(ui, settings, state, weave, node);
                 });
 
-                if label_button_response.contains_pointer() && !has_changed_cursor {
+                if label_button_response.contains_pointer() {
                     mouse_hovered = true;
                     state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
                 }
@@ -1064,7 +1097,7 @@ fn render_horizontal_node_label(
                     },
                 };
 
-                if ui.rect_contains_pointer(hover_rect) && !has_changed_cursor {
+                if ui.rect_contains_pointer(hover_rect) {
                     state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
                     mouse_hovered = true;
                 }
@@ -1109,7 +1142,7 @@ fn render_horizontal_node_label(
         context_menu(ui, settings, state, weave, node);
     });
 
-    if response.contains_pointer() && !has_changed_cursor {
+    if response.contains_pointer() {
         state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
     }
 

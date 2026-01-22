@@ -5,7 +5,8 @@ use std::{
 
 use chrono::{DateTime, offset};
 use eframe::egui::{
-    Color32, Context, Rgba, RichText, TextFormat, TextStyle, Ui,
+    Color32, Context, Rangef, Rgba, RichText, TextFormat, TextStyle, Ui,
+    style::ScrollAnimation,
     text::{LayoutJob, LayoutSection},
 };
 use egui_notify::Toasts;
@@ -40,6 +41,13 @@ use crate::{
 pub(super) mod layout;
 pub(super) mod weave;
 
+pub const INSTANT_SCROLL: ScrollAnimation = ScrollAnimation {
+    points_per_second: f32::MAX,
+    duration: Rangef {
+        min: 0.0,
+        max: f32::MAX,
+    },
+};
 pub struct SharedState {
     pub identifier: Ulid,
     pub runtime: Arc<Runtime>,
