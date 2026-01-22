@@ -478,8 +478,10 @@ pub struct TapestryWeave {
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct TapestryWeaveMetadata {
+    pub title: Option<String>,
+    pub description: Option<String>,
     pub created: Timestamp,
-    pub converted_from: Option<(String, Timestamp)>, // TODO: Make into an enum
+    pub converted_from: Option<(String, Timestamp)>,
     pub metadata: MetadataMap,
 }
 
