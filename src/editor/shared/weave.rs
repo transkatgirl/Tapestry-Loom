@@ -13,7 +13,7 @@ use tapestry_weave::{
         indexmap::{IndexMap, IndexSet},
         rkyv::rancor,
     },
-    v0::{InnerNodeContent, MetadataMap, TapestryNode, TapestryWeave},
+    v0::{MetadataMap, TapestryNode, TapestryWeave},
 };
 
 pub struct WeaveWrapper {
