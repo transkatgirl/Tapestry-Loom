@@ -1,6 +1,8 @@
 //! Experimental & untested
 
-// TODO: Longest common prefix deduplication, token ID based deduplication
+// TODO: Longest common prefix deduplication
+// TODO: Token ID based deduplication
+// TODO: Request parameter based deduplication (especially for single-token nodes)
 
 use std::{borrow::Cow, cmp::Ordering, collections::HashSet, hash::BuildHasherDefault};
 
@@ -115,6 +117,23 @@ pub enum InnerNodeContent {
 }
 
 impl InnerNodeContent {
+    pub fn token_count(&self) -> Option<usize> {
+        if let Self::Tokens(tokens) = self {
+            Some(tokens.len())
+        } else {
+            None
+        }
+    }
+    pub fn calculate_average_logprob(&self) -> Option<f32> {
+        if let Self::Tokens(tokens) = self {
+            Some(
+                (tokens.iter().map(|token| token.logprob as f64).sum::<f64>() / tokens.len() as f64)
+                    as f32,
+            )
+        } else {
+            None
+        }
+    }
     pub fn calculate_confidence(&self) -> Option<(f32, usize, usize)> {
         if let Self::Tokens(tokens) = self {
             let mut confidence_sum = 0.0;

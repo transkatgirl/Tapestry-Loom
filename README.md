@@ -189,12 +189,15 @@ Goal: Completion before Feb 1st, 2026
 	- [ ] Support read-only weave editors using zero-copy deserialization and file memory mapping
 - [ ] Show hovered child of active node in editor, similar to [exoloom](https://exoloom.io)
 - [ ] Add "autoloom" setting where clicking a node generates children, similar to [inkstream](https://inkstream.ai)
+- [ ] Implement additional sorting methods
+	- [ ] Average token probability
+	- [ ] Culmulative node probability
+	- [ ] Alphabetical (content)
 - [ ] UI improvements
 	- [ ] Automatically calculate when to display "show more" based on available screen space
 	- [ ] Add content copying to node context menu
 	- [ ] Add setting to swap shift-click and normal click behavior
 	- [ ] Add sorting submenu to node context menu
-	- [ ] Add alphabetical sorting
 	- [ ] Add right click handling to node list background
 
 ### Milestone 3
