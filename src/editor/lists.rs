@@ -813,6 +813,8 @@ fn render_omitted_node_label(
     hover_node: Ulid,
     label: impl Into<String>,
 ) {
+    let has_changed_cursor = state.has_cursor_node_changed;
+
     let response = ui
         .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
             let mut frame = Frame::new();
@@ -833,7 +835,7 @@ fn render_omitted_node_label(
                 let label_button_response =
                     ui.add(Button::new(label).frame(false).fill(Color32::TRANSPARENT));
 
-                if label_button_response.contains_pointer() {
+                if label_button_response.contains_pointer() && !has_changed_cursor {
                     state.set_hovered_node(NodeIndex::Node(hover_node));
                 }
 
@@ -848,7 +850,7 @@ fn render_omitted_node_label(
         })
         .response;
 
-    if response.contains_pointer() {
+    if response.contains_pointer() && !has_changed_cursor {
         state.set_hovered_node(NodeIndex::Node(hover_node));
     }
 
@@ -967,6 +969,8 @@ fn render_horizontal_node_label(
     ),
     show_node_info: bool,
 ) {
+    let has_changed_cursor = state.has_cursor_node_changed;
+
     let mut mouse_hovered = false;
 
     let response = ui
@@ -1039,7 +1043,7 @@ fn render_horizontal_node_label(
                     context_menu(ui, settings, state, weave, node);
                 });
 
-                if label_button_response.contains_pointer() {
+                if label_button_response.contains_pointer() && !has_changed_cursor {
                     mouse_hovered = true;
                     state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
                 }
@@ -1060,7 +1064,7 @@ fn render_horizontal_node_label(
                     },
                 };
 
-                if ui.rect_contains_pointer(hover_rect) {
+                if ui.rect_contains_pointer(hover_rect) && !has_changed_cursor {
                     state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
                     mouse_hovered = true;
                 }
@@ -1105,7 +1109,7 @@ fn render_horizontal_node_label(
         context_menu(ui, settings, state, weave, node);
     });
 
-    if response.contains_pointer() {
+    if response.contains_pointer() && !has_changed_cursor {
         state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
     }
 
