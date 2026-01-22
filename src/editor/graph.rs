@@ -167,6 +167,10 @@ impl GraphView {
     ) {
         let mut fitting_node = None;
 
+        let has_pointer = ui
+            .clip_rect()
+            .contains(ui.ctx().pointer_hover_pos().unwrap_or_default());
+
         if self.arranged.width == 0.0 && self.arranged.height == 0.0 {
             self.layout.load_weave(
                 weave,
@@ -180,7 +184,9 @@ impl GraphView {
             fitting_node = state.get_cursor_node().into_node();
         } else if self.items.is_empty() {
             self.update_plot_cache(weave, ui, settings);
-            fitting_node = state.get_cursor_node().into_node();
+            if !has_pointer {
+                fitting_node = state.get_cursor_node().into_node();
+            }
         }
 
         let mut pointer_node = None;
