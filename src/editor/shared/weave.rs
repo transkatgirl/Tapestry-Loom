@@ -13,7 +13,7 @@ use tapestry_weave::{
         indexmap::{IndexMap, IndexSet},
         rkyv::rancor,
     },
-    v0::{MetadataMap, TapestryNode, TapestryWeave},
+    v0::{InnerNodeContent, MetadataMap, TapestryNode, TapestryWeave},
 };
 
 pub struct WeaveWrapper {
@@ -227,7 +227,7 @@ impl WeaveWrapper {
             })
             .is_some()
     }
-    /*pub fn split_out_token(
+    pub fn split_out_token(
         &mut self,
         id: &Ulid,
         index: usize,
@@ -283,7 +283,7 @@ impl WeaveWrapper {
         } else {
             None
         }
-    }*/
+    }
     pub fn remove_node(&mut self, id: &Ulid) -> bool {
         self.changed = true;
         self.layout_changed = true;
