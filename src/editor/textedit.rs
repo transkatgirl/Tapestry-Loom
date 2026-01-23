@@ -226,7 +226,7 @@ impl TextEditorView {
                                 },
                                 &mut self.rects,
                             );
-                            /*absolute_snippet_positions(
+                            /*absolute_snippet_row_positions(
                                 &self.snippets.borrow(),
                                 top_left,
                                 &textedit.galley,
@@ -584,7 +584,7 @@ fn absolute_snippet_positions(
     absolute_galley_character_positions(
         top_left,
         galley,
-        |offset, char_start_pos, char_end_pos| {
+        |offset, _row, char_start_pos, char_end_pos| {
             min_x = min_x.min(char_start_pos.x);
             let pos_x = if snippet_offset > offset {
                 char_end_pos.x
@@ -633,16 +633,132 @@ fn absolute_snippet_positions(
     );
 }
 
+fn absolute_snippet_row_positions(
+    snippets: &[Snippet],
+    top_left: Pos2,
+    galley: &Galley,
+    mut callback: impl FnMut(&Snippet, Rect, Rect),
+) {
+    if snippets.is_empty() {
+        return;
+    }
+
+    let mut snippet_index = 0;
+    let mut snippet_offset = snippets[0].0;
+
+    let first_row_rect = galley.rows.first().map(|row| row.rect());
+
+    let mut start_pos = first_row_rect
+        .map(|row_rect| row_rect.min)
+        .unwrap_or(top_left);
+    let mut start_height = first_row_rect
+        .map(|row_rect| row_rect.max.y - row_rect.min.y)
+        .unwrap_or(0.0);
+    let mut min_y = top_left.y;
+    let mut max_y = top_left.y;
+    let mut min_x = top_left.x;
+    let mut max_x = top_left.x;
+    let mut last_row = 0;
+
+    absolute_galley_character_positions(
+        top_left,
+        galley,
+        |offset, row, char_start_pos, char_end_pos| {
+            if row > last_row {
+                callback(
+                    &snippets[snippet_index],
+                    Rect {
+                        min: Pos2 { x: min_x, y: min_y },
+                        max: Pos2 { x: max_x, y: max_y },
+                    },
+                    Rect {
+                        min: start_pos,
+                        max: Pos2 {
+                            x: start_pos.x,
+                            y: start_pos.y + start_height,
+                        },
+                    },
+                );
+            }
+
+            min_x = min_x.min(char_start_pos.x);
+            let pos_x = if snippet_offset > offset {
+                char_end_pos.x
+            } else {
+                char_start_pos.x
+            };
+            max_x = max_x.max(pos_x);
+            max_y = max_y.max(char_end_pos.y);
+
+            if row > last_row {
+                start_pos = char_start_pos;
+                start_height = char_end_pos.y - char_start_pos.y;
+                min_y = char_start_pos.y;
+                max_y = char_end_pos.y;
+                min_x = char_start_pos.x;
+                max_x = if snippets[snippet_index].0 > 0 {
+                    char_end_pos.x
+                } else {
+                    char_start_pos.x
+                };
+            }
+
+            while snippet_offset <= offset && snippet_index < snippets.len() {
+                if row <= last_row {
+                    callback(
+                        &snippets[snippet_index],
+                        Rect {
+                            min: Pos2 { x: min_x, y: min_y },
+                            max: Pos2 { x: max_x, y: max_y },
+                        },
+                        Rect {
+                            min: start_pos,
+                            max: Pos2 {
+                                x: start_pos.x,
+                                y: start_pos.y + start_height,
+                            },
+                        },
+                    );
+                }
+
+                if snippet_index < snippets.len() - 1 {
+                    snippet_index += 1;
+                    snippet_offset += snippets[snippet_index].0;
+                    start_pos = char_start_pos;
+                    start_height = char_end_pos.y - char_start_pos.y;
+                    min_y = char_start_pos.y;
+                    max_y = char_end_pos.y;
+                    min_x = char_start_pos.x;
+                    max_x = if snippets[snippet_index].0 > 0 {
+                        char_end_pos.x
+                    } else {
+                        char_start_pos.x
+                    };
+                } else {
+                    break;
+                }
+            }
+
+            if row > last_row {
+                last_row = row;
+            }
+
+            snippet_index >= snippets.len()
+        },
+    );
+}
+
 fn absolute_galley_character_positions(
     top_left: Pos2,
     galley: &Galley,
-    mut callback: impl FnMut(usize, Pos2, Pos2) -> bool,
+    mut callback: impl FnMut(usize, usize, Pos2, Pos2) -> bool,
 ) {
     let mut offset = 0;
 
     let first_row_rect = galley.rows.first().map(|row| row.rect());
 
     let mut should_break = callback(
+        0,
         0,
         first_row_rect
             .map(|row_rect| Pos2 {
@@ -658,7 +774,7 @@ fn absolute_galley_character_positions(
             .unwrap_or(top_left),
     );
 
-    for row in &galley.rows {
+    for (i, row) in galley.rows.iter().enumerate() {
         let row_rect = row.rect();
 
         let row_start_pos = Pos2 {
@@ -690,7 +806,7 @@ fn absolute_galley_character_positions(
                 y: row_start_pos.y + char_rect.max.y,
             };
 
-            should_break = callback(offset, char_start_pos, char_end_pos);
+            should_break = callback(offset, i, char_start_pos, char_end_pos);
 
             offset += char_len;
         }
@@ -704,7 +820,7 @@ fn absolute_galley_character_positions(
                 row_end_pos,
             );
 
-            should_break = callback(offset, char_start_pos, char_end_pos);
+            should_break = callback(offset, i, char_start_pos, char_end_pos);
 
             offset += 1;
         }
@@ -731,7 +847,7 @@ fn absolute_galley_character_positions(
             },
         );
 
-        callback(offset, char_start_pos, char_end_pos);
+        callback(offset, galley.rows.len() - 1, char_start_pos, char_end_pos);
     }
 }
 
