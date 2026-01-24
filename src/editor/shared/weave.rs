@@ -231,7 +231,9 @@ impl WeaveWrapper {
         &mut self,
         id: &Ulid,
         index: usize,
-    ) -> Option<(Ulid, Ulid, Option<Ulid>)> {
+    ) -> Option<(Ulid, Option<Ulid>, Option<Ulid>)> {
+        // TODO: Fix this!
+
         if let Some(node) = self.weave.get_node(id) {
             if let InnerNodeContent::Tokens(tokens) = &node.contents.content
                 && tokens.len() > index
@@ -254,28 +256,47 @@ impl WeaveWrapper {
                 self.changed = true;
                 self.layout_changed = true;
 
-                let middle_id = self
-                    .weave
-                    .split_node(id, split_index, |timestamp| {
-                        Ulid::from_datetime(
-                            SystemTime::UNIX_EPOCH + Duration::from_millis(timestamp),
-                        )
-                    })
-                    .unwrap();
-
-                if let Some(second_split_index) = second_split_index {
-                    let tail_id = self
+                if split_index > 0 {
+                    let middle_id = self
                         .weave
-                        .split_node(&middle_id, second_split_index, |timestamp| {
+                        .split_node(id, split_index, |timestamp| {
                             Ulid::from_datetime(
                                 SystemTime::UNIX_EPOCH + Duration::from_millis(timestamp),
                             )
                         })
                         .unwrap();
 
-                    Some((*id, middle_id, Some(tail_id)))
+                    if let Some(second_split_index) = second_split_index
+                        && second_split_index > 0
+                    {
+                        let tail_id = self
+                            .weave
+                            .split_node(&middle_id, second_split_index, |timestamp| {
+                                Ulid::from_datetime(
+                                    SystemTime::UNIX_EPOCH + Duration::from_millis(timestamp),
+                                )
+                            })
+                            .unwrap();
+
+                        Some((*id, Some(middle_id), Some(tail_id)))
+                    } else {
+                        Some((*id, Some(middle_id), None))
+                    }
+                } else if let Some(second_split_index) = second_split_index
+                    && second_split_index > 0
+                {
+                    let tail_id = self
+                        .weave
+                        .split_node(id, second_split_index, |timestamp| {
+                            Ulid::from_datetime(
+                                SystemTime::UNIX_EPOCH + Duration::from_millis(timestamp),
+                            )
+                        })
+                        .unwrap();
+
+                    Some((*id, None, Some(tail_id)))
                 } else {
-                    Some((*id, middle_id, None))
+                    Some((*id, None, None))
                 }
             } else {
                 None
