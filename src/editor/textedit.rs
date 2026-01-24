@@ -252,6 +252,15 @@ impl TextEditorView {
                                 }
 
                                 response.on_hover_ui(|ui| {
+                                    if let Some(within_index) = snippet.3 {
+                                        state.set_hovered_node(NodeIndex::WithinNode(
+                                            snippet.1,
+                                            within_index,
+                                        ));
+                                    } else {
+                                        state.set_hovered_node(NodeIndex::Node(snippet.1));
+                                    }
+
                                     render_tooltip(ui, weave, snippet.1, token_index);
                                 });
 
