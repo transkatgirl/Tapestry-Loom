@@ -15,7 +15,7 @@ use tapestry_weave::{ulid::Ulid, universal_weave::indexmap::IndexMap, v0::InnerN
 use crate::{
     editor::shared::{
         NodeIndex, SharedState, get_node_color, get_token_color, render_node_metadata_tooltip,
-        render_token_tooltip, weave::WeaveWrapper,
+        render_token_counterfactual_tooltip, render_token_tooltip, weave::WeaveWrapper,
     },
     settings::{Settings, shortcuts::Shortcuts},
 };
@@ -923,12 +923,16 @@ fn render_tooltip(ui: &mut Ui, weave: &WeaveWrapper, node: Ulid, index: usize) {
                 render_node_metadata_tooltip(ui, node);
             }
             InnerNodeContent::Tokens(tokens) => {
-                render_node_metadata_tooltip(ui, node);
-
                 if let Some((token, token_metadata)) = tokens.get(index) {
-                    ui.separator();
+                    if render_token_counterfactual_tooltip(ui, token_metadata) {
+                        ui.separator();
+                    }
+
                     render_token_tooltip(ui, token, token_metadata);
+                    ui.separator();
                 }
+
+                render_node_metadata_tooltip(ui, node);
             }
         }
     }

@@ -932,6 +932,45 @@ pub fn render_token_tooltip(ui: &mut Ui, token: &[u8], token_metadata: &Metadata
     render_token_metadata_tooltip(ui, token.len(), token_metadata);
 }*/
 
+pub fn render_token_counterfactual_tooltip(ui: &mut Ui, token_metadata: &MetadataMap) -> bool {
+    if let Some(value) = token_metadata.get("counterfactual")
+        && let Some(counterfactual) = deserialize_counterfactual_logprobs(value)
+    {
+        ScrollArea::horizontal().animated(false).show(ui, |ui| {
+            ui.horizontal(|ui| {
+                for (token, metadata) in counterfactual {
+                    if let Some(value) = metadata.get("probability")
+                        && let Ok(probability) = value.parse::<f32>()
+                    {
+                        let response = if let Ok(string) = str::from_utf8(&token) {
+                            ui.button(
+                                RichText::new(format!(
+                                    "{string:#?}\n({:.2}%)",
+                                    probability * 100.0
+                                ))
+                                .monospace(),
+                            )
+                        } else {
+                            ui.button(
+                                RichText::new(format!("{token:?}\n({:.2}%)", probability * 100.0))
+                                    .monospace(),
+                            )
+                        };
+
+                        if response.clicked() {
+                            //TODO
+                        }
+                    }
+                }
+            });
+        });
+
+        true
+    } else {
+        false
+    }
+}
+
 pub fn render_token_metadata_tooltip(ui: &mut Ui, token_len: usize, token_metadata: &MetadataMap) {
     for (key, value) in token_metadata {
         if key == "probability"
@@ -964,42 +1003,7 @@ pub fn render_token_metadata_tooltip(ui: &mut Ui, token_len: usize, token_metada
             {
                 ui.label(format!("token_id: {}", value));
             }
-        } else if key == "counterfactual" {
-            if let Some(counterfactual) = deserialize_counterfactual_logprobs(value) {
-                ui.label("counterfactual:");
-                ScrollArea::horizontal().animated(false).show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        for (token, metadata) in counterfactual {
-                            if let Some(value) = metadata.get("probability")
-                                && let Ok(probability) = value.parse::<f32>()
-                            {
-                                let response = if let Ok(string) = str::from_utf8(&token) {
-                                    ui.button(
-                                        RichText::new(format!(
-                                            "{string:#?}\n({:.2}%)",
-                                            probability * 100.0
-                                        ))
-                                        .monospace(),
-                                    )
-                                } else {
-                                    ui.button(
-                                        RichText::new(format!(
-                                            "{token:?}\n({:.2}%)",
-                                            probability * 100.0
-                                        ))
-                                        .monospace(),
-                                    )
-                                };
-
-                                if response.clicked() {
-                                    //TODO
-                                }
-                            }
-                        }
-                    });
-                });
-            }
-        } else if !(key == "model_id" || key == "confidence_k") {
+        } else if !(key == "model_id" || key == "confidence_k" || key == "counterfactual") {
             ui.label(format!("{key}: {value}"));
         }
     }
