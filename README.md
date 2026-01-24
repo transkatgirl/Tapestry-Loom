@@ -182,6 +182,7 @@ Goal: Completion before Feb 1st, 2026
 	- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
 - [ ] Enable counterfactual logprobs by default
 - [ ] Implement fully immutable nodes using node duplication instead of direct modification
+- [ ] Refactor migration-assistant to natively use v1 format
 
 ### Milestone 2
 
@@ -293,14 +294,6 @@ Goal: Completion before June 1st, 2026
 
 ### Milestone 8
 
-- [ ] Perform heavy unit testing and/or formal verification of `universal-weave` to prevent bugs that could result in data loss
-- [ ] Release `universal-weave` version 1.0.0
-- [ ] Write unit tests for response parser
-- [ ] Release Tapestry Loom version 1.0.0-rc.1
-
-### Milestone 9
-
-- [ ] Refactor migration-assistant to natively use v1 format
 - [ ] Create video-based documentation
 - [ ] Create a website for Tapestry Loom's downloads and documentation
 - [ ] Add support for more weave migrations
@@ -310,7 +303,16 @@ Goal: Completion before June 1st, 2026
 	- [ ] [helm](https://github.com/Shoalstone/helm)
 	- [ ] (subset of) [miniloom](https://github.com/JD-P/miniloom)
 
+### Milestone 9
+
+- [ ] Perform heavy unit testing and/or formal verification of `universal-weave` to prevent bugs that could result in data loss
+- [ ] Release `universal-weave` version 1.0.0
+- [ ] Write unit tests for response parser
+- [ ] Release Tapestry Loom version 1.0.0-rc.1
+
 ### Post-v1 plans
+
+The below items may be implemented in a 1.x release, or they may be delayed to be implemented in a future 2.x release.
 
 - [ ] Token healing
 - [ ] Instruct templating, similar to [mikupad](https://github.com/lmg-anon/mikupad)
@@ -334,7 +336,7 @@ Goal: Completion before June 1st, 2026
 - [ ] Add ability to add custom labels to bookmarks/nodes
 - [ ] Add ability to add custom attributes to nodes, rather than just bookmarks
 
-### Speculative ideas for v2
+#### Speculative ideas
 
 - [ ] Collaborative weave editing
 - [ ] Interfaces for AI agents to use Tapestry Loom
