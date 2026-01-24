@@ -785,6 +785,8 @@ fn render_node(
         );
 
         tooltip.show(|ui| {
+            state.set_hovered_node(NodeIndex::Node(Ulid(node.id)));
+
             ui.horizontal(|ui| {
                 render_horizontal_node_label_buttons_ltr(ui, settings, state, weave, &node);
                 if !node.to.is_empty() {
