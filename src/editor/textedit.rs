@@ -947,7 +947,7 @@ fn render_tooltip(ui: &mut Ui, weave: &mut WeaveWrapper, node: Ulid, index: usiz
 
                     if let Some(counterfactual_choice) = counterfactual_choice {
                         let node = Ulid(node.id);
-                        weave.split_out_token(&node, counterfactual_choice);
+                        weave.split_out_token(&node, index);
                     }
                 } else {
                     render_node_metadata_tooltip(ui, node);
