@@ -5,7 +5,7 @@ use std::{
 
 use chrono::{DateTime, offset};
 use eframe::egui::{
-    Color32, Context, Rangef, Rgba, RichText, TextFormat, TextStyle, Ui,
+    Color32, Context, Rangef, Rgba, RichText, ScrollArea, TextFormat, TextStyle, Ui,
     style::ScrollAnimation,
     text::{LayoutJob, LayoutSection},
 };
@@ -965,28 +965,39 @@ pub fn render_token_metadata_tooltip(ui: &mut Ui, token_len: usize, token_metada
                 ui.label(format!("token_id: {}", value));
             }
         } else if key == "counterfactual" {
-            ui.label("counterfactual:");
             if let Some(counterfactual) = deserialize_counterfactual_logprobs(value) {
-                for (token, metadata) in counterfactual {
-                    if let Some(value) = metadata.get("probability")
-                        && let Ok(probability) = value.parse::<f32>()
-                    {
-                        if let Ok(string) = str::from_utf8(&token) {
-                            ui.label(
-                                RichText::new(format!(
-                                    "\t{string:#?} ({:.2}%)",
-                                    probability * 100.0
-                                ))
-                                .monospace(),
-                            );
-                        } else {
-                            ui.label(
-                                RichText::new(format!("\t{token:?} ({:.2}%)", probability * 100.0))
-                                    .monospace(),
-                            );
+                ui.label("counterfactual:");
+                ScrollArea::horizontal().animated(false).show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        for (token, metadata) in counterfactual {
+                            if let Some(value) = metadata.get("probability")
+                                && let Ok(probability) = value.parse::<f32>()
+                            {
+                                let response = if let Ok(string) = str::from_utf8(&token) {
+                                    ui.button(
+                                        RichText::new(format!(
+                                            "{string:#?}\n({:.2}%)",
+                                            probability * 100.0
+                                        ))
+                                        .monospace(),
+                                    )
+                                } else {
+                                    ui.button(
+                                        RichText::new(format!(
+                                            "{token:?}\n({:.2}%)",
+                                            probability * 100.0
+                                        ))
+                                        .monospace(),
+                                    )
+                                };
+
+                                if response.clicked() {
+                                    //TODO
+                                }
+                            }
                         }
-                    }
-                }
+                    });
+                });
             }
         } else if !(key == "model_id" || key == "confidence_k") {
             ui.label(format!("{key}: {value}"));
