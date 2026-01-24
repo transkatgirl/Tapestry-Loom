@@ -104,9 +104,12 @@ impl Editor {
         ];
         let active_left_tab = left_tabs[2];
 
-        let right_upper_tabs = vec![tiles.insert_pane(Pane::TextEdit)];
+        let right_upper_tabs = vec![
+            tiles.insert_pane(Pane::TextEdit),
+            tiles.insert_pane(Pane::Info),
+        ];
 
-        let right_lower_tabs = vec![tiles.insert_pane(Pane::Menu), tiles.insert_pane(Pane::Info)];
+        let right_lower_tabs = vec![tiles.insert_pane(Pane::Menu)];
 
         let left_tab_tile = tiles.insert_new(Tile::Container(Container::Tabs({
             let mut tabs = Tabs::new(left_tabs);
