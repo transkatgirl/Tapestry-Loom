@@ -27,7 +27,8 @@ use eframe::egui::{
 };
 use egui_notify::Toasts;
 use egui_tiles::{
-    Behavior, Container, SimplificationOptions, Tabs, Tile, TileId, Tiles, Tree, UiResponse,
+    Behavior, Container, Linear, LinearDir, SimplificationOptions, Tabs, Tile, TileId, Tiles, Tree,
+    UiResponse,
 };
 use flagset::FlagSet;
 use log::{debug, error};
@@ -103,11 +104,9 @@ impl Editor {
         ];
         let active_left_tab = left_tabs[2];
 
-        let right_tabs = vec![
-            tiles.insert_pane(Pane::TextEdit),
-            tiles.insert_pane(Pane::Menu),
-            tiles.insert_pane(Pane::Info),
-        ];
+        let right_upper_tabs = vec![tiles.insert_pane(Pane::TextEdit)];
+
+        let right_lower_tabs = vec![tiles.insert_pane(Pane::Menu), tiles.insert_pane(Pane::Info)];
 
         let left_tab_tile = tiles.insert_new(Tile::Container(Container::Tabs({
             let mut tabs = Tabs::new(left_tabs);
@@ -116,9 +115,16 @@ impl Editor {
             tabs
         })));
 
-        let right_tab_tile = tiles.insert_tab_tile(right_tabs);
+        let right_upper_tab_tile = tiles.insert_tab_tile(right_upper_tabs);
+        let right_lower_tab_tile = tiles.insert_tab_tile(right_lower_tabs);
 
-        let root = tiles.insert_horizontal_tile(vec![left_tab_tile, right_tab_tile]);
+        let right_split = tiles.insert_new(Tile::Container(Container::Linear(Linear::new_binary(
+            LinearDir::Vertical,
+            [right_upper_tab_tile, right_lower_tab_tile],
+            0.6,
+        ))));
+
+        let root = tiles.insert_horizontal_tile(vec![left_tab_tile, right_split]);
 
         let weave = Arc::new(Mutex::new(None));
 
