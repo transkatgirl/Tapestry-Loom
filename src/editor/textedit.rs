@@ -1,15 +1,9 @@
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    ops::Range,
-    rc::Rc,
-    time::{Duration, Instant},
-};
+use std::{cell::RefCell, collections::HashMap, ops::Range, rc::Rc};
 
 use eframe::{
     egui::{
         Color32, Frame, Galley, Id, Mesh, Pos2, Rect, ScrollArea, Sense, TextBuffer, TextEdit,
-        TextFormat, TextStyle, Tooltip, Ui, Vec2,
+        TextFormat, TextStyle, Ui,
         text::{CCursor, CCursorRange, LayoutJob, LayoutSection, TextWrapping},
     },
     epaint::{MarginF32, Vertex, WHITE_UV},
@@ -35,11 +29,7 @@ pub struct TextEditorView {
     node_snippets: HashMap<Ulid, Vec<Range<usize>>>,
     rects: Vec<(Rect, Color32)>,
     last_seen_cursor_node: NodeIndex,
-    last_seen_hovered_node: NodeIndex,
     last_text_edit_cursor: Option<CCursor>,
-    last_text_edit_hover: Option<Vec2>,
-    last_text_edit_highlighting_hover: HighlightingHover,
-    last_text_edit_highlighting_hover_update: Instant,
     last_text_edit_rect: Rect,
     text_edit_last_changed: bool,
     should_update_rects: bool,
@@ -71,11 +61,7 @@ impl Default for TextEditorView {
             node_snippets: HashMap::with_capacity(16384),
             rects: Vec::with_capacity(16384),
             last_seen_cursor_node: NodeIndex::None,
-            last_seen_hovered_node: NodeIndex::None,
             last_text_edit_cursor: None,
-            last_text_edit_hover: None,
-            last_text_edit_highlighting_hover: HighlightingHover::None,
-            last_text_edit_highlighting_hover_update: Instant::now(),
             last_text_edit_rect: Rect {
                 min: Pos2::ZERO,
                 max: Pos2::ZERO,
@@ -95,11 +81,7 @@ impl TextEditorView {
         self.node_snippets.clear();
         self.rects.clear();
         self.last_seen_cursor_node = NodeIndex::None;
-        self.last_seen_hovered_node = NodeIndex::None;
         self.last_text_edit_cursor = None;
-        self.last_text_edit_hover = None;
-        self.last_text_edit_highlighting_hover = HighlightingHover::None;
-        self.last_text_edit_highlighting_hover_update = Instant::now();
         self.text_edit_last_changed = false;
     }*/
     pub fn update(
@@ -124,16 +106,16 @@ impl TextEditorView {
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
     ) {
-        let contains_cursor = ui
-            .clip_rect()
-            .contains(ui.ctx().pointer_hover_pos().unwrap_or_default());
+        /*let contains_cursor = ui
+        .clip_rect()
+        .contains(ui.ctx().pointer_hover_pos().unwrap_or_default());*/
 
         if self.text.is_empty() {
             self.update_contents(weave, settings, ui.visuals().widgets.inactive.text_color());
         }
 
         let snippets = self.snippets.clone();
-        let hover = self.last_text_edit_highlighting_hover;
+        let hover = state.get_hovered_node();
         let bytes = self.bytes.clone();
 
         let mut layouter = |ui: &Ui, buf: &dyn TextBuffer, wrap_width: f32| {
@@ -205,7 +187,6 @@ impl TextEditorView {
 
                         let top_left = textedit.text_clip_rect.left_top();
 
-                        let hover_position = textedit.response.hover_pos().map(|p| p - top_left);
                         let is_cursor_within_bounds =
                             ui.rect_contains_pointer(textedit.response.rect);
 
@@ -240,64 +221,74 @@ impl TextEditorView {
 
                         let mut index: usize = 0;
                         let mut last_node = Ulid(0);
+                        let mut byte_index: usize = 0;
                         let mut token_index: usize = 0;
 
-                        if contains_cursor {
-                            absolute_snippet_row_positions(
-                                &self.snippets.borrow(),
-                                top_left,
-                                &textedit.galley,
-                                |snippet, bounds, _start, increment| {
-                                    let response = ui.interact(
-                                        bounds,
-                                        Id::new((snippet.1, index)),
-                                        Sense::hover(),
-                                    );
+                        absolute_snippet_row_positions(
+                            &self.snippets.borrow(),
+                            top_left,
+                            &textedit.galley,
+                            |snippet, bounds, _start, increment| {
+                                let response = ui.interact(
+                                    bounds,
+                                    Id::new((snippet.1, index)),
+                                    Sense::hover(),
+                                );
 
-                                    if last_node != snippet.1 {
-                                        last_node = snippet.1;
-                                        token_index = 0;
+                                if last_node != snippet.1 {
+                                    last_node = snippet.1;
+                                    token_index = 0;
+                                }
+
+                                if response.contains_pointer() {
+                                    if let Some(within_index) = snippet.3 {
+                                        state.set_hovered_node(NodeIndex::WithinNode(
+                                            snippet.1,
+                                            within_index,
+                                        ));
+                                    } else {
+                                        state.set_hovered_node(NodeIndex::Node(snippet.1));
                                     }
+                                }
 
-                                    response.on_hover_ui(|ui| {
-                                        render_tooltip(ui, weave, snippet.1, token_index);
-                                    });
+                                response.on_hover_ui(|ui| {
+                                    render_tooltip(ui, weave, snippet.1, token_index);
+                                });
 
-                                    /*ui.painter().rect_filled(
-                                        bounds,
-                                        0.0,
-                                        Color32::from_rgba_unmultiplied(255, 255, 255, 50),
-                                    );*/
+                                /*ui.painter().rect_filled(
+                                    bounds,
+                                    0.0,
+                                    Color32::from_rgba_unmultiplied(255, 255, 255, 50),
+                                );*/
 
-                                    ui.painter().rect_stroke(
-                                        bounds,
-                                        0.0,
-                                        (1.0, eframe::egui::Color32::WHITE),
-                                        eframe::egui::StrokeKind::Inside,
-                                    );
+                                /*ui.painter().rect_stroke(
+                                    bounds,
+                                    0.0,
+                                    (1.0, eframe::egui::Color32::WHITE),
+                                    eframe::egui::StrokeKind::Inside,
+                                );*/
 
-                                    if increment {
-                                        token_index += 1;
-                                    }
+                                if increment {
+                                    token_index += 1;
+                                    byte_index += snippet.0;
+                                }
 
-                                    index += 1;
+                                index += 1;
 
-                                    /*start.max.x += 1.0;
+                                /*start.max.x += 1.0;
 
-                                    ui.painter().rect_stroke(
-                                        start,
-                                        0.0,
-                                        (1.0, eframe::egui::Color32::GREEN),
-                                        eframe::egui::StrokeKind::Inside,
-                                    );*/
-                                },
-                            );
-                        }
+                                ui.painter().rect_stroke(
+                                    start,
+                                    0.0,
+                                    (1.0, eframe::egui::Color32::GREEN),
+                                    eframe::egui::StrokeKind::Inside,
+                                );*/
+                            },
+                        );
 
                         if textedit.response.changed() {
                             self.update_weave(state, weave);
                             self.last_text_edit_cursor = None;
-                            self.last_text_edit_highlighting_hover_update = Instant::now();
                         } else {
                             let position = textedit.cursor_range.map(|c| c.sorted_cursors()[0]);
                             if position != self.last_text_edit_cursor {
@@ -330,83 +321,7 @@ impl TextEditorView {
                             }
                         }
 
-                        if hover_position != self.last_text_edit_hover {
-                            if let Some(hover_position) = hover_position
-                                && cursor_is_within_galley(
-                                    &textedit.galley,
-                                    hover_position.to_pos2(),
-                                )
-                            {
-                                let hover_index =
-                                    textedit.galley.cursor_from_pos(hover_position).index;
-                                let highlighting_hover = self
-                                    .calculate_cursor(weave, Some(hover_index))
-                                    .map(|(id, i)| HighlightingHover::Position((id, i)))
-                                    .unwrap_or(HighlightingHover::None);
-
-                                if highlighting_hover != self.last_text_edit_highlighting_hover {
-                                    self.last_text_edit_highlighting_hover = highlighting_hover;
-                                    self.last_text_edit_highlighting_hover_update = Instant::now();
-                                }
-                            } else {
-                                self.last_text_edit_highlighting_hover = HighlightingHover::None;
-                            }
-
-                            self.last_text_edit_hover = hover_position;
-                        }
-
                         ui.style_mut().override_font_id = None;
-
-                        if let HighlightingHover::Position((hover_node, hover_index)) =
-                            self.last_text_edit_highlighting_hover
-                        {
-                            let since_last_update = self
-                                .last_text_edit_highlighting_hover_update
-                                .elapsed()
-                                .as_secs_f32();
-                            let show_tooltip =
-                                since_last_update >= ui.style().interaction.tooltip_delay;
-
-                            if !show_tooltip {
-                                ui.ctx().request_repaint_after(Duration::from_secs_f32(
-                                    (ui.style().interaction.tooltip_delay - since_last_update)
-                                        + (1.0 / 15.0),
-                                ));
-                            }
-
-                            /*let mut tooltip = Tooltip::for_widget(&textedit.response).at_pointer();
-                            tooltip.popup = tooltip.popup.open(show_tooltip);
-                            tooltip.show(|ui| {
-                                render_tooltip(
-                                    ui,
-                                    weave,
-                                    &self.node_snippets,
-                                    hover_node,
-                                    hover_index,
-                                );
-                            });*/
-
-                            if let Some(corrected_hover_index) =
-                                calculate_cursor_index(hover_node, hover_index, &self.node_snippets)
-                            {
-                                state.set_hovered_node(NodeIndex::WithinNode(
-                                    hover_node,
-                                    corrected_hover_index,
-                                ));
-                                self.last_seen_hovered_node =
-                                    NodeIndex::WithinNode(hover_node, corrected_hover_index);
-                            } else {
-                                state.set_hovered_node(NodeIndex::Node(hover_node));
-                                self.last_seen_hovered_node = NodeIndex::Node(hover_node);
-                            }
-                        } else if self.last_seen_hovered_node != state.get_hovered_node() {
-                            self.last_text_edit_highlighting_hover = state
-                                .get_hovered_node()
-                                .into_node()
-                                .map(HighlightingHover::Node)
-                                .unwrap_or(HighlightingHover::None);
-                            self.last_seen_hovered_node = state.get_hovered_node();
-                        }
 
                         self.text_edit_last_changed = textedit.response.changed();
                     });
@@ -525,7 +440,7 @@ fn calculate_highlighting(
     snippets: &[Snippet],
     length: usize,
     default_color: Color32,
-    hover: HighlightingHover,
+    hover: NodeIndex,
     snippet_buffer: &[u8],
     text_buffer: &str,
 ) -> Vec<LayoutSection> {
@@ -537,13 +452,23 @@ fn calculate_highlighting(
 
     let mut sections = Vec::with_capacity(snippets.len() + 1);
     let mut index = 0;
+    let mut last_node = Ulid(0);
+    let mut node_index = 0;
 
     let hover_bg = ui.style().visuals.widgets.hovered.weak_bg_fill;
 
     for (snippet_length, node, color, token_index) in snippets {
         let byte_range = index..(index + snippet_length);
 
+        if *node != last_node {
+            last_node = *node;
+            node_index = 0;
+        }
+
+        let node_range = node_index..(node_index + snippet_length);
+
         index += snippet_length;
+        node_index += snippet_length;
 
         if index > length
             || snippet_buffer[byte_range.clone()] != text_buffer.as_bytes()[byte_range.clone()]
@@ -555,21 +480,21 @@ fn calculate_highlighting(
         let mut format = TextFormat::simple(font_id.clone(), *color);
 
         match hover {
-            HighlightingHover::Position((hover_node, hover_position)) => {
+            NodeIndex::WithinNode(hover_node, hover_position) => {
                 if hover_node == *node {
                     format.background = hover_bg;
 
-                    if byte_range.contains(&hover_position) && token_index.is_some() {
+                    if node_range.contains(&hover_position) && token_index.is_some() {
                         format.underline = ui.style().visuals.widgets.hovered.bg_stroke;
                     }
                 }
             }
-            HighlightingHover::Node(hover_node) => {
+            NodeIndex::Node(hover_node) => {
                 if hover_node == *node {
                     format.background = hover_bg;
                 }
             }
-            HighlightingHover::None => {}
+            NodeIndex::None => {}
         }
 
         sections.push(LayoutSection {
@@ -929,16 +854,6 @@ fn calculate_boundaries_and_update_scroll(
     }
 }
 
-fn cursor_is_within_galley(galley: &Galley, cursor: Pos2) -> bool {
-    for row in &galley.rows {
-        if row.rect().contains(cursor) {
-            return true;
-        }
-    }
-
-    false
-}
-
 fn render_rects(ui: &Ui, rects: &[(Rect, Color32)]) {
     if rects.is_empty() {
         return;
@@ -985,13 +900,6 @@ fn render_rects(ui: &Ui, rects: &[(Rect, Color32)]) {
     }
 
     ui.painter().add(mesh);
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum HighlightingHover {
-    Position((Ulid, usize)),
-    Node(Ulid),
-    None,
 }
 
 fn calculate_cursor_index(
