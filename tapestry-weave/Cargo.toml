@@ -8,6 +8,8 @@ license = "Unlicense"
 description = "An implementation of Tapestry Loom's document format."
 edition = "2024"
 
+# TODO: Add v0 feature after completing v1 format
+
 [dependencies]
 contracts = "0.6.7"
 rkyv = "0.8.13"

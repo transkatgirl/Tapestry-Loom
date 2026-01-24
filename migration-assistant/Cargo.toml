@@ -9,8 +9,6 @@ license = "Unlicense"
 description = "A tool for converting weaves from other Loom implementations into the Tapestry Loom weave format."
 edition = "2024"
 
-# TODO: Add v0 feature
-
 [dependencies]
 base64 = "0.22.1"
 miniz_oxide = "0.8.9"

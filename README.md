@@ -1,6 +1,6 @@
 # Tapestry Loom
 
-A power user focused interface for LLM base models, inspired by the designs of [loom](https://github.com/socketteer/loom), [loomsidian](https://github.com/cosmicoptima/loom), [exoloom](https://exoloom.io), [logitloom](https://github.com/vgel/logitloom), and [wool](https://github.com/lyramakesmusic/wool).<!-- and [mikupad](https://github.com/lmg-anon/mikupad) -->
+A power user focused interface for LLM base models, inspired by the designs of [loom](https://github.com/socketteer/loom), [loomsidian](https://github.com/cosmicoptima/loom), [exoloom](https://exoloom.io), [logitloom](https://github.com/vgel/logitloom), [wool](https://github.com/lyramakesmusic/wool), and [mikupad](https://github.com/lmg-anon/mikupad).
 
 <details>
 
