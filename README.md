@@ -230,6 +230,7 @@ Goal: Completion before Feb 1st, 2026
 
 ### Milestone 4
 
+- [ ] Update Getting Started document
 - [ ] Add node finding
 - [ ] Support arbitrary color gradients for logprob highlighting
 - [ ] Add OKLCH-based color picker
@@ -263,6 +264,7 @@ Goal: Completion before June 1st, 2026
 	- [ ] [helm](https://github.com/Shoalstone/helm)
 	- [ ] (subset of) [miniloom](https://github.com/JD-P/miniloom)
 	- [ ] [openloom v0.1.0](https://www.latentspaces.app/openloom)
+		- [ ] Support exporting to openloom format in addition to supporting conversion from openloom format
 - [ ] Add model configuration sharing functionality
 	- [ ] Automatically redact sensitive information (such as API keys)
 	- [ ] Allow the user to manually redact sensitive information
