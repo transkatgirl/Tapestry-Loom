@@ -932,13 +932,18 @@ pub fn render_token_tooltip(ui: &mut Ui, token: &[u8], token_metadata: &Metadata
     render_token_metadata_tooltip(ui, token.len(), token_metadata);
 }*/
 
-pub fn render_token_counterfactual_tooltip(ui: &mut Ui, token_metadata: &MetadataMap) -> bool {
+pub fn render_token_counterfactual_tooltip(
+    ui: &mut Ui,
+    token_metadata: &MetadataMap,
+) -> (bool, Option<usize>) {
     if let Some(value) = token_metadata.get("counterfactual")
         && let Some(counterfactual) = deserialize_counterfactual_logprobs(value)
     {
+        let mut choice = None;
+
         ScrollArea::horizontal().animated(false).show(ui, |ui| {
             ui.horizontal(|ui| {
-                for (token, metadata) in counterfactual {
+                for (token_index, (token, metadata)) in counterfactual.into_iter().enumerate() {
                     if let Some(value) = metadata.get("probability")
                         && let Ok(probability) = value.parse::<f32>()
                     {
@@ -958,16 +963,16 @@ pub fn render_token_counterfactual_tooltip(ui: &mut Ui, token_metadata: &Metadat
                         };
 
                         if response.clicked() {
-                            //TODO
+                            choice = Some(token_index);
                         }
                     }
                 }
             });
         });
 
-        true
+        (true, choice)
     } else {
-        false
+        (false, None)
     }
 }
 

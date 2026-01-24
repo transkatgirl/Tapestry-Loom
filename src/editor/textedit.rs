@@ -916,7 +916,7 @@ fn calculate_cursor_index(
     }
 }
 
-fn render_tooltip(ui: &mut Ui, weave: &WeaveWrapper, node: Ulid, index: usize) {
+fn render_tooltip(ui: &mut Ui, weave: &mut WeaveWrapper, node: Ulid, index: usize) {
     if let Some(node) = weave.get_node(&node) {
         match &node.contents.content {
             InnerNodeContent::Snippet(_) => {
@@ -924,15 +924,25 @@ fn render_tooltip(ui: &mut Ui, weave: &WeaveWrapper, node: Ulid, index: usize) {
             }
             InnerNodeContent::Tokens(tokens) => {
                 if let Some((token, token_metadata)) = tokens.get(index) {
-                    if render_token_counterfactual_tooltip(ui, token_metadata) {
+                    let (has_counterfactual, counterfactual_choice) =
+                        render_token_counterfactual_tooltip(ui, token_metadata);
+
+                    if has_counterfactual {
                         ui.separator();
                     }
 
                     render_token_tooltip(ui, token, token_metadata);
                     ui.separator();
-                }
 
-                render_node_metadata_tooltip(ui, node);
+                    render_node_metadata_tooltip(ui, node);
+
+                    if let Some(counterfactual_choice) = counterfactual_choice {
+                        let node = Ulid(node.id);
+                        weave.split_out_token(&node, counterfactual_choice);
+                    }
+                } else {
+                    render_node_metadata_tooltip(ui, node);
+                }
             }
         }
     }
