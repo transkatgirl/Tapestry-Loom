@@ -8,8 +8,8 @@ use std::{
 
 use eframe::{
     egui::{
-        Color32, Frame, Galley, Mesh, Pos2, Rect, ScrollArea, TextBuffer, TextEdit, TextFormat,
-        TextStyle, Tooltip, Ui, Vec2,
+        Color32, Frame, Galley, Id, Mesh, Pos2, Rect, ScrollArea, Sense, TextBuffer, TextEdit,
+        TextFormat, TextStyle, Tooltip, Ui, Vec2,
         text::{CCursor, CCursorRange, LayoutJob, LayoutSection, TextWrapping},
     },
     epaint::{MarginF32, Vertex, WHITE_UV},
@@ -124,6 +124,10 @@ impl TextEditorView {
         state: &mut SharedState,
         _shortcuts: FlagSet<Shortcuts>,
     ) {
+        let contains_cursor = ui
+            .clip_rect()
+            .contains(ui.ctx().pointer_hover_pos().unwrap_or_default());
+
         if self.text.is_empty() {
             self.update_contents(weave, settings, ui.visuals().widgets.inactive.text_color());
         }
@@ -226,17 +230,44 @@ impl TextEditorView {
                                 },
                                 &mut self.rects,
                             );
-                            /*absolute_snippet_row_positions(
+
+                            self.last_text_edit_rect = textedit.response.rect;
+                            self.should_update_rects = false;
+                            if !self.rects.is_empty() {
+                                ui.ctx().request_repaint();
+                            }
+                        }
+
+                        //let mut index: usize = 0;
+
+                        /*if contains_cursor {
+                            absolute_snippet_positions(
                                 &self.snippets.borrow(),
                                 top_left,
                                 &textedit.galley,
-                                |snippet, bounds, mut start| {
-                                    ui.painter().rect_stroke(
+                                |snippet, bounds, _start| {
+                                    let response = ui.interact(
+                                        bounds,
+                                        Id::new((snippet.1, index)),
+                                        Sense::hover(),
+                                    );
+
+                                    response.on_hover_ui(|ui| {});
+
+                                    ui.painter().rect_filled(
+                                        bounds,
+                                        0.0,
+                                        Color32::from_rgba_unmultiplied(255, 255, 255, 50),
+                                    );
+
+                                    /*ui.painter().rect_stroke(
                                         bounds,
                                         0.0,
                                         (1.0, eframe::egui::Color32::WHITE),
                                         eframe::egui::StrokeKind::Inside,
-                                    );
+                                    );*/
+
+                                    index += 1;
 
                                     /*start.max.x += 1.0;
 
@@ -247,13 +278,8 @@ impl TextEditorView {
                                         eframe::egui::StrokeKind::Inside,
                                     );*/
                                 },
-                            );*/
-                            self.last_text_edit_rect = textedit.response.rect;
-                            self.should_update_rects = false;
-                            if !self.rects.is_empty() {
-                                ui.ctx().request_repaint();
-                            }
-                        }
+                            );
+                        }*/
 
                         if textedit.response.changed() {
                             self.update_weave(state, weave);
@@ -335,7 +361,7 @@ impl TextEditorView {
                                 ));
                             }
 
-                            let mut tooltip = Tooltip::for_widget(&textedit.response).at_pointer();
+                            /*let mut tooltip = Tooltip::for_widget(&textedit.response).at_pointer();
                             tooltip.popup = tooltip.popup.open(show_tooltip);
                             tooltip.show(|ui| {
                                 render_tooltip(
@@ -345,7 +371,7 @@ impl TextEditorView {
                                     hover_node,
                                     hover_index,
                                 );
-                            });
+                            });*/
 
                             if let Some(corrected_hover_index) =
                                 calculate_cursor_index(hover_node, hover_index, &self.node_snippets)
@@ -593,7 +619,7 @@ fn absolute_snippet_positions(
             };
             max_x = max_x.max(pos_x);
 
-            while snippet_offset <= offset && snippet_index < snippets.len() {
+            while snippet_offset <= offset {
                 callback(
                     &snippets[snippet_index],
                     Rect {
@@ -611,8 +637,10 @@ fn absolute_snippet_positions(
                         },
                     },
                 );
-                if snippet_index < snippets.len() - 1 {
-                    snippet_index += 1;
+
+                snippet_index += 1;
+
+                if snippet_index < snippets.len() {
                     snippet_offset += snippets[snippet_index].0;
                     start_pos = char_start_pos;
                     start_height = char_end_pos.y - char_start_pos.y;
@@ -624,11 +652,11 @@ fn absolute_snippet_positions(
                         char_start_pos.x
                     };
                 } else {
-                    break;
+                    return true;
                 }
             }
 
-            snippet_index >= snippets.len()
+            false
         },
     );
 }
@@ -681,15 +709,6 @@ fn absolute_snippet_row_positions(
                 );
             }
 
-            min_x = min_x.min(char_start_pos.x);
-            let pos_x = if snippet_offset > offset {
-                char_end_pos.x
-            } else {
-                char_start_pos.x
-            };
-            max_x = max_x.max(pos_x);
-            max_y = max_y.max(char_end_pos.y);
-
             if row > last_row {
                 start_pos = char_start_pos;
                 start_height = char_end_pos.y - char_start_pos.y;
@@ -701,9 +720,18 @@ fn absolute_snippet_row_positions(
                 } else {
                     char_start_pos.x
                 };
+            } else {
+                min_x = min_x.min(char_start_pos.x);
+                let pos_x = if snippet_offset > offset {
+                    char_end_pos.x
+                } else {
+                    char_start_pos.x
+                };
+                max_x = max_x.max(pos_x);
+                max_y = max_y.max(char_end_pos.y);
             }
 
-            while snippet_offset <= offset && snippet_index < snippets.len() {
+            while snippet_offset <= offset {
                 if row <= last_row {
                     callback(
                         &snippets[snippet_index],
@@ -719,10 +747,12 @@ fn absolute_snippet_row_positions(
                             },
                         },
                     );
+                    last_row = row;
                 }
 
-                if snippet_index < snippets.len() - 1 {
-                    snippet_index += 1;
+                snippet_index += 1;
+
+                if snippet_index < snippets.len() {
                     snippet_offset += snippets[snippet_index].0;
                     start_pos = char_start_pos;
                     start_height = char_end_pos.y - char_start_pos.y;
@@ -735,7 +765,7 @@ fn absolute_snippet_row_positions(
                         char_start_pos.x
                     };
                 } else {
-                    break;
+                    return true;
                 }
             }
 
@@ -743,7 +773,7 @@ fn absolute_snippet_row_positions(
                 last_row = row;
             }
 
-            snippet_index >= snippets.len()
+            false
         },
     );
 }
@@ -757,7 +787,7 @@ fn absolute_galley_character_positions(
 
     let first_row_rect = galley.rows.first().map(|row| row.rect());
 
-    let mut should_break = callback(
+    if callback(
         0,
         0,
         first_row_rect
@@ -772,9 +802,11 @@ fn absolute_galley_character_positions(
                 y: top_left.y + row_rect.max.y,
             })
             .unwrap_or(top_left),
-    );
+    ) {
+        return;
+    }
 
-    for (i, row) in galley.rows.iter().enumerate() {
+    'outer: for (i, row) in galley.rows.iter().enumerate() {
         let row_rect = row.rect();
 
         let row_start_pos = Pos2 {
@@ -786,10 +818,6 @@ fn absolute_galley_character_positions(
             x: top_left.x + row_rect.max.x,
             y: top_left.y + row_rect.max.y,
         };
-
-        if should_break {
-            break;
-        }
 
         for char in row.glyphs.iter() {
             let char_len = char.chr.len_utf8();
@@ -806,12 +834,14 @@ fn absolute_galley_character_positions(
                 y: row_start_pos.y + char_rect.max.y,
             };
 
-            should_break = callback(offset, i, char_start_pos, char_end_pos);
+            if callback(offset, i, char_start_pos, char_end_pos) {
+                break 'outer;
+            }
 
             offset += char_len;
         }
 
-        if row.ends_with_newline {
+        if row.ends_with_newline || i == galley.rows.len() - 1 {
             let (char_start_pos, char_end_pos) = (
                 Pos2 {
                     x: row_end_pos.x,
@@ -820,34 +850,12 @@ fn absolute_galley_character_positions(
                 row_end_pos,
             );
 
-            should_break = callback(offset, i, char_start_pos, char_end_pos);
+            if callback(offset, i, char_start_pos, char_end_pos) {
+                break 'outer;
+            }
 
             offset += 1;
         }
-    }
-
-    if !should_break {
-        let last_row_rect = galley.rows.last().unwrap().rect();
-
-        let row_start_pos = Pos2 {
-            x: top_left.x + last_row_rect.min.x,
-            y: top_left.y + last_row_rect.min.y,
-        };
-
-        let row_end_pos = Pos2 {
-            x: top_left.x + last_row_rect.max.x,
-            y: top_left.y + last_row_rect.max.y,
-        };
-
-        let (char_start_pos, char_end_pos) = (
-            row_start_pos,
-            Pos2 {
-                x: row_start_pos.x,
-                y: row_end_pos.y,
-            },
-        );
-
-        callback(offset, galley.rows.len() - 1, char_start_pos, char_end_pos);
     }
 }
 
