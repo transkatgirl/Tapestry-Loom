@@ -104,13 +104,6 @@ impl Editor {
         ];
         let active_left_tab = left_tabs[2];
 
-        let right_upper_tabs = vec![
-            tiles.insert_pane(Pane::TextEdit),
-            tiles.insert_pane(Pane::Info),
-        ];
-
-        let right_lower_tabs = vec![tiles.insert_pane(Pane::Menu)];
-
         let left_tab_tile = tiles.insert_new(Tile::Container(Container::Tabs({
             let mut tabs = Tabs::new(left_tabs);
             tabs.set_active(active_left_tab);
@@ -118,16 +111,33 @@ impl Editor {
             tabs
         })));
 
-        let right_upper_tab_tile = tiles.insert_tab_tile(right_upper_tabs);
-        let right_lower_tab_tile = tiles.insert_tab_tile(right_lower_tabs);
+        let right = if path.is_some() {
+            let right_tabs = vec![
+                tiles.insert_pane(Pane::TextEdit),
+                tiles.insert_pane(Pane::Menu),
+                tiles.insert_pane(Pane::Info),
+            ];
 
-        let right_split = tiles.insert_new(Tile::Container(Container::Linear(Linear::new_binary(
-            LinearDir::Vertical,
-            [right_upper_tab_tile, right_lower_tab_tile],
-            0.6,
-        ))));
+            tiles.insert_tab_tile(right_tabs)
+        } else {
+            let right_upper_tabs = vec![
+                tiles.insert_pane(Pane::TextEdit),
+                tiles.insert_pane(Pane::Info),
+            ];
 
-        let root = tiles.insert_horizontal_tile(vec![left_tab_tile, right_split]);
+            let right_lower_tabs = vec![tiles.insert_pane(Pane::Menu)];
+
+            let right_upper_tab_tile = tiles.insert_tab_tile(right_upper_tabs);
+            let right_lower_tab_tile = tiles.insert_tab_tile(right_lower_tabs);
+
+            tiles.insert_new(Tile::Container(Container::Linear(Linear::new_binary(
+                LinearDir::Vertical,
+                [right_upper_tab_tile, right_lower_tab_tile],
+                0.6,
+            ))))
+        };
+
+        let root = tiles.insert_horizontal_tile(vec![left_tab_tile, right]);
 
         let weave = Arc::new(Mutex::new(None));
 
