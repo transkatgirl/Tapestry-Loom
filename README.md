@@ -178,6 +178,7 @@ Goal: Completion before Feb 1st, 2026
 	- [ ] FIM completions
 		- [ ] Selected text is used to determine FIM location
 	- [ ] Diff-based editor content application
+	- [ ] Implement highlighting of active counterfactual token
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
 	- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
 - [ ] Enable counterfactual logprobs by default
