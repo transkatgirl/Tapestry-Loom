@@ -238,34 +238,47 @@ impl TextEditorView {
                             }
                         }
 
-                        //let mut index: usize = 0;
+                        let mut index: usize = 0;
+                        let mut last_node = Ulid(0);
+                        let mut token_index: usize = 0;
 
-                        /*if contains_cursor {
-                            absolute_snippet_positions(
+                        if contains_cursor {
+                            absolute_snippet_row_positions(
                                 &self.snippets.borrow(),
                                 top_left,
                                 &textedit.galley,
-                                |snippet, bounds, _start| {
+                                |snippet, bounds, _start, increment| {
                                     let response = ui.interact(
                                         bounds,
                                         Id::new((snippet.1, index)),
                                         Sense::hover(),
                                     );
 
-                                    response.on_hover_ui(|ui| {});
+                                    if last_node != snippet.1 {
+                                        last_node = snippet.1;
+                                        token_index = 0;
+                                    }
 
-                                    ui.painter().rect_filled(
+                                    response.on_hover_ui(|ui| {
+                                        render_tooltip(ui, weave, snippet.1, token_index);
+                                    });
+
+                                    /*ui.painter().rect_filled(
                                         bounds,
                                         0.0,
                                         Color32::from_rgba_unmultiplied(255, 255, 255, 50),
-                                    );
+                                    );*/
 
-                                    /*ui.painter().rect_stroke(
+                                    ui.painter().rect_stroke(
                                         bounds,
                                         0.0,
                                         (1.0, eframe::egui::Color32::WHITE),
                                         eframe::egui::StrokeKind::Inside,
-                                    );*/
+                                    );
+
+                                    if increment {
+                                        token_index += 1;
+                                    }
 
                                     index += 1;
 
@@ -279,7 +292,7 @@ impl TextEditorView {
                                     );*/
                                 },
                             );
-                        }*/
+                        }
 
                         if textedit.response.changed() {
                             self.update_weave(state, weave);
@@ -580,8 +593,6 @@ fn calculate_highlighting(
     sections
 }
 
-// TODO: Add bounding boxes per row, with each row's boxes being added in reverse order
-
 fn absolute_snippet_positions(
     snippets: &[Snippet],
     top_left: Pos2,
@@ -665,7 +676,7 @@ fn absolute_snippet_row_positions(
     snippets: &[Snippet],
     top_left: Pos2,
     galley: &Galley,
-    mut callback: impl FnMut(&Snippet, Rect, Rect),
+    mut callback: impl FnMut(&Snippet, Rect, Rect, bool),
 ) {
     if snippets.is_empty() {
         return;
@@ -706,6 +717,7 @@ fn absolute_snippet_row_positions(
                             y: start_pos.y + start_height,
                         },
                     },
+                    snippet_offset <= offset,
                 );
             }
 
@@ -746,6 +758,7 @@ fn absolute_snippet_row_positions(
                                 y: start_pos.y + start_height,
                             },
                         },
+                        true,
                     );
                     last_row = row;
                 }
@@ -995,13 +1008,7 @@ fn calculate_cursor_index(
     }
 }
 
-fn render_tooltip(
-    ui: &mut Ui,
-    weave: &WeaveWrapper,
-    node_snippets: &HashMap<Ulid, Vec<Range<usize>>>,
-    node: Ulid,
-    index: usize,
-) {
+fn render_tooltip(ui: &mut Ui, weave: &WeaveWrapper, node: Ulid, index: usize) {
     if let Some(node) = weave.get_node(&node) {
         match &node.contents.content {
             InnerNodeContent::Snippet(_) => {
@@ -1010,27 +1017,7 @@ fn render_tooltip(
             InnerNodeContent::Tokens(tokens) => {
                 render_node_metadata_tooltip(ui, node);
 
-                let mut token_offset: Option<usize> = if let Some(ranges) =
-                    node_snippets.get(&Ulid(node.id))
-                    && !ranges.is_empty()
-                    && ranges.len() == tokens.len()
-                {
-                    ranges
-                        .iter()
-                        .enumerate()
-                        .find(|(_, range)| range.contains(&index))
-                        .map(|(i, _)| i)
-                } else {
-                    None
-                };
-
-                if tokens.len() == 1 && token_offset.is_none() {
-                    token_offset = Some(0);
-                }
-
-                if let Some((token, token_metadata)) =
-                    token_offset.and_then(|index| tokens.get(index))
-                {
+                if let Some((token, token_metadata)) = tokens.get(index) {
                     ui.separator();
                     render_token_tooltip(ui, token, token_metadata);
                 }
