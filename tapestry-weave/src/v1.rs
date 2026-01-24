@@ -4,7 +4,7 @@
 // TODO: Token ID based deduplication
 // TODO: Request parameter based deduplication (especially for single-token nodes)
 
-use std::{borrow::Cow, cmp::Ordering, collections::HashSet, hash::BuildHasherDefault};
+use std::{borrow::Cow, cmp::Ordering, collections::HashSet, hash::BuildHasherDefault, rc::Rc};
 
 use contracts::ensures;
 use foldhash::fast::RandomState;
@@ -177,13 +177,6 @@ impl InnerNodeContent {
             None
         }
     }
-    pub fn round_logprobs(&mut self) {
-        if let Self::Tokens(tokens) = self {
-            for token in tokens {
-                token.round_logprobs();
-            }
-        }
-    }
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
@@ -192,8 +185,8 @@ pub struct InnerNodeToken {
     pub logprob: f32,
     pub id: Option<u64>,
     pub entropy: Option<f32>,
-    pub metadata: MetadataMap,
-    pub counterfactual: Vec<CounterfactualToken>,
+    pub metadata: Rc<MetadataMap>,
+    pub counterfactual: Rc<Vec<CounterfactualToken>>,
     pub original: Option<Vec<u8>>,
 }
 
@@ -215,12 +208,6 @@ impl InnerNodeToken {
         } else {
             None
         }
-    }
-    pub fn round_logprobs(&mut self) {
-        self.logprob = (self.logprob * 100.0).round() / 100.0;
-        self.counterfactual.iter_mut().for_each(|token| {
-            token.round_logprob();
-        });
     }
 }
 
@@ -303,12 +290,11 @@ impl InnerNodeContent {
                             entropy: None,
                             logprob: right[0].logprob,
                             metadata: right[0].metadata.clone(),
-                            counterfactual: Vec::new(),
+                            counterfactual: right[0].counterfactual.clone(),
                             original: right[0].original.clone(),
                         });
                         right[0].id = None;
                         right[0].entropy = None;
-                        right[0].counterfactual = Vec::new();
                     }
                     right[0].bytes = right_token;
 
