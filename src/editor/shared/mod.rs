@@ -942,6 +942,7 @@ pub fn render_token_counterfactual_tooltip(
         let mut choice = None;
 
         ScrollArea::horizontal().animated(false).show(ui, |ui| {
+            ui.disable();
             ui.horizontal(|ui| {
                 for (token_index, (token, metadata)) in counterfactual.into_iter().enumerate() {
                     if let Some(value) = metadata.get("probability")
