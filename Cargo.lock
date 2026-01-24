@@ -1054,19 +1054,6 @@ dependencies = [
 
 [[package]]
 name = "chrono"
-version = "0.4.41"
-source = "git+https://github.com/transkatgirl/chrono#6bdf0e8cfba8edbd7eb5f19b6e0c803ac21819c7"
-dependencies = [
- "iana-time-zone",
- "js-sys",
- "num-traits",
- "rkyv",
- "wasm-bindgen",
- "windows-link 0.1.3",
-]
-
-[[package]]
-name = "chrono"
 version = "0.4.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fac4744fb15ae8337dc853fee7fb3f4e48c0fbaa23d0afe49c447b4fab126118"
@@ -3095,10 +3082,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e67e8da4c49d6d9909fe03361f9b620f58898859f5c7aded68351e85e71ecf50"
 dependencies = [
  "jiff-static",
+ "jiff-tzdb-platform",
  "log",
  "portable-atomic",
  "portable-atomic-util",
  "serde_core",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3110,6 +3099,21 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.114",
+]
+
+[[package]]
+name = "jiff-tzdb"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1283705eb0a21404d2bfd6eef2a7593d240bc42a0bdb39db0ad6fa2ec026524"
+
+[[package]]
+name = "jiff-tzdb-platform"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "875a5a69ac2bab1a891711cf5eccbec1ce0341ea805560dcd90b7a2e925132e8"
+dependencies = [
+ "jiff-tzdb",
 ]
 
 [[package]]
@@ -5551,7 +5555,7 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "cargo_metadata",
- "chrono 0.4.43",
+ "chrono",
  "ctrlc",
  "dirs-next",
  "eframe",
@@ -5591,7 +5595,7 @@ dependencies = [
  "anyhow",
  "base64 0.22.1",
  "boa_engine",
- "chrono 0.4.43",
+ "chrono",
  "clap",
  "frontmatter",
  "miniz_oxide",
@@ -5619,9 +5623,9 @@ name = "tapestry-weave"
 version = "0.0.0"
 dependencies = [
  "base64 0.22.1",
- "chrono 0.4.41",
  "contracts",
  "foldhash 0.2.0",
+ "jiff",
  "rkyv",
  "serde_json",
  "ulid",
@@ -6130,7 +6134,7 @@ version = "5.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a9b93a14fcf658568eb11b3ac4cb406822e916e2c55cdebc421beeb0bd7c94d8"
 dependencies = [
- "chrono 0.4.43",
+ "chrono",
  "libc",
  "log",
  "objc2 0.6.3",

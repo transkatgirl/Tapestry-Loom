@@ -6,9 +6,18 @@
 
 use std::{borrow::Cow, cmp::Ordering, collections::HashSet, hash::BuildHasherDefault};
 
-use chrono::{FixedOffset, NaiveDateTime};
 use contracts::ensures;
 use foldhash::fast::RandomState;
+use jiff::{
+    Zoned,
+    fmt::temporal::{DateTimeParser, DateTimePrinter},
+};
+use rkyv::{
+    Place, SerializeUnsized,
+    rancor::{Fallible, Source},
+    string::{ArchivedString, StringResolver},
+    with::{ArchiveWith, DeserializeWith, SerializeWith},
+};
 use universal_weave::{
     ArchivedWeave, DeduplicatableContents, DeduplicatableWeave, DiscreteContentResult,
     DiscreteContents, DiscreteWeave, IndependentContents, SemiIndependentWeave, Weave,
@@ -29,7 +38,8 @@ use crate::{
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct NodeContent {
-    pub timestamp: Timestamp,
+    #[rkyv(with = AsTemporal)]
+    pub timestamp: Zoned,
     pub modified: bool,
 
     pub content: InnerNodeContent,
@@ -47,7 +57,7 @@ impl DiscreteContents for NodeContent {
                 self.modified = true;
 
                 let right_content = NodeContent {
-                    timestamp: self.timestamp,
+                    timestamp: self.timestamp.clone(),
                     modified: true,
                     content: right,
                     metadata: self.metadata.clone(),
@@ -63,7 +73,7 @@ impl DiscreteContents for NodeContent {
         }
     }
     fn merge(mut self, mut value: Self) -> DiscreteContentResult<Self> {
-        if self.timestamp.offset != value.timestamp.offset
+        if self.timestamp.time_zone() != value.timestamp.time_zone()
             || self.metadata != value.metadata
             || self.creator != value.creator
         {
@@ -80,7 +90,7 @@ impl DiscreteContents for NodeContent {
             DiscreteContentResult::One(center) => {
                 self.content = center;
                 self.modified = true;
-                self.timestamp.datetime = self.timestamp.datetime.max(value.timestamp.datetime);
+                self.timestamp = self.timestamp.max(value.timestamp);
                 DiscreteContentResult::One(self)
             }
         }
@@ -89,7 +99,7 @@ impl DiscreteContents for NodeContent {
 
 impl NodeContent {
     fn is_mergeable_with(&self, value: &Self) -> bool {
-        if self.timestamp.offset != value.timestamp.offset
+        if self.timestamp.time_zone() != value.timestamp.time_zone()
             || self.metadata != value.metadata
             || self.creator != value.creator
         {
@@ -455,10 +465,47 @@ pub struct Author {
     pub identifier: Option<u128>,
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Timestamp {
-    pub datetime: NaiveDateTime,
-    pub offset: FixedOffset,
+pub struct AsTemporal;
+
+impl ArchiveWith<Zoned> for AsTemporal {
+    type Archived = ArchivedString;
+    type Resolver = StringResolver;
+
+    #[inline]
+    fn resolve_with(field: &Zoned, resolver: Self::Resolver, out: Place<Self::Archived>) {
+        // It's safe to unwrap here because if the OsString wasn't valid UTF-8
+        // it would have failed to serialize
+        ArchivedString::resolve_from_str(
+            &DateTimePrinter::new().zoned_to_string(field),
+            resolver,
+            out,
+        );
+    }
+}
+
+impl<S> SerializeWith<Zoned, S> for AsTemporal
+where
+    S: Fallible + ?Sized,
+    S::Error: Source,
+    str: SerializeUnsized<S>,
+{
+    fn serialize_with(field: &Zoned, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
+        ArchivedString::serialize_from_str(
+            &DateTimePrinter::new().zoned_to_string(field),
+            serializer,
+        )
+    }
+}
+
+impl<D> DeserializeWith<ArchivedString, Zoned, D> for AsTemporal
+where
+    D: Fallible + ?Sized,
+{
+    fn deserialize_with(field: &ArchivedString, _: &mut D) -> Result<Zoned, D::Error> {
+        Ok(DateTimeParser::new()
+            .parse_zoned(field.as_str())
+            .unwrap_or_default())
+    }
 }
 
 pub type TapestryNode = IndependentNode<u64, NodeContent, BuildHasherDefault<RandomIdHasher>>;
@@ -480,9 +527,17 @@ pub struct TapestryWeave {
 pub struct TapestryWeaveMetadata {
     pub title: Option<String>,
     pub description: Option<String>,
-    pub created: Timestamp,
-    pub converted_from: Option<(String, Timestamp)>,
+    #[rkyv(with = AsTemporal)]
+    pub created: Zoned,
+    pub converted_from: Option<ConvertedFrom>,
     pub metadata: MetadataMap,
+}
+
+#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+pub struct ConvertedFrom {
+    pub source: String,
+    #[rkyv(with = AsTemporal)]
+    pub timestamp: Zoned,
 }
 
 impl From<TapestryWeaveInner> for TapestryWeave {

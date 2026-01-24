@@ -28,9 +28,4 @@ serde_json = { version = "1.0.145", features = [
 base64 = "0.22.1"
 
 # v1+
-chrono = { git = "https://github.com/transkatgirl/chrono", features = [
-	#"rkyv-64",
-	#"rkyv-validation",
-	"rkyv",
-	"rkyv-bytecheck",
-] }
+jiff = "0.2.18"
