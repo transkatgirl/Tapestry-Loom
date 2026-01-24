@@ -183,6 +183,7 @@ Goal: Completion before Feb 1st, 2026
 - [ ] Enable counterfactual logprobs by default
 - [ ] Implement fully immutable nodes using node duplication instead of direct modification
 - [ ] Refactor migration-assistant to natively use v1 format
+- [ ] Add documentation to `tapestry-weave` library
 
 ### Milestone 2
 
@@ -226,7 +227,6 @@ Goal: Completion before Feb 1st, 2026
 	- [ ] Context window wrapping using `TL#ctx_length`
 	- [ ] Add setting to toggle request post-processing
 - [ ] Implement BERT FIM server using nonstandard `fim_tokens` parameter
-- [ ] Add documentation to `tapestry-weave` library
 
 ### Milestone 4
 
