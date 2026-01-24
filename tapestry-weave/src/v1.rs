@@ -863,7 +863,7 @@ impl TapestryWeave {
                     Some(
                         tokens
                             .iter()
-                            .take(index)
+                            .take(index + 1)
                             .map(|token| token.bytes.len())
                             .sum::<usize>()
                             - split_index,

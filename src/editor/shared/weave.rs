@@ -232,8 +232,6 @@ impl WeaveWrapper {
         id: &Ulid,
         index: usize,
     ) -> Option<(Ulid, Option<Ulid>, Option<Ulid>)> {
-        // TODO: Fix this!
-
         if let Some(node) = self.weave.get_node(id) {
             if let InnerNodeContent::Tokens(tokens) = &node.contents.content
                 && tokens.len() > index
@@ -244,7 +242,7 @@ impl WeaveWrapper {
                     Some(
                         tokens
                             .iter()
-                            .take(index)
+                            .take(index + 1)
                             .map(|token| token.0.len())
                             .sum::<usize>()
                             - split_index,
