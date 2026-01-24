@@ -224,8 +224,9 @@ Goal: Completion before Feb 1st, 2026
 		- [ ] `TL#conf_threshold`
 	- [ ] Force single token node creation using `TL#force_single_token`
 	- [ ] Context window wrapping using `TL#ctx_length`
+	- [ ] Add setting to toggle request post-processing
 - [ ] Implement BERT FIM server using nonstandard `fim_tokens` parameter
-- [ ] Add documentation to `universal-weave` library
+- [ ] Add documentation to `tapestry-weave` library
 
 ### Milestone 4
 
@@ -252,11 +253,23 @@ Goal: Completion before Feb 1st, 2026
 
 ### Milestone 6
 
+Goal: Completion before June 1st, 2026
+
 - [ ] Allow temporarilly overriding color in inference menu
+- [ ] Add support for more weave migrations
+	- [ ] improve [loom](https://github.com/socketteer/loom) migration
+	- [ ] bonsai (using [damask](https://github.com/tel-0s/damask))
+	- [ ] [wool](https://github.com/lyramakesmusic/wool)
+	- [ ] [helm](https://github.com/Shoalstone/helm)
+	- [ ] (subset of) [miniloom](https://github.com/JD-P/miniloom)
 - [ ] Add model configuration sharing functionality
 	- [ ] Automatically redact sensitive information (such as API keys)
 	- [ ] Allow the user to manually redact sensitive information
 - [ ] Add ability to manually control refreshing of model tokenization identifier
+
+### Milestone 7
+
+- [ ] Add support for response streaming
 - [ ] Improve API response building
 	- [ ] Add support for OpenAI Responses
 	- [ ] Add support for Anthropic Complete
@@ -264,13 +277,11 @@ Goal: Completion before Feb 1st, 2026
 	- [ ] Add support for Gemini generateText
 	- [ ] Add support for Gemini generateContent
 	- [ ] Add support for Gemini embedContent
-
-### Milestone 7
-
-Goal: Completion before June 1st, 2026
-
-- [ ] Add support for response streaming
 - [ ] Review and refactor settings/inference module
+	- [ ] Improve clarity of error messages
+
+### Milestone 8
+
 - [ ] Perform API client testing with commonly used inference backends
 	- [ ] llama-cpp
 	- [ ] ollama
@@ -290,18 +301,8 @@ Goal: Completion before June 1st, 2026
 	- [ ] lmdeploy
 	- [ ] mlc-llm
 	- [ ] shimmy
-- [ ] Improve clarity of error messages
-
-### Milestone 8
-
 - [ ] Create video-based documentation
 - [ ] Create a website for Tapestry Loom's downloads and documentation
-- [ ] Add support for more weave migrations
-	- [ ] improve [loom](https://github.com/socketteer/loom) migration
-	- [ ] bonsai (using [damask](https://github.com/tel-0s/damask))
-	- [ ] [wool](https://github.com/lyramakesmusic/wool)
-	- [ ] [helm](https://github.com/Shoalstone/helm)
-	- [ ] (subset of) [miniloom](https://github.com/JD-P/miniloom)
 
 ### Milestone 9
 
