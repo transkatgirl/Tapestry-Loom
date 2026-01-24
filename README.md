@@ -262,6 +262,7 @@ Goal: Completion before June 1st, 2026
 	- [ ] [wool](https://github.com/lyramakesmusic/wool)
 	- [ ] [helm](https://github.com/Shoalstone/helm)
 	- [ ] (subset of) [miniloom](https://github.com/JD-P/miniloom)
+	- [ ] [openloom v0.1.0](https://www.latentspaces.app/openloom)
 - [ ] Add model configuration sharing functionality
 	- [ ] Automatically redact sensitive information (such as API keys)
 	- [ ] Allow the user to manually redact sensitive information
