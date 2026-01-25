@@ -197,6 +197,15 @@ impl InnerNodeContent {
             None
         }
     }
+    fn truncate_tokens(&mut self, count: usize) {
+        if let Self::Tokens(tokens) = self {
+            assert!(tokens.len() > count);
+            tokens.truncate(count);
+            tokens.shrink_to_fit();
+        } else {
+            panic!()
+        }
+    }
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
@@ -725,6 +734,14 @@ impl TapestryWeave {
 
         status
     }
+    pub fn add_node_direct(&mut self, node: TapestryNode) -> bool {
+        if self.weave.add_node(node) {
+            self.update_shape_and_active();
+            true
+        } else {
+            false
+        }
+    }
     pub fn set_node_active_status(&mut self, id: &u64, value: bool, alternate: bool) -> bool {
         if self.weave.set_node_active_status(id, value, alternate) {
             self.update_shape_and_active();
@@ -761,29 +778,66 @@ impl TapestryWeave {
         &mut self,
         id: &u64,
         at: usize,
-        duplicate: bool,
         mut id_generator: impl FnMut() -> u64,
-    ) -> Option<(u64, u64)> {
-        // TODO: Implement splitting duplication similarly to split_out_token(); Only duplicate if splitting within a token, and only duplicate the specific token being split
-        if duplicate {
-            if let Some(mut node) = self.weave.get_node(id).cloned() {
-                let from = id_generator();
-                let to = id_generator();
+    ) -> Option<(u64, Option<u64>, u64)> {
+        if at > 0
+            && let Some(node) = self.weave.get_node(id).cloned()
+            && let InnerNodeContent::Tokens(tokens) = &node.contents.content
+        {
+            let mut byte_index = 0;
+            let mut within_token = false;
+            for token in tokens {
+                byte_index += token.bytes.len();
+                if byte_index >= at {
+                    if byte_index > at {
+                        within_token = true;
+                    }
+                    byte_index -= token.bytes.len();
+                    break;
+                }
+            }
 
-                node.id = from;
-                node.bookmarked = false;
-                self.weave.add_node(node);
+            if within_token {
+                let first_split_id = id_generator();
 
-                if self.weave.split_node(&from, at, to) {
-                    self.weave.get_contents_mut(&from).unwrap().modified = true;
-                    self.weave.get_contents_mut(&to).unwrap().modified = true;
+                assert!(self.weave.split_node(id, byte_index, first_split_id));
+
+                self.weave.get_contents_mut(id).unwrap().modified = true;
+                self.weave
+                    .get_contents_mut(&first_split_id)
+                    .unwrap()
+                    .modified = true;
+
+                let mut token_node = self.weave.get_node(&first_split_id).unwrap().clone();
+                token_node.id = id_generator();
+                token_node.to = IndexSet::default();
+                token_node.contents.content.truncate_tokens(1);
+
+                let token_node_id = token_node.id;
+
+                assert!(self.weave.add_node(token_node));
+
+                let second_split_id = id_generator();
+
+                assert!(
+                    self.weave
+                        .split_node(&token_node_id, at - byte_index, second_split_id)
+                );
+
+                self.update_shape_and_active();
+
+                Some((*id, Some(token_node_id), second_split_id))
+            } else {
+                let new_id = id_generator();
+
+                if self.weave.split_node(id, at, new_id) {
+                    self.weave.get_contents_mut(id).unwrap().modified = true;
+                    self.weave.get_contents_mut(&new_id).unwrap().modified = true;
                     self.update_shape_and_active();
-                    Some((from, to))
+                    Some((*id, None, new_id))
                 } else {
                     None
                 }
-            } else {
-                None
             }
         } else {
             let new_id = id_generator();
@@ -792,7 +846,7 @@ impl TapestryWeave {
                 self.weave.get_contents_mut(id).unwrap().modified = true;
                 self.weave.get_contents_mut(&new_id).unwrap().modified = true;
                 self.update_shape_and_active();
-                Some((*id, new_id))
+                Some((*id, None, new_id))
             } else {
                 None
             }
@@ -941,7 +995,7 @@ impl TapestryWeave {
         self.changed_shape = true;
         self.weave.sort_node_children_by(id, compare)
     }
-    pub fn modify_weave(&mut self, callback: impl FnOnce(&mut TapestryWeaveInner)) {
+    pub fn modify_inner(&mut self, callback: impl FnOnce(&mut TapestryWeaveInner)) {
         callback(&mut self.weave);
         self.update_shape_and_active();
     }
