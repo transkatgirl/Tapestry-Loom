@@ -17,8 +17,6 @@ impl ArchiveWith<Zoned> for AsTemporal {
 
     #[inline]
     fn resolve_with(field: &Zoned, resolver: Self::Resolver, out: Place<Self::Archived>) {
-        // It's safe to unwrap here because if the OsString wasn't valid UTF-8
-        // it would have failed to serialize
         ArchivedString::resolve_from_str(
             &DateTimePrinter::new().zoned_to_string(field),
             resolver,
