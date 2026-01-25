@@ -1,6 +1,4 @@
 // TODO: v1 format using IndependentWeave
-// TODO: Duplicate nodes before splitting/merging/moving
-// TODO: Add temporary nodes which are not actually stored in the IndependentWeave?
 
 use universal_weave::{rkyv::rancor::Error, versioning::VersionedBytes};
 
