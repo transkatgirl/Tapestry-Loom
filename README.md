@@ -173,6 +173,7 @@ Goal: Completion before Feb 1st, 2026
 
 ### Milestone 1
 
+- [ ] Add in-app dialogs to display information about breaking changes
 - [ ] Implement v1 format
 	- [ ] Store generation seed in node
 		- [ ] Add support for custom randomness sources
