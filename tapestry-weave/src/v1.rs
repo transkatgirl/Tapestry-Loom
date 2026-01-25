@@ -7,7 +7,7 @@
 
 use std::{
     borrow::Cow, cmp::Ordering, collections::HashSet, hash::BuildHasherDefault, num::NonZeroU128,
-    sync::Arc,
+    str::FromStr, sync::Arc,
 };
 
 use contracts::ensures;
@@ -1313,8 +1313,29 @@ impl From<OldNodeContent> for NodeContent {
 }
 
 impl From<MetadataMap> for TapestryWeaveMetadata {
-    fn from(value: MetadataMap) -> Self {
-        todo!()
+    fn from(mut value: MetadataMap) -> Self {
+        let conversion_timestamp = value
+            .shift_remove("converted")
+            .and_then(|value| Zoned::from_str(&value).ok());
+        let source = value.shift_remove("converted_from");
+
+        TapestryWeaveMetadata {
+            title: None,
+            description: value.shift_remove("notes"),
+            created: value
+                .shift_remove("created")
+                .and_then(|value| Zoned::from_str(&value).ok())
+                .unwrap_or_default(),
+            converted_from: if source.is_some() || conversion_timestamp.is_some() {
+                Some(ConvertedFrom {
+                    source: source.unwrap_or_else(|| "Unknown".to_string()),
+                    timestamp: conversion_timestamp.unwrap_or_default(),
+                })
+            } else {
+                None
+            },
+            metadata: value,
+        }
     }
 }
 
