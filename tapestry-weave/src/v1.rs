@@ -741,7 +741,7 @@ impl TapestryWeave {
             false
         }
     }
-    pub fn set_node_bookmarked_status_u64(&mut self, id: &u64, value: bool) -> bool {
+    pub fn set_node_bookmarked_status(&mut self, id: &u64, value: bool) -> bool {
         if self.weave.set_node_bookmarked_status(id, value) {
             self.changed = true;
             true
@@ -808,55 +808,23 @@ impl TapestryWeave {
             None
         }
     }
-    pub fn merge_with_parent_u64(&mut self, id: &u64) -> bool {
-        if let Some(new_id) = self.weave.merge_with_parent(id) {
-            self.weave.get_contents_mut(&new_id).unwrap().modified = true;
-            self.update_shape_and_active();
-            true
-        } else {
-            false
-        }
-    }
-    pub fn is_mergeable_with_parent(&self, id: &u64) -> bool {
-        if let Some(node) = self.weave.get_node(id) {
-            if node.from.len() == 1
-                && let Some(parent) = node.from.first().and_then(|id| self.weave.get_node(id))
-            {
-                parent.to.len() == 1 && parent.contents.is_mergeable_with(&node.contents)
-            } else {
-                false
+    pub fn split_out_token(
+        &mut self,
+        id: &u64,
+        index: usize,
+        id_generator: impl FnMut() -> u64,
+    ) -> Option<(u64, Option<u64>, Option<u64>)> {
+        if let Some(result) = self.split_out_token_inner(id, index, id_generator) {
+            if result.1.is_some() || result.2.is_some() {
+                self.update_shape_and_active();
             }
-        } else {
-            false
-        }
-    }
-    pub fn remove_node(&mut self, id: &u64) -> Option<TapestryNode> {
-        if let Some(removed) = self.weave.remove_node(id) {
-            self.update_shape_and_active();
-            Some(removed)
+
+            Some(result)
         } else {
             None
         }
     }
-    pub fn sort_roots_by(&mut self, compare: impl FnMut(&TapestryNode, &TapestryNode) -> Ordering) {
-        self.changed = true;
-        self.changed_shape = true;
-        self.weave.sort_roots_by(compare)
-    }
-    pub fn sort_node_children_by(
-        &mut self,
-        id: &u64,
-        compare: impl FnMut(&TapestryNode, &TapestryNode) -> Ordering,
-    ) -> bool {
-        self.changed = true;
-        self.changed_shape = true;
-        self.weave.sort_node_children_by(id, compare)
-    }
-}
-
-impl TapestryWeave {
-    // TODO: (diff-based) set_active_content, insert_node_at
-    pub fn split_out_token(
+    fn split_out_token_inner(
         &mut self,
         id: &u64,
         index: usize,
@@ -905,12 +873,8 @@ impl TapestryWeave {
 
                         self.weave.get_contents_mut(&tail_id).unwrap().modified = true;
 
-                        self.update_shape_and_active();
-
                         Some((*id, Some(middle_id), Some(tail_id)))
                     } else {
-                        self.update_shape_and_active();
-
                         Some((*id, Some(middle_id), None))
                     }
                 } else if let Some(second_split_index) = second_split_index
@@ -921,8 +885,6 @@ impl TapestryWeave {
                     assert!(self.weave.split_node(id, second_split_index, tail_id));
 
                     self.weave.get_contents_mut(&tail_id).unwrap().modified = true;
-
-                    self.update_shape_and_active();
 
                     Some((*id, None, Some(tail_id)))
                 } else {
@@ -935,6 +897,54 @@ impl TapestryWeave {
             None
         }
     }
+    pub fn merge_with_parent(&mut self, id: &u64) -> bool {
+        if let Some(new_id) = self.weave.merge_with_parent(id) {
+            self.weave.get_contents_mut(&new_id).unwrap().modified = true;
+            self.update_shape_and_active();
+            true
+        } else {
+            false
+        }
+    }
+    pub fn is_mergeable_with_parent(&self, id: &u64) -> bool {
+        if let Some(node) = self.weave.get_node(id) {
+            if node.from.len() == 1
+                && let Some(parent) = node.from.first().and_then(|id| self.weave.get_node(id))
+            {
+                parent.to.len() == 1 && parent.contents.is_mergeable_with(&node.contents)
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+    pub fn remove_node(&mut self, id: &u64) -> Option<TapestryNode> {
+        if let Some(removed) = self.weave.remove_node(id) {
+            self.update_shape_and_active();
+            Some(removed)
+        } else {
+            None
+        }
+    }
+    pub fn sort_roots_by(&mut self, compare: impl FnMut(&TapestryNode, &TapestryNode) -> Ordering) {
+        self.changed = true;
+        self.changed_shape = true;
+        self.weave.sort_roots_by(compare)
+    }
+    pub fn sort_node_children_by(
+        &mut self,
+        id: &u64,
+        compare: impl FnMut(&TapestryNode, &TapestryNode) -> Ordering,
+    ) -> bool {
+        self.changed = true;
+        self.changed_shape = true;
+        self.weave.sort_node_children_by(id, compare)
+    }
+}
+
+impl TapestryWeave {
+    // TODO: (diff-based) set_active_content, insert_node_at
 }
 
 pub struct ArchivedTapestryWeave {
