@@ -29,7 +29,7 @@ use crate::{
     hashers::RandomIdHasher,
     to_versioned_bytes,
     v0::{
-        InnerNodeContent as OldInnerNodeContent, NodeContent as OldNodeContent,
+        InnerNodeContent as OldInnerNodeContent, Model as OldModel, NodeContent as OldNodeContent,
         TapestryWeave as OldTapestryWeave, deserialize_counterfactual_logprobs,
     },
     wrappers::AsTemporal,
@@ -1227,9 +1227,61 @@ impl From<OldInnerNodeContent> for InnerNodeContent {
     }
 }
 
+impl From<OldModel> for Creator {
+    fn from(value: OldModel) -> Self {
+        Self::Model(Some(Model {
+            label: value.label,
+            identifier: None,
+            seed: None,
+            metadata: value.metadata,
+        }))
+    }
+}
+
 impl From<OldNodeContent> for NodeContent {
-    fn from(value: OldNodeContent) -> Self {
-        todo!()
+    fn from(mut value: OldNodeContent) -> Self {
+        value.metadata.shift_remove("confidence");
+        value.metadata.shift_remove("confidence_k");
+        value.metadata.shift_remove("confidence_n");
+
+        let modified = if let OldInnerNodeContent::Tokens(tokens) = value.content {
+            todo!()
+        } else {
+            false
+        };
+
+        let mut creator = value.model.map(Creator::from).unwrap_or(Creator::Unknown);
+
+        if let Creator::Model(Some(model)) = &mut creator
+            && let OldInnerNodeContent::Tokens(tokens) = &mut value.content
+        {
+            let mut model_id = None;
+
+            for (_, metadata) in tokens {
+                if let Some(value) = metadata.shift_remove("model_id") {
+                    if let Some(existing_id) = &model_id
+                        && *existing_id != value
+                    {
+                        model_id = None;
+                        break;
+                    } else {
+                        model_id = Some(value);
+                    }
+                }
+            }
+
+            if let Some(model_id) = model_id.and_then(|id| id.parse::<NonZeroU128>().ok()) {
+                model.identifier = Some(model_id);
+            }
+        }
+
+        NodeContent {
+            timestamp: Zoned::default(),
+            modified,
+            metadata: value.metadata,
+            creator,
+            content: value.content.into(),
+        }
     }
 }
 

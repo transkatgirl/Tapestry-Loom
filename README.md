@@ -169,13 +169,13 @@ Goal: Completion before Feb 1st, 2026
 
 - [ ] Improve handling of hovered + omitted/collapsed nodes
 - [ ] Implement counterfactual logprobs, similar to [mikupad](https://github.com/lmg-anon/mikupad)
-- [ ] Store generation seed in node
-	- [ ] Add support for custom randomness sources
 - [ ] Release version 0.12.0
 
 ### Milestone 1
 
 - [ ] Implement v1 format
+	- [ ] Store generation seed in node
+		- [ ] Add support for custom randomness sources
 	- [ ] Enable counterfactual logprobs by default
 	- [ ] Implement highlighting of active counterfactual token
 	- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
