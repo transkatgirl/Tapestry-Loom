@@ -169,21 +169,22 @@ Goal: Completion before Feb 1st, 2026
 
 - [ ] Improve handling of hovered + omitted/collapsed nodes
 - [ ] Implement counterfactual logprobs, similar to [mikupad](https://github.com/lmg-anon/mikupad)
-- [ ] Store generation seed in node
 - [ ] Release version 0.12.0
 
 ### Milestone 1
 
-- [ ] Implement new DAG-based Weave format, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
+- [ ] Implement v1 format
+	- [ ] Store generation seed in node
+	- [ ] Enable counterfactual logprobs by default
+	- [ ] Implement highlighting of active counterfactual token
+	- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
+	- [ ] Refactor migration-assistant to natively use v1 format
+- [ ] Release version 0.13.0
+- [ ] Implement DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- [ ] FIM completions
 		- [ ] Selected text is used to determine FIM location
 	- [ ] Diff-based editor content application
-	- [ ] Implement highlighting of active counterfactual token
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
-	- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
-- [ ] Enable counterfactual logprobs by default
-- [ ] Implement fully immutable nodes using node duplication instead of direct modification
-- [ ] Refactor migration-assistant to natively use v1 format
 - [ ] Add documentation to `tapestry-weave` library
 
 ### Milestone 2
