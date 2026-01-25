@@ -941,6 +941,10 @@ impl TapestryWeave {
         self.changed_shape = true;
         self.weave.sort_node_children_by(id, compare)
     }
+    pub fn modify_weave(&mut self, callback: impl FnOnce(&mut TapestryWeaveInner)) {
+        callback(&mut self.weave);
+        self.update_shape_and_active();
+    }
 }
 
 impl TapestryWeave {
