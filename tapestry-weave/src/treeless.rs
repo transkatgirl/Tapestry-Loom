@@ -1,16 +1,15 @@
-use universal_weave::{
-    indexmap::IndexMap,
-    rkyv::{
-        Archive, Deserialize, Serialize, from_bytes, rancor::Error, to_bytes, util::AlignedVec,
-    },
+use universal_weave::rkyv::{
+    Archive, Deserialize, Serialize, from_bytes, rancor::Error, to_bytes, util::AlignedVec,
 };
+
+use crate::v1::TapestryWeaveMetadata;
 
 pub const FILE_EXTENSION: &str = "tapestrytext";
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct TextOnlyDocument {
     pub content: Vec<u8>,
-    pub metadata: IndexMap<String, String>,
+    pub metadata: TapestryWeaveMetadata,
 }
 
 impl TextOnlyDocument {
