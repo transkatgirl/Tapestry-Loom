@@ -835,7 +835,7 @@ impl TapestryWeave {
 
                 let mut token_node = self.weave.get_node(&first_split_id).unwrap().clone();
                 token_node.id = id_generator();
-                token_node.to = IndexSet::default();
+                //token_node.to = IndexSet::default();
                 token_node.contents.content.truncate_tokens(1);
 
                 let token_node_id = token_node.id;
