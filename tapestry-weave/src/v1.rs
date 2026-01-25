@@ -221,7 +221,7 @@ pub struct InnerNodeToken {
     pub entropy: Option<f32>,
     pub metadata: MetadataMap,
     pub counterfactual: Rc<Vec<CounterfactualToken>>,
-    pub original: Option<Vec<u8>>,
+    pub original: OriginalToken,
 }
 
 impl InnerNodeToken {
@@ -241,6 +241,26 @@ impl InnerNodeToken {
             ))
         } else {
             None
+        }
+    }
+    pub fn is_modified(&self) -> bool {
+        self.original.is_modified()
+    }
+}
+
+#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
+pub enum OriginalToken {
+    Unmodified,
+    Known(Vec<u8>),
+    Unknown,
+}
+
+impl OriginalToken {
+    pub fn is_modified(&self) -> bool {
+        match self {
+            Self::Known(_) => true,
+            Self::Unknown => true,
+            Self::Unmodified => false,
         }
     }
 }
@@ -313,8 +333,8 @@ impl InnerNodeContent {
                     debug_assert!(!right_token.is_empty() || left_token.is_empty());
 
                     if !left_token.is_empty() {
-                        if right[0].original.is_none() {
-                            right[0].original = Some(right[0].bytes.clone());
+                        if !right[0].original.is_modified() {
+                            right[0].original = OriginalToken::Known(right[0].bytes.clone());
                         }
 
                         left_token.shrink_to_fit();
@@ -1218,7 +1238,11 @@ impl From<OldInnerNodeContent> for InnerNodeContent {
                                     .unwrap_or_default(),
                             ),
                             metadata,
-                            original: None,
+                            original: if modified {
+                                OriginalToken::Unknown
+                            } else {
+                                OriginalToken::Unmodified
+                            },
                         }
                     })
                     .collect(),
@@ -1243,12 +1267,6 @@ impl From<OldNodeContent> for NodeContent {
         value.metadata.shift_remove("confidence");
         value.metadata.shift_remove("confidence_k");
         value.metadata.shift_remove("confidence_n");
-
-        let modified = if let OldInnerNodeContent::Tokens(tokens) = value.content {
-            todo!()
-        } else {
-            false
-        };
 
         let mut creator = value.model.map(Creator::from).unwrap_or(Creator::Unknown);
 
@@ -1275,12 +1293,18 @@ impl From<OldNodeContent> for NodeContent {
             }
         }
 
+        let content = InnerNodeContent::from(value.content);
+
         NodeContent {
-            timestamp: Zoned::default(),
-            modified,
+            timestamp: Zoned::default(), // !
+            modified: if let InnerNodeContent::Tokens(tokens) = &content {
+                tokens.iter().any(|token| token.original.is_modified())
+            } else {
+                false
+            },
             metadata: value.metadata,
             creator,
-            content: value.content.into(),
+            content,
         }
     }
 }
