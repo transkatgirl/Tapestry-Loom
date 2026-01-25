@@ -7,7 +7,7 @@
 
 use std::{
     borrow::Cow, cmp::Ordering, collections::HashSet, hash::BuildHasherDefault, num::NonZeroU128,
-    rc::Rc,
+    sync::Arc,
 };
 
 use contracts::ensures;
@@ -220,7 +220,7 @@ pub struct InnerNodeToken {
     #[rkyv(with = NicheInto<niching::NaN>)]
     pub entropy: Option<f32>,
     pub metadata: MetadataMap,
-    pub counterfactual: Rc<Vec<CounterfactualToken>>,
+    pub counterfactual: Arc<Vec<CounterfactualToken>>,
     pub original: OriginalToken,
 }
 
@@ -1175,14 +1175,16 @@ impl From<OldInnerNodeContent> for InnerNodeContent {
                         metadata.shift_remove("confidence");
                         metadata.shift_remove("confidence_k");
 
-                        let modified = metadata
+                        let mut modified = metadata
                             .shift_remove("original_length")
                             .and_then(|value| value.parse::<usize>().ok())
                             .map(|original_length| original_length != token.len())
                             .unwrap_or(false);
 
-                        if modified {
-                            metadata.insert("modified".to_string(), "true".to_string());
+                        if let Some(value) = metadata.shift_remove("modified")
+                            && value == "true"
+                        {
+                            modified = true;
                         }
 
                         InnerNodeToken {
@@ -1200,7 +1202,7 @@ impl From<OldInnerNodeContent> for InnerNodeContent {
                                 None
                             },
                             entropy: None,
-                            counterfactual: Rc::new(
+                            counterfactual: Arc::new(
                                 metadata
                                     .shift_remove("counterfactual")
                                     .and_then(|value| {
@@ -1309,12 +1311,18 @@ impl From<OldNodeContent> for NodeContent {
     }
 }
 
+impl From<MetadataMap> for TapestryWeaveMetadata {
+    fn from(value: MetadataMap) -> Self {
+        todo!()
+    }
+}
+
 impl From<OldTapestryWeave> for TapestryWeave {
     fn from(value: OldTapestryWeave) -> Self {
-        /*let mut output =
-            TapestryWeave::with_capacity(value.capacity(), value.weave.metadata.clone());
+        let mut output =
+            TapestryWeave::with_capacity(value.capacity(), value.weave.metadata.clone().into());
 
-        for identifier in value.weave.get_ordered_node_identifiers() {
+        /*for identifier in value.weave.get_ordered_node_identifiers() {
             let node = value.weave.get_node(&identifier).unwrap().clone();
 
             assert!(output.add_node(IndependentNode {
