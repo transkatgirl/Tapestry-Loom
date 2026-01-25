@@ -3,6 +3,7 @@
 // TODO: Longest common prefix deduplication
 // TODO: Token ID based deduplication
 // TODO: Request parameter based deduplication (especially for single-token nodes)
+// TODO: Add support for temporary nodes which are not actually stored in the IndependentWeave?
 
 use std::{
     borrow::Cow, cmp::Ordering, collections::HashSet, hash::BuildHasherDefault, num::NonZeroU128,
@@ -27,7 +28,10 @@ use crate::{
     VersionedWeave,
     hashers::RandomIdHasher,
     to_versioned_bytes,
-    v0::{NodeContent as OldNodeContent, TapestryWeave as OldTapestryWeave},
+    v0::{
+        InnerNodeContent as OldInnerNodeContent, NodeContent as OldNodeContent,
+        TapestryWeave as OldTapestryWeave, deserialize_counterfactual_logprobs,
+    },
     wrappers::AsTemporal,
 };
 
@@ -215,7 +219,7 @@ pub struct InnerNodeToken {
     pub id: Option<u64>,
     #[rkyv(with = NicheInto<niching::NaN>)]
     pub entropy: Option<f32>,
-    pub metadata: Rc<MetadataMap>,
+    pub metadata: MetadataMap,
     pub counterfactual: Rc<Vec<CounterfactualToken>>,
     pub original: Option<Vec<u8>>,
 }
@@ -1002,7 +1006,7 @@ impl TapestryWeave {
 }
 
 impl TapestryWeave {
-    // TODO: (diff-based) set_active_content, insert_node_at
+    // TODO: (diff-based) set_active_content, insert_node_at, remove_active_range
 }
 
 pub struct ArchivedTapestryWeave {
@@ -1135,6 +1139,90 @@ impl ArchivedTapestryWeave {
             }
         } else {
             false
+        }
+    }
+}
+
+impl From<OldInnerNodeContent> for InnerNodeContent {
+    fn from(value: OldInnerNodeContent) -> Self {
+        match value {
+            OldInnerNodeContent::Snippet(snippet) => InnerNodeContent::Snippet(snippet),
+            OldInnerNodeContent::Tokens(tokens) => InnerNodeContent::Tokens(
+                tokens
+                    .into_iter()
+                    .map(|(token, mut metadata)| {
+                        metadata.shift_remove("model_id");
+                        metadata.shift_remove("confidence");
+                        metadata.shift_remove("confidence_k");
+
+                        let modified = metadata
+                            .shift_remove("original_length")
+                            .and_then(|value| value.parse::<usize>().ok())
+                            .map(|original_length| original_length != token.len())
+                            .unwrap_or(false);
+
+                        if modified {
+                            metadata.insert("modified".to_string(), "true".to_string());
+                        }
+
+                        InnerNodeToken {
+                            bytes: token,
+                            logprob: metadata
+                                .shift_remove("probability")
+                                .and_then(|value| value.parse::<f32>().ok())
+                                .unwrap_or(f32::NAN)
+                                .ln(),
+                            id: if !modified {
+                                metadata
+                                    .shift_remove("token_id")
+                                    .and_then(|value| value.parse::<u64>().ok())
+                            } else {
+                                None
+                            },
+                            entropy: None,
+                            counterfactual: Rc::new(
+                                metadata
+                                    .shift_remove("counterfactual")
+                                    .and_then(|value| {
+                                        deserialize_counterfactual_logprobs(&value).map(
+                                            |counterfactual| {
+                                                counterfactual
+                                                    .into_iter()
+                                                    .map(|(token, mut metadata)| {
+                                                        metadata.shift_remove("model_id");
+                                                        metadata.shift_remove("confidence");
+                                                        metadata.shift_remove("confidence_k");
+                                                        metadata.shift_remove("original_length");
+
+                                                        CounterfactualToken {
+                                                            bytes: token,
+                                                            logprob: metadata
+                                                                .shift_remove("probability")
+                                                                .and_then(|value| {
+                                                                    value.parse::<f32>().ok()
+                                                                })
+                                                                .unwrap_or(f32::NAN)
+                                                                .ln(),
+                                                            id: metadata
+                                                                .shift_remove("token_id")
+                                                                .and_then(|value| {
+                                                                    value.parse::<u64>().ok()
+                                                                }),
+                                                            metadata,
+                                                        }
+                                                    })
+                                                    .collect()
+                                            },
+                                        )
+                                    })
+                                    .unwrap_or_default(),
+                            ),
+                            metadata,
+                            original: None,
+                        }
+                    })
+                    .collect(),
+            ),
         }
     }
 }
