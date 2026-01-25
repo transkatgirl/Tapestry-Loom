@@ -4,7 +4,10 @@
 // TODO: Token ID based deduplication
 // TODO: Request parameter based deduplication (especially for single-token nodes)
 
-use std::{borrow::Cow, cmp::Ordering, collections::HashSet, hash::BuildHasherDefault, rc::Rc};
+use std::{
+    borrow::Cow, cmp::Ordering, collections::HashSet, hash::BuildHasherDefault, num::NonZeroU128,
+    rc::Rc,
+};
 
 use contracts::ensures;
 use foldhash::fast::RandomState;
@@ -16,7 +19,7 @@ use universal_weave::{
     indexmap::{IndexMap, IndexSet},
     rkyv::{
         Archive, Deserialize, Serialize, collections::swiss_table::ArchivedIndexSet, from_bytes,
-        rancor::Error, rend::u64_le, to_bytes, util::AlignedVec,
+        niche::niching, rancor::Error, rend::u64_le, to_bytes, util::AlignedVec, with::NicheInto,
     },
 };
 
@@ -177,6 +180,23 @@ impl InnerNodeContent {
             None
         }
     }
+    pub fn calculate_average_entropy(&self) -> Option<f32> {
+        if let Self::Tokens(tokens) = self {
+            if tokens.iter().any(|token| token.entropy.is_some()) {
+                Some(
+                    (tokens
+                        .iter()
+                        .filter_map(|token| token.entropy.map(|e| e as f64))
+                        .sum::<f64>()
+                        / tokens.len() as f64) as f32,
+                )
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
@@ -184,6 +204,7 @@ pub struct InnerNodeToken {
     pub bytes: Vec<u8>,
     pub logprob: f32,
     pub id: Option<u64>,
+    #[rkyv(with = NicheInto<niching::NaN>)]
     pub entropy: Option<f32>,
     pub metadata: Rc<MetadataMap>,
     pub counterfactual: Rc<Vec<CounterfactualToken>>,
@@ -432,7 +453,8 @@ pub enum Creator {
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Model {
     pub label: String,
-    pub identifier: Option<u128>,
+    #[rkyv(with = NicheInto<niching::Zero>)]
+    pub identifier: Option<NonZeroU128>,
     pub seed: Option<u32>,
     pub metadata: MetadataMap,
 }
@@ -440,7 +462,8 @@ pub struct Model {
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Author {
     pub label: String,
-    pub identifier: Option<u128>,
+    #[rkyv(with = NicheInto<niching::Zero>)]
+    pub identifier: Option<NonZeroU128>,
 }
 
 pub type TapestryNode = IndependentNode<u64, NodeContent, BuildHasherDefault<RandomIdHasher>>;
