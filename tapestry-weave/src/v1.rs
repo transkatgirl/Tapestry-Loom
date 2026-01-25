@@ -13,6 +13,7 @@ use std::{
 use contracts::ensures;
 use foldhash::fast::RandomState;
 use jiff::Zoned;
+use ulid::Ulid;
 use universal_weave::{
     ArchivedWeave, DeduplicatableContents, DeduplicatableWeave, DiscreteContentResult,
     DiscreteContents, DiscreteWeave, IndependentContents, SemiIndependentWeave, Weave,
@@ -1166,8 +1167,8 @@ impl ArchivedTapestryWeave {
 impl From<OldInnerNodeContent> for InnerNodeContent {
     fn from(value: OldInnerNodeContent) -> Self {
         match value {
-            OldInnerNodeContent::Snippet(snippet) => InnerNodeContent::Snippet(snippet),
-            OldInnerNodeContent::Tokens(tokens) => InnerNodeContent::Tokens(
+            OldInnerNodeContent::Snippet(snippet) => Self::Snippet(snippet),
+            OldInnerNodeContent::Tokens(tokens) => Self::Tokens(
                 tokens
                     .into_iter()
                     .map(|(token, mut metadata)| {
@@ -1297,8 +1298,8 @@ impl From<OldNodeContent> for NodeContent {
 
         let content = InnerNodeContent::from(value.content);
 
-        NodeContent {
-            timestamp: Zoned::default(), // !
+        Self {
+            timestamp: Zoned::default(),
             modified: if let InnerNodeContent::Tokens(tokens) = &content {
                 tokens.iter().any(|token| token.original.is_modified())
             } else {
@@ -1317,26 +1318,37 @@ impl From<MetadataMap> for TapestryWeaveMetadata {
     }
 }
 
+fn convert_old_identifier(value: u128) -> u64 {
+    unsafe { std::mem::transmute::<u128, [u64; 2]>(value)[1] }
+}
+
 impl From<OldTapestryWeave> for TapestryWeave {
-    fn from(value: OldTapestryWeave) -> Self {
+    fn from(mut value: OldTapestryWeave) -> Self {
         let mut output =
             TapestryWeave::with_capacity(value.capacity(), value.weave.metadata.clone().into());
 
-        /*for identifier in value.weave.get_ordered_node_identifiers() {
+        let mut identifiers = Vec::with_capacity(value.weave.len());
+        value.weave.get_ordered_node_identifiers(&mut identifiers);
+
+        for identifier in identifiers {
             let node = value.weave.get_node(&identifier).unwrap().clone();
 
-            assert!(output.add_node(IndependentNode {
-                id: node.id,
-                from: IndexSet::from_iter(node.from.into_iter()),
-                to: node.to,
+            let timestamp = Zoned::try_from(Ulid(node.id).datetime()).unwrap_or(Zoned::default());
+
+            let mut node = TapestryNode {
+                id: convert_old_identifier(node.id),
+                from: IndexSet::from_iter(node.from.into_iter().map(convert_old_identifier)),
+                to: IndexSet::from_iter(node.to.into_iter().map(convert_old_identifier)),
                 active: node.active,
                 bookmarked: node.bookmarked,
                 contents: node.contents.into(),
-            }));
+            };
+
+            node.contents.timestamp = timestamp;
+
+            assert!(output.add_node(node));
         }
 
-        output*/
-
-        todo!()
+        output
     }
 }
