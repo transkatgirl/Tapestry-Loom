@@ -23,8 +23,6 @@ A power user focused interface for LLM base models, inspired by the designs of [
 	- This is due to a bug in egui
 - CPU usage is high when the window is not visible and not minimized
 	- This is due to a [bug in egui](https://github.com/emilk/egui/issues/7776)
-- Trackpad scroll gestures do not work in hover tooltips
-	- This is due to a bug in egui
 - Root nodes containing long text may overlap in the canvas view
 
 If you are experiencing an issue not listed here or in this [repository's active issues](https://github.com/transkatgirl/Tapestry-Loom/issues), please file an issue so that it can be fixed.

@@ -3,7 +3,7 @@ use std::{cell::RefCell, collections::HashMap, ops::Range, rc::Rc};
 use eframe::{
     egui::{
         Color32, Frame, Galley, Id, Mesh, Pos2, Rect, ScrollArea, Sense, TextBuffer, TextEdit,
-        TextFormat, TextStyle, Ui,
+        TextFormat, TextStyle, Tooltip, Ui,
         text::{CCursor, CCursorRange, LayoutJob, LayoutSection, TextWrapping},
     },
     epaint::{MarginF32, Vertex, WHITE_UV},
@@ -255,7 +255,18 @@ impl TextEditorView {
                                     }
                                 }
 
-                                response.on_hover_ui(|ui| {
+                                let mut tooltip = Tooltip::for_enabled(&response);
+
+                                tooltip.popup = tooltip.popup.open(
+                                    Tooltip::should_show_tooltip(&response, true)
+                                        || (response.is_tooltip_open()
+                                            && response.ctx.input(|i| {
+                                                i.time_since_last_scroll()
+                                                    < ui.style().interaction.tooltip_delay
+                                            })), // Workaround for egui limitation
+                                );
+
+                                tooltip.show(|ui| {
                                     if let Some(within_index) = snippet.3 {
                                         state.set_hovered_node(NodeIndex::WithinNode(
                                             snippet.1,
