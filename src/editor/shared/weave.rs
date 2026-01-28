@@ -231,11 +231,13 @@ impl WeaveWrapper {
         &mut self,
         id: &Ulid,
         index: usize,
-    ) -> Option<(Ulid, Option<Ulid>, Option<Ulid>)> {
+    ) -> Option<(Option<Ulid>, Ulid, Option<Ulid>)> {
         if let Some(node) = self.weave.get_node(id) {
             if let InnerNodeContent::Tokens(tokens) = &node.contents.content
                 && tokens.len() > index
             {
+                let parent = node.from.map(Ulid);
+
                 let split_index: usize = tokens.iter().take(index).map(|token| token.0.len()).sum();
 
                 let second_split_index = if tokens.len() > index + 1 {
@@ -276,9 +278,9 @@ impl WeaveWrapper {
                             })
                             .unwrap();
 
-                        Some((*id, Some(middle_id), Some(tail_id)))
+                        Some((Some(*id), middle_id, Some(tail_id)))
                     } else {
-                        Some((*id, Some(middle_id), None))
+                        Some((Some(*id), middle_id, None))
                     }
                 } else if let Some(second_split_index) = second_split_index
                     && second_split_index > 0
@@ -292,9 +294,9 @@ impl WeaveWrapper {
                         })
                         .unwrap();
 
-                    Some((*id, None, Some(tail_id)))
+                    Some((parent, *id, Some(tail_id)))
                 } else {
-                    Some((*id, None, None))
+                    Some((parent, *id, None))
                 }
             } else {
                 None
