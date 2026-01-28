@@ -174,8 +174,10 @@ Goal: Completion before Feb 7th, 2026 / version v0.14.x
 - [x] Release version 0.12.0
 - [ ] Fix token rendering in non-editor subviews
 - [ ] Add tab close shortcut
-- [ ] Add autoscroll levels ("none", "partial", "full")
-- [ ] Add autoscroll keyboard shortcuts (reduce autoscroll level, increase autoscroll level)
+- [ ] Disable autoscroll for very long nodes
+	- [ ] Add a setting to change the autoscroll cutoff
+- [ ] Add a setting to disable autoscroll in the editor subview
+- [ ] Add a keyboard shortcut to toggle autoscroll
 - [ ] Release version 0.13.0
 
 ### Milestone 1
