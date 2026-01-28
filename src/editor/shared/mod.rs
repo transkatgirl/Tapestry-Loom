@@ -1153,7 +1153,9 @@ pub fn render_node_text_or_first_token_bytes(
 
     match &node.contents.content {
         InnerNodeContent::Tokens(tokens) => {
-            let mut text = String::with_capacity(tokens.iter().map(|(t, _)| t.len()).sum());
+            let mut text =
+                from_utf8_lossy(&tokens.iter().flat_map(|t| t.0.clone()).collect::<Vec<u8>>())
+                    .to_string();
             let mut offset = 0;
 
             let mut sections = Vec::with_capacity(tokens.len());
@@ -1161,7 +1163,7 @@ pub fn render_node_text_or_first_token_bytes(
             for (token, token_metadata) in tokens {
                 let mut color = get_token_color(color, token_metadata, settings)
                     .unwrap_or(ui.visuals().widgets.inactive.text_color());
-                let mut token_text = from_utf8_lossy(token);
+                let token_length = token.len();
 
                 if tokens.len() == 1
                     && token_metadata
@@ -1171,13 +1173,30 @@ pub fn render_node_text_or_first_token_bytes(
                         .unwrap_or(true)
                     && str::from_utf8(token).is_err()
                 {
-                    token_text = format!("{token:?}").into();
+                    text = format!("{token:?}");
                     color = ui.visuals().widgets.noninteractive.text_color();
+                    sections.push(LayoutSection {
+                        leading_space: 0.0,
+                        byte_range: Range {
+                            start: 0,
+                            end: text.len(),
+                        },
+                        format: TextFormat {
+                            font_id: font_id.clone(),
+                            color,
+                            valign: ui.text_valign(),
+                            ..Default::default()
+                        },
+                    });
+                    break;
                 }
 
                 sections.push(LayoutSection {
                     leading_space: 0.0,
-                    byte_range: offset..(offset + token_text.len()),
+                    byte_range: Range {
+                        start: text.floor_char_boundary(offset),
+                        end: text.floor_char_boundary(offset + token_length),
+                    },
                     format: TextFormat {
                         font_id: font_id.clone(),
                         color,
@@ -1185,8 +1204,7 @@ pub fn render_node_text_or_first_token_bytes(
                         ..Default::default()
                     },
                 });
-                offset += token_text.len();
-                text.push_str(&token_text);
+                offset += token_length;
             }
 
             LayoutJob {
