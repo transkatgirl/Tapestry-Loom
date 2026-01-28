@@ -168,7 +168,7 @@ Please [consider donating](https://github.com/sponsors/transkatgirl) to help fun
 Goal: Completion before Feb 1st, 2026
 
 - [ ] Improve handling of hovered + omitted/collapsed nodes
-- [ ] Implement counterfactual logprobs, similar to [mikupad](https://github.com/lmg-anon/mikupad)
+- [x] Implement counterfactual logprobs, similar to [mikupad](https://github.com/lmg-anon/mikupad)
 - [ ] Release version 0.12.0
 
 ### Milestone 1
