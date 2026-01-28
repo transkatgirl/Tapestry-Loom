@@ -967,7 +967,7 @@ fn render_tooltip(ui: &mut Ui, weave: &mut WeaveWrapper, node: Ulid, index: usiz
 
                             weave.add_node(TapestryNode {
                                 id: Ulid::new().0,
-                                from: Some(split.1.0),
+                                from: split.0.map(|id| id.0),
                                 to: IndexSet::default(),
                                 active,
                                 bookmarked: false,
