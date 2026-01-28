@@ -961,9 +961,9 @@ fn render_tooltip(ui: &mut Ui, weave: &mut WeaveWrapper, node: Ulid, index: usiz
                     render_node_metadata_tooltip(ui, node);
 
                     if let Some(counterfactual_index) = counterfactual_choice
-                        && let Some(value) = token_metadata.get("counterfactual")
-                        && let Some(counterfactual) = deserialize_counterfactual_logprobs(value)
-                        && let Some(counterfactual_token) =
+                        && let Some(value) = token_metadata.get("counterfactual").cloned()
+                        && let Some(counterfactual) = deserialize_counterfactual_logprobs(&value)
+                        && let Some(mut counterfactual_token) =
                             counterfactual.get(counterfactual_index).cloned()
                     {
                         let metadata = node.contents.metadata.clone();
@@ -975,6 +975,10 @@ fn render_tooltip(ui: &mut Ui, weave: &mut WeaveWrapper, node: Ulid, index: usiz
                                 .get_active_thread_u128()
                                 .collect::<Vec<_>>()
                                 .contains(&node.0);
+
+                            counterfactual_token
+                                .1
+                                .insert("counterfactual".to_string(), value);
 
                             weave.add_node(TapestryNode {
                                 id: Ulid::new().0,
