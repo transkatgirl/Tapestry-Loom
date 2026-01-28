@@ -195,6 +195,7 @@ Goal: Completion before Feb 7th, 2026 / version v0.14.x
 	- [ ] Diff-based editor content application
 		- [ ] Add mode to reuse model output nodes when updating tree whenever possible
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
+	- [ ] Implement functionality for bookmarking specific paths within a weave
 - [ ] Add documentation to `tapestry-weave` library
 
 ### Milestone 2
