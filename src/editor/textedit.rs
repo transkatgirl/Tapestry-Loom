@@ -10,7 +10,11 @@ use eframe::{
 };
 use egui_notify::Toasts;
 use flagset::FlagSet;
-use tapestry_weave::{ulid::Ulid, universal_weave::indexmap::IndexMap, v0::InnerNodeContent};
+use tapestry_weave::{
+    ulid::Ulid,
+    universal_weave::indexmap::{IndexMap, IndexSet},
+    v0::{InnerNodeContent, NodeContent, TapestryNode, deserialize_counterfactual_logprobs},
+};
 
 use crate::{
     editor::shared::{
@@ -945,9 +949,37 @@ fn render_tooltip(ui: &mut Ui, weave: &mut WeaveWrapper, node: Ulid, index: usiz
 
                     render_node_metadata_tooltip(ui, node);
 
-                    if let Some(counterfactual_choice) = counterfactual_choice {
+                    if let Some(counterfactual_index) = counterfactual_choice
+                        && let Some(value) = token_metadata.get("counterfactual")
+                        && let Some(counterfactual) = deserialize_counterfactual_logprobs(value)
+                        && let Some(counterfactual_token) =
+                            counterfactual.get(counterfactual_index).cloned()
+                    {
+                        let metadata = node.contents.metadata.clone();
+                        let model = node.contents.model.clone();
+
                         let node = Ulid(node.id);
-                        weave.split_out_token(&node, index);
+                        if let Some(split) = weave.split_out_token(&node, index)
+                            && (split.1.is_some() || split.2.is_some())
+                        {
+                            let active = weave
+                                .get_active_thread_u128()
+                                .collect::<Vec<_>>()
+                                .contains(&node.0);
+
+                            weave.add_node(TapestryNode {
+                                id: Ulid::new().0,
+                                from: Some(split.0.0),
+                                to: IndexSet::default(),
+                                active,
+                                bookmarked: false,
+                                contents: NodeContent {
+                                    content: InnerNodeContent::Tokens(vec![counterfactual_token]),
+                                    metadata,
+                                    model,
+                                },
+                            });
+                        }
                     }
                 } else {
                     render_node_metadata_tooltip(ui, node);
