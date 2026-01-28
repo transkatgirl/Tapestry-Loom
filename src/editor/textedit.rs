@@ -959,9 +959,7 @@ fn render_tooltip(ui: &mut Ui, weave: &mut WeaveWrapper, node: Ulid, index: usiz
                         let model = node.contents.model.clone();
 
                         let node = Ulid(node.id);
-                        if let Some(split) = weave.split_out_token(&node, index)
-                            && (split.1.is_some() || split.2.is_some())
-                        {
+                        if let Some(split) = weave.split_out_token(&node, index) {
                             let active = weave
                                 .get_active_thread_u128()
                                 .collect::<Vec<_>>()

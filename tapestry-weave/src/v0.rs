@@ -291,7 +291,7 @@ impl TapestryWeave {
 
     pub fn add_node(&mut self, node: TapestryNode) -> bool {
         let identifier = node.id;
-        let last_active_set: HashSet<u128> = if node.active {
+        let last_active_set: HashSet<u128, BuildHasherDefault<UlidHasher>> = if node.active {
             HashSet::from_iter(self.get_active_thread_ids())
         } else {
             HashSet::default()
