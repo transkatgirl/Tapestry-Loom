@@ -1236,10 +1236,9 @@ pub fn render_node_text_or_empty(
 
     match &node.contents.content {
         InnerNodeContent::Tokens(tokens) => {
-            let text = String::from_utf8_lossy(
-                &tokens.iter().flat_map(|t| t.0.clone()).collect::<Vec<u8>>(),
-            )
-            .to_string();
+            let text =
+                from_utf8_lossy(&tokens.iter().flat_map(|t| t.0.clone()).collect::<Vec<u8>>())
+                    .to_string();
             let mut offset = 0;
 
             let mut sections = Vec::with_capacity(tokens.len());
