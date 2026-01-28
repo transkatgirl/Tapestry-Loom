@@ -138,7 +138,8 @@ Most inference providers support OpenAI-compatible clients and should work with 
 However, every inference provider implements OpenAI compatibility in their own way, which may cause unexpected issues. Known issues with popular inference providers are listed below:
 
 - OpenRouter
-	- Some providers on OpenRouter will return errors if `logprobs` is included as a request argument
+	- Logprobs are not supported, even if the underlying provider supports them
+		- In addition, some providers on OpenRouter will return errors if `logprobs` is included as a request argument
 - Featherless
 	- Untested; Logprobs are not supported according to documentation
 
@@ -170,9 +171,9 @@ Goal: Completion before Feb 7th, 2026 / version v0.14.x
 
 - [x] Implement counterfactual logprobs, similar to [mikupad](https://github.com/lmg-anon/mikupad)
 - [ ] Improve handling of hovered + omitted/collapsed nodes
+- [ ] Fix token rendering in non-editor subviews
 - [ ] Automatically save all weaves when tapestry loom is no longer focused
 - [x] Release version 0.12.0
-- [ ] Fix token rendering in non-editor subviews
 - [ ] Add tab close shortcut
 - [ ] Add a setting to disable autoscroll for very long nodes (taking up more than half of the subview)
 - [ ] Add a setting to disable autoscroll in the editor subview
