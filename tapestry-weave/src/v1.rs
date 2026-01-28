@@ -892,9 +892,9 @@ impl TapestryWeave {
         id: &u64,
         index: usize,
         id_generator: impl FnMut() -> u64,
-    ) -> Option<(u64, Option<u64>, Option<u64>)> {
+    ) -> Option<(Option<u64>, u64, Option<u64>)> {
         if let Some(result) = self.split_out_token_inner(id, index, id_generator) {
-            if result.1.is_some() || result.2.is_some() {
+            if result.0 == Some(*id) || result.2.is_some() {
                 self.update_shape_and_active();
             }
 
@@ -908,11 +908,19 @@ impl TapestryWeave {
         id: &u64,
         index: usize,
         mut id_generator: impl FnMut() -> u64,
-    ) -> Option<(u64, Option<u64>, Option<u64>)> {
+    ) -> Option<(Option<u64>, u64, Option<u64>)> {
+        // before_token, token, after_token
         if let Some(node) = self.weave.get_node(id) {
             if let InnerNodeContent::Tokens(tokens) = &node.contents.content
                 && tokens.len() > index
             {
+                let chosen_parent = node
+                    .from
+                    .iter()
+                    .copied()
+                    .find(|id| self.weave.contains_active(id))
+                    .or_else(|| node.from.first().copied());
+
                 let split_index: usize = tokens
                     .iter()
                     .take(index)
@@ -952,9 +960,9 @@ impl TapestryWeave {
 
                         self.weave.get_contents_mut(&tail_id).unwrap().modified = true;
 
-                        Some((*id, Some(middle_id), Some(tail_id)))
+                        Some((Some(*id), middle_id, Some(tail_id)))
                     } else {
-                        Some((*id, Some(middle_id), None))
+                        Some((Some(*id), middle_id, None))
                     }
                 } else if let Some(second_split_index) = second_split_index
                     && second_split_index > 0
@@ -965,9 +973,9 @@ impl TapestryWeave {
 
                     self.weave.get_contents_mut(&tail_id).unwrap().modified = true;
 
-                    Some((*id, None, Some(tail_id)))
+                    Some((chosen_parent, *id, Some(tail_id)))
                 } else {
-                    Some((*id, None, None))
+                    Some((chosen_parent, *id, None))
                 }
             } else {
                 None
