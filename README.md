@@ -261,6 +261,7 @@ Goal: Completion before Feb 1st, 2026
 Goal: Completion before June 1st, 2026
 
 - [ ] Allow temporarilly overriding color in inference menu
+- [ ] Add bookmark functionality to files view
 - [ ] Add support for more weave migrations
 	- [ ] improve [loom](https://github.com/socketteer/loom) migration
 	- [ ] bonsai (using [damask](https://github.com/tel-0s/damask))
