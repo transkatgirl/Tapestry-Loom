@@ -166,11 +166,11 @@ Please [consider donating](https://github.com/sponsors/transkatgirl) to help fun
 
 ### Milestone 0
 
-Goal: Completion before Feb 10th, 2026 / version v0.14.x
+Goal: Completion before Feb 7th, 2026 / version v0.14.x
 
 - [x] Implement counterfactual logprobs, similar to [mikupad](https://github.com/lmg-anon/mikupad)
 - [ ] Improve handling of hovered + omitted/collapsed nodes
-- [ ] Release version 0.12.0
+- [x] Release version 0.12.0
 - [ ] Fix token rendering in non-editor subviews
 - [ ] Add tab close shortcut
 - [ ] Add manual save shortcut
