@@ -169,6 +169,9 @@ Please [consider donating](https://github.com/sponsors/transkatgirl) to help fun
 Goal: Completion before Feb 1st, 2026 / version v0.13.x
 
 - [ ] Improve handling of hovered + omitted/collapsed nodes
+- [ ] Fix token rendering in non-editor subviews
+- [ ] Add tab close shortcut
+- [ ] Add manual save shortcut
 - [x] Implement counterfactual logprobs, similar to [mikupad](https://github.com/lmg-anon/mikupad)
 
 ### Milestone 1
@@ -186,6 +189,7 @@ Goal: Completion before Feb 1st, 2026 / version v0.13.x
 	- [ ] FIM completions
 		- [ ] Selected text is used to determine FIM location
 	- [ ] Diff-based editor content application
+		- [ ] Add mode to reuse model output nodes when updating tree whenever possible
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
 - [ ] Add documentation to `tapestry-weave` library
 
@@ -235,6 +239,8 @@ Goal: Completion before Feb 1st, 2026 / version v0.13.x
 
 ### Milestone 4
 
+- [ ] Add autoscroll levels ("none", "partial", "full")
+- [ ] Add autoscroll keyboard shortcuts (reduce autoscroll level, increase autoscroll level)
 - [ ] Update Getting Started document
 - [ ] Add node finding
 - [ ] Support arbitrary color gradients for logprob highlighting
@@ -249,6 +255,7 @@ Goal: Completion before Feb 1st, 2026 / version v0.13.x
 
 ### Milestone 5
 
+- [ ] Allow changing default editor subview layout
 - [ ] Perform UX testing with all built-in color schemes
 - [ ] Review and refactor application modules
 	- [ ] settings
@@ -310,6 +317,7 @@ Goal: Completion before June 1st, 2026
 	- [ ] lmdeploy
 	- [ ] mlc-llm
 	- [ ] shimmy
+- [ ] Package Tapestry Loom with an icon and application metadata
 - [ ] Create video-based documentation
 - [ ] Create a website for Tapestry Loom's downloads and documentation
 
@@ -350,6 +358,7 @@ The below items may be implemented in a 1.x release, or they may be delayed to b
 
 - [ ] Collaborative weave editing
 - [ ] Interfaces for AI agents to use Tapestry Loom
+- [ ] Efficiently store full edit history in weave for lossless unbounded undo/redo
 - [ ] Human as token-predictor mode
 	- "The LLM looms you"
 - [ ] WASM version of Tapestry Loom
@@ -357,7 +366,6 @@ The below items may be implemented in a 1.x release, or they may be delayed to b
 - [ ] Support weaves of arbitrarily large size using a database-based format
 - [ ] Self-contained packaging: All documentation and tools in one app, rather than being spread out over multiple
 - [ ] Server-client, multi-user WebUI
-- [ ] Efficiently store full edit history in weave for lossless unbounded undo/redo
 - [ ] Alternate input devices
 	- [ ] Talon Voice
 	- [ ] Controllers / Gamepads
