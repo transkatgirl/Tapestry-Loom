@@ -90,6 +90,8 @@ struct TapestryLoomApp {
     allow_close: bool,
     last_ui_settings: UISettings,
     last_client_settings: ClientConfig,
+    first_frame: bool,
+    dark_mode: bool,
 }
 
 impl TapestryLoomApp {
@@ -130,8 +132,6 @@ impl TapestryLoomApp {
             error!("Settings storage not found");
             Settings::default()
         };
-
-        settings.interface.apply(&cc.egui_ctx);
 
         let last_ui_settings = settings.interface;
         let last_client_settings = settings.inference.client.clone();
@@ -305,6 +305,8 @@ impl TapestryLoomApp {
             tree: Tree::new("global-tree", root, tiles),
             show_confirmation: false,
             allow_close: false,
+            first_frame: true,
+            dark_mode: cc.egui_ctx.style().visuals.dark_mode,
             last_ui_settings,
             last_client_settings,
         }
@@ -373,9 +375,16 @@ impl App for TapestryLoomApp {
 
         let mut settings = self.behavior.settings.borrow_mut();
 
-        if settings.interface != self.last_ui_settings {
+        let dark_mode = ctx.theme().default_style().visuals.dark_mode;
+
+        if settings.interface != self.last_ui_settings
+            || self.first_frame
+            || self.dark_mode != dark_mode
+        {
             settings.interface.apply(ctx);
             self.last_ui_settings = settings.interface;
+            self.first_frame = false;
+            self.dark_mode = dark_mode;
         }
         if settings.inference.client != self.last_client_settings {
             *self.behavior.client.borrow_mut() = match settings.inference.client.build() {
