@@ -170,10 +170,10 @@ Goal: Completion before Feb 7th, 2026 / version v0.14.x
 
 - [x] Implement counterfactual logprobs, similar to [mikupad](https://github.com/lmg-anon/mikupad)
 - [ ] Improve handling of hovered + omitted/collapsed nodes
+- [ ] Automatically save all weaves when tapestry loom is no longer focused
 - [x] Release version 0.12.0
 - [ ] Fix token rendering in non-editor subviews
 - [ ] Add tab close shortcut
-- [ ] Add manual save shortcut
 - [ ] Add autoscroll levels ("none", "partial", "full")
 - [ ] Add autoscroll keyboard shortcuts (reduce autoscroll level, increase autoscroll level)
 - [ ] Release version 0.13.0
