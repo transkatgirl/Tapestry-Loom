@@ -26,6 +26,7 @@ A power user focused interface for LLM base models, inspired by the designs of [
 - Editor subview tooltips take longer to close after scrolling has happened
 	- This is due to a limitation of egui
 - Root nodes containing long text may overlap in the canvas view
+- Non-editor subviews improperly render tokens which are invalid UTF-8 on their own but are valid UTF-8 when displayed alongside other tokens in the node
 
 If you are experiencing an issue not listed here or in this [repository's active issues](https://github.com/transkatgirl/Tapestry-Loom/issues), please file an issue so that it can be fixed.
 
