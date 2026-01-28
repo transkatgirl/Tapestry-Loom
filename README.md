@@ -170,7 +170,6 @@ Please [consider donating](https://github.com/sponsors/transkatgirl) to help fun
 Goal: Completion before Feb 7th, 2026 / version v0.14.x
 
 - [x] Implement counterfactual logprobs, similar to [mikupad](https://github.com/lmg-anon/mikupad)
-- [ ] Improve handling of hovered + omitted/collapsed nodes
 - [ ] Fix token rendering in non-editor subviews
 - [ ] Automatically save all weaves when tapestry loom is no longer focused
 - [x] Release version 0.12.0
@@ -190,6 +189,7 @@ Goal: Completion before Feb 7th, 2026 / version v0.14.x
 	- [ ] Implement highlighting of active counterfactual token
 	- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
 	- [ ] Refactor migration-assistant to natively use v1 format
+	- [ ] Improve handling of hovered + omitted/collapsed nodes
 - [ ] Release version 0.13.0
 - [ ] Implement DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- [ ] FIM completions
