@@ -1,6 +1,6 @@
 use std::{
     borrow::Cow, cell::RefCell, cmp::Ordering, collections::HashMap, hash::BuildHasherDefault,
-    rc::Rc, sync::Arc, time::SystemTime,
+    ops::Range, rc::Rc, sync::Arc, time::SystemTime,
 };
 
 use chrono::{DateTime, offset};
@@ -1236,7 +1236,10 @@ pub fn render_node_text_or_empty(
 
     match &node.contents.content {
         InnerNodeContent::Tokens(tokens) => {
-            let mut text = String::with_capacity(tokens.iter().map(|(t, _)| t.len()).sum());
+            let text = String::from_utf8_lossy(
+                &tokens.iter().flat_map(|t| t.0.clone()).collect::<Vec<u8>>(),
+            )
+            .to_string();
             let mut offset = 0;
 
             let mut sections = Vec::with_capacity(tokens.len());
@@ -1244,11 +1247,14 @@ pub fn render_node_text_or_empty(
             for (token, token_metadata) in tokens {
                 let color = get_token_color(color, token_metadata, settings)
                     .unwrap_or(ui.visuals().widgets.inactive.text_color());
-                let token_text = from_utf8_lossy(token);
+                let token_length = token.len();
 
                 sections.push(LayoutSection {
                     leading_space: 0.0,
-                    byte_range: offset..(offset + token_text.len()),
+                    byte_range: Range {
+                        start: text.floor_char_boundary(offset),
+                        end: text.floor_char_boundary(offset + token_length),
+                    },
                     format: TextFormat {
                         font_id: font_id.clone(),
                         color,
@@ -1256,8 +1262,7 @@ pub fn render_node_text_or_empty(
                         ..Default::default()
                     },
                 });
-                offset += token_text.len();
-                text.push_str(&token_text);
+                offset += token_length;
             }
 
             if !text.is_empty() {

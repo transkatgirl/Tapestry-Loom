@@ -26,7 +26,6 @@ A power user focused interface for LLM base models, inspired by the designs of [
 - Editor subview tooltips take longer to close after scrolling has happened
 	- This is due to a limitation of egui
 - Root nodes containing long text may overlap in the canvas view
-- Non-editor subviews improperly render tokens which are invalid UTF-8 on their own but are valid UTF-8 when displayed alongside other tokens in the node
 
 If you are experiencing an issue not listed here or in this [repository's active issues](https://github.com/transkatgirl/Tapestry-Loom/issues), please file an issue so that it can be fixed.
 
@@ -170,7 +169,7 @@ Please [consider donating](https://github.com/sponsors/transkatgirl) to help fun
 Goal: Completion before Feb 7th, 2026 / version v0.14.x
 
 - [x] Implement counterfactual logprobs, similar to [mikupad](https://github.com/lmg-anon/mikupad)
-- [ ] Fix token rendering in non-editor subviews
+- [x] Fix token rendering in non-editor subviews
 - [ ] Automatically save all weaves when tapestry loom is no longer focused
 - [x] Release version 0.12.0
 - [ ] Add tab close shortcut
