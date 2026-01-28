@@ -165,11 +165,10 @@ Please [consider donating](https://github.com/sponsors/transkatgirl) to help fun
 
 ### Milestone 0
 
-Goal: Completion before Feb 1st, 2026
+Goal: Completion before Feb 1st, 2026 / version v0.13.x
 
 - [ ] Improve handling of hovered + omitted/collapsed nodes
 - [x] Implement counterfactual logprobs, similar to [mikupad](https://github.com/lmg-anon/mikupad)
-- [ ] Release version 0.12.0
 
 ### Milestone 1
 
@@ -201,6 +200,7 @@ Goal: Completion before Feb 1st, 2026
 	- [ ] Average token probability
 	- [ ] Cumulative node probability
 	- [ ] Alphabetical (content)
+	- [ ] Length (content)
 - [ ] UI improvements
 	- [ ] Automatically calculate when to display "show more" based on available screen space
 	- [ ] Add content copying to node context menu
