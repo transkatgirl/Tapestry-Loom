@@ -25,9 +25,9 @@ impl EligibleNotices {
 
                     ui.heading("\u{e127} Breaking Format Changes");
 
-                    ui.label("This version introduces a breaking change to Tapestry Loom's format.");
+                    ui.label("This version introduces breaking changes to Tapestry Loom's format.");
                     ui.label("All weaves opened in this new version will automatically be converted into a new format, making them unreadable in older versions of Tapestry Loom.");
-                    ui.label("This format conversion may result in data loss. Please report any bugs that you find.");
+                    ui.label("Format conversion may result in data loss. Please report any bugs that you find.");
                     ui.colored_label(ctx.style().visuals.warn_fg_color, "It is strongly recommended that you create backups of all of your weaves before continuing.");
 
                     ui.add_space(ui.style().spacing.menu_spacing);
