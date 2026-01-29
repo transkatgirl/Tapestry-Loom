@@ -6,14 +6,14 @@
 // TODO: Add support for temporary nodes which are not actually stored in the IndependentWeave?
 
 use std::{
-    borrow::Cow, cmp::Ordering, collections::HashSet, hash::BuildHasherDefault, num::NonZeroU128,
-    sync::Arc,
+    borrow::Cow, cmp::Ordering, collections::HashSet, hash::BuildHasherDefault, iter,
+    num::NonZeroU128, sync::Arc,
 };
 
 #[cfg(feature = "v0")]
 use std::str::FromStr;
 
-//use contracts::ensures;
+use contracts::ensures;
 use foldhash::fast::RandomState;
 use jiff::Zoned;
 use universal_weave::{
@@ -511,6 +511,7 @@ pub const UNKNOWN_MODEL_LABEL: &str = "Unknown Model";
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Author {
     pub label: String,
+    pub color: Option<String>,
 
     #[rkyv(with = NicheInto<niching::Zero>)]
     pub identifier: Option<NonZeroU128>,
@@ -1095,6 +1096,122 @@ impl TapestryWeave {
 
 impl TapestryWeave {
     // TODO: diff-based set_active_content, insert_node_at, remove_active_range
+    #[ensures(self.get_active_content() == value)]
+    #[allow(non_snake_case)]
+    pub fn TEMPORARY_v0_like_set_active_content(
+        &mut self,
+        value: &[u8],
+        creator: Creator,
+        mut id_generator: impl FnMut() -> u64,
+    ) {
+        let mut modified = false;
+        let mut offset: usize = 0;
+
+        let value_len = value.len();
+
+        let active_node = self.active.first().copied();
+
+        let mut last_node = None;
+
+        for active_identifier in self.active.iter().copied().rev() {
+            let node = self.weave.get_node(&active_identifier).unwrap();
+            let content_bytes = node.contents.content.as_bytes();
+
+            let content_len = content_bytes.len();
+
+            if value_len >= offset + content_len
+                && value[offset..(offset + content_len)] == *content_bytes
+            {
+                offset += content_len;
+                last_node = Some(node.id);
+            } else {
+                let start_offset = offset;
+
+                while offset < value_len
+                    && offset < content_len + start_offset
+                    && value[offset] == content_bytes[offset - start_offset]
+                {
+                    offset += 1;
+                }
+
+                let target = node.id;
+
+                if offset > start_offset {
+                    if offset > 0 {
+                        assert!(
+                            self.split_node(&target, offset - start_offset, &mut id_generator)
+                                .is_some()
+                        );
+
+                        last_node = Some(target);
+                    } else {
+                        last_node = None;
+                    }
+                }
+
+                modified = true;
+
+                break;
+            }
+        }
+
+        if let Some(last_node) = last_node {
+            self.weave.set_node_active_status(&last_node, true, false);
+        } else if let Some(active_node) = active_node {
+            self.weave
+                .set_node_active_status(&active_node, false, false);
+        }
+
+        if let Some(node) = last_node.and_then(|id| self.weave.get_node(&id))
+            && node.to.len() <= 1
+            && node
+                .to
+                .iter()
+                .filter_map(|id| self.weave.get_node(id))
+                .all(|child| child.to.is_empty())
+            && !node.bookmarked
+            && node.contents.creator == creator
+            && node.contents.metadata.is_empty()
+        {
+            last_node = node
+                .from
+                .iter()
+                .copied()
+                .find(|id| self.weave.contains_active(id));
+
+            let identifier = node.id;
+            if let Some(node) = self.weave.remove_node(&identifier) {
+                offset -= node.contents.content.len();
+            }
+        }
+
+        if offset < value.len() {
+            assert!(self.add_node(TapestryNode {
+                id: id_generator(),
+                from: if let Some(last_node) = last_node {
+                    IndexSet::from_iter(iter::once(last_node))
+                } else {
+                    IndexSet::default()
+                },
+                to: IndexSet::default(),
+                active: true,
+                bookmarked: false,
+                contents: NodeContent {
+                    timestamp: Zoned::now(),
+                    modified: false,
+                    content: InnerNodeContent::Snippet(value[offset..].to_vec()),
+                    metadata: IndexMap::default(),
+                    creator,
+                },
+            }));
+
+            modified = true;
+        }
+
+        if modified {
+            self.update_shape_and_active();
+        }
+    }
 }
 
 pub struct ArchivedTapestryWeave {
