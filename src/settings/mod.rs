@@ -13,10 +13,12 @@ use eframe::egui::{Layout, OpenUrl, Sides};
 
 use crate::settings::{
     inference::InferenceSettings,
+    notices::EligibleNotices,
     shortcuts::{KeyboardShortcuts, Shortcuts},
 };
 
 pub mod inference;
+pub mod notices;
 pub mod shortcuts;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -25,6 +27,8 @@ pub struct Settings {
     pub shortcuts: KeyboardShortcuts,
     pub documents: DocumentSettings,
     pub inference: InferenceSettings,
+    #[serde(default = "EligibleNotices::new")]
+    pub notices: EligibleNotices,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]

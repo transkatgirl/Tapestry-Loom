@@ -218,10 +218,12 @@ pub struct InnerNodeToken {
     pub bytes: Vec<u8>,
     pub logprob: f32,
     pub id: Option<u64>,
+    pub metadata: MetadataMap,
+
     #[rkyv(with = NicheInto<niching::NaN>)]
     pub entropy: Option<f32>,
-    pub metadata: MetadataMap,
     pub counterfactual: Arc<Vec<CounterfactualToken>>,
+
     pub original: OriginalToken,
 }
 
@@ -492,6 +494,7 @@ pub struct Model {
     #[rkyv(with = NicheInto<niching::Zero>)]
     pub identifier: Option<NonZeroU128>,
     pub seed: Option<u32>,
+
     pub metadata: MetadataMap,
 }
 
@@ -500,6 +503,7 @@ pub const UNKNOWN_MODEL_LABEL: &str = "Unknown Model";
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Author {
     pub label: String,
+
     #[rkyv(with = NicheInto<niching::Zero>)]
     pub identifier: Option<NonZeroU128>,
 }
@@ -526,6 +530,7 @@ pub struct TapestryWeaveMetadata {
     #[rkyv(with = AsTemporal)]
     pub created: Zoned,
     pub converted_from: Vec<ConvertedFrom>,
+
     pub metadata: MetadataMap,
 }
 
@@ -1230,6 +1235,7 @@ impl From<OldInnerNodeContent> for InnerNodeContent {
                                                         metadata.shift_remove("confidence");
                                                         metadata.shift_remove("confidence_k");
                                                         metadata.shift_remove("original_length");
+                                                        metadata.shift_remove("modified");
 
                                                         CounterfactualToken {
                                                             bytes: token,

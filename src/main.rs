@@ -421,6 +421,8 @@ impl App for TapestryLoomApp {
         self.behavior.settings_last_visible = self.behavior.settings_visible;
         self.behavior.settings_visible = false;
 
+        settings.notices.display(ctx);
+
         if self
             .behavior
             .pressed_shortcuts

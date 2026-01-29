@@ -168,7 +168,7 @@ Please [consider donating](https://github.com/sponsors/transkatgirl) to help fun
 
 Goal: Completion before April 1st, 2026
 
-- [ ] Add in-app dialogs to display information about breaking changes
+- [x] Add in-app dialogs to display information about breaking changes
 - [ ] Implement v1 format
 	- [ ] Store generation seed in node
 		- [ ] Add support for custom randomness sources
