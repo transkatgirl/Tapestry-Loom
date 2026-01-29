@@ -992,7 +992,7 @@ impl Display for EndpointTemplate {
             Self::OpenAICompletions(_) => f.write_str("OpenAI-style Completions (Recommended)"),
             Self::OpenAIChatCompletions(_) => f.write_str("OpenAI-style ChatCompletions"),
             Self::TapestryTokenizeOpenAICompletions(_) => {
-                f.write_str("OpenAI-style Completions (Recommended) + Tapestry Tokenize")
+                f.write_str("OpenAI-style Completions + Tapestry Tokenize")
             }
         }
     }
