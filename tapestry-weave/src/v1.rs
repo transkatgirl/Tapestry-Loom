@@ -488,6 +488,12 @@ pub enum Creator {
     Unknown,
 }
 
+impl Creator {
+    pub fn is_model(&self) -> bool {
+        matches!(self, Self::Model(_))
+    }
+}
+
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Model {
     pub label: String,
@@ -1076,14 +1082,19 @@ impl TapestryWeave {
         self.changed_shape = true;
         self.weave.sort_node_children_by(id, compare)
     }
-    pub fn modify_inner(&mut self, callback: impl FnOnce(&mut TapestryWeaveInner)) {
-        callback(&mut self.weave);
+    pub fn modify_inner<T>(
+        &mut self,
+        callback: impl FnOnce(&mut TapestryWeaveInner, &[u64]) -> T,
+    ) -> T {
+        let output = callback(&mut self.weave, &self.active);
         self.update_shape_and_active();
+
+        output
     }
 }
 
 impl TapestryWeave {
-    // TODO: (diff-based) set_active_content, insert_node_at, remove_active_range
+    // TODO: diff-based set_active_content, insert_node_at, remove_active_range
 }
 
 pub struct ArchivedTapestryWeave {
