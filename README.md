@@ -175,7 +175,6 @@ Goal: Completion before Feb 7th, 2026 / version v0.14.x
 - [x] Add tab close shortcut
 - [ ] Add a setting to disable autoscroll for very long nodes (taking up more than half of the subview)
 - [ ] Add a setting to disable autoscroll in the editor subview
-- [ ] Add a keyboard shortcut to toggle autoscroll
 - [ ] Release version 0.13.0
 
 ### Milestone 1
