@@ -487,11 +487,15 @@ pub enum Creator {
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Model {
     pub label: String,
+    pub color: Option<String>,
+
     #[rkyv(with = NicheInto<niching::Zero>)]
     pub identifier: Option<NonZeroU128>,
     pub seed: Option<u32>,
     pub metadata: MetadataMap,
 }
+
+pub const UNKNOWN_MODEL_LABEL: &str = "Unknown Model";
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct Author {
@@ -1271,15 +1275,16 @@ impl From<OldModel> for Creator {
             || value.label.to_lowercase() == "n/a"
             || value.label.is_empty()
         {
-            value.label = "Unknown Model".to_string();
+            value.label = UNKNOWN_MODEL_LABEL.to_string();
         }
 
         Self::Model(
-            if value.label == "Unknown Model" && value.metadata.is_empty() {
+            if value.label == UNKNOWN_MODEL_LABEL && value.metadata.is_empty() {
                 None
             } else {
                 Some(Model {
                     label: value.label,
+                    color: value.metadata.shift_remove("color"),
                     identifier: None,
                     seed: None,
                     metadata: value.metadata,
