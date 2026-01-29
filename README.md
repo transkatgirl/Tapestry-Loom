@@ -177,7 +177,7 @@ Goal: Completion before April 1st, 2026
 	- [ ] Implement a special "link" node to allow splitting giant weaves into multiple documents
 	- [ ] Refactor migration-assistant to natively use v1 format
 	- [ ] Improve handling of hovered + omitted/collapsed nodes
-- [ ] Release version 0.13.0
+- [ ] Release version 0.14.0
 - [ ] Implement DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- [ ] FIM completions
 		- [ ] Selected text is used to determine FIM location
