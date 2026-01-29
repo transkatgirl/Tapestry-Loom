@@ -1265,7 +1265,15 @@ impl From<OldInnerNodeContent> for InnerNodeContent {
 }
 
 impl From<OldModel> for Creator {
-    fn from(value: OldModel) -> Self {
+    fn from(mut value: OldModel) -> Self {
+        if value.label.to_lowercase() == "unknown model"
+            || value.label.to_lowercase() == "unknown"
+            || value.label.to_lowercase() == "n/a"
+            || value.label.is_empty()
+        {
+            value.label = "Unknown Model".to_string();
+        }
+
         Self::Model(
             if value.label == "Unknown Model" && value.metadata.is_empty() {
                 None
@@ -1314,13 +1322,21 @@ impl From<OldNodeContent> for NodeContent {
 
         let content = InnerNodeContent::from(value.content);
 
+        let mut modified = if let InnerNodeContent::Tokens(tokens) = &content {
+            tokens.iter().any(|token| token.original.is_modified())
+        } else {
+            false
+        };
+
+        if let Some(value) = value.metadata.shift_remove("modified")
+            && value.to_lowercase() == "true"
+        {
+            modified = true;
+        }
+
         Self {
             timestamp: Zoned::default(),
-            modified: if let InnerNodeContent::Tokens(tokens) = &content {
-                tokens.iter().any(|token| token.original.is_modified())
-            } else {
-                false
-            },
+            modified,
             metadata: value.metadata,
             creator,
             content,
@@ -1338,7 +1354,9 @@ impl From<MetadataMap> for TapestryWeaveMetadata {
 
         TapestryWeaveMetadata {
             title: value.shift_remove("title"),
-            description: value.shift_remove("notes"),
+            description: value
+                .shift_remove("description")
+                .or_else(|| value.shift_remove("notes")),
             created: value
                 .shift_remove("created")
                 .and_then(|value| Zoned::from_str(&value).ok())
