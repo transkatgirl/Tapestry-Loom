@@ -92,6 +92,7 @@ struct TapestryLoomApp {
     last_client_settings: ClientConfig,
     first_frame: bool,
     dark_mode: bool,
+    last_focused: Option<bool>,
 }
 
 impl TapestryLoomApp {
@@ -309,6 +310,7 @@ impl TapestryLoomApp {
             dark_mode: cc.egui_ctx.style().visuals.dark_mode,
             last_ui_settings,
             last_client_settings,
+            last_focused: None,
         }
     }
     fn allow_close(&self) -> bool {
@@ -329,6 +331,17 @@ impl App for TapestryLoomApp {
         if !self.behavior.settings_last_visible {
             self.behavior.pressed_shortcuts =
                 self.behavior.settings.borrow().shortcuts.get_pressed(ctx);
+        }
+
+        let focused = ctx.input(|i| i.viewport().focused);
+
+        if focused != self.last_focused {
+            self.last_focused = focused;
+            if let Some(focused) = focused
+                && !focused
+            {
+                self.behavior.pressed_shortcuts |= Shortcuts::SaveAllDocuments;
+            }
         }
 
         CentralPanel::default()
@@ -407,6 +420,19 @@ impl App for TapestryLoomApp {
 
         self.behavior.settings_last_visible = self.behavior.settings_visible;
         self.behavior.settings_visible = false;
+
+        if self
+            .behavior
+            .pressed_shortcuts
+            .contains(Shortcuts::SaveAllDocuments)
+        {
+            drop(settings);
+            for tile in self.tree.tiles.tiles_mut() {
+                if let Tile::Pane(Pane::Editor(editor)) = tile {
+                    editor.force_save(ctx);
+                }
+            }
+        }
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         match ron::to_string(&self.behavior.settings) {

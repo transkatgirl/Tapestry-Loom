@@ -170,9 +170,9 @@ Goal: Completion before Feb 7th, 2026 / version v0.14.x
 
 - [x] Implement counterfactual logprobs, similar to [mikupad](https://github.com/lmg-anon/mikupad)
 - [x] Fix token rendering in non-editor subviews
-- [ ] Automatically save all weaves when tapestry loom is no longer focused
+- [x] Automatically save all weaves when tapestry loom is no longer focused
 - [x] Release version 0.12.0
-- [ ] Add tab close shortcut
+- [x] Add tab close shortcut
 - [ ] Add a setting to disable autoscroll for very long nodes (taking up more than half of the subview)
 - [ ] Add a setting to disable autoscroll in the editor subview
 - [ ] Add a keyboard shortcut to toggle autoscroll

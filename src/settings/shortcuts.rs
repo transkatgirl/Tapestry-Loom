@@ -47,6 +47,8 @@ pub struct KeyboardShortcuts {
 
     fit_to_cursor: Option<KeyboardShortcut>,
     fit_to_weave: Option<KeyboardShortcut>,
+
+    close_focused_tab: Option<KeyboardShortcut>,
 }
 
 impl Default for KeyboardShortcuts {
@@ -130,6 +132,10 @@ impl Default for KeyboardShortcuts {
             fit_to_weave: Some(KeyboardShortcut {
                 modifiers: Modifiers::COMMAND,
                 logical_key: Key::Num0,
+            }),
+            close_focused_tab: Some(KeyboardShortcut {
+                modifiers: Modifiers::COMMAND,
+                logical_key: Key::W,
             }),
         }
     }
@@ -434,6 +440,15 @@ impl KeyboardShortcuts {
                 .with_reset(None)
                 .with_reset_key(Some(Key::Escape)),
         );
+
+        ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.5);
+
+        ui.add(
+            Keybind::new(&mut self.close_focused_tab, "keybind-close_focused_tab")
+                .with_text("Close focused tab")
+                .with_reset(None)
+                .with_reset_key(Some(Key::Escape)),
+        );
     }
     pub fn get_pressed(&self, ctx: &Context) -> FlagSet<Shortcuts> {
         let mut flags = FlagSet::<Shortcuts>::empty();
@@ -664,6 +679,12 @@ impl KeyboardShortcuts {
             {
                 flags |= Shortcuts::FitToWeave;
             }
+
+            if let Some(shortcut) = &self.close_focused_tab
+                && consume_shortcut(input, shortcut)
+            {
+                flags |= Shortcuts::CloseFocusedTab;
+            }
         });
 
         flags
@@ -714,6 +735,9 @@ flags! {
 
         FitToCursor,
         FitToWeave,
+
+        CloseFocusedTab,
+        SaveAllDocuments,
     }
 }
 

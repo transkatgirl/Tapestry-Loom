@@ -23,7 +23,8 @@ mod textedit;
 // TODO: Implement node search
 
 use eframe::egui::{
-    Align, Key, Layout, Modal, OutputCommand, Sides, Spinner, TopBottomPanel, Ui, WidgetText,
+    Align, Context, Key, Layout, Modal, OutputCommand, Sides, Spinner, TopBottomPanel, Ui,
+    WidgetText,
 };
 use egui_notify::Toasts;
 use egui_tiles::{
@@ -191,6 +192,15 @@ impl Editor {
         shortcuts: FlagSet<Shortcuts>,
     ) {
         self.behavior.shortcuts = shortcuts;
+
+        if self.behavior.shortcuts.contains(Shortcuts::CloseFocusedTab)
+            && ui.rect_contains_pointer(ui.max_rect())
+            && !self.show_confirmation
+            && self.close()
+        {
+            close_callback();
+            return;
+        }
 
         if self.show_confirmation
             && Modal::new("global-close-modal".into())
@@ -480,6 +490,13 @@ impl Editor {
             }
         });
         barrier.wait();
+    }
+    pub fn force_save(&mut self, ctx: &Context) {
+        self.last_save = Instant::now();
+        self.save(false);
+        ctx.request_repaint_after_secs(
+            self.settings.borrow().documents.save_interval.as_secs_f32() + 0.5,
+        );
     }
     pub fn unsaved(&self) -> bool {
         self.path.lock().is_none()
