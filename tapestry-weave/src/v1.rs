@@ -534,6 +534,18 @@ pub struct TapestryWeaveMetadata {
     pub metadata: MetadataMap,
 }
 
+impl TapestryWeaveMetadata {
+    fn is_empty(&self) -> bool {
+        self.description
+            .as_ref()
+            .map(|v| v.is_empty())
+            .unwrap_or(true)
+            && self.title.as_ref().map(|v| v.is_empty()).unwrap_or(true)
+            && self.converted_from.is_empty()
+            && self.metadata.is_empty()
+    }
+}
+
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct ConvertedFrom {
     pub source: String,
@@ -637,6 +649,9 @@ impl TapestryWeave {
     }
     pub fn is_empty(&self) -> bool {
         self.weave.is_empty()
+    }
+    pub fn is_empty_including_metadata(&self) -> bool {
+        self.weave.is_empty() && self.weave.metadata.is_empty()
     }
     pub fn contains(&self, id: &u64) -> bool {
         self.weave.contains(id)
