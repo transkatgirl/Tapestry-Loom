@@ -166,7 +166,9 @@ Please [consider donating](https://github.com/sponsors/transkatgirl) to help fun
 
 ### Milestone 1
 
-Goal: Completion before April 1st, 2026
+#### Milestone 1.1
+
+Goal: Completion before March 1st, 2026
 
 - [x] Add in-app dialogs to display information about breaking changes
 - [ ] Implement v1 format
@@ -178,6 +180,11 @@ Goal: Completion before April 1st, 2026
 	- [ ] Refactor migration-assistant to natively use v1 format
 	- [ ] Improve handling of hovered + omitted/collapsed nodes
 - [ ] Release version 0.14.0
+
+#### Milestone 1.2
+
+Goal: Completion before April 1st, 2026
+
 - [ ] Implement DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- [ ] FIM completions
 		- [ ] Selected text is used to determine FIM location
