@@ -1368,7 +1368,12 @@ impl From<MetadataMap> for TapestryWeaveMetadata {
                     timestamp: conversion_timestamp.unwrap_or_default(),
                 })
             } else {
-                None
+                //None
+                Some(ConvertedFrom {
+                    source: "TapestryLoomBeta".to_string(),
+                    source_version: Some("0".to_string()),
+                    timestamp: Zoned::now(),
+                })
             },
             metadata: value,
         }
