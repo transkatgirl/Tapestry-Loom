@@ -166,7 +166,7 @@ Please [consider donating](https://github.com/sponsors/transkatgirl) to help fun
 
 ### Milestone 1
 
-Goal: Completion before March 1st, 2026
+Goal: Completion before April 1st, 2026
 
 - [ ] Add in-app dialogs to display information about breaking changes
 - [ ] Implement v1 format
