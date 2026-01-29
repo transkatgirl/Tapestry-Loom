@@ -7,13 +7,15 @@
 
 use std::{
     borrow::Cow, cmp::Ordering, collections::HashSet, hash::BuildHasherDefault, num::NonZeroU128,
-    str::FromStr, sync::Arc,
+    sync::Arc,
 };
+
+#[cfg(feature = "v0")]
+use std::str::FromStr;
 
 //use contracts::ensures;
 use foldhash::fast::RandomState;
 use jiff::Zoned;
-use ulid::Ulid;
 use universal_weave::{
     ArchivedWeave, DeduplicatableContents, DeduplicatableWeave, DiscreteContentResult,
     DiscreteContents, DiscreteWeave, IndependentContents, SemiIndependentWeave, Weave,
@@ -25,15 +27,15 @@ use universal_weave::{
     },
 };
 
-use crate::{
-    VersionedWeave,
-    hashers::RandomIdHasher,
-    to_versioned_bytes,
-    v0::{
-        InnerNodeContent as OldInnerNodeContent, Model as OldModel, NodeContent as OldNodeContent,
-        TapestryWeave as OldTapestryWeave, deserialize_counterfactual_logprobs,
-    },
-    wrappers::AsTemporal,
+#[cfg(feature = "v0")]
+use ulid::Ulid;
+
+use crate::{VersionedWeave, hashers::RandomIdHasher, to_versioned_bytes, wrappers::AsTemporal};
+
+#[cfg(feature = "v0")]
+use crate::v0::{
+    InnerNodeContent as OldInnerNodeContent, Model as OldModel, NodeContent as OldNodeContent,
+    TapestryWeave as OldTapestryWeave, deserialize_counterfactual_logprobs,
 };
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
@@ -1216,6 +1218,7 @@ impl ArchivedTapestryWeave {
     }
 }
 
+#[cfg(feature = "v0")]
 impl From<OldInnerNodeContent> for InnerNodeContent {
     fn from(value: OldInnerNodeContent) -> Self {
         match value {
@@ -1307,6 +1310,7 @@ impl From<OldInnerNodeContent> for InnerNodeContent {
     }
 }
 
+#[cfg(feature = "v0")]
 impl From<OldModel> for Creator {
     fn from(mut value: OldModel) -> Self {
         if value.label.to_lowercase() == "unknown model"
@@ -1333,6 +1337,7 @@ impl From<OldModel> for Creator {
     }
 }
 
+#[cfg(feature = "v0")]
 impl From<OldNodeContent> for NodeContent {
     fn from(mut value: OldNodeContent) -> Self {
         value.metadata.shift_remove("confidence");
@@ -1388,6 +1393,7 @@ impl From<OldNodeContent> for NodeContent {
     }
 }
 
+#[cfg(feature = "v0")]
 impl From<MetadataMap> for TapestryWeaveMetadata {
     fn from(mut value: MetadataMap) -> Self {
         let conversion_timestamp = value
@@ -1427,10 +1433,12 @@ impl From<MetadataMap> for TapestryWeaveMetadata {
     }
 }
 
+#[cfg(feature = "v0")]
 fn convert_old_identifier(value: u128) -> u64 {
     unsafe { std::mem::transmute::<u128, [u64; 2]>(value)[1] }
 }
 
+#[cfg(feature = "v0")]
 impl From<OldTapestryWeave> for TapestryWeave {
     fn from(mut value: OldTapestryWeave) -> Self {
         let mut output = TapestryWeave::with_capacity_and_metadata(

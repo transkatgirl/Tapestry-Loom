@@ -8,26 +8,35 @@ license = "Unlicense"
 description = "An implementation of Tapestry Loom's document format."
 edition = "2024"
 
-# TODO: Add v0 feature after completing v1 format
+[features]
+default = [
+	"v0",
+	"v1",
+]
+v0 = [
+	"universal-weave/legacy",
+	"universal-weave/serde",
+	"ulid",
+	"serde_json",
+	"base64",
+]
+v1 = [ "jiff" ]
 
 [dependencies]
-contracts = "0.6.7"
-rkyv = "0.8.13"
-universal-weave = { path = "../universal-weave", features = [
-	"legacy", # v0
-	"serde",  # v0
-] }
-foldhash = "0.2.0"
+contracts       = "0.6.7"
+rkyv            = "0.8.13"
+universal-weave = { path = "../universal-weave" }
+foldhash        = "0.2.0"
 
 # v0
 ulid = { version = "1.2.1", features = [
 	"serde",
-] }
+], optional = true }
 serde_json = { version = "1.0.145", features = [
 	"preserve_order",
 	"arbitrary_precision",
-] }
-base64 = "0.22.1"
+], optional = true }
+base64 = { version = "0.22.1", optional = true }
 
 # v1+
-jiff = "0.2.18"
+jiff = { version = "0.2.18", optional = true }

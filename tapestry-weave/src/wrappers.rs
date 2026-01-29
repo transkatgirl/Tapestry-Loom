@@ -1,7 +1,4 @@
-use jiff::{
-    Zoned,
-    fmt::temporal::{DateTimeParser, DateTimePrinter},
-};
+#[cfg(feature = "v1")]
 use universal_weave::rkyv::{
     Place, SerializeUnsized,
     rancor::{Fallible, Source},
@@ -9,8 +6,16 @@ use universal_weave::rkyv::{
     with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
 
+#[cfg(feature = "v1")]
+use jiff::{
+    Zoned,
+    fmt::temporal::{DateTimeParser, DateTimePrinter},
+};
+
+#[cfg(feature = "v1")]
 pub struct AsTemporal;
 
+#[cfg(feature = "v1")]
 impl ArchiveWith<Zoned> for AsTemporal {
     type Archived = ArchivedString;
     type Resolver = StringResolver;
@@ -25,6 +30,7 @@ impl ArchiveWith<Zoned> for AsTemporal {
     }
 }
 
+#[cfg(feature = "v1")]
 impl<S> SerializeWith<Zoned, S> for AsTemporal
 where
     S: Fallible + ?Sized,
@@ -39,6 +45,7 @@ where
     }
 }
 
+#[cfg(feature = "v1")]
 impl<D> DeserializeWith<ArchivedString, Zoned, D> for AsTemporal
 where
     D: Fallible + ?Sized,

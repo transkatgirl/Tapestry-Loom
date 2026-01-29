@@ -85,6 +85,7 @@ ml-distance = "1.0.1"
 elkai-rs = "0.1.7"
 base64 = "0.22.1"
 linked-hash-map = "0.5.6"
+ulid = "1.2.1"
 #egui_dnd = "0.14.0"
 
 [build-dependencies]

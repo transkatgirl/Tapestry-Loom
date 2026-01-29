@@ -3,14 +3,26 @@
 use universal_weave::{rkyv::rancor::Error, versioning::VersionedBytes};
 
 pub use foldhash;
-pub use jiff;
+
+#[cfg(feature = "v0")]
 pub use ulid;
+
+#[cfg(feature = "v1")]
+pub use jiff;
+
 pub use universal_weave;
 
 pub mod hashers;
-pub mod treeless;
+
+#[cfg(feature = "v0")]
 pub mod v0;
+
+#[cfg(feature = "v1")]
 pub mod v1;
+
+#[cfg(feature = "v1")]
+pub mod v1_treeless;
+
 pub mod wrappers;
 
 pub const VERSIONED_WEAVE_FILE_EXTENSION: &str = "tapestry";
@@ -18,7 +30,9 @@ pub const VERSIONED_WEAVE_FILE_EXTENSION: &str = "tapestry";
 #[allow(clippy::large_enum_variant)]
 #[non_exhaustive]
 pub enum VersionedWeave {
+    #[cfg(feature = "v0")]
     V0(v0::TapestryWeave),
+    #[cfg(feature = "v1")]
     V1(v1::TapestryWeave),
 }
 
@@ -28,7 +42,9 @@ impl VersionedWeave {
     pub fn from_bytes(value: &[u8]) -> Option<Result<Self, Error>> {
         if let Some(versioned) = VersionedBytes::try_from_bytes(value, FORMAT_IDENTIFIER) {
             match versioned.version {
+                #[cfg(feature = "v0")]
                 0 => Some(v0::TapestryWeave::from_unversioned_bytes(versioned.data).map(Self::V0)),
+                #[cfg(feature = "v1")]
                 1 => Some(v1::TapestryWeave::from_unversioned_bytes(versioned.data).map(Self::V1)),
                 _ => None,
             }
@@ -36,27 +52,37 @@ impl VersionedWeave {
             None
         }
     }
+    #[allow(unreachable_patterns)]
+    #[cfg(feature = "v0")]
     pub fn into_v0(self) -> Option<v0::TapestryWeave> {
         match self {
             Self::V0(weave) => Some(weave),
             _ => None,
         }
     }
+    #[allow(unreachable_patterns)]
+    #[cfg(feature = "v1")]
     pub fn into_v1(self) -> Option<v1::TapestryWeave> {
         match self {
+            #[cfg(feature = "v0")]
             Self::V0(weave) => Some(v1::TapestryWeave::from(weave)),
             Self::V1(weave) => Some(weave),
+            _ => None,
         }
     }
+    #[cfg(all(feature = "v0", feature = "v1"))]
     pub fn into_latest(self) -> v1::TapestryWeave {
         match self {
+            #[cfg(feature = "v0")]
             Self::V0(weave) => v1::TapestryWeave::from(weave),
             Self::V1(weave) => weave,
         }
     }
     pub fn to_bytes(self) -> Result<Vec<u8>, Error> {
         let (version, bytes) = match self {
+            #[cfg(feature = "v0")]
             Self::V0(weave) => (0, weave.to_unversioned_bytes()?),
+            #[cfg(feature = "v1")]
             Self::V1(weave) => (1, weave.to_unversioned_bytes()?),
         };
 

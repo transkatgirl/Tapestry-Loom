@@ -5646,6 +5646,7 @@ dependencies = [
  "tapestry-weave",
  "tokio",
  "trash",
+ "ulid",
  "unicode-segmentation",
  "walkdir",
 ]
