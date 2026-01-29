@@ -584,7 +584,25 @@ impl TapestryWeave {
     pub fn to_versioned_weave(self) -> VersionedWeave {
         VersionedWeave::V1(self)
     }
-    pub fn with_capacity(capacity: usize, metadata: TapestryWeaveMetadata) -> Self {
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            weave: IndependentWeave::with_capacity(
+                capacity,
+                TapestryWeaveMetadata {
+                    title: None,
+                    description: None,
+                    created: Zoned::now(),
+                    converted_from: Vec::new(),
+                    metadata: IndexMap::default(),
+                },
+            ),
+            active: Vec::with_capacity(capacity),
+            scratchpad: Vec::with_capacity(capacity),
+            changed: false,
+            changed_shape: false,
+        }
+    }
+    pub fn with_capacity_and_metadata(capacity: usize, metadata: TapestryWeaveMetadata) -> Self {
         Self {
             weave: IndependentWeave::with_capacity(capacity, metadata),
             active: Vec::with_capacity(capacity),
@@ -1400,8 +1418,10 @@ fn convert_old_identifier(value: u128) -> u64 {
 
 impl From<OldTapestryWeave> for TapestryWeave {
     fn from(mut value: OldTapestryWeave) -> Self {
-        let mut output =
-            TapestryWeave::with_capacity(value.capacity(), value.weave.metadata.clone().into());
+        let mut output = TapestryWeave::with_capacity_and_metadata(
+            value.capacity(),
+            value.weave.metadata.clone().into(),
+        );
 
         let mut identifiers = Vec::with_capacity(value.weave.len());
         value.weave.get_ordered_node_identifiers(&mut identifiers);
