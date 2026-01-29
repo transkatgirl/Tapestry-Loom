@@ -521,7 +521,7 @@ pub struct TapestryWeaveMetadata {
     pub description: Option<String>,
     #[rkyv(with = AsTemporal)]
     pub created: Zoned,
-    pub converted_from: Option<ConvertedFrom>,
+    pub converted_from: Vec<ConvertedFrom>,
     pub metadata: MetadataMap,
 }
 
@@ -1352,6 +1352,22 @@ impl From<MetadataMap> for TapestryWeaveMetadata {
         let source = value.shift_remove("converted_from");
         let source_version = value.shift_remove("converted_from_version");
 
+        let mut converted_from = Vec::with_capacity(2);
+
+        if source.is_some() || conversion_timestamp.is_some() {
+            converted_from.push(ConvertedFrom {
+                source: source.unwrap_or_else(|| "Unknown".to_string()),
+                source_version,
+                timestamp: conversion_timestamp.unwrap_or_default(),
+            });
+        }
+
+        converted_from.push(ConvertedFrom {
+            source: "TapestryLoomBeta".to_string(),
+            source_version: Some("0".to_string()),
+            timestamp: Zoned::now(),
+        });
+
         TapestryWeaveMetadata {
             title: value.shift_remove("title"),
             description: value
@@ -1361,20 +1377,7 @@ impl From<MetadataMap> for TapestryWeaveMetadata {
                 .shift_remove("created")
                 .and_then(|value| Zoned::from_str(&value).ok())
                 .unwrap_or_default(),
-            converted_from: if source.is_some() || conversion_timestamp.is_some() {
-                Some(ConvertedFrom {
-                    source: source.unwrap_or_else(|| "Unknown".to_string()),
-                    source_version,
-                    timestamp: conversion_timestamp.unwrap_or_default(),
-                })
-            } else {
-                //None
-                Some(ConvertedFrom {
-                    source: "TapestryLoomBeta".to_string(),
-                    source_version: Some("0".to_string()),
-                    timestamp: Zoned::now(),
-                })
-            },
+            converted_from,
             metadata: value,
         }
     }
