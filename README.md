@@ -164,19 +164,9 @@ Please [consider donating](https://github.com/sponsors/transkatgirl) to help fun
 - [ ] Take inspiration from [mikupad](https://github.com/lmg-anon/mikupad)
 - [ ] Do more experimentation with [loom](https://github.com/socketteer/loom)'s UI in order to find UX improvements which may be worth including in Tapestry Loom
 
-### Milestone 0
-
-Goal: Completion before Feb 7th, 2026 / version v0.14.x
-
-- [x] Implement counterfactual logprobs, similar to [mikupad](https://github.com/lmg-anon/mikupad)
-- [x] Fix token rendering in non-editor subviews
-- [x] Automatically save all weaves when tapestry loom is no longer focused
-- [x] Release version 0.12.0
-- [x] Add tab close shortcut
-- [x] Disable treelist/list hover autoscroll for nodes taller then the subview
-- [x] Release version 0.13.0
-
 ### Milestone 1
+
+Goal: Completion before March 1st, 2026
 
 - [ ] Add in-app dialogs to display information about breaking changes
 - [ ] Implement v1 format

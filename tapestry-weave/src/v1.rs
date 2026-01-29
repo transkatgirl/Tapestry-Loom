@@ -528,6 +528,8 @@ pub struct TapestryWeaveMetadata {
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct ConvertedFrom {
     pub source: String,
+    pub source_version: Option<String>,
+
     #[rkyv(with = AsTemporal)]
     pub timestamp: Zoned,
 }
@@ -1264,12 +1266,18 @@ impl From<OldInnerNodeContent> for InnerNodeContent {
 
 impl From<OldModel> for Creator {
     fn from(value: OldModel) -> Self {
-        Self::Model(Some(Model {
-            label: value.label,
-            identifier: None,
-            seed: None,
-            metadata: value.metadata,
-        }))
+        Self::Model(
+            if value.label == "Unknown Model" && value.metadata.is_empty() {
+                None
+            } else {
+                Some(Model {
+                    label: value.label,
+                    identifier: None,
+                    seed: None,
+                    metadata: value.metadata,
+                })
+            },
+        )
     }
 }
 
@@ -1326,6 +1334,7 @@ impl From<MetadataMap> for TapestryWeaveMetadata {
             .shift_remove("converted")
             .and_then(|value| Zoned::from_str(&value).ok());
         let source = value.shift_remove("converted_from");
+        let source_version = value.shift_remove("converted_from_version");
 
         TapestryWeaveMetadata {
             title: None,
@@ -1337,6 +1346,7 @@ impl From<MetadataMap> for TapestryWeaveMetadata {
             converted_from: if source.is_some() || conversion_timestamp.is_some() {
                 Some(ConvertedFrom {
                     source: source.unwrap_or_else(|| "Unknown".to_string()),
+                    source_version,
                     timestamp: conversion_timestamp.unwrap_or_default(),
                 })
             } else {
