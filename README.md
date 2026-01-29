@@ -173,7 +173,7 @@ Goal: Completion before Feb 7th, 2026 / version v0.14.x
 - [x] Automatically save all weaves when tapestry loom is no longer focused
 - [x] Release version 0.12.0
 - [x] Add tab close shortcut
-- [ ] Disable treelist/list hover autoscroll for nodes taller then the subview
+- [x] Disable treelist/list hover autoscroll for nodes taller then the subview
 - [ ] Add a setting to disable autoscroll in the editor subview
 - [ ] Release version 0.13.0
 

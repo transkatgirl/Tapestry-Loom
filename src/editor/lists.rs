@@ -94,6 +94,8 @@ impl ListView {
                 Frame::new()
                     .outer_margin(listing_margin(ui))
                     .show(ui, |ui| {
+                        let max_autoscroll_height = ui.available_size_before_wrap().y;
+
                         if settings.interface.auto_scroll {
                             for (index, item) in items.into_iter().enumerate() {
                                 Self::render_item(
@@ -104,6 +106,7 @@ impl ListView {
                                     &item,
                                     index == 0,
                                     contains_cursor,
+                                    max_autoscroll_height,
                                 );
                             }
                         } else {
@@ -116,6 +119,7 @@ impl ListView {
                                     &items[index],
                                     index == 0,
                                     contains_cursor,
+                                    max_autoscroll_height,
                                 );
                                 1
                             });
@@ -131,6 +135,7 @@ impl ListView {
         item: &Ulid,
         is_start: bool,
         contains_cursor: bool,
+        max_autoscroll_height: f32,
     ) {
         if let Some(node) = weave.get_node(item).cloned() {
             if !is_start {
@@ -152,6 +157,7 @@ impl ListView {
                     },
                     true,
                     contains_cursor,
+                    max_autoscroll_height,
                 );
             });
         }
@@ -214,6 +220,8 @@ impl BookmarkListView {
                 Frame::new()
                     .outer_margin(listing_margin(ui))
                     .show(ui, |ui| {
+                        let max_autoscroll_height = ui.available_size_before_wrap().y;
+
                         if settings.interface.auto_scroll {
                             for (index, item) in items.into_iter().enumerate() {
                                 Self::render_bookmark(
@@ -224,6 +232,7 @@ impl BookmarkListView {
                                     &item,
                                     index == 0,
                                     contains_cursor,
+                                    max_autoscroll_height,
                                 );
                             }
                         } else {
@@ -236,6 +245,7 @@ impl BookmarkListView {
                                     &items[index],
                                     index == 0,
                                     contains_cursor,
+                                    max_autoscroll_height,
                                 );
                                 1
                             });
@@ -251,6 +261,7 @@ impl BookmarkListView {
         item: &Ulid,
         is_start: bool,
         contains_cursor: bool,
+        max_autoscroll_height: f32,
     ) {
         if let Some(node) = weave.get_node(item).cloned() {
             if !is_start {
@@ -280,6 +291,7 @@ impl BookmarkListView {
                     },
                     false,
                     contains_cursor,
+                    max_autoscroll_height,
                 );
             });
         }
@@ -457,6 +469,7 @@ impl TreeListView {
                                 true,
                                 true,
                                 contains_cursor,
+                                ui.available_size_before_wrap().y,
                             );
                         }
                     });
@@ -480,6 +493,7 @@ fn render_node_tree(
     is_display_root: bool,
     show_separators: bool,
     contains_cursor: bool,
+    max_autoscroll_height: f32,
 ) {
     let indent_compensation = ui.spacing().icon_width + ui.spacing().icon_spacing;
 
@@ -503,6 +517,7 @@ fn render_node_tree(
                 show_separators && !(is_display_root && index == 0),
                 show_separators,
                 contains_cursor,
+                max_autoscroll_height,
             );
         }
     } else if items.len() > 0 {
@@ -540,6 +555,7 @@ fn render_node_tree(
                     show_separators && !(is_display_root && index == 0),
                     show_separators,
                     contains_cursor,
+                    max_autoscroll_height,
                 );
                 1
             });
@@ -563,6 +579,7 @@ fn render_node_tree_row(
     show_separator: bool,
     show_child_separators: bool,
     contains_cursor: bool,
+    max_autoscroll_height: f32,
 ) {
     let needs_list_refresh = RefCell::new(needs_list_refresh);
 
@@ -604,6 +621,7 @@ fn render_node_tree_row(
                     },
                     true,
                     contains_cursor,
+                    max_autoscroll_height,
                 );
             });
         };
@@ -633,6 +651,7 @@ fn render_node_tree_row(
                             false,
                             show_child_separators,
                             contains_cursor,
+                            max_autoscroll_height,
                         );
                     } else {
                         if show_separator {
@@ -1002,6 +1021,7 @@ fn render_horizontal_node_label(
     ),
     show_node_info: bool,
     contains_pointer: bool,
+    max_autoscroll_height: f32,
 ) {
     let mut mouse_hovered = false;
 
@@ -1067,7 +1087,11 @@ fn render_horizontal_node_label(
                     render_node_metadata_tooltip(ui, node)
                 });
 
-                if settings.interface.auto_scroll && is_changed && (is_cursor || !contains_pointer)
+                if settings.interface.auto_scroll
+                    && is_changed
+                    && (is_cursor || !contains_pointer)
+                    && (max_autoscroll_height >= label_button_response.rect.height()
+                        || ui.input(|i| i.modifiers.any()))
                 {
                     label_button_response.scroll_to_me_animation(None, INSTANT_SCROLL);
                 }
