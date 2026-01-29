@@ -1,6 +1,6 @@
 [package]
 name = "tapestry-loom"
-version = "0.13.0"
+version = "0.13.1"
 authors = [
 	"transkatgirl",
 ]
@@ -34,7 +34,7 @@ mimalloc = { version = "0.1.48", features = [
 serde = { version = "1.0.228", features = [
 	"derive",
 ] }
-serde_json = { version = "1.0.145", features = [
+serde_json = { version = "1.0.149", features = [
 	"preserve_order",
 	"arbitrary_precision",
 ] }
@@ -43,7 +43,7 @@ ron = { version = "0.12.0", features = [
 	"integer128",
 	"unicode-segmentation",
 ] }
-reqwest = { version = "0.12.26", features = [
+reqwest = { version = "0.13.1", features = [
 	"json",
 	"gzip",
 	"brotli",
@@ -57,7 +57,7 @@ anyhow = "1.0.100"
 dirs-next = "2.0.0"
 egui_tiles = "=0.14.0"
 egui-notify = "0.21.0"
-tokio = { version = "1.48.0", features = [
+tokio = { version = "1.49.0", features = [
 	"full",
 ] }
 futures = "0.3.31"
@@ -68,7 +68,7 @@ poll-promise = { version = "0.3.0", features = [
 	"tokio",
 ] }
 ctrlc = "3.5.1"
-chrono = "0.4.42"
+chrono = "0.4.43"
 egui-keybind = { version = "0.8.0", features = [
 	"serde",
 ] }

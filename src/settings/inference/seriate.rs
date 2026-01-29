@@ -41,9 +41,9 @@ fn seriate_inner(embeddings: Vec<Vec<f32>>) -> Vec<usize> {
 
     let mut max = (0.0, 0);
 
-    for (position, distance_index) in solved.iter().enumerate() {
-        if *distance_index < solved.len() - 1 {
-            let distance = distances[*distance_index][distance_index + 1];
+    for (position, distance_index) in solved.iter().copied().enumerate() {
+        if let Some(next_distance_index) = solved.get(position + 1).copied() {
+            let distance = distances[distance_index][next_distance_index];
 
             if distance > max.0 {
                 max = (distance, position)
