@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use eframe::egui::{self, Context, Modal};
 use serde::{Deserialize, Serialize};
 
