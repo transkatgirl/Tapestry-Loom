@@ -510,6 +510,8 @@ pub struct Author {
     pub identifier: Option<NonZeroU128>,
 }
 
+pub type ShortId = u64;
+pub type LongId = NonZeroU128;
 pub type TapestryNode = IndependentNode<u64, NodeContent, BuildHasherDefault<RandomIdHasher>>;
 pub type MetadataMap = IndexMap<String, String, RandomState>;
 pub type ArchivedTapestryNode =

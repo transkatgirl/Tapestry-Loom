@@ -21,7 +21,7 @@ pub mod v0;
 pub mod v1;
 
 #[cfg(feature = "v1")]
-pub mod v1_treeless;
+pub mod treeless;
 
 pub mod wrappers;
 
