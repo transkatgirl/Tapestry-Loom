@@ -1,12 +1,10 @@
-#![allow(unused)]
-
 use eframe::egui::{self, Context, Modal};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq)]
 pub struct EligibleNotices {
-    /*#[serde(default = "default_true")]
-    upgrade_format_0_to_1: bool,*/
+    #[serde(default = "default_true")]
+    upgrade_format_0_to_1: bool,
 }
 
 fn default_true() -> bool {
@@ -16,11 +14,11 @@ fn default_true() -> bool {
 impl EligibleNotices {
     pub fn new() -> EligibleNotices {
         EligibleNotices {
-            //upgrade_format_0_to_1: true,
+            upgrade_format_0_to_1: true,
         }
     }
     pub fn display(&mut self, ctx: &Context) {
-        /*if self.upgrade_format_0_to_1 {
+        if self.upgrade_format_0_to_1 {
             Modal::new("notice-upgrade_format_0_to_1".into())
                 .show(ctx, |ui| {
                     ui.set_width(400.0);
@@ -45,6 +43,6 @@ impl EligibleNotices {
                         });
                     });
                 });
-        }*/
+        }
     }
 }

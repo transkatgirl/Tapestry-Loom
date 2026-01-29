@@ -15,10 +15,11 @@ pub mod wrappers;
 
 pub const VERSIONED_WEAVE_FILE_EXTENSION: &str = "tapestry";
 
+#[allow(clippy::large_enum_variant)]
 #[non_exhaustive]
 pub enum VersionedWeave {
     V0(v0::TapestryWeave),
-    //V1(v1::TapestryWeave),
+    V1(v1::TapestryWeave),
 }
 
 const FORMAT_IDENTIFIER: [u8; 24] = *b"VersionedTapestryWeave__";
@@ -28,28 +29,35 @@ impl VersionedWeave {
         if let Some(versioned) = VersionedBytes::try_from_bytes(value, FORMAT_IDENTIFIER) {
             match versioned.version {
                 0 => Some(v0::TapestryWeave::from_unversioned_bytes(versioned.data).map(Self::V0)),
-                //1 => Some(v1::TapestryWeave::from_unversioned_bytes(versioned.data).map(Self::V1)),
+                1 => Some(v1::TapestryWeave::from_unversioned_bytes(versioned.data).map(Self::V1)),
                 _ => None,
             }
         } else {
             None
         }
     }
-    pub fn into_latest(self) -> v0::TapestryWeave {
+    pub fn into_v0(self) -> Option<v0::TapestryWeave> {
         match self {
-            Self::V0(weave) => weave,
+            Self::V0(weave) => Some(weave),
+            _ => None,
         }
     }
-    /*pub fn into_latest(self) -> v1::TapestryWeave {
+    pub fn into_v1(self) -> Option<v1::TapestryWeave> {
+        match self {
+            Self::V0(weave) => Some(v1::TapestryWeave::from(weave)),
+            Self::V1(weave) => Some(weave),
+        }
+    }
+    pub fn into_latest(self) -> v1::TapestryWeave {
         match self {
             Self::V0(weave) => v1::TapestryWeave::from(weave),
             Self::V1(weave) => weave,
         }
-    }*/
+    }
     pub fn to_bytes(self) -> Result<Vec<u8>, Error> {
         let (version, bytes) = match self {
             Self::V0(weave) => (0, weave.to_unversioned_bytes()?),
-            //Self::V1(weave) => (1, weave.to_unversioned_bytes()?),
+            Self::V1(weave) => (1, weave.to_unversioned_bytes()?),
         };
 
         Ok(to_versioned_bytes(version, &bytes))

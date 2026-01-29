@@ -26,7 +26,7 @@ use universal_weave::{
 };
 
 use crate::{
-    //VersionedWeave,
+    VersionedWeave,
     hashers::RandomIdHasher,
     to_versioned_bytes,
     v0::{
@@ -581,9 +581,9 @@ impl TapestryWeave {
     pub fn to_versioned_bytes(&self) -> Result<Vec<u8>, Error> {
         Ok(to_versioned_bytes(1, &self.to_unversioned_bytes()?))
     }
-    /*pub fn to_versioned_weave(self) -> VersionedWeave {
+    pub fn to_versioned_weave(self) -> VersionedWeave {
         VersionedWeave::V1(self)
-    }*/
+    }
     pub fn with_capacity(capacity: usize, metadata: TapestryWeaveMetadata) -> Self {
         Self {
             weave: IndependentWeave::with_capacity(capacity, metadata),
