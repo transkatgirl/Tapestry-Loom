@@ -1337,7 +1337,7 @@ impl From<MetadataMap> for TapestryWeaveMetadata {
         let source_version = value.shift_remove("converted_from_version");
 
         TapestryWeaveMetadata {
-            title: None,
+            title: value.shift_remove("title"),
             description: value.shift_remove("notes"),
             created: value
                 .shift_remove("created")
