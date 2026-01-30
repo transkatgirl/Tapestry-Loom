@@ -1112,8 +1112,9 @@ impl TapestryWeave {
         let active_node = self.active.first().copied();
 
         let mut last_node = None;
+        let mut last_index = None;
 
-        for active_identifier in self.active.iter().copied().rev() {
+        for (index, active_identifier) in self.active.iter().copied().enumerate().rev() {
             let node = self.weave.get_node(&active_identifier).unwrap();
             let content_bytes = node.contents.content.as_bytes();
 
@@ -1124,6 +1125,7 @@ impl TapestryWeave {
             {
                 offset += content_len;
                 last_node = Some(node.id);
+                last_index = Some(index);
             } else {
                 let start_offset = offset;
 
@@ -1144,8 +1146,10 @@ impl TapestryWeave {
                         );
 
                         last_node = Some(target);
+                        last_index = Some(index);
                     } else {
                         last_node = None;
+                        last_index = None;
                     }
                 }
 
@@ -1173,11 +1177,15 @@ impl TapestryWeave {
             && node.contents.creator == creator
             && node.contents.metadata.is_empty()
         {
-            last_node = node
-                .from
-                .iter()
-                .copied()
-                .find(|id| self.weave.contains_active(id));
+            last_node = last_index
+                .filter(|i| *i > 0)
+                .and_then(|i| self.active.get(i - 1).copied());
+            /*.or_else(|| {
+                node.from
+                    .iter()
+                    .copied()
+                    .find(|id| self.weave.contains_active(id))
+            }); */
 
             let identifier = node.id;
             if let Some(node) = self.weave.remove_node(&identifier) {
