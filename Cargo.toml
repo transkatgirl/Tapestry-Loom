@@ -1,6 +1,6 @@
 [package]
 name = "tapestry-loom"
-version = "0.13.1"
+version = "0.13.2"
 authors = [
 	"transkatgirl",
 ]
@@ -75,7 +75,7 @@ egui-keybind = { version = "0.8.0", features = [
 flagset = { version = "0.4.7", features = [
 	"std",
 ] }
-bytes = "1.11.0"
+bytes = "1.11.1"
 font-kit = "0.14.3"
 egui_solarized = "0.33.0"
 egui_virtual_list = "0.9.0"

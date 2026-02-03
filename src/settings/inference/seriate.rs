@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use elkai_rs::DistanceMatrix;
-use ml_distance::distance::euclidean;
+use ml_distance::similarity::cosine;
 use tapestry_weave::ulid::Ulid;
 
 pub fn seriate(embeddings: Vec<(Ulid, Vec<f32>)>) -> Vec<Ulid> {
@@ -29,8 +29,7 @@ fn seriate_inner(embeddings: Vec<Vec<f32>>) -> Vec<usize> {
         .map(|row| {
             embeddings
                 .iter()
-                //.map(|column| cosine(column, row) + 1.0)
-                .map(|column| euclidean(column, row))
+                .map(|column| cosine(column, row) + 1.0)
                 .collect::<Vec<f64>>()
         })
         .collect::<Vec<Vec<f64>>>();
