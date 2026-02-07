@@ -193,6 +193,9 @@ Goal: Completion before April 1st, 2026
 	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
 	- [ ] Allow the user to create connections between arbitrary nodes
 	- [ ] Implement functionality for bookmarking specific paths within a weave
+	- [ ] Implement logging of node modifications (splitting/merging)
+		- [ ] Implement storage of original child node ID when doing FIM
+	- [ ] Implement (optional, disabled by default) storage of raw API requests & responses
 - [ ] Add documentation to `tapestry-weave` library
 
 ### Milestone 2
