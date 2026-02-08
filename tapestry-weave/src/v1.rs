@@ -6,13 +6,8 @@
 // TODO: Add support for temporary nodes which are not actually stored in the IndependentWeave?
 
 use std::{
-    borrow::Cow,
-    cmp::Ordering,
-    collections::{HashMap, HashSet, hash_map::Entry},
-    hash::BuildHasherDefault,
-    iter,
-    num::NonZeroU128,
-    sync::Arc,
+    borrow::Cow, cmp::Ordering, collections::HashSet, hash::BuildHasherDefault, iter,
+    num::NonZeroU128, sync::Arc,
 };
 
 #[cfg(feature = "v0")]
@@ -48,7 +43,6 @@ pub struct NodeContent {
     #[rkyv(with = AsTemporal)]
     pub timestamp: Zoned,
     pub modified: bool,
-    pub original_thread: Option<Arc<Vec<u64>>>,
 
     pub content: InnerNodeContent,
     pub metadata: MetadataMap,
@@ -63,12 +57,10 @@ impl DiscreteContents for NodeContent {
             DiscreteContentResult::Two((left, right)) => {
                 self.content = left;
                 self.modified = true;
-                //self.original_thread = None;
 
                 let right_content = NodeContent {
                     timestamp: self.timestamp.clone(),
                     modified: true,
-                    original_thread: None,
                     content: right,
                     metadata: self.metadata.clone(),
                     creator: self.creator.clone(),
@@ -100,7 +92,6 @@ impl DiscreteContents for NodeContent {
             DiscreteContentResult::One(center) => {
                 self.content = center;
                 self.modified = true;
-                self.original_thread = None;
                 self.timestamp = self.timestamp.max(value.timestamp);
                 DiscreteContentResult::One(self)
             }
@@ -124,7 +115,6 @@ impl NodeContent {
 impl DeduplicatableContents for NodeContent {
     fn is_duplicate_of(&self, value: &Self) -> bool {
         self.modified == value.modified
-            && self.original_thread == value.original_thread
             && self.content == value.content
             && self.metadata == value.metadata
             && self.creator == value.creator
@@ -1211,7 +1201,6 @@ impl TapestryWeave {
                 contents: NodeContent {
                     timestamp: Zoned::now(),
                     modified: false,
-                    original_thread: None,
                     content: InnerNodeContent::Snippet(value[offset..].to_vec()),
                     metadata: IndexMap::default(),
                     creator,
@@ -1530,7 +1519,6 @@ impl From<OldNodeContent> for NodeContent {
         Self {
             timestamp: Zoned::default(),
             modified,
-            original_thread: None,
             metadata: value.metadata,
             creator,
             content,
@@ -1594,15 +1582,10 @@ impl From<OldTapestryWeave> for TapestryWeave {
         let mut identifiers = Vec::with_capacity(value.weave.len());
         value.weave.get_ordered_node_identifiers(&mut identifiers);
 
-        let mut parent_paths: HashMap<u64, Arc<Vec<u64>>> =
-            HashMap::with_capacity(value.weave.len());
-
         for identifier in identifiers {
             let node = value.weave.get_node(&identifier).unwrap().clone();
 
             let timestamp = Zoned::try_from(Ulid(node.id).datetime()).unwrap_or(Zoned::default());
-
-            let parent = node.from.map(convert_old_identifier);
 
             let mut node = TapestryNode {
                 id: convert_old_identifier(node.id),
@@ -1612,20 +1595,7 @@ impl From<OldTapestryWeave> for TapestryWeave {
                 bookmarked: node.bookmarked,
                 contents: node.contents.into(),
             };
-
             node.contents.timestamp = timestamp;
-            if node.contents.creator.is_model()
-                && !node.contents.modified
-                && let Some(parent) = parent
-            {
-                node.contents.original_thread = Some(match parent_paths.entry(parent) {
-                    Entry::Occupied(entry) => entry.get().clone(),
-                    Entry::Vacant(entry) => entry
-                        .insert_entry(Arc::new(output.get_thread_from_ids(&parent).clone()))
-                        .get()
-                        .clone(),
-                });
-            }
 
             assert!(output.add_node(node));
         }
