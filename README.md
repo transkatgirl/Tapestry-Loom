@@ -212,6 +212,7 @@ Goal: Completion before April 1st, 2026
 	- [ ] Alphabetical (content)
 	- [ ] Length (content)
 - [ ] UI improvements
+	- [ ] Add keyboard shortcuts for selecting a specific child node by number
 	- [ ] Automatically calculate when to display "show more" based on available screen space
 	- [ ] Add content copying to node context menu
 	- [ ] Add setting to swap shift-click and normal click behavior
