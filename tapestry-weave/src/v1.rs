@@ -77,7 +77,7 @@ impl DiscreteContents for NodeContent {
     fn merge(mut self, mut value: Self) -> DiscreteContentResult<Self> {
         if self.timestamp.time_zone() != value.timestamp.time_zone()
             || self.metadata != value.metadata
-            || self.creator != value.creator
+            || !self.creator.is_mergeable_with(&value.creator)
         {
             return DiscreteContentResult::Two((self, value));
         }
@@ -93,6 +93,7 @@ impl DiscreteContents for NodeContent {
                 self.content = center;
                 self.modified = true;
                 self.timestamp = self.timestamp.max(value.timestamp);
+                self.creator = self.creator.merge(value.creator).unwrap();
                 DiscreteContentResult::One(self)
             }
         }
@@ -100,15 +101,11 @@ impl DiscreteContents for NodeContent {
 }
 
 impl NodeContent {
-    fn is_mergeable_with(&self, value: &Self) -> bool {
-        if self.timestamp.time_zone() != value.timestamp.time_zone()
-            || self.metadata != value.metadata
-            || self.creator != value.creator
-        {
-            return false;
-        }
-
-        self.content.is_mergeable_with(&value.content)
+    pub fn is_mergeable_with(&self, value: &Self) -> bool {
+        self.timestamp.time_zone() == value.timestamp.time_zone()
+            && self.metadata == value.metadata
+            && self.creator.is_mergeable_with(&value.creator)
+            && self.content.is_mergeable_with(&value.content)
     }
 }
 
@@ -117,7 +114,7 @@ impl DeduplicatableContents for NodeContent {
         self.modified == value.modified
             && self.content == value.content
             && self.metadata == value.metadata
-            && self.creator == value.creator
+            && self.creator.is_duplicate_of(&value.creator)
     }
 }
 
@@ -498,6 +495,80 @@ impl Creator {
             _ => None,
         }
     }
+    pub fn is_duplicate_of(&self, value: &Self) -> bool {
+        match self {
+            Self::Model(Some(left)) => {
+                if let Self::Model(Some(right)) = value {
+                    left.is_duplicate_of(right)
+                } else {
+                    false
+                }
+            }
+            Self::Human(Some(left)) => {
+                if let Self::Human(Some(right)) = value {
+                    left.is_duplicate_of(right)
+                } else {
+                    false
+                }
+            }
+            _ => self == value,
+        }
+    }
+    pub fn is_mergeable_with(&self, value: &Self) -> bool {
+        match self {
+            Self::Model(Some(left)) => {
+                if let Self::Model(Some(right)) = value {
+                    left.is_mergeable_with(right)
+                } else {
+                    false
+                }
+            }
+            Self::Human(Some(left)) => {
+                if let Self::Human(Some(right)) = value {
+                    left.is_mergeable_with(right)
+                } else {
+                    false
+                }
+            }
+            _ => self == value,
+        }
+    }
+    #[allow(clippy::result_large_err)]
+    pub fn merge(self, value: Self) -> Result<Self, (Self, Self)> {
+        match self {
+            Self::Model(Some(left)) => {
+                if let Self::Model(Some(right)) = value {
+                    match left.merge(right) {
+                        Ok(combined) => Ok(Self::Model(Some(combined))),
+                        Err((left, right)) => {
+                            Err((Self::Model(Some(left)), Self::Model(Some(right))))
+                        }
+                    }
+                } else {
+                    Err((Self::Model(Some(left)), value))
+                }
+            }
+            Self::Human(Some(left)) => {
+                if let Self::Human(Some(right)) = value {
+                    match left.merge(right) {
+                        Ok(combined) => Ok(Self::Human(Some(combined))),
+                        Err((left, right)) => {
+                            Err((Self::Human(Some(left)), Self::Human(Some(right))))
+                        }
+                    }
+                } else {
+                    Err((Self::Human(Some(left)), value))
+                }
+            }
+            _ => {
+                if self == value {
+                    Ok(self)
+                } else {
+                    Err((self, value))
+                }
+            }
+        }
+    }
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
@@ -512,6 +583,42 @@ pub struct Model {
     pub metadata: MetadataMap,
 
     pub raw_query: Option<RawQuery>,
+}
+
+impl Model {
+    pub fn is_duplicate_of(&self, value: &Self) -> bool {
+        self == value
+    }
+    pub fn is_mergeable_with(&self, value: &Self) -> bool {
+        self.label == value.label
+            && (self.color == value.color || self.color.is_some() != value.color.is_some())
+            && self.identifier == value.identifier
+            && self.metadata == value.metadata
+    }
+    #[allow(clippy::result_large_err)]
+    pub fn merge(mut self, value: Self) -> Result<Self, (Self, Self)> {
+        if self.label == value.label
+            && self.identifier == value.identifier
+            && self.metadata == value.metadata
+        {
+            if self.color == value.color || value.color.is_none() && self.color.is_some() {
+                self.seed = None;
+                self.raw_query = None;
+                Ok(self)
+            } else if self.color.is_none()
+                && let Some(color) = value.color
+            {
+                self.seed = None;
+                self.raw_query = None;
+                self.color = Some(color);
+                Ok(self)
+            } else {
+                Err((self, value))
+            }
+        } else {
+            Err((self, value))
+        }
+    }
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
@@ -529,6 +636,34 @@ pub struct Author {
 
     #[rkyv(with = NicheInto<niching::Zero>)]
     pub identifier: Option<NonZeroU128>,
+}
+
+impl Author {
+    pub fn is_duplicate_of(&self, value: &Self) -> bool {
+        self == value
+    }
+    pub fn is_mergeable_with(&self, value: &Self) -> bool {
+        self.label == value.label
+            && (self.color == value.color || self.color.is_some() != value.color.is_some())
+            && self.identifier == value.identifier
+    }
+    #[allow(clippy::result_large_err)]
+    pub fn merge(mut self, value: Self) -> Result<Self, (Self, Self)> {
+        if self.label == value.label && self.identifier == value.identifier {
+            if self.color == value.color || value.color.is_none() && self.color.is_some() {
+                Ok(self)
+            } else if self.color.is_none()
+                && let Some(color) = value.color
+            {
+                self.color = Some(color);
+                Ok(self)
+            } else {
+                Err((self, value))
+            }
+        } else {
+            Err((self, value))
+        }
+    }
 }
 
 pub type ShortId = u64;
