@@ -489,9 +489,18 @@ impl Creator {
     pub fn is_model(&self) -> bool {
         matches!(self, Self::Model(_))
     }
+    pub fn is_human(&self) -> bool {
+        matches!(self, Self::Human(_))
+    }
     pub fn as_model(&self) -> Option<&Option<Model>> {
         match self {
             Self::Model(model) => Some(model),
+            _ => None,
+        }
+    }
+    pub fn as_human(&self) -> Option<&Option<Author>> {
+        match self {
+            Self::Human(human) => Some(human),
             _ => None,
         }
     }
