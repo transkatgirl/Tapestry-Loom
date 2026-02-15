@@ -339,14 +339,13 @@ impl InnerNodeContent {
                         left.push(InnerNodeToken {
                             bytes: left_token,
                             id: None,
-                            entropy: None,
+                            entropy: right[0].entropy,
                             logprob: right[0].logprob,
                             metadata: right[0].metadata.clone(),
                             counterfactual: right[0].counterfactual.clone(),
                             original: right[0].original.clone(),
                         });
                         right[0].id = None;
-                        right[0].entropy = None;
                     }
                     right[0].bytes = right_token;
 
