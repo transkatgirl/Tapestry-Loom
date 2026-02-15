@@ -134,7 +134,9 @@ impl InnerNodeContent {
         }
     }
     pub fn calculate_average_logprob(&self) -> Option<f32> {
-        if let Self::Tokens(tokens) = self {
+        if let Self::Tokens(tokens) = self
+            && !tokens.is_empty()
+        {
             Some(
                 (tokens.iter().map(|token| token.logprob as f64).sum::<f64>() / tokens.len() as f64)
                     as f32,
@@ -144,7 +146,9 @@ impl InnerNodeContent {
         }
     }
     pub fn calculate_cumulative_logprob(&self) -> Option<f32> {
-        if let Self::Tokens(tokens) = self {
+        if let Self::Tokens(tokens) = self
+            && !tokens.is_empty()
+        {
             Some(tokens.iter().map(|token| token.logprob as f64).sum::<f64>() as f32)
         } else {
             None
@@ -160,16 +164,14 @@ impl InnerNodeContent {
                     if let Some(last_k) = confidence_k
                         && last_k != k
                     {
-                        confidence_k = None;
-                        break;
+                        return None;
                     } else {
                         confidence_k = Some(k);
                     }
 
                     confidence_sum += confidence;
                 } else {
-                    confidence_k = None;
-                    break;
+                    return None;
                 }
             }
 
