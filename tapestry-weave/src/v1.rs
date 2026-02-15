@@ -186,14 +186,13 @@ impl InnerNodeContent {
     }
     pub fn calculate_average_entropy(&self) -> Option<f32> {
         if let Self::Tokens(tokens) = self {
-            if tokens.iter().any(|token| token.entropy.is_some()) {
-                Some(
-                    (tokens
-                        .iter()
-                        .filter_map(|token| token.entropy.map(|e| e as f64))
-                        .sum::<f64>()
-                        / tokens.len() as f64) as f32,
-                )
+            let (count, sum) = tokens
+                .iter()
+                .filter_map(|token| token.entropy.map(|e| e as f64))
+                .fold((0usize, 0.0), |acc, x| (acc.0 + 1, acc.1 + x));
+
+            if count > 0 {
+                Some((sum / count as f64) as f32)
             } else {
                 None
             }
