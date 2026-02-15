@@ -325,8 +325,6 @@ impl InnerNodeContent {
                 if let Some(location) = location {
                     let mut left = tokens;
                     let mut right = left.split_off(location);
-                    left.shrink_to_fit();
-
                     let mut left_token = right[0].bytes.clone();
                     let right_token = left_token.split_off(at - content_index);
 
@@ -351,6 +349,8 @@ impl InnerNodeContent {
                         right[0].entropy = None;
                     }
                     right[0].bytes = right_token;
+
+                    left.shrink_to_fit();
 
                     DiscreteContentResult::Two((Self::Tokens(left), Self::Tokens(right)))
                 } else {
