@@ -290,7 +290,7 @@ impl CounterfactualToken {
 const EMPTY_VEC_REF: &Vec<u8> = &Vec::new();
 
 impl InnerNodeContent {
-    fn split(self, at: usize) -> DiscreteContentResult<Self> {
+    pub fn split(self, at: usize) -> DiscreteContentResult<Self> {
         if at == 0 {
             return DiscreteContentResult::One(self);
         }
@@ -359,7 +359,7 @@ impl InnerNodeContent {
             Self::MetadataOnly => DiscreteContentResult::One(Self::MetadataOnly),
         }
     }
-    fn merge(self, value: Self) -> DiscreteContentResult<Self> {
+    pub fn merge(self, value: Self) -> DiscreteContentResult<Self> {
         match self {
             Self::Snippet(mut left_snippet) => match value {
                 Self::Snippet(mut right_snippet) => {
@@ -390,7 +390,7 @@ impl InnerNodeContent {
             Self::MetadataOnly => DiscreteContentResult::Two((Self::MetadataOnly, value)),
         }
     }
-    fn is_mergeable_with(&self, value: &Self) -> bool {
+    pub fn is_mergeable_with(&self, value: &Self) -> bool {
         match self {
             Self::Snippet(_) => match value {
                 Self::Snippet(_) => true,
@@ -434,7 +434,7 @@ impl InnerNodeContent {
 }
 
 impl ArchivedInnerNodeContent {
-    fn is_mergeable_with(&self, value: &Self) -> bool {
+    pub fn is_mergeable_with(&self, value: &Self) -> bool {
         match self {
             Self::Snippet(_) => match value {
                 Self::Snippet(_) => true,
@@ -601,27 +601,24 @@ impl Model {
     }
     pub fn is_mergeable_with(&self, value: &Self) -> bool {
         self.label == value.label
-            && (self.color == value.color || self.color.is_some() != value.color.is_some())
+            && (self.color == value.color || self.color.is_none() || value.color.is_none())
             && self.identifier == value.identifier
             && self.metadata == value.metadata
     }
     #[allow(clippy::result_large_err)]
-    pub fn merge(mut self, value: Self) -> Result<Self, (Self, Self)> {
+    pub fn merge(mut self, mut value: Self) -> Result<Self, (Self, Self)> {
         if self.label == value.label
             && self.identifier == value.identifier
             && self.metadata == value.metadata
         {
-            if self.color == value.color || value.color.is_none() && self.color.is_some() {
+            if self.color == value.color || value.color.is_none() {
                 self.seed = None;
                 self.raw_query = None;
                 Ok(self)
-            } else if self.color.is_none()
-                && let Some(color) = value.color
-            {
-                self.seed = None;
-                self.raw_query = None;
-                self.color = Some(color);
-                Ok(self)
+            } else if self.color.is_none() {
+                value.seed = None;
+                value.raw_query = None;
+                Ok(value)
             } else {
                 Err((self, value))
             }
@@ -654,19 +651,16 @@ impl Author {
     }
     pub fn is_mergeable_with(&self, value: &Self) -> bool {
         self.label == value.label
-            && (self.color == value.color || self.color.is_some() != value.color.is_some())
+            && (self.color == value.color || self.color.is_none() || value.color.is_none())
             && self.identifier == value.identifier
     }
     #[allow(clippy::result_large_err)]
-    pub fn merge(mut self, value: Self) -> Result<Self, (Self, Self)> {
+    pub fn merge(self, value: Self) -> Result<Self, (Self, Self)> {
         if self.label == value.label && self.identifier == value.identifier {
-            if self.color == value.color || value.color.is_none() && self.color.is_some() {
+            if self.color == value.color || value.color.is_none() {
                 Ok(self)
-            } else if self.color.is_none()
-                && let Some(color) = value.color
-            {
-                self.color = Some(color);
-                Ok(self)
+            } else if self.color.is_none() {
+                Ok(value)
             } else {
                 Err((self, value))
             }
@@ -705,7 +699,7 @@ pub struct TapestryWeaveMetadata {
 }
 
 impl TapestryWeaveMetadata {
-    fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.description
             .as_ref()
             .map(|v| v.is_empty())
