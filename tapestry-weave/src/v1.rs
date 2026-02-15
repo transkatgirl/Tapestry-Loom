@@ -203,11 +203,8 @@ impl InnerNodeContent {
     }
     fn truncate_tokens(&mut self, count: usize) {
         if let Self::Tokens(tokens) = self {
-            assert!(tokens.len() > count);
             tokens.truncate(count);
             tokens.shrink_to_fit();
-        } else {
-            panic!()
         }
     }
 }
