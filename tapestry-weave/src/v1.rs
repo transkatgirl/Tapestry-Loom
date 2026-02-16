@@ -699,6 +699,16 @@ pub struct TapestryWeaveMetadata {
 }
 
 impl TapestryWeaveMetadata {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        Self {
+            title: None,
+            description: None,
+            created: Zoned::now(),
+            converted_from: Vec::new(),
+            metadata: IndexMap::default(),
+        }
+    }
     pub fn is_empty(&self) -> bool {
         self.description
             .as_ref()
@@ -762,16 +772,7 @@ impl TapestryWeave {
     }
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            weave: IndependentWeave::with_capacity(
-                capacity,
-                TapestryWeaveMetadata {
-                    title: None,
-                    description: None,
-                    created: Zoned::now(),
-                    converted_from: Vec::new(),
-                    metadata: IndexMap::default(),
-                },
-            ),
+            weave: IndependentWeave::with_capacity(capacity, TapestryWeaveMetadata::new()),
             active: Vec::with_capacity(capacity),
             scratchpad: Vec::with_capacity(capacity),
             changed: false,
@@ -907,10 +908,8 @@ impl TapestryWeave {
     pub fn get_active_thread(&mut self) -> impl DoubleEndedIterator<Item = &TapestryNode> {
         self.active.iter().filter_map(|id| self.weave.get_node(id))
     }
-    pub fn get_active_thread_ids(
-        &mut self,
-    ) -> impl DoubleEndedIterator<Item = u64> + ExactSizeIterator<Item = u64> {
-        self.active.iter().copied()
+    pub fn get_active_thread_ids(&mut self) -> &Vec<u64> {
+        &self.active
     }
     pub fn get_thread_from(&mut self, id: &u64) -> impl DoubleEndedIterator<Item = &TapestryNode> {
         self.weave.get_thread_from(id, &mut self.scratchpad);
