@@ -1523,7 +1523,6 @@ impl AsRef<<TapestryWeaveInner as Archive>::Archived> for ArchivedTapestryWeave 
     }
 }
 
-// TODO: dump_identifiers_ordered, dump_identifiers_ordered_rev
 impl ArchivedTapestryWeave {
     pub fn metadata(&self) -> &ArchivedTapestryWeaveMetadata {
         &self.weave.metadata
@@ -1542,6 +1541,13 @@ impl ArchivedTapestryWeave {
     }
     pub fn contains_active(&self, id: &u64_le) -> bool {
         self.weave.contains_active(id)
+    }
+    pub fn dump_identifiers_ordered(&mut self, output: &mut Vec<u64_le>) {
+        self.weave.get_ordered_node_identifiers(output);
+    }
+    pub fn dump_identifiers_ordered_rev(&mut self, output: &mut Vec<u64_le>) {
+        self.weave
+            .get_ordered_node_identifiers_reversed_children(output)
     }
     pub fn get_node(&self, id: &u64_le) -> Option<&ArchivedTapestryNode> {
         self.weave.get_node(id)
