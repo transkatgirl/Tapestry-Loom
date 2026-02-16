@@ -16,6 +16,7 @@ use std::str::FromStr;
 use contracts::ensures;
 use foldhash::fast::RandomState;
 use jiff::Zoned;
+use rkyv::option::ArchivedOption;
 use universal_weave::{
     ArchivedWeave, DeduplicatableContents, DeduplicatableWeave, DiscreteContentResult,
     DiscreteContents, DiscreteWeave, IndependentContents, Weave,
@@ -210,6 +211,93 @@ impl InnerNodeContent {
     }
 }
 
+impl ArchivedInnerNodeContent {
+    pub fn token_count(&self) -> Option<usize> {
+        if let Self::Tokens(tokens) = self {
+            Some(tokens.len())
+        } else {
+            None
+        }
+    }
+    pub fn calculate_average_logprob(&self) -> Option<f32> {
+        if let Self::Tokens(tokens) = self
+            && !tokens.is_empty()
+        {
+            Some(
+                (tokens
+                    .iter()
+                    .map(|token| token.logprob.to_native() as f64)
+                    .sum::<f64>()
+                    / tokens.len() as f64) as f32,
+            )
+        } else {
+            None
+        }
+    }
+    pub fn calculate_cumulative_logprob(&self) -> Option<f32> {
+        if let Self::Tokens(tokens) = self
+            && !tokens.is_empty()
+        {
+            Some(
+                tokens
+                    .iter()
+                    .map(|token| token.logprob.to_native() as f64)
+                    .sum::<f64>() as f32,
+            )
+        } else {
+            None
+        }
+    }
+    pub fn calculate_confidence(&self) -> Option<(f32, usize, usize)> {
+        if let Self::Tokens(tokens) = self {
+            let mut confidence_sum = 0.0;
+            let mut confidence_k = None;
+
+            for token in tokens.iter() {
+                if let Some((confidence, k)) = token.calculate_confidence_f64() {
+                    if let Some(last_k) = confidence_k
+                        && last_k != k
+                    {
+                        return None;
+                    } else {
+                        confidence_k = Some(k);
+                    }
+
+                    confidence_sum += confidence;
+                } else {
+                    return None;
+                }
+            }
+
+            confidence_k.map(|confidence_k| {
+                (
+                    (confidence_sum / tokens.len() as f64) as f32,
+                    confidence_k,
+                    tokens.len(),
+                )
+            })
+        } else {
+            None
+        }
+    }
+    pub fn calculate_average_entropy(&self) -> Option<f32> {
+        if let Self::Tokens(tokens) = self {
+            let (count, sum) = tokens
+                .iter()
+                .filter_map(|token| token.entropy.as_ref().map(|e| e.to_native() as f64))
+                .fold((0usize, 0.0), |acc, x| (acc.0 + 1, acc.1 + x));
+
+            if count > 0 {
+                Some((sum / count as f64) as f32)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct InnerNodeToken {
     pub bytes: Vec<u8>,
@@ -248,6 +336,30 @@ impl InnerNodeToken {
     }
 }
 
+impl ArchivedInnerNodeToken {
+    pub fn calculate_confidence(&self) -> Option<(f32, usize)> {
+        self.calculate_confidence_f64()
+            .map(|(confidence, k)| (confidence as f32, k))
+    }
+    fn calculate_confidence_f64(&self) -> Option<(f64, usize)> {
+        if !self.counterfactual.is_empty() {
+            Some((
+                self.counterfactual
+                    .iter()
+                    .map(|token| token.logprob.to_native() as f64)
+                    .sum::<f64>()
+                    / -(self.counterfactual.len() as f64),
+                self.counterfactual.len(),
+            ))
+        } else {
+            None
+        }
+    }
+    pub fn is_modified(&self) -> bool {
+        self.original.is_modified()
+    }
+}
+
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub enum OriginalToken {
     Unmodified,
@@ -256,6 +368,16 @@ pub enum OriginalToken {
 }
 
 impl OriginalToken {
+    pub fn is_modified(&self) -> bool {
+        match self {
+            Self::Known(_) => true,
+            Self::Unknown => true,
+            Self::Unmodified => false,
+        }
+    }
+}
+
+impl ArchivedOriginalToken {
     pub fn is_modified(&self) -> bool {
         match self {
             Self::Known(_) => true,
@@ -573,6 +695,27 @@ impl Creator {
                     Err((self, value))
                 }
             }
+        }
+    }
+}
+
+impl ArchivedCreator {
+    pub fn is_model(&self) -> bool {
+        matches!(self, Self::Model(_))
+    }
+    pub fn is_human(&self) -> bool {
+        matches!(self, Self::Human(_))
+    }
+    pub fn as_model(&self) -> Option<&ArchivedOption<ArchivedModel>> {
+        match self {
+            Self::Model(model) => Some(model),
+            _ => None,
+        }
+    }
+    pub fn as_human(&self) -> Option<&ArchivedOption<ArchivedAuthor>> {
+        match self {
+            Self::Human(human) => Some(human),
+            _ => None,
         }
     }
 }
@@ -1015,7 +1158,7 @@ impl TapestryWeave {
             .iter()
             .rev()
             .filter_map(|id| self.weave.get_node(id))
-            .flat_map(|node| node.contents.content.as_bytes().to_vec())
+            .flat_map(|node| node.contents.content.as_bytes().into_owned())
             .collect()
     }
     pub fn split_node(
@@ -1488,26 +1631,6 @@ impl ArchivedTapestryWeave {
             .filter_map(|id| self.weave.get_node(&id))
             .flat_map(|node| node.contents.content.as_bytes())
             .collect()
-    }
-    pub fn is_mergeable_with_parent(&self, id: &u64_le) -> bool {
-        if let Some(node) = self.weave.get_node(id) {
-            if node.from.len() == 1
-                && let Some(parent) = node
-                    .from
-                    .get_index(0)
-                    .and_then(|id| self.weave.get_node(id))
-            {
-                parent.to.len() == 1
-                    && parent
-                        .contents
-                        .content
-                        .is_mergeable_with(&node.contents.content)
-            } else {
-                false
-            }
-        } else {
-            false
-        }
     }
 }
 
