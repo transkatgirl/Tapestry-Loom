@@ -720,6 +720,18 @@ impl TapestryWeaveMetadata {
     }
 }
 
+impl ArchivedTapestryWeaveMetadata {
+    pub fn is_empty(&self) -> bool {
+        self.description
+            .as_ref()
+            .map(|v| v.is_empty())
+            .unwrap_or(true)
+            && self.title.as_ref().map(|v| v.is_empty()).unwrap_or(true)
+            && self.converted_from.is_empty()
+            && self.metadata.is_empty()
+    }
+}
+
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct ConvertedFrom {
     pub source: String,
@@ -1211,9 +1223,13 @@ impl TapestryWeave {
         id: &u64,
         compare: impl FnMut(&TapestryNode, &TapestryNode) -> Ordering,
     ) -> bool {
-        self.changed = true;
-        self.changed_shape = true;
-        self.weave.sort_node_children_by(id, compare)
+        if self.weave.sort_node_children_by(id, compare) {
+            self.changed = true;
+            self.changed_shape = true;
+            true
+        } else {
+            false
+        }
     }
     pub fn modify_inner<T>(
         &mut self,
@@ -1364,12 +1380,19 @@ impl AsRef<<TapestryWeaveInner as Archive>::Archived> for ArchivedTapestryWeave 
     }
 }
 
+// TODO: dump_identifiers_ordered, dump_identifiers_ordered_rev, get_active_thread_ids, get_thread_from_ids
 impl ArchivedTapestryWeave {
+    pub fn metadata(&self) -> &ArchivedTapestryWeaveMetadata {
+        &self.weave.metadata
+    }
     pub fn len(&self) -> usize {
         self.weave.len()
     }
     pub fn is_empty(&self) -> bool {
         self.weave.is_empty()
+    }
+    pub fn is_empty_including_metadata(&self) -> bool {
+        self.weave.is_empty() && self.weave.metadata.is_empty()
     }
     pub fn contains(&self, id: &u64_le) -> bool {
         self.weave.contains(id)
@@ -1427,11 +1450,11 @@ impl ArchivedTapestryWeave {
             }
         })
     }
-    pub fn get_roots(&self) -> impl ExactSizeIterator<Item = u64_le> {
-        self.weave.roots().iter().copied()
+    pub fn roots(&self) -> &ArchivedIndexSet<u64_le> {
+        self.weave.roots()
     }
-    pub fn get_bookmarks(&self) -> impl ExactSizeIterator<Item = u64_le> {
-        self.weave.bookmarks().iter().copied()
+    pub fn bookmarks(&self) -> &ArchivedIndexSet<u64_le> {
+        self.weave.bookmarks()
     }
     pub fn get_active_thread(&mut self) -> impl DoubleEndedIterator<Item = &ArchivedTapestryNode> {
         let mut scratchpad = Vec::with_capacity(self.weave.len());
