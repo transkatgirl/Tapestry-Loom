@@ -1523,7 +1523,7 @@ impl AsRef<<TapestryWeaveInner as Archive>::Archived> for ArchivedTapestryWeave 
     }
 }
 
-// TODO: dump_identifiers_ordered, dump_identifiers_ordered_rev, get_active_thread_ids, get_thread_from_ids
+// TODO: dump_identifiers_ordered, dump_identifiers_ordered_rev
 impl ArchivedTapestryWeave {
     pub fn metadata(&self) -> &ArchivedTapestryWeaveMetadata {
         &self.weave.metadata
@@ -1599,7 +1599,7 @@ impl ArchivedTapestryWeave {
     pub fn bookmarks(&self) -> &ArchivedIndexSet<u64_le> {
         self.weave.bookmarks()
     }
-    pub fn get_active_thread(&mut self) -> impl DoubleEndedIterator<Item = &ArchivedTapestryNode> {
+    pub fn get_active_thread(&self) -> impl DoubleEndedIterator<Item = &ArchivedTapestryNode> {
         let mut scratchpad = Vec::with_capacity(self.weave.len());
 
         self.weave.get_active_thread(&mut scratchpad);
@@ -1608,8 +1608,15 @@ impl ArchivedTapestryWeave {
             .into_iter()
             .filter_map(|id| self.weave.get_node(&id))
     }
+    pub fn get_active_thread_ids(&self) -> Vec<u64_le> {
+        let mut scratchpad = Vec::with_capacity(self.weave.len());
+
+        self.weave.get_active_thread(&mut scratchpad);
+
+        scratchpad
+    }
     pub fn get_thread_from(
-        &mut self,
+        &self,
         id: &u64_le,
     ) -> impl DoubleEndedIterator<Item = &ArchivedTapestryNode> {
         let mut scratchpad = Vec::with_capacity(self.weave.len());
@@ -1619,6 +1626,13 @@ impl ArchivedTapestryWeave {
         scratchpad
             .into_iter()
             .filter_map(|id| self.weave.get_node(&id))
+    }
+    pub fn get_thread_from_ids(&self, id: &u64_le) -> Vec<u64_le> {
+        let mut scratchpad = Vec::with_capacity(self.weave.len());
+
+        self.weave.get_thread_from(id, &mut scratchpad);
+
+        scratchpad
     }
     pub fn get_active_content(&self) -> Vec<u8> {
         let mut scratchpad = Vec::with_capacity(self.weave.len());
