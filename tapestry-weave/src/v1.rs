@@ -1033,11 +1033,13 @@ impl TapestryWeave {
     ) -> Option<Box<dyn DoubleEndedIterator<Item = u64> + 's>> {
         self.weave.get_node(id).map(|node| {
             if node.from.is_empty() {
-                Box::new(self.weave.roots().iter().copied().filter(|sibling| {
-                    *sibling != node.id
-                        && !node.from.contains(sibling)
-                        && !node.to.contains(sibling)
-                })) as Box<dyn DoubleEndedIterator<Item = u64>>
+                Box::new(
+                    self.weave
+                        .roots()
+                        .iter()
+                        .copied()
+                        .filter(|sibling| *sibling != node.id && !node.to.contains(sibling)),
+                ) as Box<dyn DoubleEndedIterator<Item = u64>>
             } else {
                 Box::new(
                     node.from
@@ -1578,11 +1580,13 @@ impl ArchivedTapestryWeave {
     ) -> Option<Box<dyn Iterator<Item = u64_le> + 's>> {
         self.weave.get_node(id).map(|node| {
             if node.from.is_empty() {
-                Box::new(self.weave.roots().iter().copied().filter(|sibling| {
-                    *sibling != node.id
-                        && !node.from.contains(sibling)
-                        && !node.to.contains(sibling)
-                })) as Box<dyn Iterator<Item = u64_le>>
+                Box::new(
+                    self.weave
+                        .roots()
+                        .iter()
+                        .copied()
+                        .filter(|sibling| *sibling != node.id && !node.to.contains(sibling)),
+                ) as Box<dyn Iterator<Item = u64_le>>
             } else {
                 Box::new(
                     node.from
