@@ -168,10 +168,8 @@ Please [consider donating](https://github.com/sponsors/transkatgirl) to help fun
 
 #### Milestone 1.1
 
-Goal: Completion before March 1st, 2026
-
 - [x] Add in-app dialogs to display information about breaking changes
-- [ ] Implement v1 format
+- [ ] Implement v1 format using DependentWeave (previous plan was to use IndependentWeave)
 	- [ ] Store generation seed in node
 		- [ ] Add support for custom randomness sources
 	- [ ] Enable counterfactual logprobs by default
@@ -180,22 +178,6 @@ Goal: Completion before March 1st, 2026
 	- [ ] Refactor migration-assistant to natively use v1 format
 	- [ ] Improve handling of hovered + omitted/collapsed nodes
 - [ ] Release version 0.14.0
-
-#### Milestone 1.2
-
-Goal: Completion before April 1st, 2026
-
-- [ ] Implement DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
-	- [ ] FIM completions
-		- [ ] Selected text is used to determine FIM location
-	- [ ] Diff-based editor content application
-		- [ ] Add mode to reuse model output nodes when updating tree whenever possible
-	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
-	- [ ] Allow the user to create connections between arbitrary nodes
-	- [ ] Implement functionality for bookmarking specific paths within a weave
-	- [ ] Implement logging of node modifications (splitting/merging)
-		- [ ] Implement storage of original child node ID when doing FIM
-	- [ ] Implement (optional, disabled by default) storage of raw API requests & responses
 - [ ] Add documentation to `tapestry-weave` library
 
 ### Milestone 2
@@ -241,7 +223,6 @@ Goal: Completion before April 1st, 2026
 	- [ ] Force single token node creation using `TL#force_single_token`
 	- [ ] Context window wrapping using `TL#ctx_length`
 	- [ ] Add setting to toggle request post-processing
-- [ ] Implement BERT FIM server using nonstandard `fim_tokens` parameter
 
 ### Milestone 4
 
@@ -259,18 +240,23 @@ Goal: Completion before April 1st, 2026
 
 ### Milestone 5
 
-- [ ] Allow changing default editor subview layout
-- [ ] Perform UX testing with all built-in color schemes
-- [ ] Review and refactor application modules
-	- [ ] settings
-	- [ ] editor
-- [ ] Optimize performance whenever reasonably possible
-- [ ] Support opening weaves using CLI arguments to tapestry loom
-- [ ] Review and refactor main module
+#### Milestone 5.1
 
-### Milestone 6
+- [ ] Implement v2 format
+- [ ] Implement DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
+	- [ ] FIM completions
+		- [ ] Selected text is used to determine FIM location
+	- [ ] Diff-based editor content application
+		- [ ] Add mode to reuse model output nodes when updating tree whenever possible
+	- [ ] Implement node "editing" UI (not actually editing node content, but editing the tree by adding nodes / splitting nodes / merging nodes), similar to [inkstream](https://inkstream.ai)
+	- [ ] Allow the user to create connections between arbitrary nodes
+	- [ ] Functionality for bookmarking specific paths within a weave
+	- [ ] Logging of node modifications (splitting/merging)
+		- [ ] Storage of original child node ID when doing FIM
+	- [ ] (optional, disabled by default) storage of raw API requests & responses
+- [ ] Implement BERT FIM server using nonstandard `fim_tokens` parameter
 
-Goal: Completion before June 1st, 2026
+#### Milestone 5.2
 
 - [ ] Allow temporarilly overriding color in inference menu
 - [ ] Add bookmark functionality to files view
@@ -286,6 +272,17 @@ Goal: Completion before June 1st, 2026
 	- [ ] Automatically redact sensitive information (such as API keys)
 	- [ ] Allow the user to manually redact sensitive information
 - [ ] Add ability to manually control refreshing of model tokenization identifier
+
+### Milestone 6
+
+- [ ] Allow changing default editor subview layout
+- [ ] Perform UX testing with all built-in color schemes
+- [ ] Review and refactor application modules
+	- [ ] settings
+	- [ ] editor
+- [ ] Optimize performance whenever reasonably possible
+- [ ] Support opening weaves using CLI arguments to tapestry loom
+- [ ] Review and refactor main module
 
 ### Milestone 7
 
