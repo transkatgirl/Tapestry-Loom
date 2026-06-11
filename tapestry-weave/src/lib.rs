@@ -1,4 +1,4 @@
-// TODO: v1 format using IndependentWeave
+// TODO: v2 format using IndependentWeave
 
 use universal_weave::{rkyv::rancor::Error, versioning::VersionedBytes};
 
@@ -33,7 +33,7 @@ pub enum VersionedWeave {
     #[cfg(feature = "v0")]
     V0(v0::TapestryWeave),
     #[cfg(feature = "v1")]
-    V1(v1::TapestryWeave),
+    V1(v1::dependent::TapestryWeave),
 }
 
 const FORMAT_IDENTIFIER: [u8; 24] = *b"VersionedTapestryWeave__";
@@ -45,7 +45,10 @@ impl VersionedWeave {
                 #[cfg(feature = "v0")]
                 0 => Some(v0::TapestryWeave::from_unversioned_bytes(versioned.data).map(Self::V0)),
                 #[cfg(feature = "v1")]
-                1 => Some(v1::TapestryWeave::from_unversioned_bytes(versioned.data).map(Self::V1)),
+                1 => Some(
+                    v1::dependent::TapestryWeave::from_unversioned_bytes(versioned.data)
+                        .map(Self::V1),
+                ),
                 _ => None,
             }
         } else {
@@ -62,19 +65,19 @@ impl VersionedWeave {
     }
     #[allow(unreachable_patterns)]
     #[cfg(feature = "v1")]
-    pub fn into_v1(self) -> Option<v1::TapestryWeave> {
+    pub fn into_v1(self) -> Option<v1::dependent::TapestryWeave> {
         match self {
             #[cfg(feature = "v0")]
-            Self::V0(weave) => Some(v1::TapestryWeave::from(weave)),
+            Self::V0(weave) => Some(v1::dependent::TapestryWeave::from(weave)),
             Self::V1(weave) => Some(weave),
             _ => None,
         }
     }
     #[cfg(all(feature = "v0", feature = "v1"))]
-    pub fn into_latest(self) -> v1::TapestryWeave {
+    pub fn into_latest(self) -> v1::dependent::TapestryWeave {
         match self {
             #[cfg(feature = "v0")]
-            Self::V0(weave) => v1::TapestryWeave::from(weave),
+            Self::V0(weave) => v1::dependent::TapestryWeave::from(weave),
             Self::V1(weave) => weave,
         }
     }
@@ -104,10 +107,10 @@ fn to_versioned_bytes(version: u64, data: &[u8]) -> Vec<u8> {
 }
 
 // TODO:
-// - Implement v1 format based on IndependentWeave
+// - Implement v2 format based on IndependentWeave
 //   - Implement diff-based tree updates
 //   - Implement prefix-based deduplication?
 //   - Implement support for editor undo/redo
 //   - Implement event-based invalidation support for multi-user weaves
 
-// Useful reference for future v1 format: https://github.com/transkatgirl/Tapestry-Loom/blob/a232fbbb4119a8a9047ca67a8f1b0cfb772c5bb1/weave/src/document/content/mod.rs
+// Useful reference for future formats: https://github.com/transkatgirl/Tapestry-Loom/blob/a232fbbb4119a8a9047ca67a8f1b0cfb772c5bb1/weave/src/document/content/mod.rs

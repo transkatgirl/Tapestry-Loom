@@ -2,14 +2,14 @@ use universal_weave::rkyv::{
     Archive, Deserialize, Serialize, from_bytes, rancor::Error, to_bytes, util::AlignedVec,
 };
 
-use crate::v1::TapestryWeaveMetadata;
+use crate::v1::metadata::WeaveMetadata;
 
 pub const FILE_EXTENSION: &str = "tapestrytext";
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct TextOnlyDocument {
     pub content: Vec<u8>,
-    pub metadata: TapestryWeaveMetadata,
+    pub metadata: WeaveMetadata,
 }
 
 impl TextOnlyDocument {
