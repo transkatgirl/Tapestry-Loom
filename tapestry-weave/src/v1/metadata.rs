@@ -77,7 +77,7 @@ impl From<MetadataMap> for WeaveMetadata {
 
         let mut converted_from = Vec::with_capacity(2);
 
-        if source.is_some() || conversion_timestamp.is_some() {
+        if source.is_some() || source_version.is_some() || conversion_timestamp.is_some() {
             converted_from.push(ConvertedFrom {
                 source: source.unwrap_or_else(|| "Unknown".to_string()),
                 source_version,
