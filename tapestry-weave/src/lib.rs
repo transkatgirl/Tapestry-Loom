@@ -40,14 +40,12 @@ pub enum VersionedWeave {
     V1Independent(v1::independent::TapestryWeave),
 }
 
-pub fn latest_from_versioned_bytes(
+pub fn latest_archived_from_versioned_bytes(
     value: &[u8],
-) -> Option<Result<v1::dependent::TapestryWeave, Error>> {
+) -> Option<Result<v1::dependent::ArchivedTapestryWeave<'_>, Error>> {
     if let Some(versioned) = VersionedBytes::try_from_bytes(value, FORMAT_IDENTIFIER) {
         if versioned.version == 1 {
-            Some(v1::dependent::TapestryWeave::from_unversioned_bytes(
-                versioned.data,
-            ))
+            Some(v1::dependent::ArchivedTapestryWeave::from_unversioned_bytes(versioned.data))
         } else {
             None
         }
@@ -56,12 +54,16 @@ pub fn latest_from_versioned_bytes(
     }
 }
 
-pub fn latest_archived_from_versioned_bytes(
+pub unsafe fn latest_archived_from_versioned_bytes_unchecked(
     value: &[u8],
-) -> Option<Result<v1::dependent::ArchivedTapestryWeave<'_>, Error>> {
+) -> Option<v1::dependent::ArchivedTapestryWeave<'_>> {
     if let Some(versioned) = VersionedBytes::try_from_bytes(value, FORMAT_IDENTIFIER) {
         if versioned.version == 1 {
-            Some(v1::dependent::ArchivedTapestryWeave::from_unversioned_bytes(versioned.data))
+            Some(unsafe {
+                v1::dependent::ArchivedTapestryWeave::from_unversioned_bytes_unchecked(
+                    versioned.data,
+                )
+            })
         } else {
             None
         }
