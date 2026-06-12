@@ -1,5 +1,6 @@
 use universal_weave::rkyv::{
-    Archive, Deserialize, Serialize, from_bytes, rancor::Error, to_bytes, util::AlignedVec,
+    Archive, Deserialize, Serialize, access, access_unchecked, deserialize, from_bytes,
+    from_bytes_unchecked, rancor::Error, to_bytes, util::AlignedVec,
 };
 
 use crate::v1::metadata::WeaveMetadata;
@@ -16,7 +17,22 @@ impl TextOnlyDocument {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         from_bytes::<_, Error>(bytes)
     }
+    pub unsafe fn from_bytes_unchecked(bytes: &[u8]) -> Result<Self, Error> {
+        unsafe { from_bytes_unchecked::<_, Error>(bytes) }
+    }
+    pub fn from_archived(value: &ArchivedTextOnlyDocument) -> Result<Self, Error> {
+        deserialize(value)
+    }
     pub fn to_bytes(&self) -> Result<AlignedVec, Error> {
         to_bytes::<Error>(self)
+    }
+}
+
+impl ArchivedTextOnlyDocument {
+    pub fn from_unversioned_bytes(bytes: &[u8]) -> Result<&Self, Error> {
+        access(bytes)
+    }
+    pub unsafe fn from_unversioned_bytes_unchecked(bytes: &[u8]) -> &Self {
+        unsafe { access_unchecked(bytes) }
     }
 }
