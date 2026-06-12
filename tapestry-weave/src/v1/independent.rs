@@ -1,10 +1,5 @@
 //! Experimental & untested
 
-// TODO: Longest common prefix deduplication
-// TODO: Token ID based deduplication
-// TODO: Request parameter based deduplication (especially for single-token nodes)
-// TODO: Add support for temporary nodes which are not actually stored in the IndependentWeave?
-
 use std::{cmp::Ordering, collections::HashSet, hash::BuildHasherDefault, num::NonZeroU128};
 
 use jiff::Zoned;
