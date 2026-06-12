@@ -8,7 +8,7 @@ use universal_weave::{
     rkyv::{Archive, Deserialize, Serialize},
 };
 
-use crate::wrappers::AsTemporal;
+use crate::wrappers::AsBinaryZoned;
 
 pub type MetadataMap = IndexMap<String, String, RandomState>;
 
@@ -16,7 +16,7 @@ pub type MetadataMap = IndexMap<String, String, RandomState>;
 pub struct WeaveMetadata {
     pub title: Option<String>,
     pub description: Option<String>,
-    #[rkyv(with = AsTemporal)]
+    #[rkyv(with = AsBinaryZoned)]
     pub created: Zoned,
     pub converted_from: Vec<ConvertedFrom>,
 
@@ -62,7 +62,7 @@ pub struct ConvertedFrom {
     pub source: String,
     pub source_version: Option<String>,
 
-    #[rkyv(with = AsTemporal)]
+    #[rkyv(with = AsBinaryZoned)]
     pub timestamp: Zoned,
 }
 

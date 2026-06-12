@@ -7,7 +7,7 @@ use universal_weave::{
     rkyv::{Archive, Deserialize, Serialize, niche::niching, with::NicheInto},
 };
 
-use crate::wrappers::AsTemporal;
+use crate::wrappers::AsBinaryZoned;
 
 #[cfg(feature = "v0")]
 use crate::v0::{
@@ -19,7 +19,7 @@ use super::metadata::MetadataMap;
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct NodeContent {
-    #[rkyv(with = AsTemporal)]
+    #[rkyv(with = AsBinaryZoned)]
     pub timestamp: Zoned,
     pub modified: bool,
 
