@@ -26,6 +26,21 @@ pub struct BinaryZoned {
     timezone: String,
 }
 
+impl BinaryZoned {
+    pub fn secs(&self) -> i64 {
+        self.secs
+    }
+    pub fn nanos(&self) -> i32 {
+        self.nanos
+    }
+    pub fn duration(&self) -> SignedDuration {
+        SignedDuration::new(self.secs, self.nanos)
+    }
+    pub fn timezone(&self) -> &str {
+        &self.timezone
+    }
+}
+
 #[cfg(feature = "v1")]
 impl From<&Zoned> for BinaryZoned {
     fn from(value: &Zoned) -> Self {
