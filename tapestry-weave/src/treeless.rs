@@ -29,10 +29,10 @@ impl TextOnlyDocument {
 }
 
 impl ArchivedTextOnlyDocument {
-    pub fn from_unversioned_bytes(bytes: &[u8]) -> Result<&Self, Error> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<&Self, Error> {
         access(bytes)
     }
-    pub unsafe fn from_unversioned_bytes_unchecked(bytes: &[u8]) -> &Self {
+    pub unsafe fn from_bytes_unchecked(bytes: &[u8]) -> &Self {
         unsafe { access_unchecked(bytes) }
     }
 }
