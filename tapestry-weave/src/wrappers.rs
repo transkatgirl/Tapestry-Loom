@@ -26,6 +26,7 @@ pub struct BinaryZoned {
     timezone: String,
 }
 
+#[cfg(feature = "v1")]
 impl BinaryZoned {
     pub fn secs(&self) -> i64 {
         self.secs
