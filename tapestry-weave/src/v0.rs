@@ -10,7 +10,8 @@ use universal_weave::{
     dependent::{DependentNode, legacy_dependent::DependentWeave},
     indexmap::{IndexMap, IndexSet},
     rkyv::{
-        Archive, Deserialize, Serialize, from_bytes, rancor::Error, to_bytes, util::AlignedVec,
+        Archive, Deserialize, Serialize, from_bytes, from_bytes_unchecked, rancor::Error, to_bytes,
+        util::AlignedVec,
     },
 };
 
@@ -221,6 +222,14 @@ pub struct TapestryWeave {
 impl TapestryWeave {
     pub fn from_unversioned_bytes(bytes: &[u8]) -> Result<Self, Error> {
         let weave = from_bytes::<TapestryWeaveInner, Error>(bytes)?;
+
+        Ok(Self {
+            scratchpad: Vec::with_capacity(weave.len()),
+            weave,
+        })
+    }
+    pub unsafe fn from_unversioned_bytes_unchecked(bytes: &[u8]) -> Result<Self, Error> {
+        let weave = unsafe { from_bytes_unchecked::<TapestryWeaveInner, Error>(bytes)? };
 
         Ok(Self {
             scratchpad: Vec::with_capacity(weave.len()),

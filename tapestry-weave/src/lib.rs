@@ -1,3 +1,5 @@
+#![allow(clippy::missing_safety_doc)]
+
 use universal_weave::{rkyv::rancor::Error, versioning::VersionedBytes};
 
 pub use foldhash;
@@ -85,7 +87,6 @@ impl VersionedWeave {
             Self::V0(weave) => Some(v1::independent::TapestryWeave::from(weave)),
             Self::V1Dependent(weave) => Some(v1::independent::TapestryWeave::from(weave)),
             Self::V1Independent(weave) => Some(weave),
-            _ => None,
         }
     }
     #[cfg(all(feature = "v0", feature = "v1"))]

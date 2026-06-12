@@ -13,8 +13,8 @@ use universal_weave::{
     independent::{ArchivedIndependentNode, IndependentNode, IndependentWeave},
     indexmap::IndexSet,
     rkyv::{
-        Archive, collections::swiss_table::ArchivedIndexSet, from_bytes, rancor::Error,
-        rend::u64_le, to_bytes, util::AlignedVec,
+        Archive, access, access_unchecked, collections::swiss_table::ArchivedIndexSet, deserialize,
+        from_bytes, from_bytes_unchecked, rancor::Error, rend::u64_le, to_bytes, util::AlignedVec,
     },
 };
 
@@ -41,6 +41,7 @@ pub type ArchivedTapestryNode =
     ArchivedIndependentNode<u64, NodeContent, BuildHasherDefault<RandomIdHasher>>;
 pub type TapestryWeaveInner =
     IndependentWeave<u64, NodeContent, WeaveMetadata, BuildHasherDefault<RandomIdHasher>>;
+pub type ArchivedTapestryWeaveInner = <TapestryWeaveInner as Archive>::Archived;
 
 pub struct TapestryWeave {
     weave: TapestryWeaveInner,
@@ -80,6 +81,16 @@ impl AsRef<TapestryWeaveInner> for TapestryWeave {
 impl TapestryWeave {
     pub fn from_unversioned_bytes(bytes: &[u8]) -> Result<Self, Error> {
         Ok(Self::from(from_bytes::<TapestryWeaveInner, Error>(bytes)?))
+    }
+    pub unsafe fn from_unversioned_bytes_unchecked(bytes: &[u8]) -> Result<Self, Error> {
+        Ok(Self::from(unsafe {
+            from_bytes_unchecked::<TapestryWeaveInner, Error>(bytes)?
+        }))
+    }
+    pub fn from_archived(value: &ArchivedTapestryWeave) -> Result<Self, Error> {
+        Ok(Self::from(deserialize::<TapestryWeaveInner, Error>(
+            value.weave,
+        )?))
     }
     pub fn to_unversioned_bytes(&self) -> Result<AlignedVec, Error> {
         assert!(self.weave.validate());
@@ -686,17 +697,27 @@ impl TapestryWeave {
     }*/
 }
 
-pub struct ArchivedTapestryWeave {
-    pub weave: <TapestryWeaveInner as Archive>::Archived,
+pub struct ArchivedTapestryWeave<'a> {
+    pub weave: &'a ArchivedTapestryWeaveInner,
 }
 
-impl AsRef<<TapestryWeaveInner as Archive>::Archived> for ArchivedTapestryWeave {
-    fn as_ref(&self) -> &<TapestryWeaveInner as Archive>::Archived {
-        &self.weave
+impl AsRef<ArchivedTapestryWeaveInner> for ArchivedTapestryWeave<'_> {
+    fn as_ref(&self) -> &ArchivedTapestryWeaveInner {
+        self.weave
     }
 }
 
-impl ArchivedTapestryWeave {
+impl<'a> ArchivedTapestryWeave<'a> {
+    pub fn from_unversioned_bytes(bytes: &'a [u8]) -> Result<Self, Error> {
+        Ok(Self {
+            weave: access::<ArchivedTapestryWeaveInner, Error>(bytes)?,
+        })
+    }
+    pub unsafe fn from_unversioned_bytes_unchecked(bytes: &'a [u8]) -> Self {
+        Self {
+            weave: unsafe { access_unchecked::<ArchivedTapestryWeaveInner>(bytes) },
+        }
+    }
     pub fn metadata(&self) -> &ArchivedWeaveMetadata {
         &self.weave.metadata
     }
