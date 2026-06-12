@@ -5,7 +5,6 @@ pub mod metadata;
 
 // TODO:
 // - Diff-based tree updates
-// - Mutable access to ArchivedTapestryWeave
 // - Prefix-based deduplication?
 // - Support for editor undo/redo
 // - Event-based invalidation support for multi-user weaves
