@@ -12,19 +12,25 @@ use universal_weave::{
     ActivePathWeave, ArchivedWeave, DeduplicatableWeave, DiscreteWeave, Weave,
     independent::{ArchivedIndependentNode, IndependentNode, IndependentWeave},
     indexmap::IndexSet,
-    rkyv::{Archive, collections::swiss_table::ArchivedIndexSet, rend::u64_le},
+    rkyv::{
+        Archive, collections::swiss_table::ArchivedIndexSet, from_bytes, rancor::Error,
+        rend::u64_le, to_bytes, util::AlignedVec,
+    },
 };
 
 #[cfg(feature = "v0")]
 use ulid::Ulid;
 
-use crate::hashers::RandomIdHasher;
+use crate::{
+    VersionedWeave, hashers::RandomIdHasher, to_versioned_bytes, v1::metadata::ConvertedFrom,
+};
 
 #[cfg(feature = "v0")]
 use crate::v0::TapestryWeave as OldTapestryWeave;
 
 use super::{
     content::{InnerNodeContent, NodeContent},
+    dependent::TapestryWeave as DependentTapestryWeave,
     metadata::{ArchivedWeaveMetadata, WeaveMetadata},
 };
 
@@ -72,7 +78,7 @@ impl AsRef<TapestryWeaveInner> for TapestryWeave {
 }
 
 impl TapestryWeave {
-    /*pub fn from_unversioned_bytes(bytes: &[u8]) -> Result<Self, Error> {
+    pub fn from_unversioned_bytes(bytes: &[u8]) -> Result<Self, Error> {
         Ok(Self::from(from_bytes::<TapestryWeaveInner, Error>(bytes)?))
     }
     pub fn to_unversioned_bytes(&self) -> Result<AlignedVec, Error> {
@@ -83,8 +89,8 @@ impl TapestryWeave {
         Ok(to_versioned_bytes(2, &self.to_unversioned_bytes()?))
     }
     pub fn to_versioned_weave(self) -> VersionedWeave {
-        VersionedWeave::V2(self)
-    }*/
+        VersionedWeave::V1Independent(self)
+    }
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             weave: IndependentWeave::with_capacity(capacity, WeaveMetadata::new()),
@@ -858,5 +864,19 @@ impl From<OldTapestryWeave> for TapestryWeave {
         }
 
         output
+    }
+}
+
+impl From<DependentTapestryWeave> for TapestryWeave {
+    fn from(value: DependentTapestryWeave) -> Self {
+        let mut weave = TapestryWeave::from(TapestryWeaveInner::from(value.weave));
+
+        weave.weave.metadata.converted_from.push(ConvertedFrom {
+            source: "TapestryLoomDependent".to_string(),
+            source_version: Some("1".to_string()),
+            timestamp: Zoned::now(),
+        });
+
+        weave
     }
 }

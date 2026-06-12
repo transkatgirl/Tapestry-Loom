@@ -791,15 +791,6 @@ impl Author {
     }
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-pub struct ConvertedFrom {
-    pub source: String,
-    pub source_version: Option<String>,
-
-    #[rkyv(with = AsTemporal)]
-    pub timestamp: Zoned,
-}
-
 #[cfg(feature = "v0")]
 impl From<OldInnerNodeContent> for InnerNodeContent {
     fn from(value: OldInnerNodeContent) -> Self {

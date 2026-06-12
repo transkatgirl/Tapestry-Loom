@@ -1,5 +1,3 @@
-// TODO: v2 format using IndependentWeave
-
 use universal_weave::{rkyv::rancor::Error, versioning::VersionedBytes};
 
 pub use foldhash;
@@ -33,7 +31,11 @@ pub enum VersionedWeave {
     #[cfg(feature = "v0")]
     V0(v0::TapestryWeave),
     #[cfg(feature = "v1")]
-    V1(v1::dependent::TapestryWeave),
+    /// WIP
+    V1Dependent(v1::dependent::TapestryWeave),
+    #[cfg(feature = "v1")]
+    /// WIP
+    V1Independent(v1::independent::TapestryWeave),
 }
 
 const FORMAT_IDENTIFIER: [u8; 24] = *b"VersionedTapestryWeave__";
@@ -47,7 +49,11 @@ impl VersionedWeave {
                 #[cfg(feature = "v1")]
                 1 => Some(
                     v1::dependent::TapestryWeave::from_unversioned_bytes(versioned.data)
-                        .map(Self::V1),
+                        .map(Self::V1Dependent),
+                ),
+                2 => Some(
+                    v1::independent::TapestryWeave::from_unversioned_bytes(versioned.data)
+                        .map(Self::V1Independent),
                 ),
                 _ => None,
             }
@@ -65,11 +71,20 @@ impl VersionedWeave {
     }
     #[allow(unreachable_patterns)]
     #[cfg(feature = "v1")]
-    pub fn into_v1(self) -> Option<v1::dependent::TapestryWeave> {
+    pub fn into_v1_dependent(self) -> Option<v1::dependent::TapestryWeave> {
         match self {
             #[cfg(feature = "v0")]
             Self::V0(weave) => Some(v1::dependent::TapestryWeave::from(weave)),
-            Self::V1(weave) => Some(weave),
+            Self::V1Dependent(weave) => Some(weave),
+            _ => None,
+        }
+    }
+    pub fn into_v1_independent(self) -> Option<v1::independent::TapestryWeave> {
+        match self {
+            #[cfg(feature = "v0")]
+            Self::V0(weave) => Some(v1::independent::TapestryWeave::from(weave)),
+            Self::V1Dependent(weave) => Some(v1::independent::TapestryWeave::from(weave)),
+            Self::V1Independent(weave) => Some(weave),
             _ => None,
         }
     }
@@ -78,7 +93,8 @@ impl VersionedWeave {
         match self {
             #[cfg(feature = "v0")]
             Self::V0(weave) => v1::dependent::TapestryWeave::from(weave),
-            Self::V1(weave) => weave,
+            Self::V1Dependent(weave) => weave,
+            Self::V1Independent(_) => unimplemented!(),
         }
     }
     pub fn to_bytes(self) -> Result<Vec<u8>, Error> {
@@ -86,7 +102,9 @@ impl VersionedWeave {
             #[cfg(feature = "v0")]
             Self::V0(weave) => (0, weave.to_unversioned_bytes()?),
             #[cfg(feature = "v1")]
-            Self::V1(weave) => (1, weave.to_unversioned_bytes()?),
+            Self::V1Dependent(weave) => (1, weave.to_unversioned_bytes()?),
+            #[cfg(feature = "v1")]
+            Self::V1Independent(weave) => (2, weave.to_unversioned_bytes()?),
         };
 
         Ok(to_versioned_bytes(version, &bytes))
@@ -105,12 +123,3 @@ fn to_versioned_bytes(version: u64, data: &[u8]) -> Vec<u8> {
 
     output
 }
-
-// TODO:
-// - Implement v2 format based on IndependentWeave
-//   - Implement diff-based tree updates
-//   - Implement prefix-based deduplication?
-//   - Implement support for editor undo/redo
-//   - Implement event-based invalidation support for multi-user weaves
-
-// Useful reference for future formats: https://github.com/transkatgirl/Tapestry-Loom/blob/a232fbbb4119a8a9047ca67a8f1b0cfb772c5bb1/weave/src/document/content/mod.rs

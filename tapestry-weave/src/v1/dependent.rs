@@ -3,14 +3,13 @@
 use std::{cmp::Ordering, collections::HashSet, hash::BuildHasherDefault, num::NonZeroU128};
 
 use jiff::Zoned;
-use rkyv::option::ArchivedOption;
 use universal_weave::{
     ArchivedWeave, DeduplicatableWeave, DiscreteWeave, Weave,
     dependent::{ArchivedDependentNode, DependentNode, DependentWeave},
     indexmap::IndexSet,
     rkyv::{
-        Archive, collections::swiss_table::ArchivedIndexSet, from_bytes, rancor::Error,
-        rend::u64_le, to_bytes, util::AlignedVec,
+        Archive, collections::swiss_table::ArchivedIndexSet, from_bytes, option::ArchivedOption,
+        rancor::Error, rend::u64_le, to_bytes, util::AlignedVec,
     },
 };
 
@@ -36,7 +35,7 @@ pub type TapestryWeaveInner =
     DependentWeave<u64, NodeContent, WeaveMetadata, BuildHasherDefault<RandomIdHasher>>;
 
 pub struct TapestryWeave {
-    weave: TapestryWeaveInner,
+    pub(super) weave: TapestryWeaveInner,
     active: Vec<u64>,
     active_set: HashSet<u64, BuildHasherDefault<RandomIdHasher>>,
     scratchpad: Vec<u64>,
@@ -88,7 +87,7 @@ impl TapestryWeave {
         Ok(to_versioned_bytes(1, &self.to_unversioned_bytes()?))
     }
     pub fn to_versioned_weave(self) -> VersionedWeave {
-        VersionedWeave::V1(self)
+        VersionedWeave::V1Dependent(self)
     }
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
