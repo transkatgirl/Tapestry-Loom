@@ -205,10 +205,9 @@ impl VersionedWeave {
 }
 
 fn write_header<W: Writer<Error>>(writer: &mut W, version: u64) -> Result<(), Error> {
-    let versioned = VersionedBytes {
-        format_identifier: FORMAT_IDENTIFIER,
-        version,
-        data: &[],
-    };
-    writer.write(&versioned.header_bytes())
+    // Copied from VersionedBytes::write_header()
+    writer.write(&FORMAT_IDENTIFIER)?;
+    writer.write(&version.to_le_bytes())?;
+
+    Ok(())
 }
