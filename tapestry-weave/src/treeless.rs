@@ -1,9 +1,10 @@
+use jiff::Zoned;
 use universal_weave::rkyv::{
     Archive, Deserialize, Serialize, access, access_unchecked, deserialize, from_bytes,
     from_bytes_unchecked, rancor::Error, to_bytes, util::AlignedVec,
 };
 
-use crate::v1::metadata::WeaveMetadata;
+use crate::v1::metadata::{ConvertedFrom, MetadataMap, WeaveMetadata};
 
 pub const FILE_EXTENSION: &str = "tapestrytext";
 
@@ -25,6 +26,25 @@ impl TextOnlyDocument {
     }
     pub fn to_bytes(&self) -> Result<AlignedVec, Error> {
         to_bytes::<Error>(self)
+    }
+}
+
+impl From<Vec<u8>> for TextOnlyDocument {
+    fn from(value: Vec<u8>) -> Self {
+        Self {
+            content: value,
+            metadata: WeaveMetadata {
+                title: None,
+                description: None,
+                created: Zoned::now(),
+                converted_from: vec![ConvertedFrom {
+                    source: "PlainText".to_string(),
+                    source_version: None,
+                    timestamp: Zoned::now(),
+                }],
+                metadata: MetadataMap::default(),
+            },
+        }
     }
 }
 
