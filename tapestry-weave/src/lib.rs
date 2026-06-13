@@ -135,6 +135,38 @@ impl VersionedWeave {
             None
         }
     }
+    pub unsafe fn from_bytes_unchecked(value: &[u8]) -> Option<Result<Self, Error>> {
+        if let Some(versioned) = VersionedBytes::try_from_bytes(value, FORMAT_IDENTIFIER) {
+            match versioned.version {
+                #[cfg(feature = "v0")]
+                0 => Some(
+                    unsafe { v0::TapestryWeave::from_unversioned_bytes_unchecked(versioned.data) }
+                        .map(Self::V0),
+                ),
+                #[cfg(feature = "v1")]
+                1 => Some(
+                    unsafe {
+                        v1::dependent::TapestryWeave::from_unversioned_bytes_unchecked(
+                            versioned.data,
+                        )
+                    }
+                    .map(Self::V1Dependent),
+                ),
+                #[cfg(feature = "v1")]
+                2 => Some(
+                    unsafe {
+                        v1::independent::TapestryWeave::from_unversioned_bytes_unchecked(
+                            versioned.data,
+                        )
+                    }
+                    .map(Self::V1Independent),
+                ),
+                _ => None,
+            }
+        } else {
+            None
+        }
+    }
     #[allow(unreachable_patterns)]
     #[cfg(feature = "v0")]
     pub fn into_v0(self) -> Option<v0::TapestryWeave> {
