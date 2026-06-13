@@ -250,3 +250,18 @@ pub enum VersionedInnerWeave<'a> {
     /// WIP
     V1Independent(Cow<'a, v1::independent::TapestryWeaveInner>),
 }
+
+#[cfg(feature = "serde")]
+impl<'a> VersionedInnerWeave<'a> {
+    pub fn into_weave(self) -> VersionedWeave {
+        match self {
+            Self::V0(weave) => VersionedWeave::V0(v0::TapestryWeave::from(weave.into_owned())),
+            Self::V1Dependent(weave) => {
+                VersionedWeave::V1Dependent(v1::dependent::TapestryWeave::from(weave.into_owned()))
+            }
+            Self::V1Independent(weave) => VersionedWeave::V1Independent(
+                v1::independent::TapestryWeave::from(weave.into_owned()),
+            ),
+        }
+    }
+}

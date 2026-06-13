@@ -227,22 +227,23 @@ pub struct TapestryWeave {
     scratchpad: Vec<u128>,
 }
 
+impl From<TapestryWeaveInner> for TapestryWeave {
+    fn from(value: TapestryWeaveInner) -> Self {
+        Self {
+            scratchpad: Vec::with_capacity(value.len()),
+            weave: value,
+        }
+    }
+}
+
 impl TapestryWeave {
     pub fn from_unversioned_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        let weave = from_bytes::<TapestryWeaveInner, Error>(bytes)?;
-
-        Ok(Self {
-            scratchpad: Vec::with_capacity(weave.len()),
-            weave,
-        })
+        Ok(Self::from(from_bytes::<TapestryWeaveInner, Error>(bytes)?))
     }
     pub unsafe fn from_unversioned_bytes_unchecked(bytes: &[u8]) -> Result<Self, Error> {
-        let weave = unsafe { from_bytes_unchecked::<TapestryWeaveInner, Error>(bytes)? };
-
-        Ok(Self {
-            scratchpad: Vec::with_capacity(weave.len()),
-            weave,
-        })
+        Ok(Self::from(unsafe {
+            from_bytes_unchecked::<TapestryWeaveInner, Error>(bytes)?
+        }))
     }
     pub fn write_unversioned_bytes<W: Writer<Error>>(&self, writer: W) -> Result<W, Error> {
         assert!(self.weave.validate());
