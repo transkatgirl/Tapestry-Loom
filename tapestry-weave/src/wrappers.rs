@@ -21,33 +21,25 @@ const PARSER: DateTimeParser = DateTimeParser::new();
 #[cfg(feature = "v1")]
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct BinaryZoned {
-    secs: i64,
-    nanos: i32,
-    timezone: String,
-}
-
-#[cfg(feature = "v1")]
-impl BinaryZoned {
-    pub fn secs(&self) -> i64 {
-        self.secs
-    }
-    pub fn nanos(&self) -> i32 {
-        self.nanos
-    }
-    pub fn duration(&self) -> SignedDuration {
-        SignedDuration::new(self.secs, self.nanos)
-    }
-    pub fn timezone(&self) -> &str {
-        &self.timezone
-    }
+    pub secs: i64,
+    pub nanos: i32,
+    pub timezone: String, // Timezones are usually IANA names, so wasting bytes when storing offsets or POSIX timestamps is probably fine.
 }
 
 #[cfg(feature = "v1")]
 impl From<&Zoned> for BinaryZoned {
     fn from(value: &Zoned) -> Self {
-        let timezone = PRINTER
-            .time_zone_to_string(value.time_zone())
-            .unwrap_or_else(|_| "Etc/Unknown".to_string());
+        let timezone = {
+            let timezone = value.time_zone();
+
+            if *timezone == TimeZone::UTC {
+                String::new()
+            } else {
+                PRINTER
+                    .time_zone_to_string(timezone)
+                    .unwrap_or_else(|_| "Etc/Unknown".to_string())
+            }
+        };
         let timestamp = value.timestamp().as_duration();
 
         Self {
@@ -61,9 +53,13 @@ impl From<&Zoned> for BinaryZoned {
 #[cfg(feature = "v1")]
 impl From<BinaryZoned> for Zoned {
     fn from(value: BinaryZoned) -> Self {
-        let timezone = PARSER
-            .parse_time_zone(value.timezone)
-            .unwrap_or(TimeZone::unknown());
+        let timezone = if value.timezone.is_empty() {
+            TimeZone::UTC
+        } else {
+            PARSER
+                .parse_time_zone(value.timezone)
+                .unwrap_or(TimeZone::unknown())
+        };
         let timestamp = Timestamp::from_duration(SignedDuration::new(value.secs, value.nanos))
             .unwrap_or_default();
 
