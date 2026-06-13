@@ -1,5 +1,6 @@
 #![allow(clippy::missing_safety_doc)]
 
+use rkyv::util::AlignedVec;
 use universal_weave::{rkyv::rancor::Error, versioning::VersionedBytes};
 
 pub use foldhash;
@@ -40,6 +41,7 @@ pub enum VersionedWeave {
     V1Independent(v1::independent::TapestryWeave),
 }
 
+#[cfg(feature = "v1")]
 pub fn latest_archived_from_versioned_bytes(
     value: &[u8],
 ) -> Option<Result<v1::dependent::ArchivedTapestryWeave<'_>, Error>> {
@@ -54,6 +56,7 @@ pub fn latest_archived_from_versioned_bytes(
     }
 }
 
+#[cfg(feature = "v1")]
 pub unsafe fn latest_archived_from_versioned_bytes_unchecked(
     value: &[u8],
 ) -> Option<v1::dependent::ArchivedTapestryWeave<'_>> {
@@ -85,6 +88,7 @@ impl VersionedWeave {
                     v1::dependent::TapestryWeave::from_unversioned_bytes(versioned.data)
                         .map(Self::V1Dependent),
                 ),
+                #[cfg(feature = "v1")]
                 2 => Some(
                     v1::independent::TapestryWeave::from_unversioned_bytes(versioned.data)
                         .map(Self::V1Independent),
@@ -113,6 +117,7 @@ impl VersionedWeave {
             _ => None,
         }
     }
+    #[cfg(all(feature = "v0", feature = "v1"))]
     pub fn into_v1_independent(self) -> Option<v1::independent::TapestryWeave> {
         match self {
             #[cfg(feature = "v0")]
@@ -131,7 +136,7 @@ impl VersionedWeave {
         }
     }
     pub fn to_bytes(self) -> Result<Vec<u8>, Error> {
-        let (version, bytes) = match self {
+        let (version, bytes): (u64, AlignedVec) = match self {
             #[cfg(feature = "v0")]
             Self::V0(weave) => (0, weave.to_unversioned_bytes()?),
             #[cfg(feature = "v1")]

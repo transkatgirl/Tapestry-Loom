@@ -2,7 +2,6 @@
 
 use std::{cmp::Ordering, collections::HashSet, hash::BuildHasherDefault, num::NonZeroU128};
 
-use jiff::Zoned;
 use universal_weave::{
     ArchivedWeave, DeduplicatableWeave, DiscreteWeave, Weave,
     dependent::{ArchivedDependentNode, DependentNode, DependentWeave},
@@ -13,6 +12,9 @@ use universal_weave::{
         to_bytes, util::AlignedVec,
     },
 };
+
+#[cfg(feature = "v0")]
+use jiff::Zoned;
 
 #[cfg(feature = "v0")]
 use ulid::Ulid;
