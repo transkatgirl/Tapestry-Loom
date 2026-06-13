@@ -1,5 +1,7 @@
 #![allow(clippy::missing_safety_doc)]
 
+// TODO: Implement streaming serialization
+
 use rkyv::util::AlignedVec;
 use universal_weave::{rkyv::rancor::Error, versioning::VersionedBytes};
 
@@ -24,6 +26,7 @@ pub mod v1;
 pub mod wrappers;
 
 pub const VERSIONED_WEAVE_FILE_EXTENSION: &str = "tapestry";
+const FORMAT_IDENTIFIER: [u8; 24] = *b"VersionedTapestryWeave__";
 
 #[allow(clippy::non_minimal_cfg)]
 #[non_exhaustive]
@@ -80,22 +83,6 @@ impl<'a> ArchivedVersionedWeave<'a> {
             None
         }
     }
-    #[cfg(feature = "v1")]
-    pub fn as_v1_dependent(self) -> Option<v1::dependent::ArchivedTapestryWeave<'a>> {
-        if let Self::V1Dependent(weave) = self {
-            Some(weave)
-        } else {
-            None
-        }
-    }
-    #[cfg(feature = "v1")]
-    pub fn as_v1_independent(self) -> Option<v1::independent::ArchivedTapestryWeave<'a>> {
-        if let Self::V1Independent(weave) = self {
-            Some(weave)
-        } else {
-            None
-        }
-    }
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -110,8 +97,6 @@ pub enum VersionedWeave {
     /// WIP
     V1Independent(v1::independent::TapestryWeave),
 }
-
-const FORMAT_IDENTIFIER: [u8; 24] = *b"VersionedTapestryWeave__";
 
 impl VersionedWeave {
     pub fn from_bytes(value: &[u8]) -> Option<Result<Self, Error>> {
@@ -178,7 +163,6 @@ impl VersionedWeave {
     #[cfg(all(feature = "v0", feature = "v1"))]
     pub fn into_v1_dependent(self) -> Option<v1::dependent::TapestryWeave> {
         match self {
-            #[cfg(feature = "v0")]
             Self::V0(weave) => Some(v1::dependent::TapestryWeave::from(weave)),
             Self::V1Dependent(weave) => Some(weave),
             _ => None,
@@ -187,7 +171,6 @@ impl VersionedWeave {
     #[cfg(all(feature = "v0", feature = "v1"))]
     pub fn into_v1_independent(self) -> Option<v1::independent::TapestryWeave> {
         match self {
-            #[cfg(feature = "v0")]
             Self::V0(weave) => Some(v1::independent::TapestryWeave::from(weave)),
             Self::V1Dependent(weave) => Some(v1::independent::TapestryWeave::from(weave)),
             Self::V1Independent(weave) => Some(weave),
@@ -196,7 +179,6 @@ impl VersionedWeave {
     #[cfg(all(feature = "v0", feature = "v1"))]
     pub fn into_latest(self) -> v1::dependent::TapestryWeave {
         match self {
-            #[cfg(feature = "v0")]
             Self::V0(weave) => v1::dependent::TapestryWeave::from(weave),
             Self::V1Dependent(weave) => weave,
             Self::V1Independent(_) => unimplemented!(),
@@ -216,6 +198,7 @@ impl VersionedWeave {
     }
 }
 
+// FIXME - This function results in an unnecessary memory copy
 fn to_versioned_bytes(version: u64, data: &[u8]) -> Vec<u8> {
     let versioned = VersionedBytes {
         format_identifier: FORMAT_IDENTIFIER,
