@@ -198,6 +198,8 @@ impl VersionedWeave {
             Self::V1Dependent(weave) => weave.write_versioned_bytes(writer)?,
             #[cfg(feature = "v1")]
             Self::V1Independent(weave) => weave.write_versioned_bytes(writer)?,
+            #[allow(unreachable_patterns)]
+            _ => writer,
         };
 
         Ok(())
