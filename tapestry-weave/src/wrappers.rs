@@ -12,11 +12,20 @@ use jiff::{
     tz::TimeZone,
 };
 
+#[cfg(feature = "serde")]
+use base64::engine::general_purpose::STANDARD;
+
+#[cfg(feature = "serde")]
+use base64_serde::base64_serde_type;
+
 #[cfg(feature = "v1")]
 const PRINTER: DateTimePrinter = DateTimePrinter::new();
 
 #[cfg(feature = "v1")]
 const PARSER: DateTimeParser = DateTimeParser::new();
+
+#[cfg(feature = "serde")]
+base64_serde_type!(pub(crate) Base64Standard, STANDARD);
 
 #[cfg(feature = "v1")]
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]

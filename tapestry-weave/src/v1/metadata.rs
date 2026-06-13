@@ -8,11 +8,15 @@ use universal_weave::{
     rkyv::{Archive, Deserialize, Serialize},
 };
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
+
 use super::super::wrappers::AsBinaryZoned;
 
 pub type MetadataMap = IndexMap<String, String, RandomState>;
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub struct WeaveMetadata {
     pub title: Option<String>,
     pub description: Option<String>,
@@ -60,6 +64,7 @@ impl ArchivedWeaveMetadata {
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub struct ConvertedFrom {
     pub source: String,
     pub source_version: Option<String>,

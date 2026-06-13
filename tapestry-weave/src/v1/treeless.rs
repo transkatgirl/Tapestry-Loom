@@ -4,12 +4,20 @@ use universal_weave::rkyv::{
     from_bytes_unchecked, rancor::Error, to_bytes, util::AlignedVec,
 };
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
+
+#[cfg(feature = "serde")]
+use super::super::wrappers::Base64Standard;
+
 use super::metadata::{ConvertedFrom, MetadataMap, WeaveMetadata};
 
 pub const FILE_EXTENSION: &str = "tapestrytext";
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub struct TextOnlyDocument {
+    #[cfg_attr(feature = "serde", serde(with = "Base64Standard"))]
     pub content: Vec<u8>,
     pub metadata: WeaveMetadata,
 }

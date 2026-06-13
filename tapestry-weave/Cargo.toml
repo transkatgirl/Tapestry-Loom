@@ -16,17 +16,31 @@ default = [
 v0 = [
 	"universal-weave/legacy",
 	"universal-weave/serde",
-	"ulid",
-	"serde_json",
-	"base64",
+	"dep:ulid",
+	"dep:serde_json",
+	"dep:base64",
 ]
-v1 = [ "jiff" ]
+v1 = [ "dep:jiff" ]
+serde = [
+	"universal-weave/serde",
+	"jiff/serde",
+	"dep:serde",
+	"dep:base64",
+	"dep:base64-serde",
+]
 
 [dependencies]
 contracts       = "0.6.7"
 rkyv            = "0.8.16"
 universal-weave = { path = "../universal-weave" }
 foldhash        = "0.2.0"
+
+# serde
+serde = { version = "1.0.228", optional = true, features = [
+	"rc",
+] }
+base64 = { version = "0.22.1", optional = true } # also used by v0
+base64-serde = { version = "0.8.0", optional = true }
 
 # v0
 ulid = { version = "1.2.1", features = [
@@ -36,7 +50,6 @@ serde_json = { version = "1.0.150", features = [
 	"preserve_order",
 	"arbitrary_precision",
 ], optional = true }
-base64 = { version = "0.22.1", optional = true }
 
 # v1+
 jiff = { version = "0.2.28", optional = true }

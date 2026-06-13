@@ -13,9 +13,16 @@ use crate::v0::{
     deserialize_counterfactual_logprobs,
 };
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
+
+#[cfg(feature = "serde")]
+use super::super::wrappers::Base64Standard;
+
 use super::{super::wrappers::AsBinaryZoned, metadata::MetadataMap};
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub struct NodeContent {
     #[rkyv(with = AsBinaryZoned)]
     pub timestamp: Zoned,
@@ -96,8 +103,9 @@ impl DeduplicatableContents for NodeContent {
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub enum InnerNodeContent {
-    Snippet(Vec<u8>),
+    Snippet(#[cfg_attr(feature = "serde", serde(with = "Base64Standard"))] Vec<u8>),
     Tokens(Vec<InnerNodeToken>),
     MetadataOnly,
 }
@@ -275,7 +283,9 @@ impl ArchivedInnerNodeContent {
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub struct InnerNodeToken {
+    #[cfg_attr(feature = "serde", serde(with = "Base64Standard"))]
     pub bytes: Vec<u8>,
     pub logprob: f32,
     pub id: Option<u64>,
@@ -337,6 +347,7 @@ impl ArchivedInnerNodeToken {
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub enum OriginalToken {
     Unmodified,
     Known(Vec<u8>),
@@ -364,7 +375,9 @@ impl ArchivedOriginalToken {
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub struct CounterfactualToken {
+    #[cfg_attr(feature = "serde", serde(with = "Base64Standard"))]
     pub bytes: Vec<u8>,
     pub logprob: f32,
     pub id: Option<u64>,
@@ -574,6 +587,7 @@ impl ArchivedInnerNodeContent {
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub enum Creator {
     Model(Option<Model>),
     Human(Option<Author>),
@@ -697,6 +711,7 @@ impl ArchivedCreator {
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub struct Model {
     pub label: String,
     pub color: Option<String>,
@@ -748,6 +763,7 @@ impl Model {
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub struct RawQuery {
     request: Arc<Vec<u8>>,
     response: Vec<u8>,
@@ -756,6 +772,7 @@ pub struct RawQuery {
 pub const UNKNOWN_MODEL_LABEL: &str = "Unknown Model";
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub struct Author {
     pub label: String,
     pub color: Option<String>,
