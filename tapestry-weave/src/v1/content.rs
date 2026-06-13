@@ -7,15 +7,13 @@ use universal_weave::{
     rkyv::{Archive, Deserialize, Serialize, niche::niching, with::NicheInto},
 };
 
-use crate::wrappers::AsBinaryZoned;
-
 #[cfg(feature = "v0")]
 use crate::v0::{
     InnerNodeContent as OldInnerNodeContent, Model as OldModel, NodeContent as OldNodeContent,
     deserialize_counterfactual_logprobs,
 };
 
-use super::metadata::MetadataMap;
+use super::{super::wrappers::AsBinaryZoned, metadata::MetadataMap};
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct NodeContent {

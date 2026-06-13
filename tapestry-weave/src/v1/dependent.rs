@@ -19,12 +19,11 @@ use jiff::Zoned;
 #[cfg(feature = "v0")]
 use ulid::Ulid;
 
-use crate::{VersionedWeave, hashers::RandomIdHasher, write_header};
-
 #[cfg(feature = "v0")]
 use crate::v0::TapestryWeave as OldTapestryWeave;
 
 use super::{
+    super::{VersionedWeave, hashers::RandomIdHasher, write_header},
     content::{InnerNodeContent, NodeContent},
     metadata::{ArchivedWeaveMetadata, WeaveMetadata},
 };

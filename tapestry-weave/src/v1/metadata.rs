@@ -8,7 +8,7 @@ use universal_weave::{
     rkyv::{Archive, Deserialize, Serialize},
 };
 
-use crate::wrappers::AsBinaryZoned;
+use super::super::wrappers::AsBinaryZoned;
 
 pub type MetadataMap = IndexMap<String, String, RandomState>;
 
@@ -75,7 +75,7 @@ impl ConvertedFrom {
     pub fn is_converter_native(&self) -> bool {
         self.converter == env!("CARGO_PKG_NAME")
     }
-    pub fn is_converter_native_version(&self) -> bool {
+    pub fn is_converter_native_current_version(&self) -> bool {
         self.converter == env!("CARGO_PKG_NAME")
             && self.converter_version.as_deref() == Some(env!("CARGO_PKG_VERSION"))
     }

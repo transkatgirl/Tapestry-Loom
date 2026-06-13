@@ -17,12 +17,11 @@ use universal_weave::{
 #[cfg(feature = "v0")]
 use ulid::Ulid;
 
-use crate::{VersionedWeave, hashers::RandomIdHasher, v1::metadata::ConvertedFrom, write_header};
-
 #[cfg(feature = "v0")]
 use crate::v0::TapestryWeave as OldTapestryWeave;
 
 use super::{
+    super::{VersionedWeave, hashers::RandomIdHasher, v1::metadata::ConvertedFrom, write_header},
     content::{InnerNodeContent, NodeContent},
     dependent::TapestryWeave as DependentTapestryWeave,
     metadata::{ArchivedWeaveMetadata, WeaveMetadata},

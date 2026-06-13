@@ -15,7 +15,7 @@ use universal_weave::{
     },
 };
 
-use crate::{VersionedWeave, hashers::UlidHasher, write_header};
+use super::{VersionedWeave, hashers::UlidHasher, write_header};
 
 pub(crate) const FORMAT_VERSION: u64 = 0;
 

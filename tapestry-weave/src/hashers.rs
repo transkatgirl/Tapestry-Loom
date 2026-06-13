@@ -2,9 +2,11 @@ use std::hash::Hasher;
 
 pub use foldhash::fast::RandomState;
 
+#[cfg(feature = "v0")]
 #[derive(Default)]
 pub struct UlidHasher(u64);
 
+#[cfg(feature = "v0")]
 impl Hasher for UlidHasher {
     fn write(&mut self, _: &[u8]) {
         unimplemented!()
