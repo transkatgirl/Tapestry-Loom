@@ -7,6 +7,12 @@ use universal_weave::{
     versioning::VersionedBytes,
 };
 
+#[cfg(feature = "serde")]
+use std::borrow::Cow;
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
+
 pub use foldhash;
 
 #[cfg(feature = "v0")]
@@ -180,6 +186,23 @@ impl VersionedWeave {
             Self::V1Independent(weave) => Some(weave),
         }
     }
+    #[cfg(feature = "serde")]
+    pub fn as_inner(&'_ self) -> VersionedInnerWeave<'_> {
+        match self {
+            #[cfg(feature = "v0")]
+            Self::V0(weave) => VersionedInnerWeave::V0(Cow::Borrowed(&weave.weave)),
+            #[cfg(feature = "v1")]
+            Self::V1Dependent(weave) => {
+                VersionedInnerWeave::V1Dependent(Cow::Borrowed(weave.as_ref()))
+            }
+            #[cfg(feature = "v1")]
+            Self::V1Independent(weave) => {
+                VersionedInnerWeave::V1Independent(Cow::Borrowed(weave.as_ref()))
+            }
+            #[allow(unreachable_patterns)]
+            _ => unimplemented!(),
+        }
+    }
     #[cfg(all(feature = "v0", feature = "v1"))]
     pub fn into_latest(self) -> v1::dependent::TapestryWeave {
         match self {
@@ -212,4 +235,18 @@ fn write_header<W: Writer<Error>>(writer: &mut W, version: u64) -> Result<(), Er
     writer.write(&version.to_le_bytes())?;
 
     Ok(())
+}
+
+#[cfg(feature = "serde")]
+#[derive(SerdeSerialize, SerdeDeserialize)]
+#[serde(tag = "tapestryWeaveVersion", content = "data")]
+pub enum VersionedInnerWeave<'a> {
+    #[cfg(feature = "v0")]
+    V0(Cow<'a, v0::TapestryWeaveInner>),
+    #[cfg(feature = "v1")]
+    /// WIP
+    V1Dependent(Cow<'a, v1::dependent::TapestryWeaveInner>),
+    #[cfg(feature = "v1")]
+    /// WIP
+    V1Independent(Cow<'a, v1::independent::TapestryWeaveInner>),
 }
