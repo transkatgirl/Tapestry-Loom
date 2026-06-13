@@ -890,11 +890,11 @@ impl From<DependentTapestryWeave> for TapestryWeave {
     fn from(value: DependentTapestryWeave) -> Self {
         let mut weave = TapestryWeave::from(TapestryWeaveInner::from(value.weave));
 
-        weave.weave.metadata.converted_from.push(ConvertedFrom {
-            source: "TapestryLoomDependent".to_string(),
-            source_version: Some("1".to_string()),
-            timestamp: Zoned::now(),
-        });
+        weave
+            .weave
+            .metadata
+            .converted_from
+            .push(ConvertedFrom::from_v1_dependent(Zoned::now()));
 
         weave
     }

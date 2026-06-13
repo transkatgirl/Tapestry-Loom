@@ -39,11 +39,7 @@ impl From<Vec<u8>> for TextOnlyDocument {
                 title: None,
                 description: None,
                 created: timestamp.clone(),
-                converted_from: vec![ConvertedFrom {
-                    source: "Plaintext".to_string(),
-                    source_version: None,
-                    timestamp,
-                }],
+                converted_from: vec![ConvertedFrom::from_plaintext(timestamp)],
                 metadata: MetadataMap::default(),
             },
         }

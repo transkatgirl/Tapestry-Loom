@@ -35,11 +35,12 @@ impl WeaveMetadata {
         }
     }
     pub fn is_empty(&self) -> bool {
-        self.description
-            .as_ref()
-            .map(|v| v.is_empty())
-            .unwrap_or(true)
-            && self.title.as_ref().map(|v| v.is_empty()).unwrap_or(true)
+        self.title.as_ref().map(|v| v.is_empty()).unwrap_or(true)
+            && self
+                .description
+                .as_ref()
+                .map(|v| v.is_empty())
+                .unwrap_or(true)
             && self.converted_from.is_empty()
             && self.metadata.is_empty()
     }
@@ -47,11 +48,12 @@ impl WeaveMetadata {
 
 impl ArchivedWeaveMetadata {
     pub fn is_empty(&self) -> bool {
-        self.description
-            .as_ref()
-            .map(|v| v.is_empty())
-            .unwrap_or(true)
-            && self.title.as_ref().map(|v| v.is_empty()).unwrap_or(true)
+        self.title.as_ref().map(|v| v.is_empty()).unwrap_or(true)
+            && self
+                .description
+                .as_ref()
+                .map(|v| v.is_empty())
+                .unwrap_or(true)
             && self.converted_from.is_empty()
             && self.metadata.is_empty()
     }
@@ -62,8 +64,67 @@ pub struct ConvertedFrom {
     pub source: String,
     pub source_version: Option<String>,
 
+    pub converter: String,
+    pub converter_version: Option<String>,
+
     #[rkyv(with = AsBinaryZoned)]
     pub timestamp: Zoned,
+}
+
+impl ConvertedFrom {
+    pub fn is_converter_tapestry_weave(&self) -> bool {
+        self.converter == "tapestry-weave"
+    }
+
+    pub fn from_plaintext(timestamp: Zoned) -> Self {
+        ConvertedFrom {
+            source: "Plaintext".to_string(),
+            source_version: None,
+            converter: "tapestry-weave".to_string(),
+            converter_version: Some(env!("CARGO_PKG_VERSION").to_string()),
+            timestamp,
+        }
+    }
+    pub fn is_from_plaintext(&self) -> bool {
+        self.source == "Plaintext" && self.source_version.is_none()
+    }
+    #[cfg(feature = "v0")]
+    pub fn from_v0(timestamp: Zoned) -> Self {
+        ConvertedFrom {
+            source: "Tapestry Loom".to_string(),
+            source_version: Some("0".to_string()),
+            converter: "tapestry-weave".to_string(),
+            converter_version: Some(env!("CARGO_PKG_VERSION").to_string()),
+            timestamp,
+        }
+    }
+    pub fn is_from_v0(&self) -> bool {
+        self.source == "Tapestry Loom" && self.source_version.as_deref() == Some("0")
+    }
+    pub fn from_v1_dependent(timestamp: Zoned) -> Self {
+        ConvertedFrom {
+            source: "Tapestry Loom".to_string(),
+            source_version: Some("1.dependent".to_string()),
+            converter: "tapestry-weave".to_string(),
+            converter_version: Some(env!("CARGO_PKG_VERSION").to_string()),
+            timestamp,
+        }
+    }
+    pub fn is_from_v1_dependent(&self) -> bool {
+        self.source == "Tapestry Loom" && self.source_version.as_deref() == Some("1.dependent")
+    }
+    pub fn from_v1_independent(timestamp: Zoned) -> Self {
+        ConvertedFrom {
+            source: "Tapestry Loom".to_string(),
+            source_version: Some("1.independent".to_string()),
+            converter: "tapestry-weave".to_string(),
+            converter_version: Some(env!("CARGO_PKG_VERSION").to_string()),
+            timestamp,
+        }
+    }
+    pub fn is_from_v1_independent(&self) -> bool {
+        self.source == "Tapestry Loom" && self.source_version.as_deref() == Some("1.independent")
+    }
 }
 
 #[cfg(feature = "v0")]
@@ -81,15 +142,13 @@ impl From<MetadataMap> for WeaveMetadata {
             converted_from.push(ConvertedFrom {
                 source: source.unwrap_or_else(|| "Unknown".to_string()),
                 source_version,
+                converter: "Unknown (likely migration-assistant)".to_string(),
+                converter_version: None,
                 timestamp: conversion_timestamp.unwrap_or_default(),
             });
         }
 
-        converted_from.push(ConvertedFrom {
-            source: "TapestryLoomBeta".to_string(),
-            source_version: Some("0".to_string()),
-            timestamp: Zoned::now(),
-        });
+        converted_from.push(ConvertedFrom::from_v0(Zoned::now()));
 
         WeaveMetadata {
             title: value.shift_remove("title"),
