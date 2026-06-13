@@ -72,15 +72,19 @@ pub struct ConvertedFrom {
 }
 
 impl ConvertedFrom {
-    pub fn is_converter_tapestry_weave(&self) -> bool {
-        self.converter == "tapestry-weave"
+    pub fn is_converter_native(&self) -> bool {
+        self.converter == env!("CARGO_PKG_NAME")
+    }
+    pub fn is_converter_native_version(&self) -> bool {
+        self.converter == env!("CARGO_PKG_NAME")
+            && self.converter_version.as_deref() == Some(env!("CARGO_PKG_VERSION"))
     }
 
     pub fn from_plaintext(timestamp: Zoned) -> Self {
         ConvertedFrom {
             source: "Plaintext".to_string(),
             source_version: None,
-            converter: "tapestry-weave".to_string(),
+            converter: env!("CARGO_PKG_NAME").to_string(),
             converter_version: Some(env!("CARGO_PKG_VERSION").to_string()),
             timestamp,
         }
@@ -93,7 +97,7 @@ impl ConvertedFrom {
         ConvertedFrom {
             source: "Tapestry Loom".to_string(),
             source_version: Some("0".to_string()),
-            converter: "tapestry-weave".to_string(),
+            converter: env!("CARGO_PKG_NAME").to_string(),
             converter_version: Some(env!("CARGO_PKG_VERSION").to_string()),
             timestamp,
         }
@@ -105,7 +109,7 @@ impl ConvertedFrom {
         ConvertedFrom {
             source: "Tapestry Loom".to_string(),
             source_version: Some("1.dependent".to_string()),
-            converter: "tapestry-weave".to_string(),
+            converter: env!("CARGO_PKG_NAME").to_string(),
             converter_version: Some(env!("CARGO_PKG_VERSION").to_string()),
             timestamp,
         }
@@ -117,7 +121,7 @@ impl ConvertedFrom {
         ConvertedFrom {
             source: "Tapestry Loom".to_string(),
             source_version: Some("1.independent".to_string()),
-            converter: "tapestry-weave".to_string(),
+            converter: env!("CARGO_PKG_NAME").to_string(),
             converter_version: Some(env!("CARGO_PKG_VERSION").to_string()),
             timestamp,
         }
