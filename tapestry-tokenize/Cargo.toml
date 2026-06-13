@@ -13,14 +13,14 @@ edition = "2024"
 serde = { version = "1.0.228", features = [
 	"derive",
 ] }
-toml = "0.9.8"
+toml = "1.1.2+spec-1.1.0"
 rocket = { version = "0.5.1", features = [
 	"json",
 	"tls",
 	"mtls",
 ] }
-anyhow = "1.0.100"
-tokenizers = "0.22.2"
-log = { version = "0.4.29", features = [
+anyhow = "1.0.102"
+tokenizers = "0.23.1"
+log = { version = "0.4.32", features = [
 	"release_max_level_debug",
 ] }
