@@ -350,8 +350,8 @@ impl ArchivedInnerNodeToken {
 #[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub enum OriginalToken {
     Unmodified,
-    Known(Vec<u8>),
-    Unknown,
+    Known(#[cfg_attr(feature = "serde", serde(with = "Base64Standard"))] Vec<u8>),
+    Unknown, // Necessary for backwards compatibility with v0 format
 }
 
 impl OriginalToken {
@@ -385,12 +385,9 @@ pub struct CounterfactualToken {
 }
 
 impl CounterfactualToken {
-    pub fn round_logprob(&mut self) {
-        self.logprob = (self.logprob * 100.0).round() / 100.0;
+    pub fn round_logprob(&mut self, multiplier: f32) {
+        self.logprob = (self.logprob * multiplier).round() / multiplier;
     }
-}
-
-impl CounterfactualToken {
     pub fn calculate_entropy<'a>(tokens: impl Iterator<Item = &'a CounterfactualToken>) -> f64 {
         -tokens
             .map(|token| (token.logprob as f64).exp() * (token.logprob as f64))

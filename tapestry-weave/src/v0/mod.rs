@@ -18,9 +18,6 @@ use universal_weave::{
 #[cfg(feature = "serde")]
 use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
 
-#[cfg(feature = "serde")]
-use super::wrappers::Base64Standard;
-
 use super::{VersionedWeave, hashers::UlidHasher, write_header};
 
 pub(crate) const FORMAT_VERSION: u64 = 0;
@@ -92,7 +89,7 @@ impl DeduplicatableContents for NodeContent {
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub enum InnerNodeContent {
-    Snippet(#[cfg_attr(feature = "serde", serde(with = "Base64Standard"))] Vec<u8>),
+    Snippet(Vec<u8>),
     Tokens(Vec<(Vec<u8>, MetadataMap)>),
 }
 
