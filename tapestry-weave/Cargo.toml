@@ -37,6 +37,7 @@ foldhash        = "0.2.0"
 
 # serde
 serde = { version = "1.0.228", optional = true, features = [
+	"derive",
 	"rc",
 ] }
 base64 = { version = "0.22.1", optional = true } # also used by v0
