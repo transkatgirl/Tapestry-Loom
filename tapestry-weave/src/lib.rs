@@ -21,12 +21,82 @@ pub mod v0;
 #[cfg(feature = "v1")]
 pub mod v1;
 
-#[cfg(feature = "v1")]
-pub mod treeless;
-
 pub mod wrappers;
 
 pub const VERSIONED_WEAVE_FILE_EXTENSION: &str = "tapestry";
+
+#[allow(clippy::non_minimal_cfg)]
+#[non_exhaustive]
+#[cfg(any(feature = "v1"))]
+pub enum ArchivedVersionedWeave<'a> {
+    #[cfg(feature = "v1")]
+    /// WIP
+    V1Dependent(v1::dependent::ArchivedTapestryWeave<'a>),
+    #[cfg(feature = "v1")]
+    /// WIP
+    V1Independent(v1::independent::ArchivedTapestryWeave<'a>),
+}
+
+#[allow(clippy::non_minimal_cfg)]
+#[cfg(any(feature = "v1"))]
+impl<'a> ArchivedVersionedWeave<'a> {
+    pub fn from_bytes(value: &'a [u8]) -> Option<Result<Self, Error>> {
+        if let Some(versioned) = VersionedBytes::try_from_bytes(value, FORMAT_IDENTIFIER) {
+            match versioned.version {
+                #[cfg(feature = "v1")]
+                1 => Some(
+                    v1::dependent::ArchivedTapestryWeave::from_unversioned_bytes(versioned.data)
+                        .map(Self::V1Dependent),
+                ),
+                #[cfg(feature = "v1")]
+                2 => Some(
+                    v1::independent::ArchivedTapestryWeave::from_unversioned_bytes(versioned.data)
+                        .map(Self::V1Independent),
+                ),
+                _ => None,
+            }
+        } else {
+            None
+        }
+    }
+    pub unsafe fn from_bytes_unchecked(value: &'a [u8]) -> Option<Self> {
+        if let Some(versioned) = VersionedBytes::try_from_bytes(value, FORMAT_IDENTIFIER) {
+            match versioned.version {
+                #[cfg(feature = "v1")]
+                1 => Some(Self::V1Dependent(unsafe {
+                    v1::dependent::ArchivedTapestryWeave::from_unversioned_bytes_unchecked(
+                        versioned.data,
+                    )
+                })),
+                #[cfg(feature = "v1")]
+                2 => Some(Self::V1Independent(unsafe {
+                    v1::independent::ArchivedTapestryWeave::from_unversioned_bytes_unchecked(
+                        versioned.data,
+                    )
+                })),
+                _ => None,
+            }
+        } else {
+            None
+        }
+    }
+    #[cfg(feature = "v1")]
+    pub fn as_v1_dependent(self) -> Option<v1::dependent::ArchivedTapestryWeave<'a>> {
+        if let Self::V1Dependent(weave) = self {
+            Some(weave)
+        } else {
+            None
+        }
+    }
+    #[cfg(feature = "v1")]
+    pub fn as_v1_independent(self) -> Option<v1::independent::ArchivedTapestryWeave<'a>> {
+        if let Self::V1Independent(weave) = self {
+            Some(weave)
+        } else {
+            None
+        }
+    }
+}
 
 #[allow(clippy::large_enum_variant)]
 #[non_exhaustive]
@@ -39,40 +109,6 @@ pub enum VersionedWeave {
     #[cfg(feature = "v1")]
     /// WIP
     V1Independent(v1::independent::TapestryWeave),
-}
-
-#[cfg(feature = "v1")]
-pub fn latest_archived_from_versioned_bytes(
-    value: &[u8],
-) -> Option<Result<v1::dependent::ArchivedTapestryWeave<'_>, Error>> {
-    if let Some(versioned) = VersionedBytes::try_from_bytes(value, FORMAT_IDENTIFIER) {
-        if versioned.version == 1 {
-            Some(v1::dependent::ArchivedTapestryWeave::from_unversioned_bytes(versioned.data))
-        } else {
-            None
-        }
-    } else {
-        None
-    }
-}
-
-#[cfg(feature = "v1")]
-pub unsafe fn latest_archived_from_versioned_bytes_unchecked(
-    value: &[u8],
-) -> Option<v1::dependent::ArchivedTapestryWeave<'_>> {
-    if let Some(versioned) = VersionedBytes::try_from_bytes(value, FORMAT_IDENTIFIER) {
-        if versioned.version == 1 {
-            Some(unsafe {
-                v1::dependent::ArchivedTapestryWeave::from_unversioned_bytes_unchecked(
-                    versioned.data,
-                )
-            })
-        } else {
-            None
-        }
-    } else {
-        None
-    }
 }
 
 const FORMAT_IDENTIFIER: [u8; 24] = *b"VersionedTapestryWeave__";
@@ -107,8 +143,7 @@ impl VersionedWeave {
             _ => None,
         }
     }
-    #[allow(unreachable_patterns)]
-    #[cfg(feature = "v1")]
+    #[cfg(all(feature = "v0", feature = "v1"))]
     pub fn into_v1_dependent(self) -> Option<v1::dependent::TapestryWeave> {
         match self {
             #[cfg(feature = "v0")]

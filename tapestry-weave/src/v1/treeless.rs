@@ -4,7 +4,7 @@ use universal_weave::rkyv::{
     from_bytes_unchecked, rancor::Error, to_bytes, util::AlignedVec,
 };
 
-use crate::v1::metadata::{ConvertedFrom, MetadataMap, WeaveMetadata};
+use super::metadata::{ConvertedFrom, MetadataMap, WeaveMetadata};
 
 pub const FILE_EXTENSION: &str = "tapestrytext";
 
