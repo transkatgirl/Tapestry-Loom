@@ -31,16 +31,18 @@ impl TextOnlyDocument {
 
 impl From<Vec<u8>> for TextOnlyDocument {
     fn from(value: Vec<u8>) -> Self {
+        let timestamp = Zoned::now();
+
         Self {
             content: value,
             metadata: WeaveMetadata {
                 title: None,
                 description: None,
-                created: Zoned::now(),
+                created: timestamp.clone(),
                 converted_from: vec![ConvertedFrom {
-                    source: "PlainText".to_string(),
+                    source: "Plaintext".to_string(),
                     source_version: None,
-                    timestamp: Zoned::now(),
+                    timestamp,
                 }],
                 metadata: MetadataMap::default(),
             },
