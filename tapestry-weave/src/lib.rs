@@ -1,9 +1,11 @@
 #![allow(clippy::missing_safety_doc)]
 
-// TODO: Implement streaming serialization
+use std::io::Write;
 
-use rkyv::util::AlignedVec;
-use universal_weave::{rkyv::rancor::Error, versioning::VersionedBytes};
+use universal_weave::{
+    rkyv::{rancor::Error, ser::Writer, ser::writer::IoWriter},
+    versioning::VersionedBytes,
+};
 
 pub use foldhash;
 
@@ -47,12 +49,12 @@ impl<'a> ArchivedVersionedWeave<'a> {
         if let Some(versioned) = VersionedBytes::try_from_bytes(value, FORMAT_IDENTIFIER) {
             match versioned.version {
                 #[cfg(feature = "v1")]
-                1 => Some(
+                v1::dependent::FORMAT_VERSION => Some(
                     v1::dependent::ArchivedTapestryWeave::from_unversioned_bytes(versioned.data)
                         .map(Self::V1Dependent),
                 ),
                 #[cfg(feature = "v1")]
-                2 => Some(
+                v1::independent::FORMAT_VERSION => Some(
                     v1::independent::ArchivedTapestryWeave::from_unversioned_bytes(versioned.data)
                         .map(Self::V1Independent),
                 ),
@@ -66,13 +68,13 @@ impl<'a> ArchivedVersionedWeave<'a> {
         if let Some(versioned) = VersionedBytes::try_from_bytes(value, FORMAT_IDENTIFIER) {
             match versioned.version {
                 #[cfg(feature = "v1")]
-                1 => Some(Self::V1Dependent(unsafe {
+                v1::dependent::FORMAT_VERSION => Some(Self::V1Dependent(unsafe {
                     v1::dependent::ArchivedTapestryWeave::from_unversioned_bytes_unchecked(
                         versioned.data,
                     )
                 })),
                 #[cfg(feature = "v1")]
-                2 => Some(Self::V1Independent(unsafe {
+                v1::independent::FORMAT_VERSION => Some(Self::V1Independent(unsafe {
                     v1::independent::ArchivedTapestryWeave::from_unversioned_bytes_unchecked(
                         versioned.data,
                     )
@@ -103,14 +105,16 @@ impl VersionedWeave {
         if let Some(versioned) = VersionedBytes::try_from_bytes(value, FORMAT_IDENTIFIER) {
             match versioned.version {
                 #[cfg(feature = "v0")]
-                0 => Some(v0::TapestryWeave::from_unversioned_bytes(versioned.data).map(Self::V0)),
+                v0::FORMAT_VERSION => {
+                    Some(v0::TapestryWeave::from_unversioned_bytes(versioned.data).map(Self::V0))
+                }
                 #[cfg(feature = "v1")]
-                1 => Some(
+                v1::dependent::FORMAT_VERSION => Some(
                     v1::dependent::TapestryWeave::from_unversioned_bytes(versioned.data)
                         .map(Self::V1Dependent),
                 ),
                 #[cfg(feature = "v1")]
-                2 => Some(
+                v1::independent::FORMAT_VERSION => Some(
                     v1::independent::TapestryWeave::from_unversioned_bytes(versioned.data)
                         .map(Self::V1Independent),
                 ),
@@ -124,12 +128,12 @@ impl VersionedWeave {
         if let Some(versioned) = VersionedBytes::try_from_bytes(value, FORMAT_IDENTIFIER) {
             match versioned.version {
                 #[cfg(feature = "v0")]
-                0 => Some(
+                v0::FORMAT_VERSION => Some(
                     unsafe { v0::TapestryWeave::from_unversioned_bytes_unchecked(versioned.data) }
                         .map(Self::V0),
                 ),
                 #[cfg(feature = "v1")]
-                1 => Some(
+                v1::dependent::FORMAT_VERSION => Some(
                     unsafe {
                         v1::dependent::TapestryWeave::from_unversioned_bytes_unchecked(
                             versioned.data,
@@ -138,7 +142,7 @@ impl VersionedWeave {
                     .map(Self::V1Dependent),
                 ),
                 #[cfg(feature = "v1")]
-                2 => Some(
+                v1::independent::FORMAT_VERSION => Some(
                     unsafe {
                         v1::independent::TapestryWeave::from_unversioned_bytes_unchecked(
                             versioned.data,
@@ -184,30 +188,27 @@ impl VersionedWeave {
             Self::V1Independent(_) => unimplemented!(),
         }
     }
-    pub fn to_bytes(self) -> Result<Vec<u8>, Error> {
-        let (version, bytes): (u64, AlignedVec) = match self {
+    pub fn write_bytes<W: Write>(&self, writer: W) -> Result<(), Error> {
+        let writer = IoWriter::new(writer);
+
+        match self {
             #[cfg(feature = "v0")]
-            Self::V0(weave) => (0, weave.to_unversioned_bytes()?),
+            Self::V0(weave) => weave.write_versioned_bytes(writer)?,
             #[cfg(feature = "v1")]
-            Self::V1Dependent(weave) => (1, weave.to_unversioned_bytes()?),
+            Self::V1Dependent(weave) => weave.write_versioned_bytes(writer)?,
             #[cfg(feature = "v1")]
-            Self::V1Independent(weave) => (2, weave.to_unversioned_bytes()?),
+            Self::V1Independent(weave) => weave.write_versioned_bytes(writer)?,
         };
 
-        Ok(to_versioned_bytes(version, &bytes))
+        Ok(())
     }
 }
 
-// FIXME - This function results in an unnecessary memory copy
-fn to_versioned_bytes(version: u64, data: &[u8]) -> Vec<u8> {
+fn write_header<W: Writer<Error>>(writer: &mut W, version: u64) -> Result<(), Error> {
     let versioned = VersionedBytes {
         format_identifier: FORMAT_IDENTIFIER,
         version,
-        data,
+        data: &[],
     };
-
-    let mut output = Vec::with_capacity(versioned.output_length());
-    versioned.to_bytes(&mut output);
-
-    output
+    writer.write(&versioned.header_bytes())
 }

@@ -10,12 +10,14 @@ use universal_weave::{
     dependent::{DependentNode, legacy_dependent::DependentWeave},
     indexmap::{IndexMap, IndexSet},
     rkyv::{
-        Archive, Deserialize, Serialize, from_bytes, from_bytes_unchecked, rancor::Error, to_bytes,
-        util::AlignedVec,
+        Archive, Deserialize, Serialize, api::high::to_bytes_in, from_bytes, from_bytes_unchecked,
+        rancor::Error, ser::Writer,
     },
 };
 
-use crate::{VersionedWeave, hashers::UlidHasher, to_versioned_bytes};
+use crate::{VersionedWeave, hashers::UlidHasher, write_header};
+
+pub(crate) const FORMAT_VERSION: u64 = 0;
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct NodeContent {
@@ -236,12 +238,14 @@ impl TapestryWeave {
             weave,
         })
     }
-    pub fn to_unversioned_bytes(&self) -> Result<AlignedVec, Error> {
+    pub fn write_unversioned_bytes<W: Writer<Error>>(&self, writer: W) -> Result<W, Error> {
         assert!(self.weave.validate());
-        to_bytes::<Error>(&self.weave)
+        to_bytes_in::<W, Error>(&self.weave, writer)
     }
-    pub fn to_versioned_bytes(&self) -> Result<Vec<u8>, Error> {
-        Ok(to_versioned_bytes(0, &self.to_unversioned_bytes()?))
+    pub fn write_versioned_bytes<W: Writer<Error>>(&self, mut writer: W) -> Result<W, Error> {
+        assert!(self.weave.validate());
+        write_header(&mut writer, FORMAT_VERSION)?;
+        to_bytes_in::<W, Error>(&self.weave, writer)
     }
     pub fn to_versioned_weave(self) -> VersionedWeave {
         VersionedWeave::V0(self)

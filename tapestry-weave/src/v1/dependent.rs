@@ -7,9 +7,9 @@ use universal_weave::{
     dependent::{ArchivedDependentNode, DependentNode, DependentWeave},
     indexmap::IndexSet,
     rkyv::{
-        Archive, access, access_unchecked, collections::swiss_table::ArchivedIndexSet, deserialize,
-        from_bytes, from_bytes_unchecked, option::ArchivedOption, rancor::Error, rend::u64_le,
-        to_bytes, util::AlignedVec,
+        Archive, access, access_unchecked, api::high::to_bytes_in,
+        collections::swiss_table::ArchivedIndexSet, deserialize, from_bytes, from_bytes_unchecked,
+        option::ArchivedOption, rancor::Error, rend::u64_le, ser::Writer,
     },
 };
 
@@ -19,7 +19,7 @@ use jiff::Zoned;
 #[cfg(feature = "v0")]
 use ulid::Ulid;
 
-use crate::{VersionedWeave, hashers::RandomIdHasher, to_versioned_bytes};
+use crate::{VersionedWeave, hashers::RandomIdHasher, write_header};
 
 #[cfg(feature = "v0")]
 use crate::v0::TapestryWeave as OldTapestryWeave;
@@ -28,6 +28,8 @@ use super::{
     content::{InnerNodeContent, NodeContent},
     metadata::{ArchivedWeaveMetadata, WeaveMetadata},
 };
+
+pub(crate) const FORMAT_VERSION: u64 = 1;
 
 pub type ShortId = u64;
 pub type LongId = NonZeroU128;
@@ -93,12 +95,14 @@ impl TapestryWeave {
             value.weave,
         )?))
     }
-    pub fn to_unversioned_bytes(&self) -> Result<AlignedVec, Error> {
+    pub fn write_unversioned_bytes<W: Writer<Error>>(&self, writer: W) -> Result<W, Error> {
         assert!(self.weave.validate());
-        to_bytes::<Error>(&self.weave)
+        to_bytes_in::<W, Error>(&self.weave, writer)
     }
-    pub fn to_versioned_bytes(&self) -> Result<Vec<u8>, Error> {
-        Ok(to_versioned_bytes(1, &self.to_unversioned_bytes()?))
+    pub fn write_versioned_bytes<W: Writer<Error>>(&self, mut writer: W) -> Result<W, Error> {
+        assert!(self.weave.validate());
+        write_header(&mut writer, FORMAT_VERSION)?;
+        to_bytes_in::<W, Error>(&self.weave, writer)
     }
     pub fn to_versioned_weave(self) -> VersionedWeave {
         VersionedWeave::V1Dependent(self)
