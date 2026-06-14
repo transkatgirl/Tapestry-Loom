@@ -1,13 +1,21 @@
 #![allow(non_snake_case)]
 
 use std::{
-    fs,
+    fs::{self, File},
+    io::{BufWriter, Write},
     path::{Path, PathBuf},
 };
 
 use chrono::{DateTime, Local};
 use clap::Parser;
-use tapestry_weave::{VersionedWeave, universal_weave::indexmap::IndexMap, v0};
+use jiff::Zoned;
+use tapestry_weave::{
+    VersionedInnerWeave, VersionedWeave,
+    v1::{
+        self,
+        metadata::{ConvertedFrom, MetadataMap, WeaveMetadata},
+    },
+};
 use walkdir::WalkDir;
 
 mod exoloom;
@@ -26,9 +34,17 @@ struct Cli {
     #[arg(short, long)]
     output: PathBuf,
 
-    /// Use the oldest tapestry-weave format version possible
+    /// Don't upgrade weaves into newer versions of the Tapestry Loom format
+    ///
+    /// Weaves will always be deserialized and serialized regardless of this setting; This only determines whether or not format migration is performed during serialization
     #[arg(long)]
-    disable_upgrade: bool,
+    no_upgrade: bool,
+
+    /// Serialize weaves into JSON format
+    ///
+    /// JSON serialized weaves cannot be natively read by Tapestry Loom, but they are easier to modify and can be converted back into binary weaves using migration-assistant
+    #[arg(long)]
+    output_debug_json: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -54,13 +70,13 @@ fn main() -> anyhow::Result<()> {
                     fs::create_dir_all(parent)?;
                 }
 
-                migrate_markdown_weave(entry.path(), &output, !args.disable_upgrade)?;
+                migrate_markdown_weave(entry.path(), &output, !args.no_upgrade)?;
             } else if extension == "json" {
                 if let Some(parent) = output.parent() {
                     fs::create_dir_all(parent)?;
                 }
 
-                migrate_json_weave(entry.path(), &output, !args.disable_upgrade)?;
+                migrate_json_weave(entry.path(), &output, !args.no_upgrade)?;
             } else if extension == "tapestry" {
                 if let Some(parent) = output.parent() {
                     fs::create_dir_all(parent)?;
@@ -73,21 +89,54 @@ fn main() -> anyhow::Result<()> {
 
                     println!("{} -> {}", entry.path().display(), output.display());
 
-                    fs::write(
-                        output,
-                        if !args.disable_upgrade {
-                            weave.into_latest().to_versioned_weave()
-                        } else {
-                            weave
-                        }
-                        .to_bytes()?,
-                    )?;
+                    write_weave_to_file(&output, weave, !args.no_upgrade)?;
                 } else {
                     println!("Skipping {}", entry.path().display());
                 }
             }
         }
     }
+
+    Ok(())
+}
+
+fn new_weave(
+    capacity: usize,
+    created: Zoned,
+    source: &'static str,
+    source_version: Option<&str>,
+) -> v1::dependent::TapestryWeave {
+    v1::dependent::TapestryWeave::with_capacity_and_metadata(
+        capacity,
+        WeaveMetadata {
+            title: None,
+            description: None,
+            created,
+            converted_from: vec![ConvertedFrom {
+                source: source.to_string(),
+                source_version: source_version.map(|v| v.to_string()),
+                converter: env!("CARGO_PKG_NAME").to_string(),
+                converter_version: Some(env!("CARGO_PKG_VERSION").to_string()),
+                timestamp: Zoned::now(),
+            }],
+            metadata: MetadataMap::default(),
+        },
+    )
+}
+
+fn write_weave_to_file(
+    path: &Path,
+    mut weave: VersionedWeave,
+    upgrade: bool,
+) -> anyhow::Result<()> {
+    if upgrade {
+        weave = weave.into_latest().to_versioned_weave();
+    }
+
+    let file = File::create(path)?;
+    let mut buffer = BufWriter::new(file);
+    weave.write_bytes(&mut buffer)?;
+    buffer.flush()?;
 
     Ok(())
 }
@@ -102,20 +151,10 @@ fn migrate_markdown_weave(
     let input = fs::read_to_string(input_path)?;
     let created: DateTime<Local> = DateTime::from(fs::metadata(input_path)?.created()?);
 
-    if let Some(weave_data) = obsidian_tapestry::migrate(&input, created)? {
+    if let Some(weave) = obsidian_tapestry::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
-        fs::write(
-            output_path,
-            if upgrade {
-                weave_data.into_latest().to_versioned_weave()
-            } else {
-                weave_data
-            }
-            .to_bytes()?,
-        )?;
-
-        return Ok(());
+        return write_weave_to_file(&output_path, weave, upgrade);
     }
 
     println!("Skipping {}", input_path.display());
@@ -129,12 +168,16 @@ fn migrate_json_weave(input_path: &Path, output_path: &Path, upgrade: bool) -> a
     let input = fs::read_to_string(input_path)?;
     let created: DateTime<Local> = DateTime::from(fs::metadata(input_path)?.created()?);
 
+    if let Ok(weave) = serde_json::from_str::<VersionedInnerWeave>(&input) {
+        write_weave_to_file(&output_path, weave.into_weave(), upgrade)?;
+    }
+
     {
         let output_weaves = loomsidian::migrate_all(&input, created)?;
 
         let has_outputs = !output_weaves.is_empty();
 
-        for (filename, weave_data) in output_weaves {
+        for (filename, weave) in output_weaves {
             let output_path = output_path
                 .parent()
                 .map(|p| p.to_path_buf())
@@ -148,15 +191,7 @@ fn migrate_json_weave(input_path: &Path, output_path: &Path, upgrade: bool) -> a
 
             println!("{} -> {}", input_path.display(), output_path.display());
 
-            fs::write(
-                output_path,
-                if upgrade {
-                    weave_data.into_latest().to_versioned_weave()
-                } else {
-                    weave_data
-                }
-                .to_bytes()?,
-            )?;
+            write_weave_to_file(&output_path, weave, upgrade)?;
         }
 
         if has_outputs {
@@ -164,86 +199,31 @@ fn migrate_json_weave(input_path: &Path, output_path: &Path, upgrade: bool) -> a
         }
     }
 
-    if let Some(weave_data) = loomsidian::migrate(&input, created)? {
+    if let Some(weave) = loomsidian::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
-        fs::write(
-            output_path,
-            if upgrade {
-                weave_data.into_latest().to_versioned_weave()
-            } else {
-                weave_data
-            }
-            .to_bytes()?,
-        )?;
-
-        return Ok(());
+        return write_weave_to_file(&output_path, weave, upgrade);
     }
 
-    if let Some(weave_data) = exoloom::migrate(&input, created)? {
+    if let Some(weave) = exoloom::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
-        fs::write(
-            output_path,
-            if upgrade {
-                weave_data.into_latest().to_versioned_weave()
-            } else {
-                weave_data
-            }
-            .to_bytes()?,
-        )?;
-
-        return Ok(());
+        return write_weave_to_file(&output_path, weave, upgrade);
     }
 
-    if let Some(weave_data) = pyloom::migrate(&input, created)? {
+    if let Some(weave) = pyloom::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
-        fs::write(
-            output_path,
-            if upgrade {
-                weave_data.into_latest().to_versioned_weave()
-            } else {
-                weave_data
-            }
-            .to_bytes()?,
-        )?;
-
-        return Ok(());
+        return write_weave_to_file(&output_path, weave, upgrade);
     }
 
-    if let Some(weave_data) = pyloom::migrate_simple(&input, created)? {
+    if let Some(weave) = pyloom::migrate_simple(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
-        fs::write(
-            output_path,
-            if upgrade {
-                weave_data.into_latest().to_versioned_weave()
-            } else {
-                weave_data
-            }
-            .to_bytes()?,
-        )?;
-
-        return Ok(());
+        return write_weave_to_file(&output_path, weave, upgrade);
     }
 
     println!("Skipping {}", input_path.display());
 
     Ok(())
-}
-
-fn new_weave_v0(
-    capacity: usize,
-    created: DateTime<Local>,
-    converted_from: &'static str,
-) -> v0::TapestryWeave {
-    v0::TapestryWeave::with_capacity(
-        capacity,
-        IndexMap::from_iter([
-            ("converted_from".to_string(), converted_from.to_string()),
-            ("created".to_string(), created.to_rfc3339()),
-            ("converted".to_string(), Local::now().to_rfc3339()),
-        ]),
-    )
 }

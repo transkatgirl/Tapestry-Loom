@@ -14,7 +14,10 @@ base64 = "0.22.1"
 miniz_oxide = "0.9.1"
 frontmatter = "0.4.0"
 boa_engine = "0.21.1"
-tapestry-weave = { path = "../tapestry-weave" }
+tapestry-weave = { path = "../tapestry-weave", features = [
+	"all_versions",
+	"serde",
+] }
 clap = { version = "4.6.1", features = [
 	"derive",
 ] }

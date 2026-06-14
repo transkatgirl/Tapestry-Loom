@@ -13,6 +13,10 @@ default = [
 	"v0",
 	"v1",
 ]
+all_versions = [
+	"v0",
+	"v1",
+]
 v0 = [
 	"universal-weave/legacy",
 	"universal-weave/serde",
