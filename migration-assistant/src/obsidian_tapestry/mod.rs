@@ -12,6 +12,7 @@ use boa_engine::{Context, JsString, Source, js_string, property::Attribute};
 use frontmatter::{Yaml, parse_and_find_content};
 use miniz_oxide::inflate::decompress_to_vec_zlib;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use tapestry_weave::{
     VersionedWeave, getrandom,
     hashers::{RandomIdHasher, UlidHasher},
@@ -75,7 +76,7 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<VersionedWeave
         ))?
         .to_std_string()?;
 
-    let mut input: LegacyWeave = serde_json::from_str(&output)?;
+    let mut input: LegacyWeave = serde_json::from_value(serde_json::from_str::<Value>(&output)?)?;
 
     input.sort();
 
