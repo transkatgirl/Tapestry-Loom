@@ -3,42 +3,49 @@
 
 use std::{
     collections::{HashMap, HashSet},
-    time::SystemTime,
+    hash::{BuildHasherDefault, RandomState},
 };
 
-use chrono::{DateTime, Local, Utc};
 use serde::{Deserialize, Serialize};
 use tapestry_weave::{
     VersionedWeave,
-    ulid::Ulid,
+    chrono::{DateTime, Utc},
+    getrandom,
+    hashers::RandomIdHasher,
+    jiff::{Zoned, fmt::rfc2822::DateTimeParser},
     universal_weave::{
-        Weave,
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
-    v0::{InnerNodeContent, Model, NodeContent},
+    v1::content::{Author, Creator, InnerNodeContent, Model, NodeContent},
+    wrappers::UniqueIdentifierRemapper,
 };
 
-use crate::new_weave_v0;
+use crate::{
+    exoloom::ExoloomAuthorType::{LLM, USER},
+    new_weave,
+};
 
-pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<VersionedWeave>> {
+const PARSER: DateTimeParser = DateTimeParser::new();
+
+pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWeave>> {
     if let Ok(mut data) = serde_json::from_str::<ExoloomWeave>(input) {
         assert!(data.loomType == "Exoloom" && data.schemaVersion == 1);
 
-        let created = if let Some(created) = data.tree.createdAt {
-            created.with_timezone(&Local)
+        let created = if let Some(createdAt) = data.tree.createdAt {
+            PARSER
+                .parse_zoned(createdAt.to_rfc2822())
+                .unwrap_or(created)
         } else {
             created
         };
 
-        let mut output = new_weave_v0(data.tree.nodes.len(), created, "Exoloom");
-
-        if let Some(version) = data.version {
-            output
-                .weave
-                .metadata
-                .insert("converted_from_version".to_string(), version);
-        }
+        let mut output = new_weave(
+            data.tree.nodes.len(),
+            created,
+            "Exoloom",
+            data.version.as_deref(),
+        );
 
         let bookmarks: HashSet<u64> = data
             .lens
@@ -63,59 +70,73 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<V
                 .is_none()
         );
 
-        let mut id_map = IndexMap::with_capacity(data.tree.nodes.len());
+        let mut id_list = IndexSet::with_capacity(data.tree.nodes.len());
 
-        build_node_list(
-            &data.tree,
-            data.tree.rootNodeId,
-            &mut id_map,
-            SystemTime::from(created),
-        );
+        build_node_list(&data.tree, data.tree.rootNodeId, &mut id_list);
 
-        for (id, new_id) in id_map.iter().map(|(a, b)| (*a, *b)) {
+        let mut mapper: UniqueIdentifierRemapper<
+            u64,
+            u64,
+            RandomState,
+            BuildHasherDefault<RandomIdHasher>,
+        > = UniqueIdentifierRemapper::with_capacity(id_list.len());
+
+        let mut convert_old_identifier =
+            move |id| *mapper.try_map(id, getrandom::u64).unwrap().get();
+
+        for id in id_list {
             let node = data.tree.nodes.remove(&id).unwrap();
             let bookmarked = bookmarks.contains(&id);
             let pruned = pruned.contains(&id);
 
-            let parent = node.parentId.map(|parent| id_map.get(&parent).unwrap());
-
-            assert!(output.weave.add_node(DependentNode {
-                id: new_id.0,
-                from: parent.map(|id| id.0),
-                to: IndexSet::default(),
-                active: false,
-                bookmarked,
-                contents: NodeContent {
-                    content: InnerNodeContent::Snippet(node.content.into_bytes()),
-                    metadata: if pruned {
-                        IndexMap::from_iter([("pruned".to_string(), "true".to_string())])
-                    } else {
-                        IndexMap::default()
+            assert!(
+                output.add_node(DependentNode {
+                    id: convert_old_identifier(id),
+                    from: node.parentId.map(&mut convert_old_identifier),
+                    to: IndexSet::default(),
+                    active: false,
+                    bookmarked,
+                    contents: NodeContent {
+                        timestamp: node
+                            .createdAt
+                            .and_then(|timestamp| {
+                                PARSER.parse_zoned(timestamp.to_rfc2822()).ok()
+                            })
+                            .unwrap_or_default(),
+                        modified: false,
+                        content: InnerNodeContent::Snippet(node.content.into_bytes()),
+                        metadata: if pruned {
+                            IndexMap::from_iter([("pruned".to_string(), "true".to_string())])
+                        } else {
+                            IndexMap::default()
+                        },
+                        creator: match node.authorType {
+                            LLM => {
+                                Creator::Model(node.authorName.map(|label| Model {
+                                    label,
+                                    color: None,
+                                    identifier: None,
+                                    seed: None,
+                                    metadata: IndexMap::default(),
+                                    raw_query: None,
+                                }))
+                            }
+                            USER => {
+                                Creator::User(node.authorName.map(|label| Author {
+                                    label,
+                                    color: None,
+                                    identifier: None,
+                                    metadata: IndexMap::default(),
+                                }))
+                            }
+                        },
                     },
-                    model: if node.authorType == ExoloomAuthorType::LLM {
-                        Some(Model {
-                            label: node
-                                .authorName
-                                .unwrap_or_else(|| String::from("Unknown Model")),
-                            metadata: IndexMap::default(),
-                        })
-                    } else {
-                        None
-                    },
-                },
-            }));
+                })
+            );
         }
 
-        if let Some(title) = data.tree.title {
-            output.weave.metadata.insert("title".to_string(), title);
-        }
-
-        if let Some(description) = data.tree.description {
-            output
-                .weave
-                .metadata
-                .insert("notes".to_string(), description);
-        }
+        output.metadata().title = data.tree.title;
+        output.metadata().description = data.tree.description;
 
         Ok(Some(output.to_versioned_weave()))
     } else {
@@ -123,28 +144,17 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<V
     }
 }
 
-fn build_node_list(
-    weave: &ExoloomTree,
-    node: u64,
-    nodes: &mut IndexMap<u64, Ulid>,
-    created: SystemTime,
-) {
-    if nodes.contains_key(&node) {
+fn build_node_list(weave: &ExoloomTree, node: u64, nodes: &mut IndexSet<u64>) {
+    if nodes.contains(&node) {
         return;
     }
 
     let id = node;
     if let Some(node) = weave.nodes.get(&node) {
-        let new_id = if let Some(created_at) = node.createdAt {
-            Ulid::from_datetime(SystemTime::from(created_at))
-        } else {
-            Ulid::from_datetime(created)
-        };
-
-        nodes.insert(id, new_id);
+        nodes.insert(id);
 
         for child in node.childrenIds.iter().copied() {
-            build_node_list(weave, child, nodes, created);
+            build_node_list(weave, child, nodes);
         }
     }
 }

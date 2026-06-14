@@ -18,7 +18,7 @@ use tapestry_weave::{
 };
 use walkdir::WalkDir;
 
-//mod exoloom;
+mod exoloom;
 mod loomsidian;
 mod obsidian_tapestry;
 //mod pyloom;
@@ -269,19 +269,19 @@ fn migrate_json_weave(
         }
     }
 
-    if let Some(weave) = loomsidian::migrate(&input, created)? {
+    if let Some(weave) = loomsidian::migrate(&input, created.clone())? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
         return write_weave_to_file(output_path, weave, upgrade, json);
     }
 
-    /*if let Some(weave) = exoloom::migrate(&input, created)? {
+    if let Some(weave) = exoloom::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
-        return write_weave_to_file(&output_path, weave, upgrade, json);
+        return write_weave_to_file(output_path, weave, upgrade, json);
     }
 
-    if let Some(weave) = pyloom::migrate(&input, created)? {
+    /*if let Some(weave) = pyloom::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
         return write_weave_to_file(&output_path, weave, upgrade, json);
@@ -291,9 +291,9 @@ fn migrate_json_weave(
         println!("{} -> {}", input_path.display(), output_path.display());
 
         return write_weave_to_file(&output_path, weave, upgrade, json);
-    }
+    }*/
 
-    println!("Skipping {}", input_path.display());*/
+    println!("Skipping {}", input_path.display());
 
     Ok(())
 }

@@ -157,17 +157,18 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<VersionedWeave
                         metadata: node.parameters.unwrap_or_default(),
                         creator: node
                             .model
-                            .and_then(|id| input.models.get(&id).cloned())
-                            .map(|model| Creator::Model(Some(Model {
-                                label: model.label,
-                                color: model.color,
-                                identifier: node
-                                    .model
-                                    .and_then(|id| NonZeroU128::try_from(id.0).ok()),
-                                metadata: IndexMap::default(),
-                                seed: None,
-                                raw_query: None
-                            })))
+                            .map(
+                                |id| Creator::Model(input.models.get(&id).cloned().map(|model| {
+                                    Model {
+                                        label: model.label,
+                                        color: model.color,
+                                        identifier: NonZeroU128::try_from(id.0).ok(),
+                                        metadata: IndexMap::default(),
+                                        seed: None,
+                                        raw_query: None,
+                                    }
+                                }))
+                            )
                             .unwrap_or(Creator::Unknown)
                     }
                 })
