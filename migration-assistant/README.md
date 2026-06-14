@@ -3,7 +3,7 @@
 A tool for converting weaves from other Loom implementations into the Tapestry Loom weave format.
 
 Supported input formats:
-- [tapestry-weave](../tapestry-weave/)
+- [tapestry-weave](../tapestry-weave)
 	- Rkyv serialized (**Tapestry Loom format**)
 		- Useful for verifying that all weaves within a folder are valid
 	- JSON serialized
@@ -18,7 +18,7 @@ Supported input formats:
 	- Note: Exoloom's export format does not contain information on which nodes are active
 
 Supported output formats:
-- [tapestry-weave](../tapestry-weave/)
+- [tapestry-weave](../tapestry-weave)
 	- Rkyv serialized (**Tapestry Loom format**)
 	- JSON serialized
 		- Useful for editing weaves using 3rd party tools; *Cannot be read inside Tapestry Loom*
