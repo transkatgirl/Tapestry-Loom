@@ -887,11 +887,9 @@ impl From<OldTapestryWeave> for TapestryWeave {
             let mut node = TapestryNode {
                 id: convert_old_identifier(node.id),
                 from: IndexSet::from_iter(node.from.into_iter().map(convert_old_identifier)),
-                to: IndexSet::from_iter(
-                    node.to
-                        .into_iter()
-                        .map(convert_old_identifier)
-                        .filter(|id| output.contains(id)),
+                to: IndexSet::with_capacity_and_hasher(
+                    node.to.len(),
+                    BuildHasherDefault::default(),
                 ),
                 active: node.active,
                 bookmarked: node.bookmarked,
