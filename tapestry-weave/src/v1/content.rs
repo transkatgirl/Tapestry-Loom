@@ -495,7 +495,15 @@ impl InnerNodeContent {
                     DiscreteContentResult::Two((Self::Tokens(left_tokens), Self::MetadataOnly))
                 }
             },
-            Self::MetadataOnly => DiscreteContentResult::Two((Self::MetadataOnly, value)),
+            Self::MetadataOnly => match value {
+                Self::Snippet(right_snippet) => {
+                    DiscreteContentResult::Two((Self::MetadataOnly, Self::Snippet(right_snippet)))
+                }
+                Self::Tokens(right_tokens) => {
+                    DiscreteContentResult::Two((Self::MetadataOnly, Self::Tokens(right_tokens)))
+                }
+                Self::MetadataOnly => DiscreteContentResult::One(Self::MetadataOnly),
+            },
         }
     }
     pub fn is_mergeable_with(&self, value: &Self) -> bool {
@@ -510,7 +518,11 @@ impl InnerNodeContent {
                 Self::Tokens(_) => true,
                 Self::MetadataOnly => false,
             },
-            Self::MetadataOnly => false,
+            Self::MetadataOnly => match value {
+                Self::Snippet(_) => false,
+                Self::Tokens(_) => false,
+                Self::MetadataOnly => true,
+            },
         }
     }
     pub fn as_bytes(&'_ self) -> Cow<'_, Vec<u8>> {
