@@ -18,7 +18,9 @@ use universal_weave::{
 use ulid::Ulid;
 
 #[cfg(feature = "v0")]
-use crate::v0::TapestryWeave as OldTapestryWeave;
+use crate::{
+    hashers::UlidHasher, v0::TapestryWeave as OldTapestryWeave, wrappers::UniqueIdentifierRemapper,
+};
 
 use super::{
     super::{VersionedWeave, hashers::RandomIdHasher, v1::metadata::ConvertedFrom, write_header},
@@ -864,11 +866,6 @@ impl<'a> ArchivedTapestryWeave<'a> {
 }
 
 #[cfg(feature = "v0")]
-fn convert_old_identifier(value: u128) -> u64 {
-    unsafe { std::mem::transmute::<u128, [u64; 2]>(value)[1] }
-}
-
-#[cfg(feature = "v0")]
 impl From<OldTapestryWeave> for TapestryWeave {
     fn from(mut value: OldTapestryWeave) -> Self {
         let mut output = TapestryWeave::with_capacity_and_metadata(
@@ -879,6 +876,24 @@ impl From<OldTapestryWeave> for TapestryWeave {
         let mut identifiers = Vec::with_capacity(value.weave.len());
         value.weave.get_ordered_node_identifiers(&mut identifiers);
 
+        let mut mapper: UniqueIdentifierRemapper<
+            u128,
+            u64,
+            BuildHasherDefault<UlidHasher>,
+            BuildHasherDefault<RandomIdHasher>,
+        > = UniqueIdentifierRemapper::with_capacity(identifiers.len());
+
+        let mut convert_old_identifier = move |id| {
+            *mapper
+                .try_map_with_initial(
+                    id,
+                    unsafe { std::mem::transmute::<u128, [u64; 2]>(id)[1] },
+                    getrandom::u64,
+                )
+                .unwrap()
+                .get()
+        };
+
         for identifier in identifiers {
             let node = value.weave.get_node(&identifier).unwrap().clone();
 
@@ -886,7 +901,7 @@ impl From<OldTapestryWeave> for TapestryWeave {
 
             let mut node = TapestryNode {
                 id: convert_old_identifier(node.id),
-                from: IndexSet::from_iter(node.from.into_iter().map(convert_old_identifier)),
+                from: IndexSet::from_iter(node.from.into_iter().map(&mut convert_old_identifier)),
                 to: IndexSet::with_capacity_and_hasher(
                     node.to.len(),
                     BuildHasherDefault::default(),

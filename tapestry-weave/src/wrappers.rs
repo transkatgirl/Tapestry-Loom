@@ -153,6 +153,9 @@ where
     pub fn extend_output_id_set(&mut self, iter: impl Iterator<Item = V>) {
         self.new_ids.extend(iter);
     }
+    pub fn into_map(self) -> HashMap<K, V, KS> {
+        self.old_to_new
+    }
     pub fn map(&mut self, input: K, mut generator: impl FnMut() -> V) -> OccupiedEntry<'_, K, V> {
         let mut generate_unique = || {
             let mut id = generator();
