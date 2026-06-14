@@ -23,6 +23,7 @@ v0 = [
 	"dep:ulid",
 	"dep:serde_json",
 	"dep:base64",
+	"dep:chrono",
 ]
 v1 = [
 	"dep:jiff",
@@ -58,6 +59,7 @@ serde_json = { version = "1.0.150", features = [
 	"preserve_order",
 	"arbitrary_precision",
 ], optional = true }
+chrono = { version = "0.4.45", optional = true }
 
 # v1+
 jiff      = { version = "0.2.28", optional = true }

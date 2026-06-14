@@ -3,10 +3,17 @@ use std::str::FromStr;
 
 use foldhash::fast::RandomState;
 use jiff::Zoned;
+
 use universal_weave::{
     indexmap::IndexMap,
     rkyv::{Archive, Deserialize, Serialize},
 };
+
+#[cfg(feature = "v0")]
+use chrono::DateTime;
+
+#[cfg(feature = "v0")]
+use jiff::fmt::rfc2822::DateTimeParser;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
@@ -137,6 +144,9 @@ impl ConvertedFrom {
 }
 
 #[cfg(feature = "v0")]
+const PARSER: DateTimeParser = DateTimeParser::new();
+
+#[cfg(feature = "v0")]
 impl From<MetadataMap> for WeaveMetadata {
     fn from(mut value: MetadataMap) -> Self {
         let conversion_timestamp = value
@@ -166,7 +176,11 @@ impl From<MetadataMap> for WeaveMetadata {
                 .or_else(|| value.shift_remove("notes")),
             created: value
                 .shift_remove("created")
-                .and_then(|value| Zoned::from_str(&value).ok())
+                .and_then(|value| {
+                    DateTime::parse_from_rfc3339(&value)
+                        .ok()
+                        .and_then(|v| PARSER.parse_zoned(v.to_rfc2822()).ok())
+                })
                 .unwrap_or_default(),
             converted_from,
             metadata: value,

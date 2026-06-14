@@ -6,7 +6,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use chrono::{DateTime, Local};
 use clap::Parser;
 use jiff::Zoned;
 use tapestry_weave::{
@@ -19,10 +18,10 @@ use tapestry_weave::{
 };
 use walkdir::WalkDir;
 
-/*mod exoloom;
-mod loomsidian;
-mod obsidian_tapestry;
-mod pyloom;*/
+//mod exoloom;
+//mod loomsidian;
+//mod obsidian_tapestry;
+//mod pyloom;
 
 #[derive(Parser)]
 #[command(version)]
@@ -201,12 +200,12 @@ fn migrate_markdown_weave(
     upgrade: bool,
     json: bool,
 ) -> anyhow::Result<()> {
-    /*assert_ne!(input_path, output_path);
+    assert_ne!(input_path, output_path);
 
     let input = fs::read_to_string(input_path)?;
-    let created: DateTime<Local> = DateTime::from(fs::metadata(input_path)?.created()?);
+    let created = Zoned::try_from(fs::metadata(input_path)?.created()?)?;
 
-    if let Some(weave) = obsidian_tapestry::migrate(&input, created)? {
+    /*if let Some(weave) = obsidian_tapestry::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
         return write_weave_to_file(&output_path, weave, upgrade, json);
@@ -226,8 +225,7 @@ fn migrate_json_weave(
     assert_ne!(input_path, output_path);
 
     let input = fs::read_to_string(input_path)?;
-    let created: DateTime<Local> = DateTime::from(fs::metadata(input_path)?.created()?);
-
+    let created = Zoned::try_from(fs::metadata(input_path)?.created()?)?;
     if let Ok(weave) = serde_json::from_str::<VersionedInnerWeave>(&input) {
         println!("{} -> {}", input_path.display(), output_path.display());
 

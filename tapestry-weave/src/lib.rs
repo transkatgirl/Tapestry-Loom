@@ -18,6 +18,9 @@ pub use foldhash;
 #[cfg(feature = "v0")]
 pub use ulid;
 
+#[cfg(feature = "v0")]
+pub use chrono;
+
 #[cfg(feature = "v1")]
 pub use jiff;
 
