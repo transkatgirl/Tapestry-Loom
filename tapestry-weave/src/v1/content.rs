@@ -95,6 +95,8 @@ impl NodeContent {
 
 impl DeduplicatableContents for NodeContent {
     fn is_duplicate_of(&self, value: &Self) -> bool {
+        // TODO: Use request parameters & token IDs for "fuzzy" deduplication, so that two identical outputs with very slightly different logprobs will be considered the same
+
         self.modified == value.modified
             && self.content == value.content
             && self.metadata == value.metadata
