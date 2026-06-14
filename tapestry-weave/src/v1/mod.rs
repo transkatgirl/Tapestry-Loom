@@ -7,7 +7,7 @@ pub mod treeless;
 /*
 
 TODO:
-- Fuzzy deduplication (see content.rs line 98)
+- Fuzzy deduplication (see content.rs line 511)
 - Diff-based tree updates
 
 Ideas for future formats:

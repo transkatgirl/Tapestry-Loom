@@ -95,11 +95,9 @@ impl NodeContent {
 
 impl DeduplicatableContents for NodeContent {
     fn is_duplicate_of(&self, value: &Self) -> bool {
-        // TODO: Use request parameters & token IDs for "fuzzy" deduplication, so that two identical outputs with very slightly different logprobs will be considered the same
-
         self.modified == value.modified
-            && self.content == value.content
             && self.metadata == value.metadata
+            && self.content.is_duplicate_of(&value.content)
             && self.creator.is_duplicate_of(&value.creator)
     }
 }
@@ -508,6 +506,11 @@ impl InnerNodeContent {
                 Self::MetadataOnly => DiscreteContentResult::One(Self::MetadataOnly),
             },
         }
+    }
+    pub fn is_duplicate_of(&self, value: &Self) -> bool {
+        // TODO: Use request parameters & token IDs for "fuzzy" deduplication, so that two identical outputs with very slightly different logprobs will be considered the same
+
+        self == value
     }
     pub fn is_mergeable_with(&self, value: &Self) -> bool {
         match self {
