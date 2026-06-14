@@ -289,6 +289,7 @@ pub struct InnerNodeToken {
     pub bytes: Vec<u8>,
     pub logprob: f32,
     pub id: Option<u64>,
+
     pub metadata: MetadataMap,
 
     #[rkyv(with = NicheInto<niching::NaN>)]
@@ -731,10 +732,9 @@ pub struct Model {
 
     #[rkyv(with = NicheInto<niching::Zero>)]
     pub identifier: Option<NonZeroU128>,
+
     pub seed: Option<u32>,
-
     pub metadata: MetadataMap,
-
     pub raw_query: Option<RawQuery>,
 }
 

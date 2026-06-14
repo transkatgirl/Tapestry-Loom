@@ -35,7 +35,7 @@ impl WeaveMetadata {
             description: None,
             created: Zoned::now(),
             converted_from: Vec::new(),
-            metadata: IndexMap::default(),
+            metadata: MetadataMap::default(),
         }
     }
     pub fn is_empty(&self) -> bool {
