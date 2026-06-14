@@ -600,7 +600,7 @@ impl ArchivedInnerNodeContent {
 pub enum Creator {
     Model(Option<Model>),
     User(Option<Author>),
-    Unknown,
+    Unknown, // Necessary for backwards compatibility with v0 format
 }
 
 impl Creator {
@@ -790,6 +790,7 @@ impl Model {
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub struct RawQuery {
+    endpoint: Option<Arc<String>>,
     request: Arc<Vec<u8>>,
     response: Vec<u8>,
 }
