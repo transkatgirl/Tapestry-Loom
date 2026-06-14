@@ -9,7 +9,7 @@ license = "Unlicense"
 description = "A tool for converting weaves from other Loom implementations into the Tapestry Loom weave format."
 edition = "2024"
 
-[dependencies]
+[dependencies] # TODO: Review dependencies
 base64 = "0.22.1"
 miniz_oxide = "0.9.1"
 frontmatter = "0.4.0"
@@ -22,9 +22,11 @@ anyhow = "1.0.102"
 walkdir = "2.5.0"
 serde = { version = "1.0.228", features = [
 	"derive",
+	"rc",
 ] }
 serde_json = { version = "1.0.150", features = [
 	"preserve_order",
+	"arbitrary_precision",
 ] }
 chrono = { version = "0.4.45", features = [
 	"serde",
@@ -32,3 +34,7 @@ chrono = { version = "0.4.45", features = [
 uuid = { version = "1.23.3", features = [
 	"serde",
 ] }
+jiff = { version = "0.2.28", features = [
+	"serde",
+] }
+rand = "0.10.1"
