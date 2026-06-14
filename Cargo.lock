@@ -877,11 +877,11 @@ dependencies = [
 
 [[package]]
 name = "brotli-decompressor"
-version = "5.0.1"
+version = "5.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5962523e1b92ce1b5e793d9169b9943eece10d39f62550bc04bb605d75b94924"
+checksum = "30bebb348517c190d59e80c4f19c2beef71cf89d9df0c46386be8f92c7021fec"
 dependencies = [
- "alloc-no-stdlib 2.0.4",
+ "alloc-no-stdlib 3.0.0",
  "alloc-stdlib",
 ]
 
@@ -5799,6 +5799,7 @@ dependencies = [
  "base64-serde",
  "contracts",
  "foldhash 0.2.0",
+ "getrandom 0.4.2",
  "jiff",
  "rkyv",
  "serde",

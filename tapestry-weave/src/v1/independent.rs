@@ -73,6 +73,29 @@ impl AsRef<TapestryWeaveInner> for TapestryWeave {
     }
 }
 
+pub fn generate_unique_id(weave: &TapestryWeaveInner) -> Result<u64, getrandom::Error> {
+    let mut id = getrandom::u64()?;
+
+    while weave.contains(&id) {
+        id = getrandom::u64()?;
+    }
+
+    Ok(id)
+}
+
+pub fn generate_unique_id_with_list(
+    weave: &TapestryWeaveInner,
+    ids: &[u64],
+) -> Result<u64, getrandom::Error> {
+    let mut id = getrandom::u64()?;
+
+    while weave.contains(&id) || ids.contains(&id) {
+        id = getrandom::u64()?;
+    }
+
+    Ok(id)
+}
+
 impl TapestryWeave {
     pub fn from_unversioned_bytes(bytes: &[u8]) -> Result<Self, Error> {
         Ok(Self::from(from_bytes::<TapestryWeaveInner, Error>(bytes)?))
@@ -152,6 +175,9 @@ impl TapestryWeave {
     }
     pub fn contains_active(&self, id: &u64) -> bool {
         self.weave.contains_active(id)
+    }
+    pub fn generate_unique_id(&self) -> Result<u64, getrandom::Error> {
+        generate_unique_id(&self.weave)
     }
     pub fn has_changed(&mut self) -> bool {
         let changed = self.changed;
@@ -342,12 +368,9 @@ impl TapestryWeave {
             .flat_map(|node| node.contents.content.as_bytes().into_owned())
             .collect()
     }
-    pub fn split_node(
-        &mut self,
-        id: &u64,
-        at: usize,
-        mut id_generator: impl FnMut() -> u64,
-    ) -> Option<(u64, Option<u64>, u64)> {
+    pub fn split_node(&mut self, id: &u64, at: usize) -> Option<(u64, Option<u64>, u64)> {
+        let new_id = generate_unique_id(&self.weave).ok()?;
+
         if at > 0
             && let Some(node) = self.weave.get_node(id).cloned()
             && let InnerNodeContent::Tokens(tokens) = &node.contents.content
@@ -366,20 +389,21 @@ impl TapestryWeave {
             }
 
             if within_token {
-                let first_split_id = id_generator();
+                let first_split_id = generate_unique_id_with_list(&self.weave, &[new_id]).ok()?;
+                let second_split_id =
+                    generate_unique_id_with_list(&self.weave, &[new_id, first_split_id]).ok()?;
 
                 assert!(self.weave.split_node(id, byte_index, first_split_id));
 
                 let mut token_node = self.weave.get_node(&first_split_id).unwrap().clone();
-                token_node.id = id_generator();
+                token_node.id = new_id;
+
                 //token_node.to = IndexSet::default();
                 token_node.contents.content.truncate_tokens(1);
 
                 let token_node_id = token_node.id;
 
                 assert!(self.weave.add_node(token_node));
-
-                let second_split_id = id_generator();
 
                 assert!(
                     self.weave
@@ -390,8 +414,6 @@ impl TapestryWeave {
 
                 Some((*id, Some(token_node_id), second_split_id))
             } else {
-                let new_id = id_generator();
-
                 if self.weave.split_node(id, at, new_id) {
                     self.update_shape_and_active();
                     Some((*id, None, new_id))
@@ -400,8 +422,6 @@ impl TapestryWeave {
                 }
             }
         } else {
-            let new_id = id_generator();
-
             if self.weave.split_node(id, at, new_id) {
                 self.update_shape_and_active();
                 Some((*id, None, new_id))
@@ -422,9 +442,8 @@ impl TapestryWeave {
         &mut self,
         id: &u64,
         index: usize,
-        id_generator: impl FnMut() -> u64,
     ) -> Option<(Option<u64>, u64, Option<u64>)> {
-        if let Some(result) = self.split_out_token_inner(id, index, id_generator) {
+        if let Some(result) = self.split_out_token_inner(id, index) {
             if result.0 == Some(*id) || result.2.is_some() {
                 self.update_shape_and_active();
             }
@@ -438,13 +457,14 @@ impl TapestryWeave {
         &mut self,
         id: &u64,
         index: usize,
-        mut id_generator: impl FnMut() -> u64,
     ) -> Option<(Option<u64>, u64, Option<u64>)> {
         // before_token, token, after_token
         if let Some(node) = self.weave.get_node(id) {
             if let InnerNodeContent::Tokens(tokens) = &node.contents.content
                 && tokens.len() > index
             {
+                let tail_id = generate_unique_id(&self.weave).ok()?;
+
                 let chosen_parent = node
                     .from
                     .iter()
@@ -472,15 +492,13 @@ impl TapestryWeave {
                 };
 
                 if split_index > 0 {
-                    let middle_id = id_generator();
+                    let middle_id = generate_unique_id_with_list(&self.weave, &[tail_id]).ok()?;
 
                     assert!(self.weave.split_node(id, split_index, middle_id));
 
                     if let Some(second_split_index) = second_split_index
                         && second_split_index > 0
                     {
-                        let tail_id = id_generator();
-
                         assert!(
                             self.weave
                                 .split_node(&middle_id, second_split_index, tail_id)
@@ -493,8 +511,6 @@ impl TapestryWeave {
                 } else if let Some(second_split_index) = second_split_index
                     && second_split_index > 0
                 {
-                    let tail_id = id_generator();
-
                     assert!(self.weave.split_node(id, second_split_index, tail_id));
 
                     Some((chosen_parent, *id, Some(tail_id)))

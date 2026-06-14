@@ -21,6 +21,9 @@ pub use ulid;
 #[cfg(feature = "v1")]
 pub use jiff;
 
+#[cfg(feature = "v1")]
+pub use getrandom;
+
 pub use universal_weave;
 
 pub mod hashers;

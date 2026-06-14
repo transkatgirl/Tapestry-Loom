@@ -24,7 +24,10 @@ v0 = [
 	"dep:serde_json",
 	"dep:base64",
 ]
-v1 = [ "dep:jiff" ]
+v1 = [
+	"dep:jiff",
+	"dep:getrandom",
+]
 serde = [
 	"universal-weave/serde",
 	"jiff/serde",
@@ -57,4 +60,5 @@ serde_json = { version = "1.0.150", features = [
 ], optional = true }
 
 # v1+
-jiff = { version = "0.2.28", optional = true }
+jiff      = { version = "0.2.28", optional = true }
+getrandom = { version = "0.4.2", optional = true }
