@@ -1,4 +1,13 @@
 #[cfg(feature = "v1")]
+use std::{
+    collections::{
+        HashMap, HashSet,
+        hash_map::{Entry, OccupiedEntry},
+    },
+    hash::{BuildHasher, Hash},
+};
+
+#[cfg(feature = "v1")]
 use universal_weave::rkyv::{
     Archive, Deserialize, Place, Resolver, Serialize, SerializeUnsized,
     rancor::{Fallible, Source},
@@ -112,5 +121,122 @@ where
         deserializer: &mut D,
     ) -> Result<Zoned, D::Error> {
         Ok(Zoned::from(field.deserialize(deserializer)?))
+    }
+}
+
+#[cfg(feature = "v1")]
+pub struct UniqueIdentifierRemapper<K, V, KS, VS>
+where
+    K: Hash + Eq,
+    V: Hash + Eq,
+    KS: BuildHasher + Default + Clone,
+    VS: BuildHasher + Default + Clone,
+{
+    old_to_new: HashMap<K, V, KS>,
+    new_ids: HashSet<V, VS>,
+}
+
+#[cfg(feature = "v1")]
+impl<K, V, KS, VS> UniqueIdentifierRemapper<K, V, KS, VS>
+where
+    K: Hash + Eq,
+    V: Hash + Clone + Eq,
+    KS: BuildHasher + Default + Clone,
+    VS: BuildHasher + Default + Clone,
+{
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            old_to_new: HashMap::with_capacity_and_hasher(capacity, KS::default()),
+            new_ids: HashSet::with_capacity_and_hasher(capacity, VS::default()),
+        }
+    }
+    pub fn extend_output_id_set(&mut self, iter: impl Iterator<Item = V>) {
+        self.new_ids.extend(iter);
+    }
+    pub fn map(&mut self, input: K, mut generator: impl FnMut() -> V) -> OccupiedEntry<'_, K, V> {
+        let mut generate_unique = || {
+            let mut id = generator();
+
+            while self.new_ids.contains(&id) {
+                id = generator();
+            }
+
+            self.new_ids.insert(id.clone());
+
+            id
+        };
+
+        match self.old_to_new.entry(input) {
+            Entry::Occupied(occupied) => occupied,
+            Entry::Vacant(vacant) => vacant.insert_entry(generate_unique()),
+        }
+    }
+    pub fn map_with_initial(
+        &mut self,
+        input: K,
+        initial: V,
+        mut generator: impl FnMut() -> V,
+    ) -> OccupiedEntry<'_, K, V> {
+        let generate_unique = || {
+            let mut id = initial;
+
+            while self.new_ids.contains(&id) {
+                id = generator();
+            }
+
+            self.new_ids.insert(id.clone());
+
+            id
+        };
+
+        match self.old_to_new.entry(input) {
+            Entry::Occupied(occupied) => occupied,
+            Entry::Vacant(vacant) => vacant.insert_entry(generate_unique()),
+        }
+    }
+    pub fn try_map<E>(
+        &mut self,
+        input: K,
+        mut generator: impl FnMut() -> Result<V, E>,
+    ) -> Result<OccupiedEntry<'_, K, V>, E> {
+        let mut generate_unique = || {
+            let mut id = generator()?;
+
+            while self.new_ids.contains(&id) {
+                id = generator()?;
+            }
+
+            self.new_ids.insert(id.clone());
+
+            Ok(id)
+        };
+
+        match self.old_to_new.entry(input) {
+            Entry::Occupied(occupied) => Ok(occupied),
+            Entry::Vacant(vacant) => Ok(vacant.insert_entry(generate_unique()?)),
+        }
+    }
+    pub fn try_map_with_initial<E>(
+        &mut self,
+        input: K,
+        initial: V,
+        mut generator: impl FnMut() -> Result<V, E>,
+    ) -> Result<OccupiedEntry<'_, K, V>, E> {
+        let generate_unique = || {
+            let mut id = initial;
+
+            while self.new_ids.contains(&id) {
+                id = generator()?;
+            }
+
+            self.new_ids.insert(id.clone());
+
+            Ok(id)
+        };
+
+        match self.old_to_new.entry(input) {
+            Entry::Occupied(occupied) => Ok(occupied),
+            Entry::Vacant(vacant) => Ok(vacant.insert_entry(generate_unique()?)),
+        }
     }
 }

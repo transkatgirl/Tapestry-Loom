@@ -176,7 +176,7 @@ impl TapestryWeave {
     pub fn contains_active(&self, id: &u64) -> bool {
         self.weave.contains_active(id)
     }
-    pub fn generate_unique_id(&self) -> Result<u64, getrandom::Error> {
+    pub fn generate_id(&self) -> Result<u64, getrandom::Error> {
         generate_unique_id(&self.weave)
     }
     pub fn has_changed(&mut self) -> bool {
