@@ -11,6 +11,7 @@ use clap::Parser;
 use jiff::Zoned;
 use tapestry_weave::{
     VersionedInnerWeave, VersionedWeave,
+    universal_weave::rkyv::util::AlignedVec,
     v1::{
         self,
         metadata::{ConvertedFrom, MetadataMap, WeaveMetadata},
@@ -45,6 +46,14 @@ struct Cli {
     /// JSON serialized weaves cannot be natively read by Tapestry Loom, but they are easier to modify and can be converted back into binary weaves using migration-assistant
     #[arg(long)]
     output_debug_json: bool,
+
+    /// Deserialize binary weaves without running rkyv validation (DANGEROUS)
+    ///
+    /// ONLY USE THIS IF YOU KNOW WHAT YOU'RE DOING. Enabling this setting could allow maliciously crafted weaves to execute arbitrary code on your computer.
+    ///
+    /// Useful for attempting to recover corrupted weaves.
+    #[arg(long)]
+    dangerous_unvalidated_deserialization: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -98,9 +107,9 @@ fn main() -> anyhow::Result<()> {
 
                 assert_ne!(entry.path(), output);
 
-                if let Some(weave) = VersionedWeave::from_bytes(&fs::read(entry.path())?) {
-                    let weave = weave?;
-
+                if let Some(weave) =
+                    read_weave_from_file(entry.path(), args.dangerous_unvalidated_deserialization)?
+                {
                     println!("{} -> {}", entry.path().display(), output.display());
 
                     write_weave_to_file(&output, weave, !args.no_upgrade, args.output_debug_json)?;
@@ -136,6 +145,31 @@ fn new_weave(
             metadata: MetadataMap::default(),
         },
     )
+}
+
+fn read_weave_from_file(path: &Path, unchecked: bool) -> anyhow::Result<Option<VersionedWeave>> {
+    let mut file = File::open(path)?;
+    let size = file
+        .metadata()
+        .map(|m| usize::try_from(m.len()).unwrap_or(usize::MAX))
+        .ok();
+    let mut bytes: AlignedVec<16> = AlignedVec::with_capacity(size.unwrap_or(0));
+    bytes.extend_from_reader(&mut file)?;
+    drop(file);
+
+    if unchecked {
+        if let Some(weave) = unsafe { VersionedWeave::from_bytes_unchecked(&bytes) } {
+            Ok(Some(weave?))
+        } else {
+            Ok(None)
+        }
+    } else {
+        if let Some(weave) = VersionedWeave::from_bytes(&bytes) {
+            Ok(Some(weave?))
+        } else {
+            Ok(None)
+        }
+    }
 }
 
 fn write_weave_to_file(
