@@ -599,15 +599,17 @@ impl Creator {
         matches!(self, Self::Human(_))
     }
     pub fn as_model(&self) -> Option<&Option<Model>> {
-        match self {
-            Self::Model(model) => Some(model),
-            _ => None,
+        if let Self::Model(model) = self {
+            Some(model)
+        } else {
+            None
         }
     }
     pub fn as_human(&self) -> Option<&Option<Author>> {
-        match self {
-            Self::Human(human) => Some(human),
-            _ => None,
+        if let Self::Human(human) = self {
+            Some(human)
+        } else {
+            None
         }
     }
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
@@ -694,15 +696,17 @@ impl ArchivedCreator {
         matches!(self, Self::Human(_))
     }
     pub fn as_model(&self) -> Option<&ArchivedOption<ArchivedModel>> {
-        match self {
-            Self::Model(model) => Some(model),
-            _ => None,
+        if let Self::Model(model) = self {
+            Some(model)
+        } else {
+            None
         }
     }
     pub fn as_human(&self) -> Option<&ArchivedOption<ArchivedAuthor>> {
-        match self {
-            Self::Human(human) => Some(human),
-            _ => None,
+        if let Self::Human(human) = self {
+            Some(human)
+        } else {
+            None
         }
     }
 }
