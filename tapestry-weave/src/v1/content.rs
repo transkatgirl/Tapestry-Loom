@@ -599,7 +599,7 @@ impl ArchivedInnerNodeContent {
 #[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
 pub enum Creator {
     Model(Option<Model>),
-    Human(Option<Author>),
+    User(Option<Author>),
     Unknown,
 }
 
@@ -607,8 +607,8 @@ impl Creator {
     pub fn is_model(&self) -> bool {
         matches!(self, Self::Model(_))
     }
-    pub fn is_human(&self) -> bool {
-        matches!(self, Self::Human(_))
+    pub fn is_user(&self) -> bool {
+        matches!(self, Self::User(_))
     }
     pub fn as_model(&self) -> Option<&Option<Model>> {
         if let Self::Model(model) = self {
@@ -617,9 +617,9 @@ impl Creator {
             None
         }
     }
-    pub fn as_human(&self) -> Option<&Option<Author>> {
-        if let Self::Human(human) = self {
-            Some(human)
+    pub fn as_user(&self) -> Option<&Option<Author>> {
+        if let Self::User(user) = self {
+            Some(user)
         } else {
             None
         }
@@ -633,8 +633,8 @@ impl Creator {
                     false
                 }
             }
-            Self::Human(Some(left)) => {
-                if let Self::Human(Some(right)) = value {
+            Self::User(Some(left)) => {
+                if let Self::User(Some(right)) = value {
                     left.is_duplicate_of(right)
                 } else {
                     false
@@ -652,8 +652,8 @@ impl Creator {
                     false
                 }
             }
-            Self::Human(Some(left)) => {
-                if let Self::Human(Some(right)) = value {
+            Self::User(Some(left)) => {
+                if let Self::User(Some(right)) = value {
                     left.is_mergeable_with(right)
                 } else {
                     false
@@ -677,16 +677,16 @@ impl Creator {
                     Err((Self::Model(Some(left)), value))
                 }
             }
-            Self::Human(Some(left)) => {
-                if let Self::Human(Some(right)) = value {
+            Self::User(Some(left)) => {
+                if let Self::User(Some(right)) = value {
                     match left.merge(right) {
-                        Ok(combined) => Ok(Self::Human(Some(combined))),
+                        Ok(combined) => Ok(Self::User(Some(combined))),
                         Err((left, right)) => {
-                            Err((Self::Human(Some(left)), Self::Human(Some(right))))
+                            Err((Self::User(Some(left)), Self::User(Some(right))))
                         }
                     }
                 } else {
-                    Err((Self::Human(Some(left)), value))
+                    Err((Self::User(Some(left)), value))
                 }
             }
             _ => {
@@ -704,8 +704,8 @@ impl ArchivedCreator {
     pub fn is_model(&self) -> bool {
         matches!(self, Self::Model(_))
     }
-    pub fn is_human(&self) -> bool {
-        matches!(self, Self::Human(_))
+    pub fn is_user(&self) -> bool {
+        matches!(self, Self::User(_))
     }
     pub fn as_model(&self) -> Option<&ArchivedOption<ArchivedModel>> {
         if let Self::Model(model) = self {
@@ -714,9 +714,9 @@ impl ArchivedCreator {
             None
         }
     }
-    pub fn as_human(&self) -> Option<&ArchivedOption<ArchivedAuthor>> {
-        if let Self::Human(human) = self {
-            Some(human)
+    pub fn as_user(&self) -> Option<&ArchivedOption<ArchivedAuthor>> {
+        if let Self::User(user) = self {
+            Some(user)
         } else {
             None
         }
