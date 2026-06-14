@@ -3,8 +3,12 @@
 A tool for converting weaves from other Loom implementations into the Tapestry Loom weave format.
 
 Supported input formats:
-- Tapestry Loom
-	- Useful for verifying that all weaves within a folder are valid
+- [tapestry-weave](../tapestry-weave/)
+	- Rkyv serialized (**Tapestry Loom format**)
+		- Useful for verifying that all weaves within a folder are valid
+	- JSON serialized
+		- Useful for editing weaves using 3rd party tools
+- Tapestry Loom debug JSON
 - [Legacy Tapestry Loom Obsidian plugin](https://github.com/transkatgirl/Tapestry-Loom/tree/legacy)
 - [loom](https://github.com/socketteer/loom)*, tested with commit 91ca920551120ad4508540e8da057c0b94067afc
 	- Does not support migrating multimedia
@@ -12,6 +16,12 @@ Supported input formats:
 - [loomsidian](https://github.com/cosmicoptima/loom)*, tested with commit afbb3519f10d668d4688c68370d7b9305c9f80dc
 - [exoloom](https://exoloom.io)*, last tested on December 17, 2025
 	- Note: Exoloom's export format does not contain information on which nodes are active
+
+Supported output formats:
+- [tapestry-weave](../tapestry-weave/)
+	- Rkyv serialized (**Tapestry Loom format**)
+	- JSON serialized
+		- Useful for editing weaves using 3rd party tools; *Cannot be read inside Tapestry Loom*
 
 \* = Supported on a best-effort basis & likely incomplete; Please file any bugs that you find
 
