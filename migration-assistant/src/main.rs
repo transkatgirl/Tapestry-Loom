@@ -203,8 +203,10 @@ fn migrate_markdown_weave(
     assert_ne!(input_path, output_path);
 
     let input = fs::read_to_string(input_path)?;
-    let created = Zoned::try_from(fs::metadata(input_path)?.created()?)?;
 
+    println!("\n> {}", input_path.display());
+
+    let created = Zoned::try_from(fs::metadata(input_path)?.created()?)?;
     if let Some(weave) = obsidian_tapestry::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
@@ -226,6 +228,8 @@ fn migrate_json_weave(
 
     let input = fs::read_to_string(input_path)?;
     let created = Zoned::try_from(fs::metadata(input_path)?.created()?)?;
+    println!("\n> {}", input_path.display());
+
     if let Ok(weave) = serde_json::from_str::<VersionedInnerWeave>(&input) {
         println!("{} -> {}", input_path.display(), output_path.display());
 
