@@ -19,7 +19,7 @@ use tapestry_weave::{
 use walkdir::WalkDir;
 
 //mod exoloom;
-//mod loomsidian;
+mod loomsidian;
 mod obsidian_tapestry;
 //mod pyloom;
 
@@ -236,18 +236,22 @@ fn migrate_json_weave(
         return write_weave_to_file(output_path, weave.into_weave(), upgrade, json);
     }
 
-    /*{
-        let output_weaves = loomsidian::migrate_all(&input, created)?;
+    {
+        let output_weaves = loomsidian::migrate_all(&input, created.clone())?;
 
         let has_outputs = !output_weaves.is_empty();
 
         for (filename, weave) in output_weaves {
-            let output_path = output_path
+            let mut output_path = output_path
                 .parent()
                 .map(|p| p.to_path_buf())
                 .unwrap_or_default()
-                .join(filename)
-                .with_extension("tapestry");
+                .join(filename);
+            if json {
+                output_path.set_extension("json");
+            } else {
+                output_path.set_extension("tapestry");
+            }
 
             if let Some(parent) = output_path.parent() {
                 fs::create_dir_all(parent)?;
@@ -266,10 +270,10 @@ fn migrate_json_weave(
     if let Some(weave) = loomsidian::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
-        return write_weave_to_file(&output_path, weave, upgrade, json);
+        return write_weave_to_file(output_path, weave, upgrade, json);
     }
 
-    if let Some(weave) = exoloom::migrate(&input, created)? {
+    /*if let Some(weave) = exoloom::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
         return write_weave_to_file(&output_path, weave, upgrade, json);
