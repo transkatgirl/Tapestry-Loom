@@ -804,25 +804,32 @@ pub struct Author {
 
     #[rkyv(with = NicheInto<niching::Zero>)]
     pub identifier: Option<NonZeroU128>,
+
+    pub metadata: MetadataMap,
 }
 
 impl Author {
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
-        (self.identifier.is_some()
+        ((self.identifier.is_some()
             && value.identifier.is_some()
             && self.identifier == value.identifier)
             || (self.identifier.is_none()
                 && value.identifier.is_none()
-                && self.label == value.label)
+                && self.label == value.label))
+            && self.metadata == value.metadata
     }
     pub fn is_mergeable_with(&self, value: &Self) -> bool {
         self.label == value.label
             && (self.color == value.color || self.color.is_none() || value.color.is_none())
             && self.identifier == value.identifier
+            && self.metadata == value.metadata
     }
     #[allow(clippy::result_large_err)]
     pub fn merge(self, value: Self) -> Result<Self, (Self, Self)> {
-        if self.label == value.label && self.identifier == value.identifier {
+        if self.label == value.label
+            && self.identifier == value.identifier
+            && self.metadata == value.metadata
+        {
             if self.color == value.color || value.color.is_none() {
                 Ok(self)
             } else if self.color.is_none() {
