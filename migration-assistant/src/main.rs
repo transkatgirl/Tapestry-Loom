@@ -229,6 +229,8 @@ fn migrate_json_weave(
     let created: DateTime<Local> = DateTime::from(fs::metadata(input_path)?.created()?);
 
     if let Ok(weave) = serde_json::from_str::<VersionedInnerWeave>(&input) {
+        println!("{} -> {}", input_path.display(), output_path.display());
+
         return write_weave_to_file(output_path, weave.into_weave(), upgrade, json);
     }
 
