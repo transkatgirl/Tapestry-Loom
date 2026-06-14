@@ -756,14 +756,19 @@ impl From<OldTapestryWeave> for TapestryWeave {
             let mut node = TapestryNode {
                 id: convert_old_identifier(node.id),
                 from: node.from.map(convert_old_identifier),
-                to: IndexSet::from_iter(node.to.into_iter().map(convert_old_identifier)),
+                to: IndexSet::from_iter(
+                    node.to
+                        .into_iter()
+                        .map(convert_old_identifier)
+                        .filter(|id| output.contains(id)),
+                ),
                 active: node.active,
                 bookmarked: node.bookmarked,
                 contents: node.contents.into(),
             };
             node.contents.timestamp = timestamp;
 
-            assert!(output.add_node(node));
+            assert!(output.add_node_direct(node));
         }
 
         output

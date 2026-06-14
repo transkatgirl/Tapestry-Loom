@@ -63,7 +63,11 @@ fn main() -> anyhow::Result<()> {
             } else {
                 args.output.clone().join(entry.file_name())
             };
-            output.set_extension("tapestry");
+            if args.output_debug_json {
+                output.set_extension("json");
+            } else {
+                output.set_extension("tapestry");
+            }
 
             if extension == "md" {
                 if let Some(parent) = output.parent() {
