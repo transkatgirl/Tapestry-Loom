@@ -8,7 +8,6 @@ Supported input formats:
 		- Useful for verifying that all weaves within a folder are valid
 	- JSON serialized
 		- Useful for editing weaves using 3rd party tools
-- Tapestry Loom debug JSON
 - [Legacy Tapestry Loom Obsidian plugin](https://github.com/transkatgirl/Tapestry-Loom/tree/legacy)
 - [loom](https://github.com/socketteer/loom)*, tested with commit 91ca920551120ad4508540e8da057c0b94067afc
 	- Does not support migrating multimedia
@@ -19,7 +18,7 @@ Supported input formats:
 
 Supported output formats:
 - [tapestry-weave](../tapestry-weave)
-	- Rkyv serialized (**Tapestry Loom format**)
+	- Rkyv serialized (**Tapestry Loom format**, default)
 	- JSON serialized
 		- Useful for editing weaves using 3rd party tools; *Cannot be read inside Tapestry Loom*
 
