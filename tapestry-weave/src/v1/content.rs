@@ -763,12 +763,20 @@ impl Model {
             && self.metadata == value.metadata
         {
             if self.color == value.color || value.color.is_none() {
-                self.seed = None;
-                self.raw_query = None;
+                if self.seed != value.seed {
+                    self.seed = None;
+                }
+                if self.raw_query != value.raw_query {
+                    self.raw_query = None;
+                }
                 Ok(self)
             } else if self.color.is_none() {
-                value.seed = None;
-                value.raw_query = None;
+                if self.seed != value.seed {
+                    value.seed = None;
+                }
+                if self.raw_query != value.raw_query {
+                    value.raw_query = None;
+                }
                 Ok(value)
             } else {
                 Err((self, value))
