@@ -740,8 +740,12 @@ pub struct Model {
 
 impl Model {
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
-        self.label == value.label
-            && self.identifier == value.identifier
+        ((self.identifier.is_some()
+            && value.identifier.is_some()
+            && self.identifier == value.identifier)
+            || (self.identifier.is_none()
+                && value.identifier.is_none()
+                && self.label == value.label))
             && self.seed == value.seed
             && self.metadata == value.metadata
             && self.raw_query == value.raw_query
@@ -796,7 +800,12 @@ pub struct Author {
 
 impl Author {
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
-        self.label == value.label && self.identifier == value.identifier
+        (self.identifier.is_some()
+            && value.identifier.is_some()
+            && self.identifier == value.identifier)
+            || (self.identifier.is_none()
+                && value.identifier.is_none()
+                && self.label == value.label)
     }
     pub fn is_mergeable_with(&self, value: &Self) -> bool {
         self.label == value.label
