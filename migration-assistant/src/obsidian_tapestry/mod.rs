@@ -3,6 +3,7 @@
 use std::{
     collections::{HashMap, HashSet},
     hash::BuildHasherDefault,
+    num::NonZeroU128,
     sync::Arc,
 };
 
@@ -159,7 +160,9 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<VersionedWeave
                             .map(|model| Creator::Model(Some(Model {
                                 label: model.label,
                                 color: model.color,
-                                identifier: None,
+                                identifier: node
+                                    .model
+                                    .and_then(|id| NonZeroU128::try_from(id.0).ok()),
                                 metadata: IndexMap::default(),
                                 seed: None,
                                 raw_query: None
