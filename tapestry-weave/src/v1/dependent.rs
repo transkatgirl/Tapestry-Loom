@@ -14,7 +14,7 @@ use universal_weave::{
 };
 
 #[cfg(feature = "v0")]
-use jiff::Zoned;
+use jiff::{Timestamp, Zoned};
 
 #[cfg(feature = "v0")]
 use ulid::Ulid;
@@ -779,10 +779,14 @@ impl From<OldTapestryWeave> for TapestryWeave {
                 .get()
         };
 
+        let time_zone = output.metadata().created.time_zone().clone();
+
         for identifier in identifiers {
             let node = value.weave.get_node(&identifier).unwrap().clone();
 
-            let timestamp = Zoned::try_from(Ulid(node.id).datetime()).unwrap_or(Zoned::default());
+            let timestamp = Timestamp::try_from(Ulid(node.id).datetime())
+                .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
+                .unwrap_or(Zoned::default());
 
             let mut node = TapestryNode {
                 id: convert_old_identifier(node.id),
