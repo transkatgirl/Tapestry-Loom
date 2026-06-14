@@ -1,27 +1,35 @@
 #![allow(non_snake_case)]
 
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    hash::BuildHasherDefault,
+    sync::Arc,
+};
 
 use base64::prelude::*;
 use boa_engine::{Context, JsString, Source, js_string, property::Attribute};
-use chrono::{DateTime, Local};
 use frontmatter::{Yaml, parse_and_find_content};
 use miniz_oxide::inflate::decompress_to_vec_zlib;
 use serde::{Deserialize, Serialize};
 use tapestry_weave::{
-    VersionedWeave,
+    VersionedWeave, getrandom,
+    hashers::{RandomIdHasher, UlidHasher},
+    jiff::{Timestamp, Zoned},
     ulid::Ulid,
     universal_weave::{
-        Weave,
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
-    v0::{InnerNodeContent, MetadataMap, Model, NodeContent},
+    v1::{
+        content::{Creator, InnerNodeContent, InnerNodeToken, Model, NodeContent, OriginalToken},
+        metadata::MetadataMap,
+    },
+    wrappers::UniqueIdentifierRemapper,
 };
 
-use crate::new_weave_v0;
+use crate::new_weave;
 
-pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<VersionedWeave>> {
+pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWeave>> {
     if let Ok((Some(Yaml::Hash(mut frontmatter)), _)) = parse_and_find_content(input) {
         let weave = if let Some(Yaml::String(compressed_weave)) =
             frontmatter.remove(&Yaml::String("TapestryLoomWeaveCompressed".to_string()))
@@ -46,7 +54,7 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<V
     Ok(None)
 }
 
-fn convert_weave(input: String, created: DateTime<Local>) -> anyhow::Result<VersionedWeave> {
+fn convert_weave(input: String, created: Zoned) -> anyhow::Result<VersionedWeave> {
     let mut context = Context::default();
 
     context
@@ -76,17 +84,44 @@ fn convert_weave(input: String, created: DateTime<Local>) -> anyhow::Result<Vers
         input.build_node_list(*node, &mut input_nodes);
     }
 
-    let mut output = new_weave_v0(input.nodes.len(), created, "LegacyTapestryLoom");
+    let mut output = new_weave(input.nodes.len(), created, "LegacyTapestryLoom", None);
+
+    let mut mapper: UniqueIdentifierRemapper<
+        u128,
+        u64,
+        BuildHasherDefault<UlidHasher>,
+        BuildHasherDefault<RandomIdHasher>,
+    > = UniqueIdentifierRemapper::with_capacity(input.nodes.len());
+
+    let mut convert_old_identifier = move |id| {
+        *mapper
+            .try_map_with_initial(
+                id,
+                unsafe { std::mem::transmute::<u128, [u64; 2]>(id)[1] },
+                getrandom::u64,
+            )
+            .unwrap()
+            .get()
+    };
+
+    let time_zone = output.metadata().created.time_zone().clone();
+
+    let empty_counterfactual = Arc::new(Vec::new());
 
     for node in input_nodes {
         if let Some(node) = input.nodes.get(&node).cloned() {
+            let timestamp = Timestamp::try_from(Ulid(node.identifier.0).datetime())
+                .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
+                .unwrap_or(Zoned::default());
+
             assert!(
-                output.weave.add_node(DependentNode {
-                    id: node.identifier.0,
+                output.add_node(DependentNode {
+                    id: convert_old_identifier(node.identifier.0),
                     from: node
                         .parentNode
-                        .and_then(|id| if output.weave.contains(&id.0) {
-                            Some(id.0)
+                        .map(|id| convert_old_identifier(id.0))
+                        .and_then(|id| if output.contains(&id) {
+                            Some(id)
                         } else {
                             eprintln!("Warning: Node {} has missing parents", node.identifier);
                             None
@@ -95,38 +130,42 @@ fn convert_weave(input: String, created: DateTime<Local>) -> anyhow::Result<Vers
                     active: input.currentNode == Some(node.identifier),
                     bookmarked: input.bookmarks.contains(&node.identifier),
                     contents: NodeContent {
+                        timestamp,
+                        modified: false,
                         content: match node.content {
-                            LegacyNodeContent::Snippet(snippet) => {
-                                InnerNodeContent::Snippet(snippet.into_bytes())
-                            }
+                            LegacyNodeContent::Snippet(snippet) =>
+                                InnerNodeContent::Snippet(snippet.into_bytes()),
                             LegacyNodeContent::Tokens(tokens) => InnerNodeContent::Tokens(
                                 tokens
                                     .into_iter()
                                     .map(|(probability, token)| {
-                                        (
-                                            token.into_bytes(),
-                                            IndexMap::from_iter([(
-                                                "probability".to_string(),
-                                                probability.to_string(),
-                                            )]),
-                                        )
+                                        InnerNodeToken {
+                                            bytes: token.into_bytes(),
+                                            logprob: probability.ln() as f32,
+                                            id: None,
+                                            metadata: IndexMap::default(),
+                                            entropy: None,
+                                            counterfactual: empty_counterfactual.clone(),
+                                            original: OriginalToken::Unmodified,
+                                        }
                                     })
-                                    .collect(),
+                                    .collect()
                             ),
                         },
                         metadata: node.parameters.unwrap_or_default(),
-                        model: node
+                        creator: node
                             .model
                             .and_then(|id| input.models.get(&id).cloned())
-                            .map(|model| Model {
+                            .map(|model| Creator::Model(Some(Model {
                                 label: model.label,
-                                metadata: if let Some(color) = model.color {
-                                    IndexMap::from_iter([("color".to_string(), color)])
-                                } else {
-                                    IndexMap::default()
-                                },
-                            }),
-                    },
+                                color: model.color,
+                                identifier: None,
+                                metadata: IndexMap::default(),
+                                seed: None,
+                                raw_query: None
+                            })))
+                            .unwrap_or(Creator::Unknown)
+                    }
                 })
             );
         }

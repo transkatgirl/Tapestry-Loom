@@ -1081,7 +1081,6 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
- "serde",
  "wasm-bindgen",
  "windows-link 0.2.1",
 ]
@@ -5722,10 +5721,8 @@ dependencies = [
  "anyhow",
  "base64 0.22.1",
  "boa_engine",
- "chrono",
  "clap",
  "frontmatter",
- "jiff",
  "miniz_oxide 0.9.1",
  "serde",
  "serde_json",

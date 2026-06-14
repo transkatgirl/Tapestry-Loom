@@ -7,9 +7,9 @@ use std::{
 };
 
 use clap::Parser;
-use jiff::Zoned;
 use tapestry_weave::{
     VersionedInnerWeave, VersionedWeave,
+    jiff::Zoned,
     universal_weave::rkyv::util::AlignedVec,
     v1::{
         self,
@@ -20,7 +20,7 @@ use walkdir::WalkDir;
 
 //mod exoloom;
 //mod loomsidian;
-//mod obsidian_tapestry;
+mod obsidian_tapestry;
 //mod pyloom;
 
 #[derive(Parser)]
@@ -205,13 +205,13 @@ fn migrate_markdown_weave(
     let input = fs::read_to_string(input_path)?;
     let created = Zoned::try_from(fs::metadata(input_path)?.created()?)?;
 
-    /*if let Some(weave) = obsidian_tapestry::migrate(&input, created)? {
+    if let Some(weave) = obsidian_tapestry::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
-        return write_weave_to_file(&output_path, weave, upgrade, json);
+        return write_weave_to_file(output_path, weave, upgrade, json);
     }
 
-    println!("Skipping {}", input_path.display());*/
+    println!("Skipping {}", input_path.display());
 
     Ok(())
 }
