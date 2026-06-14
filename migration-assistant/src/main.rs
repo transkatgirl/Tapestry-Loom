@@ -19,10 +19,10 @@ use tapestry_weave::{
 };
 use walkdir::WalkDir;
 
-mod exoloom;
+/*mod exoloom;
 mod loomsidian;
 mod obsidian_tapestry;
-mod pyloom;
+mod pyloom;*/
 
 #[derive(Parser)]
 #[command(version)]
@@ -201,7 +201,7 @@ fn migrate_markdown_weave(
     upgrade: bool,
     json: bool,
 ) -> anyhow::Result<()> {
-    assert_ne!(input_path, output_path);
+    /*assert_ne!(input_path, output_path);
 
     let input = fs::read_to_string(input_path)?;
     let created: DateTime<Local> = DateTime::from(fs::metadata(input_path)?.created()?);
@@ -212,7 +212,7 @@ fn migrate_markdown_weave(
         return write_weave_to_file(&output_path, weave, upgrade, json);
     }
 
-    println!("Skipping {}", input_path.display());
+    println!("Skipping {}", input_path.display());*/
 
     Ok(())
 }
@@ -234,7 +234,7 @@ fn migrate_json_weave(
         return write_weave_to_file(output_path, weave.into_weave(), upgrade, json);
     }
 
-    {
+    /*{
         let output_weaves = loomsidian::migrate_all(&input, created)?;
 
         let has_outputs = !output_weaves.is_empty();
@@ -285,7 +285,7 @@ fn migrate_json_weave(
         return write_weave_to_file(&output_path, weave, upgrade, json);
     }
 
-    println!("Skipping {}", input_path.display());
+    println!("Skipping {}", input_path.display());*/
 
     Ok(())
 }
