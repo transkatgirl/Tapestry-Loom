@@ -321,6 +321,19 @@ impl InnerNodeToken {
     pub fn is_modified(&self) -> bool {
         self.original.is_modified()
     }
+    pub fn is_duplicate_of(&self, value: &Self) -> bool {
+        self.bytes == value.bytes
+            && self.id == value.id
+            && self.metadata == value.metadata
+            && self.entropy.is_some() == value.entropy.is_some()
+            && self.original == value.original
+            && self.counterfactual.len() == value.counterfactual.len()
+            && self
+                .counterfactual
+                .iter()
+                .zip(value.counterfactual.iter())
+                .all(|(left, right)| left.is_duplicate_of(right))
+    }
 }
 
 impl ArchivedInnerNodeToken {
@@ -386,13 +399,13 @@ pub struct CounterfactualToken {
 }
 
 impl CounterfactualToken {
-    pub fn round_logprob(&mut self, multiplier: f32) {
-        self.logprob = (self.logprob * multiplier).round() / multiplier;
-    }
     pub fn calculate_entropy<'a>(tokens: impl Iterator<Item = &'a CounterfactualToken>) -> f64 {
         -tokens
             .map(|token| (token.logprob as f64).exp() * (token.logprob as f64))
             .sum::<f64>()
+    }
+    pub fn is_duplicate_of(&self, value: &Self) -> bool {
+        self.bytes == value.bytes && self.id == value.id && self.metadata == value.metadata
     }
 }
 
@@ -508,9 +521,17 @@ impl InnerNodeContent {
         }
     }
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
-        // TODO: Use request parameters & token IDs for "fuzzy" deduplication, so that two identical outputs with very slightly different logprobs will be considered the same
-
-        self == value
+        if let Self::Tokens(left) = self
+            && let Self::Tokens(right) = value
+        {
+            left.len() == right.len()
+                && left
+                    .iter()
+                    .zip(right.iter())
+                    .all(|(left, right)| left.is_duplicate_of(right))
+        } else {
+            self == value
+        }
     }
     pub fn is_mergeable_with(&self, value: &Self) -> bool {
         match self {

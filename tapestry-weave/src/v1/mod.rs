@@ -7,8 +7,7 @@ pub mod treeless;
 /*
 
 TODO:
-- Fuzzy deduplication (see content.rs line 511)
-- Diff-based tree updates
+- Diff-based tree updates (see dependent.rs and independent.rs)
 
 Ideas for future formats:
 - Longest common prefix deduplication
