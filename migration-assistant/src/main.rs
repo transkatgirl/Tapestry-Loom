@@ -106,6 +106,8 @@ fn main() -> anyhow::Result<()> {
 
                 assert_ne!(entry.path(), output);
 
+                println!("\n> {}", entry.path().display());
+
                 if let Some(weave) =
                     read_weave_from_file(entry.path(), args.dangerous_unvalidated_deserialization)?
                 {
