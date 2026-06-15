@@ -1,6 +1,6 @@
 [package]
 name = "tapestry-tokenize"
-version = "0.1.2"
+version = "0.1.3"
 authors = [
 	"transkatgirl",
 ]
@@ -13,14 +13,20 @@ edition = "2024"
 serde = { version = "1.0.228", features = [
 	"derive",
 ] }
-toml = "1.1.2"
+toml = { version = "1.1.2", features = [
+	"parse",
+	"serde",
+], default-features = false }
 rocket = { version = "0.5.1", features = [
 	"json",
 	"tls",
 	"mtls",
 ] }
 anyhow = "1.0.102"
-tokenizers = "0.23.1"
+tokenizers = { version = "0.23.1", features = [
+	"onig",
+	"esaxx_fast",
+], default-features = false }
 log = { version = "0.4.32", features = [
 	"release_max_level_debug",
 ] }
