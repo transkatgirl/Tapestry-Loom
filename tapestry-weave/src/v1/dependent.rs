@@ -779,43 +779,42 @@ impl From<OldTapestryWeave> for TapestryWeave {
             BuildHasherDefault<RandomIdHasher>,
         > = UniqueIdentifierRemapper::with_capacity(identifiers.len());
 
-        let mut rng = output.rng.clone();
-
-        let mut convert_old_identifier = move |id| {
-            *mapper
-                .map_with_initial(
-                    id,
-                    unsafe { std::mem::transmute::<u128, [u64; 2]>(id)[1] },
-                    || rng.generate(),
-                )
-                .get()
-        };
-
         let time_zone = output.metadata().created.time_zone().clone();
 
-        for identifier in identifiers {
-            let node = value.weave.get_node(&identifier).unwrap().clone();
-
-            let timestamp = Timestamp::try_from(Ulid(node.id).datetime())
-                .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
-                .unwrap_or(Zoned::default());
-
-            let mut node = TapestryNode {
-                id: convert_old_identifier(node.id),
-                from: node.from.map(&mut convert_old_identifier),
-                to: IndexSet::with_capacity_and_hasher(
-                    node.to.len(),
-                    BuildHasherDefault::default(),
-                ),
-                active: node.active,
-                bookmarked: node.bookmarked,
-                contents: node.contents.into(),
+        output.modify_inner(|rng, output, _| {
+            let mut convert_old_identifier = move |id| {
+                *mapper
+                    .map_with_initial(
+                        id,
+                        unsafe { std::mem::transmute::<u128, [u64; 2]>(id)[1] },
+                        || rng.generate(),
+                    )
+                    .get()
             };
-            node.contents.timestamp = timestamp;
 
-            assert!(output.weave.add_node(node));
-        }
-        output.update_shape_and_active();
+            for identifier in identifiers {
+                let node = value.weave.get_node(&identifier).unwrap().clone();
+
+                let timestamp = Timestamp::try_from(Ulid(node.id).datetime())
+                    .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
+                    .unwrap_or(Zoned::default());
+
+                let mut node = TapestryNode {
+                    id: convert_old_identifier(node.id),
+                    from: node.from.map(&mut convert_old_identifier),
+                    to: IndexSet::with_capacity_and_hasher(
+                        node.to.len(),
+                        BuildHasherDefault::default(),
+                    ),
+                    active: node.active,
+                    bookmarked: node.bookmarked,
+                    contents: node.contents.into(),
+                };
+                node.contents.timestamp = timestamp;
+
+                assert!(output.add_node(node));
+            }
+        });
 
         output
     }
