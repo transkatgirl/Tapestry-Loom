@@ -102,19 +102,13 @@ fn main() -> anyhow::Result<()> {
                     fs::create_dir_all(parent)?;
                 }
 
-                assert_ne!(entry.path(), output);
-
-                println!("\n> {}", entry.path().display());
-
-                if let Some(weave) =
-                    read_weave_from_file(entry.path(), args.dangerous_unvalidated_deserialization)?
-                {
-                    println!("{} -> {}", entry.path().display(), output.display());
-
-                    write_weave_to_file(&output, weave, !args.no_upgrade, args.output_debug_json)?;
-                } else {
-                    println!("Skipping {}", entry.path().display());
-                }
+                migrate_tapestry_weave(
+                    entry.path(),
+                    &output,
+                    !args.no_upgrade,
+                    args.output_debug_json,
+                    args.dangerous_unvalidated_deserialization,
+                )?;
             }
         }
     }
@@ -190,6 +184,28 @@ fn write_weave_to_file(
     }
 
     buffer.flush()?;
+
+    Ok(())
+}
+
+fn migrate_tapestry_weave(
+    input_path: &Path,
+    output_path: &Path,
+    upgrade: bool,
+    json: bool,
+    unchecked: bool,
+) -> anyhow::Result<()> {
+    assert_ne!(input_path, output_path);
+
+    println!("\n> {}", input_path.display());
+
+    if let Some(weave) = read_weave_from_file(input_path, unchecked)? {
+        println!("{} -> {}", input_path.display(), output_path.display());
+
+        write_weave_to_file(output_path, weave, upgrade, json)?;
+    } else {
+        println!("Skipping {}", input_path.display());
+    }
 
     Ok(())
 }

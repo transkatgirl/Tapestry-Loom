@@ -22,7 +22,7 @@ Supported output formats:
 	- JSON serialized
 		- Useful for editing weaves using 3rd party tools; *Cannot be read inside Tapestry Loom*
 
-\* = Supported on a best-effort basis & likely incomplete; Please file any bugs that you find
+\* = Supported on a best-effort basis & likely incomplete; Please file any bugs that you find and/or submit PRs to improve format support
 
 ## Getting Started
 
