@@ -81,7 +81,7 @@ fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<Versi
             .unwrap_or_default();
 
         assert!(
-            output.add_node(DependentNode {
+            output.add_node_direct(DependentNode {
                 id: convert_old_identifier(id),
                 from: node
                     .parentId

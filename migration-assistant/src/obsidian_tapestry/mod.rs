@@ -119,7 +119,7 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<VersionedWeave
                 .unwrap_or(Zoned::default());
 
             assert!(
-                output.add_node(DependentNode {
+                output.add_node_direct(DependentNode {
                     id: convert_old_identifier(node.identifier.0),
                     from: node
                         .parentNode

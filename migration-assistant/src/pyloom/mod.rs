@@ -117,7 +117,7 @@ fn convert_node(
     //text.push_str(&suffix);
 
     assert!(
-        weave.add_node(DependentNode {
+        weave.add_node_direct(DependentNode {
             id,
             from: parent,
             to: IndexSet::default(),
@@ -227,7 +227,7 @@ fn convert_export_node(
 ) -> anyhow::Result<()> {
     let id = weave.generate_id();
 
-    assert!(weave.add_node(DependentNode {
+    assert!(weave.add_node_direct(DependentNode {
         id,
         from: parent,
         to: IndexSet::default(),

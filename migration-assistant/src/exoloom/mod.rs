@@ -91,7 +91,7 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
             let pruned = pruned.contains(&id);
 
             assert!(
-                output.add_node(DependentNode {
+                output.add_node_direct(DependentNode {
                     id: convert_old_identifier(id),
                     from: node.parentId.map(&mut convert_old_identifier),
                     to: IndexSet::default(),
