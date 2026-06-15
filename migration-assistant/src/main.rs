@@ -21,7 +21,7 @@ use walkdir::WalkDir;
 mod exoloom;
 mod loomsidian;
 mod obsidian_tapestry;
-//mod pyloom;
+mod pyloom;
 
 #[derive(Parser)]
 #[command(version)]
@@ -275,23 +275,23 @@ fn migrate_json_weave(
         return write_weave_to_file(output_path, weave, upgrade, json);
     }
 
-    if let Some(weave) = exoloom::migrate(&input, created)? {
+    if let Some(weave) = exoloom::migrate(&input, created.clone())? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
         return write_weave_to_file(output_path, weave, upgrade, json);
     }
 
-    /*if let Some(weave) = pyloom::migrate(&input, created)? {
+    if let Some(weave) = pyloom::migrate(&input, created.clone())? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
-        return write_weave_to_file(&output_path, weave, upgrade, json);
+        return write_weave_to_file(output_path, weave, upgrade, json);
     }
 
     if let Some(weave) = pyloom::migrate_simple(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
-        return write_weave_to_file(&output_path, weave, upgrade, json);
-    }*/
+        return write_weave_to_file(output_path, weave, upgrade, json);
+    }
 
     println!("Skipping {}", input_path.display());
 

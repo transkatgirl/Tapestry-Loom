@@ -1,28 +1,30 @@
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
 
-use std::{
-    collections::{HashMap, hash_map::Entry},
-    time::SystemTime,
-};
+use std::hash::BuildHasherDefault;
 
-use chrono::{DateTime, Local, NaiveDateTime};
+use chrono::{Local, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use tapestry_weave::{
-    VersionedWeave,
-    hashers::RandomState,
-    ulid::Ulid,
+    VersionedWeave, getrandom,
+    hashers::{RandomIdHasher, RandomState},
+    jiff::{Zoned, fmt::rfc2822::DateTimeParser},
     universal_weave::{
-        Weave,
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
-    v0::{InnerNodeContent, Model, NodeContent, TapestryWeave},
+    v1::{
+        content::{Creator, InnerNodeContent, NodeContent},
+        dependent::TapestryWeave,
+    },
+    wrappers::UniqueIdentifierRemapper,
 };
 
-use crate::new_weave_v0;
+use crate::new_weave;
 
-pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<VersionedWeave>> {
+const PARSER: DateTimeParser = DateTimeParser::new();
+
+pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWeave>> {
     if let Ok(data) = serde_json::from_str::<PyloomWeave>(input) {
         let chapters: IndexMap<String, String> = data
             .chapters
@@ -30,14 +32,23 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<V
             .map(|(id, chapter)| (id, chapter.title))
             .collect();
 
-        let mut id_map = HashMap::with_capacity(16384);
-        let mut output = new_weave_v0(16384, created, "PyLoom");
+        let mut output = new_weave(16384, created, "PyLoom", None);
+
+        let mut mapper: UniqueIdentifierRemapper<
+            String,
+            u64,
+            RandomState,
+            BuildHasherDefault<RandomIdHasher>,
+        > = UniqueIdentifierRemapper::with_capacity(16384);
+
+        let mut convert_old_identifier =
+            move |id| *mapper.try_map(id, getrandom::u64).unwrap().get();
 
         convert_node(
             &mut output,
-            &mut id_map,
-            SystemTime::from(created),
+            &mut convert_old_identifier,
             data.root,
+            None,
             &data.selected_node_id,
             &chapters,
         )?;
@@ -50,40 +61,26 @@ pub fn migrate(input: &str, created: DateTime<Local>) -> anyhow::Result<Option<V
 
 fn convert_node(
     weave: &mut TapestryWeave,
-    id_map: &mut HashMap<String, Ulid>,
-    created: SystemTime,
+    convert_old_identifier: &mut impl FnMut(String) -> u64,
     node: PyloomNode,
+    parent: Option<u64>,
     selected: &String,
     chapters: &IndexMap<String, String>,
 ) -> anyhow::Result<()> {
-    let time = node
+    let timestamp = node
         .meta
         .as_ref()
         .and_then(|meta| meta.creation_timestamp.clone())
         .and_then(|timestamp| NaiveDateTime::parse_from_str(&timestamp, "%Y-%m-%d-%H.%M.%S").ok())
         .and_then(|timestamp| timestamp.and_local_timezone(Local).earliest())
-        .map(SystemTime::from)
-        .unwrap_or(created);
-    let new_id = map_id(id_map, node.id.clone(), time);
+        .and_then(|timestamp| PARSER.parse_zoned(timestamp.to_rfc2822()).ok())
+        .unwrap_or_default();
 
-    let parent = node.parent_id.and_then(|parent| {
-        if let Some(parent) = id_map.get(&parent) {
-            Some(parent)
-        } else {
-            eprintln!("Warning: Node {} has missing parents", &node.id);
-            None
-        }
-    });
+    let id = convert_old_identifier(node.id.clone());
 
     let chapter = node.chapter_id.and_then(|chapter| chapters.get(&chapter));
 
     let mut metadata = IndexMap::with_capacity_and_hasher(3, RandomState::default());
-
-    if let Some(meta) = &node.meta
-        && let Some(modified) = meta.modified
-    {
-        metadata.insert("modified".to_string(), modified.to_string());
-    }
 
     let _suffix = if let Some(attributes) = node.text_attributes {
         if let Some(preview) = attributes.child_preview {
@@ -116,44 +113,47 @@ fn convert_node(
     //text.push_str(&suffix);
 
     assert!(
-        weave.weave.add_node(DependentNode {
-            id: new_id.0,
-            from: parent.map(|id| id.0),
+        weave.add_node(DependentNode {
+            id,
+            from: parent,
             to: IndexSet::default(),
             active: &node.id == selected,
             bookmarked: chapter.is_some(),
             contents: NodeContent {
-                content: InnerNodeContent::Snippet(text.into_bytes()),
-                metadata,
-                model: if node
+                timestamp,
+                modified: node
                     .meta
                     .as_ref()
-                    .map(|meta| meta.source.as_deref() == Some("AI"))
-                    .unwrap_or_default()
-                {
-                    Some(Model {
-                        label: "Unknown Model".to_string(),
-                        metadata: IndexMap::default(),
+                    .map(|meta| meta.source.as_deref() == Some("mixed")
+                        || meta.modified.unwrap_or_default())
+                    .unwrap_or_default(),
+                content: InnerNodeContent::Snippet(text.into_bytes()),
+                metadata,
+                creator: node
+                    .meta
+                    .map(|meta| match meta.source.as_deref() {
+                        Some("AI") => Creator::Model(None),
+                        Some("mixed") => Creator::User(None),
+                        Some("prompt") => Creator::User(None),
+                        _ => Creator::Unknown,
                     })
-                } else {
-                    None
-                }
+                    .unwrap_or(Creator::Unknown)
             },
         })
     );
 
     for child in node.children {
-        convert_node(weave, id_map, created, child, selected, chapters)?;
+        convert_node(
+            weave,
+            convert_old_identifier,
+            child,
+            Some(id),
+            selected,
+            chapters,
+        )?;
     }
 
     Ok(())
-}
-
-fn map_id(id_map: &mut HashMap<String, Ulid>, id: String, time: SystemTime) -> Ulid {
-    match id_map.entry(id) {
-        Entry::Occupied(occupied) => *occupied.get(),
-        Entry::Vacant(vacant) => *vacant.insert_entry(Ulid::from_datetime(time)).get(),
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -202,14 +202,11 @@ struct PyloomSimpleNode {
     children: Vec<PyloomSimpleNode>,
 }
 
-pub fn migrate_simple(
-    input: &str,
-    created: DateTime<Local>,
-) -> anyhow::Result<Option<VersionedWeave>> {
+pub fn migrate_simple(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWeave>> {
     if let Ok(data) = serde_json::from_str::<PyloomSimpleNode>(input) {
-        let mut output = new_weave_v0(16384, created, "PyLoomSimple");
+        let mut output = new_weave(16384, created, "PyLoomSimple", None);
 
-        convert_export_node(&mut output, data, SystemTime::from(created), None);
+        convert_export_node(&mut output, data, None)?;
 
         Ok(Some(output.to_versioned_weave()))
     } else {
@@ -220,25 +217,28 @@ pub fn migrate_simple(
 fn convert_export_node(
     weave: &mut TapestryWeave,
     node: PyloomSimpleNode,
-    created: SystemTime,
-    parent: Option<Ulid>,
-) {
-    let id = Ulid::from_datetime(created);
+    parent: Option<u64>,
+) -> anyhow::Result<()> {
+    let id = getrandom::u64()?;
 
-    assert!(weave.weave.add_node(DependentNode {
-        id: id.0,
-        from: parent.map(|id| id.0),
+    assert!(weave.add_node(DependentNode {
+        id,
+        from: parent,
         to: IndexSet::default(),
         active: false,
         bookmarked: false,
         contents: NodeContent {
+            timestamp: Zoned::default(),
+            modified: false,
             content: InnerNodeContent::Snippet(node.text.into_bytes()),
             metadata: IndexMap::default(),
-            model: None,
+            creator: Creator::Unknown,
         },
     }));
 
     for child in node.children {
-        convert_export_node(weave, child, created, Some(id));
+        convert_export_node(weave, child, Some(id))?;
     }
+
+    Ok(())
 }
