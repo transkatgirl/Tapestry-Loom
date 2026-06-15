@@ -18,7 +18,7 @@ donation-link = [  ]
 [dependencies] # TODO: Cleanup & update dependencies
 tapestry-weave = { path = "tapestry-weave", features = [
 	"v1", # TODO: Add v0 feature after rewrite is finished? Or should we require using migration-assistant instead of automatically updating weaves?
-] }
+], default-features = false }
 eframe = { version = "0.33.3", features = [
 	"accesskit",
 	"persistence",

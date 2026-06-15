@@ -8,7 +8,7 @@ use reqwest::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Number, Value};
-use tapestry_weave::ulid::Ulid;
+use ulid::Ulid;
 
 use super::{
     EMBEDDING_CACHE_MAX_SIZE, EmbeddingEndpoint, Endpoint, EndpointRequest, EndpointResponse,

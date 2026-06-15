@@ -1,10 +1,9 @@
+use std::num::NonZeroU128;
+
 use log::trace;
 use reqwest::Response;
 use serde_json::{Map, Value};
-use tapestry_weave::{
-    ulid::Ulid,
-    v0::{InnerNodeContent, MetadataMap, serialize_counterfactual_logprobs},
-};
+use ulid::Ulid;
 
 use super::{
     EndpointResponse,
@@ -29,6 +28,30 @@ pub(super) fn build_json_object(map: &mut Map<String, Value>, parameters: Vec<(S
             map.insert(key, Value::String(value));
         }
     }
+}
+
+pub(super) fn json_object_to_metadata_map(value: Map<String, Value>) -> MetadataMap {
+    MetadataMap::from_iter(value.into_iter().map(|(k, v)| {
+        (
+            k,
+            match v {
+                Value::Null => "null".to_string(),
+                Value::String(v) => v,
+                Value::Bool(v) => v.to_string(),
+                Value::Number(v) => v.to_string(),
+                Value::Array(v) => serde_json::to_string(&v).unwrap(),
+                Value::Object(v) => serde_json::to_string(&v).unwrap(),
+            },
+        )
+    }))
+}
+
+pub(crate) fn ulid_to_long_identifier(value: Ulid) -> Option<NonZeroU128> {
+    NonZeroU128::try_from(value.0).ok()
+}
+
+pub(crate) fn ulid_from_long_identifier(value: NonZeroU128) -> Ulid {
+    Ulid(u128::from(value))
 }
 
 pub(super) async fn error_for_status(response: Response) -> Result<Response, anyhow::Error> {

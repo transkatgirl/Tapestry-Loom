@@ -16,7 +16,7 @@ use eframe::egui::{
 use egui_notify::Toasts;
 use flagset::FlagSet;
 use log::warn;
-use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, treeless::FILE_EXTENSION};
+use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, v1::treeless::FILE_EXTENSION};
 use tokio::runtime::Runtime;
 use unicode_segmentation::UnicodeSegmentation;
 
