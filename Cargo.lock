@@ -5677,6 +5677,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tapestry-polyclient"
+version = "0.0.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "tapestry-weave",
+ "ulid",
+]
+
+[[package]]
 name = "tapestry-tokenize"
 version = "0.1.3"
 dependencies = [

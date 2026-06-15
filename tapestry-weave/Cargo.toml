@@ -29,7 +29,7 @@ v1 = [
 	"dep:jiff",
 	"dep:nanorand",
 ]
-serde = [
+serde = [ # serde integration
 	"universal-weave/serde",
 	"jiff/serde",
 	"dep:serde",

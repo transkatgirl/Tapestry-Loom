@@ -5,10 +5,29 @@ authors = [
 	"transkatgirl",
 ]
 license = "Unlicense"
-description = "An implementation of Tapestry Loom's flexible base model LLM inference client."
+description = "An implementation of Tapestry Loom's LLM inference client."
 edition = "2024"
 
 [features]
+weave = [ # tapestry-weave integration
+	"dep:tapestry-weave",
+]
 
 [dependencies]
-universal-weave = { path = "../universal-weave" }
+serde = { version = "1.0.228", features = [
+	"derive",
+] }
+serde_json = { version = "1.0.150", features = [
+	"preserve_order",
+	"float_roundtrip",
+] }
+chrono = { version = "0.4.45", features = [
+	"alloc",
+	"std",
+	"clock",
+	"serde",
+], default-features = false }
+ulid = "1.2.1"
+
+# weave
+tapestry-weave = { path = "../tapestry-weave", optional = true }
