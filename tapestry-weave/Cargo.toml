@@ -38,10 +38,15 @@ serde = [
 ]
 
 [dependencies]
-contracts       = "0.6.7"
-rkyv            = "0.8.16"
+contracts = "0.6.7"
+rkyv = { version = "0.8.16", features = [
+	"little_endian",
+	"aligned",
+	"pointer_width_32",
+	"indexmap-2",
+] }
 universal-weave = { path = "../universal-weave" }
-foldhash        = "0.2.0"
+foldhash = "0.2.0"
 
 # serde
 serde = { version = "1.0.228", optional = true, features = [
@@ -57,9 +62,12 @@ ulid = { version = "1.2.1", features = [
 ], optional = true }
 serde_json = { version = "1.0.150", features = [
 	"preserve_order",
-	"arbitrary_precision",
+	"float_roundtrip",
 ], optional = true }
-chrono = { version = "0.4.45", optional = true }
+chrono = { version = "0.4.45", features = [
+	"alloc",
+	"std",
+], default-features = false, optional = true }
 
 # v1+
 jiff      = { version = "0.2.28", optional = true }

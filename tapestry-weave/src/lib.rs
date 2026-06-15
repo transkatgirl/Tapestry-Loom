@@ -261,10 +261,13 @@ pub enum VersionedInnerWeave<'a> {
 impl<'a> VersionedInnerWeave<'a> {
     pub fn into_weave(self) -> VersionedWeave {
         match self {
+            #[cfg(feature = "v0")]
             Self::V0(weave) => VersionedWeave::V0(v0::TapestryWeave::from(weave.into_owned())),
+            #[cfg(feature = "v1")]
             Self::V1Dependent(weave) => {
                 VersionedWeave::V1Dependent(v1::dependent::TapestryWeave::from(weave.into_owned()))
             }
+            #[cfg(feature = "v1")]
             Self::V1Independent(weave) => VersionedWeave::V1Independent(
                 v1::independent::TapestryWeave::from(weave.into_owned()),
             ),
