@@ -13,6 +13,7 @@ use tapestry_weave::{
     jiff::{Timestamp, Zoned},
     nanorand::Rng,
     universal_weave::{
+        Weave,
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
@@ -63,66 +64,67 @@ fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<Versi
         BuildHasherDefault<RandomIdHasher>,
     > = UniqueIdentifierRemapper::with_capacity(nodes.len());
 
-    let mut rng = output.rng.clone();
-
-    let mut convert_old_identifier = move |id| *mapper.map(id, || rng.generate()).get();
-
     let time_zone = output.metadata().created.time_zone().clone();
 
-    for id in id_list {
-        let node = nodes.swap_remove(&id).unwrap();
+    output.modify_inner(|rng, output, _| {
+        let mut convert_old_identifier = move |id| *mapper.map(id, || rng.generate()).get();
 
-        let timestamp = node
-            .lastVisited
-            .and_then(|unix_time| {
-                Timestamp::try_from(SystemTime::UNIX_EPOCH + Duration::from_millis(unix_time)).ok()
-            })
-            .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
-            .unwrap_or_default();
+        for id in id_list {
+            let node = nodes.swap_remove(&id).unwrap();
 
-        assert!(
-            output.add_node_direct(DependentNode {
-                id: convert_old_identifier(id),
-                from: node
-                    .parentId
-                    .map(&mut convert_old_identifier)
-                    .and_then(|id| if output.contains(&id) {
-                        Some(id)
-                    } else {
-                        eprintln!("Warning: Node {} has missing parents", id);
-                        None
-                    }),
-                to: IndexSet::default(),
-                active: input.current == id,
-                bookmarked: node.bookmarked,
-                contents: NodeContent {
-                    timestamp,
-                    modified: false,
-                    content: InnerNodeContent::Snippet(
-                        node.text.or(node.value).unwrap_or_default().into_bytes()
-                    ),
-                    metadata: IndexMap::default(),
-                    creator: node
-                        .author
-                        .and_then(|author| {
-                            if author != "genesis" && author != "N/A" {
-                                Some(Creator::Model(Some(Model {
-                                    label: author,
-                                    color: None,
-                                    metadata: IndexMap::default(),
-                                    identifier: None,
-                                    seed: None,
-                                    raw_query: None,
-                                })))
-                            } else {
-                                None
-                            }
-                        })
-                        .unwrap_or(Creator::Unknown)
-                },
-            })
-        );
-    }
+            let timestamp = node
+                .lastVisited
+                .and_then(|unix_time| {
+                    Timestamp::try_from(SystemTime::UNIX_EPOCH + Duration::from_millis(unix_time))
+                        .ok()
+                })
+                .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
+                .unwrap_or_default();
+
+            assert!(
+                output.add_node(DependentNode {
+                    id: convert_old_identifier(id),
+                    from: node
+                        .parentId
+                        .map(&mut convert_old_identifier)
+                        .and_then(|id| if output.contains(&id) {
+                            Some(id)
+                        } else {
+                            eprintln!("Warning: Node {} has missing parents", id);
+                            None
+                        }),
+                    to: IndexSet::default(),
+                    active: input.current == id,
+                    bookmarked: node.bookmarked,
+                    contents: NodeContent {
+                        timestamp,
+                        modified: false,
+                        content: InnerNodeContent::Snippet(
+                            node.text.or(node.value).unwrap_or_default().into_bytes()
+                        ),
+                        metadata: IndexMap::default(),
+                        creator: node
+                            .author
+                            .and_then(|author| {
+                                if author != "genesis" && author != "N/A" {
+                                    Some(Creator::Model(Some(Model {
+                                        label: author,
+                                        color: None,
+                                        metadata: IndexMap::default(),
+                                        identifier: None,
+                                        seed: None,
+                                        raw_query: None,
+                                    })))
+                                } else {
+                                    None
+                                }
+                            })
+                            .unwrap_or(Creator::Unknown)
+                    },
+                })
+            );
+        }
+    });
 
     Ok(output.to_versioned_weave())
 }

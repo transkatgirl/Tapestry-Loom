@@ -9,14 +9,15 @@ use tapestry_weave::{
     VersionedWeave,
     hashers::{RandomIdHasher, RandomState},
     jiff::{Zoned, fmt::rfc2822::DateTimeParser},
-    nanorand::Rng,
+    nanorand::{Rng, WyRand},
     universal_weave::{
+        Weave,
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
     v1::{
         content::{Creator, InnerNodeContent, NodeContent},
-        dependent::TapestryWeave,
+        dependent::TapestryWeaveInner,
     },
     wrappers::UniqueIdentifierRemapper,
 };
@@ -44,18 +45,20 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
             BuildHasherDefault<RandomIdHasher>,
         > = UniqueIdentifierRemapper::with_capacity(node_count_guess);
 
-        let mut rng = output.rng.clone();
+        output.modify_inner(|rng, output, _| -> anyhow::Result<()> {
+            let mut convert_old_identifier = move |id| *mapper.map(id, || rng.generate()).get();
 
-        let mut convert_old_identifier = move |id| *mapper.map(id, || rng.generate()).get();
+            convert_node(
+                output,
+                &mut convert_old_identifier,
+                data.root,
+                None,
+                &data.selected_node_id,
+                &chapters,
+            )?;
 
-        convert_node(
-            &mut output,
-            &mut convert_old_identifier,
-            data.root,
-            None,
-            &data.selected_node_id,
-            &chapters,
-        )?;
+            Ok(())
+        })?;
 
         Ok(Some(output.to_versioned_weave()))
     } else {
@@ -64,7 +67,7 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
 }
 
 fn convert_node(
-    weave: &mut TapestryWeave,
+    weave: &mut TapestryWeaveInner,
     convert_old_identifier: &mut impl FnMut(String) -> u64,
     node: PyloomNode,
     parent: Option<u64>,
@@ -117,7 +120,7 @@ fn convert_node(
     //text.push_str(&suffix);
 
     assert!(
-        weave.add_node_direct(DependentNode {
+        weave.add_node(DependentNode {
             id,
             from: parent,
             to: IndexSet::default(),
@@ -212,7 +215,11 @@ pub fn migrate_simple(input: &str, created: Zoned) -> anyhow::Result<Option<Vers
 
         let mut output = new_weave(node_count_guess, created, "PyLoomSimple", None);
 
-        convert_export_node(&mut output, data, None)?;
+        output.modify_inner(|rng, output, _| -> anyhow::Result<()> {
+            convert_export_node(rng, output, data, None)?;
+
+            Ok(())
+        })?;
 
         Ok(Some(output.to_versioned_weave()))
     } else {
@@ -221,13 +228,18 @@ pub fn migrate_simple(input: &str, created: Zoned) -> anyhow::Result<Option<Vers
 }
 
 fn convert_export_node(
-    weave: &mut TapestryWeave,
+    rng: &mut WyRand,
+    weave: &mut TapestryWeaveInner,
     node: PyloomSimpleNode,
     parent: Option<u64>,
 ) -> anyhow::Result<()> {
-    let id = weave.generate_id();
+    let mut id = rng.generate();
 
-    assert!(weave.add_node_direct(DependentNode {
+    while weave.contains(&id) {
+        id = rng.generate();
+    }
+
+    assert!(weave.add_node(DependentNode {
         id,
         from: parent,
         to: IndexSet::default(),
@@ -243,7 +255,7 @@ fn convert_export_node(
     }));
 
     for child in node.children {
-        convert_export_node(weave, child, Some(id))?;
+        convert_export_node(rng, weave, child, Some(id))?;
     }
 
     Ok(())

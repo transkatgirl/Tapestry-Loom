@@ -20,6 +20,7 @@ use tapestry_weave::{
     nanorand::Rng,
     ulid::Ulid,
     universal_weave::{
+        Weave,
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
@@ -96,87 +97,87 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<VersionedWeave
         BuildHasherDefault<RandomIdHasher>,
     > = UniqueIdentifierRemapper::with_capacity(input.nodes.len());
 
-    let mut rng = output.rng.clone();
-
-    let mut convert_old_identifier = move |id| {
-        *mapper
-            .map_with_initial(
-                id,
-                unsafe { std::mem::transmute::<u128, [u64; 2]>(id)[1] },
-                || rng.generate(),
-            )
-            .get()
-    };
-
     let time_zone = output.metadata().created.time_zone().clone();
 
     let empty_counterfactual = Arc::new(Vec::new());
 
-    for node in input_nodes {
-        if let Some(node) = input.nodes.get(&node).cloned() {
-            let timestamp = Timestamp::try_from(Ulid(node.identifier.0).datetime())
-                .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
-                .unwrap_or(Zoned::default());
+    output.modify_inner(|rng, output, _| {
+        let mut convert_old_identifier = move |id| {
+            *mapper
+                .map_with_initial(
+                    id,
+                    unsafe { std::mem::transmute::<u128, [u64; 2]>(id)[1] },
+                    || rng.generate(),
+                )
+                .get()
+        };
 
-            assert!(
-                output.add_node_direct(DependentNode {
-                    id: convert_old_identifier(node.identifier.0),
-                    from: node
-                        .parentNode
-                        .map(|id| convert_old_identifier(id.0))
-                        .and_then(|id| if output.contains(&id) {
-                            Some(id)
-                        } else {
-                            eprintln!("Warning: Node {} has missing parents", node.identifier);
-                            None
-                        }),
-                    to: IndexSet::default(),
-                    active: input.currentNode == Some(node.identifier),
-                    bookmarked: input.bookmarks.contains(&node.identifier),
-                    contents: NodeContent {
-                        timestamp,
-                        modified: false,
-                        content: match node.content {
-                            LegacyNodeContent::Snippet(snippet) =>
-                                InnerNodeContent::Snippet(snippet.into_bytes()),
-                            LegacyNodeContent::Tokens(tokens) => InnerNodeContent::Tokens(
-                                tokens
-                                    .into_iter()
-                                    .map(|(probability, token)| {
-                                        InnerNodeToken {
-                                            bytes: token.into_bytes(),
-                                            logprob: probability.ln() as f32,
-                                            id: None,
+        for node in input_nodes {
+            if let Some(node) = input.nodes.get(&node).cloned() {
+                let timestamp = Timestamp::try_from(Ulid(node.identifier.0).datetime())
+                    .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
+                    .unwrap_or(Zoned::default());
+
+                assert!(
+                    output.add_node(DependentNode {
+                        id: convert_old_identifier(node.identifier.0),
+                        from: node
+                            .parentNode
+                            .map(|id| convert_old_identifier(id.0))
+                            .and_then(|id| if output.contains(&id) {
+                                Some(id)
+                            } else {
+                                eprintln!("Warning: Node {} has missing parents", node.identifier);
+                                None
+                            }),
+                        to: IndexSet::default(),
+                        active: input.currentNode == Some(node.identifier),
+                        bookmarked: input.bookmarks.contains(&node.identifier),
+                        contents: NodeContent {
+                            timestamp,
+                            modified: false,
+                            content: match node.content {
+                                LegacyNodeContent::Snippet(snippet) =>
+                                    InnerNodeContent::Snippet(snippet.into_bytes()),
+                                LegacyNodeContent::Tokens(tokens) => InnerNodeContent::Tokens(
+                                    tokens
+                                        .into_iter()
+                                        .map(|(probability, token)| {
+                                            InnerNodeToken {
+                                                bytes: token.into_bytes(),
+                                                logprob: probability.ln() as f32,
+                                                id: None,
+                                                metadata: IndexMap::default(),
+                                                entropy: None,
+                                                counterfactual: empty_counterfactual.clone(),
+                                                original: OriginalToken::Unmodified,
+                                            }
+                                        })
+                                        .collect()
+                                ),
+                            },
+                            metadata: node.parameters.unwrap_or_default(),
+                            creator: node
+                                .model
+                                .map(|id| Creator::Model(input.models.get(&id).cloned().map(
+                                    |model| {
+                                        Model {
+                                            label: model.label,
+                                            color: model.color,
+                                            identifier: NonZeroU128::try_from(id.0).ok(),
                                             metadata: IndexMap::default(),
-                                            entropy: None,
-                                            counterfactual: empty_counterfactual.clone(),
-                                            original: OriginalToken::Unmodified,
+                                            seed: None,
+                                            raw_query: None,
                                         }
-                                    })
-                                    .collect()
-                            ),
-                        },
-                        metadata: node.parameters.unwrap_or_default(),
-                        creator: node
-                            .model
-                            .map(
-                                |id| Creator::Model(input.models.get(&id).cloned().map(|model| {
-                                    Model {
-                                        label: model.label,
-                                        color: model.color,
-                                        identifier: NonZeroU128::try_from(id.0).ok(),
-                                        metadata: IndexMap::default(),
-                                        seed: None,
-                                        raw_query: None,
                                     }
-                                }))
-                            )
-                            .unwrap_or(Creator::Unknown)
-                    }
-                })
-            );
+                                )))
+                                .unwrap_or(Creator::Unknown)
+                        }
+                    })
+                );
+            }
         }
-    }
+    });
 
     Ok(output.to_versioned_weave())
 }
