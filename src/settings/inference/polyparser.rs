@@ -43,7 +43,7 @@ use log::trace;
 use serde_json::{Map, Value};
 use tapestry_weave::{
     universal_weave::indexmap::IndexMap,
-    v1::content::{CounterfactualToken, InnerNodeToken},
+    v1::content::{CounterfactualToken, InnerNodeContent, InnerNodeToken},
 };
 
 use super::shared::json_object_to_metadata_map;
@@ -53,7 +53,7 @@ pub struct ResponseItem {
     pub index: Option<usize>,
     pub role: Option<String>,
     pub finish_reason: Option<String>,
-    pub contents: ResponseContents,
+    pub contents: InnerNodeContent,
 }
 
 impl ResponseItem {
@@ -65,64 +65,19 @@ impl ResponseItem {
         }
     }
     fn sort_top(&mut self) {
-        if let ResponseContents::Tokens(tokens) = &mut self.contents {
+        if let InnerNodeContent::Tokens(tokens) = &mut self.contents {
             for token in tokens {
-                token.sort_top();
+                token.sort_counterfactual();
             }
         }
     }
     fn remove_excess_tokens(&mut self, requested_top: usize) {
-        if let ResponseContents::Tokens(tokens) = &mut self.contents {
+        if let InnerNodeContent::Tokens(tokens) = &mut self.contents {
             for token in tokens {
-                token.remove_excess_tokens(requested_top);
+                token.truncate_counterfactual(requested_top);
             }
         }
     }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum ResponseContents {
-    Text(Vec<u8>),
-    Tokens(Vec<Token>),
-    Empty,
-}
-
-impl ResponseContents {
-    pub fn into_text_bytes(self) -> Vec<u8> {
-        match self {
-            Self::Text(text) => text,
-            Self::Tokens(tokens) => tokens
-                .into_iter()
-                .flat_map(|token| token.token.contents)
-                .collect(),
-            Self::Empty => Vec::new(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Token {
-    pub token: LogprobToken,
-    pub top_tokens: Vec<LogprobToken>,
-}
-
-impl Token {
-    fn sort_top(&mut self) {
-        self.top_tokens
-            .sort_unstable_by(|a, b| b.logprob.total_cmp(&a.logprob));
-    }
-    fn remove_excess_tokens(&mut self, requested_top: usize) {
-        while self.top_tokens.len() > requested_top {
-            self.top_tokens.pop();
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct LogprobToken {
-    pub id: Option<u64>,
-    pub contents: Vec<u8>,
-    pub logprob: f64,
 }
 
 pub fn parse_embedding_response(json: Value) -> Vec<Option<Vec<f32>>> {
@@ -218,7 +173,7 @@ pub fn parse_response(
                         index: None,
                         role: None,
                         finish_reason: None,
-                        contents: ResponseContents::Empty,
+                        contents: InnerNodeContent::MetadataOnly,
                     };
 
                     for output in output {
@@ -242,38 +197,7 @@ pub fn parse_response(
                                 }
                             }
 
-                            match item.contents {
-                                ResponseContents::Tokens(mut tokens) => {
-                                    match &mut item_sum.contents {
-                                        ResponseContents::Tokens(sum_tokens) => {
-                                            sum_tokens.append(&mut tokens);
-                                        }
-                                        ResponseContents::Text(sum_text) => {
-                                            sum_text.append(
-                                                &mut ResponseContents::Tokens(tokens)
-                                                    .into_text_bytes(),
-                                            );
-                                        }
-                                        ResponseContents::Empty => {
-                                            item_sum.contents = ResponseContents::Tokens(tokens);
-                                        }
-                                    }
-                                }
-                                ResponseContents::Text(mut text) => match &mut item_sum.contents {
-                                    ResponseContents::Tokens(_) => {
-                                        let mut sum_text = item_sum.contents.into_text_bytes();
-                                        sum_text.append(&mut text);
-                                        item_sum.contents = ResponseContents::Text(sum_text);
-                                    }
-                                    ResponseContents::Text(sum_text) => {
-                                        sum_text.append(&mut text);
-                                    }
-                                    ResponseContents::Empty => {
-                                        item_sum.contents = ResponseContents::Text(text);
-                                    }
-                                },
-                                ResponseContents::Empty => {}
-                            }
+                            item_sum.contents = item_sum.contents.force_merge(item.contents);
 
                             if let Some(finish_reason) = item.finish_reason {
                                 item_sum.finish_reason = Some(finish_reason);
@@ -334,7 +258,7 @@ pub fn parse_response(
                     index: None,
                     role: None,
                     finish_reason: Some("completed".to_string()),
-                    contents: ResponseContents::Empty,
+                    contents: InnerNodeContent::MetadataOnly,
                 });
             }
             "response.failed" => {
@@ -342,7 +266,7 @@ pub fn parse_response(
                     index: None,
                     role: None,
                     finish_reason: Some("failed".to_string()),
-                    contents: ResponseContents::Empty,
+                    contents: InnerNodeContent::MetadataOnly,
                 });
             }
             "response.incomplete" => {
@@ -359,7 +283,7 @@ pub fn parse_response(
                     } else {
                         Some("incomplete".to_string())
                     },
-                    contents: ResponseContents::Empty,
+                    contents: InnerNodeContent::MetadataOnly,
                 });
             }
             "message_start" => {
@@ -370,7 +294,7 @@ pub fn parse_response(
                         index: None,
                         role: Some(role),
                         finish_reason: None,
-                        contents: ResponseContents::Empty,
+                        contents: InnerNodeContent::MetadataOnly,
                     });
                 }
             }
@@ -382,7 +306,7 @@ pub fn parse_response(
                         index: None,
                         role: None,
                         finish_reason: Some(stop_reason),
-                        contents: ResponseContents::Empty,
+                        contents: InnerNodeContent::MetadataOnly,
                     });
                 }
             }
@@ -396,7 +320,7 @@ pub fn parse_response(
                         index: None,
                         role: None,
                         finish_reason: None,
-                        contents: ResponseContents::Text(text.into_bytes()),
+                        contents: InnerNodeContent::Snippet(text.into_bytes()),
                     });
                 }
             }
@@ -554,35 +478,35 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             index,
             role,
             finish_reason,
-            contents: ResponseContents::Tokens(tokens),
+            contents: InnerNodeContent::Tokens(tokens),
         })
     } else if let Some(Value::String(text)) = json.remove("text") {
         Some(ResponseItem {
             index,
             role,
             finish_reason,
-            contents: ResponseContents::Text(text.into_bytes()),
+            contents: InnerNodeContent::Snippet(text.into_bytes()),
         })
     } else if let Some(Value::String(text)) = json.remove("generated_text") {
         Some(ResponseItem {
             index,
             role,
             finish_reason,
-            contents: ResponseContents::Text(text.into_bytes()),
+            contents: InnerNodeContent::Snippet(text.into_bytes()),
         })
     } else if let Some(Value::String(output)) = json.remove("output") {
         Some(ResponseItem {
             index,
             role,
             finish_reason,
-            contents: ResponseContents::Text(output.into_bytes()),
+            contents: InnerNodeContent::Snippet(output.into_bytes()),
         })
     } else if let Some(Value::String(completion)) = json.remove("completion") {
         Some(ResponseItem {
             index,
             role,
             finish_reason,
-            contents: ResponseContents::Text(completion.into_bytes()),
+            contents: InnerNodeContent::Snippet(completion.into_bytes()),
         })
     } else if let Some(Value::Object(mut message)) = json.remove("message")
         && let Some(Value::String(content)) = message.remove("content")
@@ -601,7 +525,7 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             index,
             role,
             finish_reason,
-            contents: ResponseContents::Text(content.into_bytes()),
+            contents: InnerNodeContent::Snippet(content.into_bytes()),
         })
     } else if let Some(delta) = json.remove("delta") {
         match delta {
@@ -621,7 +545,7 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                         index,
                         role,
                         finish_reason,
-                        contents: ResponseContents::Text(content.into_bytes()),
+                        contents: InnerNodeContent::Snippet(content.into_bytes()),
                     })
                 } else {
                     None
@@ -631,7 +555,7 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                 index,
                 role,
                 finish_reason,
-                contents: ResponseContents::Text(delta.into_bytes()),
+                contents: InnerNodeContent::Snippet(delta.into_bytes()),
             }),
             _ => None,
         }
@@ -648,7 +572,7 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                             index,
                             role,
                             finish_reason,
-                            contents: ResponseContents::Text(text.into_bytes()),
+                            contents: InnerNodeContent::Snippet(text.into_bytes()),
                         })
                     } else {
                         None
@@ -680,14 +604,14 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                             index,
                             role,
                             finish_reason,
-                            contents: ResponseContents::Tokens(tokens),
+                            contents: InnerNodeContent::Tokens(tokens),
                         })
                     } else {
                         Some(ResponseItem {
                             index,
                             role,
                             finish_reason,
-                            contents: ResponseContents::Text(text.into_bytes()),
+                            contents: InnerNodeContent::Snippet(text.into_bytes()),
                         })
                     }
                 } else {
@@ -717,7 +641,7 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                     index,
                     role,
                     finish_reason,
-                    contents: ResponseContents::Text(text),
+                    contents: InnerNodeContent::Snippet(text),
                 })
             } else {
                 None
@@ -770,14 +694,14 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                     index,
                     role,
                     finish_reason,
-                    contents: ResponseContents::Tokens(tokens),
+                    contents: InnerNodeContent::Tokens(tokens),
                 })
             } else {
                 Some(ResponseItem {
                     index,
                     role,
                     finish_reason,
-                    contents: ResponseContents::Text(bytes),
+                    contents: InnerNodeContent::Snippet(bytes),
                 })
             }
         } else if let Value::String(content) = content {
@@ -785,7 +709,7 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                 index,
                 role,
                 finish_reason,
-                contents: ResponseContents::Text(content.into_bytes()),
+                contents: InnerNodeContent::Snippet(content.into_bytes()),
             })
         } else {
             None
@@ -795,7 +719,7 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             index,
             role,
             finish_reason,
-            contents: ResponseContents::Text(response.into_bytes()),
+            contents: InnerNodeContent::Snippet(response.into_bytes()),
         })
     } else {
         None

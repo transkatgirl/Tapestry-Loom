@@ -314,6 +314,14 @@ impl InnerNodeToken {
             original: OriginalToken::Unmodified,
         }
     }
+    pub fn sort_counterfactual(&mut self) {
+        self.counterfactual
+            .sort_unstable_by(|a, b| b.logprob.total_cmp(&a.logprob));
+    }
+    pub fn truncate_counterfactual(&mut self, len: usize) {
+        self.counterfactual.truncate(len);
+        self.counterfactual.shrink_to_fit();
+    }
     pub fn calculate_confidence(&self) -> Option<(f32, usize)> {
         self.calculate_confidence_f64()
             .map(|(confidence, k)| (confidence as f32, k))
@@ -531,6 +539,42 @@ impl InnerNodeContent {
                     DiscreteContentResult::Two((Self::MetadataOnly, Self::Tokens(right_tokens)))
                 }
                 Self::MetadataOnly => DiscreteContentResult::One(Self::MetadataOnly),
+            },
+        }
+    }
+    pub fn force_merge(self, value: Self) -> Self {
+        match self {
+            Self::Snippet(mut left_snippet) => match value {
+                Self::Snippet(mut right_snippet) => {
+                    left_snippet.append(&mut right_snippet);
+                    Self::Snippet(left_snippet)
+                }
+                Self::Tokens(right_tokens) => {
+                    left_snippet.extend(right_tokens.into_iter().flat_map(|t| t.bytes));
+                    Self::Snippet(left_snippet)
+                }
+                Self::MetadataOnly => Self::Snippet(left_snippet),
+            },
+            Self::Tokens(mut left_tokens) => match value {
+                Self::Snippet(mut right_snippet) => {
+                    let mut content = Vec::with_capacity(
+                        left_tokens.iter().map(|t| t.bytes.len()).sum::<usize>()
+                            + right_snippet.len(),
+                    );
+                    content.extend(left_tokens.into_iter().flat_map(|t| t.bytes));
+                    content.append(&mut right_snippet);
+                    Self::Snippet(content)
+                }
+                Self::Tokens(mut right_tokens) => {
+                    left_tokens.append(&mut right_tokens);
+                    Self::Tokens(left_tokens)
+                }
+                Self::MetadataOnly => Self::Tokens(left_tokens),
+            },
+            Self::MetadataOnly => match value {
+                Self::Snippet(right_snippet) => Self::Snippet(right_snippet),
+                Self::Tokens(right_tokens) => Self::Tokens(right_tokens),
+                Self::MetadataOnly => Self::MetadataOnly,
             },
         }
     }
