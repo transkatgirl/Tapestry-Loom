@@ -813,8 +813,9 @@ impl From<OldTapestryWeave> for TapestryWeave {
             };
             node.contents.timestamp = timestamp;
 
-            assert!(output.add_node_direct(node));
+            assert!(output.weave.add_node(node));
         }
+        output.update_shape_and_active();
 
         output
     }
