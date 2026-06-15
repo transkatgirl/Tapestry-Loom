@@ -43,17 +43,22 @@ use log::trace;
 use serde_json::{Map, Value};
 use tapestry_weave::{
     universal_weave::indexmap::IndexMap,
-    v1::content::{CounterfactualToken, InnerNodeContent, InnerNodeToken},
+    v1::{
+        content::{CounterfactualToken, InnerNodeContent, InnerNodeToken},
+        metadata::MetadataMap,
+    },
 };
 
-use super::shared::json_object_to_metadata_map;
+use super::shared::{json_object_to_metadata_map, json_value_to_metadata_field};
 
 #[derive(Debug)]
 pub struct ResponseItem {
     pub index: Option<usize>,
     pub role: Option<String>,
     pub finish_reason: Option<String>,
+    pub fingerprint: Option<String>,
     pub contents: InnerNodeContent,
+    pub metadata: MetadataMap,
 }
 
 impl ResponseItem {
@@ -138,6 +143,25 @@ pub fn parse_response(
 ) -> Vec<ResponseItem> {
     let mut items = Vec::with_capacity(1);
 
+    let fingerprint = json.remove("system_fingerprint").and_then(|v| {
+        if let Value::String(v) = v {
+            Some(v)
+        } else {
+            None
+        }
+    });
+
+    let metadata = json
+        .remove("metadata")
+        .and_then(|v| {
+            if let Value::Object(v) = v {
+                Some(json_object_to_metadata_map(v))
+            } else {
+                None
+            }
+        })
+        .unwrap_or_default();
+
     if let Some(Value::String(output_object)) = json.get("object") {
         match output_object.as_ref() {
             "text_completion" | "chat.completion" | "chat.completion.chunk" => {
@@ -159,7 +183,9 @@ pub fn parse_response(
                         index: None,
                         role: None,
                         finish_reason: None,
+                        fingerprint,
                         contents: InnerNodeContent::MetadataOnly,
+                        metadata,
                     };
 
                     for output in output {
@@ -244,7 +270,9 @@ pub fn parse_response(
                     index: None,
                     role: None,
                     finish_reason: Some("completed".to_string()),
+                    fingerprint,
                     contents: InnerNodeContent::MetadataOnly,
+                    metadata,
                 });
             }
             "response.failed" => {
@@ -252,7 +280,9 @@ pub fn parse_response(
                     index: None,
                     role: None,
                     finish_reason: Some("failed".to_string()),
+                    fingerprint,
                     contents: InnerNodeContent::MetadataOnly,
+                    metadata,
                 });
             }
             "response.incomplete" => {
@@ -269,7 +299,9 @@ pub fn parse_response(
                     } else {
                         Some("incomplete".to_string())
                     },
+                    fingerprint,
                     contents: InnerNodeContent::MetadataOnly,
+                    metadata,
                 });
             }
             "message_start" => {
@@ -280,7 +312,9 @@ pub fn parse_response(
                         index: None,
                         role: Some(role),
                         finish_reason: None,
+                        fingerprint,
                         contents: InnerNodeContent::MetadataOnly,
+                        metadata,
                     });
                 }
             }
@@ -292,7 +326,9 @@ pub fn parse_response(
                         index: None,
                         role: None,
                         finish_reason: Some(stop_reason),
+                        fingerprint,
                         contents: InnerNodeContent::MetadataOnly,
+                        metadata,
                     });
                 }
             }
@@ -306,7 +342,9 @@ pub fn parse_response(
                         index: None,
                         role: None,
                         finish_reason: None,
+                        fingerprint,
                         contents: InnerNodeContent::Snippet(text.into_bytes()),
+                        metadata,
                     });
                 }
             }
@@ -361,6 +399,25 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     {
         return None;
     }
+
+    let fingerprint = json.remove("system_fingerprint").and_then(|v| {
+        if let Value::String(v) = v {
+            Some(v)
+        } else {
+            None
+        }
+    });
+
+    let mut metadata = json
+        .remove("metadata")
+        .and_then(|v| {
+            if let Value::Object(v) = v {
+                Some(json_object_to_metadata_map(v))
+            } else {
+                None
+            }
+        })
+        .unwrap_or_default();
 
     let index = if let Some(Value::Number(index)) = json.remove("index")
         && let Some(index) = index.as_u64()
@@ -464,35 +521,45 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             index,
             role,
             finish_reason,
+            fingerprint,
             contents: InnerNodeContent::Tokens(tokens),
+            metadata,
         })
     } else if let Some(Value::String(text)) = json.remove("text") {
         Some(ResponseItem {
             index,
             role,
             finish_reason,
+            fingerprint,
             contents: InnerNodeContent::Snippet(text.into_bytes()),
+            metadata,
         })
     } else if let Some(Value::String(text)) = json.remove("generated_text") {
         Some(ResponseItem {
             index,
             role,
             finish_reason,
+            fingerprint,
             contents: InnerNodeContent::Snippet(text.into_bytes()),
+            metadata,
         })
     } else if let Some(Value::String(output)) = json.remove("output") {
         Some(ResponseItem {
             index,
             role,
             finish_reason,
+            fingerprint,
             contents: InnerNodeContent::Snippet(output.into_bytes()),
+            metadata,
         })
     } else if let Some(Value::String(completion)) = json.remove("completion") {
         Some(ResponseItem {
             index,
             role,
             finish_reason,
+            fingerprint,
             contents: InnerNodeContent::Snippet(completion.into_bytes()),
+            metadata,
         })
     } else if let Some(Value::Object(mut message)) = json.remove("message")
         && let Some(Value::String(content)) = message.remove("content")
@@ -511,7 +578,9 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             index,
             role,
             finish_reason,
+            fingerprint,
             contents: InnerNodeContent::Snippet(content.into_bytes()),
+            metadata,
         })
     } else if let Some(delta) = json.remove("delta") {
         match delta {
@@ -531,7 +600,9 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                         index,
                         role,
                         finish_reason,
+                        fingerprint,
                         contents: InnerNodeContent::Snippet(content.into_bytes()),
+                        metadata,
                     })
                 } else {
                     None
@@ -541,7 +612,9 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                 index,
                 role,
                 finish_reason,
+                fingerprint,
                 contents: InnerNodeContent::Snippet(delta.into_bytes()),
+                metadata,
             }),
             _ => None,
         }
@@ -558,7 +631,9 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                             index,
                             role,
                             finish_reason,
+                            fingerprint,
                             contents: InnerNodeContent::Snippet(text.into_bytes()),
+                            metadata,
                         })
                     } else {
                         None
@@ -590,14 +665,18 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                             index,
                             role,
                             finish_reason,
+                            fingerprint,
                             contents: InnerNodeContent::Tokens(tokens),
+                            metadata,
                         })
                     } else {
                         Some(ResponseItem {
                             index,
                             role,
                             finish_reason,
+                            fingerprint,
                             contents: InnerNodeContent::Snippet(text.into_bytes()),
+                            metadata,
                         })
                     }
                 } else {
@@ -608,6 +687,13 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                     .into_iter()
                     .flat_map(|part| {
                         if let Value::Object(mut part) = part {
+                            if let Some(Value::Object(data)) = part.remove("partMetadata") {
+                                metadata.extend(
+                                    data.into_iter()
+                                        .map(|(k, v)| (k, json_value_to_metadata_field(v))),
+                                );
+                            }
+
                             if let Some(Value::Bool(thought)) = part.get("thought")
                                 && *thought
                             {
@@ -627,7 +713,9 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                     index,
                     role,
                     finish_reason,
+                    fingerprint,
                     contents: InnerNodeContent::Snippet(text),
+                    metadata,
                 })
             } else {
                 None
@@ -680,14 +768,18 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                     index,
                     role,
                     finish_reason,
+                    fingerprint,
                     contents: InnerNodeContent::Tokens(tokens),
+                    metadata,
                 })
             } else {
                 Some(ResponseItem {
                     index,
                     role,
                     finish_reason,
+                    fingerprint,
                     contents: InnerNodeContent::Snippet(bytes),
+                    metadata,
                 })
             }
         } else if let Value::String(content) = content {
@@ -695,7 +787,9 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                 index,
                 role,
                 finish_reason,
+                fingerprint,
                 contents: InnerNodeContent::Snippet(content.into_bytes()),
+                metadata,
             })
         } else {
             None
@@ -705,7 +799,9 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             index,
             role,
             finish_reason,
+            fingerprint,
             contents: InnerNodeContent::Snippet(response.into_bytes()),
+            metadata,
         })
     } else {
         None
