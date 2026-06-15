@@ -11,9 +11,11 @@ edition = "2024"
 
 [dependencies]
 base64 = "0.22.1"
-miniz_oxide = "0.9.1"
+miniz_oxide = { version = "0.9.1", features = [
+	"std",
+] }
 frontmatter = "0.4.0"
-boa_engine = "0.21.1"
+boa_engine = { version = "0.21.1", default-features = false }
 tapestry-weave = { path = "../tapestry-weave", features = [
 	"all_versions",
 	"serde",
@@ -25,15 +27,17 @@ anyhow = "1.0.102"
 walkdir = "2.5.0"
 serde = { version = "1.0.228", features = [
 	"derive",
-	"rc",
 ] }
 serde_json = { version = "1.0.150", features = [
 	"preserve_order",
 	"float_roundtrip",
 ] }
 chrono = { version = "0.4.45", features = [
+	"alloc",
+	"std",
+	"clock",
 	"serde",
-] }
+], default-features = false }
 uuid = { version = "1.23.3", features = [
 	"serde",
-] }
+], default-features = false }

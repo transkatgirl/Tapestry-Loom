@@ -38,10 +38,9 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
         let weave = if let Some(Yaml::String(compressed_weave)) =
             frontmatter.remove(&Yaml::String("TapestryLoomWeaveCompressed".to_string()))
         {
-            Some(String::from_utf8(
-                decompress_to_vec_zlib(&BASE64_STANDARD.decode(compressed_weave)?)
-                    .map_err(|e| anyhow::Error::msg(format!("{}", e)))?,
-            )?)
+            Some(String::from_utf8(decompress_to_vec_zlib(
+                &BASE64_STANDARD.decode(compressed_weave)?,
+            )?)?)
         } else if let Some(Yaml::String(decompressed_weave)) =
             frontmatter.remove(&Yaml::String("TapestryLoomWeave".to_string()))
         {
