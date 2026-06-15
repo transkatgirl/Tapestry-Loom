@@ -1,0 +1,14 @@
+[package]
+name = "tapestry-polyclient"
+version = "0.0.0"
+authors = [
+	"transkatgirl",
+]
+license = "Unlicense"
+description = "An implementation of Tapestry Loom's flexible base model LLM inference client."
+edition = "2024"
+
+[features]
+
+[dependencies]
+universal-weave = { path = "../universal-weave" }
