@@ -103,7 +103,6 @@ panic = "abort"
 [workspace]
 members = [
 	"tapestry-weave",
-	"tapestry-polyclient",
 	"migration-assistant",
 	"tapestry-tokenize",
 ]
