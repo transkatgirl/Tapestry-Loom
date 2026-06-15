@@ -2,6 +2,7 @@
 
 use std::{cmp::Ordering, collections::HashSet, hash::BuildHasherDefault, num::NonZeroU128};
 
+use nanorand::{Rng, WyRand};
 use universal_weave::{
     ArchivedWeave, DeduplicatableWeave, DiscreteWeave, Weave,
     dependent::{ArchivedDependentNode, DependentNode, DependentWeave},
@@ -42,6 +43,7 @@ pub type TapestryWeaveInner =
 pub type ArchivedTapestryWeaveInner = <TapestryWeaveInner as Archive>::Archived;
 
 pub struct TapestryWeave {
+    pub rng: WyRand,
     pub(super) weave: TapestryWeaveInner,
     active: Vec<u64>,
     active_set: HashSet<u64, BuildHasherDefault<RandomIdHasher>>,
@@ -60,6 +62,7 @@ impl From<TapestryWeaveInner> for TapestryWeave {
         active_set.extend(active.iter().copied());
 
         Self {
+            rng: WyRand::new(),
             active,
             active_set,
             scratchpad: Vec::with_capacity(value.capacity()),
@@ -82,27 +85,28 @@ impl AsRef<TapestryWeaveInner> for TapestryWeave {
     }
 }
 
-pub fn generate_unique_id(weave: &TapestryWeaveInner) -> Result<u64, getrandom::Error> {
-    let mut id = getrandom::u64()?;
+pub fn generate_unique_id(rng: &mut WyRand, weave: &TapestryWeaveInner) -> u64 {
+    let mut id = rng.generate();
 
     while weave.contains(&id) {
-        id = getrandom::u64()?;
+        id = rng.generate();
     }
 
-    Ok(id)
+    id
 }
 
 pub fn generate_unique_id_with_list(
+    rng: &mut WyRand,
     weave: &TapestryWeaveInner,
     ids: &[u64],
-) -> Result<u64, getrandom::Error> {
-    let mut id = getrandom::u64()?;
+) -> u64 {
+    let mut id = rng.generate();
 
     while weave.contains(&id) || ids.contains(&id) {
-        id = getrandom::u64()?;
+        id = rng.generate();
     }
 
-    Ok(id)
+    id
 }
 
 impl TapestryWeave {
@@ -133,6 +137,7 @@ impl TapestryWeave {
     }
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
+            rng: WyRand::new(),
             weave: DependentWeave::with_capacity(capacity, WeaveMetadata::new()),
             active: Vec::with_capacity(capacity),
             active_set: HashSet::with_capacity_and_hasher(capacity, BuildHasherDefault::default()),
@@ -143,6 +148,7 @@ impl TapestryWeave {
     }
     pub fn with_capacity_and_metadata(capacity: usize, metadata: WeaveMetadata) -> Self {
         Self {
+            rng: WyRand::new(),
             weave: DependentWeave::with_capacity(capacity, metadata),
             active: Vec::with_capacity(capacity),
             active_set: HashSet::with_capacity_and_hasher(capacity, BuildHasherDefault::default()),
@@ -193,8 +199,8 @@ impl TapestryWeave {
     pub fn contains_active(&self, id: &u64) -> bool {
         self.active_set.contains(id)
     }
-    pub fn generate_id(&self) -> Result<u64, getrandom::Error> {
-        generate_unique_id(&self.weave)
+    pub fn generate_id(&mut self) -> u64 {
+        generate_unique_id(&mut self.rng, &self.weave)
     }
     pub fn has_changed(&mut self) -> bool {
         let changed = self.changed;
@@ -382,7 +388,7 @@ impl TapestryWeave {
             .collect()
     }
     pub fn split_node(&mut self, id: &u64, at: usize) -> Option<(u64, Option<u64>, u64)> {
-        let new_id = generate_unique_id(&self.weave).ok()?;
+        let new_id = generate_unique_id(&mut self.rng, &self.weave);
 
         if at > 0
             && let Some(node) = self.weave.get_node(id).cloned()
@@ -402,9 +408,13 @@ impl TapestryWeave {
             }
 
             if within_token {
-                let first_split_id = generate_unique_id_with_list(&self.weave, &[new_id]).ok()?;
-                let second_split_id =
-                    generate_unique_id_with_list(&self.weave, &[new_id, first_split_id]).ok()?;
+                let first_split_id =
+                    generate_unique_id_with_list(&mut self.rng, &self.weave, &[new_id]);
+                let second_split_id = generate_unique_id_with_list(
+                    &mut self.rng,
+                    &self.weave,
+                    &[new_id, first_split_id],
+                );
 
                 assert!(self.weave.split_node(id, byte_index, first_split_id));
 
@@ -476,7 +486,7 @@ impl TapestryWeave {
             if let InnerNodeContent::Tokens(tokens) = &node.contents.content
                 && tokens.len() > index
             {
-                let tail_id = generate_unique_id(&self.weave).ok()?;
+                let tail_id = generate_unique_id(&mut self.rng, &self.weave);
 
                 let chosen_parent = node
                     .from
@@ -505,7 +515,8 @@ impl TapestryWeave {
                 };
 
                 if split_index > 0 {
-                    let middle_id = generate_unique_id_with_list(&self.weave, &[tail_id]).ok()?;
+                    let middle_id =
+                        generate_unique_id_with_list(&mut self.rng, &self.weave, &[tail_id]);
 
                     assert!(self.weave.split_node(id, split_index, middle_id));
 
@@ -584,9 +595,9 @@ impl TapestryWeave {
     }
     pub fn modify_inner<T>(
         &mut self,
-        callback: impl FnOnce(&mut TapestryWeaveInner, &[u64]) -> T,
+        callback: impl FnOnce(&mut WyRand, &mut TapestryWeaveInner, &[u64]) -> T,
     ) -> T {
-        let output = callback(&mut self.weave, &self.active);
+        let output = callback(&mut self.rng, &mut self.weave, &self.active);
         self.update_shape_and_active();
 
         output
@@ -768,14 +779,15 @@ impl From<OldTapestryWeave> for TapestryWeave {
             BuildHasherDefault<RandomIdHasher>,
         > = UniqueIdentifierRemapper::with_capacity(identifiers.len());
 
+        let mut rng = output.rng.clone();
+
         let mut convert_old_identifier = move |id| {
             *mapper
-                .try_map_with_initial(
+                .map_with_initial(
                     id,
                     unsafe { std::mem::transmute::<u128, [u64; 2]>(id)[1] },
-                    getrandom::u64,
+                    || rng.generate(),
                 )
-                .unwrap()
                 .get()
         };
 

@@ -25,7 +25,7 @@ pub use chrono;
 pub use jiff;
 
 #[cfg(feature = "v1")]
-pub use getrandom;
+pub use nanorand;
 
 pub use universal_weave;
 
