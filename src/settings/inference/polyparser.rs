@@ -64,20 +64,6 @@ impl ResponseItem {
             self.role = None;
         }
     }
-    fn sort_top(&mut self) {
-        if let InnerNodeContent::Tokens(tokens) = &mut self.contents {
-            for token in tokens {
-                token.sort_counterfactual();
-            }
-        }
-    }
-    fn remove_excess_tokens(&mut self, requested_top: usize) {
-        if let InnerNodeContent::Tokens(tokens) = &mut self.contents {
-            for token in tokens {
-                token.truncate_counterfactual(requested_top);
-            }
-        }
-    }
 }
 
 pub fn parse_embedding_response(json: Value) -> Vec<Option<Vec<f32>>> {
@@ -355,9 +341,9 @@ pub fn parse_response(
     }
 
     for item in &mut items {
-        item.sort_top();
+        item.contents.sort_counterfactual();
         if let Some(requested_top) = requested_top_tokens {
-            item.remove_excess_tokens(requested_top);
+            item.contents.truncate_counterfactual(requested_top);
         }
     }
 

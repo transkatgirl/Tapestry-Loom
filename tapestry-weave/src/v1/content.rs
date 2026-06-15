@@ -187,10 +187,24 @@ impl InnerNodeContent {
             None
         }
     }
-    pub(super) fn truncate_tokens(&mut self, count: usize) {
+    pub fn truncate_tokens(&mut self, len: usize) {
         if let Self::Tokens(tokens) = self {
-            tokens.truncate(count);
+            tokens.truncate(len);
             tokens.shrink_to_fit();
+        }
+    }
+    pub fn truncate_counterfactual(&mut self, len: usize) {
+        if let Self::Tokens(tokens) = self {
+            for token in tokens {
+                token.truncate_counterfactual(len);
+            }
+        }
+    }
+    pub fn sort_counterfactual(&mut self) {
+        if let Self::Tokens(tokens) = self {
+            for token in tokens {
+                token.sort_counterfactual();
+            }
         }
     }
 }
