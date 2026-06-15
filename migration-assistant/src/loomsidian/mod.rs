@@ -8,9 +8,10 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use tapestry_weave::{
-    VersionedWeave, getrandom,
+    VersionedWeave,
     hashers::RandomIdHasher,
     jiff::{Timestamp, Zoned},
+    nanorand::Rng,
     universal_weave::{
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
@@ -62,7 +63,9 @@ fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<Versi
         BuildHasherDefault<RandomIdHasher>,
     > = UniqueIdentifierRemapper::with_capacity(nodes.len());
 
-    let mut convert_old_identifier = move |id| *mapper.try_map(id, getrandom::u64).unwrap().get();
+    let mut rng = output.rng.clone();
+
+    let mut convert_old_identifier = move |id| *mapper.map(id, || rng.generate()).get();
 
     let time_zone = output.metadata().created.time_zone().clone();
 

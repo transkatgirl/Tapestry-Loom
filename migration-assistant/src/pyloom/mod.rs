@@ -6,9 +6,10 @@ use std::hash::BuildHasherDefault;
 use chrono::{Local, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use tapestry_weave::{
-    VersionedWeave, getrandom,
+    VersionedWeave,
     hashers::{RandomIdHasher, RandomState},
     jiff::{Zoned, fmt::rfc2822::DateTimeParser},
+    nanorand::Rng,
     universal_weave::{
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
@@ -43,8 +44,9 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
             BuildHasherDefault<RandomIdHasher>,
         > = UniqueIdentifierRemapper::with_capacity(node_count_guess);
 
-        let mut convert_old_identifier =
-            move |id| *mapper.try_map(id, getrandom::u64).unwrap().get();
+        let mut rng = output.rng.clone();
+
+        let mut convert_old_identifier = move |id| *mapper.map(id, || rng.generate()).get();
 
         convert_node(
             &mut output,
@@ -223,7 +225,7 @@ fn convert_export_node(
     node: PyloomSimpleNode,
     parent: Option<u64>,
 ) -> anyhow::Result<()> {
-    let id = getrandom::u64()?;
+    let id = weave.generate_id();
 
     assert!(weave.add_node(DependentNode {
         id,

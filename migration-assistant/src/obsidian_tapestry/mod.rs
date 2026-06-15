@@ -14,9 +14,10 @@ use miniz_oxide::inflate::decompress_to_vec_zlib;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tapestry_weave::{
-    VersionedWeave, getrandom,
+    VersionedWeave,
     hashers::{RandomIdHasher, UlidHasher},
     jiff::{Timestamp, Zoned},
+    nanorand::Rng,
     ulid::Ulid,
     universal_weave::{
         dependent::DependentNode,
@@ -95,14 +96,15 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<VersionedWeave
         BuildHasherDefault<RandomIdHasher>,
     > = UniqueIdentifierRemapper::with_capacity(input.nodes.len());
 
+    let mut rng = output.rng.clone();
+
     let mut convert_old_identifier = move |id| {
         *mapper
-            .try_map_with_initial(
+            .map_with_initial(
                 id,
                 unsafe { std::mem::transmute::<u128, [u64; 2]>(id)[1] },
-                getrandom::u64,
+                || rng.generate(),
             )
-            .unwrap()
             .get()
     };
 

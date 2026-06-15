@@ -10,9 +10,9 @@ use serde::{Deserialize, Serialize};
 use tapestry_weave::{
     VersionedWeave,
     chrono::{DateTime, Utc},
-    getrandom,
     hashers::RandomIdHasher,
     jiff::{Zoned, fmt::rfc2822::DateTimeParser},
+    nanorand::Rng,
     universal_weave::{
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
@@ -81,8 +81,9 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
             BuildHasherDefault<RandomIdHasher>,
         > = UniqueIdentifierRemapper::with_capacity(id_list.len());
 
-        let mut convert_old_identifier =
-            move |id| *mapper.try_map(id, getrandom::u64).unwrap().get();
+        let mut rng = output.rng.clone();
+
+        let mut convert_old_identifier = move |id| *mapper.map(id, || rng.generate()).get();
 
         for id in id_list {
             let node = data.tree.nodes.remove(&id).unwrap();
