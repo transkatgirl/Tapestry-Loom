@@ -49,8 +49,6 @@ struct Cli {
     /// Deserialize binary weaves without running rkyv validation (DANGEROUS)
     ///
     /// ONLY USE THIS IF YOU KNOW WHAT YOU'RE DOING. Enabling this setting could allow maliciously crafted weaves to execute arbitrary code on your computer.
-    ///
-    /// Useful for attempting to recover corrupted weaves.
     #[arg(long)]
     dangerous_unvalidated_deserialization: bool,
 }
