@@ -227,13 +227,14 @@ Please [consider donating](https://github.com/sponsors/transkatgirl) to help fun
 ### Milestone 4
 
 - [ ] Update Getting Started document
-- [ ] Add node finding
+- [ ] Add model configuration sharing functionality
+	- [ ] Automatically redact sensitive information (such as API keys)
+	- [ ] Allow the user to manually redact sensitive information
 - [ ] Support arbitrary color gradients for logprob highlighting
 - [ ] Add OKLCH-based color picker
 - [ ] Add blind comparison modes
 	- [ ] (Hide) Models & token probabilities / boundaries
 	- [ ] (Hide) Generated node text (only showing metadata & probabilities)
-- [ ] Add weave statistical analysis tools
 - [ ] Add customizable node color coding
 	- [ ] Probability
 	- [ ] Confidence
@@ -242,7 +243,24 @@ Please [consider donating](https://github.com/sponsors/transkatgirl) to help fun
 
 #### Milestone 5.1
 
+- [ ] Add node finding
+- [ ] Add weave statistical analysis tools
+- [ ] Allow temporarilly overriding color in inference menu
+- [ ] Add bookmark functionality to files view
+- [ ] Add ability to manually control refreshing of model tokenization identifier
+- [ ] Perform UX testing with all built-in color schemes
+
+#### Milestone 5.2
+
 - [ ] Implement v2 format
+- [ ] Add support for more weave migrations
+	- [ ] improve [loom](https://github.com/socketteer/loom) migration
+	- [ ] bonsai (using [damask](https://github.com/tel-0s/damask))
+	- [ ] [wool](https://github.com/lyramakesmusic/wool)
+	- [ ] [helm](https://github.com/Shoalstone/helm)
+	- [ ] (subset of) [miniloom](https://github.com/JD-P/miniloom)
+	- [ ] [openloom v0.1.0](https://www.latentspaces.app/openloom)
+		- [ ] Support exporting to openloom format in addition to supporting conversion from openloom format
 - [ ] Implement DAG-based Weaves, similar to this [unreleased loom implementation](https://www.youtube.com/watch?v=xDPKR271jas&list=PLFoZLLI8ZnHCaSyopkws_9344avJQ_VEQ&index=19)
 	- [ ] FIM completions
 		- [ ] Selected text is used to determine FIM location
@@ -256,27 +274,9 @@ Please [consider donating](https://github.com/sponsors/transkatgirl) to help fun
 	- [ ] (optional, disabled by default) storage of raw API requests & responses
 - [ ] Implement BERT FIM server using nonstandard `fim_tokens` parameter
 
-#### Milestone 5.2
-
-- [ ] Allow temporarilly overriding color in inference menu
-- [ ] Add bookmark functionality to files view
-- [ ] Add support for more weave migrations
-	- [ ] improve [loom](https://github.com/socketteer/loom) migration
-	- [ ] bonsai (using [damask](https://github.com/tel-0s/damask))
-	- [ ] [wool](https://github.com/lyramakesmusic/wool)
-	- [ ] [helm](https://github.com/Shoalstone/helm)
-	- [ ] (subset of) [miniloom](https://github.com/JD-P/miniloom)
-	- [ ] [openloom v0.1.0](https://www.latentspaces.app/openloom)
-		- [ ] Support exporting to openloom format in addition to supporting conversion from openloom format
-- [ ] Add model configuration sharing functionality
-	- [ ] Automatically redact sensitive information (such as API keys)
-	- [ ] Allow the user to manually redact sensitive information
-- [ ] Add ability to manually control refreshing of model tokenization identifier
-
 ### Milestone 6
 
 - [ ] Allow changing default editor subview layout
-- [ ] Perform UX testing with all built-in color schemes
 - [ ] Review and refactor application modules
 	- [ ] settings
 	- [ ] editor
