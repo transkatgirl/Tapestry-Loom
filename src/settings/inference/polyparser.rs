@@ -41,6 +41,9 @@ TODO: write unit tests
 use base64::{Engine, prelude::BASE64_STANDARD};
 use log::trace;
 use serde_json::{Map, Value};
+use tapestry_weave::v1::content::{CounterfactualToken, InnerNodeToken};
+
+use super::shared::json_object_to_metadata_map;
 
 #[derive(Debug)]
 pub struct ResponseItem {
@@ -1095,7 +1098,7 @@ fn parse_openai_chatcompletion_logprob_content_subitem(
     }
 }
 
-fn parse_gemini_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<Token>> {
+fn parse_gemini_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<InnerNodeToken>> {
     if let Some(Value::Array(chosen_candidates)) = logprobs_json.remove("chosenCandidates") {
         let mut tokens = Vec::with_capacity(chosen_candidates.len());
 
@@ -1128,7 +1131,7 @@ fn parse_gemini_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<To
                 if let Value::Object(chosen_candidate) = chosen_candidate
                     && let Some(token) = parse_gemini_logprob_candidate(chosen_candidate)
                 {
-                    tokens.push(Token { token, top_tokens });
+                    tokens.push(InnerNodeToken::from_counterfactual_pair(token, top_tokens));
                 } else {
                     return None;
                 }
@@ -1138,10 +1141,7 @@ fn parse_gemini_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<To
                 if let Value::Object(chosen_candidate) = chosen_candidate
                     && let Some(token) = parse_gemini_logprob_candidate(chosen_candidate)
                 {
-                    tokens.push(Token {
-                        token,
-                        top_tokens: Vec::new(),
-                    });
+                    tokens.push(InnerNodeToken::from_counterfactual_pair(token, vec![]));
                 } else {
                     return None;
                 }
@@ -1154,11 +1154,15 @@ fn parse_gemini_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<To
     }
 }
 
-fn parse_gemini_logprob_candidate(mut logprob_json: Map<String, Value>) -> Option<LogprobToken> {
+fn parse_gemini_logprob_candidate(
+    mut logprob_json: Map<String, Value>,
+) -> Option<CounterfactualToken> {
     if let Some(Value::String(token)) = logprob_json.remove("token")
         && let Some(logprob) = logprob_json.remove("logProbability")
     {
-        Some(LogprobToken {
+        Some(CounterfactualToken {
+            bytes: token.into_bytes(),
+            logprob: logprob.as_f64().unwrap_or(f64::NAN) as f32,
             id: if let Some(Value::Number(token_id)) = logprob_json.remove("tokenId")
                 && let Some(token_id) = token_id.as_u64()
             {
@@ -1166,8 +1170,7 @@ fn parse_gemini_logprob_candidate(mut logprob_json: Map<String, Value>) -> Optio
             } else {
                 None
             },
-            contents: token.into_bytes(),
-            logprob: logprob.as_f64().unwrap_or(f64::NAN),
+            metadata: json_object_to_metadata_map(logprob_json),
         })
     } else {
         None

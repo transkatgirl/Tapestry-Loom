@@ -17,15 +17,12 @@ use log::trace;
 use poll_promise::Promise;
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use tapestry_weave::{
-    ulid::Ulid,
-    universal_weave::{
-        dependent::DependentNode,
-        indexmap::{IndexMap, IndexSet},
-    },
-    v0::{InnerNodeContent, Model, NodeContent, TapestryNode},
+use tapestry_weave::universal_weave::{
+    dependent::DependentNode,
+    indexmap::{IndexMap, IndexSet},
 };
 use tokio::{runtime::Runtime, sync::Mutex, task};
+use ulid::Ulid;
 
 use crate::settings::inference::openai::{
     OpenAIChatCompletionsConfig, OpenAIChatCompletionsTemplate, OpenAICompletionsConfig,

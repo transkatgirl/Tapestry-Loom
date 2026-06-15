@@ -4,7 +4,6 @@ use std::{
     collections::{HashMap, HashSet},
     hash::BuildHasherDefault,
     num::NonZeroU128,
-    sync::Arc,
 };
 
 use base64::prelude::*;
@@ -98,8 +97,6 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<VersionedWeave
 
     let time_zone = output.metadata().created.time_zone().clone();
 
-    let empty_counterfactual = Arc::new(Vec::new());
-
     output.modify_inner(|rng, output, _| {
         let mut convert_old_identifier = move |id| {
             *mapper
@@ -148,7 +145,7 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<VersionedWeave
                                                 id: None,
                                                 metadata: IndexMap::default(),
                                                 entropy: None,
-                                                counterfactual: empty_counterfactual.clone(),
+                                                counterfactual: vec![],
                                                 original: OriginalToken::Unmodified,
                                             }
                                         })

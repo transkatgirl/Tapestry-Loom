@@ -294,12 +294,26 @@ pub struct InnerNodeToken {
 
     #[rkyv(with = NicheInto<niching::NaN>)]
     pub entropy: Option<f32>,
-    pub counterfactual: Arc<Vec<CounterfactualToken>>,
+    pub counterfactual: Vec<CounterfactualToken>,
 
     pub original: OriginalToken,
 }
 
 impl InnerNodeToken {
+    pub fn from_counterfactual_pair(
+        token: CounterfactualToken,
+        counterfactual: Vec<CounterfactualToken>,
+    ) -> Self {
+        Self {
+            bytes: token.bytes,
+            logprob: token.logprob,
+            id: token.id,
+            metadata: token.metadata,
+            entropy: None,
+            counterfactual,
+            original: OriginalToken::Unmodified,
+        }
+    }
     pub fn calculate_confidence(&self) -> Option<(f32, usize)> {
         self.calculate_confidence_f64()
             .map(|(confidence, k)| (confidence as f32, k))
@@ -910,44 +924,42 @@ impl From<OldInnerNodeContent> for InnerNodeContent {
                                 None
                             },
                             entropy: None,
-                            counterfactual: Arc::new(
-                                metadata
-                                    .shift_remove("counterfactual")
-                                    .and_then(|value| {
-                                        deserialize_counterfactual_logprobs(&value).map(
-                                            |counterfactual| {
-                                                counterfactual
-                                                    .into_iter()
-                                                    .map(|(token, mut metadata)| {
-                                                        metadata.shift_remove("model_id");
-                                                        metadata.shift_remove("confidence");
-                                                        metadata.shift_remove("confidence_k");
-                                                        metadata.shift_remove("original_length");
-                                                        metadata.shift_remove("modified");
+                            counterfactual: metadata
+                                .shift_remove("counterfactual")
+                                .and_then(|value| {
+                                    deserialize_counterfactual_logprobs(&value).map(
+                                        |counterfactual| {
+                                            counterfactual
+                                                .into_iter()
+                                                .map(|(token, mut metadata)| {
+                                                    metadata.shift_remove("model_id");
+                                                    metadata.shift_remove("confidence");
+                                                    metadata.shift_remove("confidence_k");
+                                                    metadata.shift_remove("original_length");
+                                                    metadata.shift_remove("modified");
 
-                                                        CounterfactualToken {
-                                                            bytes: token,
-                                                            logprob: metadata
-                                                                .shift_remove("probability")
-                                                                .and_then(|value| {
-                                                                    value.parse::<f32>().ok()
-                                                                })
-                                                                .unwrap_or(f32::NAN)
-                                                                .ln(),
-                                                            id: metadata
-                                                                .shift_remove("token_id")
-                                                                .and_then(|value| {
-                                                                    value.parse::<u64>().ok()
-                                                                }),
-                                                            metadata,
-                                                        }
-                                                    })
-                                                    .collect()
-                                            },
-                                        )
-                                    })
-                                    .unwrap_or_default(),
-                            ),
+                                                    CounterfactualToken {
+                                                        bytes: token,
+                                                        logprob: metadata
+                                                            .shift_remove("probability")
+                                                            .and_then(|value| {
+                                                                value.parse::<f32>().ok()
+                                                            })
+                                                            .unwrap_or(f32::NAN)
+                                                            .ln(),
+                                                        id: metadata
+                                                            .shift_remove("token_id")
+                                                            .and_then(|value| {
+                                                                value.parse::<u64>().ok()
+                                                            }),
+                                                        metadata,
+                                                    }
+                                                })
+                                                .collect()
+                                        },
+                                    )
+                                })
+                                .unwrap_or_default(),
                             metadata,
                             original: if modified {
                                 OriginalToken::Unknown
