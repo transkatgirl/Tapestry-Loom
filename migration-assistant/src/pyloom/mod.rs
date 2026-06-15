@@ -32,14 +32,16 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
             .map(|(id, chapter)| (id, chapter.title))
             .collect();
 
-        let mut output = new_weave(16384, created, "PyLoom", None);
+        let node_count_guess = (input.len() as f64 / 34.0).ceil() as usize;
+
+        let mut output = new_weave(node_count_guess, created, "PyLoom", None);
 
         let mut mapper: UniqueIdentifierRemapper<
             String,
             u64,
             RandomState,
             BuildHasherDefault<RandomIdHasher>,
-        > = UniqueIdentifierRemapper::with_capacity(16384);
+        > = UniqueIdentifierRemapper::with_capacity(node_count_guess);
 
         let mut convert_old_identifier =
             move |id| *mapper.try_map(id, getrandom::u64).unwrap().get();
@@ -204,7 +206,9 @@ struct PyloomSimpleNode {
 
 pub fn migrate_simple(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWeave>> {
     if let Ok(data) = serde_json::from_str::<PyloomSimpleNode>(input) {
-        let mut output = new_weave(16384, created, "PyLoomSimple", None);
+        let node_count_guess = (input.len() as f64 / 26.0).ceil() as usize;
+
+        let mut output = new_weave(node_count_guess, created, "PyLoomSimple", None);
 
         convert_export_node(&mut output, data, None)?;
 
