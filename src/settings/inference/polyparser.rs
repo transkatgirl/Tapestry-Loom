@@ -41,7 +41,10 @@ TODO: write unit tests
 use base64::{Engine, prelude::BASE64_STANDARD};
 use log::trace;
 use serde_json::{Map, Value};
-use tapestry_weave::v1::content::{CounterfactualToken, InnerNodeToken};
+use tapestry_weave::{
+    universal_weave::indexmap::IndexMap,
+    v1::content::{CounterfactualToken, InnerNodeToken},
+};
 
 use super::shared::json_object_to_metadata_map;
 
@@ -803,7 +806,7 @@ fn parse_openai_completion_logprobs(
     mut logprobs_json: Map<String, Value>,
     text: Option<&str>,
     token_ids: Option<Vec<Value>>,
-) -> Option<Vec<Token>> {
+) -> Option<Vec<InnerNodeToken>> {
     let mut top_tokens_list = Vec::new();
 
     if let Some(Value::Array(top_logprobs_json)) = logprobs_json.remove("top_logprobs") {
@@ -819,10 +822,11 @@ fn parse_openai_completion_logprobs(
                     if let Value::Number(logprob) = logprob
                         && let Some(logprob) = logprob.as_f64()
                     {
-                        top_tokens.push(LogprobToken {
+                        top_tokens.push(CounterfactualToken {
+                            bytes: contents.into_bytes(),
+                            logprob: logprob as f32,
                             id: None,
-                            contents: contents.into_bytes(),
-                            logprob,
+                            metadata: IndexMap::default(),
                         });
                     } else {
                         top_tokens.clear();
@@ -896,10 +900,11 @@ fn parse_openai_completion_logprobs(
                     };
 
                     if let Some(contents) = contents.map(|contents| contents.to_owned()) {
-                        token_list.push(LogprobToken {
+                        token_list.push(CounterfactualToken {
+                            bytes: contents,
+                            logprob: logprob.as_f64().unwrap_or(f64::NAN) as f32, // vllm
                             id: None,
-                            contents,
-                            logprob: logprob.as_f64().unwrap_or(f64::NAN), // vllm
+                            metadata: IndexMap::default(),
                         });
                     } else {
                         token_list.clear();
@@ -918,10 +923,11 @@ fn parse_openai_completion_logprobs(
             {
                 for (token, logprob) in tokens.into_iter().zip(token_logprobs.into_iter()) {
                     if let Value::String(token) = token {
-                        token_list.push(LogprobToken {
+                        token_list.push(CounterfactualToken {
+                            bytes: token.into_bytes(),
+                            logprob: logprob.as_f64().unwrap_or(f64::NAN) as f32, // vllm
                             id: None,
-                            contents: token.into_bytes(),
-                            logprob: logprob.as_f64().unwrap_or(f64::NAN), // vllm
+                            metadata: IndexMap::default(),
                         });
                     } else {
                         return None;
@@ -946,17 +952,16 @@ fn parse_openai_completion_logprobs(
             token_list
                 .into_iter()
                 .zip(top_tokens_list)
-                .map(|(token, top_tokens)| Token { token, top_tokens })
+                .map(|(token, top_tokens)| {
+                    InnerNodeToken::from_counterfactual_pair(token, top_tokens)
+                })
                 .collect(),
         )
     } else {
         Some(
             token_list
                 .into_iter()
-                .map(|token| Token {
-                    token,
-                    top_tokens: Vec::new(),
-                })
+                .map(|token| InnerNodeToken::from_counterfactual_pair(token, vec![]))
                 .collect(),
         )
     }
@@ -965,7 +970,7 @@ fn parse_openai_completion_logprobs(
 fn parse_openai_chatcompletion_logprobs_content(
     logprobs_list_json: Vec<Value>,
     token_ids: Option<Vec<Value>>,
-) -> Option<Vec<Token>> {
+) -> Option<Vec<InnerNodeToken>> {
     let mut token_id_list = Vec::new();
 
     if let Some(token_ids) = token_ids {
@@ -998,7 +1003,7 @@ fn parse_openai_chatcompletion_logprobs_content(
 
     if tokens.len() == token_id_list.len() {
         for (token, token_id) in tokens.iter_mut().zip(token_id_list) {
-            token.token.id = Some(token_id)
+            token.id = Some(token_id)
         }
     }
 
@@ -1007,7 +1012,7 @@ fn parse_openai_chatcompletion_logprobs_content(
 
 fn parse_openai_chatcompletion_logprob_content_item(
     mut logprob_json: Map<String, Value>,
-) -> Option<Token> {
+) -> Option<InnerNodeToken> {
     let mut top_tokens = Vec::new();
 
     if let Some(Value::Array(top_logprobs_json)) = logprob_json.remove("top_logprobs") {
@@ -1044,12 +1049,12 @@ fn parse_openai_chatcompletion_logprob_content_item(
     }
 
     parse_openai_chatcompletion_logprob_content_subitem(logprob_json)
-        .map(|token| Token { token, top_tokens })
+        .map(|token| InnerNodeToken::from_counterfactual_pair(token, top_tokens))
 }
 
 fn parse_openai_chatcompletion_logprob_content_subitem(
     mut logprob_json: Map<String, Value>,
-) -> Option<LogprobToken> {
+) -> Option<CounterfactualToken> {
     let contents = if let Some(bytes) = logprob_json.remove("bytes").and_then(|v| {
         if !v.is_null() {
             serde_json::from_value::<Vec<u8>>(v).ok()
@@ -1072,23 +1077,25 @@ fn parse_openai_chatcompletion_logprob_content_subitem(
         None
     };
 
-    if let Some(contents) = contents {
+    if let Some(bytes) = contents {
         if let Some(logprob) = logprob_json.remove("logprob")
             && (logprob.is_number() || logprob.is_null())
         {
-            Some(LogprobToken {
+            Some(CounterfactualToken {
+                bytes,
+                logprob: logprob.as_f64().unwrap_or(f64::NAN) as f32,
                 id,
-                contents,
-                logprob: logprob.as_f64().unwrap_or(f64::NAN),
+                metadata: json_object_to_metadata_map(logprob_json),
             })
         } else if let Some(prob) = logprob_json.remove("prob")
             && (prob.is_number() || prob.is_null())
         // llama-cpp
         {
-            Some(LogprobToken {
+            Some(CounterfactualToken {
+                bytes,
+                logprob: prob.as_f64().unwrap_or(f64::NAN).ln() as f32,
                 id,
-                contents,
-                logprob: prob.as_f64().unwrap_or(f64::NAN).ln(),
+                metadata: json_object_to_metadata_map(logprob_json),
             })
         } else {
             None
