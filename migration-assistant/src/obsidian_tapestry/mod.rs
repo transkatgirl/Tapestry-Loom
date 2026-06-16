@@ -76,7 +76,7 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<VersionedWeave
         ))?
         .to_std_string()?;
 
-    let mut input: LegacyWeave = serde_json::from_value(serde_json::from_str::<Value>(&output)?)?;
+    let mut input: LegacyWeave = serde_json::from_value(serde_json::from_str::<Value>(&output)?)?; // Makes parsing untagged enums more reliable
 
     input.sort();
 

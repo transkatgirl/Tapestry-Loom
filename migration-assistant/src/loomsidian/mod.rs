@@ -7,6 +7,7 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use tapestry_weave::{
     VersionedWeave,
     hashers::RandomIdHasher,
@@ -25,7 +26,10 @@ use uuid::Uuid;
 use crate::new_weave;
 
 pub fn migrate_all(input: &str, created: Zoned) -> anyhow::Result<Vec<(PathBuf, VersionedWeave)>> {
-    if let Ok(data) = serde_json::from_str::<LoomsidianData>(input) {
+    if let Ok(data) =
+        serde_json::from_str::<Value>(input).and_then(serde_json::from_value::<LoomsidianData>)
+    // Makes parsing untagged enums more reliable
+    {
         let mut output = Vec::with_capacity(data.state.len());
 
         for (filename, weave) in data.state {
@@ -39,7 +43,10 @@ pub fn migrate_all(input: &str, created: Zoned) -> anyhow::Result<Vec<(PathBuf, 
 }
 
 pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWeave>> {
-    if let Ok(data) = serde_json::from_str::<LoomsidianWeave>(input) {
+    if let Ok(data) =
+        serde_json::from_str::<Value>(input).and_then(serde_json::from_value::<LoomsidianWeave>)
+    // Makes parsing untagged enums more reliable
+    {
         Ok(Some(convert_weave(data, created)?))
     } else {
         Ok(None)
