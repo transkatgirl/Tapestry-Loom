@@ -832,6 +832,7 @@ pub struct Model {
     pub identifier: Option<NonZeroU128>,
 
     pub seed: Option<u32>,
+    pub system_fingerprint: Option<String>,
     pub finish_reason: Option<String>,
 
     pub metadata: MetadataMap,
@@ -867,6 +868,9 @@ impl Model {
                 if self.seed != value.seed {
                     self.seed = None;
                 }
+                if self.system_fingerprint != value.system_fingerprint {
+                    self.system_fingerprint = None;
+                }
                 if self.finish_reason != value.finish_reason {
                     self.finish_reason = None;
                 }
@@ -877,6 +881,9 @@ impl Model {
             } else if self.color.is_none() {
                 if self.seed != value.seed {
                     value.seed = None;
+                }
+                if self.system_fingerprint != value.system_fingerprint {
+                    self.system_fingerprint = None;
                 }
                 if self.finish_reason != value.finish_reason {
                     self.finish_reason = None;
@@ -1061,6 +1068,7 @@ impl From<OldModel> for Creator {
                     color: value.metadata.shift_remove("color"),
                     identifier: None,
                     seed: None,
+                    system_fingerprint: None,
                     finish_reason: None,
                     raw_query: None,
                     metadata: value.metadata,
@@ -1106,6 +1114,7 @@ impl From<OldNodeContent> for NodeContent {
                 .shift_remove("seed")
                 .and_then(|id| id.parse::<u32>().ok());
 
+            model.system_fingerprint = value.metadata.shift_remove("system_fingerprint");
             model.finish_reason = value.metadata.shift_remove("finish_reason");
         }
 
