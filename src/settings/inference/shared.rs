@@ -1,18 +1,15 @@
-use std::num::NonZeroU128;
-
 use log::trace;
 use reqwest::Response;
 use serde_json::{Map, Value};
 use tapestry_weave::{
     jiff::Zoned,
     v1::{
-        content::{Creator, Model, NodeContent, UNKNOWN_MODEL_LABEL},
+        content::{Creator, Model, NodeContent},
         metadata::MetadataMap,
     },
 };
-use ulid::Ulid;
 
-use super::{EndpointResponse, polyparser};
+use super::{EndpointResponse, InferenceModel, polyparser};
 
 pub(super) fn build_json_list(list: &mut Vec<Value>, items: Vec<String>) {
     for item in items {
@@ -53,14 +50,6 @@ pub(super) fn json_value_to_metadata_field(value: Value) -> String {
     }
 }
 
-pub(crate) fn ulid_to_long_identifier(value: Ulid) -> Option<NonZeroU128> {
-    NonZeroU128::try_from(value.0).ok()
-}
-
-pub(crate) fn ulid_from_long_identifier(value: NonZeroU128) -> Ulid {
-    Ulid(u128::from(value))
-}
-
 pub(super) async fn error_for_status(response: Response) -> Result<Response, anyhow::Error> {
     let status = response.status();
     if status.is_client_error() || status.is_server_error() {
@@ -81,7 +70,7 @@ pub(super) async fn error_for_status(response: Response) -> Result<Response, any
 pub(super) fn parse_response(
     response: Map<String, Value>,
     metadata: Vec<(String, String)>,
-    model_identifier: NonZeroU128, // TODO: Pass a model object instead
+    model: &InferenceModel,
     echo: bool,
     seed: Option<u32>,
     requested_top: Option<usize>,
@@ -111,9 +100,9 @@ pub(super) fn parse_response(
                 content: item.contents,
                 metadata: MetadataMap::from_iter(metadata),
                 creator: Creator::Model(Some(Model {
-                    label: UNKNOWN_MODEL_LABEL.to_string(),
-                    color: None,
-                    identifier: Some(model_identifier),
+                    label: model.label.clone(),
+                    color: model.color.map(|c| c.to_hex()),
+                    identifier: Some(model.identifier),
                     seed,
                     system_fingerprint: item.fingerprint,
                     finish_reason: item.finish_reason,

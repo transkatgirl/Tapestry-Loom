@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, hash_map::Entry},
     fmt::Display,
+    num::NonZeroU128,
     rc::Rc,
     sync::Arc,
     time::Duration,
@@ -18,11 +19,12 @@ use poll_promise::Promise;
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tapestry_weave::{
+    nanorand::WyRand,
     universal_weave::{
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
-    v1::content::NodeContent,
+    v1::content::{NodeContent, generate_globally_unique_id},
 };
 use tokio::{runtime::Runtime, sync::Mutex, task};
 use ulid::Ulid;
@@ -359,8 +361,12 @@ struct InferenceModel {
     color: Option<Color32>,
     endpoint: EndpointConfig,
 
-    #[serde(default = "Ulid::new")]
-    tokenization_identifier: Ulid,
+    #[serde(default = "generate_default_id")]
+    identifier: NonZeroU128,
+}
+
+fn generate_default_id() -> NonZeroU128 {
+    generate_globally_unique_id(&mut WyRand::new())
 }
 
 impl InferenceModel {
@@ -420,7 +426,7 @@ impl InferenceModel {
 
         if self.endpoint.render_settings(ui, id) {
             trace!("Updating tokenization identifier for {}", id);
-            self.tokenization_identifier = Ulid::new();
+            self.identifier = generate_default_id();
         };
     }
 }
