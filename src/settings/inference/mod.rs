@@ -17,9 +17,12 @@ use log::trace;
 use poll_promise::Promise;
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use tapestry_weave::universal_weave::{
-    dependent::DependentNode,
-    indexmap::{IndexMap, IndexSet},
+use tapestry_weave::{
+    universal_weave::{
+        dependent::DependentNode,
+        indexmap::{IndexMap, IndexSet},
+    },
+    v1::content::NodeContent,
 };
 use tokio::{runtime::Runtime, sync::Mutex, task};
 use ulid::Ulid;
@@ -1129,8 +1132,7 @@ struct EndpointRequest {
 
 struct EndpointResponse {
     root: bool,
-    content: InnerNodeContent,
-    metadata: Vec<(String, String)>,
+    content: NodeContent,
 }
 
 trait Endpoint: Serialize + DeserializeOwned + Clone {

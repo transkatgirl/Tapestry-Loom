@@ -3,13 +3,16 @@ use std::num::NonZeroU128;
 use log::trace;
 use reqwest::Response;
 use serde_json::{Map, Value};
-use tapestry_weave::v1::metadata::MetadataMap;
+use tapestry_weave::{
+    jiff::Zoned,
+    v1::{
+        content::{Creator, Model, NodeContent, UNKNOWN_MODEL_LABEL},
+        metadata::MetadataMap,
+    },
+};
 use ulid::Ulid;
 
-use super::{
-    EndpointResponse,
-    polyparser::{self, LogprobToken, Token},
-};
+use super::{EndpointResponse, polyparser};
 
 pub(super) fn build_json_list(list: &mut Vec<Value>, items: Vec<String>) {
     for item in items {
@@ -78,12 +81,14 @@ pub(super) async fn error_for_status(response: Response) -> Result<Response, any
 pub(super) fn parse_response(
     response: Map<String, Value>,
     metadata: Vec<(String, String)>,
-    tokenization_identifier: Ulid,
+    model_identifier: NonZeroU128,
     echo: bool,
-    single_token: bool,
+    seed: Option<u32>,
     requested_top: Option<usize>,
 ) -> Vec<EndpointResponse> {
     trace!("{:#?}", &response);
+
+    let timestamp = Zoned::now();
 
     let items = polyparser::parse_response(response, requested_top);
 
@@ -100,14 +105,6 @@ pub(super) fn parse_response(
             metadata_capacity += 1;
         }
 
-        if item.finish_reason.is_some() {
-            metadata_capacity += 1;
-        }
-
-        if let polyparser::ResponseContents::Tokens(_) = &item.contents {
-            metadata_capacity += 3;
-        }
-
         if metadata_capacity > 0 {
             metadata.reserve_exact(metadata_capacity);
         }
@@ -116,17 +113,33 @@ pub(super) fn parse_response(
             metadata.push(("role".to_string(), role));
         }
 
-        if let Some(finish_reason) = item.finish_reason {
-            metadata.push(("finish_reason".to_string(), finish_reason));
-        }
+        outputs.push(EndpointResponse {
+            root: echo,
+            content: NodeContent {
+                timestamp: timestamp.clone(),
+                modified: false,
+                content: item.contents,
+                metadata: MetadataMap::from_iter(metadata),
+                creator: Creator::Model(Some(Model {
+                    label: UNKNOWN_MODEL_LABEL.to_string(),
+                    color: None,
+                    identifier: Some(model_identifier),
+                    seed,
+                    system_fingerprint: item.fingerprint,
+                    finish_reason: item.finish_reason,
+                    metadata: MetadataMap::default(),
+                    raw_query: None, // TODO
+                })),
+            },
+        });
 
-        match item.contents {
-            polyparser::ResponseContents::Text(text) => outputs.push(EndpointResponse {
+        /*match item.contents {
+            InnerNodeContent::Text(text) => outputs.push(EndpointResponse {
                 root: echo,
                 content: InnerNodeContent::Snippet(text),
                 metadata,
             }),
-            polyparser::ResponseContents::Tokens(tokens) => {
+            InnerNodeContent::Tokens(tokens) => {
                 let calculate_base_token_metadata = |token: &Token| {
                     let mut base_token_metadata = if token.top_tokens.len() >= 10 {
                         Vec::with_capacity(2)
@@ -291,7 +304,7 @@ pub(super) fn parse_response(
                 content: InnerNodeContent::Snippet(Vec::new()),
                 metadata,
             }),
-        };
+        };*/
     }
 
     outputs
