@@ -163,6 +163,8 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<VersionedWeave
                                             identifier: NonZeroU128::try_from(id.0).ok(),
                                             metadata: IndexMap::default(),
                                             seed: None,
+                                            system_fingerprint: None,
+                                            finish_reason: None,
                                             raw_query: None,
                                         }
                                     }

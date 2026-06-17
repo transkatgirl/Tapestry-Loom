@@ -118,6 +118,8 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
                                         color: None,
                                         identifier: None,
                                         seed: None,
+                                        system_fingerprint: None,
+                                        finish_reason: None,
                                         metadata: IndexMap::default(),
                                         raw_query: None,
                                     }))

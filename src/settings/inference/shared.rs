@@ -1,3 +1,5 @@
+use std::num::NonZeroU128;
+
 use log::trace;
 use reqwest::Response;
 use serde_json::{Map, Value};
@@ -8,6 +10,7 @@ use tapestry_weave::{
         metadata::MetadataMap,
     },
 };
+use ulid::Ulid;
 
 use super::{EndpointResponse, InferenceModel, polyparser};
 
@@ -48,6 +51,14 @@ pub(super) fn json_value_to_metadata_field(value: Value) -> String {
         Value::Array(v) => serde_json::to_string(&v).unwrap(),
         Value::Object(v) => serde_json::to_string(&v).unwrap(),
     }
+}
+
+pub(crate) fn ulid_to_long_identifier(value: Ulid) -> Option<NonZeroU128> {
+    NonZeroU128::try_from(value.0).ok()
+}
+
+pub(crate) fn ulid_from_long_identifier(value: NonZeroU128) -> Ulid {
+    Ulid(u128::from(value))
 }
 
 pub(super) async fn error_for_status(response: Response) -> Result<Response, anyhow::Error> {
@@ -102,7 +113,7 @@ pub(super) fn parse_response(
                 creator: Creator::Model(Some(Model {
                     label: model.label.clone(),
                     color: model.color.map(|c| c.to_hex()),
-                    identifier: Some(model.identifier),
+                    identifier: ulid_to_long_identifier(model.identifier),
                     seed,
                     system_fingerprint: item.fingerprint,
                     finish_reason: item.finish_reason,

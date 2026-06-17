@@ -120,6 +120,8 @@ fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<Versi
                                         metadata: IndexMap::default(),
                                         identifier: None,
                                         seed: None,
+                                        system_fingerprint: None,
+                                        finish_reason: None,
                                         raw_query: None,
                                     })))
                                 } else {

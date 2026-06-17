@@ -1,7 +1,6 @@
 use std::{
     collections::{HashMap, hash_map::Entry},
     fmt::Display,
-    num::NonZeroU128,
     rc::Rc,
     sync::Arc,
     time::Duration,
@@ -19,12 +18,11 @@ use poll_promise::Promise;
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tapestry_weave::{
-    nanorand::WyRand,
     universal_weave::{
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
-    v1::content::{NodeContent, generate_globally_unique_id},
+    v1::content::NodeContent,
 };
 use tokio::{runtime::Runtime, sync::Mutex, task};
 use ulid::Ulid;
@@ -361,12 +359,8 @@ struct InferenceModel {
     color: Option<Color32>,
     endpoint: EndpointConfig,
 
-    #[serde(default = "generate_default_id")]
-    identifier: NonZeroU128,
-}
-
-fn generate_default_id() -> NonZeroU128 {
-    generate_globally_unique_id(&mut WyRand::new())
+    #[serde(default = "Ulid::new")]
+    identifier: Ulid,
 }
 
 impl InferenceModel {
@@ -382,16 +376,6 @@ impl InferenceModel {
             WidgetText::RichText(Arc::new(RichText::new(self.label()).color(color)))
         } else {
             WidgetText::Text(self.label().to_string())
-        }
-    }
-    fn content_model(&self) -> Model {
-        Model {
-            label: self.label().to_string(),
-            metadata: if let Some(color) = self.color {
-                IndexMap::from_iter([("color".to_string(), color.to_hex())])
-            } else {
-                IndexMap::default()
-            },
         }
     }
     fn render(&mut self, ui: &mut Ui, id: &Ulid) {
@@ -426,7 +410,7 @@ impl InferenceModel {
 
         if self.endpoint.render_settings(ui, id) {
             trace!("Updating tokenization identifier for {}", id);
-            self.identifier = generate_default_id();
+            self.identifier = Ulid::new();
         };
     }
 }

@@ -1,7 +1,6 @@
 use std::{borrow::Cow, num::NonZeroU128, sync::Arc};
 
-use jiff::{Timestamp, Zoned};
-use nanorand::Rng;
+use jiff::Zoned;
 use rkyv::option::ArchivedOption;
 use universal_weave::{
     DeduplicatableContents, DiscreteContentResult, DiscreteContents, IndependentContents,
@@ -1141,17 +1140,4 @@ impl From<OldNodeContent> for NodeContent {
             content,
         }
     }
-}
-
-pub fn generate_globally_unique_id<R: Rng<8>>(rng: &mut R) -> NonZeroU128 {
-    // We don't care about endianness here, as we don't plan on trying to parse the identifier as a timestamp + random number
-
-    let time = Timestamp::now().as_second();
-    let mut random = rng.generate::<u64>();
-
-    while random == 0 {
-        random = rng.generate::<u64>();
-    }
-
-    unsafe { NonZeroU128::new_unchecked(std::mem::transmute::<(i64, u64), u128>((time, random))) }
 }
