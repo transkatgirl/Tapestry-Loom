@@ -832,6 +832,8 @@ pub struct Model {
     pub identifier: Option<NonZeroU128>,
 
     pub seed: Option<u32>,
+    pub finish_reason: Option<String>,
+
     pub metadata: MetadataMap,
     pub raw_query: Option<RawQuery>,
 }
@@ -845,6 +847,7 @@ impl Model {
                 && value.identifier.is_none()
                 && self.label == value.label))
             && self.seed == value.seed
+            && self.finish_reason == value.finish_reason
             && self.metadata == value.metadata
             && self.raw_query == value.raw_query
     }
@@ -864,6 +867,9 @@ impl Model {
                 if self.seed != value.seed {
                     self.seed = None;
                 }
+                if self.finish_reason != value.finish_reason {
+                    self.finish_reason = None;
+                }
                 if self.raw_query != value.raw_query {
                     self.raw_query = None;
                 }
@@ -871,6 +877,9 @@ impl Model {
             } else if self.color.is_none() {
                 if self.seed != value.seed {
                     value.seed = None;
+                }
+                if self.finish_reason != value.finish_reason {
+                    self.finish_reason = None;
                 }
                 if self.raw_query != value.raw_query {
                     value.raw_query = None;
@@ -1052,6 +1061,7 @@ impl From<OldModel> for Creator {
                     color: value.metadata.shift_remove("color"),
                     identifier: None,
                     seed: None,
+                    finish_reason: None,
                     raw_query: None,
                     metadata: value.metadata,
                 })
@@ -1090,6 +1100,13 @@ impl From<OldNodeContent> for NodeContent {
             if let Some(model_id) = model_id.and_then(|id| id.parse::<NonZeroU128>().ok()) {
                 model.identifier = Some(model_id);
             }
+
+            model.seed = value
+                .metadata
+                .shift_remove("seed")
+                .and_then(|id| id.parse::<u32>().ok());
+
+            model.finish_reason = value.metadata.shift_remove("finish_reason");
         }
 
         let content = InnerNodeContent::from(value.content);
