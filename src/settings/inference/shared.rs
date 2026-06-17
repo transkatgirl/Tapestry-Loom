@@ -6,7 +6,7 @@ use serde_json::{Map, Value};
 use tapestry_weave::{
     jiff::Zoned,
     v1::{
-        content::{Creator, Model, NodeContent},
+        content::{Creator, Model, NodeContent, RawQuery},
         metadata::MetadataMap,
     },
 };
@@ -84,6 +84,7 @@ pub(super) fn parse_response(
     model: &InferenceModel,
     echo: bool,
     seed: Option<u32>,
+    raw_query: Option<RawQuery>,
     requested_top: Option<usize>,
 ) -> Vec<EndpointResponse> {
     trace!("{:#?}", &response);
@@ -118,7 +119,7 @@ pub(super) fn parse_response(
                     system_fingerprint: item.fingerprint,
                     finish_reason: item.finish_reason,
                     metadata: MetadataMap::default(),
-                    raw_query: None, // TODO
+                    raw_query: raw_query.clone(),
                 })),
             },
         });
