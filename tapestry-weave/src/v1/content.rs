@@ -8,6 +8,9 @@ use universal_weave::{
 };
 
 #[cfg(feature = "v0")]
+use ulid::Ulid;
+
+#[cfg(feature = "v0")]
 use crate::v0::{
     InnerNodeContent as OldInnerNodeContent, Model as OldModel, NodeContent as OldNodeContent,
     deserialize_counterfactual_logprobs,
@@ -1105,7 +1108,10 @@ impl From<OldNodeContent> for NodeContent {
                 }
             }
 
-            if let Some(model_id) = model_id.and_then(|id| id.parse::<NonZeroU128>().ok()) {
+            if let Some(model_id) = model_id
+                .and_then(|id| Ulid::from_string(&id).ok())
+                .and_then(|id| NonZeroU128::new(id.0))
+            {
                 model.identifier = Some(model_id);
             }
 
