@@ -156,6 +156,8 @@ If your inference backend returns token IDs in OpenAI-style Completions response
 
 ## Development roadmap
 
+**The below roadmap is outdated**. See the [Tapestry Loom v1 Project](https://github.com/users/transkatgirl/projects/2/views/1) for a more up-to-date roadmap.
+
 Please [consider donating](https://github.com/sponsors/transkatgirl) to help fund further development.
 
 ### Roadmap TODOs
