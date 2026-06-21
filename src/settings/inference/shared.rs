@@ -107,7 +107,7 @@ pub(super) fn parse_response(
         }
 
         let creator = Creator::Model(Some(Model {
-            label: model.label.clone(),
+            label: model.label().to_string(),
             color: model.color.map(|c| c.to_hex()),
             identifier: ulid_to_long_identifier(model.identifier),
             seed,
