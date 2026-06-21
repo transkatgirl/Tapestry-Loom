@@ -87,9 +87,11 @@ pub(super) fn parse_response(
     seed: Option<u32>,
     requested_top: Option<usize>,
 ) -> Vec<EndpointResponse> {
+    let timestamp = Zoned::now();
+
     trace!("{:#?}", &response);
 
-    let timestamp = Zoned::now();
+    let metadata = MetadataMap::from_iter(metadata);
 
     let items = polyparser::parse_response(response, requested_top);
 
@@ -101,8 +103,18 @@ pub(super) fn parse_response(
         let mut metadata = metadata.clone();
 
         if let Some(role) = item.role {
-            metadata.push(("role".to_string(), role));
+            metadata.insert("role".to_string(), role);
         }
+
+        let creator = Creator::Model(Some(Model {
+            label: model.label.clone(),
+            color: model.color.map(|c| c.to_hex()),
+            identifier: ulid_to_long_identifier(model.identifier),
+            seed,
+            system_fingerprint: item.fingerprint,
+            finish_reason: item.finish_reason,
+            metadata: MetadataMap::default(),
+        }));
 
         if single_token && let InnerNodeContent::Tokens(mut tokens) = item.contents {
             if tokens.is_empty() || tokens[0].counterfactual.is_empty() {
@@ -112,31 +124,13 @@ pub(super) fn parse_response(
                         timestamp: timestamp.clone(),
                         modified: false,
                         content: InnerNodeContent::Tokens(tokens),
-                        metadata: MetadataMap::from_iter(metadata),
+                        metadata,
                         aux_metadata: AuxMetadataMap::default(),
-                        creator: Creator::Model(Some(Model {
-                            label: model.label.clone(),
-                            color: model.color.map(|c| c.to_hex()),
-                            identifier: ulid_to_long_identifier(model.identifier),
-                            seed,
-                            system_fingerprint: item.fingerprint,
-                            finish_reason: item.finish_reason,
-                            metadata: MetadataMap::default(),
-                        })),
+                        creator,
                     },
                 });
             } else {
                 let token = tokens.swap_remove(0);
-
-                let creator = Creator::Model(Some(Model {
-                    label: model.label.clone(),
-                    color: model.color.map(|c| c.to_hex()),
-                    identifier: ulid_to_long_identifier(model.identifier),
-                    seed,
-                    system_fingerprint: item.fingerprint,
-                    finish_reason: item.finish_reason,
-                    metadata: MetadataMap::default(),
-                }));
 
                 outputs.extend(
                     token
@@ -150,7 +144,7 @@ pub(super) fn parse_response(
                                 content: InnerNodeContent::Tokens(vec![
                                     InnerNodeToken::from_counterfactual_pair(token, Vec::new()),
                                 ]),
-                                metadata: MetadataMap::from_iter(metadata.clone()),
+                                metadata: metadata.clone(),
                                 aux_metadata: AuxMetadataMap::default(),
                                 creator: creator.clone(),
                             },
@@ -164,17 +158,9 @@ pub(super) fn parse_response(
                     timestamp: timestamp.clone(),
                     modified: false,
                     content: item.contents,
-                    metadata: MetadataMap::from_iter(metadata),
+                    metadata,
                     aux_metadata: AuxMetadataMap::default(),
-                    creator: Creator::Model(Some(Model {
-                        label: model.label.clone(),
-                        color: model.color.map(|c| c.to_hex()),
-                        identifier: ulid_to_long_identifier(model.identifier),
-                        seed,
-                        system_fingerprint: item.fingerprint,
-                        finish_reason: item.finish_reason,
-                        metadata: MetadataMap::default(),
-                    })),
+                    creator,
                 },
             });
         }
