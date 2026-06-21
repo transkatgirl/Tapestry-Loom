@@ -12,8 +12,8 @@ use ulid::Ulid;
 
 use super::{
     EMBEDDING_CACHE_MAX_SIZE, EmbeddingEndpoint, Endpoint, EndpointRequest, EndpointResponse,
-    InferenceCache, InferenceClient, RequestTokensOrBytes, Template, render_config_list,
-    render_config_map,
+    InferenceCache, InferenceClient, InferenceModel, RequestTokensOrBytes, Template,
+    render_config_list, render_config_map,
     shared::{
         build_json_list, build_json_object, error_for_status, parse_embedding_response,
         parse_response, response_schema_error,
@@ -348,8 +348,10 @@ impl Endpoint for OpenAICompletionsConfig {
         &self.endpoint
     }
     fn default_parameters(&self) -> Vec<(String, String)> {
-        if self.endpoint.contains("openrouter.ai/api/v1") {
-            // OpenRouter doesn't handle logprobs properly
+        if self.endpoint.contains("openrouter.ai/api/v1")
+            || self.endpoint.contains("api.featherless.ai/v1")
+        {
+            // Disable logprobs for endpoints that don't reliably support it
             vec![
                 ("temperature".to_string(), "1".to_string()),
                 ("max_tokens".to_string(), "10".to_string()),
@@ -366,8 +368,8 @@ impl Endpoint for OpenAICompletionsConfig {
         &self,
         client: &InferenceClient,
         cache: &InferenceCache,
+        model: &InferenceModel,
         request: EndpointRequest,
-        tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
         let mut headers = HeaderMap::with_capacity(self.headers.len());
 
@@ -526,9 +528,10 @@ impl Endpoint for OpenAICompletionsConfig {
         let endpoint_response = parse_response(
             response,
             metadata,
-            tokenization_identifier,
+            model,
             echo,
             single_token,
+            None, // TODO
             requested_top,
         );
 
@@ -638,8 +641,10 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         &self.endpoint
     }
     fn default_parameters(&self) -> Vec<(String, String)> {
-        if self.endpoint.contains("openrouter.ai/api/v1") {
-            // OpenRouter doesn't handle logprobs properly
+        if self.endpoint.contains("openrouter.ai/api/v1")
+            || self.endpoint.contains("api.featherless.ai/v1")
+        {
+            // Disable logprobs for endpoints that don't reliably support it
             vec![
                 ("temperature".to_string(), "1".to_string()),
                 ("max_tokens".to_string(), "10".to_string()),
@@ -657,8 +662,8 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         &self,
         client: &InferenceClient,
         _cache: &InferenceCache,
+        model: &InferenceModel,
         request: EndpointRequest,
-        tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
         if request.suffix.is_some() {
             return Err(anyhow::Error::msg("Endpoint does not support FIM"));
@@ -753,9 +758,10 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         let endpoint_response = parse_response(
             response,
             metadata,
-            tokenization_identifier,
+            model,
             false,
             single_token,
+            None, // TODO
             requested_top,
         );
 

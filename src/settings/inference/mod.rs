@@ -1133,8 +1133,8 @@ trait Endpoint: Serialize + DeserializeOwned + Clone {
         &self,
         client: &InferenceClient,
         cache: &InferenceCache,
+        model: &InferenceModel,
         request: EndpointRequest,
-        tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error>;
 }
 

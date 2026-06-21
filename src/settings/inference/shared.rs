@@ -6,7 +6,7 @@ use serde_json::{Map, Value};
 use tapestry_weave::{
     jiff::Zoned,
     v1::{
-        content::{Creator, Model, NodeContent},
+        content::{Creator, InnerNodeContent, InnerNodeToken, Model, NodeContent},
         metadata::{AuxMetadataMap, MetadataMap},
     },
 };
@@ -83,6 +83,7 @@ pub(super) fn parse_response(
     metadata: Vec<(String, String)>,
     model: &InferenceModel,
     echo: bool,
+    single_token: bool,
     seed: Option<u32>,
     requested_top: Option<usize>,
 ) -> Vec<EndpointResponse> {
@@ -103,15 +104,31 @@ pub(super) fn parse_response(
             metadata.push(("role".to_string(), role));
         }
 
-        outputs.push(EndpointResponse {
-            root: echo,
-            content: NodeContent {
-                timestamp: timestamp.clone(),
-                modified: false,
-                content: item.contents,
-                metadata: MetadataMap::from_iter(metadata),
-                aux_metadata: AuxMetadataMap::default(),
-                creator: Creator::Model(Some(Model {
+        if single_token && let InnerNodeContent::Tokens(mut tokens) = item.contents {
+            if tokens.is_empty() || tokens[0].counterfactual.is_empty() {
+                outputs.push(EndpointResponse {
+                    root: echo,
+                    content: NodeContent {
+                        timestamp: timestamp.clone(),
+                        modified: false,
+                        content: InnerNodeContent::Tokens(tokens),
+                        metadata: MetadataMap::from_iter(metadata),
+                        aux_metadata: AuxMetadataMap::default(),
+                        creator: Creator::Model(Some(Model {
+                            label: model.label.clone(),
+                            color: model.color.map(|c| c.to_hex()),
+                            identifier: ulid_to_long_identifier(model.identifier),
+                            seed,
+                            system_fingerprint: item.fingerprint,
+                            finish_reason: item.finish_reason,
+                            metadata: MetadataMap::default(),
+                        })),
+                    },
+                });
+            } else {
+                let token = tokens.swap_remove(0);
+
+                let creator = Creator::Model(Some(Model {
                     label: model.label.clone(),
                     color: model.color.map(|c| c.to_hex()),
                     identifier: ulid_to_long_identifier(model.identifier),
@@ -119,9 +136,48 @@ pub(super) fn parse_response(
                     system_fingerprint: item.fingerprint,
                     finish_reason: item.finish_reason,
                     metadata: MetadataMap::default(),
-                })),
-            },
-        });
+                }));
+
+                outputs.extend(
+                    token
+                        .counterfactual
+                        .into_iter()
+                        .map(|token| EndpointResponse {
+                            root: echo,
+                            content: NodeContent {
+                                timestamp: timestamp.clone(),
+                                modified: false,
+                                content: InnerNodeContent::Tokens(vec![
+                                    InnerNodeToken::from_counterfactual_pair(token, Vec::new()),
+                                ]),
+                                metadata: MetadataMap::from_iter(metadata.clone()),
+                                aux_metadata: AuxMetadataMap::default(),
+                                creator: creator.clone(),
+                            },
+                        }),
+                );
+            }
+        } else {
+            outputs.push(EndpointResponse {
+                root: echo,
+                content: NodeContent {
+                    timestamp: timestamp.clone(),
+                    modified: false,
+                    content: item.contents,
+                    metadata: MetadataMap::from_iter(metadata),
+                    aux_metadata: AuxMetadataMap::default(),
+                    creator: Creator::Model(Some(Model {
+                        label: model.label.clone(),
+                        color: model.color.map(|c| c.to_hex()),
+                        identifier: ulid_to_long_identifier(model.identifier),
+                        seed,
+                        system_fingerprint: item.fingerprint,
+                        finish_reason: item.finish_reason,
+                        metadata: MetadataMap::default(),
+                    })),
+                },
+            });
+        }
     }
 
     outputs
