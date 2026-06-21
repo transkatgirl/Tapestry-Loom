@@ -136,6 +136,7 @@ fn convert_node(
                     .unwrap_or_default(),
                 content: InnerNodeContent::Snippet(text.into_bytes()),
                 metadata,
+                aux_metadata: IndexMap::default(),
                 creator: node
                     .meta
                     .map(|meta| match meta.source.as_deref() {
@@ -250,6 +251,7 @@ fn convert_export_node(
             modified: false,
             content: InnerNodeContent::Snippet(node.text.into_bytes()),
             metadata: IndexMap::default(),
+            aux_metadata: IndexMap::default(),
             creator: Creator::Unknown,
         },
     }));

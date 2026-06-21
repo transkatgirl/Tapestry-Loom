@@ -153,6 +153,7 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<VersionedWeave
                                 ),
                             },
                             metadata: node.parameters.unwrap_or_default(),
+                            aux_metadata: IndexMap::default(),
                             creator: node
                                 .model
                                 .map(|id| Creator::Model(input.models.get(&id).cloned().map(
@@ -165,7 +166,6 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<VersionedWeave
                                             seed: None,
                                             system_fingerprint: None,
                                             finish_reason: None,
-                                            raw_query: None,
                                         }
                                     }
                                 )))

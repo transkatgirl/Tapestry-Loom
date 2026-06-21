@@ -110,6 +110,7 @@ fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<Versi
                             node.text.or(node.value).unwrap_or_default().into_bytes()
                         ),
                         metadata: IndexMap::default(),
+                        aux_metadata: IndexMap::default(),
                         creator: node
                             .author
                             .and_then(|author| {
@@ -122,7 +123,6 @@ fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<Versi
                                         seed: None,
                                         system_fingerprint: None,
                                         finish_reason: None,
-                                        raw_query: None,
                                     })))
                                 } else {
                                     None

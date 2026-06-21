@@ -21,6 +21,7 @@ use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
 use super::super::wrappers::AsBinaryZoned;
 
 pub type MetadataMap = IndexMap<String, String, RandomState>;
+pub type AuxMetadataMap = IndexMap<String, Vec<u8>, RandomState>;
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]

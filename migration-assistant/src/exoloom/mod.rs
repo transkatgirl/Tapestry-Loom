@@ -111,6 +111,7 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
                             } else {
                                 IndexMap::default()
                             },
+                            aux_metadata: IndexMap::default(),
                             creator: match node.authorType {
                                 LLM => {
                                     Creator::Model(node.authorName.map(|label| Model {
@@ -121,7 +122,6 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
                                         system_fingerprint: None,
                                         finish_reason: None,
                                         metadata: IndexMap::default(),
-                                        raw_query: None,
                                     }))
                                 }
                                 USER => {

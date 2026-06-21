@@ -1,4 +1,4 @@
-use std::{borrow::Cow, num::NonZeroU128, sync::Arc};
+use std::{borrow::Cow, num::NonZeroU128};
 
 use jiff::Zoned;
 use rkyv::option::ArchivedOption;
@@ -22,7 +22,10 @@ use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
 #[cfg(feature = "serde")]
 use super::super::wrappers::Base64Standard;
 
-use super::{super::wrappers::AsBinaryZoned, metadata::MetadataMap};
+use super::{
+    super::wrappers::AsBinaryZoned,
+    metadata::{AuxMetadataMap, MetadataMap},
+};
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
@@ -33,6 +36,7 @@ pub struct NodeContent {
 
     pub content: InnerNodeContent,
     pub metadata: MetadataMap,
+    pub aux_metadata: AuxMetadataMap,
     pub creator: Creator,
 }
 
@@ -50,6 +54,7 @@ impl DiscreteContents for NodeContent {
                     modified: true,
                     content: right,
                     metadata: self.metadata.clone(),
+                    aux_metadata: self.aux_metadata.clone(),
                     creator: self.creator.clone(),
                 };
 
@@ -81,6 +86,9 @@ impl DiscreteContents for NodeContent {
                 self.modified = true;
                 self.timestamp = self.timestamp.max(value.timestamp);
                 self.creator = self.creator.merge(value.creator).unwrap();
+                if self.aux_metadata != value.aux_metadata {
+                    self.aux_metadata.clear();
+                }
                 DiscreteContentResult::One(self)
             }
         }
@@ -839,7 +847,6 @@ pub struct Model {
     pub finish_reason: Option<String>,
 
     pub metadata: MetadataMap,
-    pub raw_query: Option<RawQuery>,
 }
 
 impl Model {
@@ -853,7 +860,6 @@ impl Model {
             && self.seed == value.seed
             && self.finish_reason == value.finish_reason
             && self.metadata == value.metadata
-            && self.raw_query == value.raw_query
     }
     pub fn is_mergeable_with(&self, value: &Self) -> bool {
         self.label == value.label
@@ -877,9 +883,6 @@ impl Model {
                 if self.finish_reason != value.finish_reason {
                     self.finish_reason = None;
                 }
-                if self.raw_query != value.raw_query {
-                    self.raw_query = None;
-                }
                 Ok(self)
             } else if self.color.is_none() {
                 if self.seed != value.seed {
@@ -891,9 +894,6 @@ impl Model {
                 if self.finish_reason != value.finish_reason {
                     self.finish_reason = None;
                 }
-                if self.raw_query != value.raw_query {
-                    value.raw_query = None;
-                }
                 Ok(value)
             } else {
                 Err((self, value))
@@ -902,14 +902,6 @@ impl Model {
             Err((self, value))
         }
     }
-}
-
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
-pub struct RawQuery {
-    endpoint: Option<Arc<String>>,
-    request: Arc<Vec<u8>>,
-    response: Vec<u8>,
 }
 
 pub const UNKNOWN_MODEL_LABEL: &str = "Unknown Model";
@@ -1073,7 +1065,6 @@ impl From<OldModel> for Creator {
                     seed: None,
                     system_fingerprint: None,
                     finish_reason: None,
-                    raw_query: None,
                     metadata: value.metadata,
                 })
             },
@@ -1142,6 +1133,7 @@ impl From<OldNodeContent> for NodeContent {
             timestamp: Zoned::default(),
             modified,
             metadata: value.metadata,
+            aux_metadata: AuxMetadataMap::default(),
             creator,
             content,
         }
