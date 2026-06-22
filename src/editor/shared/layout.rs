@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, hash_map::Entry},
+    collections::HashMap,
     hash::{BuildHasher, Hash},
 };
 
@@ -8,7 +8,7 @@ use rust_sugiyama::{
     configure::{Config, CrossingMinimization, RankingType},
     from_vertices_and_edges,
 };
-use tapestry_weave::universal_weave::{Node, Weave};
+use tapestry_weave::universal_weave::{Node, Weave, indexmap::IndexSet};
 
 #[derive(Debug)]
 pub struct WeaveLayout<K, S>
@@ -16,11 +16,9 @@ where
     K: Hash + Copy + Eq,
     S: BuildHasher + Default + Clone,
 {
-    identifier_map: HashMap<K, u32, S>,
-    identifier_unmap: HashMap<u32, K>,
+    identifiers: IndexSet<K, S>,
     vertices: Vec<(u32, (f64, f64))>,
     edges: Vec<(u32, u32)>,
-    id_counter: u32,
 }
 
 impl<K, S> WeaveLayout<K, S>
@@ -30,11 +28,9 @@ where
 {
     pub fn with_capacity(node_capacity: usize, edge_capacity: usize) -> Self {
         Self {
-            identifier_map: HashMap::with_capacity_and_hasher(node_capacity, S::default()),
-            identifier_unmap: HashMap::with_capacity(node_capacity),
+            identifiers: IndexSet::with_capacity_and_hasher(node_capacity, S::default()),
             vertices: Vec::with_capacity(node_capacity),
             edges: Vec::with_capacity(edge_capacity),
-            id_counter: 0,
         }
     }
     pub fn load_weave<N, T>(
@@ -44,11 +40,9 @@ where
     ) where
         N: Node<K, T, S>,
     {
-        self.identifier_map.clear();
-        self.identifier_unmap.clear();
+        self.identifiers.clear();
         self.vertices.clear();
         self.edges.clear();
-        self.id_counter = 0;
 
         assert!(node_sizes.len() < (u32::MAX as usize));
 
@@ -65,20 +59,14 @@ where
             }
         }
 
-        assert_eq!(self.identifier_map.len(), self.vertices.len());
+        assert_eq!(self.identifiers.len(), self.vertices.len());
     }
     fn get_node_identifier(&mut self, node: K) -> u32 {
-        match self.identifier_map.entry(node) {
-            Entry::Occupied(occupied) => *occupied.get(),
-            Entry::Vacant(vacant) => {
-                let identifier = self.id_counter;
-                self.id_counter += 1;
-
-                vacant.insert(identifier);
-                self.identifier_unmap.insert(identifier, node);
-
-                identifier
-            }
+        if let Some(id) = self.identifiers.get_index_of(&node) {
+            id as u32
+        } else {
+            self.identifiers.insert(node);
+            (self.identifiers.len() - 1) as u32
         }
     }
     pub fn layout_weave(&self, spacing: f64) -> ArrangedWeave<K, S> {
@@ -114,16 +102,16 @@ where
                 let x_pos = x + x_offset;
                 let y_pos = y + y_offset;
 
-                let identifier = self.identifier_unmap.get(&id).unwrap();
+                let identifier = *self.identifiers.get_index(id as usize).unwrap();
                 positions.insert(
-                    *identifier,
+                    identifier,
                     Pos2 {
                         x: x_pos as f32,
                         y: y_pos as f32,
                     },
                 );
                 rects.insert(
-                    *identifier,
+                    identifier,
                     Rect {
                         min: Pos2 {
                             x: (x_pos - (width / 2.0)) as f32,
