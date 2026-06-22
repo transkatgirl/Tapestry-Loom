@@ -402,7 +402,11 @@ impl Endpoint for OpenAICompletionsConfig {
         if self.nonstandard.reuse_tokens && !self.nonstandard.tokenization_endpoint.is_empty() {
             let mut token_futures = Vec::with_capacity(request.content.len());
 
+            let url = Url::parse(&self.nonstandard.tokenization_endpoint)?;
+
             for segment in request.content {
+                let url = url.clone();
+
                 token_futures.push(
                     RequestTokensOrBytes::build(segment, &model.identifier)
                         .cached_into_tokens_async(
@@ -412,10 +416,7 @@ impl Endpoint for OpenAICompletionsConfig {
                                 Ok(error_for_status(
                                     client
                                         .client
-                                        .request(
-                                            Method::POST,
-                                            Url::parse(&self.nonstandard.tokenization_endpoint)?,
-                                        )
+                                        .request(Method::POST, url)
                                         .headers(headers.clone())
                                         .header(CONTENT_TYPE, "application/octet-stream")
                                         .body(bytes)
@@ -709,13 +710,6 @@ impl Endpoint for OpenAIChatCompletionsConfig {
             Vec::with_capacity(self.prefix_messages.len() + self.suffix_messages.len() + 1);
 
         build_json_list(&mut messages, self.prefix_messages.clone());
-
-        /*if !(request_bytes.is_empty()
-            && !self.prefix_messages.is_empty()
-            && self.suffix_messages.is_empty())
-        {
-            messages.push(Value::Object(message));
-        }*/
 
         messages.push(Value::Object(message));
 
