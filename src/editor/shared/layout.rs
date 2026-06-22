@@ -13,7 +13,7 @@ use tapestry_weave::universal_weave::{Node, Weave};
 #[derive(Debug)]
 pub struct WeaveLayout<K>
 where
-    K: Eq + Copy + Hash,
+    K: Hash + Copy + Eq,
 {
     identifier_map: HashMap<K, u32>,
     identifier_unmap: HashMap<u32, K>,
@@ -24,7 +24,7 @@ where
 
 impl<K> WeaveLayout<K>
 where
-    K: Eq + Copy + Hash,
+    K: Hash + Copy + Eq,
 {
     pub fn with_capacity(node_capacity: usize, edge_capacity: usize) -> Self {
         Self {
@@ -40,7 +40,6 @@ where
         weave: impl Weave<K, N, T, S>,
         node_sizes: impl ExactSizeIterator<Item = (K, (f64, f64))>,
     ) where
-        K: Hash + Copy + Eq,
         N: Node<K, T, S>,
         S: BuildHasher + Default + Clone,
     {
@@ -151,7 +150,7 @@ where
 #[derive(Default, Debug)]
 pub struct ArrangedWeave<K>
 where
-    K: Eq + Copy + Hash,
+    K: Hash + Copy + Eq,
 {
     pub positions: HashMap<K, (f64, f64)>,
     pub rects: HashMap<K, Rect>,
