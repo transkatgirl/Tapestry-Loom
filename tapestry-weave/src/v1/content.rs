@@ -23,7 +23,7 @@ use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
 use super::super::wrappers::Base64Standard;
 
 use super::{
-    super::wrappers::AsBinaryZoned,
+    super::wrappers::{AsBinaryZoned, IAsVec},
     metadata::{AuxMetadataMap, MetadataMap},
 };
 
@@ -35,8 +35,13 @@ pub struct NodeContent {
     pub modified: bool,
 
     pub content: InnerNodeContent,
+
+    #[rkyv(with = IAsVec)]
     pub metadata: MetadataMap,
+
+    #[rkyv(with = IAsVec)]
     pub aux_metadata: AuxMetadataMap,
+
     pub creator: Creator,
 }
 
@@ -315,6 +320,7 @@ pub struct InnerNodeToken {
     pub logprob: f32,
     pub id: Option<u64>,
 
+    #[rkyv(with = IAsVec)]
     pub metadata: MetadataMap,
 
     #[rkyv(with = NicheInto<niching::NaN>)]
@@ -442,6 +448,8 @@ pub struct CounterfactualToken {
     pub bytes: Vec<u8>,
     pub logprob: f32,
     pub id: Option<u64>,
+
+    #[rkyv(with = IAsVec)]
     pub metadata: MetadataMap,
 }
 
@@ -846,6 +854,7 @@ pub struct Model {
     pub system_fingerprint: Option<String>,
     pub finish_reason: Option<String>,
 
+    #[rkyv(with = IAsVec)]
     pub metadata: MetadataMap,
 }
 
@@ -915,6 +924,7 @@ pub struct Author {
     #[rkyv(with = NicheInto<niching::Zero>)]
     pub identifier: Option<NonZeroU128>,
 
+    #[rkyv(with = IAsVec)]
     pub metadata: MetadataMap,
 }
 

@@ -8,6 +8,15 @@ use std::{
 };
 
 #[cfg(feature = "v1")]
+use universal_weave::{
+    indexmap::{IndexMap, IndexSet},
+    rkyv::{
+        collections::util,
+        vec::{ArchivedVec, VecResolver},
+    },
+};
+
+#[cfg(feature = "v1")]
 use universal_weave::rkyv::{
     Archive, Deserialize, Place, Resolver, Serialize, SerializeUnsized,
     rancor::{Fallible, Source},
@@ -35,6 +44,114 @@ const PARSER: DateTimeParser = DateTimeParser::new();
 
 #[cfg(feature = "serde")]
 base64_serde_type!(pub(crate) Base64Standard, STANDARD);
+
+#[cfg(feature = "v1")]
+pub struct IAsVec;
+
+#[cfg(feature = "v1")]
+impl<K: Archive, V: Archive, H> ArchiveWith<IndexMap<K, V, H>> for IAsVec {
+    type Archived = ArchivedVec<util::Entry<K::Archived, V::Archived>>;
+    type Resolver = VecResolver;
+
+    fn resolve_with(
+        field: &IndexMap<K, V, H>,
+        resolver: Self::Resolver,
+        out: Place<Self::Archived>,
+    ) {
+        ArchivedVec::resolve_from_len(field.len(), resolver, out);
+    }
+}
+
+#[cfg(feature = "v1")]
+impl<K, V, H, S> SerializeWith<IndexMap<K, V, H>, S> for IAsVec
+where
+    K: Serialize<S>,
+    V: Serialize<S>,
+    S: Fallible + rkyv::ser::Allocator + rkyv::ser::Writer + ?Sized,
+{
+    fn serialize_with(
+        field: &IndexMap<K, V, H>,
+        serializer: &mut S,
+    ) -> Result<Self::Resolver, S::Error> {
+        ArchivedVec::serialize_from_iter(
+            field
+                .iter()
+                .map(|(key, value)| util::EntryAdapter::<_, _, K, V>::new(key, value)),
+            serializer,
+        )
+    }
+}
+
+#[cfg(feature = "v1")]
+impl<K, V, H, D>
+    DeserializeWith<ArchivedVec<util::Entry<K::Archived, V::Archived>>, IndexMap<K, V, H>, D>
+    for IAsVec
+where
+    K: Archive + Hash + Eq,
+    V: Archive,
+    K::Archived: Deserialize<K, D>,
+    V::Archived: Deserialize<V, D>,
+    H: BuildHasher + Default,
+    D: Fallible + ?Sized,
+{
+    fn deserialize_with(
+        field: &ArchivedVec<util::Entry<K::Archived, V::Archived>>,
+        deserializer: &mut D,
+    ) -> Result<IndexMap<K, V, H>, D::Error> {
+        let mut result = IndexMap::with_capacity_and_hasher(field.len(), H::default());
+        for entry in field.iter() {
+            result.insert(
+                entry.key.deserialize(deserializer)?,
+                entry.value.deserialize(deserializer)?,
+            );
+        }
+        Ok(result)
+    }
+}
+
+#[cfg(feature = "v1")]
+impl<T: Archive, H> ArchiveWith<IndexSet<T, H>> for IAsVec {
+    type Archived = ArchivedVec<T::Archived>;
+    type Resolver = VecResolver;
+
+    fn resolve_with(field: &IndexSet<T, H>, resolver: Self::Resolver, out: Place<Self::Archived>) {
+        ArchivedVec::resolve_from_len(field.len(), resolver, out);
+    }
+}
+
+#[cfg(feature = "v1")]
+impl<T, H, S> SerializeWith<IndexSet<T, H>, S> for IAsVec
+where
+    T: Serialize<S>,
+    S: Fallible + rkyv::ser::Allocator + rkyv::ser::Writer + ?Sized,
+{
+    fn serialize_with(
+        field: &IndexSet<T, H>,
+        serializer: &mut S,
+    ) -> Result<Self::Resolver, S::Error> {
+        ArchivedVec::<T::Archived>::serialize_from_iter::<T, _, _>(field.iter(), serializer)
+    }
+}
+
+#[cfg(feature = "v1")]
+impl<T, H, D> DeserializeWith<ArchivedVec<T::Archived>, IndexSet<T, H>, D> for IAsVec
+where
+    T: Archive + Hash + Eq,
+    T::Archived: Deserialize<T, D>,
+    H: BuildHasher + Default,
+    D: Fallible + ?Sized,
+{
+    fn deserialize_with(
+        field: &ArchivedVec<T::Archived>,
+        deserializer: &mut D,
+    ) -> Result<IndexSet<T, H>, D::Error> {
+        let mut result = IndexSet::with_capacity_and_hasher(field.len(), H::default());
+        for key in field.iter() {
+            result.insert(key.deserialize(deserializer)?);
+        }
+        Ok(result)
+    }
+}
 
 #[cfg(feature = "v1")]
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]

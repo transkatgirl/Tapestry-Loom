@@ -407,9 +407,9 @@ impl Endpoint for OpenAICompletionsConfig {
 
             for segment in request.content.as_ref().clone() {
                 token_futures.push(
-                    RequestTokensOrBytes::build(segment, &tokenization_identifier)
+                    RequestTokensOrBytes::build(segment, &model.identifier)
                         .cached_into_tokens_async(
-                            tokenization_identifier,
+                            model.identifier,
                             &cache.tokens,
                             |bytes: Vec<u8>| async {
                                 Ok(error_for_status(
