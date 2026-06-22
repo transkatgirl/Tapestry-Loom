@@ -678,8 +678,9 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         build_json_object(&mut body, request.parameters.as_ref().clone());
 
         let single_token = body
-            .get("max_tokens")
+            .get("max_completion_tokens")
             .and_then(|t| t.as_u64())
+            .or_else(|| body.get("max_tokens").and_then(|t| t.as_u64()))
             .map(|t| t == 1)
             .unwrap_or(false);
 
