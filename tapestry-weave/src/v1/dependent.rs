@@ -28,6 +28,7 @@ use crate::{
 use super::{
     super::{VersionedWeave, hashers::RandomIdHasher, write_header},
     content::{InnerNodeContent, NodeContent},
+    generate_unique_id, generate_unique_id_with_list,
     metadata::{ArchivedWeaveMetadata, WeaveMetadata},
 };
 
@@ -83,30 +84,6 @@ impl AsRef<TapestryWeaveInner> for TapestryWeave {
     fn as_ref(&self) -> &TapestryWeaveInner {
         &self.weave
     }
-}
-
-pub fn generate_unique_id(rng: &mut WyRand, weave: &TapestryWeaveInner) -> u64 {
-    let mut id = rng.generate();
-
-    while weave.contains(&id) {
-        id = rng.generate();
-    }
-
-    id
-}
-
-pub fn generate_unique_id_with_list(
-    rng: &mut WyRand,
-    weave: &TapestryWeaveInner,
-    ids: &[u64],
-) -> u64 {
-    let mut id = rng.generate();
-
-    while weave.contains(&id) || ids.contains(&id) {
-        id = rng.generate();
-    }
-
-    id
 }
 
 impl TapestryWeave {

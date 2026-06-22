@@ -1,3 +1,8 @@
+use std::hash::BuildHasher;
+
+use nanorand::{Rng, WyRand};
+use universal_weave::{Node, Weave};
+
 pub mod content;
 pub mod dependent;
 pub mod independent;
@@ -21,3 +26,33 @@ Ideas for future formats:
 See also: https://github.com/transkatgirl/Tapestry-Loom/blob/a232fbbb4119a8a9047ca67a8f1b0cfb772c5bb1/weave/src/document/content/mod.rs
 
 */
+
+pub fn generate_unique_id<W, N, T, S>(rng: &mut WyRand, weave: &W) -> u64
+where
+    W: Weave<u64, N, T, S>,
+    N: Node<u64, T, S>,
+    S: BuildHasher + Default + Clone,
+{
+    let mut id = rng.generate();
+
+    while weave.contains(&id) {
+        id = rng.generate();
+    }
+
+    id
+}
+
+pub fn generate_unique_id_with_list<W, N, T, S>(rng: &mut WyRand, weave: &W, ids: &[u64]) -> u64
+where
+    W: Weave<u64, N, T, S>,
+    N: Node<u64, T, S>,
+    S: BuildHasher + Default + Clone,
+{
+    let mut id = rng.generate();
+
+    while weave.contains(&id) || ids.contains(&id) {
+        id = rng.generate();
+    }
+
+    id
+}
