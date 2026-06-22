@@ -380,7 +380,7 @@ impl Endpoint for OpenAICompletionsConfig {
         let mut body = Map::with_capacity(1 + request.parameters.len() + self.parameters.len());
 
         build_json_object(&mut body, self.parameters.clone());
-        build_json_object(&mut body, request.parameters.as_ref().clone());
+        build_json_object(&mut body, request.parameters.clone());
 
         let echo = body.get("echo").and_then(|t| t.as_bool()).unwrap_or(false);
 
@@ -402,7 +402,7 @@ impl Endpoint for OpenAICompletionsConfig {
         if self.nonstandard.reuse_tokens && !self.nonstandard.tokenization_endpoint.is_empty() {
             let mut token_futures = Vec::with_capacity(request.content.len());
 
-            for segment in request.content.as_ref().clone() {
+            for segment in request.content {
                 token_futures.push(
                     RequestTokensOrBytes::build(segment, &model.identifier)
                         .cached_into_tokens_async(
@@ -449,8 +449,6 @@ impl Endpoint for OpenAICompletionsConfig {
         } else {
             let request_bytes: Vec<u8> = request
                 .content
-                .as_ref()
-                .clone()
                 .into_iter()
                 .flat_map(|t| t.into_bytes())
                 .collect();
@@ -483,12 +481,7 @@ impl Endpoint for OpenAICompletionsConfig {
         }
 
         if let Some(suffix) = request.suffix {
-            let suffix_bytes: Vec<u8> = suffix
-                .as_ref()
-                .clone()
-                .into_iter()
-                .flat_map(|t| t.into_bytes())
-                .collect();
+            let suffix_bytes: Vec<u8> = suffix.into_iter().flat_map(|t| t.into_bytes()).collect();
 
             if !suffix_bytes.is_empty() {
                 body.insert(
@@ -520,11 +513,9 @@ impl Endpoint for OpenAICompletionsConfig {
         .json()
         .await?;
 
-        let metadata = request.parameters.as_ref().clone();
-
         let endpoint_response = parse_response(
             response,
-            metadata,
+            request.parameters,
             model,
             echo,
             single_token,
@@ -675,7 +666,7 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         let mut body = Map::with_capacity(1 + request.parameters.len() + self.parameters.len());
 
         build_json_object(&mut body, self.parameters.clone());
-        build_json_object(&mut body, request.parameters.as_ref().clone());
+        build_json_object(&mut body, request.parameters.clone());
 
         let single_token = body
             .get("max_completion_tokens")
@@ -705,8 +696,6 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
         let request_bytes: Vec<u8> = request
             .content
-            .as_ref()
-            .clone()
             .into_iter()
             .flat_map(|t| t.into_bytes())
             .collect();
@@ -749,11 +738,9 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         .json()
         .await?;
 
-        let metadata = request.parameters.as_ref().clone();
-
         let endpoint_response = parse_response(
             response,
-            metadata,
+            request.parameters,
             model,
             false,
             single_token,

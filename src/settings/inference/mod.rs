@@ -1115,9 +1115,9 @@ impl EmbeddingEndpoint for EmbeddingEndpointConfig {
 
 #[derive(Debug, Clone)]
 struct EndpointRequest {
-    content: Arc<Vec<TokensOrBytes>>,
-    suffix: Option<Arc<Vec<TokensOrBytes>>>,
-    parameters: Arc<Vec<(String, String)>>,
+    content: Vec<TokensOrBytes>,
+    suffix: Option<Vec<TokensOrBytes>>,
+    parameters: Vec<(String, String)>,
 }
 
 struct EndpointResponse {
