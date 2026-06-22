@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 use eframe::egui::{CollapsingHeader, TextEdit, Ui, Widget};
 use log::trace;
@@ -374,10 +374,7 @@ impl Endpoint for OpenAICompletionsConfig {
         let mut headers = HeaderMap::with_capacity(self.headers.len());
 
         for (key, value) in &self.headers {
-            headers.insert(
-                HeaderName::from_bytes(key.as_bytes())?,
-                HeaderValue::from_str(value)?,
-            );
+            headers.insert(HeaderName::from_str(key)?, HeaderValue::from_str(value)?);
         }
 
         let mut body = Map::with_capacity(1 + request.parameters.len() + self.parameters.len());
@@ -672,10 +669,7 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         let mut headers = HeaderMap::with_capacity(self.headers.len());
 
         for (key, value) in &self.headers {
-            headers.insert(
-                HeaderName::from_bytes(key.as_bytes())?,
-                HeaderValue::from_str(value)?,
-            );
+            headers.insert(HeaderName::from_str(key)?, HeaderValue::from_str(value)?);
         }
 
         let mut body = Map::with_capacity(1 + request.parameters.len() + self.parameters.len());
@@ -910,10 +904,7 @@ impl EmbeddingEndpoint for OpenAIEmbeddingsConfig {
         let mut headers = HeaderMap::with_capacity(self.headers.len());
 
         for (key, value) in &self.headers {
-            headers.insert(
-                HeaderName::from_bytes(key.as_bytes())?,
-                HeaderValue::from_str(value)?,
-            );
+            headers.insert(HeaderName::from_str(key)?, HeaderValue::from_str(value)?);
         }
 
         let mut body = Map::with_capacity(1 + self.parameters.len());
