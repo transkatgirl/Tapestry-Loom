@@ -148,7 +148,7 @@ where
     K: Hash + Copy + Eq,
     S: BuildHasher + Default + Clone,
 {
-    pub positions: HashMap<K, Pos2, S>,
+    pub positions: HashMap<K, Pos2, S>, // TODO: Replace HashMaps with sorted Vecs
     pub rects: HashMap<K, Rect, S>,
     pub width: f32,
     pub height: f32,
