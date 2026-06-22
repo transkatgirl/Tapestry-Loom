@@ -684,8 +684,9 @@ impl Endpoint for OpenAIChatCompletionsConfig {
             .unwrap_or(false);
 
         let requested_top = body
-            .get("logprobs")
+            .get("top_logprobs")
             .and_then(|t| t.as_u64())
+            .or_else(|| body.get("logprobs").and_then(|t| t.as_u64()))
             .map(|t| t as usize);
 
         if body.remove("stream").is_some() {
