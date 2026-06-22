@@ -11,37 +11,38 @@ use rust_sugiyama::{
 use tapestry_weave::universal_weave::{Node, Weave};
 
 #[derive(Debug)]
-pub struct WeaveLayout<K>
+pub struct WeaveLayout<K, S>
 where
     K: Hash + Copy + Eq,
+    S: BuildHasher + Default + Clone,
 {
-    identifier_map: HashMap<K, u32>,
+    identifier_map: HashMap<K, u32, S>,
     identifier_unmap: HashMap<u32, K>,
     vertices: Vec<(u32, (f64, f64))>,
     edges: Vec<(u32, u32)>,
     id_counter: u32,
 }
 
-impl<K> WeaveLayout<K>
+impl<K, S> WeaveLayout<K, S>
 where
     K: Hash + Copy + Eq,
+    S: BuildHasher + Default + Clone,
 {
     pub fn with_capacity(node_capacity: usize, edge_capacity: usize) -> Self {
         Self {
-            identifier_map: HashMap::with_capacity(node_capacity),
+            identifier_map: HashMap::with_capacity_and_hasher(node_capacity, S::default()),
             identifier_unmap: HashMap::with_capacity(node_capacity),
             vertices: Vec::with_capacity(node_capacity),
             edges: Vec::with_capacity(edge_capacity),
             id_counter: 0,
         }
     }
-    pub fn load_weave<N, T, S>(
+    pub fn load_weave<N, T>(
         &mut self,
         weave: impl Weave<K, N, T, S>,
         node_sizes: impl ExactSizeIterator<Item = (K, (f64, f64))>,
     ) where
         N: Node<K, T, S>,
-        S: BuildHasher + Default + Clone,
     {
         self.identifier_map.clear();
         self.identifier_unmap.clear();
@@ -80,7 +81,7 @@ where
             }
         }
     }
-    pub fn layout_weave(&self, spacing: f64) -> ArrangedWeave<K> {
+    pub fn layout_weave(&self, spacing: f64) -> ArrangedWeave<K, S> {
         let layout = from_vertices_and_edges(
             &self.vertices,
             &self.edges,
@@ -100,8 +101,8 @@ where
         let mut width = 0.0;
         let mut height = 0.0;
 
-        let mut positions = HashMap::with_capacity(self.vertices.len());
-        let mut rects = HashMap::with_capacity(self.vertices.len());
+        let mut positions = HashMap::with_capacity_and_hasher(self.vertices.len(), S::default());
+        let mut rects = HashMap::with_capacity_and_hasher(self.vertices.len(), S::default());
 
         for (subgraph, _, _) in layout {
             let mut subgraph_width: f64 = 0.0;
@@ -114,7 +115,13 @@ where
                 let y_pos = y + y_offset;
 
                 let identifier = self.identifier_unmap.get(&id).unwrap();
-                positions.insert(*identifier, (x_pos, y_pos));
+                positions.insert(
+                    *identifier,
+                    Pos2 {
+                        x: x_pos as f32,
+                        y: y_pos as f32,
+                    },
+                );
                 rects.insert(
                     *identifier,
                     Rect {
@@ -141,21 +148,22 @@ where
         ArrangedWeave {
             positions,
             rects,
-            width: width + spacing,
-            height: height + (spacing * 2.0),
+            width: (width + spacing) as f32,
+            height: (height + (spacing * 2.0)) as f32,
         }
     }
 }
 
 #[derive(Default, Debug)]
-pub struct ArrangedWeave<K>
+pub struct ArrangedWeave<K, S>
 where
     K: Hash + Copy + Eq,
+    S: BuildHasher + Default + Clone,
 {
-    pub positions: HashMap<K, (f64, f64)>,
-    pub rects: HashMap<K, Rect>,
-    pub width: f64,
-    pub height: f64,
+    pub positions: HashMap<K, Pos2, S>,
+    pub rects: HashMap<K, Rect, S>,
+    pub width: f32,
+    pub height: f32,
 }
 
 // Copied from egui-snarl
