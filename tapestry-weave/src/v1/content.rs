@@ -898,10 +898,10 @@ impl Model {
                     value.seed = None;
                 }
                 if self.system_fingerprint != value.system_fingerprint {
-                    self.system_fingerprint = None;
+                    value.system_fingerprint = None;
                 }
                 if self.finish_reason != value.finish_reason {
-                    self.finish_reason = None;
+                    value.finish_reason = None;
                 }
                 Ok(value)
             } else {
