@@ -3,7 +3,7 @@
 use std::{cmp::Ordering, collections::HashSet, hash::BuildHasherDefault, num::NonZeroU128};
 
 use jiff::Zoned;
-use nanorand::{Rng, WyRand};
+use nanorand::WyRand;
 use universal_weave::{
     ActivePathWeave, ArchivedWeave, DeduplicatableWeave, DiscreteWeave, Weave,
     independent::{ArchivedIndependentNode, IndependentNode, IndependentWeave},
@@ -20,6 +20,9 @@ use jiff::Timestamp;
 
 #[cfg(feature = "v0")]
 use ulid::Ulid;
+
+#[cfg(feature = "v0")]
+use nanorand::Rng;
 
 #[cfg(feature = "v0")]
 use crate::{
