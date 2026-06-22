@@ -7,7 +7,7 @@ use eframe::egui::{Pos2, Rect, pos2};
 use rust_sugiyama::{
     configure::{Config, CrossingMinimization, RankingType},
     from_vertices_and_edges,
-};
+}; // TODO: Compare w/ gen_sugiyama and mermaid-dagre
 use tapestry_weave::universal_weave::{Node, Weave, indexmap::IndexSet};
 
 #[derive(Debug)]
