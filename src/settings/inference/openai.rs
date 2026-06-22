@@ -395,7 +395,7 @@ impl Endpoint for OpenAICompletionsConfig {
             .and_then(|t| t.as_u64())
             .map(|t| t as usize);
 
-        if body.remove("stream").is_some() {
+        if body.contains_key("stream") {
             body.insert("stream".to_string(), Value::Bool(false));
         };
 
@@ -690,7 +690,7 @@ impl Endpoint for OpenAIChatCompletionsConfig {
             .or_else(|| body.get("logprobs").and_then(|t| t.as_u64()))
             .map(|t| t as usize);
 
-        if body.remove("stream").is_some() {
+        if body.contains_key("stream") {
             body.insert("stream".to_string(), Value::Bool(false));
         };
 
