@@ -54,21 +54,10 @@ use super::shared::{json_object_to_metadata_map, json_value_to_metadata_field};
 #[derive(Debug)]
 pub struct ResponseItem {
     pub index: Option<usize>,
-    pub role: Option<String>,
     pub finish_reason: Option<String>,
     pub fingerprint: Option<String>,
     pub contents: InnerNodeContent,
     pub metadata: MetadataMap,
-}
-
-impl ResponseItem {
-    pub fn clear_normal(&mut self) {
-        if let Some(role) = &self.role
-            && role == "assistant"
-        {
-            self.role = None;
-        }
-    }
 }
 
 pub fn parse_embedding_response(json: Value) -> Vec<Option<Vec<f32>>> {
@@ -181,7 +170,6 @@ pub fn parse_response(
                 if let Some(Value::Array(output)) = json.remove("output") {
                     let mut item_sum = ResponseItem {
                         index: None,
-                        role: None,
                         finish_reason: None,
                         fingerprint,
                         contents: InnerNodeContent::MetadataOnly,
@@ -197,16 +185,6 @@ pub fn parse_response(
                         {
                             if item.index.is_some() {
                                 break;
-                            }
-
-                            if let Some(role) = item.role {
-                                if let Some(sum_role) = &item_sum.role
-                                    && *sum_role != role
-                                {
-                                    break;
-                                } else {
-                                    item_sum.role = Some(role);
-                                }
                             }
 
                             item_sum.contents = item_sum.contents.force_merge(item.contents);
@@ -268,7 +246,6 @@ pub fn parse_response(
             "response.completed" => {
                 items.push(ResponseItem {
                     index: None,
-                    role: None,
                     finish_reason: Some("completed".to_string()),
                     fingerprint,
                     contents: InnerNodeContent::MetadataOnly,
@@ -278,7 +255,6 @@ pub fn parse_response(
             "response.failed" => {
                 items.push(ResponseItem {
                     index: None,
-                    role: None,
                     finish_reason: Some("failed".to_string()),
                     fingerprint,
                     contents: InnerNodeContent::MetadataOnly,
@@ -288,7 +264,6 @@ pub fn parse_response(
             "response.incomplete" => {
                 items.push(ResponseItem {
                     index: None,
-                    role: None,
                     finish_reason: if let Some(Value::Object(mut response)) =
                         json.remove("response")
                         && let Some(Value::Object(mut incomplete_details)) =
@@ -305,18 +280,13 @@ pub fn parse_response(
                 });
             }
             "message_start" => {
-                if let Some(Value::Object(mut message)) = json.remove("message")
-                    && let Some(Value::String(role)) = message.remove("role")
-                {
-                    items.push(ResponseItem {
-                        index: None,
-                        role: Some(role),
-                        finish_reason: None,
-                        fingerprint,
-                        contents: InnerNodeContent::MetadataOnly,
-                        metadata,
-                    });
-                }
+                items.push(ResponseItem {
+                    index: None,
+                    finish_reason: None,
+                    fingerprint,
+                    contents: InnerNodeContent::MetadataOnly,
+                    metadata,
+                });
             }
             "message_delta" => {
                 if let Some(Value::Object(mut delta)) = json.remove("delta")
@@ -324,7 +294,6 @@ pub fn parse_response(
                 {
                     items.push(ResponseItem {
                         index: None,
-                        role: None,
                         finish_reason: Some(stop_reason),
                         fingerprint,
                         contents: InnerNodeContent::MetadataOnly,
@@ -340,7 +309,6 @@ pub fn parse_response(
                 {
                     items.push(ResponseItem {
                         index: None,
-                        role: None,
                         finish_reason: None,
                         fingerprint,
                         contents: InnerNodeContent::Snippet(text.into_bytes()),
@@ -474,14 +442,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         }
     }
 
-    let mut role = if let Some(Value::String(role)) = json.remove("role") {
-        Some(role)
-    } else if let Some(Value::String(author)) = json.remove("author") {
-        Some(author)
-    } else {
-        None
-    };
-
     let tokens = if let Some(logprobs_json) = json.remove("logprobs") {
         if let Value::Object(mut logprobs_json) = logprobs_json {
             let token_ids = json
@@ -519,7 +479,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     if let Some(tokens) = tokens {
         Some(ResponseItem {
             index,
-            role,
             finish_reason,
             fingerprint,
             contents: InnerNodeContent::Tokens(tokens),
@@ -528,7 +487,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     } else if let Some(Value::String(text)) = json.remove("text") {
         Some(ResponseItem {
             index,
-            role,
             finish_reason,
             fingerprint,
             contents: InnerNodeContent::Snippet(text.into_bytes()),
@@ -537,7 +495,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     } else if let Some(Value::String(text)) = json.remove("generated_text") {
         Some(ResponseItem {
             index,
-            role,
             finish_reason,
             fingerprint,
             contents: InnerNodeContent::Snippet(text.into_bytes()),
@@ -546,7 +503,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     } else if let Some(Value::String(output)) = json.remove("output") {
         Some(ResponseItem {
             index,
-            role,
             finish_reason,
             fingerprint,
             contents: InnerNodeContent::Snippet(output.into_bytes()),
@@ -555,7 +511,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     } else if let Some(Value::String(completion)) = json.remove("completion") {
         Some(ResponseItem {
             index,
-            role,
             finish_reason,
             fingerprint,
             contents: InnerNodeContent::Snippet(completion.into_bytes()),
@@ -564,10 +519,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     } else if let Some(Value::Object(mut message)) = json.remove("message")
         && let Some(Value::String(content)) = message.remove("content")
     {
-        if let Some(Value::String(role_value)) = message.remove("role") {
-            role = Some(role_value);
-        }
-
         if finish_reason.is_none()
             && let Some(Value::String(finish_reason_value)) = message.remove("finish_reason")
         {
@@ -576,7 +527,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
 
         Some(ResponseItem {
             index,
-            role,
             finish_reason,
             fingerprint,
             contents: InnerNodeContent::Snippet(content.into_bytes()),
@@ -585,10 +535,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     } else if let Some(delta) = json.remove("delta") {
         match delta {
             Value::Object(mut delta) => {
-                if let Some(Value::String(role_value)) = delta.remove("role") {
-                    role = Some(role_value);
-                }
-
                 if finish_reason.is_none()
                     && let Some(Value::String(finish_reason_value)) = delta.remove("finish_reason")
                 {
@@ -598,7 +544,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                 if let Some(Value::String(content)) = delta.remove("content") {
                     Some(ResponseItem {
                         index,
-                        role,
                         finish_reason,
                         fingerprint,
                         contents: InnerNodeContent::Snippet(content.into_bytes()),
@@ -610,7 +555,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             }
             Value::String(delta) => Some(ResponseItem {
                 index,
-                role,
                 finish_reason,
                 fingerprint,
                 contents: InnerNodeContent::Snippet(delta.into_bytes()),
@@ -620,16 +564,11 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         }
     } else if let Some(content) = json.remove("content") {
         if let Value::Object(mut content) = content {
-            if let Some(Value::String(role_value)) = content.remove("role") {
-                role = Some(role_value);
-            }
-
             if let Some(Value::String(content_type)) = content.get("type") {
                 if content_type == "text" {
                     if let Some(Value::String(text)) = content.remove("text") {
                         Some(ResponseItem {
                             index,
-                            role,
                             finish_reason,
                             fingerprint,
                             contents: InnerNodeContent::Snippet(text.into_bytes()),
@@ -663,7 +602,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                     if let Some(tokens) = tokens {
                         Some(ResponseItem {
                             index,
-                            role,
                             finish_reason,
                             fingerprint,
                             contents: InnerNodeContent::Tokens(tokens),
@@ -672,7 +610,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                     } else {
                         Some(ResponseItem {
                             index,
-                            role,
                             finish_reason,
                             fingerprint,
                             contents: InnerNodeContent::Snippet(text.into_bytes()),
@@ -711,7 +648,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
 
                 Some(ResponseItem {
                     index,
-                    role,
                     finish_reason,
                     fingerprint,
                     contents: InnerNodeContent::Snippet(text),
@@ -766,7 +702,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             if !tokens.is_empty() {
                 Some(ResponseItem {
                     index,
-                    role,
                     finish_reason,
                     fingerprint,
                     contents: InnerNodeContent::Tokens(tokens),
@@ -775,7 +710,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             } else {
                 Some(ResponseItem {
                     index,
-                    role,
                     finish_reason,
                     fingerprint,
                     contents: InnerNodeContent::Snippet(bytes),
@@ -785,7 +719,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         } else if let Value::String(content) = content {
             Some(ResponseItem {
                 index,
-                role,
                 finish_reason,
                 fingerprint,
                 contents: InnerNodeContent::Snippet(content.into_bytes()),
@@ -797,7 +730,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     } else if let Some(Value::String(response)) = json.remove("response") {
         Some(ResponseItem {
             index,
-            role,
             finish_reason,
             fingerprint,
             contents: InnerNodeContent::Snippet(response.into_bytes()),

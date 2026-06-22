@@ -97,15 +97,7 @@ pub(super) fn parse_response(
 
     let mut outputs = Vec::with_capacity(items.len());
 
-    for mut item in items {
-        item.clear_normal();
-
-        let mut metadata = metadata.clone();
-
-        if let Some(role) = item.role {
-            metadata.insert("role".to_string(), role);
-        }
-
+    for item in items {
         let creator = Creator::Model(Some(Model {
             label: model.label().to_string(),
             color: model.color.map(|c| c.to_hex()),
@@ -124,7 +116,7 @@ pub(super) fn parse_response(
                         timestamp: timestamp.clone(),
                         modified: false,
                         content: InnerNodeContent::Tokens(tokens),
-                        metadata,
+                        metadata: metadata.clone(),
                         aux_metadata: AuxMetadataMap::default(),
                         creator,
                     },
@@ -158,7 +150,7 @@ pub(super) fn parse_response(
                     timestamp: timestamp.clone(),
                     modified: false,
                     content: item.contents,
-                    metadata,
+                    metadata: metadata.clone(),
                     aux_metadata: AuxMetadataMap::default(),
                     creator,
                 },
