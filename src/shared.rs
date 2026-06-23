@@ -1,32 +1,30 @@
 use eframe::egui::{Context, Ui, WidgetText};
 use egui_tiles::{Container, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse};
 
-pub struct ViewContainer<T, P, F>
+pub struct ViewContainer<T, P>
 where
     P: View<T>,
-    F: Fn(&mut T) -> Option<P>,
 {
-    pub behavior: ViewContainerBehavior<T, P, F>,
+    pub behavior: ViewContainerBehavior<T, P>,
     tree: Tree<P>,
     pane_list: Vec<TileId>,
 }
 
-pub struct ViewContainerBehavior<T, P, F>
+#[allow(clippy::type_complexity)]
+pub struct ViewContainerBehavior<T, P>
 where
     P: View<T>,
-    F: Fn(&mut T) -> Option<P>,
 {
     pub shared: T,
-    pub creation_callback: Option<F>,
+    pub creation_callback: Option<Box<dyn Fn(&mut T) -> P>>,
     focus: Option<TileId>,
     create: Option<Option<TileId>>,
     add: Vec<TileId>,
 }
 
-impl<T, P, F> egui_tiles::Behavior<P> for ViewContainerBehavior<T, P, F>
+impl<T, P> egui_tiles::Behavior<P> for ViewContainerBehavior<T, P>
 where
     P: View<T>,
-    F: Fn(&mut T) -> Option<P>,
 {
     fn tab_title_for_pane(&mut self, pane: &P) -> WidgetText {
         pane.title()
@@ -75,10 +73,9 @@ where
     }
 }
 
-impl<T, P, F> ViewContainer<T, P, F>
+impl<T, P> ViewContainer<T, P>
 where
     P: View<T>,
-    F: Fn(&mut T) -> Option<P>,
 {
     pub fn new(tree: Tree<P>, shared: T) -> Self {
         Self {
@@ -100,10 +97,11 @@ where
     }
     pub fn logic(&mut self, ctx: &Context) {
         if let Some(create) = self.behavior.create {
-            if let Some(callback) = &self.behavior.creation_callback
-                && let Some(pane) = callback(&mut self.behavior.shared)
-            {
-                let tile_id = self.tree.tiles.insert_new(Tile::Pane(pane));
+            if let Some(callback) = &self.behavior.creation_callback {
+                let tile_id = self
+                    .tree
+                    .tiles
+                    .insert_new(Tile::Pane(callback(&mut self.behavior.shared)));
 
                 if let Some(create) = create
                     && let Some(Tile::Container(parent)) = self.tree.tiles.get_mut(create)
