@@ -460,9 +460,19 @@ impl App for TapestryLoomApp {
 
 /*
 trait AppView<T> {
-    fn new(state: &mut T) -> Self;
-    fn render(&mut self, state: &mut T, ui: &mut Ui);
-    fn update(&mut self, state: &mut T);
+    fn new(shared: &mut T) -> Self;
+    fn title(&mut self) -> WidgetText;
+    fn closable(&mut self) -> bool {
+        false
+    }
+
+    fn render(&mut self, shared: &mut T, ui: &mut Ui);
+    fn update(&mut self, shared: &mut T, ctx: &Context);
+
+    #[allow(unused_variables)]
+    fn close(&mut self, shared: &mut T, ctx: &Context) {
+        unimplemented!()
+    }
 }
 */
 
