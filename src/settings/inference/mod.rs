@@ -1318,17 +1318,7 @@ impl RequestTokensOrBytes {
         match self {
             Self::Bytes(bytes) => {
                 let mut model_cache = match cache.lock().await.entry(identifier) {
-                    Entry::Occupied(occupied) => {
-                        if let Some(tokens) = occupied.get().lock().await.get(&bytes) {
-                            trace!(
-                                "Using cached tokenization of {:?}",
-                                String::from_utf8_lossy(&bytes)
-                            );
-                            return Ok(tokens.clone());
-                        } else {
-                            occupied.get().clone()
-                        }
-                    }
+                    Entry::Occupied(occupied) => occupied.get().clone(),
                     Entry::Vacant(vacant) => {
                         let occupied = vacant.insert_entry(Arc::new(Mutex::new(
                             LinkedHashMap::with_capacity(TOKENIZATION_CACHE_MAX_SIZE),
@@ -1338,6 +1328,14 @@ impl RequestTokensOrBytes {
                 }
                 .lock_owned()
                 .await;
+
+                if let Some(tokens) = model_cache.get(&bytes) {
+                    trace!(
+                        "Using cached tokenization of {:?}",
+                        String::from_utf8_lossy(&bytes)
+                    );
+                    return Ok(tokens.clone());
+                }
 
                 trace!("Tokenizing {:?}", String::from_utf8_lossy(&bytes));
 
