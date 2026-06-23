@@ -81,7 +81,7 @@ where
     F: Fn(&mut T) -> Option<P>,
 {
     pub fn new(tree: Tree<P>, shared: T) -> Self {
-        let mut view_container = Self {
+        Self {
             behavior: ViewContainerBehavior {
                 shared,
                 creation_callback: None,
@@ -91,18 +91,7 @@ where
             },
             tree,
             pane_list: Vec::new(),
-        };
-        view_container.refresh_pane_list();
-
-        view_container
-    }
-    fn refresh_pane_list(&mut self) {
-        self.pane_list.clear();
-        self.pane_list
-            .extend(self.tree.tiles.iter().filter_map(|(tile_id, tile)| {
-                if tile.is_pane() { Some(tile_id) } else { None }
-            }));
-        self.pane_list.sort_unstable_by_key(|a| a.0);
+        }
     }
     pub fn add_pane(&mut self, pane: P) {
         self.behavior
@@ -161,14 +150,26 @@ where
             self.behavior.focus = None;
         }
 
-        for tile_id in self.pane_list.iter().copied() {
+        self.pane_list.clear();
+        self.pane_list
+            .extend(self.tree.tiles.iter().filter_map(|(tile_id, tile)| {
+                if tile.is_pane() { Some(tile_id) } else { None }
+            }));
+        self.pane_list.sort_unstable_by_key(|a| a.0);
+
+        for tile_id in self.pane_list.drain(..) {
             if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id) {
                 pane.logic(&mut self.behavior.shared, ctx);
             }
         }
     }
     pub fn modals(&mut self, ctx: &Context) {
-        for tile_id in self.pane_list.iter().copied() {
+        self.pane_list.clear();
+        if let Some(root) = self.tree.root {
+            build_tree_pane_list(&self.tree, &mut self.pane_list, root);
+        }
+
+        for tile_id in self.pane_list.drain(..) {
             if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id) {
                 pane.modals(&mut self.behavior.shared, ctx);
             }
@@ -176,10 +177,14 @@ where
     }
     pub fn ui(&mut self, ui: &mut Ui) {
         self.tree.ui(&mut self.behavior, ui);
-        self.refresh_pane_list();
     }
     pub fn close(&mut self) -> bool {
         let mut would_close = true;
+
+        self.pane_list.clear();
+        if let Some(root) = self.tree.root {
+            build_tree_pane_list(&self.tree, &mut self.pane_list, root);
+        }
 
         for tile_id in self.pane_list.iter().copied() {
             if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id)
@@ -190,14 +195,30 @@ where
         }
 
         if would_close {
-            for tile_id in self.pane_list.iter().copied() {
+            for tile_id in self.pane_list.drain(..) {
                 if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id) {
                     pane.close(&mut self.behavior.shared);
                 }
             }
+        } else {
+            self.pane_list.clear();
         }
 
         would_close
+    }
+}
+
+fn build_tree_pane_list<P>(tree: &Tree<P>, panes: &mut Vec<TileId>, current: TileId) {
+    match tree.tiles.get(current) {
+        Some(Tile::Container(container)) => {
+            for child in container.children() {
+                build_tree_pane_list(tree, panes, *child);
+            }
+        }
+        Some(Tile::Pane(_)) => {
+            panes.push(current);
+        }
+        None => {}
     }
 }
 
