@@ -456,6 +456,16 @@ impl App for TapestryLoomApp {
     }
 }
 
+// TODO: Get rid of Rc/Arc/RefCell/Mutex whenever possible
+
+/*
+trait AppView<T> {
+    fn new(state: &mut T) -> Self;
+    fn render(&mut self, state: &mut T, ui: &mut Ui);
+    fn update(&mut self, state: &mut T);
+}
+*/
+
 struct TapestryLoomBehavior {
     settings: Rc<RefCell<Settings>>,
     client: Rc<RefCell<Option<Client>>>,
