@@ -1,25 +1,32 @@
-use std::vec::Drain;
-
-use eframe::egui::{self, Context, Ui, WidgetText};
+use eframe::egui::{Context, Ui, WidgetText};
 use egui_tiles::{Container, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse};
 
-pub struct ViewContainer<T, P>
+pub struct ViewContainer<T, P, F>
 where
     P: View<T>,
+    F: Fn(&mut T) -> Option<P>,
 {
-    pub behavior: ViewContainerBehavior<T>,
+    pub behavior: ViewContainerBehavior<T, P, F>,
     tree: Tree<P>,
     pane_list: Vec<TileId>,
 }
 
-pub struct ViewContainerBehavior<T> {
-    pub shared: T,
-    focus: Option<TileId>,
-}
-
-impl<T, P> egui_tiles::Behavior<P> for ViewContainerBehavior<T>
+pub struct ViewContainerBehavior<T, P, F>
 where
     P: View<T>,
+    F: Fn(&mut T) -> Option<P>,
+{
+    pub shared: T,
+    pub creation_callback: Option<F>,
+    focus: Option<TileId>,
+    create: Option<Option<TileId>>,
+    add: Vec<TileId>,
+}
+
+impl<T, P, F> egui_tiles::Behavior<P> for ViewContainerBehavior<T, P, F>
+where
+    P: View<T>,
+    F: Fn(&mut T) -> Option<P>,
 {
     fn tab_title_for_pane(&mut self, pane: &P) -> WidgetText {
         pane.title()
@@ -55,7 +62,9 @@ where
         _tabs: &egui_tiles::Tabs,
         _scroll_offset: &mut f32,
     ) {
-        //todo!()
+        if self.creation_callback.is_some() && ui.button("\u{E13D}").clicked() {
+            self.create = Some(Some(tile_id));
+        }
     }
     fn on_tab_close(&mut self, tiles: &mut Tiles<P>, tile_id: TileId) -> bool {
         if let Some(Tile::Pane(pane)) = tiles.get_mut(tile_id) {
@@ -66,15 +75,19 @@ where
     }
 }
 
-impl<T, P> ViewContainer<T, P>
+impl<T, P, F> ViewContainer<T, P, F>
 where
     P: View<T>,
+    F: Fn(&mut T) -> Option<P>,
 {
     pub fn new(tree: Tree<P>, shared: T) -> Self {
         let mut view_container = Self {
             behavior: ViewContainerBehavior {
                 shared,
+                creation_callback: None,
                 focus: None,
+                create: None,
+                add: Vec::with_capacity(1),
             },
             tree,
             pane_list: Vec::new(),
@@ -91,7 +104,52 @@ where
             }));
         self.pane_list.sort_unstable_by_key(|a| a.0);
     }
+    pub fn add_pane(&mut self, pane: P) {
+        self.behavior
+            .add
+            .push(self.tree.tiles.insert_new(Tile::Pane(pane)));
+    }
     pub fn logic(&mut self, ctx: &Context) {
+        if let Some(create) = self.behavior.create {
+            if let Some(callback) = &self.behavior.creation_callback
+                && let Some(pane) = callback(&mut self.behavior.shared)
+            {
+                let tile_id = self.tree.tiles.insert_new(Tile::Pane(pane));
+
+                if let Some(create) = create
+                    && let Some(Tile::Container(parent)) = self.tree.tiles.get_mut(create)
+                {
+                    parent.add_child(tile_id);
+                    if let egui_tiles::Container::Tabs(tabs) = parent {
+                        tabs.set_active(tile_id);
+                    }
+                } else if let Some(root) = self.tree.root
+                    && let Some(Tile::Container(root)) = self.tree.tiles.get_mut(root)
+                {
+                    root.add_child(tile_id);
+                    if let egui_tiles::Container::Tabs(tabs) = root {
+                        tabs.set_active(tile_id);
+                    }
+                }
+            }
+            self.behavior.create = None;
+        }
+
+        if !self.behavior.add.is_empty() {
+            if let Some(root) = self.tree.root
+                && let Some(Tile::Container(root)) = self.tree.tiles.get_mut(root)
+            {
+                for tile_id in self.behavior.add.drain(..) {
+                    root.add_child(tile_id);
+                    if let egui_tiles::Container::Tabs(tabs) = root {
+                        tabs.set_active(tile_id);
+                    }
+                }
+            } else {
+                self.behavior.add.clear();
+            }
+        }
+
         if let Some(tile_id) = self.behavior.focus {
             if let Some(parent_id) = self.tree.tiles.parent_of(tile_id)
                 && let Some(Tile::Container(Container::Tabs(tabs))) =
