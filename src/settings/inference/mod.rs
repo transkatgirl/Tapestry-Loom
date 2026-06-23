@@ -22,7 +22,7 @@ use tapestry_weave::{
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
-    v1::content::NodeContent,
+    v1::{content::NodeContent, dependent::TapestryNode},
 };
 use tokio::{runtime::Runtime, sync::Mutex, task};
 use ulid::Ulid;
@@ -148,7 +148,7 @@ impl InferenceSettings {
                         label: String::new(),
                         color: None,
                         endpoint,
-                        tokenization_identifier: identifier,
+                        identifier,
                     },
                 );
             }
@@ -631,7 +631,7 @@ impl InferenceParameters {
             client,
             cache,
             parent,
-            Arc::new(content),
+            content,
             output,
         );
     }
@@ -642,7 +642,7 @@ impl InferenceParameters {
         client: &InferenceClient,
         cache: &InferenceCache,
         parent_node: Option<Ulid>,
-        content: Arc<Vec<TokensOrBytes>>,
+        content: Vec<TokensOrBytes>,
         output: &mut HashMap<Ulid, InferenceHandle>,
     ) {
         let parameters = Rc::new(self.clone());
@@ -650,21 +650,19 @@ impl InferenceParameters {
 
         for model in &self.models {
             if let Some(inference_model) = models.get(&model.model) {
-                let content_model = inference_model.content_model();
                 let request = EndpointRequest {
                     content: content.clone(),
                     suffix: None,
-                    parameters: Arc::new(model.parameters.clone()),
+                    parameters: model.parameters.clone(),
                 };
                 let endpoint = Arc::new(inference_model.endpoint.clone());
-                let tokenization_identifier = inference_model.tokenization_identifier;
 
                 for _ in 0..model.requests {
-                    let content_model = content_model.clone();
                     let request = request.clone();
                     let endpoint = endpoint.clone();
                     let client = client.clone();
                     let cache = cache.clone();
+                    let model = inference_model.clone();
                     output.insert(
                         Ulid::new(),
                         InferenceHandle {
@@ -673,29 +671,10 @@ impl InferenceParameters {
                             models: models.clone(),
                             parameters: parameters.clone(),
                             handle: Promise::spawn_async(async move {
-                                let responses = endpoint
+                                endpoint
                                     .as_ref()
-                                    .perform_request(
-                                        &client,
-                                        &cache,
-                                        request,
-                                        tokenization_identifier,
-                                    )
-                                    .await?;
-
-                                responses
-                                    .into_iter()
-                                    .map(|response| {
-                                        Ok((
-                                            NodeContent {
-                                                content: response.content,
-                                                metadata: IndexMap::from_iter(response.metadata),
-                                                model: Some(content_model.clone()),
-                                            },
-                                            response.root,
-                                        ))
-                                    })
-                                    .collect()
+                                    .perform_request(&client, &cache, &model, request)
+                                    .await
                             }),
                         },
                     );
@@ -753,7 +732,7 @@ impl InferenceParameters {
                     parameters.recursion_depth -= 1;
 
                     for (i, item) in content.iter().enumerate() {
-                        let mut parent_content = value.parent_content.as_ref().clone();
+                        let mut parent_content = value.parent_content;
                         parent_content.push(item.0.content.clone().into());
 
                         parameters.create_request_inner(
@@ -884,10 +863,10 @@ impl InferenceSettings {
 
 pub struct InferenceHandle {
     parent: Option<Ulid>,
-    parent_content: Arc<Vec<TokensOrBytes>>,
+    parent_content: Vec<TokensOrBytes>,
     models: Rc<IndexMap<Ulid, InferenceModel>>,
     parameters: Rc<InferenceParameters>,
-    handle: Promise<Result<Vec<(NodeContent, bool)>, anyhow::Error>>,
+    handle: Promise<Result<Vec<EndpointResponse>, anyhow::Error>>,
 }
 
 #[allow(clippy::type_complexity)]
@@ -1027,18 +1006,18 @@ impl Endpoint for EndpointConfig {
         &self,
         client: &InferenceClient,
         cache: &InferenceCache,
+        model: &InferenceModel,
         request: EndpointRequest,
-        tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
         match self {
             Self::OpenAICompletions(endpoint) => {
                 endpoint
-                    .perform_request(client, cache, request, tokenization_identifier)
+                    .perform_request(client, cache, model, request)
                     .await
             }
             Self::OpenAIChatCompletions(endpoint) => {
                 endpoint
-                    .perform_request(client, cache, request, tokenization_identifier)
+                    .perform_request(client, cache, model, request)
                     .await
             }
         }
