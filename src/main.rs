@@ -178,7 +178,6 @@ impl TapestryLoomApp {
                         font_keys.insert(0, "system-monospace".into());
                     }
                 }
-
                 Ok(Handle::Path { path, .. }) => match fs::read(path) {
                     Ok(bytes) => {
                         fonts.font_data.insert(
@@ -197,7 +196,7 @@ impl TapestryLoomApp {
                     }
                 },
                 Err(error) => {
-                    toasts.warning("Failed to load system monospace font");
+                    toasts.warning("Failed to select system monospace font");
                     warn!("Failed to select system monospace font: {error:#?}")
                 }
             }
@@ -217,7 +216,6 @@ impl TapestryLoomApp {
                         font_keys.insert(0, "system-sans-serif".into());
                     }
                 }
-
                 Ok(Handle::Path { path, .. }) => match fs::read(path) {
                     Ok(bytes) => {
                         fonts.font_data.insert(
@@ -236,7 +234,7 @@ impl TapestryLoomApp {
                     }
                 },
                 Err(error) => {
-                    toasts.warning("Failed to load system sans-serif font");
+                    toasts.warning("Failed to select system sans-serif font");
                     warn!("Failed to select system sans-serif font: {error:#?}")
                 }
             }
