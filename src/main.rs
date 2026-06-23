@@ -134,11 +134,6 @@ impl TapestryLoomApp {
             Settings::default()
         };
 
-        let last_ui_settings = settings.interface;
-        let last_client_settings = settings.inference.client.clone();
-
-        let settings = Rc::new(RefCell::new(settings));
-
         let mut fonts = FontDefinitions::default();
         fonts.font_data.insert(
             "lucide".into(),
@@ -165,12 +160,10 @@ impl TapestryLoomApp {
         if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Proportional) {
             font_keys.push("unifontex".into());
             font_keys.insert(1, "noto-emoji".into());
-        }
-        if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Proportional) {
             font_keys.insert(1, "lucide".into());
         }
 
-        if settings.borrow().interface.ui_fonts == UIFonts::System {
+        if settings.interface.ui_fonts == UIFonts::System {
             debug!("Loading system monospace font");
 
             match SystemSource::new()
@@ -247,7 +240,7 @@ impl TapestryLoomApp {
                     warn!("Failed to select system sans-serif font: {error:#?}")
                 }
             }
-        } else if settings.borrow().interface.ui_fonts == UIFonts::UnifontEX {
+        } else if settings.interface.ui_fonts == UIFonts::UnifontEX {
             if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Monospace) {
                 font_keys.insert(0, "unifontex".into());
             }
@@ -258,7 +251,7 @@ impl TapestryLoomApp {
 
         cc.egui_ctx.set_fonts(fonts);
 
-        let client = match settings.borrow().inference.client.build() {
+        let client = match settings.inference.client.build() {
             Ok(client) => Some(client),
             Err(error) => {
                 toasts.error("Failed to initialize HTTP client");
@@ -266,6 +259,11 @@ impl TapestryLoomApp {
                 None
             }
         };
+
+        let last_ui_settings = settings.interface;
+        let last_client_settings = settings.inference.client.clone();
+
+        let settings = Rc::new(RefCell::new(settings));
 
         let toasts = Rc::new(RefCell::new(toasts));
         let open_documents = Rc::new(RefCell::new(HashSet::with_capacity(64)));
