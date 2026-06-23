@@ -178,12 +178,26 @@ where
         self.tree.ui(&mut self.behavior, ui);
         self.refresh_pane_list();
     }
-    pub fn close(&mut self) {
+    pub fn close(&mut self) -> bool {
+        let mut would_close = true;
+
         for tile_id in self.pane_list.iter().copied() {
-            if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id) {
-                pane.close(&mut self.behavior.shared);
+            if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id)
+                && !pane.check_close()
+            {
+                would_close = false;
             }
         }
+
+        if would_close {
+            for tile_id in self.pane_list.iter().copied() {
+                if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id) {
+                    pane.close(&mut self.behavior.shared);
+                }
+            }
+        }
+
+        would_close
     }
 }
 
@@ -191,6 +205,9 @@ pub trait View<T> {
     fn title(&self) -> WidgetText;
     fn closable(&self) -> bool {
         false
+    }
+    fn check_close(&mut self) -> bool {
+        true
     }
 
     fn logic(&mut self, shared: &mut T, ctx: &Context);
