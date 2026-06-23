@@ -19,33 +19,31 @@ donation-link = [  ]
 tapestry-weave = { path = "tapestry-weave", features = [
 	"v1", # TODO: Add v0 feature after rewrite is finished? Or should we require using migration-assistant instead of automatically updating weaves?
 ], default-features = false }
-eframe = { version = "0.33.3", features = [
+eframe = { version = "0.34.3", features = [
 	"accesskit",
 	"persistence",
 ] }
-env_logger = { version = "0.11.8", features = [
+env_logger = { version = "0.11.10", features = [
 	"auto-color",
 	"humantime",
 ] }
-log = { version = "0.4.29", features = [
+log = { version = "0.4.33", features = [
 	"release_max_level_debug",
 ] }
-mimalloc = { version = "0.1.48", features = [
-	"v3",
-] }
+mimalloc = "0.1.52"
 serde = { version = "1.0.228", features = [
 	"derive",
 ] }
-serde_json = { version = "1.0.149", features = [
+serde_json = { version = "1.0.150", features = [
 	"preserve_order",
 	"arbitrary_precision",
 ] }
-ron = { version = "0.12.0", features = [
+ron = { version = "0.12.2", features = [
 	"indexmap",
 	"integer128",
 	"unicode-segmentation",
 ] }
-reqwest = { version = "0.13.1", features = [
+reqwest = { version = "0.13.4", features = [
 	"json",
 	"gzip",
 	"brotli",
@@ -55,33 +53,33 @@ reqwest = { version = "0.13.1", features = [
 parking_lot = { version = "0.12.5", features = [
 	"serde",
 ] }
-anyhow = "1.0.100"
+anyhow = "1.0.102"
 dirs-next = "2.0.0"
-egui_tiles = "=0.14.0"
-egui-notify = "0.21.0"
-tokio = { version = "1.49.0", features = [
+egui_tiles = "0.15.0"
+egui-notify = "0.22.0"
+tokio = { version = "1.52.3", features = [
 	"full",
 ] }
-futures = "0.3.31"
+futures = "0.3.32"
 walkdir = "2.5.0"
-unicode-segmentation = "1.12.0"
-trash = "5.2.5"
+unicode-segmentation = "1.13.3"
+trash = "5.2.6"
 poll-promise = { version = "0.3.0", features = [
 	"tokio",
 ] }
-ctrlc = "3.5.1"
-chrono = "0.4.43"
-egui-keybind = { version = "0.8.0", features = [
+ctrlc = "3.5.2"
+chrono = "0.4.45"
+egui-keybind = { git = "https://github.com/transkatgirl/egui-keybind.git", rev = "86a29afc7e083b33c8bbec7278da59a66226bd97", features = [
 	"serde",
 ] }
 flagset = { version = "0.4.7", features = [
 	"std",
 ] }
-bytes = "1.11.1"
+bytes = "1.12.0"
 font-kit = "0.14.3"
-egui_solarized = "0.33.0"
-egui_virtual_list = "0.9.0"
-egui_plot = "0.34.0"
+egui_solarized = "0.34.1"
+egui_virtual_list = "0.10.0"
+egui_plot = "0.35.0"
 rust-sugiyama = "0.4.0"
 ml-distance = "1.0.1"
 elkai-rs = "0.1.7"
@@ -90,7 +88,7 @@ linked-hash-map = "0.5.6"
 ulid = { version = "1.2.1", features = [
 	"serde",
 ] }
-#egui_dnd = "0.14.0"
+egui_dnd = "0.15.0"
 
 [build-dependencies]
 cargo_metadata = "0.23.1"

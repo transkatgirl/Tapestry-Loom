@@ -614,9 +614,9 @@ impl InferenceParameters {
         runtime: &Runtime,
         client: &Client,
         cache: &InferenceCache,
-        parent: Option<Ulid>,
+        parent: Option<u64>,
         content: Vec<TokensOrBytes>,
-        output: &mut HashMap<Ulid, InferenceHandle>,
+        output: &mut HashMap<u64, InferenceHandle>,
     ) {
         self.create_request_inner(
             Rc::new(settings.models.clone()),
@@ -632,11 +632,11 @@ impl InferenceParameters {
         &self,
         models: Rc<IndexMap<Ulid, InferenceModel>>,
         runtime: &Runtime,
-        client: &InferenceClient,
+        client: &Client,
         cache: &InferenceCache,
-        parent_node: Option<Ulid>,
+        parent_node: Option<u64>,
         content: Vec<TokensOrBytes>,
-        output: &mut HashMap<Ulid, InferenceHandle>,
+        output: &mut HashMap<u64, InferenceHandle>,
     ) {
         let parameters = Rc::new(self.clone());
         let _guard = runtime.enter();
@@ -710,9 +710,7 @@ impl InferenceParameters {
                 let result = value.handle.block_and_take();
 
                 let identifiers = if let Ok(content) = &result {
-                    (0..content.len())
-                        .map(|_| Ulid::from_datetime(key.datetime()))
-                        .collect()
+                    (0..content.len()).collect()
                 } else {
                     vec![]
                 };
@@ -742,18 +740,14 @@ impl InferenceParameters {
 
                 match result {
                     Ok(contents) => {
-                        for (i, content) in contents.into_iter().enumerate() {
+                        for (i, response) in contents.into_iter().enumerate() {
                             output.push(Ok(DependentNode {
-                                id: identifiers[i].0,
-                                from: if !content.1 {
-                                    value.parent.map(|id| id.0)
-                                } else {
-                                    None
-                                },
+                                id: identifiers[i],
+                                from: if !response.root { value.parent } else { None },
                                 to: IndexSet::default(),
                                 active: false,
                                 bookmarked: false,
-                                contents: content.0,
+                                contents: response.content,
                             }));
                         }
                     }
@@ -855,7 +849,7 @@ impl InferenceSettings {
 }
 
 pub struct InferenceHandle {
-    parent: Option<Ulid>,
+    parent: Option<u64>,
     parent_content: Vec<TokensOrBytes>,
     models: Rc<IndexMap<Ulid, InferenceModel>>,
     parameters: Rc<InferenceParameters>,
