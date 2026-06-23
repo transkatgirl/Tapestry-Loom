@@ -90,21 +90,14 @@ impl ClientConfig {
                 .suffix(" minutes"),
         ).on_hover_text("The maximum length of time to wait for a HTTP request to finish. Requests exceeding this duration will be dropped.");
     }
-    pub fn build(&self) -> Result<InferenceClient, anyhow::Error> {
-        Ok(InferenceClient {
-            client: ClientBuilder::new()
-                .connect_timeout(Duration::from_secs(15))
-                .danger_accept_invalid_certs(self.accept_invalid_tls)
-                .danger_accept_invalid_hostnames(self.accept_invalid_tls)
-                .timeout(Duration::from_secs_f32(self.timeout_minutes * 60.0))
-                .build()?,
-        })
+    pub fn build(&self) -> Result<Client, reqwest::Error> {
+        ClientBuilder::new()
+            .connect_timeout(Duration::from_secs(15))
+            .danger_accept_invalid_certs(self.accept_invalid_tls)
+            .danger_accept_invalid_hostnames(self.accept_invalid_tls)
+            .timeout(Duration::from_secs_f32(self.timeout_minutes * 60.0))
+            .build()
     }
-}
-
-#[derive(Clone)]
-pub struct InferenceClient {
-    client: Client,
 }
 
 #[derive(Clone)]
@@ -619,7 +612,7 @@ impl InferenceParameters {
         &self,
         settings: &InferenceSettings,
         runtime: &Runtime,
-        client: &InferenceClient,
+        client: &Client,
         cache: &InferenceCache,
         parent: Option<Ulid>,
         content: Vec<TokensOrBytes>,
@@ -697,7 +690,7 @@ impl InferenceParameters {
     }
     pub fn get_responses(
         runtime: &Runtime,
-        client: Option<&InferenceClient>,
+        client: Option<&Client>,
         cache: &InferenceCache,
         input: &mut HashMap<Ulid, InferenceHandle>,
         output: &mut Vec<Result<TapestryNode, anyhow::Error>>,
@@ -775,7 +768,7 @@ impl InferenceSettings {
     pub fn create_seriation_request(
         &mut self,
         runtime: &Runtime,
-        client: &InferenceClient,
+        client: &Client,
         cache: &InferenceCache,
         mut request: (Option<Ulid>, Vec<(Ulid, Vec<u8>)>),
         output: &mut HashMap<Option<Ulid>, SeriationInferenceHandle>,
@@ -1004,7 +997,7 @@ impl Endpoint for EndpointConfig {
     }
     async fn perform_request(
         &self,
-        client: &InferenceClient,
+        client: &Client,
         cache: &InferenceCache,
         model: &InferenceModel,
         request: EndpointRequest,
@@ -1081,7 +1074,7 @@ impl EmbeddingEndpoint for EmbeddingEndpointConfig {
     }
     async fn perform_request(
         &self,
-        client: &InferenceClient,
+        client: &Client,
         cache: &InferenceCache,
         requests: Vec<u8>,
     ) -> Result<Vec<f32>, anyhow::Error> {
@@ -1110,7 +1103,7 @@ trait Endpoint: Serialize + DeserializeOwned + Clone {
     fn default_parameters(&self) -> Vec<(String, String)>;
     async fn perform_request(
         &self,
-        client: &InferenceClient,
+        client: &Client,
         cache: &InferenceCache,
         model: &InferenceModel,
         request: EndpointRequest,
@@ -1121,7 +1114,7 @@ trait EmbeddingEndpoint: Serialize + DeserializeOwned + Clone + Display {
     fn render_settings(&mut self, ui: &mut Ui) -> bool;
     async fn perform_request(
         &self,
-        client: &InferenceClient,
+        client: &Client,
         cache: &InferenceCache,
         request: Vec<u8>,
     ) -> Result<Vec<f32>, anyhow::Error>;
