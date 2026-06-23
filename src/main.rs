@@ -164,6 +164,8 @@ impl TapestryLoomApp {
         }
 
         if settings.interface.ui_fonts == UIFonts::System {
+            // TODO: Update font loading to use async
+
             debug!("Loading system monospace font");
 
             match SystemSource::new()
