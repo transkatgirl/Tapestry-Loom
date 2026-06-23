@@ -1259,7 +1259,7 @@ impl RequestTokensOrBytes {
 
                 for (token, token_id, token_model_id) in token_pairs {
                     bytes.extend(token);
-                    if &token_model_id == model_id {
+                    if token_model_id == *model_id {
                         token_ids.push(token_id);
                     }
                 }
@@ -1342,8 +1342,6 @@ impl RequestTokensOrBytes {
                 let tokens = byte_handler(bytes.clone()).await?;
 
                 trace!("{:?} = {:?}", String::from_utf8_lossy(&bytes), tokens);
-
-                //let mut model_cache = model_cache.lock_owned().await;
 
                 model_cache.insert(bytes, tokens.clone());
 
