@@ -144,6 +144,14 @@ impl App {
 }
 
 impl eframe::App for App {
+    fn auto_save_interval(&self) -> Duration {
+        self.container
+            .behavior
+            .shared
+            .settings
+            .documents
+            .save_interval
+    }
     fn logic(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         self.new_panes.clear();
 
