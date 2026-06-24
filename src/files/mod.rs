@@ -22,12 +22,16 @@ impl View<AppShared> for FileManager {
     }
     fn logic(&mut self, shared: &mut AppShared, ctx: &Context) {
         self.tree.update(shared);
+
+        // TODO
     }
     fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {
         self.modal.ui(&mut self.tree, shared, ctx);
         self.modal != FileModal::default()
     }
-    fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {}
+    fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {
+        // TODO
+    }
 }
 
 #[derive(Default, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -46,7 +50,7 @@ impl FileModal {
         match self {
             Self::None => {}
             Self::CreateWeave(path) => {
-                if Modal::new("filemanager-create-weave-modal".into())
+                if Modal::new("filemanager-create-document-modal".into())
                     .show(ctx, |ui| {
                         ui.set_width(280.0);
                         ui.heading("Create Weave");
