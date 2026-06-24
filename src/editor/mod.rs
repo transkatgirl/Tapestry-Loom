@@ -73,28 +73,45 @@ impl Editor {
     }
 }
 
-#[derive(Debug)]
-enum Pane {
-    Canvas,
-    Graph,
-    TreeList,
-    List,
-    BookmarkList,
-    TextEdit,
-    Menu,
-    Info,
-}
+impl View<AppShared> for Editor {
+    fn title(&self, shared: &AppShared) -> WidgetText {
+        WidgetText::Text(self.container.behavior.shared.title(shared))
+    }
+    fn closable(&self, _shared: &AppShared) -> bool {
+        true
+    }
+    fn check_close(&mut self, shared: &mut AppShared) -> bool {
+        self.container.check_close() && self.container.behavior.shared.check_close(shared)
+    }
+    fn logic(&mut self, shared: &mut AppShared, ctx: &Context) {
+        self.container.behavior.shared.logic(ctx, shared);
+        self.container.logic(ctx);
+    }
+    fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {
+        let a = self.container.behavior.shared.modals(ctx, shared);
+        let b = self.container.modals(ctx);
 
-impl View<EditorShared> for Pane {
-    fn title(&self, shared: &EditorShared) -> WidgetText {
-        //todo!()
-        WidgetText::Text(format!("{:?}", self))
+        a || b
     }
-    fn logic(&mut self, shared: &mut EditorShared, ctx: &Context) {}
-    fn modals(&mut self, shared: &mut EditorShared, ctx: &Context) -> bool {
-        false
+    fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {
+        self.container.behavior.shared.ui(ui, shared);
+
+        CentralPanel::default()
+            .frame(Frame::central_panel(ui.style()).inner_margin(0.0))
+            .show_inside(ui, |ui| {
+                self.container.ui(ui);
+            });
     }
-    fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {}
+    fn save(&mut self, shared: &mut AppShared) {
+        self.container.save();
+        self.container.behavior.shared.save(shared);
+    }
+    fn close(&mut self, shared: &mut AppShared) -> bool {
+        self.container.check_close()
+            && self.container.behavior.shared.check_close(shared)
+            && self.container.close()
+            && self.container.behavior.shared.close(shared)
+    }
 }
 
 struct EditorShared {
@@ -137,43 +154,26 @@ impl EditorShared {
     }
 }
 
-impl View<AppShared> for Editor {
-    fn title(&self, shared: &AppShared) -> WidgetText {
-        WidgetText::Text(self.container.behavior.shared.title(shared))
-    }
-    fn closable(&self, _shared: &AppShared) -> bool {
-        true
-    }
-    fn check_close(&mut self, shared: &mut AppShared) -> bool {
-        self.container.check_close() && self.container.behavior.shared.check_close(shared)
-    }
-    fn logic(&mut self, shared: &mut AppShared, ctx: &Context) {
-        self.container.behavior.shared.logic(ctx, shared);
-        self.container.logic(ctx);
-    }
-    fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {
-        let a = self.container.behavior.shared.modals(ctx, shared);
-        let b = self.container.modals(ctx);
+#[derive(Debug)]
+enum Pane {
+    Canvas,
+    Graph,
+    TreeList,
+    List,
+    BookmarkList,
+    TextEdit,
+    Menu,
+    Info,
+}
 
-        a || b
+impl View<EditorShared> for Pane {
+    fn title(&self, shared: &EditorShared) -> WidgetText {
+        //todo!()
+        WidgetText::Text(format!("{:?}", self))
     }
-    fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {
-        self.container.behavior.shared.ui(ui, shared);
-
-        CentralPanel::default()
-            .frame(Frame::central_panel(ui.style()).inner_margin(0.0))
-            .show_inside(ui, |ui| {
-                self.container.ui(ui);
-            });
+    fn logic(&mut self, shared: &mut EditorShared, ctx: &Context) {}
+    fn modals(&mut self, shared: &mut EditorShared, ctx: &Context) -> bool {
+        false
     }
-    fn save(&mut self, shared: &mut AppShared) {
-        self.container.save();
-        self.container.behavior.shared.save(shared);
-    }
-    fn close(&mut self, shared: &mut AppShared) -> bool {
-        self.container.check_close()
-            && self.container.behavior.shared.check_close(shared)
-            && self.container.close()
-            && self.container.behavior.shared.close(shared)
-    }
+    fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {}
 }

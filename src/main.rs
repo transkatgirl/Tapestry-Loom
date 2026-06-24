@@ -168,13 +168,6 @@ impl eframe::App for App {
     }
 }
 
-#[allow(clippy::large_enum_variant)]
-enum Pane {
-    Settings(SettingsView),
-    FileManager(FileManager),
-    Editor(Editor),
-}
-
 struct AppShared {
     runtime: Arc<Runtime>,
     client: Client,
@@ -229,6 +222,13 @@ impl AppShared {
             }
         }
     }
+}
+
+#[allow(clippy::large_enum_variant)]
+enum Pane {
+    Settings(SettingsView),
+    FileManager(FileManager),
+    Editor(Editor),
 }
 
 impl View<AppShared> for Pane {
