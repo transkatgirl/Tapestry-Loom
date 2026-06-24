@@ -17,6 +17,8 @@ pub struct Editor {
 
 impl Editor {
     pub fn new(path: Option<PathBuf>, shared: &mut AppShared) -> Editor {
+        let shared = EditorShared::new(path, shared);
+
         let mut tiles = Tiles::default();
 
         let left_tabs = vec![
@@ -35,7 +37,7 @@ impl Editor {
             tabs
         })));
 
-        let right = if path.is_some() {
+        let right = if shared.path().is_some() {
             let right_tabs = vec![
                 tiles.insert_pane(Pane::TextEdit),
                 tiles.insert_pane(Pane::Menu),
@@ -62,8 +64,6 @@ impl Editor {
         };
 
         let root = tiles.insert_horizontal_tile(vec![left_tab_tile, right]);
-
-        let shared = EditorShared::new(path, shared);
 
         Editor {
             container: ViewContainer::new(

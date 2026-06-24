@@ -74,6 +74,9 @@ impl EditorShared {
             None => "New Weave".to_string(),
         }
     }
+    pub(super) fn path(&self) -> &Option<PathBuf> {
+        &self.path
+    }
     pub(super) fn check_close(&mut self, shared: &mut AppShared) -> bool {
         true
     }
