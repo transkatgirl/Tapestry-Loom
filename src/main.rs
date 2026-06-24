@@ -6,13 +6,14 @@ use std::{sync::Arc, time::Duration};
 use eframe::egui::{IconData, ViewportBuilder};
 use eframe::{
     CreationContext, NativeOptions,
-    egui::{self, Context, FontData, FontDefinitions, Ui, WidgetText},
+    egui::{self, Context, FontData, FontDefinitions, Memory, Ui, WidgetText},
 };
 use egui_notify::Toasts;
 use egui_tiles::{Tiles, Tree};
 use env_logger::Env;
 use log::{debug, error};
 use mimalloc::MiMalloc;
+use reqwest::{Client, ClientBuilder};
 use tokio::runtime::Runtime;
 
 use crate::{
@@ -90,6 +91,10 @@ impl App {
             }
         }
 
+        cc.egui_ctx.memory_mut(|memory| {
+            *memory = Memory::default();
+        });
+
         let mut fonts = FontDefinitions::default();
         fonts.font_data.insert(
             "lucide".into(),
@@ -139,6 +144,11 @@ impl App {
             Settings::default()
         };
 
+        let client = ClientBuilder::new()
+            .connect_timeout(Duration::from_secs(15))
+            .timeout(Duration::from_secs(300))
+            .build()?;
+
         let mut tiles = Tiles::default();
 
         let tabs = vec![
@@ -155,6 +165,7 @@ impl App {
                 Tree::new("global-tree", root, tiles),
                 AppShared {
                     runtime,
+                    client,
                     toasts,
                     settings,
                 },
@@ -207,6 +218,7 @@ enum Pane {
 
 struct AppShared {
     runtime: Arc<Runtime>,
+    client: Client,
     toasts: Toasts,
     settings: Settings,
 }
