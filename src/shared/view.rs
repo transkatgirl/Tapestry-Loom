@@ -1,5 +1,6 @@
 use eframe::egui::{Context, Ui, WidgetText};
 use egui_tiles::{Container, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse};
+use log::warn;
 
 pub struct ViewContainer<T, P>
 where
@@ -38,6 +39,7 @@ where
         if let Some(Tile::Pane(pane)) = tiles.get(tile_id) {
             pane.closable(&self.shared)
         } else {
+            warn!("Tile {:?} is in an invalid state", tile_id);
             false
         }
     }
@@ -64,6 +66,7 @@ where
         if let Some(Tile::Pane(pane)) = tiles.get_mut(tile_id) {
             pane.close(&mut self.shared)
         } else {
+            warn!("Tile {:?} is in an invalid state", tile_id);
             false
         }
     }
@@ -95,6 +98,8 @@ where
         self.pane_list.clear();
         if let Some(root) = self.tree.root {
             build_tree_pane_list(&self.tree, &mut self.pane_list, root);
+        } else if !self.tree.tiles.is_empty() {
+            warn!("Tree {:?} contains no root tile", self.tree.id());
         }
     }
     fn update_pane_list_id_order(&mut self) {
@@ -132,6 +137,8 @@ where
                     if let egui_tiles::Container::Tabs(tabs) = root {
                         tabs.set_active(tile_id);
                     }
+                } else {
+                    warn!("Created orphaned view {:?}", tile_id);
                 }
             }
             self.behavior.create = None;
@@ -214,6 +221,7 @@ where
                     if pane.close(&mut self.behavior.shared) {
                         self.tree.remove_recursively(tile_id);
                     } else {
+                        warn!("View {:?} allowed check_close() but not close()", tile_id);
                         would_close = false;
                         break;
                     }
