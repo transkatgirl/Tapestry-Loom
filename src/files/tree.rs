@@ -6,8 +6,8 @@ use std::{
 
 use egui_notify::Toast;
 use log::{error, warn};
+use parking_lot::Mutex;
 use tapestry_weave::universal_weave::indexmap::IndexMap;
-use tokio::sync::Mutex;
 use walkdir::WalkDir;
 
 use crate::{
@@ -39,7 +39,7 @@ impl FileTree {
             );
         }
 
-        if let Ok(crawl_state) = self.crawler.state.try_lock() {
+        if let Some(crawl_state) = self.crawler.state.try_lock() {
             if !self.last_completed {
                 println!("{:?}", crawl_state);
 
@@ -53,7 +53,7 @@ impl FileTree {
     }
 
     pub fn likely_exists(&mut self, path: &Path) -> bool {
-        let crawl_state = self.crawler.state.blocking_lock();
+        let crawl_state = self.crawler.state.lock();
         crawl_state.paths.contains_key(path)
     }
     pub fn create_document(&mut self, shared: &mut AppShared, path: PathBuf) {
@@ -114,22 +114,17 @@ impl BackgroundCrawler {
             task: None,
         }
     }
-    fn crawl(
-        &mut self,
-        root: PathBuf,
-        toasts: Arc<parking_lot::Mutex<Vec<Toast>>>,
-        natural_sort: bool,
-    ) {
+    fn crawl(&mut self, root: PathBuf, toasts: Arc<Mutex<Vec<Toast>>>, natural_sort: bool) {
         if let Some(task) = &self.task {
             task.abort();
             if !task.is_finished() {
                 self.state = Arc::new(Mutex::new(CrawlState::new()));
             } else {
-                let mut state = self.state.blocking_lock();
+                let mut state = self.state.lock();
                 state.reset();
             }
         } else {
-            let mut state = self.state.blocking_lock();
+            let mut state = self.state.lock();
             state.reset();
         }
 
@@ -177,7 +172,7 @@ impl BackgroundCrawler {
             for entry in walkdir {
                 match entry {
                     Ok(entry) => {
-                        let mut state = state.blocking_lock();
+                        let mut state = state.lock();
 
                         let file_type = entry.file_type();
                         state.paths.insert(entry.into_path(), file_type);
@@ -201,7 +196,7 @@ impl BackgroundCrawler {
                 }
             }
 
-            let mut state = state.blocking_lock();
+            let mut state = state.lock();
             state.completed = true;
 
             true
