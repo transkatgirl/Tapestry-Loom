@@ -54,7 +54,15 @@ fn main() -> Result<(), anyhow::Error> {
             persist_window: true,
             ..Default::default()
         },
-        Box::new(|cc| Ok(Box::new(App::new(cc, runtime.clone())?))),
+        Box::new(|cc| {
+            let ctrlc_context = cc.egui_ctx.clone();
+            ctrlc::set_handler(move || {
+                // Hack to work around eframe's lack of signal handling
+                ctrlc_context.send_viewport_cmd(ViewportCommand::Close);
+            })?;
+
+            Ok(Box::new(App::new(cc, runtime.clone())?))
+        }),
     )?;
 
     debug!("Shutting down async runtime...");
@@ -74,17 +82,6 @@ struct App {
 
 impl App {
     fn new(cc: &CreationContext<'_>, runtime: Arc<Runtime>) -> Result<Self, anyhow::Error> {
-        let mut toasts = Toasts::new();
-
-        {
-            // Hack to work around eframe's lack of signal handling
-
-            let ctrlc_context = cc.egui_ctx.clone();
-            ctrlc::set_handler(move || {
-                ctrlc_context.send_viewport_cmd(ViewportCommand::Close);
-            })?;
-        }
-
         cc.egui_ctx.memory_mut(|memory| {
             *memory = Memory::default();
         });
@@ -118,6 +115,8 @@ impl App {
             font_keys.insert(1, "lucide".into());
         }
         cc.egui_ctx.set_fonts(fonts);
+
+        let mut toasts = Toasts::new();
 
         let settings = if let Some(data) = cc.storage.unwrap().get_string("settings") {
             match Settings::deserialize(&data) {
