@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashSet, path::PathBuf, sync::Arc, time::Duration};
 
 use eframe::{
     CreationContext, NativeOptions,
@@ -182,6 +182,9 @@ struct AppShared {
     client: Client,
     toasts: Toasts,
     settings: Settings,
+
+    open_documents: HashSet<PathBuf>,
+    load_document_queue: Vec<PathBuf>,
 }
 
 impl AppShared {
@@ -213,9 +216,20 @@ impl AppShared {
             toasts,
             client,
             settings,
+
+            open_documents: HashSet::with_capacity(8),
+            load_document_queue: Vec::with_capacity(1),
         })
     }
-    fn logic(&mut self, _ctx: &Context, add_pane: impl FnMut(Pane)) {}
+    fn logic(&mut self, _ctx: &Context, mut add_pane: impl FnMut(Pane)) {
+        if !self.load_document_queue.is_empty() {
+            let queue = Vec::from_iter(self.load_document_queue.drain(..));
+
+            for path in queue.into_iter() {
+                add_pane(Pane::Editor(Editor::new(Some(path), self)));
+            }
+        }
+    }
     fn ui(&mut self, ui: &mut Ui) {
         self.toasts.show(ui);
     }

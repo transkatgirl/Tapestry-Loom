@@ -11,7 +11,13 @@ pub(super) struct EditorShared {
 }
 
 impl EditorShared {
-    pub(super) fn new(path: Option<PathBuf>, shared: &mut AppShared) -> Self {
+    pub(super) fn new(mut path: Option<PathBuf>, shared: &mut AppShared) -> Self {
+        if let Some(unwrapped_path) = &path
+            && !shared.open_documents.insert(unwrapped_path.clone())
+        {
+            path = None;
+        }
+
         Self {
             id: Ulid::new(),
             path,
@@ -43,6 +49,10 @@ impl EditorShared {
         true
     }
     pub(super) fn close(&mut self, shared: &mut AppShared) -> bool {
+        if let Some(path) = &self.path {
+            shared.open_documents.remove(path);
+        }
+
         true
     }
 }
