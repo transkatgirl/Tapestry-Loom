@@ -57,7 +57,8 @@ where
     T: Send + 'static,
 {
     fn drop(&mut self) {
-        self.abort();
+        self.handle.abort();
+        self.abort.store(true, Ordering::Relaxed);
     }
 }
 
