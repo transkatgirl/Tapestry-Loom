@@ -1,5 +1,7 @@
 use eframe::egui::{Context, Ui, WidgetText};
-use egui_tiles::{SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse};
+use egui_tiles::{
+    Behavior, Container, SimplificationOptions, Tabs, Tile, TileId, Tiles, Tree, UiResponse,
+};
 use log::warn;
 
 pub struct ViewContainer<T, P>
@@ -23,7 +25,7 @@ where
     add: Vec<TileId>,
 }
 
-impl<T, P> egui_tiles::Behavior<P> for ViewContainerBehavior<T, P>
+impl<T, P> Behavior<P> for ViewContainerBehavior<T, P>
 where
     P: View<T>,
 {
@@ -55,7 +57,7 @@ where
         _tiles: &Tiles<P>,
         ui: &mut Ui,
         tile_id: TileId,
-        _tabs: &egui_tiles::Tabs,
+        _tabs: &Tabs,
         _scroll_offset: &mut f32,
     ) {
         if self.creation_callback.is_some() && ui.button("\u{E13D}").clicked() {
@@ -127,14 +129,14 @@ where
                     && let Some(Tile::Container(parent)) = self.tree.tiles.get_mut(create)
                 {
                     parent.add_child(tile_id);
-                    if let egui_tiles::Container::Tabs(tabs) = parent {
+                    if let Container::Tabs(tabs) = parent {
                         tabs.set_active(tile_id);
                     }
                 } else if let Some(root) = self.tree.root
                     && let Some(Tile::Container(root)) = self.tree.tiles.get_mut(root)
                 {
                     root.add_child(tile_id);
-                    if let egui_tiles::Container::Tabs(tabs) = root {
+                    if let Container::Tabs(tabs) = root {
                         tabs.set_active(tile_id);
                     }
                 } else {
@@ -150,7 +152,7 @@ where
             {
                 for tile_id in self.behavior.add.drain(..) {
                     root.add_child(tile_id);
-                    if let egui_tiles::Container::Tabs(tabs) = root {
+                    if let Container::Tabs(tabs) = root {
                         tabs.set_active(tile_id);
                     }
                 }
