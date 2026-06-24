@@ -155,18 +155,14 @@ where
                     }
                 }
             } else {
+                warn!("Tree {:?} contains no valid root tile", self.tree.id());
                 self.behavior.add.clear();
             }
         }
 
         if let Some(tile_id) = self.behavior.focus {
-            if let Some(parent_id) = self.tree.tiles.parent_of(tile_id)
-                && let Some(Tile::Container(Container::Tabs(tabs))) =
-                    self.tree.tiles.get_mut(parent_id)
-            {
-                tabs.set_active(tile_id);
-            }
-
+            self.tree
+                .make_active(|other_tile_id, _| tile_id == other_tile_id);
             self.behavior.focus = None;
         }
 
