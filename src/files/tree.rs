@@ -1,12 +1,13 @@
 use std::{
     collections::HashSet,
-    fs::{FileType, Metadata},
+    fs::{self, FileType, Metadata},
     mem,
     path::{Path, PathBuf},
     sync::{Arc, atomic},
 };
 
 use futures::stream::AbortHandle;
+use log::{error, warn};
 use tapestry_weave::universal_weave::indexmap::{IndexMap, IndexSet};
 use tokio::{
     sync::Mutex,
@@ -22,6 +23,8 @@ use crate::{
 #[derive(Default, Debug)]
 pub struct FileTree {
     last_root: Option<PathBuf>,
+    crawler: BackgroundCrawler,
+    last_completed: bool,
 }
 
 impl FileTree {
@@ -30,11 +33,26 @@ impl FileTree {
             || shared.open_documents_updated
         {
             self.last_root = Some(shared.settings.documents.location.clone());
+            self.last_completed = false;
             shared.open_documents_updated = false;
-            self.scan(shared);
+
+            let _runtime = shared.runtime.enter();
+            self.crawler
+                .crawl(shared.settings.documents.location.clone());
+        }
+
+        if let Ok(crawl_state) = self.crawler.state.try_lock() {
+            if !self.last_completed {
+                println!("{:?}", crawl_state);
+
+                // TODO
+            }
+
+            if crawl_state.completed && !self.last_completed {
+                self.last_completed = true;
+            }
         }
     }
-    fn scan(&mut self, shared: &mut AppShared) {}
 
     pub fn likely_exists(&mut self, path: &Path) -> bool {
         todo!()
@@ -59,14 +77,22 @@ impl FileTree {
     }
 }
 
-pub struct BackgroundCrawler {
+#[derive(Debug)]
+struct BackgroundCrawler {
     state: Arc<Mutex<CrawlState>>,
     task: Option<AbortableBlockingTaskHandle<bool>>,
 }
 
-pub struct CrawlState {
+impl Default for BackgroundCrawler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Debug)]
+struct CrawlState {
     paths: IndexMap<PathBuf, FileType>,
-    errors: Vec<walkdir::Error>,
+    errors: Vec<String>,
     completed: bool,
 }
 
@@ -105,7 +131,31 @@ impl BackgroundCrawler {
 
         let state = self.state.clone();
         self.task = Some(spawn_blocking_abortable(move |abort| {
-            let walkdir = WalkDir::new(root)
+            match fs::exists(&root) {
+                Ok(exists) => {
+                    if abort.load(atomic::Ordering::Relaxed) {
+                        return false;
+                    }
+
+                    if !exists && let Err(error) = fs::create_dir_all(&root) {
+                        let mut state = state.blocking_lock();
+                        state
+                            .errors
+                            .push("Failed to create root directory".to_string());
+                        error!("Failed to create directory at {:?}: {:?}", &root, error);
+                    }
+                }
+                Err(error) => {
+                    let mut state = state.blocking_lock();
+                    state
+                        .errors
+                        .push("Failed to determine if root directory exists".to_string());
+                    error!("Failed to determine if {:?} exists: {:?}", &root, error);
+                    return false;
+                }
+            }
+
+            let walkdir = WalkDir::new(&root)
                 .follow_links(true)
                 .same_file_system(false)
                 .sort_by(|a, b| {
@@ -115,8 +165,6 @@ impl BackgroundCrawler {
                     )
                 });
 
-            let mut aborted = false;
-
             for entry in walkdir {
                 let mut state = state.blocking_lock();
 
@@ -125,23 +173,27 @@ impl BackgroundCrawler {
                         let file_type = entry.file_type();
                         state.paths.insert(entry.into_path(), file_type);
                     }
-                    Err(error) => {
-                        state.errors.push(error);
-                    }
+                    Err(error) => match error.path() {
+                        Some(path) => {
+                            state.errors.push(format!("Failed to scan {:?}", path));
+                            warn!("Scanning {:?} failed: {:?}", path, error);
+                        }
+                        None => {
+                            state.errors.push("Failed to scan item".to_string());
+                            warn!("Item scanning failed: {:?}", error);
+                        }
+                    },
                 }
 
                 if abort.load(atomic::Ordering::Relaxed) {
-                    aborted = true;
-                    break;
+                    return false;
                 }
             }
 
-            if !aborted {
-                let mut state = state.blocking_lock();
-                state.completed = true;
-            }
+            let mut state = state.blocking_lock();
+            state.completed = true;
 
-            !aborted
+            true
         }));
     }
 }
