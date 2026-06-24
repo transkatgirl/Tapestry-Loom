@@ -6,12 +6,12 @@ use std::{sync::Arc, time::Duration};
 use eframe::egui::{IconData, ViewportBuilder};
 use eframe::{
     CreationContext, NativeOptions,
-    egui::{self, Context, Ui, WidgetText},
+    egui::{self, Context, FontData, FontDefinitions, Ui, WidgetText},
 };
 use egui_notify::Toasts;
 use egui_tiles::{Tiles, Tree};
 use env_logger::Env;
-use log::{debug, error, warn};
+use log::{debug, error};
 use mimalloc::MiMalloc;
 use tokio::runtime::Runtime;
 
@@ -75,6 +75,48 @@ struct App {
 impl App {
     fn new(cc: &CreationContext<'_>, runtime: Arc<Runtime>) -> Result<Self, anyhow::Error> {
         let mut toasts = Toasts::new();
+
+        {
+            // Hack to work around eframe's lack of signal handling
+
+            let ctrlc_context = cc.egui_ctx.clone();
+            if let Err(error) = ctrlc::set_handler(move || {
+                ctrlc_context.send_viewport_cmd(egui::ViewportCommand::Close);
+            }) {
+                toasts.error("Failed to initalize signal handler");
+                error!("Failed to initalize signal handler: {error:#?}");
+            }
+        }
+
+        let mut fonts = FontDefinitions::default();
+        fonts.font_data.insert(
+            "lucide".into(),
+            Arc::new(FontData::from_static(include_bytes!(
+                "../fonts/icons/Lucide.ttf"
+            ))),
+        );
+        fonts.font_data.insert(
+            "unifontex".into(),
+            Arc::new(FontData::from_static(include_bytes!(
+                "../fonts/UnifontExMono.ttf"
+            ))),
+        );
+        fonts.font_data.insert(
+            "noto-emoji".into(),
+            Arc::new(FontData::from_static(include_bytes!(
+                "../fonts/NotoEmoji.ttf"
+            ))),
+        );
+        if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Monospace) {
+            font_keys.push("unifontex".into());
+            font_keys.insert(1, "noto-emoji".into());
+        }
+        if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Proportional) {
+            font_keys.push("unifontex".into());
+            font_keys.insert(1, "noto-emoji".into());
+            font_keys.insert(1, "lucide".into());
+        }
+        cc.egui_ctx.set_fonts(fonts);
 
         let settings = if let Some(storage) = cc.storage {
             if let Some(data) = storage.get_string("settings") {
@@ -152,7 +194,6 @@ impl eframe::App for App {
             }
         }
     }
-    fn on_exit(&mut self) {}
 }
 
 enum Pane {

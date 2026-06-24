@@ -77,6 +77,7 @@ impl<T, P> ViewContainer<T, P>
 where
     P: View<T>,
 {
+    #[allow(clippy::type_complexity)]
     pub fn new(
         tree: Tree<P>,
         shared: T,
