@@ -20,14 +20,17 @@ impl View<AppShared> for FileManager {
     fn title(&self, _shared: &AppShared) -> WidgetText {
         WidgetText::Text("\u{E33C} Files".to_string())
     }
-    fn logic(&mut self, shared: &mut AppShared, ctx: &Context) {}
+    fn logic(&mut self, shared: &mut AppShared, ctx: &Context) {
+        self.tree.update(shared);
+    }
     fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {
-        false
+        self.modal.ui(&mut self.tree, shared, ctx);
+        self.modal != FileModal::default()
     }
     fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {}
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum FileModal {
     #[default]
     None,
@@ -39,12 +42,12 @@ enum FileModal {
 }
 
 impl FileModal {
-    fn ui(&mut self, root: &mut FileManager, shared: &mut AppShared, ui: &mut Ui) {
+    fn ui(&mut self, tree: &mut FileTree, shared: &mut AppShared, ctx: &Context) {
         match self {
             Self::None => {}
             Self::CreateWeave(path) => {
                 if Modal::new("filemanager-create-weave-modal".into())
-                    .show(ui.ctx(), |ui| {
+                    .show(ctx, |ui| {
                         ui.set_width(280.0);
                         ui.heading("Create Weave");
                         let label = ui.label("Path:");
@@ -66,9 +69,9 @@ impl FileModal {
                                         .join(PathBuf::from(path.clone()));
 
                                     if !shared.open_documents.contains(&path)
-                                        && !root.tree.likely_exists(&path)
+                                        && !tree.likely_exists(&path)
                                     {
-                                        root.tree.create_document(shared, path);
+                                        tree.create_document(shared, path);
                                         ui.close();
                                     }
                                 }
@@ -82,7 +85,7 @@ impl FileModal {
             }
             Self::CreateDirectory(path) => {
                 if Modal::new("filemanager-create-directory-modal".into())
-                    .show(ui.ctx(), |ui| {
+                    .show(ctx, |ui| {
                         ui.set_width(280.0);
                         ui.heading("Create Folder");
                         let label = ui.label("Path:");
@@ -104,9 +107,9 @@ impl FileModal {
                                         .join(PathBuf::from(path.clone()));
 
                                     if !shared.open_documents.contains(&path)
-                                        && !root.tree.likely_exists(&path)
+                                        && !tree.likely_exists(&path)
                                     {
-                                        root.tree.create_directory(shared, path);
+                                        tree.create_directory(shared, path);
                                         ui.close();
                                     }
                                 }
@@ -120,7 +123,7 @@ impl FileModal {
             }
             Self::Rename(from, to) => {
                 if Modal::new("filemanager-rename-item-modal".into())
-                    .show(ui.ctx(), |ui| {
+                    .show(ctx, |ui| {
                         ui.set_width(280.0);
                         ui.heading("Move or Rename Item");
                         let label = ui.label("New Path:");
@@ -144,9 +147,9 @@ impl FileModal {
                                     if from != &to
                                         && !shared.open_documents.contains(from)
                                         && !shared.open_documents.contains(&to)
-                                        && !root.tree.likely_exists(&to)
+                                        && !tree.likely_exists(&to)
                                     {
-                                        root.tree.rename_item(shared, from.to_path_buf(), to);
+                                        tree.rename_item(shared, from.to_path_buf(), to);
                                         ui.close();
                                     }
                                 }
@@ -160,7 +163,7 @@ impl FileModal {
             }
             Self::Copy(from, to) => {
                 if Modal::new("filemanager-copy-item-modal".into())
-                    .show(ui.ctx(), |ui| {
+                    .show(ctx, |ui| {
                         ui.set_width(280.0);
                         ui.heading("Duplicate Item");
                         let label = ui.label("New Path:");
@@ -184,9 +187,9 @@ impl FileModal {
                                     if from != &to
                                         && !shared.open_documents.contains(from)
                                         && !shared.open_documents.contains(&to)
-                                        && !root.tree.likely_exists(&to)
+                                        && !tree.likely_exists(&to)
                                     {
-                                        root.tree.copy_item(shared, from.to_path_buf(), to);
+                                        tree.copy_item(shared, from.to_path_buf(), to);
                                         ui.close();
                                     }
                                 }
@@ -200,7 +203,7 @@ impl FileModal {
             }
             Self::Delete(path) => {
                 if Modal::new("filemanager-confirm-deletion-modal".into())
-                    .show(ui.ctx(), |ui| {
+                    .show(ctx, |ui| {
                         ui.set_width(280.0);
                         ui.heading("Confirm Deletion");
                         ui.label("The following item will be deleted:");
@@ -219,7 +222,7 @@ impl FileModal {
                                     || ui.input(|input| input.key_pressed(Key::Enter)))
                                     && !shared.open_documents.contains(path)
                                 {
-                                    root.tree.remove_item(shared, path.to_path_buf());
+                                    tree.remove_item(shared, path.to_path_buf());
                                     ui.close();
                                 }
                             },
