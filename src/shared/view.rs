@@ -176,7 +176,7 @@ where
             }
         }
     }
-    pub fn modals(&mut self, ctx: &Context) {
+    pub fn modals(&mut self, ctx: &Context) -> bool {
         self.update_pane_list_display_order();
 
         for tile_id in self.pane_list.drain(..) {
@@ -186,6 +186,8 @@ where
                 self.behavior.focus = Some(tile_id);
             };
         }
+
+        self.behavior.focus.is_some()
     }
     pub fn ui(&mut self, ui: &mut Ui) {
         self.tree.ui(&mut self.behavior, ui);
@@ -198,6 +200,22 @@ where
                 pane.save(&mut self.behavior.shared);
             }
         }
+    }
+    pub fn check_close(&mut self) -> bool {
+        let mut would_close = true;
+
+        self.update_pane_list_display_order();
+
+        for tile_id in self.pane_list.iter().copied() {
+            if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id)
+                && !pane.check_close(&mut self.behavior.shared)
+            {
+                would_close = false;
+                break;
+            }
+        }
+
+        would_close
     }
     pub fn close(&mut self) -> bool {
         let mut would_close = true;

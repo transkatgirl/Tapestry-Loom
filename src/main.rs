@@ -148,9 +148,13 @@ impl eframe::App for App {
             ctx.send_viewport_cmd(ViewportCommand::CancelClose);
         }
     }
-    fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
         self.container.behavior.shared.ui(ui);
-        self.container.modals(ui);
+        if self.container.modals(ui)
+            && let Some(window) = frame.winit_window()
+        {
+            window.focus_window();
+        }
 
         CentralPanel::default()
             .frame(egui::Frame::central_panel(ui.style()).inner_margin(0.0))
@@ -164,6 +168,7 @@ impl eframe::App for App {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 enum Pane {
     Settings(SettingsView),
     FileManager(FileManager),
