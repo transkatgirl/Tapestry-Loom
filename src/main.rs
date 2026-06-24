@@ -2,11 +2,12 @@
 
 use std::{sync::Arc, time::Duration};
 
-#[cfg(target_os = "macos")]
-use eframe::egui::{IconData, ViewportBuilder};
 use eframe::{
     CreationContext, NativeOptions,
-    egui::{self, Context, FontData, FontDefinitions, Memory, Ui, WidgetText},
+    egui::{
+        self, CentralPanel, Context, FontData, FontDefinitions, FontFamily, IconData, Memory, Ui,
+        ViewportBuilder, ViewportCommand, WidgetText,
+    },
 };
 use egui_notify::Toasts;
 use egui_tiles::{Tiles, Tree};
@@ -14,7 +15,7 @@ use env_logger::Env;
 use log::{debug, error};
 use mimalloc::MiMalloc;
 use reqwest::{Client, ClientBuilder};
-use tokio::runtime::Runtime;
+use tokio::runtime::{self, Runtime};
 
 use crate::{
     editor::Editor,
@@ -38,11 +39,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     debug!("Initalizing...");
 
-    let runtime = Arc::new(
-        tokio::runtime::Builder::new_multi_thread()
-            .enable_all()
-            .build()?,
-    );
+    let runtime = Arc::new(runtime::Builder::new_multi_thread().enable_all().build()?);
     eframe::run_native(
         "Tapestry Loom (WIP REWRITE)",
         NativeOptions {
@@ -84,7 +81,7 @@ impl App {
 
             let ctrlc_context = cc.egui_ctx.clone();
             ctrlc::set_handler(move || {
-                ctrlc_context.send_viewport_cmd(egui::ViewportCommand::Close);
+                ctrlc_context.send_viewport_cmd(ViewportCommand::Close);
             })?;
         }
 
@@ -111,11 +108,11 @@ impl App {
                 "../fonts/NotoEmoji.ttf"
             ))),
         );
-        if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Monospace) {
+        if let Some(font_keys) = fonts.families.get_mut(&FontFamily::Monospace) {
             font_keys.push("unifontex".into());
             font_keys.insert(1, "noto-emoji".into());
         }
-        if let Some(font_keys) = fonts.families.get_mut(&egui::FontFamily::Proportional) {
+        if let Some(font_keys) = fonts.families.get_mut(&FontFamily::Proportional) {
             font_keys.push("unifontex".into());
             font_keys.insert(1, "noto-emoji".into());
             font_keys.insert(1, "lucide".into());
@@ -171,12 +168,13 @@ impl eframe::App for App {
         self.container.logic(ctx);
 
         if ctx.input(|i| i.viewport().close_requested()) && !self.container.close() {
-            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            ctx.send_viewport_cmd(ViewportCommand::CancelClose);
         }
     }
     fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
         self.container.modals(ui);
-        egui::CentralPanel::default()
+
+        CentralPanel::default()
             .frame(egui::Frame::central_panel(ui.style()).inner_margin(0.0))
             .show_inside(ui, |ui| {
                 self.container.ui(ui);
@@ -184,6 +182,7 @@ impl eframe::App for App {
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         self.container.save();
+
         match self.container.behavior.shared.settings.serialize() {
             Ok(data) => {
                 debug!("Saved settings to disk");
