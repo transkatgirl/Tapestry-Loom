@@ -41,7 +41,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     let runtime = Arc::new(runtime::Builder::new_multi_thread().enable_all().build()?);
     eframe::run_native(
-        "Tapestry Loom (WIP REWRITE)",
+        "Tapestry Loom (WIP REWRITE)", // TODO
         NativeOptions {
             #[cfg(target_os = "macos")]
             viewport: ViewportBuilder::default()
@@ -153,8 +153,12 @@ impl eframe::App for App {
         }
         self.container.logic(ctx);
 
-        if ctx.input(|i| i.viewport().close_requested()) && !self.container.close() {
-            ctx.send_viewport_cmd(ViewportCommand::CancelClose);
+        if ctx.input(|i| i.viewport().close_requested()) {
+            debug!("Closing views...");
+
+            if !self.container.close() {
+                ctx.send_viewport_cmd(ViewportCommand::CancelClose);
+            }
         }
     }
     fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {

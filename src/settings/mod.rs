@@ -1,10 +1,15 @@
-use eframe::egui::{Context, Ui, WidgetText};
+use eframe::egui::{Context, Frame, ScrollArea, Ui, WidgetText};
 use serde::{Deserialize, Serialize};
 
-use crate::{AppShared, shared::view::View};
+use crate::{AppShared, settings::document::DocumentSettings, shared::view::View};
+
+mod document;
+mod interface;
 
 #[derive(Default, Debug)]
-pub struct SettingsView {}
+pub struct SettingsView {
+    pub documents: DocumentSettings,
+}
 
 impl View<AppShared> for SettingsView {
     fn title(&self, _shared: &AppShared) -> WidgetText {
@@ -14,11 +19,24 @@ impl View<AppShared> for SettingsView {
     fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {
         false
     }
-    fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {}
+    fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {
+        ScrollArea::both()
+            .auto_shrink(false)
+            .animated(false)
+            .show(ui, |ui| {
+                Frame::new()
+                    .outer_margin(ui.style().spacing.menu_margin)
+                    .show(ui, |ui| {
+                        shared.settings.ui(ui);
+                    })
+            });
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
-pub struct Settings {}
+pub struct Settings {
+    pub documents: DocumentSettings,
+}
 
 impl Settings {
     pub fn deserialize(data: &str) -> ron::error::SpannedResult<Self> {
@@ -27,4 +45,15 @@ impl Settings {
     pub fn serialize(&self) -> ron::error::Result<String> {
         ron::to_string(self)
     }
+}
+
+impl Editable for Settings {
+    fn ui(&mut self, ui: &mut Ui) {
+        ui.heading("Document");
+        self.documents.ui(ui);
+    }
+}
+
+trait Editable {
+    fn ui(&mut self, ui: &mut Ui);
 }
