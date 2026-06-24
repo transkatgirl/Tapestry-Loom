@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use eframe::egui::{CentralPanel, Context, Frame, Ui, WidgetText};
+use eframe::egui::{CentralPanel, Context, Frame, Panel, Ui, WidgetText};
 use egui_tiles::{Container, Linear, LinearDir, Tabs, Tile, Tiles, Tree};
 use ulid::Ulid;
 
@@ -65,7 +65,11 @@ impl Editor {
 
         Editor {
             container: ViewContainer::new(
-                Tree::new(format!("editor-{}-tree", shared.id), root, tiles),
+                Tree::new(
+                    ["editor-", &shared.id.to_string(), "-tree"].concat(),
+                    root,
+                    tiles,
+                ),
                 shared,
                 None,
             ),
@@ -130,7 +134,9 @@ impl EditorShared {
     fn modals(&mut self, ctx: &Context, shared: &mut AppShared) -> bool {
         false
     }
-    fn ui(&mut self, ui: &mut Ui, shared: &mut AppShared) {}
+    fn ui(&mut self, ui: &mut Ui, shared: &mut AppShared) {
+        Panel::bottom(ui.id()).show_inside(ui, |ui| {});
+    }
 
     fn save(&mut self, shared: &mut AppShared) {}
 
