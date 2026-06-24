@@ -123,6 +123,9 @@ impl BackgroundCrawler {
             task.abort();
             if !task.is_finished() {
                 self.state = Arc::new(Mutex::new(CrawlState::new()));
+            } else {
+                let mut state = self.state.blocking_lock();
+                state.reset();
             }
         } else {
             let mut state = self.state.blocking_lock();
