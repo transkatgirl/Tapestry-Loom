@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-use eframe::egui::{Context, Panel, Ui};
+use eframe::egui::{Align, Context, Layout, OutputCommand, Panel, Ui};
 use ulid::Ulid;
 
-use crate::AppShared;
+use crate::{AppShared, shared::ui::abbreviate_path};
 
 pub(super) struct EditorShared {
     pub id: Ulid,
@@ -28,7 +28,36 @@ impl EditorShared {
         false
     }
     pub(super) fn ui(&mut self, ui: &mut Ui, shared: &mut AppShared) {
-        Panel::bottom(ui.id()).show_inside(ui, |ui| {});
+        Panel::bottom(ui.id()).show_inside(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                    /*ui.add(Spinner::new());
+                    ui.label("Loading weave...");*/
+
+                    if let Some(path) = &self.path {
+                        ui.label(
+                            abbreviate_path(&shared.settings.documents.location, path)
+                                .to_string_lossy(),
+                        )
+                        .on_hover_text(path.to_string_lossy())
+                        .context_menu(|ui| {
+                            if ui.button("Copy path").clicked() {
+                                ui.output_mut(|o| {
+                                    o.commands.push(OutputCommand::CopyText(
+                                        path.to_string_lossy().to_string(),
+                                    ))
+                                });
+                            };
+                        });
+                    } /*else if ui.button("Save as...").clicked() {
+                    // TODO
+                    }*/
+                });
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    // TODO
+                });
+            });
+        });
     }
 
     pub(super) fn save(&mut self, shared: &mut AppShared) {}

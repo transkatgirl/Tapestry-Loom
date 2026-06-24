@@ -1,3 +1,9 @@
+use std::path::Path;
+
+pub fn abbreviate_path<'a>(root: &Path, path: &'a Path) -> &'a Path {
+    path.strip_prefix(root).unwrap_or(path)
+}
+
 pub fn format_large_number(number: usize, singular_suffix: &str, plural_suffix: &str) -> String {
     if number >= 100_000_000 {
         format!("{:.0}M {plural_suffix}", number as f32 / 1_000_000.0)

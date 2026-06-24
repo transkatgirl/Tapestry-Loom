@@ -29,6 +29,8 @@ mod files;
 mod settings;
 mod shared;
 
+const APP_NAME: &str = "Tapestry Loom (WIP REWRITE)"; // TODO
+
 const DEFAULT_LOG_FILTER: &str = "debug,tapestry_loom=trace,tapestry_loom::settings::inference::polyparser=debug,winit=info,naga=info,wgpu_hal=info,layouting=warn,coordinate_calculation=warn,crossing_reduction=warn,ranking=warn,Cycle Removal=warn,connected_components=warn,rust_sugiyama::algorithm=warn";
 
 #[global_allocator]
@@ -41,7 +43,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     let runtime = Arc::new(runtime::Builder::new_multi_thread().enable_all().build()?);
     eframe::run_native(
-        "Tapestry Loom (WIP REWRITE)", // TODO
+        APP_NAME,
         NativeOptions {
             #[cfg(target_os = "macos")]
             viewport: ViewportBuilder::default()

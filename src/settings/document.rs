@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::settings::Editable;
+use crate::{APP_NAME, settings::Editable};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DocumentSettings {
@@ -12,9 +12,7 @@ pub struct DocumentSettings {
 impl Default for DocumentSettings {
     fn default() -> Self {
         Self {
-            location: dirs_next::document_dir()
-                .unwrap_or_default()
-                .join("Tapestry Loom WIP"), // TODO
+            location: dirs_next::document_dir().unwrap_or_default().join(APP_NAME),
         }
     }
 }
