@@ -204,13 +204,19 @@ where
                 && !pane.check_close(&mut self.behavior.shared)
             {
                 would_close = false;
+                break;
             }
         }
 
         if would_close {
             for tile_id in self.pane_list.drain(..) {
                 if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id) {
-                    pane.close(&mut self.behavior.shared);
+                    if pane.close(&mut self.behavior.shared) {
+                        self.tree.remove_recursively(tile_id);
+                    } else {
+                        would_close = false;
+                        break;
+                    }
                 }
             }
         }
@@ -249,6 +255,6 @@ pub trait View<T> {
 
     fn save(&mut self, shared: &mut T) {}
     fn close(&mut self, shared: &mut T) -> bool {
-        false
+        true
     }
 }
