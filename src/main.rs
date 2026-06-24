@@ -114,6 +114,7 @@ impl App {
                     toasts,
                     settings,
                 },
+                Some(Box::new(|shared| Pane::Editor(Editor::new(None, shared)))),
             ),
         })
     }

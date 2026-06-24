@@ -77,11 +77,15 @@ impl<T, P> ViewContainer<T, P>
 where
     P: View<T>,
 {
-    pub fn new(tree: Tree<P>, shared: T) -> Self {
+    pub fn new(
+        tree: Tree<P>,
+        shared: T,
+        creation_callback: Option<Box<dyn Fn(&mut T) -> P>>,
+    ) -> Self {
         Self {
             behavior: ViewContainerBehavior {
                 shared,
-                creation_callback: None,
+                creation_callback,
                 focus: None,
                 create: None,
                 add: Vec::with_capacity(1),
