@@ -27,7 +27,7 @@ where
     P: View<T>,
 {
     fn tab_title_for_pane(&mut self, pane: &P) -> WidgetText {
-        pane.title()
+        pane.title(&self.shared)
     }
     fn pane_ui(&mut self, ui: &mut Ui, tile_id: TileId, pane: &mut P) -> UiResponse {
         if pane.modals(&mut self.shared, ui) {
@@ -40,7 +40,7 @@ where
     }
     fn is_tab_closable(&self, tiles: &Tiles<P>, tile_id: TileId) -> bool {
         if let Some(Tile::Pane(pane)) = tiles.get(tile_id) {
-            pane.closable()
+            pane.closable(&self.shared)
         } else {
             false
         }
@@ -186,7 +186,7 @@ where
 
         for tile_id in self.pane_list.iter().copied() {
             if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id)
-                && !pane.check_close()
+                && !pane.check_close(&mut self.behavior.shared)
             {
                 would_close = false;
             }
@@ -220,12 +220,13 @@ fn build_tree_pane_list<P>(tree: &Tree<P>, panes: &mut Vec<TileId>, current: Til
     }
 }
 
+#[allow(unused_variables)]
 pub trait View<T> {
-    fn title(&self) -> WidgetText;
-    fn closable(&self) -> bool {
+    fn title(&self, shared: &T) -> WidgetText;
+    fn closable(&self, shared: &T) -> bool {
         false
     }
-    fn check_close(&mut self) -> bool {
+    fn check_close(&mut self, shared: &mut T) -> bool {
         true
     }
 
@@ -233,7 +234,6 @@ pub trait View<T> {
     fn modals(&mut self, shared: &mut T, ctx: &Context) -> bool;
     fn ui(&mut self, shared: &mut T, ui: &mut Ui);
 
-    #[allow(unused_variables)]
     fn close(&mut self, shared: &mut T) -> bool {
         false
     }
