@@ -1,11 +1,13 @@
 use std::path::PathBuf;
 
-use eframe::egui::{CentralPanel, Context, Frame, Panel, Ui, WidgetText};
+use eframe::egui::{CentralPanel, Context, Frame, Ui, WidgetText};
 use egui_tiles::{Container, Linear, LinearDir, Tabs, Tile, Tiles, Tree};
-use ulid::Ulid;
+
+mod shared;
 
 use crate::{
     AppShared,
+    editor::shared::EditorShared,
     shared::view::{View, ViewContainer},
 };
 
@@ -115,48 +117,6 @@ impl View<AppShared> for Editor {
             && self.container.behavior.shared.check_close(shared)
             && self.container.close()
             && self.container.behavior.shared.close(shared)
-    }
-}
-
-struct EditorShared {
-    id: Ulid,
-    path: Option<PathBuf>,
-}
-
-impl EditorShared {
-    fn new(path: Option<PathBuf>, shared: &mut AppShared) -> Self {
-        Self {
-            id: Ulid::new(),
-            path,
-        }
-    }
-    fn logic(&mut self, _ctx: &Context, shared: &mut AppShared) {}
-    fn modals(&mut self, ctx: &Context, shared: &mut AppShared) -> bool {
-        false
-    }
-    fn ui(&mut self, ui: &mut Ui, shared: &mut AppShared) {
-        Panel::bottom(ui.id()).show_inside(ui, |ui| {});
-    }
-
-    fn save(&mut self, shared: &mut AppShared) {}
-
-    fn title(&self, shared: &AppShared) -> String {
-        match &self.path {
-            Some(path) => {
-                if let Some(filename) = path.file_stem() {
-                    filename.to_string_lossy().to_string()
-                } else {
-                    "Untitled Weave".to_string()
-                }
-            }
-            None => "New Weave".to_string(),
-        }
-    }
-    fn check_close(&mut self, shared: &mut AppShared) -> bool {
-        true
-    }
-    fn close(&mut self, shared: &mut AppShared) -> bool {
-        true
     }
 }
 

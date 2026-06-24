@@ -78,6 +78,7 @@ fn main() -> Result<(), anyhow::Error> {
 
 struct App {
     container: ViewContainer<AppShared, Pane>,
+    new_panes: Vec<Pane>,
 }
 
 impl App {
@@ -131,6 +132,7 @@ impl App {
                 AppShared::new(runtime, Toasts::new(), cc.storage.unwrap())?,
                 Some(Box::new(|shared| Pane::Editor(Editor::new(None, shared)))),
             ),
+            new_panes: Vec::with_capacity(1),
         };
 
         debug!("Initialized application context");
@@ -141,7 +143,14 @@ impl App {
 
 impl eframe::App for App {
     fn logic(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
-        self.container.behavior.shared.logic(ctx);
+        self.new_panes.clear();
+
+        self.container.behavior.shared.logic(ctx, |pane| {
+            self.new_panes.push(pane);
+        });
+        for pane in self.new_panes.drain(..) {
+            self.container.add_pane(pane);
+        }
         self.container.logic(ctx);
 
         if ctx.input(|i| i.viewport().close_requested()) && !self.container.close() {
@@ -206,7 +215,7 @@ impl AppShared {
             settings,
         })
     }
-    fn logic(&mut self, _ctx: &Context) {}
+    fn logic(&mut self, _ctx: &Context, add_pane: impl FnMut(Pane)) {}
     fn ui(&mut self, ui: &mut Ui) {
         self.toasts.show(ui);
     }
