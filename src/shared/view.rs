@@ -29,11 +29,7 @@ where
     fn tab_title_for_pane(&mut self, pane: &P) -> WidgetText {
         pane.title(&self.shared)
     }
-    fn pane_ui(&mut self, ui: &mut Ui, tile_id: TileId, pane: &mut P) -> UiResponse {
-        if pane.modals(&mut self.shared, ui) {
-            self.focus = Some(tile_id);
-        }
-
+    fn pane_ui(&mut self, ui: &mut Ui, _tile_id: TileId, pane: &mut P) -> UiResponse {
         pane.ui(&mut self.shared, ui);
 
         UiResponse::None
@@ -179,9 +175,11 @@ where
         self.update_pane_list_display_order();
 
         for tile_id in self.pane_list.drain(..) {
-            if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id) {
-                pane.modals(&mut self.behavior.shared, ctx);
-            }
+            if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id)
+                && pane.modals(&mut self.behavior.shared, ctx)
+            {
+                self.behavior.focus = Some(tile_id);
+            };
         }
     }
     pub fn ui(&mut self, ui: &mut Ui) {
