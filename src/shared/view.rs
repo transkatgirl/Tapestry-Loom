@@ -95,6 +95,20 @@ where
             pane_list: Vec::new(),
         }
     }
+    fn update_pane_list_display_order(&mut self) {
+        self.pane_list.clear();
+        if let Some(root) = self.tree.root {
+            build_tree_pane_list(&self.tree, &mut self.pane_list, root);
+        }
+    }
+    fn update_pane_list_id_order(&mut self) {
+        self.pane_list.clear();
+        self.pane_list
+            .extend(self.tree.tiles.iter().filter_map(|(tile_id, tile)| {
+                if tile.is_pane() { Some(tile_id) } else { None }
+            }));
+        self.pane_list.sort_unstable_by_key(|a| a.0);
+    }
     pub fn add_pane(&mut self, pane: P) {
         self.behavior
             .add
@@ -153,12 +167,7 @@ where
             self.behavior.focus = None;
         }
 
-        self.pane_list.clear();
-        self.pane_list
-            .extend(self.tree.tiles.iter().filter_map(|(tile_id, tile)| {
-                if tile.is_pane() { Some(tile_id) } else { None }
-            }));
-        self.pane_list.sort_unstable_by_key(|a| a.0);
+        self.update_pane_list_id_order();
 
         for tile_id in self.pane_list.drain(..) {
             if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id) {
@@ -167,10 +176,7 @@ where
         }
     }
     pub fn modals(&mut self, ctx: &Context) {
-        self.pane_list.clear();
-        if let Some(root) = self.tree.root {
-            build_tree_pane_list(&self.tree, &mut self.pane_list, root);
-        }
+        self.update_pane_list_display_order();
 
         for tile_id in self.pane_list.drain(..) {
             if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id) {
@@ -182,12 +188,7 @@ where
         self.tree.ui(&mut self.behavior, ui);
     }
     pub fn save(&mut self) {
-        self.pane_list.clear();
-        self.pane_list
-            .extend(self.tree.tiles.iter().filter_map(|(tile_id, tile)| {
-                if tile.is_pane() { Some(tile_id) } else { None }
-            }));
-        self.pane_list.sort_unstable_by_key(|a| a.0);
+        self.update_pane_list_id_order();
 
         for tile_id in self.pane_list.drain(..) {
             if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id) {
@@ -198,10 +199,7 @@ where
     pub fn close(&mut self) -> bool {
         let mut would_close = true;
 
-        self.pane_list.clear();
-        if let Some(root) = self.tree.root {
-            build_tree_pane_list(&self.tree, &mut self.pane_list, root);
-        }
+        self.update_pane_list_display_order();
 
         for tile_id in self.pane_list.iter().copied() {
             if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id)
@@ -217,8 +215,6 @@ where
                     pane.close(&mut self.behavior.shared);
                 }
             }
-        } else {
-            self.pane_list.clear();
         }
 
         would_close
