@@ -4,6 +4,7 @@ use std::{
     sync::{Arc, atomic},
 };
 
+use egui_notify::Toast;
 use log::{error, warn};
 use tapestry_weave::universal_weave::indexmap::IndexMap;
 use tokio::sync::Mutex;
@@ -23,7 +24,7 @@ pub struct FileTree {
 
 impl FileTree {
     pub fn update(&mut self, shared: &mut AppShared) {
-        if self.last_root.as_ref() != Some(&shared.settings.documents.location)
+        if self.last_root.as_ref() != Some(&shared.settings.documents.location) // TODO: Debounce changes
             || shared.open_documents_updated
         {
             self.last_root = Some(shared.settings.documents.location.clone());
@@ -31,8 +32,11 @@ impl FileTree {
             shared.open_documents_updated = false;
 
             let _runtime = shared.runtime.enter();
-            self.crawler
-                .crawl(shared.settings.documents.location.clone(), true);
+            self.crawler.crawl(
+                shared.settings.documents.location.clone(),
+                shared.async_toasts.clone(),
+                true,
+            );
         }
 
         if let Ok(crawl_state) = self.crawler.state.try_lock() {
@@ -87,7 +91,6 @@ impl Default for BackgroundCrawler {
 #[derive(Debug)]
 struct CrawlState {
     paths: IndexMap<PathBuf, FileType>,
-    errors: Vec<String>,
     completed: bool,
 }
 
@@ -95,13 +98,11 @@ impl CrawlState {
     fn new() -> Self {
         Self {
             paths: IndexMap::with_capacity(16384),
-            errors: Vec::new(),
             completed: false,
         }
     }
     fn reset(&mut self) {
         self.paths.clear();
-        self.errors.clear();
         self.completed = false;
     }
 }
@@ -113,7 +114,12 @@ impl BackgroundCrawler {
             task: None,
         }
     }
-    fn crawl(&mut self, root: PathBuf, natural_sort: bool) {
+    fn crawl(
+        &mut self,
+        root: PathBuf,
+        toasts: Arc<parking_lot::Mutex<Vec<Toast>>>,
+        natural_sort: bool,
+    ) {
         if let Some(task) = &self.task {
             task.abort();
             if !task.is_finished() {
@@ -136,18 +142,16 @@ impl BackgroundCrawler {
                     }
 
                     if !exists && let Err(error) = fs::create_dir_all(&root) {
-                        let mut state = state.blocking_lock();
-                        state
-                            .errors
-                            .push("Failed to create root directory".to_string());
+                        toasts
+                            .lock()
+                            .push(Toast::error("Failed to create root directory"));
                         error!("Failed to create directory at {:?}: {:?}", &root, error);
                     }
                 }
                 Err(error) => {
-                    let mut state = state.blocking_lock();
-                    state
-                        .errors
-                        .push("Failed to determine if root directory exists".to_string());
+                    toasts
+                        .lock()
+                        .push(Toast::error("Failed to determine if root directory exists"));
                     error!("Failed to determine if {:?} exists: {:?}", &root, error);
                     return false;
                 }
@@ -171,20 +175,22 @@ impl BackgroundCrawler {
             };
 
             for entry in walkdir {
-                let mut state = state.blocking_lock();
-
                 match entry {
                     Ok(entry) => {
+                        let mut state = state.blocking_lock();
+
                         let file_type = entry.file_type();
                         state.paths.insert(entry.into_path(), file_type);
                     }
                     Err(error) => match error.path() {
                         Some(path) => {
-                            state.errors.push(format!("Failed to scan {:?}", path));
+                            toasts
+                                .lock()
+                                .push(Toast::warning(format!("Failed to scan {:?}", path)));
                             warn!("Scanning {:?} failed: {:?}", path, error);
                         }
                         None => {
-                            state.errors.push("Failed to scan item".to_string());
+                            toasts.lock().push(Toast::warning("Failed to scan item"));
                             warn!("Item scanning failed: {:?}", error);
                         }
                     },

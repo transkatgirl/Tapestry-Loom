@@ -9,11 +9,12 @@ use eframe::{
         ViewportBuilder, ViewportCommand, WidgetText,
     },
 };
-use egui_notify::Toasts;
+use egui_notify::{Toast, Toasts};
 use egui_tiles::{Tiles, Tree};
 use env_logger::Env;
 use log::{debug, error};
 use mimalloc::MiMalloc;
+use parking_lot::Mutex;
 use reqwest::{Client, ClientBuilder};
 use tokio::runtime::{self, Runtime};
 
@@ -193,6 +194,8 @@ impl eframe::App for App {
 
 struct AppShared {
     runtime: Arc<Runtime>,
+    async_toasts: Arc<Mutex<Vec<Toast>>>,
+
     client: Client,
     toasts: Toasts,
     settings: Settings,
@@ -228,6 +231,7 @@ impl AppShared {
 
         Ok(Self {
             runtime,
+            async_toasts: Arc::new(Mutex::new(Vec::with_capacity(8))),
             toasts,
             client,
             settings,
@@ -247,6 +251,10 @@ impl AppShared {
         }
     }
     fn ui(&mut self, ui: &mut Ui) {
+        for toast in self.async_toasts.lock().drain(..) {
+            self.toasts.add(toast);
+        }
+
         self.toasts.show(ui);
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
