@@ -83,12 +83,9 @@ impl App {
             // Hack to work around eframe's lack of signal handling
 
             let ctrlc_context = cc.egui_ctx.clone();
-            if let Err(error) = ctrlc::set_handler(move || {
+            ctrlc::set_handler(move || {
                 ctrlc_context.send_viewport_cmd(egui::ViewportCommand::Close);
-            }) {
-                toasts.error("Failed to initalize signal handler");
-                error!("Failed to initalize signal handler: {error:#?}");
-            }
+            })?;
         }
 
         cc.egui_ctx.memory_mut(|memory| {
@@ -125,22 +122,16 @@ impl App {
         }
         cc.egui_ctx.set_fonts(fonts);
 
-        let settings = if let Some(storage) = cc.storage {
-            if let Some(data) = storage.get_string("settings") {
-                match Settings::deserialize(&data) {
-                    Ok(settings) => settings,
-                    Err(error) => {
-                        toasts.error("Settings deserialization failed");
-                        error!("Settings deserialization failed: {error:#?}");
-                        Settings::default()
-                    }
+        let settings = if let Some(data) = cc.storage.unwrap().get_string("settings") {
+            match Settings::deserialize(&data) {
+                Ok(settings) => settings,
+                Err(error) => {
+                    toasts.error("Settings deserialization failed");
+                    error!("Settings deserialization failed: {error:#?}");
+                    Settings::default()
                 }
-            } else {
-                Settings::default()
             }
         } else {
-            toasts.error("Unable to open settings storage");
-            error!("Settings storage not found");
             Settings::default()
         };
 
