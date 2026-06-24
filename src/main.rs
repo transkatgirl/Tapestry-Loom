@@ -27,11 +27,13 @@ mod files;
 mod settings;
 mod shared;
 
+const DEFAULT_LOG_FILTER: &str = "debug,tapestry_loom=trace,tapestry_loom::settings::inference::polyparser=debug,winit=info,naga=info,wgpu_hal=info,layouting=warn,coordinate_calculation=warn,crossing_reduction=warn,ranking=warn,Cycle Removal=warn,connected_components=warn,rust_sugiyama::algorithm=warn";
+
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() -> Result<(), anyhow::Error> {
-    env_logger::Builder::from_env(Env::default().default_filter_or("debug,tapestry_loom=trace,tapestry_loom::settings::inference::polyparser=debug,winit=info,layouting=warn,coordinate_calculation=warn,crossing_reduction=warn,ranking=warn,Cycle Removal=warn,connected_components=warn,rust_sugiyama::algorithm=warn")).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or(DEFAULT_LOG_FILTER)).init();
 
     debug!("Initalizing...");
 
@@ -179,6 +181,7 @@ impl eframe::App for App {
             });
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        self.container.save();
         match self.container.behavior.shared.settings.serialize() {
             Ok(data) => {
                 debug!("Saved settings to disk");

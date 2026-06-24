@@ -181,6 +181,20 @@ where
     pub fn ui(&mut self, ui: &mut Ui) {
         self.tree.ui(&mut self.behavior, ui);
     }
+    pub fn save(&mut self) {
+        self.pane_list.clear();
+        self.pane_list
+            .extend(self.tree.tiles.iter().filter_map(|(tile_id, tile)| {
+                if tile.is_pane() { Some(tile_id) } else { None }
+            }));
+        self.pane_list.sort_unstable_by_key(|a| a.0);
+
+        for tile_id in self.pane_list.drain(..) {
+            if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id) {
+                pane.save(&mut self.behavior.shared);
+            }
+        }
+    }
     pub fn close(&mut self) -> bool {
         let mut would_close = true;
 
@@ -239,6 +253,7 @@ pub trait View<T> {
     fn modals(&mut self, shared: &mut T, ctx: &Context) -> bool;
     fn ui(&mut self, shared: &mut T, ui: &mut Ui);
 
+    fn save(&mut self, shared: &mut T) {}
     fn close(&mut self, shared: &mut T) -> bool {
         false
     }

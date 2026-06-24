@@ -30,9 +30,10 @@ impl View<AppShared> for Editor {
     fn closable(&self, shared: &AppShared) -> bool {
         true
     }
-    /*fn check_close(&mut self, shared: &mut AppShared) -> bool {
-        todo!()
-    }*/
+    fn check_close(&mut self, shared: &mut AppShared) -> bool {
+        //todo!()
+        true
+    }
 
     fn logic(&mut self, shared: &mut AppShared, ctx: &Context) {
         //todo!()
@@ -45,6 +46,9 @@ impl View<AppShared> for Editor {
         //todo!()
     }
 
+    fn save(&mut self, shared: &mut AppShared) {
+        //todo!()
+    }
     fn close(&mut self, shared: &mut AppShared) -> bool {
         //todo!()
         true
