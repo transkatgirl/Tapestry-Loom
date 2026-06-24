@@ -198,6 +198,7 @@ struct AppShared {
     settings: Settings,
 
     open_documents: HashSet<PathBuf>,
+    open_documents_updated: bool,
     load_document_queue: Vec<PathBuf>,
 }
 
@@ -232,6 +233,7 @@ impl AppShared {
             settings,
 
             open_documents: HashSet::with_capacity(8),
+            open_documents_updated: false,
             load_document_queue: Vec::with_capacity(1),
         })
     }

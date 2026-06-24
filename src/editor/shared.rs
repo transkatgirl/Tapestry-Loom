@@ -12,10 +12,12 @@ pub(super) struct EditorShared {
 
 impl EditorShared {
     pub(super) fn new(mut path: Option<PathBuf>, shared: &mut AppShared) -> Self {
-        if let Some(unwrapped_path) = &path
-            && !shared.open_documents.insert(unwrapped_path.clone())
-        {
-            path = None;
+        if let Some(unwrapped_path) = &path {
+            if shared.open_documents.insert(unwrapped_path.clone()) {
+                shared.open_documents_updated = true;
+            } else {
+                path = None;
+            }
         }
 
         Self {
@@ -82,7 +84,9 @@ impl EditorShared {
     }
     pub(super) fn close(&mut self, shared: &mut AppShared) -> bool {
         if let Some(path) = &self.path {
-            shared.open_documents.remove(path);
+            if shared.open_documents.remove(path) {
+                shared.open_documents_updated = true;
+            };
         }
 
         true
