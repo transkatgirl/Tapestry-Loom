@@ -116,9 +116,74 @@ impl App {
         }
         cc.egui_ctx.set_fonts(fonts);
 
-        let mut toasts = Toasts::new();
+        let mut tiles = Tiles::default();
 
-        let settings = if let Some(data) = cc.storage.unwrap().get_string("settings") {
+        let tabs = vec![
+            tiles.insert_pane(Pane::FileManager(FileManager::default())),
+            tiles.insert_pane(Pane::Settings(SettingsView::default())),
+        ];
+
+        let root = tiles.insert_tab_tile(tabs);
+
+        let app = Self {
+            container: ViewContainer::new(
+                Tree::new("global-tree", root, tiles),
+                AppShared::new(runtime, Toasts::new(), cc.storage.unwrap())?,
+                Some(Box::new(|shared| Pane::Editor(Editor::new(None, shared)))),
+            ),
+        };
+
+        debug!("Initialized application context");
+
+        Ok(app)
+    }
+}
+
+impl eframe::App for App {
+    fn logic(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        self.container.behavior.shared.logic(ctx);
+        self.container.logic(ctx);
+
+        if ctx.input(|i| i.viewport().close_requested()) && !self.container.close() {
+            ctx.send_viewport_cmd(ViewportCommand::CancelClose);
+        }
+    }
+    fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
+        self.container.behavior.shared.ui(ui);
+        self.container.modals(ui);
+
+        CentralPanel::default()
+            .frame(egui::Frame::central_panel(ui.style()).inner_margin(0.0))
+            .show_inside(ui, |ui| {
+                self.container.ui(ui);
+            });
+    }
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        self.container.save();
+        self.container.behavior.shared.save(storage);
+    }
+}
+
+enum Pane {
+    Settings(SettingsView),
+    FileManager(FileManager),
+    Editor(Editor),
+}
+
+struct AppShared {
+    runtime: Arc<Runtime>,
+    client: Client,
+    toasts: Toasts,
+    settings: Settings,
+}
+
+impl AppShared {
+    fn new(
+        runtime: Arc<Runtime>,
+        mut toasts: Toasts,
+        storage: &dyn eframe::Storage,
+    ) -> Result<Self, anyhow::Error> {
+        let settings = if let Some(data) = storage.get_string("settings") {
             match Settings::deserialize(&data) {
                 Ok(settings) => settings,
                 Err(error) => {
@@ -136,80 +201,29 @@ impl App {
             .timeout(Duration::from_secs(300))
             .build()?;
 
-        let mut tiles = Tiles::default();
-
-        let tabs = vec![
-            tiles.insert_pane(Pane::FileManager(FileManager::default())),
-            tiles.insert_pane(Pane::Settings(SettingsView::default())),
-        ];
-
-        let root = tiles.insert_tab_tile(tabs);
-
-        debug!("Initialized application context");
-
         Ok(Self {
-            container: ViewContainer::new(
-                Tree::new("global-tree", root, tiles),
-                AppShared {
-                    runtime,
-                    client,
-                    toasts,
-                    settings,
-                },
-                Some(Box::new(|shared| Pane::Editor(Editor::new(None, shared)))),
-            ),
+            runtime,
+            toasts,
+            client,
+            settings,
         })
     }
-}
-
-impl eframe::App for App {
-    fn logic(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
-        self.container.logic(ctx);
-
-        if ctx.input(|i| i.viewport().close_requested()) && !self.container.close() {
-            ctx.send_viewport_cmd(ViewportCommand::CancelClose);
-        }
-    }
-    fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
-        self.container.modals(ui);
-
-        CentralPanel::default()
-            .frame(egui::Frame::central_panel(ui.style()).inner_margin(0.0))
-            .show_inside(ui, |ui| {
-                self.container.ui(ui);
-            });
+    fn logic(&mut self, _ctx: &Context) {}
+    fn ui(&mut self, ui: &mut Ui) {
+        self.toasts.show(ui);
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        self.container.save();
-
-        match self.container.behavior.shared.settings.serialize() {
+        match self.settings.serialize() {
             Ok(data) => {
                 debug!("Saved settings to disk");
                 storage.set_string("settings", data);
             }
             Err(error) => {
-                self.container
-                    .behavior
-                    .shared
-                    .toasts
-                    .error("Settings serialization failed");
+                self.toasts.error("Settings serialization failed");
                 error!("Settings serialization failed: {error:#?}")
             }
         }
     }
-}
-
-enum Pane {
-    Settings(SettingsView),
-    FileManager(FileManager),
-    Editor(Editor),
-}
-
-struct AppShared {
-    runtime: Arc<Runtime>,
-    client: Client,
-    toasts: Toasts,
-    settings: Settings,
 }
 
 impl View<AppShared> for Pane {
