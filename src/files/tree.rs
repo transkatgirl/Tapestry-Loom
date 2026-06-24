@@ -1,18 +1,12 @@
 use std::{
-    collections::HashSet,
-    fs::{self, FileType, Metadata},
-    mem,
+    fs::{self, FileType},
     path::{Path, PathBuf},
     sync::{Arc, atomic},
 };
 
-use futures::stream::AbortHandle;
 use log::{error, warn};
-use tapestry_weave::universal_weave::indexmap::{IndexMap, IndexSet};
-use tokio::{
-    sync::Mutex,
-    task::{self, JoinHandle},
-};
+use tapestry_weave::universal_weave::indexmap::IndexMap;
+use tokio::sync::Mutex;
 use walkdir::WalkDir;
 
 use crate::{
@@ -38,7 +32,7 @@ impl FileTree {
 
             let _runtime = shared.runtime.enter();
             self.crawler
-                .crawl(shared.settings.documents.location.clone());
+                .crawl(shared.settings.documents.location.clone(), true);
         }
 
         if let Ok(crawl_state) = self.crawler.state.try_lock() {
@@ -55,7 +49,8 @@ impl FileTree {
     }
 
     pub fn likely_exists(&mut self, path: &Path) -> bool {
-        todo!()
+        let crawl_state = self.crawler.state.blocking_lock();
+        crawl_state.paths.contains_key(path)
     }
     pub fn create_document(&mut self, shared: &mut AppShared, path: PathBuf) {
         shared.load_document_queue.push(path.to_path_buf()); // TODO: Refresh
@@ -118,7 +113,7 @@ impl BackgroundCrawler {
             task: None,
         }
     }
-    fn crawl(&mut self, root: PathBuf) {
+    fn crawl(&mut self, root: PathBuf, natural_sort: bool) {
         if let Some(task) = &self.task {
             task.abort();
             if !task.is_finished() {
@@ -158,15 +153,22 @@ impl BackgroundCrawler {
                 }
             }
 
-            let walkdir = WalkDir::new(&root)
-                .follow_links(true)
-                .same_file_system(false)
-                .sort_by(|a, b| {
-                    lexicmp::natural_lexical_cmp(
-                        &a.path().to_string_lossy(),
-                        &b.path().to_string_lossy(),
-                    )
-                });
+            let walkdir = if natural_sort {
+                WalkDir::new(&root)
+                    .follow_links(true)
+                    .same_file_system(false)
+                    .sort_by(|a, b| {
+                        lexicmp::natural_lexical_cmp(
+                            &a.file_name().to_string_lossy(),
+                            &b.file_name().to_string_lossy(),
+                        )
+                    })
+            } else {
+                WalkDir::new(&root)
+                    .follow_links(true)
+                    .same_file_system(false)
+                    .sort_by_file_name()
+            };
 
             for entry in walkdir {
                 let mut state = state.blocking_lock();
