@@ -1,5 +1,5 @@
 use eframe::egui::{Context, Ui, WidgetText};
-use egui_tiles::{Container, SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse};
+use egui_tiles::{SimplificationOptions, Tile, TileId, Tiles, Tree, UiResponse};
 use log::warn;
 
 pub struct ViewContainer<T, P>
