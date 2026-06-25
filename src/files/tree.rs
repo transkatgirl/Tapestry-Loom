@@ -1,4 +1,5 @@
 use std::{
+    collections::VecDeque,
     fs::{self, FileType},
     path::{Path, PathBuf},
     sync::{Arc, atomic},
@@ -8,6 +9,7 @@ use egui_notify::Toast;
 use log::{error, warn};
 use parking_lot::Mutex;
 use tapestry_weave::universal_weave::indexmap::IndexMap;
+use tokio::task::{self, JoinHandle};
 use walkdir::WalkDir;
 
 use crate::{
@@ -19,7 +21,7 @@ use crate::{
 pub struct FileTree {
     last_root: Option<PathBuf>,
     crawler: BackgroundCrawler,
-    last_completed: bool,
+    tasks: VecDeque<JoinHandle<()>>,
 }
 
 impl FileTree {
@@ -28,7 +30,6 @@ impl FileTree {
             || shared.open_documents_updated
         {
             self.last_root = Some(shared.settings.documents.location.clone());
-            self.last_completed = false;
             shared.open_documents_updated = false;
 
             let _runtime = shared.runtime.enter();
@@ -39,17 +40,27 @@ impl FileTree {
             );
         }
 
-        if let Some(crawl_state) = self.crawler.state.try_lock() {
-            if !self.last_completed {
-                println!("{:?}", crawl_state);
+        let had_tasks = !self.tasks.is_empty();
 
-                // TODO
-            }
-
-            if crawl_state.completed && !self.last_completed {
-                self.last_completed = true;
+        for _ in 0..self.tasks.len() {
+            if let Some(task) = self.tasks.pop_front()
+                && !task.is_finished()
+            {
+                self.tasks.push_back(task);
             }
         }
+
+        if had_tasks && self.tasks.is_empty() {
+            self.rescan();
+        }
+    }
+    pub fn read<T>(&self, f: impl FnOnce(PathBuf, &IndexMap<PathBuf, FileType>, bool) -> T) -> T {
+        let crawl_state = self.crawler.state.lock();
+        f(
+            self.last_root.clone().unwrap_or_default(),
+            &crawl_state.paths,
+            crawl_state.completed && self.tasks.is_empty(),
+        )
     }
 
     pub fn likely_exists(&mut self, path: &Path) -> bool {
@@ -60,18 +71,72 @@ impl FileTree {
         shared.load_document_queue.push(path.to_path_buf()); // TODO: Refresh
     }
     pub fn create_directory(&mut self, shared: &mut AppShared, path: PathBuf) {
-        todo!()
+        let toasts = shared.async_toasts.clone();
+        let _runtime = shared.runtime.enter();
+
+        self.tasks.push_back(task::spawn_blocking(move || {
+            if let Err(error) = fs::create_dir_all(&path) {
+                toasts
+                    .lock()
+                    .push(Toast::error("Unable to create directory"));
+                warn!("Unable to create directory at {:?}: {:?}", &path, error);
+            }
+        }));
     }
     pub fn rename_item(&mut self, shared: &mut AppShared, from: PathBuf, to: PathBuf) {
+        let toasts = shared.async_toasts.clone();
+        let _runtime = shared.runtime.enter();
+
+        self.tasks.push_back(task::spawn_blocking(|| {}));
+
         todo!()
     }
     pub fn copy_item(&mut self, shared: &mut AppShared, from: PathBuf, to: PathBuf) {
+        let toasts = shared.async_toasts.clone();
+        let _runtime = shared.runtime.enter();
+
+        self.tasks.push_back(task::spawn_blocking(|| {}));
+
         todo!()
     }
     pub fn remove_item(&mut self, shared: &mut AppShared, path: PathBuf) {
-        todo!()
+        let toasts = shared.async_toasts.clone();
+        let _runtime = shared.runtime.enter();
+
+        self.tasks.push_back(task::spawn_blocking(move || {
+            if let Err(error) = trash::delete(&path) {
+                toasts
+                    .lock()
+                    .push(Toast::error("Unable to move item to trash"));
+                warn!("Unable to move {:?} to trash: {:?}", &path, error);
+
+                match fs::symlink_metadata(&path) {
+                    Ok(metadata) => {
+                        if metadata.is_dir() {
+                            if let Err(error) = fs::remove_dir_all(&path) {
+                                toasts
+                                    .lock()
+                                    .push(Toast::error("Unable to remove directory"));
+                                warn!("Unable to remove directory {:?}: {:?}", &path, error);
+                            }
+                        } else {
+                            if let Err(error) = fs::remove_file(&path) {
+                                toasts.lock().push(Toast::error("Unable to remove file"));
+                                warn!("Unable to remove file {:?}: {:?}", &path, error);
+                            }
+                        }
+                    }
+                    Err(error) => {
+                        toasts
+                            .lock()
+                            .push(Toast::error("Unable to retrieve item metadata"));
+                        warn!("Unable to retrieve metadata for {:?}: {:?}", &path, error);
+                    }
+                }
+            }
+        }));
     }
-    pub fn reset(&mut self) {
+    pub fn rescan(&mut self) {
         self.last_root = None;
     }
 }
