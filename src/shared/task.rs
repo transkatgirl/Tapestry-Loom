@@ -5,10 +5,13 @@ use std::{
         atomic::{AtomicBool, Ordering},
     },
     task::{Context, Poll},
+    time::Duration,
 };
 
 use futures::FutureExt;
 use tokio::task::{self, JoinError, JoinHandle};
+
+pub const BACKGROUND_REFRESH_WAIT: Duration = Duration::from_secs(1);
 
 pub fn spawn_blocking_abortable<F, T>(f: F) -> AbortableBlockingTaskHandle<T>
 where

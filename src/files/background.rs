@@ -18,13 +18,13 @@ use crate::{
 };
 
 #[derive(Default, Debug)]
-pub struct FileTree {
+pub struct BackgroundFsManager {
     last_root: Option<PathBuf>,
     crawler: BackgroundCrawler,
     tasks: VecDeque<JoinHandle<()>>,
 }
 
-impl FileTree {
+impl BackgroundFsManager {
     pub fn update(&mut self, shared: &mut AppShared) {
         if self.last_root.as_ref() != Some(&shared.settings.documents.location) // TODO: Debounce changes
             || shared.open_documents_updated
@@ -54,10 +54,13 @@ impl FileTree {
             self.rescan();
         }
     }
-    pub fn read<T>(&self, f: impl FnOnce(PathBuf, &IndexMap<PathBuf, FileType>, bool) -> T) -> T {
+    pub fn read_cached<T>(
+        &self,
+        f: impl FnOnce(Option<&Path>, &IndexMap<PathBuf, FileType>, bool) -> T,
+    ) -> T {
         let crawl_state = self.crawler.state.lock();
         f(
-            self.last_root.clone().unwrap_or_default(),
+            self.last_root.as_deref(),
             &crawl_state.paths,
             crawl_state.completed && self.tasks.is_empty(),
         )

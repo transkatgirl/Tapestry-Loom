@@ -4,15 +4,15 @@ use eframe::egui::{Context, Key, Modal, Sides, Ui, WidgetText};
 
 use crate::{
     AppShared,
-    files::tree::FileTree,
-    shared::{ui::abbreviate_path, view::View},
+    files::background::BackgroundFsManager,
+    shared::{task::BACKGROUND_REFRESH_WAIT, ui::abbreviate_path, view::View},
 };
 
-mod tree;
+mod background;
 
 #[derive(Default, Debug)]
 pub struct FileManager {
-    tree: FileTree,
+    background: BackgroundFsManager,
     modal: FileModal,
 }
 
@@ -21,12 +21,17 @@ impl View<AppShared> for FileManager {
         WidgetText::Text("\u{E33C} Files".to_string())
     }
     fn logic(&mut self, shared: &mut AppShared, ctx: &Context) {
-        self.tree.update(shared);
+        self.background.update(shared);
+        self.background.read_cached(|root, files, finished| {
+            if !finished {
+                ctx.request_repaint_after(BACKGROUND_REFRESH_WAIT);
+            }
+        })
 
         // TODO
     }
     fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {
-        self.modal.ui(&mut self.tree, shared, ctx);
+        self.modal.ui(&mut self.background, shared, ctx);
         self.modal != FileModal::default()
     }
     fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {
@@ -46,7 +51,7 @@ enum FileModal {
 }
 
 impl FileModal {
-    fn ui(&mut self, tree: &mut FileTree, shared: &mut AppShared, ctx: &Context) {
+    fn ui(&mut self, background: &mut BackgroundFsManager, shared: &mut AppShared, ctx: &Context) {
         match self {
             Self::None => {}
             Self::CreateWeave(path) => {
@@ -73,9 +78,9 @@ impl FileModal {
                                         .join(PathBuf::from(path.clone()));
 
                                     if !shared.open_documents.contains(&path)
-                                        && !tree.likely_exists(&path)
+                                        && !background.likely_exists(&path)
                                     {
-                                        tree.create_document(shared, path);
+                                        background.create_document(shared, path);
                                         ui.close();
                                     }
                                 }
@@ -111,9 +116,9 @@ impl FileModal {
                                         .join(PathBuf::from(path.clone()));
 
                                     if !shared.open_documents.contains(&path)
-                                        && !tree.likely_exists(&path)
+                                        && !background.likely_exists(&path)
                                     {
-                                        tree.create_directory(shared, path);
+                                        background.create_directory(shared, path);
                                         ui.close();
                                     }
                                 }
@@ -151,9 +156,9 @@ impl FileModal {
                                     if from != &to
                                         && !shared.open_documents.contains(from)
                                         && !shared.open_documents.contains(&to)
-                                        && !tree.likely_exists(&to)
+                                        && !background.likely_exists(&to)
                                     {
-                                        tree.rename_item(shared, from.to_path_buf(), to);
+                                        background.rename_item(shared, from.to_path_buf(), to);
                                         ui.close();
                                     }
                                 }
@@ -191,9 +196,9 @@ impl FileModal {
                                     if from != &to
                                         && !shared.open_documents.contains(from)
                                         && !shared.open_documents.contains(&to)
-                                        && !tree.likely_exists(&to)
+                                        && !background.likely_exists(&to)
                                     {
-                                        tree.copy_item(shared, from.to_path_buf(), to);
+                                        background.copy_item(shared, from.to_path_buf(), to);
                                         ui.close();
                                     }
                                 }
@@ -226,7 +231,7 @@ impl FileModal {
                                     || ui.input(|input| input.key_pressed(Key::Enter)))
                                     && !shared.open_documents.contains(path)
                                 {
-                                    tree.remove_item(shared, path.to_path_buf());
+                                    background.remove_item(shared, path.to_path_buf());
                                     ui.close();
                                 }
                             },
