@@ -10,13 +10,23 @@ pub struct FileTree {
     last_id: Ulid,
     last_root: Option<PathBuf>,
 
-    pub(super) root_changed: bool,
+    root_changed: bool,
 
-    pub(super) file_count: usize,
-    pub(super) directory_count: usize,
+    file_count: usize,
+    directory_count: usize,
 
-    pub(super) roots: IndexSet<PathBuf>,
-    pub(super) items: IndexMap<PathBuf, TreeItem>,
+    roots: IndexSet<PathBuf>,
+    items: IndexMap<PathBuf, TreeItem>,
+}
+
+pub struct FileTreeState<'a> {
+    pub root_changed: bool,
+
+    pub file_count: usize,
+    pub directory_count: usize,
+
+    pub roots: &'a IndexSet<PathBuf>,
+    pub items: &'a IndexMap<PathBuf, TreeItem>,
 }
 
 #[derive(Debug)]
@@ -94,5 +104,14 @@ impl FileTree {
 
             !finished
         })
+    }
+    pub fn view<'s>(&'s self) -> FileTreeState<'s> {
+        FileTreeState {
+            root_changed: self.root_changed,
+            file_count: self.file_count,
+            directory_count: self.directory_count,
+            roots: &self.roots,
+            items: &self.items,
+        }
     }
 }
