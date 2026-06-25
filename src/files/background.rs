@@ -269,7 +269,6 @@ impl Default for BackgroundCrawler {
 struct CrawlState {
     id: Ulid,
     paths: IndexMap<PathBuf, FileType>,
-    completed: bool,
 }
 
 impl CrawlState {
@@ -277,12 +276,10 @@ impl CrawlState {
         Self {
             id: Ulid::new(),
             paths: IndexMap::with_capacity(16384),
-            completed: false,
         }
     }
     fn reset(&mut self) {
         self.paths.clear();
-        self.completed = false;
         self.id = Ulid::new();
     }
 }
@@ -392,9 +389,6 @@ impl BackgroundCrawler {
                     return false;
                 }
             }
-
-            let mut state = state.lock();
-            state.completed = true;
 
             debug!("Finished crawling {:?}", &root);
 
