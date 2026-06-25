@@ -375,7 +375,9 @@ impl BackgroundCrawler {
                 match entry {
                     Ok(entry) => {
                         let file_type = entry.file_type();
-                        if file_type.is_dir() || !ignore_list.contains(entry.file_name()) {
+                        if file_type.is_dir()
+                            || !ignore_list.contains(&entry.file_name().to_ascii_lowercase())
+                        {
                             let mut state = state.lock();
                             state.paths.insert(entry.into_path(), file_type);
                         }
