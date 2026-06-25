@@ -1,6 +1,7 @@
 use std::{
     collections::VecDeque,
     fs::{self, FileType},
+    io,
     path::{Path, PathBuf},
     sync::{Arc, atomic},
 };
@@ -26,7 +27,18 @@ pub struct BackgroundFsManager {
 
 impl BackgroundFsManager {
     pub fn update(&mut self, shared: &mut AppShared) {
+        let had_tasks = !self.tasks.is_empty();
+
+        for _ in 0..self.tasks.len() {
+            if let Some(task) = self.tasks.pop_front()
+                && !task.is_finished()
+            {
+                self.tasks.push_back(task);
+            }
+        }
+
         if self.last_root.as_ref() != Some(&shared.settings.documents.location) // TODO: Debounce changes
+            || (had_tasks && self.tasks.is_empty())
             || shared.open_documents_updated
         {
             self.last_root = Some(shared.settings.documents.location.clone());
@@ -38,20 +50,6 @@ impl BackgroundFsManager {
                 shared.async_toasts.clone(),
                 true,
             );
-        }
-
-        let had_tasks = !self.tasks.is_empty();
-
-        for _ in 0..self.tasks.len() {
-            if let Some(task) = self.tasks.pop_front()
-                && !task.is_finished()
-            {
-                self.tasks.push_back(task);
-            }
-        }
-
-        if had_tasks && self.tasks.is_empty() {
-            self.rescan();
         }
     }
     pub fn read_cached<T>(
@@ -90,17 +88,67 @@ impl BackgroundFsManager {
         let toasts = shared.async_toasts.clone();
         let _runtime = shared.runtime.enter();
 
-        self.tasks.push_back(task::spawn_blocking(|| {}));
-
-        todo!()
+        self.tasks
+            .push_back(task::spawn_blocking(move || match fs::exists(&to) {
+                Ok(true) => {
+                    toasts.lock().push(Toast::error("Item already exists"));
+                    warn!("Item {:?} already exists", &to);
+                }
+                Ok(false) => {
+                    if let Err(error) = fs::rename(&from, &to) {
+                        toasts.lock().push(Toast::error("Unable to rename item"));
+                        warn!("Unable to rename {:?} to {:?}: {:?}", &from, &to, error);
+                    }
+                }
+                Err(error) => {
+                    toasts
+                        .lock()
+                        .push(Toast::error("Unable to check if item exists"));
+                    warn!("Unable to check if {:?} exists: {:?}", &to, error);
+                }
+            }));
     }
     pub fn copy_item(&mut self, shared: &mut AppShared, from: PathBuf, to: PathBuf) {
         let toasts = shared.async_toasts.clone();
         let _runtime = shared.runtime.enter();
 
-        self.tasks.push_back(task::spawn_blocking(|| {}));
-
-        todo!()
+        self.tasks
+            .push_back(task::spawn_blocking(move || match fs::exists(&to) {
+                Ok(true) => {
+                    toasts.lock().push(Toast::error("Item already exists"));
+                    warn!("Item {:?} already exists", &to);
+                }
+                Ok(false) => match fs::symlink_metadata(&from) {
+                    Ok(metadata) => {
+                        if metadata.is_dir() {
+                            if let Err(error) = copy_dir_all(&from, &to) {
+                                toasts.lock().push(Toast::error("Unable to copy directory"));
+                                warn!(
+                                    "Unable to copy directory {:?} to {:?}: {:?}",
+                                    &from, &to, error
+                                );
+                            }
+                        } else {
+                            if let Err(error) = fs::copy(&from, &to) {
+                                toasts.lock().push(Toast::error("Unable to copy file"));
+                                warn!("Unable to copy file {:?} to {:?}: {:?}", &from, &to, error);
+                            }
+                        }
+                    }
+                    Err(error) => {
+                        toasts
+                            .lock()
+                            .push(Toast::error("Unable to retrieve item metadata"));
+                        warn!("Unable to retrieve metadata for {:?}: {:?}", &from, error);
+                    }
+                },
+                Err(error) => {
+                    toasts
+                        .lock()
+                        .push(Toast::error("Unable to check if item exists"));
+                    warn!("Unable to check if {:?} exists: {:?}", &to, error);
+                }
+            }));
     }
     pub fn remove_item(&mut self, shared: &mut AppShared, path: PathBuf) {
         let toasts = shared.async_toasts.clone();
@@ -139,7 +187,7 @@ impl BackgroundFsManager {
             }
         }));
     }
-    pub fn rescan(&mut self) {
+    pub fn refresh(&mut self) {
         self.last_root = None;
     }
 }
@@ -270,4 +318,18 @@ impl BackgroundCrawler {
             true
         }));
     }
+}
+
+fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> {
+    fs::create_dir_all(&dst)?;
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        if ty.is_dir() {
+            copy_dir_all(entry.path(), dst.as_ref().join(entry.file_name()))?;
+        } else {
+            fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
+        }
+    }
+    Ok(())
 }
