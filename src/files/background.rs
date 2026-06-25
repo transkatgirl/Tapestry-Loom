@@ -22,6 +22,7 @@ use crate::{
 #[derive(Default, Debug)]
 pub struct BackgroundFsManager {
     last_root: Option<PathBuf>,
+    last_natural_sort: bool,
     crawler: BackgroundCrawler,
     tasks: VecDeque<JoinHandle<()>>,
 }
@@ -38,18 +39,20 @@ impl BackgroundFsManager {
             }
         }
 
-        if self.last_root.as_ref() != Some(&shared.settings.documents.location) // TODO: Debounce changes
+        if self.last_root.as_ref() != Some(&shared.settings.documents.location)
+            || self.last_natural_sort != shared.settings.documents.natural_sort
             || (had_tasks && self.tasks.is_empty())
             || shared.open_documents_updated
         {
             self.last_root = Some(shared.settings.documents.location.clone());
+            self.last_natural_sort = shared.settings.documents.natural_sort;
             shared.open_documents_updated = false;
 
             let _runtime = shared.runtime.enter();
             self.crawler.crawl(
                 shared.settings.documents.location.clone(),
                 shared.async_toasts.clone(),
-                true,
+                shared.settings.documents.natural_sort,
             );
         }
     }
