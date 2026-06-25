@@ -7,7 +7,7 @@ use crate::{AppShared, shared::ui::abbreviate_path};
 
 pub(super) struct EditorShared {
     pub id: Ulid,
-    path: Option<PathBuf>,
+    path: Option<PathBuf>, // TODO: Document loading, create root dir if it doesn't exist
 }
 
 impl EditorShared {

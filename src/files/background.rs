@@ -313,30 +313,13 @@ impl BackgroundCrawler {
             debug!("Started crawl task for {:?}", &root);
 
             match fs::exists(&root) {
-                Ok(exists) => {
-                    if abort.load(atomic::Ordering::Relaxed) {
-                        debug!("Aborted crawling {:?}", &root);
-                        return false;
-                    }
-
-                    if !exists {
-                        match fs::create_dir_all(&root) {
-                            Ok(_) => {
-                                debug!("Created root directory at {:?}", &root);
-                            }
-                            Err(error) => {
-                                toasts
-                                    .lock()
-                                    .push(Toast::error("Failed to create root directory"));
-                                error!(
-                                    "Failed to create root directory at {:?}: {:?}",
-                                    &root, error
-                                );
-                                debug!("Aborted crawling {:?}", &root);
-                                return false;
-                            }
-                        }
-                    }
+                Ok(true) => {}
+                Ok(false) => {
+                    debug!(
+                        "Root directory {:?} does not exist, ending crawl early",
+                        &root
+                    );
+                    return true;
                 }
                 Err(error) => {
                     toasts
@@ -346,6 +329,11 @@ impl BackgroundCrawler {
                     debug!("Aborted crawling {:?}", &root);
                     return false;
                 }
+            }
+
+            if abort.load(atomic::Ordering::Relaxed) {
+                debug!("Aborted crawling {:?}", &root);
+                return false;
             }
 
             let walkdir = if natural_sort {
