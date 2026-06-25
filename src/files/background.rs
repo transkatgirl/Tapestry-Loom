@@ -62,7 +62,12 @@ impl BackgroundFsManager {
             crawl_state.id,
             self.last_root.as_deref(),
             &crawl_state.paths,
-            crawl_state.completed && self.tasks.is_empty(),
+            self.crawler
+                .task
+                .as_ref()
+                .map(|t| t.is_finished())
+                .unwrap_or(true)
+                && self.tasks.is_empty(),
         )
     }
     pub fn likely_exists(&mut self, path: &Path) -> bool {
