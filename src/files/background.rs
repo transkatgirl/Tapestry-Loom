@@ -67,7 +67,12 @@ impl BackgroundFsManager {
         let crawl_state = self.crawler.state.lock();
         crawl_state.paths.contains_key(path)
     }
-    pub fn create_file(&mut self, shared: &mut AppShared, path: PathBuf, contents: Vec<u8>) {
+    pub fn create_file(
+        &mut self,
+        shared: &mut AppShared,
+        path: PathBuf,
+        contents: impl FnOnce() -> Vec<u8> + Send + 'static,
+    ) {
         let toasts = shared.async_toasts.clone();
         let _runtime = shared.runtime.enter();
 
@@ -80,7 +85,7 @@ impl BackgroundFsManager {
                     warn!("Item {:?} already exists", &path);
                 }
                 Ok(false) => {
-                    if let Err(error) = fs::write(&path, contents) {
+                    if let Err(error) = fs::write(&path, contents()) {
                         toasts.lock().push(Toast::error("Unable to create file"));
                         warn!("Unable to write to file at {:?}: {:?}", &path, error);
                     }

@@ -84,11 +84,7 @@ impl FileModal {
                                     if !shared.open_documents.contains(&path)
                                         && !background.likely_exists(&path)
                                     {
-                                        background.create_file(
-                                            shared,
-                                            path,
-                                            blank_document_bytes(),
-                                        );
+                                        background.create_file(shared, path, blank_document_bytes);
                                         ui.close();
                                     }
                                 }
