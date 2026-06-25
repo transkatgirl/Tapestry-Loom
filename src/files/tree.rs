@@ -10,7 +10,7 @@ pub struct FileTree {
     last_id: Ulid,
     last_root: Option<PathBuf>,
 
-    pub(super) was_reset: bool,
+    pub(super) root_changed: bool,
 
     pub(super) file_count: usize,
     pub(super) directory_count: usize,
@@ -30,7 +30,6 @@ impl FileTree {
     fn reset(&mut self, id: Ulid, root: Option<PathBuf>) {
         self.last_id = id;
         self.last_root = root;
-        self.was_reset = true;
         self.file_count = 0;
         self.directory_count = 0;
         self.roots.clear();
@@ -38,10 +37,14 @@ impl FileTree {
     }
     pub fn update(&mut self, background: &mut BackgroundFsManager) -> bool {
         background.read_cached(|id, root, paths, finished| {
-            if self.last_id != id || self.last_root.as_deref() != root {
+            if self.last_root.as_deref() != root {
                 self.reset(id, root.map(|r| r.to_owned()));
+                self.root_changed = true;
             } else {
-                self.was_reset = false;
+                if self.last_id != id {
+                    self.reset(id, root.map(|r| r.to_owned()));
+                }
+                self.root_changed = false;
             }
 
             if root.is_none() {
