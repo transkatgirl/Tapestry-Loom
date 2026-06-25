@@ -11,6 +11,7 @@ pub struct FileTree {
     last_root: Option<PathBuf>,
 
     root_changed: bool,
+    updated: bool,
 
     file_count: usize,
     directory_count: usize,
@@ -19,8 +20,10 @@ pub struct FileTree {
     items: IndexMap<PathBuf, TreeItem>,
 }
 
+#[derive(Debug)]
 pub struct FileTreeState<'a> {
     pub root_changed: bool,
+    pub updated: bool,
 
     pub file_count: usize,
     pub directory_count: usize,
@@ -40,12 +43,15 @@ impl FileTree {
     fn reset(&mut self, id: Ulid, root: Option<PathBuf>) {
         self.last_id = id;
         self.last_root = root;
+        self.updated = true;
         self.file_count = 0;
         self.directory_count = 0;
         self.roots.clear();
         self.items.clear();
     }
     pub fn update(&mut self, background: &mut BackgroundFsManager) -> bool {
+        self.updated = false;
+
         background.read_cached(|id, root, paths, finished| {
             if self.last_root.as_deref() != root {
                 self.reset(id, root.map(|r| r.to_owned()));
@@ -66,6 +72,8 @@ impl FileTree {
             debug_assert!(paths.len() >= self.directory_count + self.file_count);
 
             if paths.len() > self.directory_count + self.file_count {
+                self.updated = true;
+
                 for (path, filetype) in &paths[(self.directory_count + self.file_count)..] {
                     let path = path.strip_prefix(root).unwrap().to_path_buf();
 
@@ -108,6 +116,7 @@ impl FileTree {
     pub fn view<'s>(&'s self) -> FileTreeState<'s> {
         FileTreeState {
             root_changed: self.root_changed,
+            updated: self.updated,
             file_count: self.file_count,
             directory_count: self.directory_count,
             roots: &self.roots,

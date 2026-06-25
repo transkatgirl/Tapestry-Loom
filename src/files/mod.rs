@@ -1,12 +1,15 @@
-// TODO: Someday, polish this file manager implementation (incremental scanning, fs watching, drag-and-drop, etc) and turn it into it's own crate
+// TODO: Improve this file manager implementation (fs watching, incremental updating, drag-and-drop, etc) and then turn it into it's own crate
 
-use std::path::PathBuf;
+use std::{collections::HashSet, path::PathBuf};
 
 use eframe::egui::{Context, Key, Modal, Sides, Ui, WidgetText};
 
 use crate::{
     AppShared,
-    files::{background::BackgroundFsManager, tree::FileTree},
+    files::{
+        background::BackgroundFsManager,
+        tree::{FileTree, FileTreeState, TreeItem},
+    },
     shared::{task::BACKGROUND_REFRESH_INTERVAL, ui::abbreviate_path, view::View},
 };
 
@@ -18,6 +21,17 @@ pub struct FileManager {
     background: BackgroundFsManager,
     tree: FileTree,
     modal: FileModal,
+
+    opened: HashSet<PathBuf>,
+    opened_changed: bool,
+    displayed: Vec<(PathBuf, FileType)>,
+}
+
+#[derive(Debug)]
+pub enum FileType {
+    Directory,
+    File,
+    Symlink,
 }
 
 impl View<AppShared> for FileManager {
@@ -29,13 +43,57 @@ impl View<AppShared> for FileManager {
         if self.tree.update(&mut self.background) {
             ctx.request_repaint_after(BACKGROUND_REFRESH_INTERVAL);
         }
+
+        let tree = self.tree.view();
+
+        if tree.updated || self.opened_changed {
+            if tree.root_changed {
+                self.opened.clear();
+            }
+
+            self.opened_changed = false;
+
+            self.displayed.clear();
+            update_displayed(
+                &tree,
+                &self.opened,
+                &mut self.displayed,
+                tree.roots.iter().cloned(),
+            );
+        }
     }
     fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {
         self.modal.ui(&mut self.background, shared, ctx);
         self.modal != FileModal::default()
     }
     fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {
+        for (path, item_type) in &self.displayed {
+            ui.label(path.to_string_lossy());
+        }
+
         // TODO
+    }
+}
+
+fn update_displayed(
+    tree: &FileTreeState<'_>,
+    opened: &HashSet<PathBuf>,
+    displayed: &mut Vec<(PathBuf, FileType)>,
+    roots: impl IntoIterator<Item = PathBuf>,
+) {
+    for item in roots {
+        match tree.items.get(&item) {
+            Some(TreeItem::Directory(children)) => {
+                if opened.contains(&item) {
+                    update_displayed(tree, opened, displayed, children.clone());
+                }
+
+                displayed.push((item, FileType::Directory));
+            }
+            Some(TreeItem::File) => displayed.push((item, FileType::File)),
+            Some(TreeItem::Symlink) => displayed.push((item, FileType::Symlink)),
+            None => panic!(),
+        };
     }
 }
 
