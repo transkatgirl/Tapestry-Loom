@@ -11,7 +11,7 @@ use std::{
 use futures::FutureExt;
 use tokio::task::{self, JoinError, JoinHandle};
 
-pub const BACKGROUND_REFRESH_WAIT: Duration = Duration::from_millis(500);
+pub const BACKGROUND_REFRESH_INTERVAL: Duration = Duration::from_millis(500);
 
 pub fn spawn_blocking_abortable<F, T>(f: F) -> AbortableBlockingTaskHandle<T>
 where

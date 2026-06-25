@@ -7,7 +7,7 @@ use eframe::egui::{Context, Key, Modal, Sides, Ui, WidgetText};
 use crate::{
     AppShared,
     files::{background::BackgroundFsManager, tree::FileTree},
-    shared::{task::BACKGROUND_REFRESH_WAIT, ui::abbreviate_path, view::View},
+    shared::{task::BACKGROUND_REFRESH_INTERVAL, ui::abbreviate_path, view::View},
 };
 
 mod background;
@@ -27,10 +27,8 @@ impl View<AppShared> for FileManager {
     fn logic(&mut self, shared: &mut AppShared, ctx: &Context) {
         self.background.update(shared);
         if self.tree.update(&mut self.background) {
-            ctx.request_repaint_after(BACKGROUND_REFRESH_WAIT);
+            ctx.request_repaint_after(BACKGROUND_REFRESH_INTERVAL);
         }
-
-        // TODO
     }
     fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {
         self.modal.ui(&mut self.background, shared, ctx);
