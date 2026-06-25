@@ -65,8 +65,6 @@ where
     }
 }
 
-impl<T> Unpin for AbortableBlockingTaskHandle<T> where T: Send + 'static {}
-
 impl<T> Future for AbortableBlockingTaskHandle<T>
 where
     T: Send + 'static,

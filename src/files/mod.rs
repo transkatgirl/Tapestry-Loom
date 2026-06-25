@@ -22,7 +22,7 @@ impl View<AppShared> for FileManager {
     }
     fn logic(&mut self, shared: &mut AppShared, ctx: &Context) {
         self.background.update(shared);
-        self.background.read_cached(|id, root, files, finished| {
+        self.background.read_cached(|id, root, paths, finished| {
             if !finished {
                 ctx.request_repaint_after(BACKGROUND_REFRESH_WAIT);
             }
