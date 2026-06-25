@@ -1,33 +1,35 @@
-use log::debug;
+use std::path::PathBuf;
+
+use tapestry_weave::universal_weave::indexmap::{IndexMap, IndexSet};
 use ulid::Ulid;
 
 use crate::files::background::BackgroundFsManager;
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct FileTree {
     last_id: Ulid,
-    directory_count: usize,
+
     file_count: usize,
+    directory_count: usize,
+
+    roots: IndexSet<PathBuf>,
+    items: IndexMap<PathBuf, (FileType, Vec<PathBuf>)>,
 }
 
-impl Default for FileTree {
-    fn default() -> Self {
-        Self::new()
-    }
+#[derive(Debug)]
+pub enum FileType {
+    Directory,
+    File,
+    Symlink,
 }
 
 impl FileTree {
-    pub fn new() -> Self {
-        Self {
-            last_id: Ulid(0),
-            directory_count: 0,
-            file_count: 0,
-        }
-    }
     fn reset(&mut self, id: Ulid) {
         self.last_id = id;
-        self.directory_count = 0;
         self.file_count = 0;
+        self.directory_count = 0;
+        self.roots.clear();
+        self.items.clear();
     }
     pub fn update(&mut self, background: &mut BackgroundFsManager) -> bool {
         background.read_cached(|id, root, paths, finished| {
@@ -44,10 +46,10 @@ impl FileTree {
                     } else {
                         self.file_count += 1;
                     }
+
+                    // TODO
                 }
             }
-
-            // TODO
 
             !finished
         })

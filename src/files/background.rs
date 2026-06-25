@@ -1,5 +1,6 @@
 use std::{
-    collections::VecDeque,
+    collections::{HashSet, VecDeque},
+    ffi::OsString,
     fs::{self, FileType},
     io,
     path::{Path, PathBuf},
@@ -258,6 +259,7 @@ impl BackgroundFsManager {
 
 #[derive(Debug)]
 struct BackgroundCrawler {
+    ignore_list: Arc<HashSet<OsString>>,
     state: Arc<Mutex<CrawlState>>,
     task: Option<AbortableBlockingTaskHandle<bool>>,
 }
@@ -290,6 +292,21 @@ impl CrawlState {
 impl BackgroundCrawler {
     fn new() -> Self {
         Self {
+            ignore_list: Arc::new(HashSet::from_iter(
+                [
+                    ".directory",
+                    ".ds_store",
+                    "__macosx",
+                    ".appledouble",
+                    ".lsoverride",
+                    "thumbs.db",
+                    "thumbs.db:encryptable",
+                    "ehthumbs.db",
+                    "desktop.ini",
+                ]
+                .into_iter()
+                .map(OsString::from),
+            )),
             state: Arc::new(Mutex::new(CrawlState::new())),
             task: None,
         }
@@ -308,6 +325,7 @@ impl BackgroundCrawler {
             state.reset();
         }
 
+        let ignore_list = self.ignore_list.clone();
         let state = self.state.clone();
         self.task = Some(spawn_blocking_abortable(move |abort| {
             debug!("Started crawl task for {:?}", &root);
@@ -356,10 +374,11 @@ impl BackgroundCrawler {
             for entry in walkdir {
                 match entry {
                     Ok(entry) => {
-                        let mut state = state.lock();
-
                         let file_type = entry.file_type();
-                        state.paths.insert(entry.into_path(), file_type);
+                        if file_type.is_dir() || !ignore_list.contains(entry.file_name()) {
+                            let mut state = state.lock();
+                            state.paths.insert(entry.into_path(), file_type);
+                        }
                     }
                     Err(error) => match error.path() {
                         Some(path) => {
