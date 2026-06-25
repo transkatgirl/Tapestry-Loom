@@ -1,14 +1,18 @@
 use eframe::egui::{Context, Frame, ScrollArea, Ui, WidgetText};
 use serde::{Deserialize, Serialize};
 
-use crate::{AppShared, settings::document::DocumentSettings, shared::view::View};
+use crate::{
+    AppShared,
+    settings::document::{DocumentSettings, DocumentsViewState},
+    shared::view::View,
+};
 
 mod document;
 mod interface;
 
 #[derive(Default, Debug)]
 pub struct SettingsView {
-    pub documents: DocumentSettings,
+    pub documents: DocumentsViewState,
 }
 
 impl View<AppShared> for SettingsView {
@@ -27,7 +31,7 @@ impl View<AppShared> for SettingsView {
                 Frame::new()
                     .outer_margin(ui.style().spacing.menu_margin)
                     .show(ui, |ui| {
-                        shared.settings.ui(ui);
+                        shared.settings.ui(self, ui);
                     })
             });
     }
@@ -47,13 +51,13 @@ impl Settings {
     }
 }
 
-impl Editable for Settings {
-    fn ui(&mut self, ui: &mut Ui) {
+impl Editable<SettingsView> for Settings {
+    fn ui(&mut self, state: &mut SettingsView, ui: &mut Ui) {
         ui.heading("Document");
-        self.documents.ui(ui);
+        self.documents.ui(&mut state.documents, ui);
     }
 }
 
-trait Editable {
-    fn ui(&mut self, ui: &mut Ui);
+trait Editable<T> {
+    fn ui(&mut self, state: &mut T, ui: &mut Ui);
 }

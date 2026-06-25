@@ -94,7 +94,7 @@ impl BackgroundFsManager {
                 Ok(false) => {
                     if let Err(error) = fs::write(&path, contents()) {
                         toasts.lock().push(Toast::error("Unable to create file"));
-                        warn!("Unable to write to file at {:?}: {:?}", &path, error);
+                        warn!("Unable to create+write to file at {:?}: {:?}", &path, error);
                     }
                 }
                 Err(error) => {
