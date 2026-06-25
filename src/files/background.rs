@@ -11,6 +11,7 @@ use log::{debug, error, warn};
 use parking_lot::Mutex;
 use tapestry_weave::universal_weave::indexmap::IndexMap;
 use tokio::task::{self, JoinHandle};
+use ulid::Ulid;
 use walkdir::WalkDir;
 
 use crate::{
@@ -54,10 +55,11 @@ impl BackgroundFsManager {
     }
     pub fn read_cached<T>(
         &self,
-        f: impl FnOnce(Option<&Path>, &IndexMap<PathBuf, FileType>, bool) -> T,
+        f: impl FnOnce(Ulid, Option<&Path>, &IndexMap<PathBuf, FileType>, bool) -> T,
     ) -> T {
         let crawl_state = self.crawler.state.lock();
         f(
+            crawl_state.id,
             self.last_root.as_deref(),
             &crawl_state.paths,
             crawl_state.completed && self.tasks.is_empty(),
@@ -260,6 +262,7 @@ impl Default for BackgroundCrawler {
 
 #[derive(Debug)]
 struct CrawlState {
+    id: Ulid,
     paths: IndexMap<PathBuf, FileType>,
     completed: bool,
 }
@@ -267,6 +270,7 @@ struct CrawlState {
 impl CrawlState {
     fn new() -> Self {
         Self {
+            id: Ulid::new(),
             paths: IndexMap::with_capacity(16384),
             completed: false,
         }
@@ -274,6 +278,7 @@ impl CrawlState {
     fn reset(&mut self) {
         self.paths.clear();
         self.completed = false;
+        self.id = Ulid::new();
     }
 }
 
