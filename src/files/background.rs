@@ -314,13 +314,23 @@ impl BackgroundCrawler {
                         return false;
                     }
 
-                    if !exists && let Err(error) = fs::create_dir_all(&root) {
-                        toasts
-                            .lock()
-                            .push(Toast::error("Failed to create root directory"));
-                        error!("Failed to create directory at {:?}: {:?}", &root, error);
-                        debug!("Aborted crawling {:?}", &root);
-                        return false;
+                    if !exists {
+                        match fs::create_dir_all(&root) {
+                            Ok(_) => {
+                                debug!("Created root directory at {:?}", &root);
+                            }
+                            Err(error) => {
+                                toasts
+                                    .lock()
+                                    .push(Toast::error("Failed to create root directory"));
+                                error!(
+                                    "Failed to create root directory at {:?}: {:?}",
+                                    &root, error
+                                );
+                                debug!("Aborted crawling {:?}", &root);
+                                return false;
+                            }
+                        }
                     }
                 }
                 Err(error) => {
