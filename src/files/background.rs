@@ -63,13 +63,38 @@ impl BackgroundFsManager {
             crawl_state.completed && self.tasks.is_empty(),
         )
     }
-
     pub fn likely_exists(&mut self, path: &Path) -> bool {
         let crawl_state = self.crawler.state.lock();
         crawl_state.paths.contains_key(path)
     }
-    pub fn create_document(&mut self, shared: &mut AppShared, path: PathBuf) {
-        shared.load_document_queue.push(path.to_path_buf()); // TODO: Refresh
+    pub fn create_file(&mut self, shared: &mut AppShared, path: PathBuf, contents: Vec<u8>) {
+        let toasts = shared.async_toasts.clone();
+        let _runtime = shared.runtime.enter();
+
+        self.tasks.push_back(task::spawn_blocking(move || {
+            debug!("Started background task create_file({:?})", &path);
+
+            match fs::exists(&path) {
+                Ok(true) => {
+                    toasts.lock().push(Toast::error("Item already exists"));
+                    warn!("Item {:?} already exists", &path);
+                }
+                Ok(false) => {
+                    if let Err(error) = fs::write(&path, contents) {
+                        toasts.lock().push(Toast::error("Unable to create file"));
+                        warn!("Unable to write to file at {:?}: {:?}", &path, error);
+                    }
+                }
+                Err(error) => {
+                    toasts
+                        .lock()
+                        .push(Toast::error("Unable to check if item exists"));
+                    warn!("Unable to check if {:?} exists: {:?}", &path, error);
+                }
+            }
+
+            debug!("Finished background task create_file({:?})", &path);
+        }));
     }
     pub fn create_directory(&mut self, shared: &mut AppShared, path: PathBuf) {
         let toasts = shared.async_toasts.clone();

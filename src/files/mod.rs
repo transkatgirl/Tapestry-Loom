@@ -50,6 +50,10 @@ enum FileModal {
     Delete(PathBuf),
 }
 
+fn blank_document_bytes() -> Vec<u8> {
+    todo!()
+}
+
 impl FileModal {
     fn ui(&mut self, background: &mut BackgroundFsManager, shared: &mut AppShared, ctx: &Context) {
         match self {
@@ -80,7 +84,11 @@ impl FileModal {
                                     if !shared.open_documents.contains(&path)
                                         && !background.likely_exists(&path)
                                     {
-                                        background.create_document(shared, path);
+                                        background.create_file(
+                                            shared,
+                                            path,
+                                            blank_document_bytes(),
+                                        );
                                         ui.close();
                                     }
                                 }
