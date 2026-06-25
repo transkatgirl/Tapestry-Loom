@@ -62,6 +62,6 @@ impl Editable for DocumentSettings {
         }
 
         ui.checkbox(&mut self.natural_sort, "Use natural filename sorting")
-            .on_hover_text("If this is enabled, filenames in the built-in file manager are sorted using case-insensitive lexicographical natural sorting . If this is disabled, filenames are sorted alphabetically.");
+            .on_hover_text("If this is enabled, filenames in the built-in file manager are sorted using case-insensitive lexicographical natural sorting. If this is disabled, filenames are sorted alphabetically.");
     }
 }

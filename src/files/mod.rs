@@ -1,18 +1,22 @@
+// TODO: Someday, polish this file manager implementation (incremental scanning, fs watching, drag-and-drop, etc) and turn it into it's own crate
+
 use std::path::PathBuf;
 
 use eframe::egui::{Context, Key, Modal, Sides, Ui, WidgetText};
 
 use crate::{
     AppShared,
-    files::background::BackgroundFsManager,
+    files::{background::BackgroundFsManager, tree::FileTree},
     shared::{task::BACKGROUND_REFRESH_WAIT, ui::abbreviate_path, view::View},
 };
 
 mod background;
+mod tree;
 
 #[derive(Default, Debug)]
 pub struct FileManager {
     background: BackgroundFsManager,
+    tree: FileTree,
     modal: FileModal,
 }
 
@@ -22,11 +26,9 @@ impl View<AppShared> for FileManager {
     }
     fn logic(&mut self, shared: &mut AppShared, ctx: &Context) {
         self.background.update(shared);
-        self.background.read_cached(|id, root, paths, finished| {
-            if !finished {
-                ctx.request_repaint_after(BACKGROUND_REFRESH_WAIT);
-            }
-        })
+        if self.tree.update(&mut self.background) {
+            ctx.request_repaint_after(BACKGROUND_REFRESH_WAIT);
+        }
 
         // TODO
     }
