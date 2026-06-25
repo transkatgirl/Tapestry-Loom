@@ -7,7 +7,7 @@ use std::{
 };
 
 use egui_notify::Toast;
-use log::{error, warn};
+use log::{debug, error, warn};
 use parking_lot::Mutex;
 use tapestry_weave::universal_weave::indexmap::IndexMap;
 use tokio::task::{self, JoinHandle};
@@ -76,20 +76,29 @@ impl BackgroundFsManager {
         let _runtime = shared.runtime.enter();
 
         self.tasks.push_back(task::spawn_blocking(move || {
+            debug!("Started background task create_directory({:?})", &path);
+
             if let Err(error) = fs::create_dir_all(&path) {
                 toasts
                     .lock()
                     .push(Toast::error("Unable to create directory"));
                 warn!("Unable to create directory at {:?}: {:?}", &path, error);
             }
+
+            debug!("Finished background task create_directory({:?})", &path);
         }));
     }
     pub fn rename_item(&mut self, shared: &mut AppShared, from: PathBuf, to: PathBuf) {
         let toasts = shared.async_toasts.clone();
         let _runtime = shared.runtime.enter();
 
-        self.tasks
-            .push_back(task::spawn_blocking(move || match fs::exists(&to) {
+        self.tasks.push_back(task::spawn_blocking(move || {
+            debug!(
+                "Started background task rename_item({:?}, {:?})",
+                &from, &to
+            );
+
+            match fs::exists(&to) {
                 Ok(true) => {
                     toasts.lock().push(Toast::error("Item already exists"));
                     warn!("Item {:?} already exists", &to);
@@ -106,14 +115,22 @@ impl BackgroundFsManager {
                         .push(Toast::error("Unable to check if item exists"));
                     warn!("Unable to check if {:?} exists: {:?}", &to, error);
                 }
-            }));
+            }
+
+            debug!(
+                "Finished background task rename_item({:?}, {:?})",
+                &from, &to
+            );
+        }));
     }
     pub fn copy_item(&mut self, shared: &mut AppShared, from: PathBuf, to: PathBuf) {
         let toasts = shared.async_toasts.clone();
         let _runtime = shared.runtime.enter();
 
-        self.tasks
-            .push_back(task::spawn_blocking(move || match fs::exists(&to) {
+        self.tasks.push_back(task::spawn_blocking(move || {
+            debug!("Started background task copy_item({:?}, {:?})", &from, &to);
+
+            match fs::exists(&to) {
                 Ok(true) => {
                     toasts.lock().push(Toast::error("Item already exists"));
                     warn!("Item {:?} already exists", &to);
@@ -148,13 +165,18 @@ impl BackgroundFsManager {
                         .push(Toast::error("Unable to check if item exists"));
                     warn!("Unable to check if {:?} exists: {:?}", &to, error);
                 }
-            }));
+            }
+
+            debug!("Finished background task copy_item({:?}, {:?})", &from, &to);
+        }));
     }
     pub fn remove_item(&mut self, shared: &mut AppShared, path: PathBuf) {
         let toasts = shared.async_toasts.clone();
         let _runtime = shared.runtime.enter();
 
         self.tasks.push_back(task::spawn_blocking(move || {
+            debug!("Started background task remove_item({:?})", &path);
+
             if let Err(error) = trash::delete(&path) {
                 toasts
                     .lock()
@@ -185,6 +207,8 @@ impl BackgroundFsManager {
                     }
                 }
             }
+
+            debug!("Finished background task remove_item({:?})", &path);
         }));
     }
     pub fn refresh(&mut self) {
@@ -246,9 +270,12 @@ impl BackgroundCrawler {
 
         let state = self.state.clone();
         self.task = Some(spawn_blocking_abortable(move |abort| {
+            debug!("Started crawl task for {:?}", &root);
+
             match fs::exists(&root) {
                 Ok(exists) => {
                     if abort.load(atomic::Ordering::Relaxed) {
+                        debug!("Aborted crawling {:?}", &root);
                         return false;
                     }
 
@@ -257,6 +284,8 @@ impl BackgroundCrawler {
                             .lock()
                             .push(Toast::error("Failed to create root directory"));
                         error!("Failed to create directory at {:?}: {:?}", &root, error);
+                        debug!("Aborted crawling {:?}", &root);
+                        return false;
                     }
                 }
                 Err(error) => {
@@ -264,6 +293,7 @@ impl BackgroundCrawler {
                         .lock()
                         .push(Toast::error("Failed to determine if root directory exists"));
                     error!("Failed to determine if {:?} exists: {:?}", &root, error);
+                    debug!("Aborted crawling {:?}", &root);
                     return false;
                 }
             }
@@ -308,12 +338,15 @@ impl BackgroundCrawler {
                 }
 
                 if abort.load(atomic::Ordering::Relaxed) {
+                    debug!("Aborted crawling {:?}", &root);
                     return false;
                 }
             }
 
             let mut state = state.lock();
             state.completed = true;
+
+            debug!("Finished crawling {:?}", &root);
 
             true
         }));
