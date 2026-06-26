@@ -13,6 +13,7 @@ pub struct FileTree {
     root_changed: bool,
     updated: bool,
 
+    empty_count: usize,
     file_count: usize,
     directory_count: usize,
 
@@ -47,6 +48,7 @@ impl FileTree {
         self.last_id = id;
         self.last_root = root;
         self.updated = true;
+        self.empty_count = 0;
         self.file_count = 0;
         self.directory_count = 0;
         self.roots.clear();
@@ -72,15 +74,18 @@ impl FileTree {
 
             let root = root.unwrap();
 
-            debug_assert!(paths.len() >= self.directory_count + self.file_count);
+            debug_assert!(paths.len() >= self.directory_count + self.file_count + self.empty_count);
 
-            if paths.len() > self.directory_count + self.file_count {
+            if paths.len() > self.directory_count + self.file_count + self.empty_count {
                 self.updated = true;
 
-                for (path, filetype) in &paths[(self.directory_count + self.file_count)..] {
+                for (path, filetype) in
+                    &paths[(self.directory_count + self.file_count + self.empty_count)..]
+                {
                     let path = path.strip_prefix(root).unwrap().to_owned();
 
                     if path.as_os_str().is_empty() {
+                        self.empty_count += 1;
                         continue;
                     }
 
@@ -93,6 +98,8 @@ impl FileTree {
                     } else {
                         self.roots.insert(path.to_owned());
                     }
+
+                    debug_assert!(!self.items.contains_key(&path));
 
                     self.items.insert(
                         path,
