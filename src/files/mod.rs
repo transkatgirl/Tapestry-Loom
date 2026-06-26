@@ -339,6 +339,7 @@ impl FileManager {
                                                         .to_string_lossy()
                                                         .to_string(),
                                                 );
+                                                ui.request_repaint();
                                             }
                                             if ui.button("New folder").clicked() {
                                                 self.modal = FileModal::CreateDirectory(
@@ -346,7 +347,8 @@ impl FileManager {
                                                         .join("Untitled Folder")
                                                         .to_string_lossy()
                                                         .to_string(),
-                                                )
+                                                );
+                                                ui.request_repaint();
                                             }
                                             ui.separator();
                                         } else if item_type == FileType::File
@@ -356,6 +358,7 @@ impl FileManager {
                                         {
                                             if ui.button("Open weave").clicked() {
                                                 shared.load_document_queue.push(path.clone());
+                                                ui.request_repaint();
                                             }
                                             ui.separator();
                                         };
@@ -377,6 +380,7 @@ impl FileManager {
                                                 path.clone(),
                                                 abbreviated_path.to_string_lossy().to_string(),
                                             );
+                                            ui.request_repaint();
                                         }
 
                                         if ui.button("Rename item").clicked() {
@@ -384,10 +388,12 @@ impl FileManager {
                                                 path.clone(),
                                                 abbreviated_path.to_string_lossy().to_string(),
                                             );
+                                            ui.request_repaint();
                                         };
 
                                         if ui.button("Delete item").clicked() {
                                             self.modal = FileModal::Delete(path.clone());
+                                            ui.request_repaint();
                                         };
                                     });
                                 }
@@ -395,6 +401,7 @@ impl FileManager {
                                 if enabled && button_response.clicked() {
                                     if item_type == FileType::File {
                                         shared.load_document_queue.push(path.clone());
+                                        ui.request_repaint();
                                     } else {
                                         if self.opened.contains(path) {
                                             self.opened.remove(path);
@@ -430,6 +437,7 @@ impl FileManager {
                                                     .to_string_lossy()
                                                     .to_string(),
                                             );
+                                            ui.request_repaint();
                                         }
                                         if ui
                                             .button("\u{E0D9}")
@@ -441,7 +449,8 @@ impl FileManager {
                                                     .join("Untitled Folder")
                                                     .to_string_lossy()
                                                     .to_string(),
-                                            )
+                                            );
+                                            ui.request_repaint();
                                         }
                                     }
 
@@ -455,6 +464,7 @@ impl FileManager {
                                             path.clone(),
                                             abbreviated_path.to_string_lossy().to_string(),
                                         );
+                                        ui.request_repaint();
                                     };
 
                                     if ui.button("\u{E4F0}").on_hover_text("Rename item").clicked()
@@ -463,11 +473,13 @@ impl FileManager {
                                             path.clone(),
                                             abbreviated_path.to_string_lossy().to_string(),
                                         );
+                                        ui.request_repaint();
                                     };
 
                                     if ui.button("\u{E18E}").on_hover_text("Delete item").clicked()
                                     {
                                         self.modal = FileModal::Delete(path.clone());
+                                        ui.request_repaint();
                                     };
                                 }
 
