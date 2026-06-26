@@ -47,7 +47,7 @@ pub struct FileManager {
 pub enum FileType {
     Directory,
     File,
-    Symlink,
+    Other,
 }
 
 impl View<AppShared> for FileManager {
@@ -267,7 +267,7 @@ impl FileManager {
             let (icon, suffix) = match item_type {
                 FileType::Directory => ("📂", MAIN_SEPARATOR_STR),
                 FileType::File => ("📄", ""),
-                FileType::Symlink => ("❔", ""),
+                FileType::Other => ("❔", ""),
             };
 
             let mut spacing = ch * padding as f32;
@@ -292,7 +292,7 @@ impl FileManager {
                             RichText::new(format!("{icon} {label}{suffix}"))
                                 .family(eframe::egui::FontFamily::Monospace),
                         );
-                        let mut enabled = item_type != FileType::Symlink;
+                        let mut enabled = item_type != FileType::Other;
 
                         if item_type == FileType::File {
                             if !(path.extension() == Some(&file_extension_normal)
@@ -358,7 +358,7 @@ impl FileManager {
 
                                 ui.separator();
 
-                                if item_type != FileType::Symlink
+                                if item_type != FileType::Other
                                     && ui.button("Duplicate item").clicked()
                                 {
                                     self.modal = FileModal::Copy(
@@ -420,7 +420,7 @@ impl FileManager {
                                 }
                             }
 
-                            if item_type != FileType::Symlink
+                            if item_type != FileType::Other
                                 && ui
                                     .button("\u{E09E}")
                                     .on_hover_text("Duplicate item")
@@ -480,9 +480,7 @@ fn update_displayed(
                 }
             }
             Some(TreeItem::File) => displayed.push((tree.relative_to.join(item), FileType::File)),
-            Some(TreeItem::Symlink) => {
-                displayed.push((tree.relative_to.join(item), FileType::Symlink))
-            }
+            Some(_) => displayed.push((tree.relative_to.join(item), FileType::Other)),
             None => panic!(),
         };
     }

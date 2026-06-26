@@ -39,6 +39,7 @@ pub enum TreeItem {
     Directory(Vec<PathBuf>),
     File,
     Symlink,
+    Unknown,
 }
 
 impl FileTree {
@@ -99,8 +100,10 @@ impl FileTree {
                             TreeItem::Directory(Vec::new())
                         } else if filetype.is_symlink() {
                             TreeItem::Symlink
-                        } else {
+                        } else if filetype.is_file() {
                             TreeItem::File
+                        } else {
+                            TreeItem::Unknown
                         },
                     );
 
