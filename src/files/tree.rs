@@ -28,6 +28,8 @@ pub struct FileTreeState<'a> {
     pub file_count: usize,
     pub directory_count: usize,
 
+    pub relative_to: &'a PathBuf,
+
     pub roots: &'a IndexSet<PathBuf>,
     pub items: &'a IndexMap<PathBuf, TreeItem>,
 }
@@ -119,6 +121,7 @@ impl FileTree {
             updated: self.updated,
             file_count: self.file_count,
             directory_count: self.directory_count,
+            relative_to: self.last_root.as_ref().unwrap(),
             roots: &self.roots,
             items: &self.items,
         }

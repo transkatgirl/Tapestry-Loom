@@ -5,7 +5,7 @@ use std::{
     collections::HashSet,
     ffi::OsString,
     ops::Range,
-    path::{MAIN_SEPARATOR_STR, Path, PathBuf},
+    path::{MAIN_SEPARATOR_STR, PathBuf},
 };
 
 use eframe::egui::{
@@ -225,9 +225,9 @@ impl FileManager {
         let file_extension_normal = OsString::from(VERSIONED_WEAVE_FILE_EXTENSION);
         let file_extension_treeless = OsString::from(FILE_EXTENSION);
 
-        for (abbreviated_path, item_type) in &self.displayed[range] {
+        for (path, item_type) in &self.displayed[range] {
             let item_type = *item_type;
-            let path = shared.settings.documents.location.join(abbreviated_path);
+            let abbreviated_path = abbreviate_path(&shared.settings.documents.location, path);
 
             let (padding, label) = if let Some(parent) = abbreviated_path.parent()
                 && let Ok(without_prefix) = abbreviated_path.strip_prefix(parent)
@@ -240,7 +240,10 @@ impl FileManager {
                 if parent_length > 0
                     && path
                         .parent()
-                        .map(|parent| self.opened.contains(parent))
+                        .map(|parent| {
+                            self.opened
+                                .contains(&shared.settings.documents.location.join(parent))
+                        })
                         .unwrap_or_default()
                 {
                     (
@@ -294,11 +297,11 @@ impl FileManager {
                         if item_type == FileType::File {
                             if !(path.extension() == Some(&file_extension_normal)
                                 || path.extension() == Some(&file_extension_treeless))
-                                || shared.open_documents.contains(&path)
+                                || shared.open_documents.contains(path)
                             {
                                 enabled = false;
                             }
-                        } else if self.opened.contains(&path) {
+                        } else if self.opened.contains(path) {
                             //button = button.selected(true);
                             button = button.fill(ui.style().visuals.extreme_bg_color);
                         }
@@ -312,7 +315,7 @@ impl FileManager {
                             .response
                         };
 
-                        if !shared.open_documents.contains(&path) {
+                        if !shared.open_documents.contains(path) {
                             button_response.context_menu(|ui| {
                                 if item_type == FileType::Directory {
                                     if ui.button("New weave").clicked() {
@@ -382,8 +385,8 @@ impl FileManager {
                             if item_type == FileType::File {
                                 shared.load_document_queue.push(path.clone());
                             } else {
-                                if self.opened.contains(&path) {
-                                    self.opened.remove(&path);
+                                if self.opened.contains(path) {
+                                    self.opened.remove(path);
                                 } else {
                                     self.opened.insert(path.clone());
                                 }
@@ -392,7 +395,7 @@ impl FileManager {
                         };
 
                         if ui.rect_contains_pointer(ui.max_rect())
-                            && !shared.open_documents.contains(&path)
+                            && !shared.open_documents.contains(path)
                         {
                             // TODO
                         }
@@ -424,14 +427,18 @@ fn update_displayed(
     for item in roots {
         match tree.items.get(&item) {
             Some(TreeItem::Directory(children)) => {
-                displayed.push((item.clone(), FileType::Directory));
+                let absolute_path = tree.relative_to.join(item);
 
-                if opened.contains(&item) {
+                displayed.push((absolute_path.clone(), FileType::Directory));
+
+                if opened.contains(&absolute_path) {
                     update_displayed(tree, opened, displayed, children.clone());
                 }
             }
-            Some(TreeItem::File) => displayed.push((item, FileType::File)),
-            Some(TreeItem::Symlink) => displayed.push((item, FileType::Symlink)),
+            Some(TreeItem::File) => displayed.push((tree.relative_to.join(item), FileType::File)),
+            Some(TreeItem::Symlink) => {
+                displayed.push((tree.relative_to.join(item), FileType::Symlink))
+            }
             None => panic!(),
         };
     }
