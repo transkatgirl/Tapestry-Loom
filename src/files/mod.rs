@@ -66,7 +66,7 @@ impl View<AppShared> for FileManager {
 
         let tree = self.tree.view();
 
-        if tree.updated || self.opened_changed {
+        if tree.updated || self.opened_changed || shared.open_documents_updated {
             if tree.root_changed {
                 self.opened.clear();
             }
@@ -80,6 +80,7 @@ impl View<AppShared> for FileManager {
             );
 
             self.opened_changed = false;
+            shared.open_documents_updated = false;
         }
     }
     fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {
