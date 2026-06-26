@@ -297,7 +297,7 @@ impl FileManager {
                             {
                                 enabled = false;
                             }
-                        } else if shared.open_documents.contains(path) {
+                        } else if self.opened.contains(path) {
                             //button = button.selected(true);
                             button = button.fill(ui.style().visuals.extreme_bg_color);
                         }
