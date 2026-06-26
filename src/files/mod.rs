@@ -582,6 +582,7 @@ impl FileModal {
                                         && !background.likely_exists(&path)
                                     {
                                         background.create_file(shared, path, blank_document_bytes);
+                                        ui.request_repaint();
                                         ui.close();
                                     }
                                 }
@@ -620,6 +621,7 @@ impl FileModal {
                                         && !background.likely_exists(&path)
                                     {
                                         background.create_directory(shared, path);
+                                        ui.request_repaint();
                                         ui.close();
                                     }
                                 }
@@ -660,6 +662,7 @@ impl FileModal {
                                         && !background.likely_exists(&to)
                                     {
                                         background.rename_item(shared, from.clone(), to);
+                                        ui.request_repaint();
                                         ui.close();
                                     }
                                 }
@@ -700,6 +703,7 @@ impl FileModal {
                                         && !background.likely_exists(&to)
                                     {
                                         background.copy_item(shared, from.clone(), to);
+                                        ui.request_repaint();
                                         ui.close();
                                     }
                                 }
@@ -733,6 +737,7 @@ impl FileModal {
                                     && !shared.open_documents.contains(path)
                                 {
                                     background.remove_item(shared, path.clone());
+                                    ui.request_repaint();
                                     ui.close();
                                 }
                             },
