@@ -1,5 +1,11 @@
 use std::path::Path;
 
+use eframe::{egui::Ui, epaint::MarginF32};
+
+pub fn listing_margin(ui: &mut Ui) -> MarginF32 {
+    MarginF32::same(ui.style().spacing.menu_spacing)
+}
+
 pub fn abbreviate_path<'a>(root: &Path, path: &'a Path) -> &'a Path {
     path.strip_prefix(root).unwrap_or(path)
 }

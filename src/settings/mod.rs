@@ -1,7 +1,11 @@
 use eframe::egui::{Context, Frame, ScrollArea, Ui, WidgetText};
 use serde::{Deserialize, Serialize};
 
-use crate::{AppShared, settings::document::DocumentSettings, shared::view::View};
+use crate::{
+    AppShared,
+    settings::document::DocumentSettings,
+    shared::{task::BACKGROUND_REFRESH_INTERVAL, view::View},
+};
 
 mod document;
 mod interface;
@@ -28,6 +32,8 @@ impl View<AppShared> for SettingsView {
                         shared.settings.ui(ui);
                     })
             });
+
+        ui.request_repaint_after(BACKGROUND_REFRESH_INTERVAL);
     }
 }
 

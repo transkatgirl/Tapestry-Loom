@@ -1,8 +1,19 @@
 // TODO: Improve this file manager implementation (fs watching, incremental updating, drag-and-drop, etc) and then turn it into it's own crate
 
-use std::{collections::HashSet, path::PathBuf};
+use std::{
+    borrow::Cow,
+    collections::HashSet,
+    ffi::OsString,
+    ops::Range,
+    path::{MAIN_SEPARATOR_STR, Path, PathBuf},
+};
 
-use eframe::egui::{Context, Key, Modal, Sides, Ui, WidgetText};
+use eframe::egui::{
+    Align, Button, Context, Frame, Key, Layout, Modal, OutputCommand, Panel, RichText, ScrollArea,
+    Sense, Sides, Spinner, TextStyle, Ui, UiBuilder, UiKind, UiStackInfo, WidgetText,
+};
+use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, v1::treeless::FILE_EXTENSION};
+use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
     AppShared,
@@ -10,7 +21,11 @@ use crate::{
         background::BackgroundFsManager,
         tree::{FileTree, FileTreeState, TreeItem},
     },
-    shared::{task::BACKGROUND_REFRESH_INTERVAL, ui::abbreviate_path, view::View},
+    shared::{
+        task::BACKGROUND_REFRESH_INTERVAL,
+        ui::{abbreviate_path, format_large_number_detailed, listing_margin},
+        view::View,
+    },
 };
 
 mod background;
@@ -25,9 +40,10 @@ pub struct FileManager {
     opened: HashSet<PathBuf>,
     opened_changed: bool,
     displayed: Vec<(PathBuf, FileType)>,
+    finished: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum FileType {
     Directory,
     File,
@@ -40,8 +56,12 @@ impl View<AppShared> for FileManager {
     }
     fn logic(&mut self, shared: &mut AppShared, ctx: &Context) {
         self.background.update(shared);
+
         if self.tree.update(&mut self.background) {
             ctx.request_repaint_after(BACKGROUND_REFRESH_INTERVAL);
+            self.finished = false;
+        } else {
+            self.finished = true
         }
 
         let tree = self.tree.view();
@@ -51,8 +71,6 @@ impl View<AppShared> for FileManager {
                 self.opened.clear();
             }
 
-            self.opened_changed = false;
-
             self.displayed.clear();
             update_displayed(
                 &tree,
@@ -60,6 +78,8 @@ impl View<AppShared> for FileManager {
                 &mut self.displayed,
                 tree.roots.iter().cloned(),
             );
+
+            self.opened_changed = false;
         }
     }
     fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {
@@ -67,11 +87,270 @@ impl View<AppShared> for FileManager {
         self.modal != FileModal::default()
     }
     fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {
-        for (path, item_type) in &self.displayed {
-            ui.label(path.to_string_lossy());
-        }
+        Panel::bottom("filemanager-bottom-panel").show_inside(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                    let tree = self.tree.view();
 
-        // TODO
+                    if !self.finished {
+                        ui.add(Spinner::new());
+                    }
+                    ui.label(format!(
+                        "{}, {}",
+                        format_large_number_detailed(tree.file_count, "file", "files"),
+                        format_large_number_detailed(tree.directory_count, "folder", "folders"),
+                    ))
+                    .on_hover_text(shared.settings.documents.location.to_string_lossy())
+                    .context_menu(|ui| {
+                        if ui.button("Copy path").clicked() {
+                            ui.output_mut(|o| {
+                                o.commands.push(OutputCommand::CopyText(
+                                    shared
+                                        .settings
+                                        .documents
+                                        .location
+                                        .to_string_lossy()
+                                        .to_string(),
+                                ))
+                            });
+                        };
+                    });
+                });
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    if ui.button("\u{E145}").on_hover_text("Refresh").clicked() {
+                        self.background.refresh();
+                        ui.request_repaint();
+                    }
+                    if ui.button("\u{E0D9}").on_hover_text("New folder").clicked() {
+                        self.modal = FileModal::CreateDirectory("Untitled Folder".to_string());
+                        ui.request_repaint();
+                    }
+                    if ui.button("\u{E0C9}").on_hover_text("New weave").clicked() {
+                        self.modal = FileModal::CreateWeave(
+                            ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION].concat(),
+                        );
+                        ui.request_repaint();
+                    }
+                });
+            });
+        });
+
+        ui.scope_builder(
+            UiBuilder::new()
+                .ui_stack_info(UiStackInfo::new(UiKind::CentralPanel))
+                .sense(Sense::click()),
+            |ui| {
+                if self.displayed.is_empty() {
+                    Frame::new()
+                        .outer_margin(listing_margin(ui))
+                        .show(ui, |ui| {
+                            ui.disable();
+                            ui.label("No files found");
+                        });
+                    return;
+                }
+
+                ScrollArea::vertical()
+                    .auto_shrink(false)
+                    .animated(false)
+                    .show_rows(
+                        ui,
+                        ui.spacing().interact_size.y,
+                        self.displayed.len(),
+                        |ui, range| {
+                            ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                                Frame::new()
+                                    .outer_margin(listing_margin(ui))
+                                    .show(ui, |ui| {
+                                        self.file_listing(shared, ui, range);
+                                    });
+
+                                ui.response().context_menu(|ui| {
+                                    self.global_context_menu(shared, ui);
+                                });
+                            });
+                        },
+                    );
+
+                ui.response().context_menu(|ui| {
+                    self.global_context_menu(shared, ui);
+                });
+            },
+        );
+    }
+}
+
+fn global_context_menu(
+    modal: &mut FileModal,
+    background: &mut BackgroundFsManager,
+    shared: &mut AppShared,
+    ui: &mut Ui,
+) {
+    if ui.button("New weave").clicked() {
+        *modal = FileModal::CreateWeave(["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION].concat());
+        ui.request_repaint();
+    }
+    if ui.button("New folder").clicked() {
+        *modal = FileModal::CreateDirectory("Untitled Folder".to_string());
+        ui.request_repaint();
+    }
+
+    ui.separator();
+
+    if ui.button("Copy path").clicked() {
+        ui.output_mut(|o| {
+            o.commands.push(OutputCommand::CopyText(
+                shared
+                    .settings
+                    .documents
+                    .location
+                    .to_string_lossy()
+                    .to_string(),
+            ))
+        });
+    };
+    if ui.button("Refresh").clicked() {
+        background.refresh();
+        ui.request_repaint();
+    };
+}
+
+impl FileManager {
+    fn global_context_menu(&mut self, shared: &mut AppShared, ui: &mut Ui) {
+        global_context_menu(&mut self.modal, &mut self.background, shared, ui);
+    }
+    fn file_listing(&mut self, shared: &mut AppShared, ui: &mut Ui, range: Range<usize>) {
+        let text_style = TextStyle::Monospace;
+        let ch = ui.fonts_mut(|f| f.glyph_width(&text_style.resolve(ui.style()), ' '));
+        let file_extension_normal = OsString::from(VERSIONED_WEAVE_FILE_EXTENSION);
+        let file_extension_treeless = OsString::from(FILE_EXTENSION);
+
+        for (path, item_type) in &self.displayed[range] {
+            let abbreviated_path = abbreviate_path(&shared.settings.documents.location, path);
+
+            let (padding, label) = if let Some(parent) = abbreviated_path.parent()
+                && let Ok(without_prefix) = abbreviated_path.strip_prefix(parent)
+            {
+                let parent_length: usize =
+                    UnicodeSegmentation::graphemes(parent.to_string_lossy().as_ref(), true)
+                        .map(|_| 1)
+                        .sum();
+
+                if parent_length > 0
+                    && path
+                        .parent()
+                        .map(|parent| self.opened.contains(parent))
+                        .unwrap_or_default()
+                {
+                    (
+                        parent_length - 1,
+                        Cow::Owned(
+                            [
+                                ".",
+                                MAIN_SEPARATOR_STR,
+                                without_prefix.to_string_lossy().as_ref(),
+                            ]
+                            .concat(),
+                        ),
+                    )
+                } else {
+                    (0, abbreviated_path.to_string_lossy())
+                }
+            } else {
+                (0, abbreviated_path.to_string_lossy())
+            };
+
+            let (icon, suffix) = match item_type {
+                FileType::Directory => ("📂", MAIN_SEPARATOR_STR),
+                FileType::File => ("📄", ""),
+                FileType::Symlink => ("❔", ""),
+            };
+
+            let mut spacing = ch * padding as f32;
+
+            let menu_spacing = if spacing >= ui.spacing().menu_spacing {
+                spacing -= ui.spacing().menu_spacing;
+                true
+            } else {
+                false
+            };
+
+            ui.horizontal(|ui| {
+                ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                    ui.add_space(spacing);
+
+                    ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                        if menu_spacing {
+                            ui.add_space(ui.spacing().menu_spacing);
+                        }
+
+                        let mut button = Button::new(
+                            RichText::new(format!("{icon} {label}{suffix}"))
+                                .family(eframe::egui::FontFamily::Monospace),
+                        );
+                        let mut enabled = *item_type != FileType::Symlink;
+
+                        if *item_type == FileType::File {
+                            if !(path.extension() == Some(&file_extension_normal)
+                                || path.extension() == Some(&file_extension_treeless))
+                                || shared.open_documents.contains(path)
+                            {
+                                enabled = false;
+                            }
+                        } else if shared.open_documents.contains(path) {
+                            //button = button.selected(true);
+                            button = button.fill(ui.style().visuals.extreme_bg_color);
+                        }
+
+                        let button_response = if enabled {
+                            ui.add(button)
+                        } else {
+                            ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                                ui.add_enabled(enabled, button)
+                            })
+                            .response
+                        };
+
+                        if !shared.open_documents.contains(path) {
+                            button_response.context_menu(|ui| {
+                                // TODO
+                            });
+                        }
+
+                        if enabled && button_response.clicked() {
+                            if *item_type == FileType::File {
+                                shared.load_document_queue.push(path.to_path_buf());
+                            } else {
+                                if self.opened.contains(path) {
+                                    self.opened.remove(path);
+                                } else {
+                                    self.opened.insert(path.to_path_buf());
+                                }
+                                self.opened_changed = true;
+                            }
+                        };
+
+                        if ui.rect_contains_pointer(ui.max_rect())
+                            && !shared.open_documents.contains(path)
+                        {
+                            // TODO
+                        }
+
+                        ui.add_space(ui.spacing().menu_spacing);
+                    });
+
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        ui.add_space(0.0);
+                    });
+
+                    ui.response().context_menu(|ui| {
+                        global_context_menu(&mut self.modal, &mut self.background, shared, ui);
+                    });
+                });
+            });
+
+            //ui.label(path.to_string_lossy());
+        }
     }
 }
 
@@ -84,11 +363,11 @@ fn update_displayed(
     for item in roots {
         match tree.items.get(&item) {
             Some(TreeItem::Directory(children)) => {
+                displayed.push((item.to_path_buf(), FileType::Directory));
+
                 if opened.contains(&item) {
                     update_displayed(tree, opened, displayed, children.clone());
                 }
-
-                displayed.push((item, FileType::Directory));
             }
             Some(TreeItem::File) => displayed.push((item, FileType::File)),
             Some(TreeItem::Symlink) => displayed.push((item, FileType::Symlink)),
