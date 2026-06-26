@@ -377,7 +377,6 @@ impl FileManager {
                                 if ui.button("Delete item").clicked() {
                                     self.modal = FileModal::Delete(path.clone());
                                 };
-                                // TODO
                             });
                         }
 
@@ -397,7 +396,50 @@ impl FileManager {
                         if ui.rect_contains_pointer(ui.max_rect())
                             && !shared.open_documents.contains(path)
                         {
-                            // TODO
+                            if item_type == FileType::Directory && self.opened.contains(path) {
+                                if ui.button("\u{E0C9}").on_hover_text("New weave").clicked() {
+                                    self.modal = FileModal::CreateDirectory(
+                                        abbreviated_path
+                                            .join(
+                                                ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION]
+                                                    .concat(),
+                                            )
+                                            .to_string_lossy()
+                                            .to_string(),
+                                    );
+                                }
+                                if ui.button("\u{E0D9}").on_hover_text("New folder").clicked() {
+                                    self.modal = FileModal::CreateDirectory(
+                                        abbreviated_path
+                                            .join("Untitled Folder")
+                                            .to_string_lossy()
+                                            .to_string(),
+                                    )
+                                }
+                            }
+
+                            if item_type != FileType::Symlink
+                                && ui
+                                    .button("\u{E09E}")
+                                    .on_hover_text("Duplicate item")
+                                    .clicked()
+                            {
+                                self.modal = FileModal::Copy(
+                                    path.clone(),
+                                    abbreviated_path.to_string_lossy().to_string(),
+                                );
+                            };
+
+                            if ui.button("\u{E4F0}").on_hover_text("Rename item").clicked() {
+                                self.modal = FileModal::Rename(
+                                    path.clone(),
+                                    abbreviated_path.to_string_lossy().to_string(),
+                                );
+                            };
+
+                            if ui.button("\u{E18E}").on_hover_text("Delete item").clicked() {
+                                self.modal = FileModal::Delete(path.clone());
+                            };
                         }
 
                         ui.add_space(ui.spacing().menu_spacing);
