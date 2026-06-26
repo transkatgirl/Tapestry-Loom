@@ -456,8 +456,6 @@ impl FileManager {
                     });
                 });
             });
-
-            //ui.label(path.to_string_lossy());
         }
     }
 }

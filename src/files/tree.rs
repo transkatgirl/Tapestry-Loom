@@ -99,14 +99,14 @@ impl FileTree {
                         self.roots.insert(path.to_owned());
                     }
 
-                    debug_assert!(!self.items.contains_key(&path));
+                    assert!(!self.items.contains_key(&path));
 
                     self.items.insert(
                         path,
-                        if filetype.is_dir() {
-                            TreeItem::Directory(Vec::new())
-                        } else if filetype.is_symlink() {
+                        if filetype.is_symlink() {
                             TreeItem::Symlink
+                        } else if filetype.is_dir() {
+                            TreeItem::Directory(Vec::new())
                         } else if filetype.is_file() {
                             TreeItem::File
                         } else {
