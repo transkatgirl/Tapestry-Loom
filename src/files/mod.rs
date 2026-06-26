@@ -9,8 +9,8 @@ use std::{
 };
 
 use eframe::egui::{
-    Align, Button, Context, Frame, Key, Layout, Modal, OutputCommand, Panel, RichText, ScrollArea,
-    Sense, Sides, Spinner, TextStyle, Ui, UiBuilder, UiKind, UiStackInfo, WidgetText,
+    Align, Button, Context, Frame, Id, Key, Layout, Modal, OutputCommand, Panel, RichText,
+    ScrollArea, Sense, Sides, Spinner, TextStyle, Ui, UiBuilder, UiKind, UiStackInfo, WidgetText,
 };
 use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, v1::treeless::FILE_EXTENSION};
 use unicode_segmentation::UnicodeSegmentation;
@@ -138,6 +138,7 @@ impl View<AppShared> for FileManager {
 
         ui.scope_builder(
             UiBuilder::new()
+                .id(Id::new("filemanager-central-panel"))
                 .ui_stack_info(UiStackInfo::new(UiKind::CentralPanel))
                 .sense(Sense::CLICK),
             |ui| {
@@ -280,183 +281,212 @@ impl FileManager {
                 false
             };
 
-            ui.horizontal(|ui| {
-                ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
-                    ui.add_space(spacing);
+            ui.scope_builder(
+                UiBuilder::new().id(Id::new(["filemanager-item-", &path.to_string_lossy()])),
+                |ui| {
+                    ui.horizontal(|ui| {
+                        ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
+                            ui.add_space(spacing);
 
-                    ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
-                        if menu_spacing {
-                            ui.add_space(ui.spacing().menu_spacing);
-                        }
-
-                        let mut button = Button::new(
-                            RichText::new(format!("{icon} {label}{suffix}"))
-                                .family(eframe::egui::FontFamily::Monospace),
-                        );
-                        let mut enabled = item_type != FileType::Other;
-
-                        if item_type == FileType::File {
-                            if !(path.extension() == Some(&file_extension_normal)
-                                || path.extension() == Some(&file_extension_treeless))
-                                || shared.open_documents.contains(path)
-                            {
-                                enabled = false;
-                            }
-                        } else if self.opened.contains(path) {
-                            //button = button.selected(true);
-                            button = button.fill(ui.style().visuals.extreme_bg_color);
-                        }
-
-                        let button_response = if enabled {
-                            ui.add(button)
-                        } else {
                             ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
-                                ui.add_enabled(enabled, button)
-                            })
-                            .response
-                        };
+                                if menu_spacing {
+                                    ui.add_space(ui.spacing().menu_spacing);
+                                }
 
-                        if !shared.open_documents.contains(path) {
-                            button_response.context_menu(|ui| {
-                                if item_type == FileType::Directory {
-                                    if ui.button("New weave").clicked() {
-                                        self.modal = FileModal::CreateDirectory(
-                                            abbreviated_path
-                                                .join(
-                                                    ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION]
-                                                        .concat(),
-                                                )
-                                                .to_string_lossy()
-                                                .to_string(),
-                                        );
-                                    }
-                                    if ui.button("New folder").clicked() {
-                                        self.modal = FileModal::CreateDirectory(
-                                            abbreviated_path
-                                                .join("Untitled Folder")
-                                                .to_string_lossy()
-                                                .to_string(),
-                                        )
-                                    }
-                                    ui.separator();
-                                } else if item_type == FileType::File
-                                    && (path.extension() == Some(&file_extension_normal)
+                                let mut button = Button::new(
+                                    RichText::new(format!("{icon} {label}{suffix}"))
+                                        .family(eframe::egui::FontFamily::Monospace),
+                                );
+                                let mut enabled = item_type != FileType::Other;
+
+                                if item_type == FileType::File {
+                                    if !(path.extension() == Some(&file_extension_normal)
                                         || path.extension() == Some(&file_extension_treeless))
-                                {
-                                    if ui.button("Open weave").clicked() {
-                                        shared.load_document_queue.push(path.clone());
+                                        || shared.open_documents.contains(path)
+                                    {
+                                        enabled = false;
                                     }
-                                    ui.separator();
-                                };
-
-                                if ui.button("Copy item path").clicked() {
-                                    ui.output_mut(|o| {
-                                        o.commands.push(OutputCommand::CopyText(
-                                            path.to_string_lossy().to_string(),
-                                        ))
-                                    });
-                                };
-
-                                ui.separator();
-
-                                if item_type != FileType::Other
-                                    && ui.button("Duplicate item").clicked()
-                                {
-                                    self.modal = FileModal::Copy(
-                                        path.clone(),
-                                        abbreviated_path.to_string_lossy().to_string(),
-                                    );
+                                } else if self.opened.contains(path) {
+                                    //button = button.selected(true);
+                                    button = button.fill(ui.style().visuals.extreme_bg_color);
                                 }
 
-                                if ui.button("Rename item").clicked() {
-                                    self.modal = FileModal::Rename(
-                                        path.clone(),
-                                        abbreviated_path.to_string_lossy().to_string(),
-                                    );
-                                };
-
-                                if ui.button("Delete item").clicked() {
-                                    self.modal = FileModal::Delete(path.clone());
-                                };
-                            });
-                        }
-
-                        if enabled && button_response.clicked() {
-                            if item_type == FileType::File {
-                                shared.load_document_queue.push(path.clone());
-                            } else {
-                                if self.opened.contains(path) {
-                                    self.opened.remove(path);
+                                let button_response = if enabled {
+                                    ui.add(button)
                                 } else {
-                                    self.opened.insert(path.clone());
-                                }
-                                ui.request_discard("Updated listing");
-                                self.opened_changed = true;
-                                return;
-                            }
-                        };
+                                    ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
+                                        ui.add_enabled(enabled, button)
+                                    })
+                                    .response
+                                };
 
-                        if ui.rect_contains_pointer(ui.max_rect())
-                            && !shared.open_documents.contains(path)
-                        {
-                            if item_type == FileType::Directory && self.opened.contains(path) {
-                                if ui.button("\u{E0C9}").on_hover_text("New weave").clicked() {
-                                    self.modal = FileModal::CreateDirectory(
-                                        abbreviated_path
-                                            .join(
-                                                ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION]
-                                                    .concat(),
+                                if !shared.open_documents.contains(path) {
+                                    button_response.context_menu(|ui| {
+                                        if item_type == FileType::Directory {
+                                            if ui.button("New weave").clicked() {
+                                                self.modal = FileModal::CreateDirectory(
+                                                    abbreviated_path
+                                                        .join(
+                                                            [
+                                                                "Untitled.",
+                                                                VERSIONED_WEAVE_FILE_EXTENSION,
+                                                            ]
+                                                            .concat(),
+                                                        )
+                                                        .to_string_lossy()
+                                                        .to_string(),
+                                                );
+                                            }
+                                            if ui.button("New folder").clicked() {
+                                                self.modal = FileModal::CreateDirectory(
+                                                    abbreviated_path
+                                                        .join("Untitled Folder")
+                                                        .to_string_lossy()
+                                                        .to_string(),
+                                                )
+                                            }
+                                            ui.separator();
+                                        } else if item_type == FileType::File
+                                            && (path.extension() == Some(&file_extension_normal)
+                                                || path.extension()
+                                                    == Some(&file_extension_treeless))
+                                        {
+                                            if ui.button("Open weave").clicked() {
+                                                shared.load_document_queue.push(path.clone());
+                                            }
+                                            ui.separator();
+                                        };
+
+                                        if ui.button("Copy item path").clicked() {
+                                            ui.output_mut(|o| {
+                                                o.commands.push(OutputCommand::CopyText(
+                                                    path.to_string_lossy().to_string(),
+                                                ))
+                                            });
+                                        };
+
+                                        ui.separator();
+
+                                        if item_type != FileType::Other
+                                            && ui.button("Duplicate item").clicked()
+                                        {
+                                            self.modal = FileModal::Copy(
+                                                path.clone(),
+                                                abbreviated_path.to_string_lossy().to_string(),
+                                            );
+                                        }
+
+                                        if ui.button("Rename item").clicked() {
+                                            self.modal = FileModal::Rename(
+                                                path.clone(),
+                                                abbreviated_path.to_string_lossy().to_string(),
+                                            );
+                                        };
+
+                                        if ui.button("Delete item").clicked() {
+                                            self.modal = FileModal::Delete(path.clone());
+                                        };
+                                    });
+                                }
+
+                                if enabled && button_response.clicked() {
+                                    if item_type == FileType::File {
+                                        shared.load_document_queue.push(path.clone());
+                                    } else {
+                                        if self.opened.contains(path) {
+                                            self.opened.remove(path);
+                                        } else {
+                                            self.opened.insert(path.clone());
+                                        }
+                                        ui.request_discard("Updated listing");
+                                        self.opened_changed = true;
+                                        return;
+                                    }
+                                };
+
+                                if ui.rect_contains_pointer(ui.max_rect())
+                                    && !shared.open_documents.contains(path)
+                                {
+                                    if item_type == FileType::Directory
+                                        && self.opened.contains(path)
+                                    {
+                                        if ui
+                                            .button("\u{E0C9}")
+                                            .on_hover_text("New weave")
+                                            .clicked()
+                                        {
+                                            self.modal = FileModal::CreateDirectory(
+                                                abbreviated_path
+                                                    .join(
+                                                        [
+                                                            "Untitled.",
+                                                            VERSIONED_WEAVE_FILE_EXTENSION,
+                                                        ]
+                                                        .concat(),
+                                                    )
+                                                    .to_string_lossy()
+                                                    .to_string(),
+                                            );
+                                        }
+                                        if ui
+                                            .button("\u{E0D9}")
+                                            .on_hover_text("New folder")
+                                            .clicked()
+                                        {
+                                            self.modal = FileModal::CreateDirectory(
+                                                abbreviated_path
+                                                    .join("Untitled Folder")
+                                                    .to_string_lossy()
+                                                    .to_string(),
                                             )
-                                            .to_string_lossy()
-                                            .to_string(),
-                                    );
+                                        }
+                                    }
+
+                                    if item_type != FileType::Other
+                                        && ui
+                                            .button("\u{E09E}")
+                                            .on_hover_text("Duplicate item")
+                                            .clicked()
+                                    {
+                                        self.modal = FileModal::Copy(
+                                            path.clone(),
+                                            abbreviated_path.to_string_lossy().to_string(),
+                                        );
+                                    };
+
+                                    if ui.button("\u{E4F0}").on_hover_text("Rename item").clicked()
+                                    {
+                                        self.modal = FileModal::Rename(
+                                            path.clone(),
+                                            abbreviated_path.to_string_lossy().to_string(),
+                                        );
+                                    };
+
+                                    if ui.button("\u{E18E}").on_hover_text("Delete item").clicked()
+                                    {
+                                        self.modal = FileModal::Delete(path.clone());
+                                    };
                                 }
-                                if ui.button("\u{E0D9}").on_hover_text("New folder").clicked() {
-                                    self.modal = FileModal::CreateDirectory(
-                                        abbreviated_path
-                                            .join("Untitled Folder")
-                                            .to_string_lossy()
-                                            .to_string(),
-                                    )
-                                }
-                            }
 
-                            if item_type != FileType::Other
-                                && ui
-                                    .button("\u{E09E}")
-                                    .on_hover_text("Duplicate item")
-                                    .clicked()
-                            {
-                                self.modal = FileModal::Copy(
-                                    path.clone(),
-                                    abbreviated_path.to_string_lossy().to_string(),
+                                ui.add_space(ui.spacing().menu_spacing);
+                            });
+
+                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                ui.add_space(0.0);
+                            });
+
+                            ui.response().context_menu(|ui| {
+                                global_context_menu(
+                                    &mut self.modal,
+                                    &mut self.background,
+                                    shared,
+                                    ui,
                                 );
-                            };
-
-                            if ui.button("\u{E4F0}").on_hover_text("Rename item").clicked() {
-                                self.modal = FileModal::Rename(
-                                    path.clone(),
-                                    abbreviated_path.to_string_lossy().to_string(),
-                                );
-                            };
-
-                            if ui.button("\u{E18E}").on_hover_text("Delete item").clicked() {
-                                self.modal = FileModal::Delete(path.clone());
-                            };
-                        }
-
-                        ui.add_space(ui.spacing().menu_spacing);
+                            });
+                        });
                     });
-
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        ui.add_space(0.0);
-                    });
-
-                    ui.response().context_menu(|ui| {
-                        global_context_menu(&mut self.modal, &mut self.background, shared, ui);
-                    });
-                });
-            });
+                },
+            );
         }
     }
 }
