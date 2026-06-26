@@ -75,7 +75,7 @@ impl FileTree {
                 self.updated = true;
 
                 for (path, filetype) in &paths[(self.directory_count + self.file_count)..] {
-                    let path = path.strip_prefix(root).unwrap().to_path_buf();
+                    let path = path.strip_prefix(root).unwrap().to_owned();
 
                     if path.as_os_str().is_empty() {
                         continue;
@@ -85,10 +85,10 @@ impl FileTree {
                         && !parent.as_os_str().is_empty()
                     {
                         if let Some(TreeItem::Directory(children)) = self.items.get_mut(parent) {
-                            children.push(path.clone());
+                            children.push(path.to_owned());
                         }
                     } else {
-                        self.roots.insert(path.clone());
+                        self.roots.insert(path.to_owned());
                     }
 
                     self.items.insert(

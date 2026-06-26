@@ -260,7 +260,7 @@ fn migrate_json_weave(
         for (filename, weave) in output_weaves {
             let mut output_path = output_path
                 .parent()
-                .map(|p| p.to_path_buf())
+                .map(|p| p.to_owned())
                 .unwrap_or_default()
                 .join(filename);
             if json {
