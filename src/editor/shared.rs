@@ -1,13 +1,47 @@
-use std::path::PathBuf;
+use std::{
+    fs::File,
+    io::{BufWriter, Read, Write},
+    path::PathBuf,
+    sync::Arc,
+};
 
 use eframe::egui::{Align, Context, Layout, OutputCommand, Panel, Ui};
+use parking_lot::Mutex;
+use tapestry_weave::{VersionedWeave, v1::dependent::TapestryWeave};
 use ulid::Ulid;
 
-use crate::{AppShared, shared::ui::abbreviate_path};
+use crate::{
+    AppShared,
+    shared::{task::AbortableBlockingTaskHandle, ui::abbreviate_path},
+};
 
 pub(super) struct EditorShared {
     pub id: Ulid,
     path: Option<PathBuf>, // TODO: Document loading, create root dir if it doesn't exist
+
+    disk_task: DiskTask,
+    disk_task_data: Arc<Mutex<DiskTaskData>>,
+    pub weave: Option<TapestryWeave>,
+}
+
+enum DiskTask {
+    None,
+    Read(AbortableBlockingTaskHandle<Result<VersionedWeave, String>>),
+    Write(AbortableBlockingTaskHandle<Result<(), String>>),
+}
+
+struct DiskTaskData {
+    file: Option<File>,
+    buffer: Vec<u8>,
+}
+
+impl DiskTaskData {
+    fn new() -> Self {
+        Self {
+            file: None,
+            buffer: Vec::with_capacity(16384),
+        }
+    }
 }
 
 impl EditorShared {
@@ -23,6 +57,9 @@ impl EditorShared {
         Self {
             id: Ulid::new(),
             path,
+            disk_task: DiskTask::None,
+            disk_task_data: Arc::new(Mutex::new(DiskTaskData::new())),
+            weave: None,
         }
     }
     pub(super) fn logic(&mut self, _ctx: &Context, shared: &mut AppShared) {}
@@ -80,10 +117,18 @@ impl EditorShared {
         &self.path
     }
     pub(super) fn check_close(&mut self, shared: &mut AppShared) -> bool {
-        true
+        if let Some(weave) = &self.weave {
+            weave.is_empty_including_metadata()
+        } else {
+            true
+        }
     }
     pub(super) fn close(&mut self, shared: &mut AppShared) -> bool {
         if let Some(path) = &self.path {
+            if let Some(weave) = &self.weave {
+                // TODO
+            }
+
             if shared.open_documents.remove(path) {
                 shared.open_documents_updated = true;
             };
@@ -91,4 +136,70 @@ impl EditorShared {
 
         true
     }
+}
+
+fn read_weave(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Result<VersionedWeave, String> {
+    let mut data = data.lock();
+
+    match File::open(path) {
+        Ok(mut file) => {
+            let size = file
+                .metadata()
+                .map(|m| usize::try_from(m.len()).unwrap_or(usize::MAX))
+                .ok();
+            if let Some(size) = size {
+                let capacity = data.buffer.capacity();
+
+                if size > capacity {
+                    data.buffer.reserve(size - capacity);
+                }
+            }
+
+            data.buffer.clear();
+            match file.read_to_end(&mut data.buffer) {
+                Ok(_) => {
+                    data.file = Some(file);
+
+                    todo!()
+                }
+                Err(error) => {
+                    // TODO
+                }
+            }
+        }
+        Err(error) => {
+            // TODO
+        }
+    }
+
+    todo!()
+}
+
+fn write_weave(weave: VersionedWeave, data: Arc<Mutex<DiskTaskData>>) -> Result<(), String> {
+    let mut data = data.lock();
+
+    match &mut data.file {
+        Some(file) => {
+            if let Err(error) = file.set_len(0) {
+                // TODO
+
+                todo!()
+            }
+
+            let mut writer = BufWriter::new(file);
+
+            if let Err(error) = weave.write_bytes(&mut writer) {
+                todo!()
+            };
+
+            if let Err(error) = writer.flush() {
+                todo!()
+            };
+        }
+        None => {
+            // TODO
+        }
+    }
+
+    todo!()
 }
