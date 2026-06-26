@@ -143,17 +143,11 @@ impl TapestryWeave {
     pub fn reserve(&mut self, additional: usize) {
         self.weave.reserve(additional);
         self.active
-            .reserve(self.weave.capacity().saturating_sub(self.active.capacity()));
-        self.active_set.reserve(
-            self.weave
-                .capacity()
-                .saturating_sub(self.active_set.capacity()),
-        );
-        self.scratchpad.reserve(
-            self.weave
-                .capacity()
-                .saturating_sub(self.scratchpad.capacity()),
-        );
+            .reserve(self.weave.capacity().saturating_sub(self.active.len()));
+        self.active_set
+            .reserve(self.weave.capacity().saturating_sub(self.active_set.len()));
+        self.scratchpad
+            .reserve(self.weave.capacity().saturating_sub(self.scratchpad.len()));
     }
     pub fn shrink_to(&mut self, min_capacity: usize) {
         self.weave.shrink_to(min_capacity);
