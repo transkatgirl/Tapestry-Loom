@@ -74,14 +74,14 @@ impl FileTree {
 
             let root = root.unwrap();
 
-            debug_assert!(paths.len() >= self.directory_count + self.file_count + self.empty_count);
+            let count = self.directory_count + self.file_count + self.empty_count;
 
-            if paths.len() > self.directory_count + self.file_count + self.empty_count {
+            debug_assert!(paths.len() >= count);
+
+            if paths.len() > count {
                 self.updated = true;
 
-                for (path, filetype) in
-                    &paths[(self.directory_count + self.file_count + self.empty_count)..]
-                {
+                for (path, filetype) in &paths[count..] {
                     let path = path.strip_prefix(root).unwrap().to_owned();
 
                     if path.as_os_str().is_empty() {
