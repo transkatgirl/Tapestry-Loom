@@ -389,7 +389,9 @@ impl FileManager {
                                 } else {
                                     self.opened.insert(path.clone());
                                 }
+                                ui.request_discard("Updated listing");
                                 self.opened_changed = true;
+                                return;
                             }
                         };
 
