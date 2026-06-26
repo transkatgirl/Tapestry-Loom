@@ -475,7 +475,7 @@ fn update_displayed(
                 displayed.push((absolute_path.clone(), FileType::Directory));
 
                 if opened.contains(&absolute_path) {
-                    update_displayed(tree, opened, displayed, children.clone());
+                    update_displayed(tree, opened, displayed, children.iter().cloned());
                 }
             }
             Some(TreeItem::File) => displayed.push((tree.relative_to.join(item), FileType::File)),
