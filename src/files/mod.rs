@@ -327,7 +327,7 @@ impl FileManager {
                                     button_response.context_menu(|ui| {
                                         if item_type == FileType::Directory {
                                             if ui.button("New weave").clicked() {
-                                                self.modal = FileModal::CreateDirectory(
+                                                self.modal = FileModal::CreateWeave(
                                                     abbreviated_path
                                                         .join(
                                                             [
@@ -425,7 +425,7 @@ impl FileManager {
                                             .on_hover_text("New weave")
                                             .clicked()
                                         {
-                                            self.modal = FileModal::CreateDirectory(
+                                            self.modal = FileModal::CreateWeave(
                                                 abbreviated_path
                                                     .join(
                                                         [
