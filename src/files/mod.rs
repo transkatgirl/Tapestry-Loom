@@ -12,7 +12,10 @@ use eframe::egui::{
     Align, Button, Context, Frame, Id, Key, Layout, Modal, OutputCommand, Panel, RichText,
     ScrollArea, Sense, Sides, Spinner, TextStyle, Ui, UiBuilder, UiKind, UiStackInfo, WidgetText,
 };
-use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, v1::treeless::FILE_EXTENSION};
+use tapestry_weave::{
+    VERSIONED_WEAVE_FILE_EXTENSION,
+    v1::{dependent::TapestryWeave, treeless::FILE_EXTENSION},
+};
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
@@ -527,7 +530,13 @@ enum FileModal {
 }
 
 fn blank_document_bytes() -> Vec<u8> {
-    todo!()
+    let mut container = Vec::with_capacity(4096);
+    TapestryWeave::with_capacity(0)
+        .write_versioned_bytes(&mut container)
+        .unwrap();
+    debug_assert!(container.len() <= container.capacity());
+    container.shrink_to_fit();
+    container
 }
 
 impl FileModal {
