@@ -1,6 +1,7 @@
 use std::{
     fs::File,
-    io::{BufWriter, Read, Write},
+    io::{self, Read, Seek, SeekFrom, Write},
+    ops::DerefMut,
     path::PathBuf,
     sync::Arc,
 };
@@ -138,66 +139,81 @@ impl EditorShared {
     }
 }
 
-fn read_weave(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Result<VersionedWeave, String> {
-    let mut data = data.lock();
+fn read_buffer(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Result<VersionedWeave, io::Error> {
+    let mut lock = data.lock();
+    let data = lock.deref_mut();
 
-    match File::open(path) {
-        Ok(mut file) => {
+    data.buffer.clear();
+
+    match &mut data.file {
+        Some(file) => {
+            file.seek(SeekFrom::Start(0))?;
+
             let size = file
                 .metadata()
                 .map(|m| usize::try_from(m.len()).unwrap_or(usize::MAX))
                 .ok();
+
             if let Some(size) = size {
-                let capacity = data.buffer.capacity();
+                let len = data.buffer.len();
 
-                if size > capacity {
-                    data.buffer.reserve(size - capacity);
+                if size > len {
+                    data.buffer.reserve(size - len);
                 }
             }
 
-            data.buffer.clear();
-            match file.read_to_end(&mut data.buffer) {
-                Ok(_) => {
-                    data.file = Some(file);
-
-                    todo!()
-                }
-                Err(error) => {
-                    // TODO
-                }
-            }
+            file.read_to_end(&mut data.buffer)?;
         }
-        Err(error) => {
-            // TODO
+        None => {
+            let mut file = File::options().read(true).write(true).open(path)?;
+
+            let size = file
+                .metadata()
+                .map(|m| usize::try_from(m.len()).unwrap_or(usize::MAX))
+                .ok();
+
+            if let Some(size) = size {
+                let len = data.buffer.len();
+
+                if size > len {
+                    data.buffer.reserve(size - len);
+                }
+            }
+
+            file.read_to_end(&mut data.buffer)?;
+
+            data.file = Some(file);
         }
     }
 
     todo!()
 }
 
-fn write_weave(weave: VersionedWeave, data: Arc<Mutex<DiskTaskData>>) -> Result<(), String> {
-    let mut data = data.lock();
+fn write_buffer(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Result<(), io::Error> {
+    let mut lock = data.lock();
+    let data = lock.deref_mut();
 
     match &mut data.file {
         Some(file) => {
-            if let Err(error) = file.set_len(0) {
-                // TODO
-
-                todo!()
-            }
-
-            let mut writer = BufWriter::new(file);
-
-            if let Err(error) = weave.write_bytes(&mut writer) {
-                todo!()
-            };
-
-            if let Err(error) = writer.flush() {
-                todo!()
-            };
+            file.set_len(data.buffer.len() as u64)?;
+            file.seek(SeekFrom::Start(0))?;
+            file.write_all(&data.buffer)?;
+            file.flush()?;
         }
         None => {
-            // TODO
+            let mut file = File::options()
+                .create(true)
+                .truncate(false)
+                .read(true)
+                .write(true)
+                .open(path)?;
+
+            file.set_len(data.buffer.len() as u64)?;
+            file.seek(SeekFrom::Start(0))?;
+            file.write_all(&data.buffer)?;
+            file.flush()?;
+
+            data.file = Some(file);
         }
     }
 
