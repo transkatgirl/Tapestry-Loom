@@ -139,11 +139,9 @@ impl EditorShared {
     }
 }
 
-fn read_buffer(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Result<VersionedWeave, io::Error> {
+fn read_to_buffer(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Result<(), io::Error> {
     let mut lock = data.lock();
     let data = lock.deref_mut();
-
-    data.buffer.clear();
 
     match &mut data.file {
         Some(file) => {
@@ -154,42 +152,47 @@ fn read_buffer(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Result<Versione
                 .map(|m| usize::try_from(m.len()).unwrap_or(usize::MAX))
                 .ok();
 
-            if let Some(size) = size {
-                let len = data.buffer.len();
-
-                if size > len {
-                    data.buffer.reserve(size - len);
-                }
+            if let Some(size) = size
+                && size > data.buffer.capacity()
+            {
+                data.buffer.reserve(size - data.buffer.len());
             }
 
+            data.buffer.clear();
             file.read_to_end(&mut data.buffer)?;
         }
         None => {
-            let mut file = File::options().read(true).write(true).open(path)?;
+            let mut file = File::options()
+                .create(false)
+                .truncate(false)
+                .read(true)
+                .write(true)
+                .open(path)?;
+
+            file.seek(SeekFrom::Start(0))?;
 
             let size = file
                 .metadata()
                 .map(|m| usize::try_from(m.len()).unwrap_or(usize::MAX))
                 .ok();
 
-            if let Some(size) = size {
-                let len = data.buffer.len();
-
-                if size > len {
-                    data.buffer.reserve(size - len);
-                }
+            if let Some(size) = size
+                && size > data.buffer.capacity()
+            {
+                data.buffer.reserve(size - data.buffer.len());
             }
 
+            data.buffer.clear();
             file.read_to_end(&mut data.buffer)?;
 
             data.file = Some(file);
         }
     }
 
-    todo!()
+    Ok(())
 }
 
-fn write_buffer(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Result<(), io::Error> {
+fn write_from_buffer(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Result<(), io::Error> {
     let mut lock = data.lock();
     let data = lock.deref_mut();
 
@@ -217,5 +220,5 @@ fn write_buffer(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Result<(), io:
         }
     }
 
-    todo!()
+    Ok(())
 }
