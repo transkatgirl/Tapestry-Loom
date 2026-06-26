@@ -43,7 +43,7 @@ pub struct FileManager {
     finished: bool,
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum FileType {
     Directory,
     File,
@@ -226,6 +226,7 @@ impl FileManager {
         let file_extension_treeless = OsString::from(FILE_EXTENSION);
 
         for (path, item_type) in &self.displayed[range] {
+            let item_type = *item_type;
             let abbreviated_path = abbreviate_path(&shared.settings.documents.location, path);
 
             let (padding, label) = if let Some(parent) = abbreviated_path.parent()
@@ -288,9 +289,9 @@ impl FileManager {
                             RichText::new(format!("{icon} {label}{suffix}"))
                                 .family(eframe::egui::FontFamily::Monospace),
                         );
-                        let mut enabled = *item_type != FileType::Symlink;
+                        let mut enabled = item_type != FileType::Symlink;
 
-                        if *item_type == FileType::File {
+                        if item_type == FileType::File {
                             if !(path.extension() == Some(&file_extension_normal)
                                 || path.extension() == Some(&file_extension_treeless))
                                 || shared.open_documents.contains(path)
@@ -313,18 +314,78 @@ impl FileManager {
 
                         if !shared.open_documents.contains(path) {
                             button_response.context_menu(|ui| {
+                                if item_type == FileType::Directory {
+                                    if ui.button("New weave").clicked() {
+                                        self.modal = FileModal::CreateDirectory(
+                                            abbreviated_path
+                                                .join(
+                                                    ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION]
+                                                        .concat(),
+                                                )
+                                                .to_string_lossy()
+                                                .to_string(),
+                                        );
+                                    }
+                                    if ui.button("New folder").clicked() {
+                                        self.modal = FileModal::CreateDirectory(
+                                            abbreviated_path
+                                                .join("Untitled Folder")
+                                                .to_string_lossy()
+                                                .to_string(),
+                                        )
+                                    }
+                                    ui.separator();
+                                } else if item_type == FileType::File
+                                    && (path.extension() == Some(&file_extension_normal)
+                                        || path.extension() == Some(&file_extension_treeless))
+                                {
+                                    if ui.button("Open weave").clicked() {
+                                        shared.load_document_queue.push(path.clone());
+                                    }
+                                    ui.separator();
+                                };
+
+                                if ui.button("Copy item path").clicked() {
+                                    ui.output_mut(|o| {
+                                        o.commands.push(OutputCommand::CopyText(
+                                            path.to_string_lossy().to_string(),
+                                        ))
+                                    });
+                                };
+
+                                ui.separator();
+
+                                if item_type != FileType::Symlink
+                                    && ui.button("Duplicate item").clicked()
+                                {
+                                    self.modal = FileModal::Copy(
+                                        path.clone(),
+                                        abbreviated_path.to_string_lossy().to_string(),
+                                    );
+                                }
+
+                                if ui.button("Rename item").clicked() {
+                                    self.modal = FileModal::Rename(
+                                        path.clone(),
+                                        abbreviated_path.to_string_lossy().to_string(),
+                                    );
+                                };
+
+                                if ui.button("Delete item").clicked() {
+                                    self.modal = FileModal::Delete(path.clone());
+                                };
                                 // TODO
                             });
                         }
 
                         if enabled && button_response.clicked() {
-                            if *item_type == FileType::File {
-                                shared.load_document_queue.push(path.to_path_buf());
+                            if item_type == FileType::File {
+                                shared.load_document_queue.push(path.clone());
                             } else {
                                 if self.opened.contains(path) {
                                     self.opened.remove(path);
                                 } else {
-                                    self.opened.insert(path.to_path_buf());
+                                    self.opened.insert(path.clone());
                                 }
                                 self.opened_changed = true;
                             }
@@ -363,7 +424,7 @@ fn update_displayed(
     for item in roots {
         match tree.items.get(&item) {
             Some(TreeItem::Directory(children)) => {
-                displayed.push((item.to_path_buf(), FileType::Directory));
+                displayed.push((item.clone(), FileType::Directory));
 
                 if opened.contains(&item) {
                     update_displayed(tree, opened, displayed, children.clone());
@@ -499,7 +560,7 @@ impl FileModal {
                                         && !shared.open_documents.contains(&to)
                                         && !background.likely_exists(&to)
                                     {
-                                        background.rename_item(shared, from.to_path_buf(), to);
+                                        background.rename_item(shared, from.clone(), to);
                                         ui.close();
                                     }
                                 }
@@ -539,7 +600,7 @@ impl FileModal {
                                         && !shared.open_documents.contains(&to)
                                         && !background.likely_exists(&to)
                                     {
-                                        background.copy_item(shared, from.to_path_buf(), to);
+                                        background.copy_item(shared, from.clone(), to);
                                         ui.close();
                                     }
                                 }
@@ -572,7 +633,7 @@ impl FileModal {
                                     || ui.input(|input| input.key_pressed(Key::Enter)))
                                     && !shared.open_documents.contains(path)
                                 {
-                                    background.remove_item(shared, path.to_path_buf());
+                                    background.remove_item(shared, path.clone());
                                     ui.close();
                                 }
                             },
