@@ -138,7 +138,7 @@ impl View<AppShared> for FileManager {
         ui.scope_builder(
             UiBuilder::new()
                 .ui_stack_info(UiStackInfo::new(UiKind::CentralPanel))
-                .sense(Sense::click()),
+                .sense(Sense::CLICK),
             |ui| {
                 if self.displayed.is_empty() {
                     Frame::new()
@@ -158,7 +158,7 @@ impl View<AppShared> for FileManager {
                         ui.spacing().interact_size.y,
                         self.displayed.len(),
                         |ui, range| {
-                            ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                            ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
                                 Frame::new()
                                     .outer_margin(listing_margin(ui))
                                     .show(ui, |ui| {
@@ -280,10 +280,10 @@ impl FileManager {
             };
 
             ui.horizontal(|ui| {
-                ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
                     ui.add_space(spacing);
 
-                    ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                    ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
                         if menu_spacing {
                             ui.add_space(ui.spacing().menu_spacing);
                         }
@@ -309,7 +309,7 @@ impl FileManager {
                         let button_response = if enabled {
                             ui.add(button)
                         } else {
-                            ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                            ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
                                 ui.add_enabled(enabled, button)
                             })
                             .response
