@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     AppShared,
+    common::{task::BACKGROUND_REFRESH_INTERVAL, view::View},
     settings::document::DocumentSettings,
-    shared::{task::BACKGROUND_REFRESH_INTERVAL, view::View},
 };
 
 mod document;

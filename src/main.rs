@@ -19,16 +19,16 @@ use reqwest::{Client, ClientBuilder};
 use tokio::runtime::{self, Runtime};
 
 use crate::{
+    common::view::{View, ViewContainer},
     editor::{Editor, preload::EditorPreloadHandle},
     files::FileManager,
     settings::{Settings, SettingsView},
-    shared::view::{View, ViewContainer},
 };
 
+mod common;
 mod editor;
 mod files;
 mod settings;
-mod shared;
 
 const APP_NAME: &str = "Tapestry Loom (WIP REWRITE)"; // TODO
 

@@ -21,14 +21,14 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
     AppShared,
-    files::{
-        background::BackgroundFsManager,
-        tree::{FileTree, FileTreeState, TreeItem},
-    },
-    shared::{
+    common::{
         task::BACKGROUND_REFRESH_INTERVAL,
         ui::{abbreviate_path, format_large_number_detailed, listing_margin},
         view::View,
+    },
+    files::{
+        background::BackgroundFsManager,
+        tree::{FileTree, FileTreeState, TreeItem},
     },
 };
 

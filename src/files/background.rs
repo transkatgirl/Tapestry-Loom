@@ -17,7 +17,7 @@ use walkdir::WalkDir;
 
 use crate::{
     AppShared,
-    shared::task::{AbortableBlockingTaskHandle, spawn_blocking_abortable},
+    common::task::{AbortableBlockingTaskHandle, spawn_blocking_abortable},
 };
 
 #[derive(Default, Debug)]

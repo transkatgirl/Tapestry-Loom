@@ -8,8 +8,8 @@ mod shared;
 
 use crate::{
     AppShared,
+    common::view::{View, ViewContainer},
     editor::shared::EditorShared,
-    shared::view::{View, ViewContainer},
 };
 
 pub struct Editor {

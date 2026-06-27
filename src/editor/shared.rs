@@ -16,7 +16,7 @@ use ulid::Ulid;
 
 use crate::{
     AppShared,
-    shared::{task::AbortableBlockingTaskHandle, ui::abbreviate_path},
+    common::{task::AbortableBlockingTaskHandle, ui::abbreviate_path},
 };
 
 pub(super) struct EditorShared {
