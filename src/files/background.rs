@@ -354,13 +354,20 @@ impl BackgroundCrawler {
 
             let walkdir = if natural_sort {
                 WalkDir::new(&root).follow_links(false).sort_by(|a, b| {
-                    lexicmp::natural_lexical_cmp(
-                        &a.file_name().to_string_lossy(),
-                        &b.file_name().to_string_lossy(),
+                    b.file_type().is_dir().cmp(&a.file_type().is_dir()).then(
+                        lexicmp::natural_lexical_cmp(
+                            &a.file_name().to_string_lossy(),
+                            &b.file_name().to_string_lossy(),
+                        ),
                     )
                 })
             } else {
-                WalkDir::new(&root).follow_links(false).sort_by_file_name()
+                WalkDir::new(&root).follow_links(false).sort_by(|a, b| {
+                    b.file_type()
+                        .is_dir()
+                        .cmp(&a.file_type().is_dir())
+                        .then(a.file_name().cmp(b.file_name()))
+                })
             };
 
             for entry in walkdir {

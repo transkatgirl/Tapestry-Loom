@@ -9,6 +9,7 @@ use eframe::{
 };
 
 pub fn clicked_rising_edge(response: &Response) -> bool {
+    // See also: https://ux.stackexchange.com/questions/16066/what-to-consider-a-click
     response.flags.contains(Flags::FAKE_PRIMARY_CLICKED)
         || (response.flags.contains(Flags::CONTAINS_POINTER)
             && response
