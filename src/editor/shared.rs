@@ -9,6 +9,7 @@ use std::{
 };
 
 use eframe::egui::{Align, Context, Layout, OutputCommand, Panel, Ui};
+use log::{debug, error, warn};
 use parking_lot::Mutex;
 use tapestry_weave::{VersionedWeave, v1::dependent::TapestryWeave};
 use ulid::Ulid;
@@ -43,11 +44,43 @@ impl EditorShared {
             }
         }
 
+        let mut disk_task = DiskTask::None;
+        let disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
+
+        if let Some(path) = path.clone() {
+            let data = disk_task_data.clone();
+            disk_task = DiskTask::Read(AbortableBlockingTaskHandle::new(move |abort| {
+                let mut data = data.lock();
+
+                if let Err(error) = data.open(&path, false, &abort) {
+                    if abort.load(atomic::Ordering::Relaxed) {
+                        debug!("Aborted opening {:?}", &path);
+                    } else {
+                        error!("Failed to open {:?}: {:?}", path, error);
+                    }
+
+                    return Err(format!("Failed to open {:?}", path));
+                }
+
+                if let Err(error) = data.read(&abort) {
+                    if abort.load(atomic::Ordering::Relaxed) {
+                        debug!("Aborted reading {:?}", &path);
+                    } else {
+                        error!("Failed to read {:?}: {:?}", path, error);
+                    }
+
+                    return Err(format!("Failed to read {:?}", path));
+                }
+
+                todo!()
+            }));
+        }
+
         Self {
             id: Ulid::new(),
             path,
-            disk_task: DiskTask::None,
-            disk_task_data: Arc::new(Mutex::new(DiskTaskData::new())),
+            disk_task,
+            disk_task_data,
             weave: None,
         }
     }
@@ -139,7 +172,7 @@ impl DiskTaskData {
             buffer: Vec::with_capacity(16384),
         }
     }
-    fn open(&mut self, path: &Path, create: bool, abort: AtomicBool) -> Result<(), io::Error> {
+    fn open(&mut self, path: &Path, create: bool, abort: &AtomicBool) -> Result<(), io::Error> {
         assert!(self.file.is_none());
 
         let file = File::options()
@@ -153,7 +186,7 @@ impl DiskTaskData {
             return Err(io::Error::from(io::ErrorKind::Interrupted));
         };
 
-        file.lock()?;
+        file.try_lock()?;
 
         if abort.load(atomic::Ordering::Relaxed) {
             return Err(io::Error::from(io::ErrorKind::Interrupted));
@@ -163,7 +196,7 @@ impl DiskTaskData {
 
         Ok(())
     }
-    fn read(&mut self, abort: AtomicBool) -> Result<(), io::Error> {
+    fn read(&mut self, abort: &AtomicBool) -> Result<(), io::Error> {
         if let Some(file) = &mut self.file {
             file.seek(SeekFrom::Start(0))?;
 
@@ -193,7 +226,7 @@ impl DiskTaskData {
             Err(io::Error::from(io::ErrorKind::InvalidInput))
         }
     }
-    fn read_chunked(&mut self, abort: AtomicBool) -> Result<(), io::Error> {
+    fn read_chunked(&mut self, abort: &AtomicBool) -> Result<(), io::Error> {
         if let Some(file) = &mut self.file {
             file.seek(SeekFrom::Start(0))?;
 
