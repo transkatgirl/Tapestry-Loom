@@ -287,8 +287,6 @@ impl TapestryWeave {
     }
     pub fn add_node(&mut self, node: TapestryNode) -> bool {
         let identifier = node.id;
-        let last_active_set: HashSet<u64, BuildHasherDefault<RandomIdHasher>> =
-            self.active_set.clone();
         let is_active = node.active;
 
         let status = self.weave.add_node(node);
@@ -301,7 +299,7 @@ impl TapestryWeave {
                     let mut has_active = false;
 
                     for duplicate in &duplicates {
-                        if last_active_set.contains(duplicate) {
+                        if self.active_set.contains(duplicate) {
                             self.weave.set_node_active_status_in_place(duplicate, true);
                             has_active = true;
                             break;

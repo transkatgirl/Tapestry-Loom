@@ -400,11 +400,11 @@ impl FileManager {
                                 }
 
                                 if enabled
-                                    && button_response.flags.contains(Flags::CONTAINS_POINTER)
+                                    && button_response.contains_pointer()
+                                    && item_type == FileType::File
                                     && button_response
                                         .ctx
                                         .input(|i| i.pointer.button_pressed(PointerButton::Primary))
-                                    && item_type == FileType::File
                                 {
                                     shared.queued_preload_document = Some(path.clone());
                                     ui.request_repaint();
