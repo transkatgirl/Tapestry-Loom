@@ -11,7 +11,7 @@ use std::{
 use eframe::egui::{
     Align, Button, Context, Frame, Id, Key, Layout, Modal, OutputCommand, Panel, PointerButton,
     RichText, ScrollArea, Sense, Sides, Spinner, TextStyle, Ui, UiBuilder, UiKind, UiStackInfo,
-    WidgetText, response::Flags,
+    WidgetText,
 };
 use tapestry_weave::{
     VERSIONED_WEAVE_FILE_EXTENSION,
@@ -27,7 +27,7 @@ use crate::{
     },
     shared::{
         task::BACKGROUND_REFRESH_INTERVAL,
-        ui::{abbreviate_path, clicked_rising_edge, format_large_number_detailed, listing_margin},
+        ui::{abbreviate_path, format_large_number_detailed, listing_margin},
         view::View,
     },
 };
