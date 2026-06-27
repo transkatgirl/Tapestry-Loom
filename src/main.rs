@@ -277,6 +277,7 @@ impl AppShared {
                     Some((path.clone(), EditorPreloadHandle::new(path.clone(), self)));
             }
         }
+        self.queued_preload_document = None;
     }
     fn ui(&mut self, ui: &mut Ui) {
         for toast in self.async_toasts.lock().drain(..) {
