@@ -139,11 +139,11 @@ impl DiskTaskData {
             buffer: Vec::with_capacity(16384),
         }
     }
-    fn open(&mut self, path: &Path, abort: AtomicBool) -> Result<(), io::Error> {
+    fn open(&mut self, path: &Path, create: bool, abort: AtomicBool) -> Result<(), io::Error> {
         assert!(self.file.is_none());
 
         let file = File::options()
-            .create(false)
+            .create(create)
             .truncate(false)
             .read(true)
             .write(true)
@@ -171,27 +171,67 @@ impl DiskTaskData {
                 return Err(io::Error::from(io::ErrorKind::Interrupted));
             };
 
-            let size = file
-                .metadata()
-                .map(|m| usize::try_from(m.len()).unwrap_or(usize::MAX))
-                .ok();
+            let size = usize::try_from(file.metadata()?.len()).unwrap_or(usize::MAX);
 
             if abort.load(atomic::Ordering::Relaxed) {
                 return Err(io::Error::from(io::ErrorKind::Interrupted));
             };
 
-            if let Some(size) = size
-                && size > self.buffer.capacity()
-            {
+            if size > self.buffer.capacity() {
                 self.buffer.reserve(size - self.buffer.len());
             }
 
             self.buffer.clear();
-            file.read_to_end(&mut self.buffer)?; // TODO: Chunked reads
+            file.read_to_end(&mut self.buffer)?;
 
             if abort.load(atomic::Ordering::Relaxed) {
                 return Err(io::Error::from(io::ErrorKind::Interrupted));
             };
+
+            Ok(())
+        } else {
+            Err(io::Error::from(io::ErrorKind::InvalidInput))
+        }
+    }
+    fn read_chunked(&mut self, abort: AtomicBool) -> Result<(), io::Error> {
+        if let Some(file) = &mut self.file {
+            file.seek(SeekFrom::Start(0))?;
+
+            if abort.load(atomic::Ordering::Relaxed) {
+                return Err(io::Error::from(io::ErrorKind::Interrupted));
+            };
+
+            let size = usize::try_from(file.metadata()?.len()).unwrap_or(usize::MAX);
+
+            if abort.load(atomic::Ordering::Relaxed) {
+                return Err(io::Error::from(io::ErrorKind::Interrupted));
+            };
+
+            if size > self.buffer.capacity() {
+                self.buffer.reserve(size - self.buffer.len());
+            }
+
+            self.buffer.clear();
+
+            let mut buffer = [0u8; 8192]; // Based on BufReader's default buffer size
+
+            loop {
+                let len = file.read(&mut buffer)?;
+
+                if len == 0 {
+                    if abort.load(atomic::Ordering::Relaxed) {
+                        return Err(io::Error::from(io::ErrorKind::Interrupted));
+                    };
+
+                    break;
+                } else {
+                    self.buffer.copy_from_slice(&buffer[..len]);
+
+                    if abort.load(atomic::Ordering::Relaxed) {
+                        return Err(io::Error::from(io::ErrorKind::Interrupted));
+                    };
+                };
+            }
 
             Ok(())
         } else {
