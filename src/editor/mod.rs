@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use eframe::egui::{CentralPanel, Context, Frame, Ui, WidgetText};
 use egui_tiles::{Container, Linear, LinearDir, Tabs, Tile, Tiles, Tree};
 
+pub mod preload;
 mod shared;
 
 use crate::{
@@ -16,7 +17,7 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn new(path: Option<PathBuf>, shared: &mut AppShared) -> Editor {
+    pub fn new(path: Option<PathBuf>, shared: &mut AppShared) -> Self {
         let shared = EditorShared::new(path, shared);
 
         let mut tiles = Tiles::default();
@@ -65,7 +66,7 @@ impl Editor {
 
         let root = tiles.insert_horizontal_tile(vec![left_tab_tile, right]);
 
-        Editor {
+        Self {
             container: ViewContainer::new(
                 Tree::new(
                     ["editor-", &shared.id.to_string(), "-tree"].concat(),

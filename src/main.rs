@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{collections::HashSet, path::PathBuf, sync::Arc, time::Duration};
+use std::{collections::HashSet, mem, path::PathBuf, sync::Arc, time::Duration};
 
 use eframe::{
     CreationContext, NativeOptions,
@@ -19,7 +19,7 @@ use reqwest::{Client, ClientBuilder};
 use tokio::runtime::{self, Runtime};
 
 use crate::{
-    editor::Editor,
+    editor::{Editor, preload::EditorPreloadHandle},
     files::FileManager,
     settings::{Settings, SettingsView},
     shared::view::{View, ViewContainer},
@@ -204,6 +204,7 @@ struct AppShared {
     open_documents_updated: bool,
     load_document_queue: Vec<PathBuf>,
     queued_preload_document: Option<PathBuf>,
+    preloaded_document: Option<(PathBuf, EditorPreloadHandle)>,
 }
 
 impl AppShared {
@@ -240,7 +241,9 @@ impl AppShared {
             open_documents: HashSet::with_capacity(8),
             open_documents_updated: false,
             load_document_queue: Vec::with_capacity(1),
+
             queued_preload_document: None,
+            preloaded_document: None,
         })
     }
     fn logic(&mut self, _ctx: &Context, mut add_pane: impl FnMut(Pane)) {
@@ -248,14 +251,31 @@ impl AppShared {
             let queue = Vec::from_iter(self.load_document_queue.drain(..));
 
             for path in queue.into_iter() {
-                add_pane(Pane::Editor(Editor::new(Some(path), self)));
+                if let Some((preloaded, handle)) = mem::take(&mut self.preloaded_document) {
+                    if preloaded == path {
+                        add_pane(Pane::Editor(handle.upgrade(self)));
+                    } else {
+                        self.preloaded_document = Some((preloaded, handle));
+                        add_pane(Pane::Editor(Editor::new(Some(path), self)));
+                    }
+                } else {
+                    add_pane(Pane::Editor(Editor::new(Some(path), self)));
+                }
             }
         }
 
-        if let Some(preload) = &self.queued_preload_document
-            && !self.open_documents.contains(preload)
+        if let Some(path) = &self.queued_preload_document
+            && !self.open_documents.contains(path)
         {
-            // TODO
+            if let Some((preloaded, _)) = &mut self.preloaded_document {
+                if preloaded != path {
+                    self.preloaded_document =
+                        Some((path.clone(), EditorPreloadHandle::new(path.clone(), self)));
+                }
+            } else {
+                self.preloaded_document =
+                    Some((path.clone(), EditorPreloadHandle::new(path.clone(), self)));
+            }
         }
     }
     fn ui(&mut self, ui: &mut Ui) {
