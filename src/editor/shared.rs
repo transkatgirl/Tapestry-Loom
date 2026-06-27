@@ -168,6 +168,7 @@ fn read_to_buffer(path: &Path, data: Arc<Mutex<DiskTaskData>>) -> Result<(), io:
                 .read(true)
                 .write(true)
                 .open(path)?;
+            file.lock()?;
 
             file.seek(SeekFrom::Start(0))?;
 
@@ -210,6 +211,7 @@ fn write_from_buffer(path: &Path, data: Arc<Mutex<DiskTaskData>>) -> Result<(), 
                 .read(true)
                 .write(true)
                 .open(path)?;
+            file.lock()?;
 
             file.set_len(data.buffer.len() as u64)?;
             file.seek(SeekFrom::Start(0))?;
