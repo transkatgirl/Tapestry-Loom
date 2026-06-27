@@ -139,14 +139,10 @@ impl DiskTaskData {
             buffer: Vec::with_capacity(16384),
         }
     }
-    fn load_from_buffer_abortable(
-        &mut self,
-        path: &Path,
-        abort: AtomicBool,
-    ) -> Result<(), io::Error> {
+    fn open(&mut self, path: &Path, abort: AtomicBool) -> Result<(), io::Error> {
         assert!(self.file.is_none());
 
-        let mut file = File::options()
+        let file = File::options()
             .create(false)
             .truncate(false)
             .read(true)
@@ -163,106 +159,56 @@ impl DiskTaskData {
             return Err(io::Error::from(io::ErrorKind::Interrupted));
         };
 
-        let size = file
-            .metadata()
-            .map(|m| usize::try_from(m.len()).unwrap_or(usize::MAX))
-            .ok();
-
-        if abort.load(atomic::Ordering::Relaxed) {
-            return Err(io::Error::from(io::ErrorKind::Interrupted));
-        };
-
-        if let Some(size) = size
-            && size > self.buffer.capacity()
-        {
-            self.buffer.reserve(size - self.buffer.len());
-        }
-
-        self.buffer.clear();
-        file.read_to_end(&mut self.buffer)?; // TODO: Read in chunks
-
-        if abort.load(atomic::Ordering::Relaxed) {
-            return Err(io::Error::from(io::ErrorKind::Interrupted));
-        };
-
         self.file = Some(file);
 
         Ok(())
     }
-    fn read_to_buffer(&mut self, path: &Path) -> Result<(), io::Error> {
-        match &mut self.file {
-            Some(file) => {
-                file.seek(SeekFrom::Start(0))?;
+    fn read(&mut self, abort: AtomicBool) -> Result<(), io::Error> {
+        if let Some(file) = &mut self.file {
+            file.seek(SeekFrom::Start(0))?;
 
-                let size = file
-                    .metadata()
-                    .map(|m| usize::try_from(m.len()).unwrap_or(usize::MAX))
-                    .ok();
+            if abort.load(atomic::Ordering::Relaxed) {
+                return Err(io::Error::from(io::ErrorKind::Interrupted));
+            };
 
-                if let Some(size) = size
-                    && size > self.buffer.capacity()
-                {
-                    self.buffer.reserve(size - self.buffer.len());
-                }
+            let size = file
+                .metadata()
+                .map(|m| usize::try_from(m.len()).unwrap_or(usize::MAX))
+                .ok();
 
-                self.buffer.clear();
-                file.read_to_end(&mut self.buffer)?;
+            if abort.load(atomic::Ordering::Relaxed) {
+                return Err(io::Error::from(io::ErrorKind::Interrupted));
+            };
+
+            if let Some(size) = size
+                && size > self.buffer.capacity()
+            {
+                self.buffer.reserve(size - self.buffer.len());
             }
-            None => {
-                let mut file = File::options()
-                    .create(false)
-                    .truncate(false)
-                    .read(true)
-                    .write(true)
-                    .open(path)?;
-                file.lock()?;
 
-                let size = file
-                    .metadata()
-                    .map(|m| usize::try_from(m.len()).unwrap_or(usize::MAX))
-                    .ok();
+            self.buffer.clear();
+            file.read_to_end(&mut self.buffer)?; // TODO: Chunked reads
 
-                if let Some(size) = size
-                    && size > self.buffer.capacity()
-                {
-                    self.buffer.reserve(size - self.buffer.len());
-                }
+            if abort.load(atomic::Ordering::Relaxed) {
+                return Err(io::Error::from(io::ErrorKind::Interrupted));
+            };
 
-                self.buffer.clear();
-                file.read_to_end(&mut self.buffer)?;
-
-                self.file = Some(file);
-            }
+            Ok(())
+        } else {
+            Err(io::Error::from(io::ErrorKind::InvalidInput))
         }
-
-        Ok(())
     }
-    fn write_from_buffer(&mut self, path: &Path) -> Result<(), io::Error> {
-        match &mut self.file {
-            Some(file) => {
-                file.set_len(self.buffer.len() as u64)?;
-                file.seek(SeekFrom::Start(0))?;
-                file.write_all(&self.buffer)?;
-                file.flush()?;
-            }
-            None => {
-                let mut file = File::options()
-                    .create(true)
-                    .truncate(false)
-                    .read(true)
-                    .write(true)
-                    .open(path)?;
-                file.lock()?;
+    fn write(&mut self) -> Result<(), io::Error> {
+        if let Some(file) = &mut self.file {
+            file.set_len(self.buffer.len() as u64)?;
+            file.seek(SeekFrom::Start(0))?;
+            file.write_all(&self.buffer)?;
+            file.flush()?;
+            file.sync_data()?;
 
-                file.set_len(self.buffer.len() as u64)?;
-                file.seek(SeekFrom::Start(0))?;
-                file.write_all(&self.buffer)?;
-                file.flush()?;
-
-                self.file = Some(file);
-            }
+            Ok(())
+        } else {
+            Err(io::Error::from(io::ErrorKind::InvalidInput))
         }
-
-        Ok(())
     }
 }
