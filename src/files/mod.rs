@@ -26,7 +26,7 @@ use crate::{
     },
     shared::{
         task::BACKGROUND_REFRESH_INTERVAL,
-        ui::{abbreviate_path, format_large_number_detailed, listing_margin},
+        ui::{abbreviate_path, clicked_rising_edge, format_large_number_detailed, listing_margin},
         view::View,
     },
 };
@@ -398,7 +398,7 @@ impl FileManager {
                                     });
                                 }
 
-                                if enabled && button_response.clicked() {
+                                if enabled && clicked_rising_edge(&button_response) {
                                     if item_type == FileType::File {
                                         shared.load_document_queue.push(path.clone());
                                         ui.request_repaint();

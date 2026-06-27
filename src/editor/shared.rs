@@ -2,7 +2,7 @@ use std::{
     fs::File,
     io::{self, Read, Seek, SeekFrom, Write},
     ops::DerefMut,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::Arc,
 };
 
@@ -139,7 +139,7 @@ impl EditorShared {
     }
 }
 
-fn read_to_buffer(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Result<(), io::Error> {
+fn read_to_buffer(path: &Path, data: Arc<Mutex<DiskTaskData>>) -> Result<(), io::Error> {
     let mut lock = data.lock();
     let data = lock.deref_mut();
 
@@ -192,7 +192,7 @@ fn read_to_buffer(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Result<(), i
     Ok(())
 }
 
-fn write_from_buffer(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Result<(), io::Error> {
+fn write_from_buffer(path: &Path, data: Arc<Mutex<DiskTaskData>>) -> Result<(), io::Error> {
     let mut lock = data.lock();
     let data = lock.deref_mut();
 

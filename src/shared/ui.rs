@@ -1,6 +1,20 @@
 use std::path::Path;
 
-use eframe::{egui::Ui, epaint::MarginF32};
+use eframe::{
+    egui::{
+        PointerButton, Ui,
+        response::{Flags, Response},
+    },
+    epaint::MarginF32,
+};
+
+pub fn clicked_rising_edge(response: &Response) -> bool {
+    response.flags.contains(Flags::FAKE_PRIMARY_CLICKED)
+        || (response.flags.contains(Flags::CONTAINS_POINTER)
+            && response
+                .ctx
+                .input(|i| i.pointer.button_pressed(PointerButton::Primary)))
+}
 
 pub fn listing_margin(ui: &mut Ui) -> MarginF32 {
     MarginF32::same(ui.style().spacing.menu_spacing)
