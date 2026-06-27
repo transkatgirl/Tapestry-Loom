@@ -203,6 +203,7 @@ struct AppShared {
     open_documents: HashSet<PathBuf>,
     open_documents_updated: bool,
     load_document_queue: Vec<PathBuf>,
+    queued_preload_document: Option<PathBuf>,
 }
 
 impl AppShared {
@@ -239,6 +240,7 @@ impl AppShared {
             open_documents: HashSet::with_capacity(8),
             open_documents_updated: false,
             load_document_queue: Vec::with_capacity(1),
+            queued_preload_document: None,
         })
     }
     fn logic(&mut self, _ctx: &Context, mut add_pane: impl FnMut(Pane)) {
@@ -248,6 +250,12 @@ impl AppShared {
             for path in queue.into_iter() {
                 add_pane(Pane::Editor(Editor::new(Some(path), self)));
             }
+        }
+
+        if let Some(preload) = &self.queued_preload_document
+            && !self.open_documents.contains(preload)
+        {
+            // TODO
         }
     }
     fn ui(&mut self, ui: &mut Ui) {

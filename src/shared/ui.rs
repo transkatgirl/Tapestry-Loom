@@ -1,10 +1,7 @@
 use std::path::Path;
 
 use eframe::{
-    egui::{
-        PointerButton, Ui,
-        response::{Flags, Response},
-    },
+    egui::{PointerButton, Response, Ui, response::Flags},
     epaint::MarginF32,
 };
 

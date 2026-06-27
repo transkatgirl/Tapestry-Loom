@@ -9,8 +9,9 @@ use std::{
 };
 
 use eframe::egui::{
-    Align, Button, Context, Frame, Id, Key, Layout, Modal, OutputCommand, Panel, RichText,
-    ScrollArea, Sense, Sides, Spinner, TextStyle, Ui, UiBuilder, UiKind, UiStackInfo, WidgetText,
+    Align, Button, Context, Frame, Id, Key, Layout, Modal, OutputCommand, Panel, PointerButton,
+    RichText, ScrollArea, Sense, Sides, Spinner, TextStyle, Ui, UiBuilder, UiKind, UiStackInfo,
+    WidgetText, response::Flags,
 };
 use tapestry_weave::{
     VERSIONED_WEAVE_FILE_EXTENSION,
@@ -398,7 +399,18 @@ impl FileManager {
                                     });
                                 }
 
-                                if enabled && clicked_rising_edge(&button_response) {
+                                if enabled
+                                    && button_response.flags.contains(Flags::CONTAINS_POINTER)
+                                    && button_response
+                                        .ctx
+                                        .input(|i| i.pointer.button_pressed(PointerButton::Primary))
+                                    && item_type == FileType::File
+                                {
+                                    shared.queued_preload_document = Some(path.clone());
+                                    ui.request_repaint();
+                                }
+
+                                if enabled && button_response.clicked() {
                                     if item_type == FileType::File {
                                         shared.load_document_queue.push(path.clone());
                                         ui.request_repaint();
