@@ -5,8 +5,8 @@ use std::{collections::HashSet, mem, path::PathBuf, sync::Arc, time::Duration};
 use eframe::{
     CreationContext, NativeOptions,
     egui::{
-        self, CentralPanel, Context, FontData, FontDefinitions, FontFamily, IconData, Memory, Ui,
-        ViewportBuilder, ViewportCommand, WidgetText,
+        self, CentralPanel, Context, FontData, FontDefinitions, FontFamily, IconData, Memory,
+        Rangef, Ui, ViewportBuilder, ViewportCommand, WidgetText, style::ScrollAnimation,
     },
 };
 use egui_notify::{Toast, Toasts};
@@ -88,6 +88,18 @@ impl App {
     fn new(cc: &CreationContext<'_>, runtime: Arc<Runtime>) -> Result<Self, anyhow::Error> {
         cc.egui_ctx.memory_mut(|memory| {
             *memory = Memory::default();
+        });
+
+        cc.egui_ctx.all_styles_mut(|style| {
+            style.animation_time = 0.0;
+            style.scroll_animation = ScrollAnimation {
+                points_per_second: f32::MAX,
+                duration: Rangef {
+                    min: 0.0,
+                    max: f32::MAX,
+                },
+            };
+            style.compact_menu_style = true;
         });
 
         let mut fonts = FontDefinitions::default();
