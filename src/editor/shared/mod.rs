@@ -264,7 +264,7 @@ impl EditorShared {
         }
     }
     pub(super) fn ui(&mut self, ui: &mut Ui, shared: &mut AppShared) {
-        self.close_ready = false;
+        self.close_ready = self.close_after_save;
 
         Panel::bottom(ui.id()).show(ui, |ui| {
             ui.horizontal(|ui| {
@@ -433,7 +433,7 @@ impl EditorShared {
                     }
                 }
             } else {
-                if !self.close_ready && !self.close_after_save {
+                if !self.close_ready {
                     if let DiskTask::Write(task) = mem::take(&mut self.disk_task) {
                         match block_until_write(&shared.runtime, task) {
                             Ok(()) => {}
