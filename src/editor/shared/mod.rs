@@ -9,14 +9,20 @@ use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, v1::dependent::TapestryWeav
 use ulid::Ulid;
 
 mod disk;
+pub(super) mod inference;
 pub mod preload;
 
 use crate::{
     AppShared,
-    common::ui::{abbreviate_path, format_file_size, format_large_number},
+    common::ui::{
+        abbreviate_path, format_file_size, format_large_number, format_large_number_detailed,
+    },
     editor::{
         preload::EditorPreloadHandle,
-        shared::disk::{DiskTask, DiskTaskData, block_until_read, block_until_write},
+        shared::{
+            disk::{DiskTask, DiskTaskData, block_until_read, block_until_write},
+            inference::InferenceEngine,
+        },
     },
 };
 
@@ -29,6 +35,8 @@ pub(super) struct EditorShared {
     disk_task_data: Arc<Mutex<DiskTaskData>>, // Panics if more than one lock is held at a time
     pub weave: Option<TapestryWeave>,
     close_ready: bool,
+
+    inference: InferenceEngine,
 }
 
 impl EditorShared {
@@ -63,6 +71,7 @@ impl EditorShared {
             disk_task_data,
             weave,
             close_ready: false,
+            inference: InferenceEngine::new(shared),
         }
     }
     fn from_preload(preload: EditorPreloadHandle, shared: &mut AppShared) -> Self {
@@ -79,6 +88,7 @@ impl EditorShared {
             disk_task_data: preload.task_data,
             weave: None,
             close_ready: false,
+            inference: InferenceEngine::new(shared),
         }
     }
     pub(super) fn logic(&mut self, _ctx: &Context, shared: &mut AppShared) {
@@ -123,6 +133,8 @@ impl EditorShared {
             }
             DiskTask::None => {}
         }
+
+        self.inference.update(shared, &mut self.weave);
     }
     pub(super) fn modals(&mut self, ctx: &Context, shared: &mut AppShared) -> bool {
         match &mut self.modal {
@@ -213,60 +225,57 @@ impl EditorShared {
                 });
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if let Some(weave) = &self.weave {
-                        /*if request_count > 0 {
+                        let requests = self.inference.requests();
+
+                        if requests > 0 {
                             ui.add(Spinner::new());
-                            if request_count > 1 {
-                                ui.label(format!("{request_count} requests"))
-                            } else {
-                                ui.label("1 request")
-                            }
+                            ui.label(format_large_number_detailed(
+                                requests, "request", "requests",
+                            ))
                             .on_hover_ui(|ui| {
                                 if ui.button("Cancel requests").clicked() {
-                                    state.cancel_requests();
+                                    self.inference.cancel(shared);
                                 }
                             });
-                        } else {*/
-                        let node_count = weave.len();
-                        let bookmarked_node_count = weave.bookmarks().len();
-                        let label = ui.label(if bookmarked_node_count > 0 {
-                            format!(
-                                "{}, {}, {}",
-                                format_large_number(node_count, "node", "nodes"),
-                                format_large_number(
-                                    weave.get_active_thread_ids().len(),
-                                    "active",
-                                    "active"
-                                ),
-                                format_large_number(
-                                    bookmarked_node_count,
-                                    "bookmarked",
-                                    "bookmarked"
-                                ),
-                            )
                         } else {
-                            format!(
-                                "{}, {}",
-                                format_large_number(node_count, "node", "nodes"),
-                                format_large_number(
-                                    weave.get_active_thread_ids().len(),
-                                    "active",
-                                    "active"
+                            let node_count = weave.len();
+                            let bookmarked_node_count = weave.bookmarks().len();
+                            let label = ui.label(if bookmarked_node_count > 0 {
+                                format!(
+                                    "{}, {}, {}",
+                                    format_large_number(node_count, "node", "nodes"),
+                                    format_large_number(
+                                        weave.get_active_thread_ids().len(),
+                                        "active",
+                                        "active"
+                                    ),
+                                    format_large_number(
+                                        bookmarked_node_count,
+                                        "bookmarked",
+                                        "bookmarked"
+                                    ),
                                 )
-                            )
-                        });
-
-                        if self.disk_task.is_none()
-                            && let Some(task_data) = self.disk_task_data.try_lock()
-                            && task_data.len() > 0
-                        {
-                            label.on_hover_ui(|ui| {
-                                ui.label(format_file_size(task_data.len()));
+                            } else {
+                                format!(
+                                    "{}, {}",
+                                    format_large_number(node_count, "node", "nodes"),
+                                    format_large_number(
+                                        weave.get_active_thread_ids().len(),
+                                        "active",
+                                        "active"
+                                    )
+                                )
                             });
+
+                            if self.disk_task.is_none()
+                                && let Some(task_data) = self.disk_task_data.try_lock()
+                                && task_data.len() > 0
+                            {
+                                label.on_hover_ui(|ui| {
+                                    ui.label(format_file_size(task_data.len()));
+                                });
+                            }
                         }
-
-                        // TODO
-
-                        //}
                     }
                 });
             });
@@ -365,6 +374,8 @@ impl EditorShared {
                 shared.open_documents_updated = true;
             };
         }
+
+        self.inference.cancel(shared);
 
         debug!("Closed Editor (path = {:?})", &self.path);
 
