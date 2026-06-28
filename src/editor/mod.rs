@@ -3,8 +3,9 @@ use std::path::PathBuf;
 use eframe::egui::{CentralPanel, Context, Frame, Ui, WidgetText};
 use egui_tiles::{Container, Linear, LinearDir, Tabs, Tile, Tiles, Tree};
 
-pub mod preload;
 mod shared;
+
+pub use shared::preload;
 
 use crate::{
     AppShared,
