@@ -315,58 +315,58 @@ enum Pane {
 impl View<AppShared> for Pane {
     fn title(&self, shared: &AppShared) -> WidgetText {
         match self {
-            Self::Settings(settings) => settings.title(shared),
-            Self::FileManager(file_manager) => file_manager.title(shared),
-            Self::Editor(editor) => editor.title(shared),
+            Self::Settings(view) => view.title(shared),
+            Self::FileManager(view) => view.title(shared),
+            Self::Editor(view) => view.title(shared),
         }
     }
     fn closable(&self, shared: &AppShared) -> bool {
         match self {
-            Self::Settings(settings) => settings.closable(shared),
-            Self::FileManager(file_manager) => file_manager.closable(shared),
-            Self::Editor(editor) => editor.closable(shared),
+            Self::Settings(view) => view.closable(shared),
+            Self::FileManager(view) => view.closable(shared),
+            Self::Editor(view) => view.closable(shared),
         }
     }
     fn check_close(&mut self, shared: &mut AppShared) -> bool {
         match self {
-            Self::Settings(settings) => settings.check_close(shared),
-            Self::FileManager(file_manager) => file_manager.check_close(shared),
-            Self::Editor(editor) => editor.check_close(shared),
+            Self::Settings(view) => view.check_close(shared),
+            Self::FileManager(view) => view.check_close(shared),
+            Self::Editor(view) => view.check_close(shared),
         }
     }
     fn logic(&mut self, shared: &mut AppShared, ctx: &Context) {
         match self {
-            Self::Settings(settings) => settings.logic(shared, ctx),
-            Self::FileManager(file_manager) => file_manager.logic(shared, ctx),
-            Self::Editor(editor) => editor.logic(shared, ctx),
+            Self::Settings(view) => view.logic(shared, ctx),
+            Self::FileManager(view) => view.logic(shared, ctx),
+            Self::Editor(view) => view.logic(shared, ctx),
         }
     }
     fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {
         match self {
-            Self::Settings(settings) => settings.modals(shared, ctx),
-            Self::FileManager(file_manager) => file_manager.modals(shared, ctx),
-            Self::Editor(editor) => editor.modals(shared, ctx),
+            Self::Settings(view) => view.modals(shared, ctx),
+            Self::FileManager(view) => view.modals(shared, ctx),
+            Self::Editor(view) => view.modals(shared, ctx),
         }
     }
     fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {
         match self {
-            Self::Settings(settings) => settings.ui(shared, ui),
-            Self::FileManager(file_manager) => file_manager.ui(shared, ui),
-            Self::Editor(editor) => editor.ui(shared, ui),
+            Self::Settings(view) => view.ui(shared, ui),
+            Self::FileManager(view) => view.ui(shared, ui),
+            Self::Editor(view) => view.ui(shared, ui),
         }
     }
     fn save(&mut self, shared: &mut AppShared) {
         match self {
-            Self::Settings(settings) => settings.save(shared),
-            Self::FileManager(file_manager) => file_manager.save(shared),
-            Self::Editor(editor) => editor.save(shared),
+            Self::Settings(view) => view.save(shared),
+            Self::FileManager(view) => view.save(shared),
+            Self::Editor(view) => view.save(shared),
         }
     }
     fn close(&mut self, shared: &mut AppShared) -> bool {
         match self {
-            Self::Settings(settings) => settings.close(shared),
-            Self::FileManager(file_manager) => file_manager.close(shared),
-            Self::Editor(editor) => editor.close(shared),
+            Self::Settings(view) => view.close(shared),
+            Self::FileManager(view) => view.close(shared),
+            Self::Editor(view) => view.close(shared),
         }
     }
 }
