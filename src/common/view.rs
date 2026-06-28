@@ -2,7 +2,7 @@ use eframe::egui::{Context, Ui, WidgetText};
 use egui_tiles::{
     Behavior, Container, SimplificationOptions, Tabs, Tile, TileId, Tiles, Tree, UiResponse,
 };
-use log::{debug, warn};
+use log::warn;
 
 pub struct ViewContainer<T, P>
 where
@@ -254,7 +254,7 @@ where
                     if pane.close(&mut self.behavior.shared) {
                         self.tree.remove_recursively(tile_id);
                     } else {
-                        debug!("View {:?} allowed check_close() but not close()", tile_id);
+                        warn!("View {:?} allowed check_close() but not close()", tile_id);
                         would_close = false;
                     }
                 }
