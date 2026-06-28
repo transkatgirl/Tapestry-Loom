@@ -89,7 +89,7 @@ impl View<AppShared> for FileManager {
     }
     fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {
         self.modal.ui(&mut self.background, shared, ctx);
-        self.modal != FileModal::default()
+        !matches!(self.modal, FileModal::None)
     }
     fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {
         Panel::bottom("filemanager-bottom-panel").show_inside(ui, |ui| {
@@ -550,7 +550,7 @@ fn update_displayed(
     }
 }
 
-#[derive(Default, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Debug)]
 enum FileModal {
     #[default]
     None,

@@ -1,11 +1,11 @@
 // TODO: Implement fully async editor closing (requires overhaul of View trait to allow views to close themselves)
 
-use std::{mem, path::PathBuf, sync::Arc};
+use std::{fs, mem, path::PathBuf, sync::Arc};
 
-use eframe::egui::{Align, Context, Layout, OutputCommand, Panel, Ui};
+use eframe::egui::{Align, Context, Key, Layout, Modal, OutputCommand, Panel, Sides, Spinner, Ui};
 use log::debug;
 use parking_lot::Mutex;
-use tapestry_weave::v1::dependent::TapestryWeave;
+use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, v1::dependent::TapestryWeave};
 use ulid::Ulid;
 
 mod disk;
@@ -23,9 +23,10 @@ use crate::{
 pub(super) struct EditorShared {
     pub id: Ulid,
     path: Option<PathBuf>,
+    modal: EditorModal,
 
     disk_task: DiskTask,
-    disk_task_data: Arc<Mutex<DiskTaskData>>, // Panics on lock
+    disk_task_data: Arc<Mutex<DiskTaskData>>, // Panics if more than one lock is held at a time
     pub weave: Option<TapestryWeave>,
     close_ready: bool,
 }
@@ -57,6 +58,7 @@ impl EditorShared {
         Self {
             id: Ulid::new(),
             path,
+            modal: EditorModal::None,
             disk_task,
             disk_task_data,
             weave,
@@ -72,6 +74,7 @@ impl EditorShared {
         Self {
             id: Ulid::new(),
             path: Some(preload.path),
+            modal: EditorModal::None,
             disk_task: DiskTask::from(preload.task),
             disk_task_data: preload.task_data,
             weave: None,
@@ -122,33 +125,90 @@ impl EditorShared {
         }
     }
     pub(super) fn modals(&mut self, ctx: &Context, shared: &mut AppShared) -> bool {
-        false
+        match &mut self.modal {
+            EditorModal::None => false,
+            EditorModal::SaveAs(path) => {
+                if Modal::new(["editor-", &self.id.to_string(), "-modal"].concat().into())
+                    .show(ctx, |ui| {
+                        ui.set_width(280.0);
+                        ui.heading("Save Weave");
+                        let label = ui.label("Path:");
+                        ui.text_edit_singleline(path).labelled_by(label.id);
+                        Sides::new().show(
+                            ui,
+                            |_ui| {},
+                            |ui| {
+                                if ui.button("Cancel").clicked() {
+                                    ui.close();
+                                }
+                                if (ui.button("Save").clicked()
+                                    || ui.input(|input| input.key_pressed(Key::Enter)))
+                                    && !path.is_empty()
+                                {
+                                    let mut new_path =
+                                        shared.settings.documents.location.join(path);
+                                    if new_path.extension().is_none() {
+                                        new_path.set_extension("tapestry");
+                                    }
+                                    if !shared.open_documents.contains(&new_path)
+                                        && !fs::exists(&new_path).unwrap_or(true)
+                                    // fs::exists() can be done on the UI thread, as nothing outside of the modal can be interacted with regardless
+                                    {
+                                        let _runtime = shared.runtime.enter();
+                                        self.disk_task = DiskTask::write(
+                                            new_path.clone(),
+                                            self.disk_task_data.clone(),
+                                            self.weave.as_ref().unwrap(),
+                                        );
+                                        self.path = Some(new_path.clone());
+
+                                        shared.open_documents.insert(new_path);
+                                        shared.open_documents_updated = true;
+
+                                        ui.close();
+                                    }
+                                }
+                            },
+                        );
+                    })
+                    .should_close()
+                {
+                    self.modal = EditorModal::None;
+                }
+
+                true
+            }
+        }
     }
     pub(super) fn ui(&mut self, ui: &mut Ui, shared: &mut AppShared) {
         Panel::bottom(ui.id()).show_inside(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                    /*ui.add(Spinner::new());
-                    ui.label("Loading weave...");*/
-
                     if let Some(path) = &self.path {
-                        ui.label(
-                            abbreviate_path(&shared.settings.documents.location, path)
-                                .to_string_lossy(),
-                        )
-                        .on_hover_text(path.to_string_lossy())
-                        .context_menu(|ui| {
-                            if ui.button("Copy path").clicked() {
-                                ui.output_mut(|o| {
-                                    o.commands.push(OutputCommand::CopyText(
-                                        path.to_string_lossy().to_string(),
-                                    ))
-                                });
-                            };
-                        });
-                    } /*else if ui.button("Save as...").clicked() {
-                    // TODO
-                    }*/
+                        if self.weave.is_none() {
+                            ui.add(Spinner::new());
+                            ui.label("Loading weave...");
+                        } else {
+                            ui.label(
+                                abbreviate_path(&shared.settings.documents.location, path)
+                                    .to_string_lossy(),
+                            )
+                            .on_hover_text(path.to_string_lossy())
+                            .context_menu(|ui| {
+                                if ui.button("Copy path").clicked() {
+                                    ui.output_mut(|o| {
+                                        o.commands.push(OutputCommand::CopyText(
+                                            path.to_string_lossy().to_string(),
+                                        ))
+                                    });
+                                };
+                            });
+                        }
+                    } else if ui.button("Save as...").clicked() {
+                        self.modal = EditorModal::SaveAs(
+                            ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION].concat(),
+                        );
+                    }
                 });
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     // TODO
@@ -254,4 +314,11 @@ impl EditorShared {
 
         true
     }
+}
+
+#[derive(Default, Debug)]
+enum EditorModal {
+    #[default]
+    None,
+    SaveAs(String),
 }
