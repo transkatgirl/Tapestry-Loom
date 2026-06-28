@@ -113,11 +113,21 @@ impl View<AppShared> for Editor {
     fn logic(&mut self, shared: &mut AppShared, force_close: impl FnOnce(), ctx: &Context) {
         self.bulk_close = false;
 
-        self.container
-            .behavior
-            .shared
-            .logic(ctx, force_close, shared);
-        self.container.logic(ctx);
+        let mut close = false;
+
+        self.container.behavior.shared.logic(
+            ctx,
+            || {
+                close = true;
+            },
+            shared,
+        );
+        if close {
+            self.container.close();
+            force_close();
+        } else {
+            self.container.logic(ctx);
+        }
     }
     fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {
         let a = self.container.behavior.shared.modals(ctx, shared);
@@ -141,12 +151,12 @@ impl View<AppShared> for Editor {
     fn close(&mut self, shared: &mut AppShared) -> bool {
         self.container.check_close()
             && self.container.behavior.shared.check_close(shared)
-            && self.container.close()
             && self
                 .container
                 .behavior
                 .shared
                 .close(shared, self.bulk_close)
+            && self.container.close()
     }
 }
 
