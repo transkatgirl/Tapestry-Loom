@@ -101,6 +101,7 @@ impl EditorShared {
             shared.open_documents_updated = true;
         }
         self.path = None;
+        self.disk_task = DiskTask::None;
         self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
     }
     fn prepare_for_close(&mut self, shared: &mut AppShared) {
@@ -216,6 +217,7 @@ impl EditorShared {
                 .should_close()
                 {
                     self.modal = EditorModal::None;
+                    ctx.request_repaint();
                 }
 
                 true
@@ -238,7 +240,6 @@ impl EditorShared {
                             if ui.button("Yes").clicked() {
                                 self.close_now = true;
                                 ui.close();
-                                ui.request_repaint();
                             }
                             if ui.button("No").clicked() {
                                 ui.close();
@@ -249,6 +250,7 @@ impl EditorShared {
                 .should_close()
                 {
                     self.modal = EditorModal::None;
+                    ctx.request_repaint();
                 }
 
                 true
@@ -297,6 +299,7 @@ impl EditorShared {
                             .on_hover_ui(|ui| {
                                 if ui.button("Cancel requests").clicked() {
                                     self.inference.cancel(shared);
+                                    ui.request_repaint();
                                 }
                             });
                         } else {
