@@ -33,10 +33,15 @@ impl BackgroundFsManager {
         let had_tasks = !self.tasks.is_empty();
 
         for _ in 0..self.tasks.len() {
-            if let Some(task) = self.tasks.pop_front()
-                && !task.is_finished()
-            {
-                self.tasks.push_back(task);
+            if let Some(task) = self.tasks.pop_front() {
+                if task.is_finished() {
+                    if let Err(error) = shared.runtime.block_on(task) {
+                        shared.toasts.error("Background task failed");
+                        error!("Background task failed: {:?}", error);
+                    }
+                } else {
+                    self.tasks.push_back(task);
+                }
             }
         }
 

@@ -13,11 +13,16 @@ use parking_lot::Mutex;
 use tapestry_weave::{
     VersionedWeave, universal_weave::rkyv::ser::writer::IoWriter, v1::dependent::TapestryWeave,
 };
-use tokio::task::{self, JoinHandle};
+use tokio::{
+    runtime::Runtime,
+    task::{self, JoinHandle},
+};
 
 use crate::common::task::AbortableBlockingTaskHandle;
 
+#[derive(Default)]
 pub(super) enum DiskTask {
+    #[default]
     None,
     Read(AbortableBlockingTaskHandle<Result<TapestryWeave, String>>),
     Write(JoinHandle<Result<(), String>>),
@@ -109,6 +114,34 @@ impl DiskTask {
 
             Ok(())
         }))
+    }
+}
+
+pub(super) fn block_until_read(
+    runtime: &Runtime,
+    task: AbortableBlockingTaskHandle<Result<TapestryWeave, String>>,
+) -> Result<TapestryWeave, String> {
+    match runtime.block_on(task) {
+        Ok(Ok(weave)) => Ok(weave),
+        Ok(Err(error)) => Err(error),
+        Err(error) => {
+            error!("Background task failed: {:?}", error);
+            Err("Background task failed".to_string())
+        }
+    }
+}
+
+pub(super) fn block_until_write(
+    runtime: &Runtime,
+    task: JoinHandle<Result<(), String>>,
+) -> Result<(), String> {
+    match runtime.block_on(task) {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(error)) => Err(error),
+        Err(error) => {
+            error!("Background task failed: {:?}", error);
+            Err("Background task failed".to_string())
+        }
     }
 }
 

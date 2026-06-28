@@ -1,6 +1,7 @@
 use std::{
     fs::File,
     io::{self, Read, Seek, SeekFrom, Write},
+    mem,
     path::{Path, PathBuf},
     sync::{
         Arc,
@@ -20,10 +21,10 @@ pub mod preload;
 
 use crate::{
     AppShared,
-    common::{task::AbortableBlockingTaskHandle, ui::abbreviate_path},
+    common::ui::abbreviate_path,
     editor::{
         preload::EditorPreloadHandle,
-        shared::disk::{DiskTask, DiskTaskData},
+        shared::disk::{DiskTask, DiskTaskData, block_until_read, block_until_write},
     },
 };
 
@@ -50,11 +51,14 @@ impl EditorShared {
 
         let mut disk_task = DiskTask::None;
         let disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
+        let mut weave = None;
 
         if let Some(path) = path.clone() {
             let data = disk_task_data.clone();
             let _runtime = shared.runtime.enter();
             disk_task = DiskTask::read(path, data);
+        } else {
+            weave = Some(TapestryWeave::with_capacity(16384));
         }
 
         Self {
@@ -62,7 +66,7 @@ impl EditorShared {
             path,
             disk_task,
             disk_task_data,
-            weave: None,
+            weave,
         }
     }
     fn from_preload(preload: EditorPreloadHandle, shared: &mut AppShared) -> Self {
@@ -80,7 +84,41 @@ impl EditorShared {
         }
     }
 
-    pub(super) fn logic(&mut self, _ctx: &Context, shared: &mut AppShared) {}
+    pub(super) fn logic(&mut self, _ctx: &Context, shared: &mut AppShared) {
+        match mem::take(&mut self.disk_task) {
+            DiskTask::Read(task) => {
+                if task.is_finished() {
+                    match block_until_read(&shared.runtime, task) {
+                        Ok(weave) => {
+                            self.weave = Some(weave);
+                        }
+                        Err(error) => {
+                            shared.toasts.error(error);
+                            self.path = None;
+                            self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
+                        }
+                    }
+                } else {
+                    self.disk_task = DiskTask::Read(task);
+                }
+            }
+            DiskTask::Write(task) => {
+                if task.is_finished() {
+                    match block_until_write(&shared.runtime, task) {
+                        Ok(()) => {}
+                        Err(error) => {
+                            shared.toasts.error(error);
+                            self.path = None;
+                            self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
+                        }
+                    }
+                } else {
+                    self.disk_task = DiskTask::Write(task);
+                }
+            }
+            DiskTask::None => {}
+        }
+    }
     pub(super) fn modals(&mut self, ctx: &Context, shared: &mut AppShared) -> bool {
         false
     }
@@ -142,24 +180,48 @@ impl EditorShared {
     pub(super) fn path(&self) -> &Option<PathBuf> {
         &self.path
     }
-    pub(super) fn check_close(&mut self, shared: &mut AppShared) -> bool {
+    pub(super) fn check_close(&mut self, _shared: &mut AppShared) -> bool {
         if let Some(weave) = &self.weave {
-            weave.is_empty_including_metadata()
+            self.path.is_some() || weave.is_empty_including_metadata()
         } else {
             true
         }
     }
     pub(super) fn close(&mut self, shared: &mut AppShared) -> bool {
-        if let Some(path) = &self.path {
+        if let Some(path) = self.path.clone() {
             if let Some(weave) = &self.weave {
-                if let DiskTask::Write(task) = &mut self.disk_task {
-                    // TODO
+                if let DiskTask::Write(task) = mem::take(&mut self.disk_task) {
+                    match block_until_write(&shared.runtime, task) {
+                        Ok(()) => {}
+                        Err(error) => {
+                            shared.toasts.error(error);
+                            self.path = None;
+                            self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
+                            return false;
+                        }
+                    }
                 }
 
-                // TODO
+                let _runtime = shared.runtime.enter();
+
+                if let DiskTask::Write(task) =
+                    DiskTask::write(path.clone(), self.disk_task_data.clone(), weave)
+                {
+                    match block_until_write(&shared.runtime, task) {
+                        Ok(()) => {}
+                        Err(error) => {
+                            shared.toasts.error(error);
+                            self.path = None;
+                            self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
+                            return false;
+                        }
+                    }
+                } else {
+                    panic!()
+                }
             }
 
-            if shared.open_documents.remove(path) {
+            if shared.open_documents.remove(&path) {
                 shared.open_documents_updated = true;
             };
         }
