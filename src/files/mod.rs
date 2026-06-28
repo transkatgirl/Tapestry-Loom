@@ -307,9 +307,8 @@ impl FileManager {
                                     {
                                         enabled = false;
                                     }
-                                } else if self.opened.contains(path) {
-                                    //button = button.selected(true);
-                                    button = button.fill(ui.style().visuals.extreme_bg_color);
+                                } else {
+                                    button = button.selected(self.opened.contains(path));
                                 }
 
                                 let button_response = if enabled {
