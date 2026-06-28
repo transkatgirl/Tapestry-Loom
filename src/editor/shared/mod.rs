@@ -273,6 +273,9 @@ impl EditorShared {
                         if self.weave.is_none() {
                             ui.add(Spinner::new());
                             ui.label("Loading weave...");
+                        } else if self.close_after_save {
+                            ui.add(Spinner::new());
+                            ui.label("Saving weave...");
                         } else {
                             ui.label(
                                 abbreviate_path(&shared.settings.documents.location, path)
