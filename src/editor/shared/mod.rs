@@ -13,7 +13,7 @@ pub mod preload;
 
 use crate::{
     AppShared,
-    common::ui::abbreviate_path,
+    common::ui::{abbreviate_path, format_file_size, format_large_number},
     editor::{
         preload::EditorPreloadHandle,
         shared::disk::{DiskTask, DiskTaskData, block_until_read, block_until_write},
@@ -212,7 +212,61 @@ impl EditorShared {
                     }
                 });
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    // TODO
+                    if let Some(weave) = &self.weave {
+                        /*if request_count > 0 {
+                            ui.add(Spinner::new());
+                            if request_count > 1 {
+                                ui.label(format!("{request_count} requests"))
+                            } else {
+                                ui.label("1 request")
+                            }
+                            .on_hover_ui(|ui| {
+                                if ui.button("Cancel requests").clicked() {
+                                    state.cancel_requests();
+                                }
+                            });
+                        } else {*/
+                        let node_count = weave.len();
+                        let bookmarked_node_count = weave.bookmarks().len();
+                        let label = ui.label(if bookmarked_node_count > 0 {
+                            format!(
+                                "{}, {}, {}",
+                                format_large_number(node_count, "node", "nodes"),
+                                format_large_number(
+                                    weave.get_active_thread_ids().len(),
+                                    "active",
+                                    "active"
+                                ),
+                                format_large_number(
+                                    bookmarked_node_count,
+                                    "bookmarked",
+                                    "bookmarked"
+                                ),
+                            )
+                        } else {
+                            format!(
+                                "{}, {}",
+                                format_large_number(node_count, "node", "nodes"),
+                                format_large_number(
+                                    weave.get_active_thread_ids().len(),
+                                    "active",
+                                    "active"
+                                )
+                            )
+                        });
+
+                        if let Some(task_data) = self.disk_task_data.try_lock()
+                            && task_data.len() > 0
+                        {
+                            label.on_hover_ui(|ui| {
+                                ui.label(format_file_size(task_data.len()));
+                            });
+                        }
+
+                        // TODO
+
+                        //}
+                    }
                 });
             });
         });

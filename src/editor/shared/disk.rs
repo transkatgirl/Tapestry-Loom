@@ -240,6 +240,9 @@ impl DiskTaskData {
             buffer: Vec::with_capacity(16384),
         }
     }
+    pub(super) fn len(&self) -> usize {
+        self.buffer.len()
+    }
     fn open(&mut self, path: &Path, create: bool, abort: &AtomicBool) -> Result<(), io::Error> {
         assert!(self.file.is_none());
 
