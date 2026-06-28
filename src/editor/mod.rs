@@ -25,6 +25,7 @@ use crate::{
 
 pub struct Editor {
     container: ViewContainer<EditorShared, Pane>,
+    bulk_close: bool,
 }
 
 impl From<EditorShared> for Editor {
@@ -85,6 +86,7 @@ impl From<EditorShared> for Editor {
                 value,
                 None,
             ),
+            bulk_close: false,
         }
     }
 }
@@ -104,9 +106,13 @@ impl View<AppShared> for Editor {
         true
     }
     fn check_close(&mut self, shared: &mut AppShared) -> bool {
+        self.bulk_close = true;
+
         self.container.check_close() && self.container.behavior.shared.check_close(shared)
     }
     fn logic(&mut self, shared: &mut AppShared, force_close: impl FnOnce(), ctx: &Context) {
+        self.bulk_close = false;
+
         self.container
             .behavior
             .shared
@@ -136,7 +142,11 @@ impl View<AppShared> for Editor {
         self.container.check_close()
             && self.container.behavior.shared.check_close(shared)
             && self.container.close()
-            && self.container.behavior.shared.close(shared)
+            && self
+                .container
+                .behavior
+                .shared
+                .close(shared, self.bulk_close)
     }
 }
 
