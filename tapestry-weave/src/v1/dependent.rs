@@ -256,15 +256,13 @@ impl TapestryWeave {
     pub fn bookmarks(&self) -> &IndexSet<u64, BuildHasherDefault<RandomIdHasher>> {
         self.weave.bookmarks()
     }
-    pub fn get_active_thread(&mut self) -> impl DoubleEndedIterator<Item = &TapestryNode> {
+    pub fn get_active_thread(&self) -> impl DoubleEndedIterator<Item = &TapestryNode> {
         self.active.iter().filter_map(|id| self.weave.get_node(id))
     }
-    pub fn get_active_thread_ids(&mut self) -> &Vec<u64> {
+    pub fn get_active_thread_ids(&self) -> &Vec<u64> {
         &self.active
     }
-    pub fn get_active_thread_id_set(
-        &mut self,
-    ) -> &HashSet<u64, BuildHasherDefault<RandomIdHasher>> {
+    pub fn get_active_thread_id_set(&self) -> &HashSet<u64, BuildHasherDefault<RandomIdHasher>> {
         &self.active_set
     }
     pub fn get_thread_from(&mut self, id: &u64) -> impl DoubleEndedIterator<Item = &TapestryNode> {
