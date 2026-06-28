@@ -203,7 +203,7 @@ impl eframe::App for App {
 
         CentralPanel::default()
             .frame(egui::Frame::central_panel(ui.style()).inner_margin(0.0))
-            .show(ui, |ui| {
+            .show_inside(ui, |ui| {
                 self.container.ui(ui);
             });
 

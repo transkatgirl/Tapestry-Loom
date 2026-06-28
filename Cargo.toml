@@ -14,15 +14,15 @@ donate = "https://github.com/sponsors/transkatgirl"
 
 [features]
 donation-link = [  ]
-inspection = [
-	"eframe/inspection",
-]
+#inspection = [
+#	"eframe/inspection",
+#]
 
 [dependencies] # TODO: Cleanup & update dependencies
 tapestry-weave = { path = "tapestry-weave", features = [
 	"v1", # TODO: Add v0 feature after rewrite is finished? Or should we require using migration-assistant instead of automatically updating weaves?
 ], default-features = false }
-eframe = { version = "0.35.0", features = [
+eframe = { version = "0.34.3", features = [ # egui 0.35.0 has a serious performance regression
 	"persistence",
 ] }
 env_logger = { version = "0.11.11", features = [
@@ -57,8 +57,10 @@ parking_lot = { version = "0.12.5", features = [
 ] }
 anyhow = "1.0.103"
 dirs-next = "2.0.0"
-egui_tiles = "0.16.0"
-egui-notify = { git = "https://github.com/xangelix/egui-notify.git", rev = "d63aff1b84c9fad6af03cfd9e197286355cdcb17" }
+#egui_tiles = "0.16.0"
+egui_tiles = "0.15.0"
+#egui-notify = { git = "https://github.com/xangelix/egui-notify.git", rev = "d63aff1b84c9fad6af03cfd9e197286355cdcb17" }
+egui-notify = "0.22.0"
 tokio = { version = "1.52.3", features = [
 	"full",
 ] }
@@ -70,7 +72,10 @@ poll-promise = { version = "0.3.0", features = [
 	"tokio",
 ] }
 ctrlc = "3.5.2"
-egui-keybind = { git = "https://github.com/transkatgirl/egui-keybind.git", rev = "e135cf7d8001d516732be85301c63919924d8c54", features = [
+#egui-keybind = { git = "https://github.com/transkatgirl/egui-keybind.git", rev = "e135cf7d8001d516732be85301c63919924d8c54", features = [
+#	"serde",
+#] }
+egui-keybind = { git = "https://github.com/transkatgirl/egui-keybind.git", rev = "86a29afc7e083b33c8bbec7278da59a66226bd97", features = [
 	"serde",
 ] }
 flagset = { version = "0.4.7", features = [
@@ -78,9 +83,12 @@ flagset = { version = "0.4.7", features = [
 ] }
 bytes = "1.12.0"
 font-kit = "0.14.3"
-egui_solarized = "0.35.0"
-egui_virtual_list = "0.11.0"
-egui_plot = "0.36.0"
+#egui_solarized = 0.35.0"
+egui_solarized = "0.34.0"
+#egui_virtual_list = "0.11.0"
+egui_virtual_list = "0.10.0"
+#egui_plot = "0.36.0"
+egui_plot = "0.35.0"
 rust-sugiyama = "0.4.0"
 ml-distance = "1.0.1"
 elkai-rs = "0.1.7"
@@ -89,7 +97,8 @@ linked-hash-map = "0.5.6"
 ulid = { version = "1.2.1", features = [
 	"serde",
 ] }
-egui_dnd = "0.16.0"
+#egui_dnd = "0.16.0"
+egui_dnd = "0.15.0"
 egui-probe = { version = "0.11.0", features = [
 	"derive",
 ] }
