@@ -12,8 +12,11 @@ pub mod preload;
 
 use crate::{
     AppShared,
-    common::ui::{
-        abbreviate_path, format_file_size, format_large_number, format_large_number_detailed,
+    common::{
+        task::BACKGROUND_REFRESH_INTERVAL,
+        ui::{
+            abbreviate_path, format_file_size, format_large_number, format_large_number_detailed,
+        },
     },
     editor::{
         preload::EditorPreloadHandle,
@@ -119,7 +122,7 @@ impl EditorShared {
     }
     pub(super) fn logic(
         &mut self,
-        _ctx: &Context,
+        ctx: &Context,
         force_close: impl FnOnce(),
         shared: &mut AppShared,
     ) {
@@ -168,6 +171,10 @@ impl EditorShared {
         }
 
         self.inference.update(shared, &mut self.weave);
+
+        if !self.disk_task.is_none() || self.inference.requests() > 0 {
+            ctx.request_repaint_after(BACKGROUND_REFRESH_INTERVAL);
+        }
     }
     pub(super) fn modals(&mut self, ctx: &Context, shared: &mut AppShared) -> bool {
         match &mut self.modal {
