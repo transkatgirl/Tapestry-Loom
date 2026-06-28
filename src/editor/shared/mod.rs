@@ -315,16 +315,13 @@ impl EditorShared {
                             });
                         } else {
                             let node_count = weave.len();
+                            let active_node_count = weave.get_active_thread_ids().len();
                             let bookmarked_node_count = weave.bookmarks().len();
                             let label = ui.label(if bookmarked_node_count > 0 {
                                 format!(
                                     "{}, {}, {}",
                                     format_large_number(node_count, "node", "nodes"),
-                                    format_large_number(
-                                        weave.get_active_thread_ids().len(),
-                                        "active",
-                                        "active"
-                                    ),
+                                    format_large_number(active_node_count, "active", "active"),
                                     format_large_number(
                                         bookmarked_node_count,
                                         "bookmarked",
@@ -335,11 +332,7 @@ impl EditorShared {
                                 format!(
                                     "{}, {}",
                                     format_large_number(node_count, "node", "nodes"),
-                                    format_large_number(
-                                        weave.get_active_thread_ids().len(),
-                                        "active",
-                                        "active"
-                                    )
+                                    format_large_number(active_node_count, "active", "active")
                                 )
                             });
 
