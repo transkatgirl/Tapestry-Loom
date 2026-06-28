@@ -103,8 +103,10 @@ impl EditorShared {
                         }
                         Err(error) => {
                             shared.toasts.error(error);
-                            if let Some(path) = &self.path {
-                                shared.open_documents.remove(path);
+                            if let Some(path) = &self.path
+                                && shared.open_documents.remove(path)
+                            {
+                                shared.open_documents_updated = true;
                             }
                             self.path = None;
                             self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
@@ -120,8 +122,10 @@ impl EditorShared {
                         Ok(()) => {}
                         Err(error) => {
                             shared.toasts.error(error);
-                            if let Some(path) = &self.path {
-                                shared.open_documents.remove(path);
+                            if let Some(path) = &self.path
+                                && shared.open_documents.remove(path)
+                            {
+                                shared.open_documents_updated = true;
                             }
                             self.path = None;
                             self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
@@ -334,8 +338,10 @@ impl EditorShared {
                         Ok(()) => {}
                         Err(error) => {
                             shared.toasts.error(error);
-                            if let Some(path) = &self.path {
-                                shared.open_documents.remove(path);
+                            if let Some(path) = &self.path
+                                && shared.open_documents.remove(path)
+                            {
+                                shared.open_documents_updated = true;
                             }
                             self.path = None;
                             self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
@@ -356,8 +362,10 @@ impl EditorShared {
                             Ok(()) => {}
                             Err(error) => {
                                 shared.toasts.error(error);
-                                if let Some(path) = &self.path {
-                                    shared.open_documents.remove(path);
+                                if let Some(path) = &self.path
+                                    && shared.open_documents.remove(path)
+                                {
+                                    shared.open_documents_updated = true;
                                 }
                                 self.path = None;
                                 self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
