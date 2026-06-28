@@ -12,7 +12,7 @@ use eframe::{
 use egui_notify::{Toast, Toasts};
 use egui_tiles::{Tiles, Tree};
 use env_logger::Env;
-use log::{debug, error};
+use log::{debug, error, trace};
 use mimalloc::MiMalloc;
 use parking_lot::Mutex;
 use reqwest::{Client, ClientBuilder};
@@ -208,6 +208,16 @@ impl eframe::App for App {
             });
 
         self.container.behavior.shared.post_ui(ui);
+
+        if ui.output(|output| !output.events.is_empty()) {
+            if ui.current_pass_index() == 0 {
+                // Discard the frame to allow same-frame feedback (lower input latency)
+                ui.request_discard("UI Interaction");
+            } else {
+                trace!("current_pass_index > 0, falling back to request_repaint()");
+                ui.request_repaint();
+            }
+        }
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         self.container.save();

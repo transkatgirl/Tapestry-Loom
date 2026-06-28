@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use eframe::{
-    egui::{Context, PointerButton, Response, Ui, response::Flags},
+    egui::{PointerButton, Response, Ui, response::Flags},
     epaint::MarginF32,
 };
 
@@ -13,12 +13,6 @@ pub fn clicked_rising_edge(response: &Response) -> bool {
             && response
                 .ctx
                 .input(|i| i.pointer.button_pressed(PointerButton::Primary)))
-}
-
-pub fn after_ui_interaction(ctx: &Context) {
-    // Discard the frame to allow same-frame feedback (saving potentially 16ms)
-    // This is separated into a wrapper function to allow this behavior to be changed in the future
-    ctx.request_discard("UI Interaction");
 }
 
 pub fn listing_margin(ui: &mut Ui) -> MarginF32 {

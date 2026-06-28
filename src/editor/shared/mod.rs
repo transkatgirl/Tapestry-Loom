@@ -15,8 +15,7 @@ use crate::{
         inference::InferenceEngine,
         task::BACKGROUND_REFRESH_INTERVAL,
         ui::{
-            abbreviate_path, after_ui_interaction, format_file_size, format_large_number,
-            format_large_number_detailed,
+            abbreviate_path, format_file_size, format_large_number, format_large_number_detailed,
         },
     },
     editor::{
@@ -228,7 +227,6 @@ impl EditorShared {
                 .should_close()
                 {
                     self.modal = EditorModal::None;
-                    after_ui_interaction(ctx);
                 }
 
                 true
@@ -261,7 +259,6 @@ impl EditorShared {
                 .should_close()
                 {
                     self.modal = EditorModal::None;
-                    after_ui_interaction(ctx);
                 }
 
                 true
@@ -294,7 +291,6 @@ impl EditorShared {
                                             path.to_string_lossy().to_string(),
                                         ))
                                     });
-                                    after_ui_interaction(ui);
                                 };
                             });
                         }
@@ -302,7 +298,6 @@ impl EditorShared {
                         self.modal = EditorModal::SaveAs(
                             ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION].concat(),
                         );
-                        after_ui_interaction(ui);
                     }
                 });
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -317,7 +312,6 @@ impl EditorShared {
                             .on_hover_ui(|ui| {
                                 if ui.button("Cancel requests").clicked() {
                                     self.inference.cancel(shared);
-                                    after_ui_interaction(ui);
                                 }
                             });
                         } else {
