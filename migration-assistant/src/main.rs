@@ -76,7 +76,9 @@ fn main() -> anyhow::Result<()> {
             }
 
             if extension == "md" {
-                if let Some(parent) = output.parent() {
+                if let Some(parent) = output.parent()
+                    && !parent.as_os_str().is_empty()
+                {
                     fs::create_dir_all(parent)?;
                 }
 
@@ -87,7 +89,9 @@ fn main() -> anyhow::Result<()> {
                     args.output_debug_json,
                 )?;
             } else if extension == "json" {
-                if let Some(parent) = output.parent() {
+                if let Some(parent) = output.parent()
+                    && !parent.as_os_str().is_empty()
+                {
                     fs::create_dir_all(parent)?;
                 }
 
@@ -269,7 +273,9 @@ fn migrate_json_weave(
                 output_path.set_extension("tapestry");
             }
 
-            if let Some(parent) = output_path.parent() {
+            if let Some(parent) = output_path.parent()
+                && !parent.as_os_str().is_empty()
+            {
                 fs::create_dir_all(parent)?;
             }
 

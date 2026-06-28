@@ -246,10 +246,7 @@ impl FileManager {
                 if parent_length > 0
                     && path
                         .parent()
-                        .map(|parent| {
-                            self.opened
-                                .contains(&shared.settings.documents.location.join(parent))
-                        })
+                        .map(|parent| self.opened.contains(parent))
                         .unwrap_or_default()
                 {
                     (
