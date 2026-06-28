@@ -1,4 +1,4 @@
-// TODO: Implement fully async editor closing (requires overhaul of View trait to allow views to close themselves)
+// TODO: Implement fully async editor closing
 
 use std::{fs, mem, path::PathBuf, sync::Arc};
 
@@ -35,8 +35,9 @@ pub(super) struct EditorShared {
     disk_task_data: Arc<Mutex<DiskTaskData>>, // Panics if more than one lock is held at a time
     pub weave: Option<TapestryWeave>,
     close_ready: bool,
+    close_now: bool,
 
-    inference: InferenceEngine,
+    pub inference: InferenceEngine,
 }
 
 impl EditorShared {
@@ -71,6 +72,7 @@ impl EditorShared {
             disk_task_data,
             weave,
             close_ready: false,
+            close_now: false,
             inference: InferenceEngine::new(shared),
         }
     }
@@ -88,8 +90,29 @@ impl EditorShared {
             disk_task_data: preload.task_data,
             weave: None,
             close_ready: false,
+            close_now: false,
             inference: InferenceEngine::new(shared),
         }
+    }
+    fn clear_path(&mut self, shared: &mut AppShared) {
+        if let Some(path) = &self.path
+            && shared.open_documents.remove(path)
+        {
+            shared.open_documents_updated = true;
+        }
+        self.path = None;
+        self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
+    }
+    fn prepare_for_close(&mut self, shared: &mut AppShared) {
+        if let Some(path) = &self.path
+            && shared.open_documents.remove(path)
+        {
+            shared.open_documents_updated = true;
+        }
+
+        self.inference.cancel(shared);
+
+        debug!("Closed Editor (path = {:?})", &self.path);
     }
     pub(super) fn logic(
         &mut self,
@@ -98,6 +121,12 @@ impl EditorShared {
         shared: &mut AppShared,
     ) {
         self.close_ready = false;
+
+        if self.close_now {
+            self.prepare_for_close(shared);
+            force_close();
+            return;
+        }
 
         match mem::take(&mut self.disk_task) {
             DiskTask::Read(task) => {
@@ -108,13 +137,7 @@ impl EditorShared {
                         }
                         Err(error) => {
                             shared.toasts.error(error);
-                            if let Some(path) = &self.path
-                                && shared.open_documents.remove(path)
-                            {
-                                shared.open_documents_updated = true;
-                            }
-                            self.path = None;
-                            self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
+                            self.clear_path(shared);
                         }
                     }
                 } else {
@@ -127,13 +150,7 @@ impl EditorShared {
                         Ok(()) => {}
                         Err(error) => {
                             shared.toasts.error(error);
-                            if let Some(path) = &self.path
-                                && shared.open_documents.remove(path)
-                            {
-                                shared.open_documents_updated = true;
-                            }
-                            self.path = None;
-                            self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
+                            self.clear_path(shared);
                         }
                     }
                 } else {
@@ -189,6 +206,35 @@ impl EditorShared {
 
                                         ui.close();
                                     }
+                                }
+                            },
+                        );
+                    })
+                    .should_close()
+                {
+                    self.modal = EditorModal::None;
+                }
+
+                true
+            }
+            EditorModal::ConfirmClose => {
+                if Modal::new(["editor-", &self.id.to_string(), "-modal"].concat().into())
+                    .show(ctx, |ui| {
+                        ui.set_width(210.0);
+                        ui.heading("Do you want to close this weave without saving?");
+                        ui.label("All changes made will be lost.");
+                        ui.add_space(ui.style().spacing.menu_spacing);
+                        Sides::new().show(
+                            ui,
+                            |_ui| {},
+                            |ui| {
+                                if ui.button("Yes").clicked() {
+                                    self.close_now = true;
+                                    ui.close();
+                                    ui.request_repaint();
+                                }
+                                if ui.button("No").clicked() {
+                                    ui.close();
                                 }
                             },
                         );
@@ -329,6 +375,7 @@ impl EditorShared {
 
                 true
             } else {
+                self.modal = EditorModal::ConfirmClose;
                 false
             }
         } else {
@@ -343,13 +390,7 @@ impl EditorShared {
                         Ok(()) => {}
                         Err(error) => {
                             shared.toasts.error(error);
-                            if let Some(path) = &self.path
-                                && shared.open_documents.remove(path)
-                            {
-                                shared.open_documents_updated = true;
-                            }
-                            self.path = None;
-                            self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
+                            self.clear_path(shared);
                             return false;
                         }
                     }
@@ -367,13 +408,7 @@ impl EditorShared {
                             Ok(()) => {}
                             Err(error) => {
                                 shared.toasts.error(error);
-                                if let Some(path) = &self.path
-                                    && shared.open_documents.remove(path)
-                                {
-                                    shared.open_documents_updated = true;
-                                }
-                                self.path = None;
-                                self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
+                                self.clear_path(shared);
                                 return false;
                             }
                         }
@@ -388,9 +423,7 @@ impl EditorShared {
             };
         }
 
-        self.inference.cancel(shared);
-
-        debug!("Closed Editor (path = {:?})", &self.path);
+        self.prepare_for_close(shared);
 
         true
     }
@@ -401,4 +434,5 @@ enum EditorModal {
     #[default]
     None,
     SaveAs(String),
+    ConfirmClose,
 }
