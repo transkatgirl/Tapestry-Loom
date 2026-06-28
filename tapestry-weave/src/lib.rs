@@ -176,17 +176,19 @@ impl VersionedWeave {
             _ => None,
         }
     }
-    #[cfg(all(feature = "v0", feature = "v1"))]
+    #[cfg(feature = "v1")]
     pub fn into_v1_dependent(self) -> Option<v1::dependent::TapestryWeave> {
         match self {
+            #[cfg(feature = "v0")]
             Self::V0(weave) => Some(v1::dependent::TapestryWeave::from(weave)),
             Self::V1Dependent(weave) => Some(weave),
             _ => None,
         }
     }
-    #[cfg(all(feature = "v0", feature = "v1"))]
+    #[cfg(feature = "v1")]
     pub fn into_v1_independent(self) -> Option<v1::independent::TapestryWeave> {
         match self {
+            #[cfg(feature = "v0")]
             Self::V0(weave) => Some(v1::independent::TapestryWeave::from(weave)),
             Self::V1Dependent(weave) => Some(v1::independent::TapestryWeave::from(weave)),
             Self::V1Independent(weave) => Some(weave),

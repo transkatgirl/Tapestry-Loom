@@ -28,8 +28,6 @@ pub(super) enum DiskTask {
     Write(JoinHandle<Result<(), String>>),
 }
 
-// TODO: Need to fix VersionedWeave::from_bytes() to not crash when presented with an IndependentWeave
-
 impl DiskTask {
     pub(super) fn is_none(&self) -> bool {
         matches!(self, Self::None)
@@ -64,10 +62,18 @@ impl DiskTask {
                 Some(Ok(weave)) => {
                     if abort.load(Ordering::Relaxed) {
                         debug!("Aborted deserializing {:?}", &path);
-                        Err(format!("Failed to deserialize {:?}", path))
-                    } else {
+                        return Err(format!("Failed to deserialize {:?}", path));
+                    }
+
+                    if let Some(weave) = weave.into_v1_dependent() {
                         debug!("Finished reading {:?}", &path);
-                        Ok(weave.into_latest())
+                        Ok(weave)
+                    } else {
+                        error!(
+                            "Failed to deserialize {:?} due to unsupported version",
+                            path
+                        );
+                        Err(format!("Failed to deserialize {:?}", path))
                     }
                 }
                 Some(Err(error)) => {
@@ -194,10 +200,18 @@ impl DiskPreloadTask {
                     Some(Ok(weave)) => {
                         if abort.load(Ordering::Relaxed) {
                             debug!("Aborted deserializing {:?}", &path);
-                            Err(format!("Failed to deserialize {:?}", path))
-                        } else {
+                            return Err(format!("Failed to deserialize {:?}", path));
+                        }
+
+                        if let Some(weave) = weave.into_v1_dependent() {
                             debug!("Finished reading {:?}", &path);
-                            Ok(weave.into_latest())
+                            Ok(weave)
+                        } else {
+                            error!(
+                                "Failed to deserialize {:?} due to unsupported version",
+                                path
+                            );
+                            Err(format!("Failed to deserialize {:?}", path))
                         }
                     }
                     Some(Err(error)) => {
