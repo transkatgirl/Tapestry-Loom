@@ -169,7 +169,7 @@ impl EditorShared {
     pub(super) fn title(&self, _shared: &AppShared) -> String {
         match &self.path {
             Some(path) => {
-                if let Some(filename) = path.file_stem() {
+                if let Some(filename) = path.file_prefix() {
                     filename.to_string_lossy().to_string()
                 } else {
                     "Untitled Weave".to_string()
