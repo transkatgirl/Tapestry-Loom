@@ -1,3 +1,5 @@
+// TODO: Implement fully async editor closing (requires overhaul of View trait to allow views to close themselves)
+
 use std::{mem, path::PathBuf, sync::Arc};
 
 use eframe::egui::{Align, Context, Layout, OutputCommand, Panel, Ui};
