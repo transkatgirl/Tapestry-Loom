@@ -290,7 +290,9 @@ pub trait View<T> {
     }
 
     fn logic(&mut self, shared: &mut T, force_close: impl FnOnce(), ctx: &Context);
-    fn modals(&mut self, shared: &mut T, ctx: &Context) -> bool;
+    fn modals(&mut self, shared: &mut T, ctx: &Context) -> bool {
+        false
+    }
     fn ui(&mut self, shared: &mut T, ui: &mut Ui);
 
     fn save(&mut self, shared: &mut T) {}

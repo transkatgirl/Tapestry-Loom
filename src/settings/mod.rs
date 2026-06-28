@@ -18,9 +18,6 @@ impl View<AppShared> for SettingsView {
         WidgetText::Text("\u{E154} Settings".to_string())
     }
     fn logic(&mut self, _shared: &mut AppShared, _force_close: impl FnOnce(), _ctx: &Context) {}
-    fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {
-        false
-    }
     fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {
         ScrollArea::both()
             .auto_shrink(false)

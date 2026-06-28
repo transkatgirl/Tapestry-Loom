@@ -10,9 +10,6 @@ impl View<EditorShared> for TreeListView {
         WidgetText::Text("\u{E408} Tree".to_string())
     }
     fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
-    fn modals(&mut self, shared: &mut EditorShared, ctx: &Context) -> bool {
-        false
-    }
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {}
 }
 
@@ -24,9 +21,6 @@ impl View<EditorShared> for ListView {
         WidgetText::Text("\u{E106} List".to_string())
     }
     fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
-    fn modals(&mut self, shared: &mut EditorShared, ctx: &Context) -> bool {
-        false
-    }
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {}
 }
 
@@ -38,8 +32,5 @@ impl View<EditorShared> for BookmarkView {
         WidgetText::Text("\u{E060} Bookmarks".to_string())
     }
     fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
-    fn modals(&mut self, shared: &mut EditorShared, ctx: &Context) -> bool {
-        false
-    }
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {}
 }

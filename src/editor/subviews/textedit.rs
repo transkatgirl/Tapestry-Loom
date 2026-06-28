@@ -10,8 +10,5 @@ impl View<EditorShared> for TextEditView {
         WidgetText::Text("\u{E265} Editor".to_string())
     }
     fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
-    fn modals(&mut self, shared: &mut EditorShared, ctx: &Context) -> bool {
-        false
-    }
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {}
 }
