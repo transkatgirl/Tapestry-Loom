@@ -28,6 +28,8 @@ pub(super) enum DiskTask {
     Write(JoinHandle<Result<(), String>>),
 }
 
+// TODO: Need to fix VersionedWeave::from_bytes() to not crash when presented with an IndependentWeave
+
 impl DiskTask {
     pub(super) fn is_none(&self) -> bool {
         matches!(self, Self::None)
@@ -60,8 +62,13 @@ impl DiskTask {
 
             match VersionedWeave::from_bytes(&data.buffer) {
                 Some(Ok(weave)) => {
-                    debug!("Finished reading {:?}", &path);
-                    Ok(weave.into_latest())
+                    if abort.load(Ordering::Relaxed) {
+                        debug!("Aborted deserializing {:?}", &path);
+                        Err(format!("Failed to deserialize {:?}", path))
+                    } else {
+                        debug!("Finished reading {:?}", &path);
+                        Ok(weave.into_latest())
+                    }
                 }
                 Some(Err(error)) => {
                     error!("Failed to deserialize {:?}: {:?}", path, error);
@@ -185,8 +192,13 @@ impl DiskPreloadTask {
 
                 match VersionedWeave::from_bytes(&data.buffer) {
                     Some(Ok(weave)) => {
-                        debug!("Finished reading {:?}", &path);
-                        Ok(weave.into_latest())
+                        if abort.load(Ordering::Relaxed) {
+                            debug!("Aborted deserializing {:?}", &path);
+                            Err(format!("Failed to deserialize {:?}", path))
+                        } else {
+                            debug!("Finished reading {:?}", &path);
+                            Ok(weave.into_latest())
+                        }
                     }
                     Some(Err(error)) => {
                         error!("Failed to deserialize {:?}: {:?}", path, error);
