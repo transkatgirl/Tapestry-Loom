@@ -102,7 +102,9 @@ fn main() -> anyhow::Result<()> {
                     args.output_debug_json,
                 )?;
             } else if extension == "tapestry" {
-                if let Some(parent) = output.parent() {
+                if let Some(parent) = output.parent()
+                    && !parent.as_os_str().is_empty()
+                {
                     fs::create_dir_all(parent)?;
                 }
 
