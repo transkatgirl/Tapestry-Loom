@@ -70,7 +70,7 @@ chrono = { version = "0.4.45", features = [
 ], default-features = false, optional = true }
 
 # v1+
-jiff = { version = "0.2.28", optional = true }
+jiff = { version = "0.2.29", optional = true }
 nanorand = { version = "0.8.0", features = [
 	"alloc",
 	"wyrand",

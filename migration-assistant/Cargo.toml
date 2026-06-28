@@ -23,7 +23,7 @@ tapestry-weave = { path = "../tapestry-weave", features = [
 clap = { version = "4.6.1", features = [
 	"derive",
 ] }
-anyhow = "1.0.102"
+anyhow = "1.0.103"
 walkdir = "2.5.0"
 serde = { version = "1.0.228", features = [
 	"derive",
@@ -38,6 +38,6 @@ chrono = { version = "0.4.45", features = [
 	"clock",
 	"serde",
 ], default-features = false }
-uuid = { version = "1.23.3", features = [
+uuid = { version = "1.23.4", features = [
 	"serde",
 ], default-features = false }

@@ -92,7 +92,7 @@ impl View<AppShared> for FileManager {
         !matches!(self.modal, FileModal::None)
     }
     fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {
-        Panel::bottom("filemanager-bottom-panel").show_inside(ui, |ui| {
+        Panel::bottom("filemanager-bottom-panel").show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                     let tree = self.tree.view();

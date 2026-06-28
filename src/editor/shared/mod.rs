@@ -194,7 +194,7 @@ impl EditorShared {
         }
     }
     pub(super) fn ui(&mut self, ui: &mut Ui, shared: &mut AppShared) {
-        Panel::bottom(ui.id()).show_inside(ui, |ui| {
+        Panel::bottom(ui.id()).show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                     if let Some(path) = &self.path {

@@ -121,7 +121,7 @@ impl View<AppShared> for Editor {
 
         CentralPanel::default()
             .frame(Frame::central_panel(ui.style()).inner_margin(0.0))
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 self.container.ui(ui);
             });
     }
