@@ -4,13 +4,23 @@ use eframe::egui::{CentralPanel, Context, Frame, Ui, WidgetText};
 use egui_tiles::{Container, Linear, LinearDir, Tabs, Tile, Tiles, Tree};
 
 mod shared;
+mod subviews;
 
 pub use shared::preload;
 
 use crate::{
     AppShared,
     common::view::{View, ViewContainer},
-    editor::shared::EditorShared,
+    editor::{
+        shared::EditorShared,
+        subviews::{
+            canvas::CanvasView,
+            graph::GraphView,
+            lists::{BookmarkView, ListView, TreeListView},
+            menus::{InfoView, MenuView},
+            textedit::TextEditView,
+        },
+    },
 };
 
 pub struct Editor {
@@ -22,11 +32,11 @@ impl From<EditorShared> for Editor {
         let mut tiles = Tiles::default();
 
         let left_tabs = vec![
-            tiles.insert_pane(Pane::Canvas),
-            tiles.insert_pane(Pane::Graph),
-            tiles.insert_pane(Pane::TreeList),
-            tiles.insert_pane(Pane::List),
-            tiles.insert_pane(Pane::BookmarkList),
+            tiles.insert_pane(Pane::Canvas(CanvasView::default())),
+            tiles.insert_pane(Pane::Graph(GraphView::default())),
+            tiles.insert_pane(Pane::TreeList(TreeListView::default())),
+            tiles.insert_pane(Pane::List(ListView::default())),
+            tiles.insert_pane(Pane::BookmarkList(BookmarkView::default())),
         ];
         let active_left_tab = left_tabs[2];
 
@@ -39,19 +49,19 @@ impl From<EditorShared> for Editor {
 
         let right = if value.path().is_some() {
             let right_tabs = vec![
-                tiles.insert_pane(Pane::TextEdit),
-                tiles.insert_pane(Pane::Menu),
-                tiles.insert_pane(Pane::Info),
+                tiles.insert_pane(Pane::TextEdit(TextEditView::default())),
+                tiles.insert_pane(Pane::Menu(MenuView::default())),
+                tiles.insert_pane(Pane::Info(InfoView::default())),
             ];
 
             tiles.insert_tab_tile(right_tabs)
         } else {
             let right_upper_tabs = vec![
-                tiles.insert_pane(Pane::TextEdit),
-                tiles.insert_pane(Pane::Info),
+                tiles.insert_pane(Pane::TextEdit(TextEditView::default())),
+                tiles.insert_pane(Pane::Info(InfoView::default())),
             ];
 
-            let right_lower_tabs = vec![tiles.insert_pane(Pane::Menu)];
+            let right_lower_tabs = vec![tiles.insert_pane(Pane::Menu(MenuView::default()))];
 
             let right_upper_tab_tile = tiles.insert_tab_tile(right_upper_tabs);
             let right_lower_tab_tile = tiles.insert_tab_tile(right_lower_tabs);
@@ -129,24 +139,111 @@ impl View<AppShared> for Editor {
 
 #[derive(Debug)]
 enum Pane {
-    Canvas,
-    Graph,
-    TreeList,
-    List,
-    BookmarkList,
-    TextEdit,
-    Menu,
-    Info,
+    Canvas(CanvasView),
+    Graph(GraphView),
+    TreeList(TreeListView),
+    List(ListView),
+    BookmarkList(BookmarkView),
+    TextEdit(TextEditView),
+    Menu(MenuView),
+    Info(InfoView),
 }
 
 impl View<EditorShared> for Pane {
     fn title(&self, shared: &EditorShared) -> WidgetText {
-        //todo!()
-        WidgetText::Text(format!("{:?}", self))
+        match self {
+            Self::Canvas(view) => view.title(shared),
+            Self::Graph(view) => view.title(shared),
+            Self::TreeList(view) => view.title(shared),
+            Self::List(view) => view.title(shared),
+            Self::BookmarkList(view) => view.title(shared),
+            Self::TextEdit(view) => view.title(shared),
+            Self::Menu(view) => view.title(shared),
+            Self::Info(view) => view.title(shared),
+        }
     }
-    fn logic(&mut self, shared: &mut EditorShared, ctx: &Context) {}
+    fn closable(&self, shared: &EditorShared) -> bool {
+        match self {
+            Self::Canvas(view) => view.closable(shared),
+            Self::Graph(view) => view.closable(shared),
+            Self::TreeList(view) => view.closable(shared),
+            Self::List(view) => view.closable(shared),
+            Self::BookmarkList(view) => view.closable(shared),
+            Self::TextEdit(view) => view.closable(shared),
+            Self::Menu(view) => view.closable(shared),
+            Self::Info(view) => view.closable(shared),
+        }
+    }
+    fn check_close(&mut self, shared: &mut EditorShared) -> bool {
+        match self {
+            Self::Canvas(view) => view.check_close(shared),
+            Self::Graph(view) => view.check_close(shared),
+            Self::TreeList(view) => view.check_close(shared),
+            Self::List(view) => view.check_close(shared),
+            Self::BookmarkList(view) => view.check_close(shared),
+            Self::TextEdit(view) => view.check_close(shared),
+            Self::Menu(view) => view.check_close(shared),
+            Self::Info(view) => view.check_close(shared),
+        }
+    }
+    fn logic(&mut self, shared: &mut EditorShared, ctx: &Context) {
+        match self {
+            Self::Canvas(view) => view.logic(shared, ctx),
+            Self::Graph(view) => view.logic(shared, ctx),
+            Self::TreeList(view) => view.logic(shared, ctx),
+            Self::List(view) => view.logic(shared, ctx),
+            Self::BookmarkList(view) => view.logic(shared, ctx),
+            Self::TextEdit(view) => view.logic(shared, ctx),
+            Self::Menu(view) => view.logic(shared, ctx),
+            Self::Info(view) => view.logic(shared, ctx),
+        }
+    }
     fn modals(&mut self, shared: &mut EditorShared, ctx: &Context) -> bool {
-        false
+        match self {
+            Self::Canvas(view) => view.modals(shared, ctx),
+            Self::Graph(view) => view.modals(shared, ctx),
+            Self::TreeList(view) => view.modals(shared, ctx),
+            Self::List(view) => view.modals(shared, ctx),
+            Self::BookmarkList(view) => view.modals(shared, ctx),
+            Self::TextEdit(view) => view.modals(shared, ctx),
+            Self::Menu(view) => view.modals(shared, ctx),
+            Self::Info(view) => view.modals(shared, ctx),
+        }
     }
-    fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {}
+    fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
+        match self {
+            Self::Canvas(view) => view.ui(shared, ui),
+            Self::Graph(view) => view.ui(shared, ui),
+            Self::TreeList(view) => view.ui(shared, ui),
+            Self::List(view) => view.ui(shared, ui),
+            Self::BookmarkList(view) => view.ui(shared, ui),
+            Self::TextEdit(view) => view.ui(shared, ui),
+            Self::Menu(view) => view.ui(shared, ui),
+            Self::Info(view) => view.ui(shared, ui),
+        }
+    }
+    fn save(&mut self, shared: &mut EditorShared) {
+        match self {
+            Self::Canvas(view) => view.save(shared),
+            Self::Graph(view) => view.save(shared),
+            Self::TreeList(view) => view.save(shared),
+            Self::List(view) => view.save(shared),
+            Self::BookmarkList(view) => view.save(shared),
+            Self::TextEdit(view) => view.save(shared),
+            Self::Menu(view) => view.save(shared),
+            Self::Info(view) => view.save(shared),
+        }
+    }
+    fn close(&mut self, shared: &mut EditorShared) -> bool {
+        match self {
+            Self::Canvas(view) => view.close(shared),
+            Self::Graph(view) => view.close(shared),
+            Self::TreeList(view) => view.close(shared),
+            Self::List(view) => view.close(shared),
+            Self::BookmarkList(view) => view.close(shared),
+            Self::TextEdit(view) => view.close(shared),
+            Self::Menu(view) => view.close(shared),
+            Self::Info(view) => view.close(shared),
+        }
+    }
 }
