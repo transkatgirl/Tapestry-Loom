@@ -206,6 +206,8 @@ impl eframe::App for App {
             .show(ui, |ui| {
                 self.container.ui(ui);
             });
+
+        self.container.behavior.shared.post_ui(ui);
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         self.container.save();
@@ -289,7 +291,15 @@ impl AppShared {
                 }
             }
         }
+    }
+    fn ui(&mut self, ui: &mut Ui) {
+        for toast in self.async_toasts.lock().drain(..) {
+            self.toasts.add(toast);
+        }
 
+        self.toasts.show(ui);
+    }
+    fn post_ui(&mut self, _ctx: &Context) {
         if let Some(path) = &self.queued_preload_document
             && !self.open_documents.contains(path)
         {
@@ -304,13 +314,6 @@ impl AppShared {
             }
         }
         self.queued_preload_document = None;
-    }
-    fn ui(&mut self, ui: &mut Ui) {
-        for toast in self.async_toasts.lock().drain(..) {
-            self.toasts.add(toast);
-        }
-
-        self.toasts.show(ui);
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         match self.settings.serialize() {

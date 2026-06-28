@@ -4,6 +4,8 @@ use egui_tiles::{
 };
 use log::warn;
 
+use crate::common::ui::after_ui_interaction;
+
 pub struct ViewContainer<T, P>
 where
     P: View<T>,
@@ -34,7 +36,9 @@ where
         pane.title(&self.shared)
     }
     fn pane_ui(&mut self, ui: &mut Ui, _tile_id: TileId, pane: &mut P) -> UiResponse {
-        pane.ui(&mut self.shared, ui);
+        if ui.is_visible() {
+            pane.ui(&mut self.shared, ui);
+        }
 
         UiResponse::None
     }
@@ -63,6 +67,7 @@ where
     ) {
         if self.creation_callback.is_some() && ui.button("\u{E13D}").clicked() {
             self.create = Some(Some(tile_id));
+            after_ui_interaction(ui);
         }
     }
     fn on_tab_close(&mut self, tiles: &mut Tiles<P>, tile_id: TileId) -> bool {
@@ -197,6 +202,10 @@ where
         self.update_pane_list_display_order();
 
         for tile_id in self.pane_list.drain(..) {
+            if ctx.will_discard() {
+                break;
+            }
+
             if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id)
                 && pane.modals(&mut self.behavior.shared, ctx)
             {
