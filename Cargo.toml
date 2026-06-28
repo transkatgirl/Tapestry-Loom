@@ -14,13 +14,15 @@ donate = "https://github.com/sponsors/transkatgirl"
 
 [features]
 donation-link = [  ]
+inspection = [
+	"eframe/inspection",
+]
 
 [dependencies] # TODO: Cleanup & update dependencies
 tapestry-weave = { path = "tapestry-weave", features = [
 	"v1", # TODO: Add v0 feature after rewrite is finished? Or should we require using migration-assistant instead of automatically updating weaves?
 ], default-features = false }
 eframe = { version = "0.35.0", features = [
-	"accesskit",
 	"persistence",
 ] }
 env_logger = { version = "0.11.11", features = [
