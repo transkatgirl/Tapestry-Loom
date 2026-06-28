@@ -6,11 +6,11 @@ use crate::{common::view::View, editor::EditorShared};
 pub struct GraphView {}
 
 impl View<EditorShared> for GraphView {
-    fn title(&self, shared: &EditorShared) -> WidgetText {
+    fn title(&self, _shared: &EditorShared) -> WidgetText {
         //todo!()
         WidgetText::Text("\u{E52E} Graph".to_string())
     }
-    fn logic(&mut self, shared: &mut EditorShared, ctx: &Context) {}
+    fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
     fn modals(&mut self, shared: &mut EditorShared, ctx: &Context) -> bool {
         false
     }

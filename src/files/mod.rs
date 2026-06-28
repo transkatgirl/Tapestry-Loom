@@ -58,7 +58,7 @@ impl View<AppShared> for FileManager {
     fn title(&self, _shared: &AppShared) -> WidgetText {
         WidgetText::Text("\u{E33C} Files".to_string())
     }
-    fn logic(&mut self, shared: &mut AppShared, ctx: &Context) {
+    fn logic(&mut self, shared: &mut AppShared, _force_close: impl FnOnce(), ctx: &Context) {
         self.background.update(shared);
 
         if self.tree.update(&mut self.background) {

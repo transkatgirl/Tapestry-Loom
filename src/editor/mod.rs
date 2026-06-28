@@ -106,8 +106,11 @@ impl View<AppShared> for Editor {
     fn check_close(&mut self, shared: &mut AppShared) -> bool {
         self.container.check_close() && self.container.behavior.shared.check_close(shared)
     }
-    fn logic(&mut self, shared: &mut AppShared, ctx: &Context) {
-        self.container.behavior.shared.logic(ctx, shared);
+    fn logic(&mut self, shared: &mut AppShared, force_close: impl FnOnce(), ctx: &Context) {
+        self.container
+            .behavior
+            .shared
+            .logic(ctx, force_close, shared);
         self.container.logic(ctx);
     }
     fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {
@@ -186,16 +189,16 @@ impl View<EditorShared> for Pane {
             Self::Info(view) => view.check_close(shared),
         }
     }
-    fn logic(&mut self, shared: &mut EditorShared, ctx: &Context) {
+    fn logic(&mut self, shared: &mut EditorShared, force_close: impl FnOnce(), ctx: &Context) {
         match self {
-            Self::Canvas(view) => view.logic(shared, ctx),
-            Self::Graph(view) => view.logic(shared, ctx),
-            Self::TreeList(view) => view.logic(shared, ctx),
-            Self::List(view) => view.logic(shared, ctx),
-            Self::BookmarkList(view) => view.logic(shared, ctx),
-            Self::TextEdit(view) => view.logic(shared, ctx),
-            Self::Menu(view) => view.logic(shared, ctx),
-            Self::Info(view) => view.logic(shared, ctx),
+            Self::Canvas(view) => view.logic(shared, force_close, ctx),
+            Self::Graph(view) => view.logic(shared, force_close, ctx),
+            Self::TreeList(view) => view.logic(shared, force_close, ctx),
+            Self::List(view) => view.logic(shared, force_close, ctx),
+            Self::BookmarkList(view) => view.logic(shared, force_close, ctx),
+            Self::TextEdit(view) => view.logic(shared, force_close, ctx),
+            Self::Menu(view) => view.logic(shared, force_close, ctx),
+            Self::Info(view) => view.logic(shared, force_close, ctx),
         }
     }
     fn modals(&mut self, shared: &mut EditorShared, ctx: &Context) -> bool {

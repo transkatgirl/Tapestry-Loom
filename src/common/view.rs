@@ -23,6 +23,7 @@ where
     focus: Option<TileId>,
     create: Option<Option<TileId>>,
     add: Vec<TileId>,
+    remove: Vec<TileId>,
 }
 
 impl<T, P> Behavior<P> for ViewContainerBehavior<T, P>
@@ -91,10 +92,16 @@ where
                 focus: None,
                 create: None,
                 add: Vec::with_capacity(1),
+                remove: Vec::with_capacity(1),
             },
             tree,
             pane_list: Vec::new(),
         }
+    }
+    pub fn is_empty(&self) -> bool {
+        !self.tree.tiles.tiles().any(|t| t.is_pane())
+            && (self.behavior.create.is_none() || self.behavior.creation_callback.is_none())
+            && self.behavior.add.is_empty()
     }
     fn update_pane_list_display_order(&mut self) {
         self.pane_list.clear();
@@ -172,8 +179,18 @@ where
 
         for tile_id in self.pane_list.drain(..) {
             if let Some(Tile::Pane(pane)) = self.tree.tiles.get_mut(tile_id) {
-                pane.logic(&mut self.behavior.shared, ctx);
+                pane.logic(
+                    &mut self.behavior.shared,
+                    || {
+                        self.behavior.remove.push(tile_id);
+                    },
+                    ctx,
+                );
             }
+        }
+
+        for tile_id in self.behavior.remove.drain(..) {
+            self.tree.remove_recursively(tile_id);
         }
     }
     pub fn modals(&mut self, ctx: &Context) -> bool {
@@ -239,7 +256,6 @@ where
                     } else {
                         warn!("View {:?} allowed check_close() but not close()", tile_id);
                         would_close = false;
-                        break;
                     }
                 }
             }
@@ -273,7 +289,7 @@ pub trait View<T> {
         true
     }
 
-    fn logic(&mut self, shared: &mut T, ctx: &Context);
+    fn logic(&mut self, shared: &mut T, force_close: impl FnOnce(), ctx: &Context);
     fn modals(&mut self, shared: &mut T, ctx: &Context) -> bool;
     fn ui(&mut self, shared: &mut T, ui: &mut Ui);
 

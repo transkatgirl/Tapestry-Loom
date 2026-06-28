@@ -17,7 +17,7 @@ impl View<AppShared> for SettingsView {
     fn title(&self, _shared: &AppShared) -> WidgetText {
         WidgetText::Text("\u{E154} Settings".to_string())
     }
-    fn logic(&mut self, shared: &mut AppShared, ctx: &Context) {}
+    fn logic(&mut self, _shared: &mut AppShared, _force_close: impl FnOnce(), _ctx: &Context) {}
     fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {
         false
     }

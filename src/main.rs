@@ -188,6 +188,10 @@ impl eframe::App for App {
                 ctx.send_viewport_cmd(ViewportCommand::CancelClose);
             }
         }
+
+        if self.container.is_empty() {
+            ctx.send_viewport_cmd(ViewportCommand::Close);
+        }
     }
     fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
         self.container.behavior.shared.ui(ui);
@@ -351,11 +355,11 @@ impl View<AppShared> for Pane {
             Self::Editor(view) => view.check_close(shared),
         }
     }
-    fn logic(&mut self, shared: &mut AppShared, ctx: &Context) {
+    fn logic(&mut self, shared: &mut AppShared, force_close: impl FnOnce(), ctx: &Context) {
         match self {
-            Self::Settings(view) => view.logic(shared, ctx),
-            Self::FileManager(view) => view.logic(shared, ctx),
-            Self::Editor(view) => view.logic(shared, ctx),
+            Self::Settings(view) => view.logic(shared, force_close, ctx),
+            Self::FileManager(view) => view.logic(shared, force_close, ctx),
+            Self::Editor(view) => view.logic(shared, force_close, ctx),
         }
     }
     fn modals(&mut self, shared: &mut AppShared, ctx: &Context) -> bool {

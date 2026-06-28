@@ -91,7 +91,12 @@ impl EditorShared {
             inference: InferenceEngine::new(shared),
         }
     }
-    pub(super) fn logic(&mut self, _ctx: &Context, shared: &mut AppShared) {
+    pub(super) fn logic(
+        &mut self,
+        _ctx: &Context,
+        force_close: impl FnOnce(),
+        shared: &mut AppShared,
+    ) {
         self.close_ready = false;
 
         match mem::take(&mut self.disk_task) {
