@@ -103,6 +103,7 @@ impl EditorShared {
         self.path = None;
         self.disk_task = DiskTask::None;
         self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
+        self.close_ready = false;
         self.close_after_save = false;
     }
     fn prepare_for_close(&mut self, shared: &mut AppShared) {
@@ -400,9 +401,43 @@ impl EditorShared {
         }
     }
     pub(super) fn close(&mut self, shared: &mut AppShared, bulk_close: bool) -> bool {
-        if let Some(path) = self.path.clone() {
-            if let Some(weave) = &self.weave {
-                if bulk_close {
+        if let Some(path) = &self.path
+            && let Some(weave) = &self.weave
+        {
+            if bulk_close {
+                if let DiskTask::Write(task) = mem::take(&mut self.disk_task) {
+                    match block_until_write(&shared.runtime, task) {
+                        Ok(()) => {}
+                        Err(error) => {
+                            shared.toasts.error(error);
+                            self.clear_path(shared);
+                            return false;
+                        }
+                    }
+                } else {
+                    debug_assert!(self.disk_task.is_none());
+                }
+
+                if !self.close_ready {
+                    let _runtime = shared.runtime.enter();
+
+                    if let DiskTask::Write(task) =
+                        DiskTask::write(path.clone(), self.disk_task_data.clone(), weave)
+                    {
+                        match block_until_write(&shared.runtime, task) {
+                            Ok(()) => {}
+                            Err(error) => {
+                                shared.toasts.error(error);
+                                self.clear_path(shared);
+                                return false;
+                            }
+                        }
+                    } else {
+                        panic!()
+                    }
+                }
+            } else {
+                if !self.close_ready && !self.close_after_save {
                     if let DiskTask::Write(task) = mem::take(&mut self.disk_task) {
                         match block_until_write(&shared.runtime, task) {
                             Ok(()) => {}
@@ -416,56 +451,18 @@ impl EditorShared {
                         debug_assert!(self.disk_task.is_none());
                     }
 
-                    if !self.close_ready {
-                        let _runtime = shared.runtime.enter();
+                    let _runtime = shared.runtime.enter();
+                    self.disk_task =
+                        DiskTask::write(path.clone(), self.disk_task_data.clone(), weave);
+                    self.close_ready = true;
+                }
 
-                        if let DiskTask::Write(task) =
-                            DiskTask::write(path.clone(), self.disk_task_data.clone(), weave)
-                        {
-                            match block_until_write(&shared.runtime, task) {
-                                Ok(()) => {}
-                                Err(error) => {
-                                    shared.toasts.error(error);
-                                    self.clear_path(shared);
-                                    return false;
-                                }
-                            }
-                        } else {
-                            panic!()
-                        }
-                    }
-                } else {
-                    if !self.close_ready && !self.close_after_save {
-                        if let DiskTask::Write(task) = mem::take(&mut self.disk_task) {
-                            match block_until_write(&shared.runtime, task) {
-                                Ok(()) => {}
-                                Err(error) => {
-                                    shared.toasts.error(error);
-                                    self.clear_path(shared);
-                                    return false;
-                                }
-                            }
-                        } else {
-                            debug_assert!(self.disk_task.is_none());
-                        }
+                self.close_after_save = true;
 
-                        let _runtime = shared.runtime.enter();
-                        self.disk_task =
-                            DiskTask::write(path.clone(), self.disk_task_data.clone(), weave);
-                        self.close_ready = true;
-                    }
-
-                    self.close_after_save = true;
-
-                    if !self.disk_task.is_none() {
-                        return false;
-                    }
+                if !self.disk_task.is_none() {
+                    return false;
                 }
             }
-
-            if shared.open_documents.remove(&path) {
-                shared.open_documents_updated = true;
-            };
         }
 
         self.prepare_for_close(shared);
