@@ -35,6 +35,7 @@ pub(super) struct EditorShared {
     disk_task: DiskTask,
     disk_task_data: Arc<Mutex<DiskTaskData>>, // Panics on lock
     pub weave: Option<TapestryWeave>,
+    close_ready: bool,
 }
 
 impl EditorShared {
@@ -67,6 +68,7 @@ impl EditorShared {
             disk_task,
             disk_task_data,
             weave,
+            close_ready: false,
         }
     }
     fn from_preload(preload: EditorPreloadHandle, shared: &mut AppShared) -> Self {
@@ -81,10 +83,13 @@ impl EditorShared {
             disk_task: DiskTask::from(preload.task),
             disk_task_data: preload.task_data,
             weave: None,
+            close_ready: false,
         }
     }
 
     pub(super) fn logic(&mut self, _ctx: &Context, shared: &mut AppShared) {
+        self.close_ready = false;
+
         match mem::take(&mut self.disk_task) {
             DiskTask::Read(task) => {
                 if task.is_finished() {
@@ -162,6 +167,7 @@ impl EditorShared {
         {
             let _runtime = shared.runtime.enter();
             self.disk_task = DiskTask::write(path.clone(), self.disk_task_data.clone(), weave);
+            self.close_ready = true;
         }
     }
 
@@ -180,9 +186,22 @@ impl EditorShared {
     pub(super) fn path(&self) -> &Option<PathBuf> {
         &self.path
     }
-    pub(super) fn check_close(&mut self, _shared: &mut AppShared) -> bool {
+    pub(super) fn check_close(&mut self, shared: &mut AppShared) -> bool {
         if let Some(weave) = &self.weave {
-            self.path.is_some() || weave.is_empty_including_metadata()
+            if weave.is_empty_including_metadata() {
+                true
+            } else if let Some(path) = self.path.clone() {
+                if self.disk_task.is_none() {
+                    let _runtime = shared.runtime.enter();
+                    self.disk_task =
+                        DiskTask::write(path.clone(), self.disk_task_data.clone(), weave);
+                    self.close_ready = true;
+                }
+
+                true
+            } else {
+                false
+            }
         } else {
             true
         }
@@ -200,24 +219,28 @@ impl EditorShared {
                             return false;
                         }
                     }
+                } else {
+                    debug_assert!(self.disk_task.is_none());
                 }
 
-                let _runtime = shared.runtime.enter();
+                if !self.close_ready {
+                    let _runtime = shared.runtime.enter();
 
-                if let DiskTask::Write(task) =
-                    DiskTask::write(path.clone(), self.disk_task_data.clone(), weave)
-                {
-                    match block_until_write(&shared.runtime, task) {
-                        Ok(()) => {}
-                        Err(error) => {
-                            shared.toasts.error(error);
-                            self.path = None;
-                            self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
-                            return false;
+                    if let DiskTask::Write(task) =
+                        DiskTask::write(path.clone(), self.disk_task_data.clone(), weave)
+                    {
+                        match block_until_write(&shared.runtime, task) {
+                            Ok(()) => {}
+                            Err(error) => {
+                                shared.toasts.error(error);
+                                self.path = None;
+                                self.disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
+                                return false;
+                            }
                         }
+                    } else {
+                        panic!()
                     }
-                } else {
-                    panic!()
                 }
             }
 
@@ -225,6 +248,8 @@ impl EditorShared {
                 shared.open_documents_updated = true;
             };
         }
+
+        debug!("Closed Editor (path = {:?})", &self.path);
 
         true
     }
