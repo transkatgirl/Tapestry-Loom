@@ -117,7 +117,15 @@ impl EditorShared {
         });
     }
 
-    pub(super) fn save(&mut self, shared: &mut AppShared) {}
+    pub(super) fn save(&mut self, shared: &mut AppShared) {
+        if let Some(path) = &self.path
+            && self.disk_task.is_none()
+            && let Some(weave) = &self.weave
+        {
+            let _runtime = shared.runtime.enter();
+            self.disk_task = DiskTask::write(path.clone(), self.disk_task_data.clone(), weave);
+        }
+    }
 
     pub(super) fn title(&self, shared: &AppShared) -> String {
         match &self.path {
@@ -144,6 +152,10 @@ impl EditorShared {
     pub(super) fn close(&mut self, shared: &mut AppShared) -> bool {
         if let Some(path) = &self.path {
             if let Some(weave) = &self.weave {
+                if let DiskTask::Write(task) = &mut self.disk_task {
+                    // TODO
+                }
+
                 // TODO
             }
 

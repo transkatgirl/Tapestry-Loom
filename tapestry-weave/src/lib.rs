@@ -209,9 +209,10 @@ impl VersionedWeave {
             _ => unimplemented!(),
         }
     }
-    #[cfg(all(feature = "v0", feature = "v1"))]
+    #[cfg(feature = "v1")]
     pub fn into_latest(self) -> v1::dependent::TapestryWeave {
         match self {
+            #[cfg(feature = "v0")]
             Self::V0(weave) => v1::dependent::TapestryWeave::from(weave),
             Self::V1Dependent(weave) => weave,
             Self::V1Independent(_) => unimplemented!(),

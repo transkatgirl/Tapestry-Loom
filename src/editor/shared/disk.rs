@@ -10,18 +10,23 @@ use std::{
 
 use log::{debug, error};
 use parking_lot::Mutex;
-use tapestry_weave::VersionedWeave;
+use tapestry_weave::{
+    VersionedWeave, universal_weave::rkyv::ser::writer::IoWriter, v1::dependent::TapestryWeave,
+};
 use tokio::task::{self, JoinHandle};
 
 use crate::common::task::AbortableBlockingTaskHandle;
 
 pub(super) enum DiskTask {
     None,
-    Read(AbortableBlockingTaskHandle<Result<VersionedWeave, String>>),
+    Read(AbortableBlockingTaskHandle<Result<TapestryWeave, String>>),
     Write(JoinHandle<Result<(), String>>),
 }
 
 impl DiskTask {
+    pub(super) fn is_none(&self) -> bool {
+        matches!(self, Self::None)
+    }
     pub(super) fn read(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Self {
         Self::Read(AbortableBlockingTaskHandle::new(move |abort| {
             debug!("Started read task for {:?}", &path);
@@ -51,7 +56,7 @@ impl DiskTask {
             match VersionedWeave::from_bytes(&data.buffer) {
                 Some(Ok(weave)) => {
                     debug!("Finished reading {:?}", &path);
-                    Ok(weave)
+                    Ok(weave.into_latest())
                 }
                 Some(Err(error)) => {
                     error!("Failed to deserialize {:?}: {:?}", path, error);
@@ -67,12 +72,14 @@ impl DiskTask {
     pub(super) fn write(
         path: PathBuf,
         data: Arc<Mutex<DiskTaskData>>,
-        weave: &VersionedWeave,
+        weave: &TapestryWeave,
     ) -> Self {
         let serialization_result = {
             let mut data = data.try_lock().unwrap();
             data.buffer.clear();
-            weave.write_bytes(&mut data.buffer)
+            weave
+                .write_versioned_bytes(IoWriter::new(&mut data.buffer))
+                .map(|_| ())
             // TODO: benchmark this on commonly used platforms; rkyv serialization might be faster than cloning
         };
 
@@ -106,7 +113,7 @@ impl DiskTask {
 }
 
 pub(super) struct DiskPreloadTask {
-    handle: AbortableBlockingTaskHandle<Result<VersionedWeave, String>>,
+    handle: AbortableBlockingTaskHandle<Result<TapestryWeave, String>>,
 }
 
 impl From<DiskPreloadTask> for DiskTask {
@@ -146,7 +153,7 @@ impl DiskPreloadTask {
                 match VersionedWeave::from_bytes(&data.buffer) {
                     Some(Ok(weave)) => {
                         debug!("Finished reading {:?}", &path);
-                        Ok(weave)
+                        Ok(weave.into_latest())
                     }
                     Some(Err(error)) => {
                         error!("Failed to deserialize {:?}: {:?}", path, error);
