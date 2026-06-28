@@ -255,7 +255,8 @@ impl EditorShared {
                             )
                         });
 
-                        if let Some(task_data) = self.disk_task_data.try_lock()
+                        if self.disk_task.is_none()
+                            && let Some(task_data) = self.disk_task_data.try_lock()
                             && task_data.len() > 0
                         {
                             label.on_hover_ui(|ui| {
