@@ -166,51 +166,54 @@ impl EditorShared {
         match &mut self.modal {
             EditorModal::None => false,
             EditorModal::SaveAs(path) => {
-                if Modal::new(["editor-", &self.id.to_string(), "-modal"].concat().into())
-                    .show(ctx, |ui| {
-                        ui.set_width(280.0);
-                        ui.heading("Save Weave");
-                        let label = ui.label("Path:");
-                        ui.text_edit_singleline(path).labelled_by(label.id);
-                        Sides::new().show(
-                            ui,
-                            |_ui| {},
-                            |ui| {
-                                if ui.button("Cancel").clicked() {
+                if Modal::new(
+                    ["editor-", &self.id.to_string(), "-save-modal"]
+                        .concat()
+                        .into(),
+                )
+                .show(ctx, |ui| {
+                    ui.set_width(280.0);
+                    ui.heading("Save Weave");
+                    let label = ui.label("Path:");
+                    ui.text_edit_singleline(path).labelled_by(label.id);
+                    Sides::new().show(
+                        ui,
+                        |_ui| {},
+                        |ui| {
+                            if ui.button("Cancel").clicked() {
+                                ui.close();
+                            }
+                            if (ui.button("Save").clicked()
+                                || ui.input(|input| input.key_pressed(Key::Enter)))
+                                && !path.is_empty()
+                            {
+                                let mut new_path = shared.settings.documents.location.join(path);
+                                if new_path.extension().is_none() {
+                                    new_path.set_extension("tapestry");
+                                }
+                                if !shared.open_documents.contains(&new_path)
+                                    && !fs::exists(&new_path).unwrap_or(true)
+                                // fs::exists() can be done on the UI thread, as nothing outside of the modal can be interacted with regardless
+                                {
+                                    let _runtime = shared.runtime.enter();
+                                    self.disk_task = DiskTask::write(
+                                        new_path.clone(),
+                                        self.disk_task_data.clone(),
+                                        self.weave.as_ref().unwrap(),
+                                    );
+                                    self.path = Some(new_path.clone());
+
+                                    shared.open_documents.insert(new_path);
+                                    shared.open_documents_updated = true;
+                                    shared.fs_needs_refresh = true;
+
                                     ui.close();
                                 }
-                                if (ui.button("Save").clicked()
-                                    || ui.input(|input| input.key_pressed(Key::Enter)))
-                                    && !path.is_empty()
-                                {
-                                    let mut new_path =
-                                        shared.settings.documents.location.join(path);
-                                    if new_path.extension().is_none() {
-                                        new_path.set_extension("tapestry");
-                                    }
-                                    if !shared.open_documents.contains(&new_path)
-                                        && !fs::exists(&new_path).unwrap_or(true)
-                                    // fs::exists() can be done on the UI thread, as nothing outside of the modal can be interacted with regardless
-                                    {
-                                        let _runtime = shared.runtime.enter();
-                                        self.disk_task = DiskTask::write(
-                                            new_path.clone(),
-                                            self.disk_task_data.clone(),
-                                            self.weave.as_ref().unwrap(),
-                                        );
-                                        self.path = Some(new_path.clone());
-
-                                        shared.open_documents.insert(new_path);
-                                        shared.open_documents_updated = true;
-                                        shared.fs_needs_refresh = true;
-
-                                        ui.close();
-                                    }
-                                }
-                            },
-                        );
-                    })
-                    .should_close()
+                            }
+                        },
+                    );
+                })
+                .should_close()
                 {
                     self.modal = EditorModal::None;
                 }
@@ -218,28 +221,32 @@ impl EditorShared {
                 true
             }
             EditorModal::ConfirmClose => {
-                if Modal::new(["editor-", &self.id.to_string(), "-modal"].concat().into())
-                    .show(ctx, |ui| {
-                        ui.set_width(210.0);
-                        ui.heading("Do you want to close this weave without saving?");
-                        ui.label("All changes made will be lost.");
-                        ui.add_space(ui.style().spacing.menu_spacing);
-                        Sides::new().show(
-                            ui,
-                            |_ui| {},
-                            |ui| {
-                                if ui.button("Yes").clicked() {
-                                    self.close_now = true;
-                                    ui.close();
-                                    ui.request_repaint();
-                                }
-                                if ui.button("No").clicked() {
-                                    ui.close();
-                                }
-                            },
-                        );
-                    })
-                    .should_close()
+                if Modal::new(
+                    ["editor-", &self.id.to_string(), "-close-modal"]
+                        .concat()
+                        .into(),
+                )
+                .show(ctx, |ui| {
+                    ui.set_width(210.0);
+                    ui.heading("Do you want to close this weave without saving?");
+                    ui.label("All changes made will be lost.");
+                    ui.add_space(ui.style().spacing.menu_spacing);
+                    Sides::new().show(
+                        ui,
+                        |_ui| {},
+                        |ui| {
+                            if ui.button("Yes").clicked() {
+                                self.close_now = true;
+                                ui.close();
+                                ui.request_repaint();
+                            }
+                            if ui.button("No").clicked() {
+                                ui.close();
+                            }
+                        },
+                    );
+                })
+                .should_close()
                 {
                     self.modal = EditorModal::None;
                 }
