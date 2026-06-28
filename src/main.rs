@@ -350,6 +350,13 @@ impl View<AppShared> for Pane {
             Self::Editor(editor) => editor.ui(shared, ui),
         }
     }
+    fn save(&mut self, shared: &mut AppShared) {
+        match self {
+            Self::Settings(settings) => settings.save(shared),
+            Self::FileManager(file_manager) => file_manager.save(shared),
+            Self::Editor(editor) => editor.save(shared),
+        }
+    }
     fn close(&mut self, shared: &mut AppShared) -> bool {
         match self {
             Self::Settings(settings) => settings.close(shared),
