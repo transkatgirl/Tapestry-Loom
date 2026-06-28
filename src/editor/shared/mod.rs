@@ -1,19 +1,9 @@
-use std::{
-    fs::File,
-    io::{self, Read, Seek, SeekFrom, Write},
-    mem,
-    path::{Path, PathBuf},
-    sync::{
-        Arc,
-        atomic::{self, AtomicBool},
-    },
-};
+use std::{mem, path::PathBuf, sync::Arc};
 
 use eframe::egui::{Align, Context, Layout, OutputCommand, Panel, Ui};
-use log::{debug, error, warn};
+use log::debug;
 use parking_lot::Mutex;
-use tapestry_weave::{VersionedWeave, v1::dependent::TapestryWeave};
-use tokio::task::{self, JoinHandle};
+use tapestry_weave::v1::dependent::TapestryWeave;
 use ulid::Ulid;
 
 mod disk;
@@ -30,7 +20,7 @@ use crate::{
 
 pub(super) struct EditorShared {
     pub id: Ulid,
-    path: Option<PathBuf>, // TODO: Document loading, create root dir if it doesn't exist
+    path: Option<PathBuf>,
 
     disk_task: DiskTask,
     disk_task_data: Arc<Mutex<DiskTaskData>>, // Panics on lock
@@ -86,7 +76,6 @@ impl EditorShared {
             close_ready: false,
         }
     }
-
     pub(super) fn logic(&mut self, _ctx: &Context, shared: &mut AppShared) {
         self.close_ready = false;
 
@@ -159,7 +148,6 @@ impl EditorShared {
             });
         });
     }
-
     pub(super) fn save(&mut self, shared: &mut AppShared) {
         if let Some(path) = &self.path
             && self.disk_task.is_none()
@@ -170,8 +158,7 @@ impl EditorShared {
             self.close_ready = true;
         }
     }
-
-    pub(super) fn title(&self, shared: &AppShared) -> String {
+    pub(super) fn title(&self, _shared: &AppShared) -> String {
         match &self.path {
             Some(path) => {
                 if let Some(filename) = path.file_stem() {

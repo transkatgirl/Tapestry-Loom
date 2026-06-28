@@ -1,5 +1,5 @@
 use std::{
-    fs::File,
+    fs::{self, File},
     io::{self, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
     sync::{
@@ -217,6 +217,19 @@ impl DiskTaskData {
     fn open(&mut self, path: &Path, create: bool, abort: &AtomicBool) -> Result<(), io::Error> {
         assert!(self.file.is_none());
 
+        if create
+            && let Some(parent) = path.parent()
+            && !parent.as_os_str().is_empty()
+        {
+            if !parent.try_exists()? {
+                fs::create_dir_all(parent)?;
+            }
+
+            if abort.load(Ordering::Relaxed) {
+                return Err(io::Error::from(io::ErrorKind::Interrupted));
+            };
+        }
+
         let file = File::options()
             .create(create)
             .truncate(false)
@@ -240,6 +253,14 @@ impl DiskTaskData {
     }
     fn open_unabortable(&mut self, path: &Path, create: bool) -> Result<(), io::Error> {
         assert!(self.file.is_none());
+
+        if create
+            && let Some(parent) = path.parent()
+            && !parent.as_os_str().is_empty()
+            && !parent.try_exists()?
+        {
+            fs::create_dir_all(parent)?;
+        }
 
         let file = File::options()
             .create(create)
