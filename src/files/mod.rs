@@ -357,7 +357,18 @@ impl FileManager {
                                                 || path.extension()
                                                     == Some(&file_extension_treeless))
                                         {
-                                            if ui.button("Open weave").clicked() {
+                                            let button_response = ui.button("Open weave");
+
+                                            if button_response.contains_pointer()
+                                                && button_response.ctx.input(|i| {
+                                                    i.pointer.button_pressed(PointerButton::Primary)
+                                                })
+                                            {
+                                                shared.queued_preload_document = Some(path.clone());
+                                                ui.request_repaint();
+                                            }
+
+                                            if button_response.clicked() {
                                                 shared.load_document_queue.push(path.clone());
                                                 ui.request_repaint();
                                             }
