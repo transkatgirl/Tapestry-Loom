@@ -90,6 +90,11 @@ impl App {
             *memory = Memory::default();
         });
 
+        cc.egui_ctx.set_zoom_factor(1.2); // TODO: Allow customizing zoom
+        cc.egui_ctx.options_mut(|options| {
+            options.theme_preference = egui::ThemePreference::Dark; // TODO: Allow customizing theme preference
+            options.tessellation_options.feathering = false;
+        });
         cc.egui_ctx.all_styles_mut(|style| {
             style.animation_time = 0.0;
             style.scroll_animation = ScrollAnimation {
