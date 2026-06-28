@@ -203,8 +203,11 @@ struct AppShared {
     open_documents: HashSet<PathBuf>,
     open_documents_updated: bool,
     load_document_queue: Vec<PathBuf>,
+
     queued_preload_document: Option<PathBuf>,
     preloaded_document: Option<(PathBuf, EditorPreloadHandle)>,
+
+    fs_needs_refresh: bool,
 }
 
 impl AppShared {
@@ -244,6 +247,8 @@ impl AppShared {
 
             queued_preload_document: None,
             preloaded_document: None,
+
+            fs_needs_refresh: false,
         })
     }
     fn logic(&mut self, _ctx: &Context, mut add_pane: impl FnMut(Pane)) {

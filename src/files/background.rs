@@ -48,9 +48,11 @@ impl BackgroundFsManager {
         if self.last_root.as_ref() != Some(&shared.settings.documents.location)
             || self.last_natural_sort != shared.settings.documents.natural_sort
             || (had_tasks && self.tasks.is_empty())
+            || shared.fs_needs_refresh
         {
             self.last_root = Some(shared.settings.documents.location.clone());
             self.last_natural_sort = shared.settings.documents.natural_sort;
+            shared.fs_needs_refresh = false;
 
             let _runtime = shared.runtime.enter();
             self.crawler.crawl(

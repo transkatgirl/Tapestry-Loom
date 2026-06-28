@@ -164,6 +164,7 @@ impl EditorShared {
 
                                         shared.open_documents.insert(new_path);
                                         shared.open_documents_updated = true;
+                                        shared.fs_needs_refresh = true;
 
                                         ui.close();
                                     }
