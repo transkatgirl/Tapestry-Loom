@@ -10,7 +10,11 @@ impl View<EditorShared> for InfoView {
         WidgetText::Text("\u{E0F9} Info".to_string())
     }
     fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
-    fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {}
+    fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
+        if let Some(weave) = &mut shared.weave {
+            // TODO
+        }
+    }
 }
 
 #[derive(Default, Debug)]
@@ -21,5 +25,9 @@ impl View<EditorShared> for MenuView {
         WidgetText::Text("\u{E1B1} Menu".to_string())
     }
     fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
-    fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {}
+    fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
+        if let Some(weave) = &mut shared.weave {
+            // TODO
+        }
+    }
 }

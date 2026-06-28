@@ -7,12 +7,12 @@ use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, v1::dependent::TapestryWeav
 use ulid::Ulid;
 
 mod disk;
-pub(super) mod inference;
 pub mod preload;
 
 use crate::{
     AppShared,
     common::{
+        inference::InferenceEngine,
         task::BACKGROUND_REFRESH_INTERVAL,
         ui::{
             abbreviate_path, after_ui_interaction, format_file_size, format_large_number,
@@ -21,10 +21,7 @@ use crate::{
     },
     editor::{
         preload::EditorPreloadHandle,
-        shared::{
-            disk::{DiskTask, DiskTaskData, block_until_read, block_until_write},
-            inference::InferenceEngine,
-        },
+        shared::disk::{DiskTask, DiskTaskData, block_until_read, block_until_write},
     },
 };
 

@@ -10,5 +10,9 @@ impl View<EditorShared> for CanvasView {
         WidgetText::Text("\u{E125} Canvas".to_string())
     }
     fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
-    fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {}
+    fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
+        if let Some(weave) = &mut shared.weave {
+            // TODO
+        }
+    }
 }
