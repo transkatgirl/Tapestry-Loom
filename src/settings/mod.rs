@@ -12,20 +12,27 @@ use crate::{
         task::BACKGROUND_REFRESH_INTERVAL,
         view::{Edit, View},
     },
-    settings::{document::DocumentSettings, interface::InterfaceSettings},
+    settings::{
+        document::DocumentSettings, interface::InterfaceSettings, shortcuts::ShortcutSettings,
+    },
 };
 
 mod document;
 mod interface;
+pub mod shortcuts;
 
 #[derive(Debug)]
 pub struct SettingsView {
     first_frame: bool,
+    visible: bool,
 }
 
 impl Default for SettingsView {
     fn default() -> Self {
-        Self { first_frame: true }
+        Self {
+            first_frame: true,
+            visible: false,
+        }
     }
 }
 
@@ -37,6 +44,12 @@ impl View<AppShared> for SettingsView {
         if self.first_frame {
             shared.settings.interface.apply(ctx);
             self.first_frame = false;
+        }
+
+        if !self.visible {
+            shared.settings.shortcuts.update(&mut shared.shortcuts, ctx);
+        } else {
+            self.visible = false;
         }
     }
     fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {
@@ -51,6 +64,9 @@ impl View<AppShared> for SettingsView {
                     })
             });
 
+        self.visible = true;
+        ShortcutSettings::clear(&mut shared.shortcuts);
+
         ui.request_repaint_after(BACKGROUND_REFRESH_INTERVAL);
     }
 }
@@ -60,6 +76,7 @@ pub struct Settings {
     pub interface: InterfaceSettings,
     pub documents: DocumentSettings,
     pub inference: Rc<RefCell<InferenceEngineSettings>>,
+    pub shortcuts: ShortcutSettings,
 }
 
 impl Settings {
@@ -106,5 +123,14 @@ impl Edit for Settings {
         ui.separator();
         ui.heading("Inference");
         self.inference.borrow_mut().ui(ui);
+        ui.separator();
+        ui.heading("Shortcuts*")
+            .on_hover_text("All listed shortcuts are disabled while the Settings view is open.");
+        self.shortcuts.ui(ui);
+        ui.separator();
+        ui.hyperlink_to(
+            format!("Tapestry Loom v{} by transkatgirl", env!("BUILD_VERSION")),
+            env!("CARGO_PKG_HOMEPAGE"),
+        );
     }
 }
