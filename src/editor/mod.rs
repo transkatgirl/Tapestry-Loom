@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use eframe::egui::{CentralPanel, Context, Frame, Ui, WidgetText};
 use egui_tiles::{Container, Linear, LinearDir, Tabs, Tile, Tiles, Tree};
 
+pub mod settings;
 mod shared;
 mod subviews;
 

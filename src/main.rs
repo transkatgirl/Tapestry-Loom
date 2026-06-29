@@ -18,7 +18,6 @@ use eframe::{
 use egui_notify::{Toast, Toasts};
 use egui_tiles::{Tiles, Tree};
 use env_logger::Env;
-use flagset::FlagSet;
 use log::{debug, error, trace};
 use mimalloc::MiMalloc;
 use parking_lot::Mutex;
@@ -266,7 +265,7 @@ struct AppShared {
     inference: InferenceEngine,
     toasts: Toasts,
     settings: Settings,
-    shortcuts: FlagSet<Shortcuts>,
+    shortcuts: Shortcuts,
 
     open_documents: HashSet<PathBuf>,
     open_documents_updated: bool,
@@ -305,7 +304,7 @@ impl AppShared {
             toasts,
             inference,
             settings,
-            shortcuts: FlagSet::<Shortcuts>::empty(),
+            shortcuts: Shortcuts::default(),
 
             open_documents: HashSet::with_capacity(8),
             open_documents_updated: false,

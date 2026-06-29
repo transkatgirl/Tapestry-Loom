@@ -1,9 +1,13 @@
 use std::collections::BTreeMap;
 
-use eframe::egui::{ComboBox, Context, FontFamily, Slider, SliderClamping, ThemePreference, Ui};
+use eframe::egui::{
+    ComboBox, Context, FontFamily, Slider, SliderClamping, TextStyle, ThemePreference, Ui,
+};
 use serde::{Deserialize, Serialize};
 
-use crate::common::view::Edit;
+use crate::{
+    common::view::Edit, editor::settings::interface::InterfaceSettings as EditorInterfaceSettings,
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct InterfaceSettings {
@@ -15,6 +19,9 @@ pub struct InterfaceSettings {
 
     #[serde(default)]
     pub font: FontPreference,
+
+    #[serde(flatten)]
+    pub editor: EditorInterfaceSettings,
 }
 
 impl Default for InterfaceSettings {
@@ -23,6 +30,7 @@ impl Default for InterfaceSettings {
             theme: ThemePreference::System,
             scale: 1.25,
             font: FontPreference::Default,
+            editor: EditorInterfaceSettings::default(),
         }
     }
 }
@@ -95,6 +103,9 @@ impl Edit for InterfaceSettings {
         if self.font != last_font {
             self.font.apply(ui);
         }
+
+        ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.75);
+        self.editor.ui(ui);
     }
 }
 
