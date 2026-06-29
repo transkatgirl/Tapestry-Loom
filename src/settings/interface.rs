@@ -27,9 +27,9 @@ pub struct InterfaceSettings {
 impl Default for InterfaceSettings {
     fn default() -> Self {
         Self {
-            theme: ThemePreference::System,
-            scale: 1.25,
-            font: FontPreference::Default,
+            theme: ThemePreference::default(),
+            scale: default_scale(),
+            font: FontPreference::default(),
             editor: EditorInterfaceSettings::default(),
         }
     }
@@ -55,14 +55,14 @@ impl Edit for InterfaceSettings {
     fn ui(&mut self, ui: &mut Ui) {
         ComboBox::from_label("Theme")
             .selected_text(match self.theme {
+                ThemePreference::System => "Auto",
                 ThemePreference::Dark => "Dark",
                 ThemePreference::Light => "Light",
-                ThemePreference::System => "Auto",
             })
             .show_ui(ui, |ui| {
+                ui.selectable_value(&mut self.theme, ThemePreference::System, "Auto");
                 ui.selectable_value(&mut self.theme, ThemePreference::Dark, "Dark");
                 ui.selectable_value(&mut self.theme, ThemePreference::Light, "Light");
-                ui.selectable_value(&mut self.theme, ThemePreference::System, "Auto");
             })
             .response
             .on_hover_text("Changes the application-wide UI theme.");

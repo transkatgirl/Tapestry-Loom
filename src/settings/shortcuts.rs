@@ -14,7 +14,7 @@ use crate::{
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct ShortcutSettings {
-    #[serde(flatten)]
+    #[serde(default)]
     pub global: GlobalShortcutSettings,
 
     #[serde(flatten)]
