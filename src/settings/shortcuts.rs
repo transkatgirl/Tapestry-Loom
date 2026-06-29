@@ -82,7 +82,7 @@ impl Edit for GlobalShortcutSettings {
 }
 
 flags! {
-    pub enum GlobalShortcuts: u32 {
+    pub enum GlobalShortcuts: u16 {
         Save,
     }
 }
