@@ -6,6 +6,8 @@ use tapestry_weave::v1::dependent::TapestryWeave;
 use tokio::runtime::Runtime;
 use ulid::Ulid;
 
+mod seriate;
+
 use crate::common::view::Edit;
 
 pub struct InferenceEngine {
