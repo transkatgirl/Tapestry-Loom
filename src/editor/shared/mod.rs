@@ -8,6 +8,7 @@ use ulid::Ulid;
 
 mod disk;
 pub mod preload;
+pub(super) mod ui;
 
 use crate::{
     AppShared,
@@ -19,7 +20,10 @@ use crate::{
     },
     editor::{
         preload::EditorPreloadHandle,
-        shared::disk::{DiskTask, DiskTaskData, block_until_read, block_until_write},
+        shared::{
+            disk::{DiskTask, DiskTaskData, block_until_read, block_until_write},
+            ui::WeaveUi,
+        },
     },
 };
 
@@ -34,6 +38,8 @@ pub(super) struct EditorShared {
     close_ready: bool,
     close_now: bool,
     close_after_save: bool,
+
+    pub ui: WeaveUi,
 }
 
 impl EditorShared {
@@ -69,6 +75,7 @@ impl EditorShared {
             close_ready: false,
             close_now: false,
             close_after_save: false,
+            ui: WeaveUi::default(),
         }
     }
     fn from_preload(preload: EditorPreloadHandle, shared: &mut AppShared) -> Self {
@@ -87,6 +94,7 @@ impl EditorShared {
             close_ready: false,
             close_now: false,
             close_after_save: false,
+            ui: WeaveUi::default(),
         }
     }
     fn clear_path(&mut self, shared: &mut AppShared) {
