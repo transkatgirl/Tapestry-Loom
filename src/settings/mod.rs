@@ -93,7 +93,7 @@ impl Edit for Settings {
             |ui| {
                 ui.with_layout(Layout::default(), |ui| {
                     ui.heading("Interface");
-                    self.interface.ui(shared, ui);
+                    self.interface.ui(ui);
                 });
             },
             |ui| {
