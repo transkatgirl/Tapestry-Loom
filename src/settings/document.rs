@@ -22,7 +22,7 @@ impl Default for DocumentSettings {
 
 impl Edit for DocumentSettings {
     fn ui(&mut self, ui: &mut Ui) {
-        let location_hover_text = "Changes the path used by the built in file manager.\n\nFile paths in the UI are abbreviated to be relative to the root location whenever possible.";
+        let location_hover_text = "Changes the root path used for working with disk-backed documents.\n\nFile paths are abbreviated to be relative to the root location whenever possible.";
 
         let location_label = ui
             .label("Root location:")
@@ -47,7 +47,7 @@ impl Edit for DocumentSettings {
                     .suffix("s")
                     .text("Autosave interval"),
             )
-            .on_hover_text("Weaves are automatically saved at fixed intervals based on this setting.\n\nIn addition to the autosave interval, weaves will be automatically saved on application close.")
+            .on_hover_text("Disk-backed documents are saved at fixed intervals based on this setting.\n\nIn addition to saving at fixed intervals, documents will always be saved on application close.")
             .changed()
         {
             self.save_interval = Duration::from_secs_f32(save_interval);
