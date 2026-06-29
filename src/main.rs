@@ -30,7 +30,10 @@ use crate::{
     },
     editor::{Editor, preload::EditorPreloadHandle},
     files::FileManager,
-    settings::{Settings, SettingsView, shortcuts::Shortcuts},
+    settings::{
+        Settings, SettingsView,
+        shortcuts::{GlobalShortcuts, Shortcuts},
+    },
 };
 
 mod common;
@@ -196,12 +199,23 @@ impl App {
 
 impl eframe::App for App {
     fn auto_save_interval(&self) -> Duration {
-        self.container
+        if self
+            .container
             .behavior
             .shared
-            .settings
-            .documents
-            .save_interval
+            .shortcuts
+            .global
+            .contains(GlobalShortcuts::Save)
+        {
+            Duration::ZERO
+        } else {
+            self.container
+                .behavior
+                .shared
+                .settings
+                .documents
+                .save_interval
+        }
     }
     fn logic(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         self.new_panes.clear();
@@ -358,6 +372,10 @@ impl AppShared {
         self.queued_preload_document = None;
     }
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        if self.shortcuts.global.contains(GlobalShortcuts::Save) {
+            self.toasts.info("Saved data to disk");
+        }
+
         match self.settings.serialize() {
             Ok(data) => {
                 debug!("Saved settings to disk");

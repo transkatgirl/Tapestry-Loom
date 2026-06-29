@@ -1,7 +1,10 @@
 use std::path::Path;
 
 use eframe::{
-    egui::{PointerButton, Response, Ui, response::Flags},
+    egui::{
+        Event, InputState, Key, KeyboardShortcut, Modifiers, PointerButton, Response, Ui,
+        response::Flags,
+    },
     epaint::MarginF32,
 };
 
@@ -13,6 +16,52 @@ pub fn clicked_rising_edge(response: &Response) -> bool {
             && response
                 .ctx
                 .input(|i| i.pointer.button_pressed(PointerButton::Primary)))
+}
+
+// Copied from egui source code and modified to use Modifiers::matches_exact()
+pub fn count_and_consume_key(
+    input: &mut InputState,
+    modifiers: Modifiers,
+    logical_key: Key,
+) -> usize {
+    let mut count = 0usize;
+
+    input.events.retain(|event| {
+        let is_match = matches!(
+            event,
+            Event::Key {
+                key: ev_key,
+                modifiers: ev_mods,
+                pressed: true,
+                ..
+            } if *ev_key == logical_key && ev_mods.matches_exact(modifiers)
+        );
+
+        count += is_match as usize;
+
+        !is_match
+    });
+
+    count
+}
+
+// Copied from egui source code
+pub fn consume_shortcut(input: &mut InputState, shortcut: &KeyboardShortcut) -> bool {
+    let KeyboardShortcut {
+        modifiers,
+        logical_key,
+    } = *shortcut;
+    count_and_consume_key(input, modifiers, logical_key) > 0
+}
+
+pub fn is_shortcut_pressed(input: &mut InputState, shortcut: &KeyboardShortcut) -> bool {
+    let KeyboardShortcut {
+        modifiers,
+        logical_key,
+    } = *shortcut;
+    input.modifiers.matches_exact(modifiers)
+        && input.keys_down.len() == 1
+        && input.keys_down.contains(&logical_key)
 }
 
 pub fn listing_margin(ui: &mut Ui) -> MarginF32 {

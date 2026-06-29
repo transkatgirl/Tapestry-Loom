@@ -1,9 +1,10 @@
-use eframe::egui::{Context, TextStyle, Ui};
+use eframe::egui::{Context, Key, KeyboardShortcut, TextStyle, Ui};
+use egui_keybind::Keybind;
 use flagset::{FlagSet, flags};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::view::Edit,
+    common::{ui::consume_shortcut, view::Edit},
     editor::settings::shortcuts::{
         ShortcutSettings as EditorShortcutSettings, Shortcuts as EditorShortcuts,
     },
@@ -24,6 +25,11 @@ impl ShortcutSettings {
         EditorShortcutSettings::clear(&mut shortcuts.editor);
     }
     pub fn update(&mut self, shortcuts: &mut Shortcuts, ctx: &Context) {
+        if ctx.memory(|memory| memory.top_modal_layer().is_some()) {
+            ShortcutSettings::clear(shortcuts);
+            return;
+        }
+
         self.global.update(&mut shortcuts.global, ctx);
         self.editor.update(&mut shortcuts.editor, ctx);
     }
@@ -31,9 +37,9 @@ impl ShortcutSettings {
 
 impl Edit for ShortcutSettings {
     fn ui(&mut self, ui: &mut Ui) {
-        self.global.ui(ui);
-        ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.5);
         self.editor.ui(ui);
+        ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.5);
+        self.global.ui(ui);
     }
 }
 
@@ -44,7 +50,9 @@ pub struct Shortcuts {
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
-pub struct GlobalShortcutSettings {}
+pub struct GlobalShortcutSettings {
+    save: Option<KeyboardShortcut>,
+}
 
 impl GlobalShortcutSettings {
     pub fn clear(shortcuts: &mut FlagSet<GlobalShortcuts>) {
@@ -53,19 +61,29 @@ impl GlobalShortcutSettings {
     pub fn update(&mut self, shortcuts: &mut FlagSet<GlobalShortcuts>, ctx: &Context) {
         Self::clear(shortcuts);
 
-        // TODO
+        ctx.input_mut(|input| {
+            if let Some(shortcut) = &self.save
+                && consume_shortcut(input, shortcut)
+            {
+                *shortcuts |= GlobalShortcuts::Save;
+            }
+        });
     }
 }
 
 impl Edit for GlobalShortcutSettings {
     fn ui(&mut self, ui: &mut Ui) {
-        // TODO
+        ui.add(
+            Keybind::new(&mut self.save, "keybind-save_all")
+                .with_text("Save immediately")
+                .with_reset(None)
+                .with_reset_key(Some(Key::Escape)),
+        );
     }
 }
 
 flags! {
     pub enum GlobalShortcuts: u32 {
-        CloseFocusedTab,
-        SaveAllDocuments,
+        Save,
     }
 }
