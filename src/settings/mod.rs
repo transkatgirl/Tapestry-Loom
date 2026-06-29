@@ -9,7 +9,6 @@ use crate::{
     AppShared,
     common::{
         inference::InferenceEngineSettings,
-        task::BACKGROUND_REFRESH_INTERVAL,
         view::{Edit, View},
     },
     settings::{

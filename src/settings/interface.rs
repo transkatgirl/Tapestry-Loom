@@ -80,13 +80,13 @@ impl Edit for InterfaceSettings {
 
         ComboBox::from_label("Fontset")
             .selected_text(match self.font {
-                FontPreference::Default => "egui Default",
-                FontPreference::Monospace => "egui Monospace",
+                FontPreference::Default => "Default",
+                FontPreference::Monospace => "Monospace",
                 FontPreference::UnifontEX => "UnifontEX",
             })
             .show_ui(ui, |ui| {
-                ui.selectable_value(&mut self.font, FontPreference::Default, "egui Default");
-                ui.selectable_value(&mut self.font, FontPreference::Monospace, "egui Monospace");
+                ui.selectable_value(&mut self.font, FontPreference::Default, "Default");
+                ui.selectable_value(&mut self.font, FontPreference::Monospace, "Monospace");
                 ui.selectable_value(&mut self.font, FontPreference::UnifontEX, "UnifontEX");
             })
             .response
