@@ -36,7 +36,7 @@ impl InterfaceSettings {
 
 impl Editable<SettingsView> for InterfaceSettings {
     fn ui(&mut self, shared: &mut SettingsView, ui: &mut Ui) {
-        if ComboBox::from_label("Theme")
+        ComboBox::from_label("Theme")
             .selected_text(match self.theme {
                 ThemePreference::Dark => "Dark",
                 ThemePreference::Light => "Light",
@@ -48,13 +48,11 @@ impl Editable<SettingsView> for InterfaceSettings {
                 ui.selectable_value(&mut self.theme, ThemePreference::System, "Auto");
             })
             .response
-            .on_hover_text("Changes the application-wide UI theme.")
-            .changed()
-        {
-            ui.options_mut(|options| {
-                options.theme_preference = self.theme;
-            })
-        }
+            .on_hover_text("Changes the application-wide UI theme.");
+
+        ui.options_mut(|options| {
+            options.theme_preference = self.theme;
+        });
 
         let zoom_slider = ui
             .add(
