@@ -127,6 +127,8 @@ where
             .push(self.tree.tiles.insert_new(Tile::Pane(pane)));
     }
     pub fn logic(&mut self, ctx: &Context) {
+        let original_focus = self.behavior.focus;
+
         if let Some(create) = self.behavior.create {
             if let Some(callback) = &self.behavior.creation_callback {
                 let tile_id = self
@@ -138,16 +140,12 @@ where
                     && let Some(Tile::Container(parent)) = self.tree.tiles.get_mut(create)
                 {
                     parent.add_child(tile_id);
-                    if let Container::Tabs(tabs) = parent {
-                        tabs.set_active(tile_id);
-                    }
+                    self.behavior.focus = Some(tile_id);
                 } else if let Some(root) = self.tree.root
                     && let Some(Tile::Container(root)) = self.tree.tiles.get_mut(root)
                 {
                     root.add_child(tile_id);
-                    if let Container::Tabs(tabs) = root {
-                        tabs.set_active(tile_id);
-                    }
+                    self.behavior.focus = Some(tile_id);
                 } else {
                     warn!("Created orphaned view {:?}", tile_id);
                 }
@@ -161,14 +159,16 @@ where
             {
                 for tile_id in self.behavior.add.drain(..) {
                     root.add_child(tile_id);
-                    if let Container::Tabs(tabs) = root {
-                        tabs.set_active(tile_id);
-                    }
+                    self.behavior.focus = Some(tile_id);
                 }
             } else {
                 warn!("Tree {:?} contains no valid root tile", self.tree.id());
                 self.behavior.add.clear();
             }
+        }
+
+        if original_focus.is_some() {
+            self.behavior.focus = original_focus;
         }
 
         if let Some(tile_id) = self.behavior.focus {
