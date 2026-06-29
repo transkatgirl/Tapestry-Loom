@@ -1186,16 +1186,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cc14f565cf027a105f7a44ccf9e5b424348421a1d8952a8fc9d499d313107789"
 
 [[package]]
-name = "concat-idents"
-version = "1.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f76990911f2267d837d9d0ad060aa63aaad170af40904b29461734c339030d4d"
-dependencies = [
- "quote",
- "syn 2.0.118",
-]
-
-[[package]]
 name = "concurrent-queue"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1798,29 +1788,6 @@ dependencies = [
  "web-time",
  "webbrowser",
  "winit",
-]
-
-[[package]]
-name = "egui_animation"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd9bc6d586df44e01b90715eec1eb8d73a61c3c3f554edffb01eb0894a8107ef"
-dependencies = [
- "egui",
- "hello_egui_utils",
- "simple-easing",
-]
-
-[[package]]
-name = "egui_dnd"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51a348b3fdbc048c4241aaa2865255e1fdebbc0099324ded8c5b534e598e600c"
-dependencies = [
- "egui",
- "egui_animation",
- "simple-easing",
- "web-time",
 ]
 
 [[package]]
@@ -2630,16 +2597,6 @@ name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
-
-[[package]]
-name = "hello_egui_utils"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c34bfd8bff6f6df43b0b73ed7949a7aff0c98c2c1bd4c2f2771f5f2f6d98ced0"
-dependencies = [
- "concat-idents",
- "egui",
-]
 
 [[package]]
 name = "hermit-abi"
@@ -5356,12 +5313,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e"
 
 [[package]]
-name = "simple-easing"
-version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c82d449ab1bccfeec125893c6875008206f038d4eb8a09e1e10caf86f44d574e"
-
-[[package]]
 name = "siphasher"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5672,7 +5623,6 @@ dependencies = [
  "egui-keybind",
  "egui-notify",
  "egui-probe",
- "egui_dnd",
  "egui_plot",
  "egui_tiles",
  "egui_virtual_list",
