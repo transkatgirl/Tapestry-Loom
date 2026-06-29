@@ -12,7 +12,6 @@ pub mod preload;
 use crate::{
     AppShared,
     common::{
-        inference::InferenceEngine,
         task::BACKGROUND_REFRESH_INTERVAL,
         ui::{
             abbreviate_path, format_file_size, format_large_number, format_large_number_detailed,
@@ -35,8 +34,6 @@ pub(super) struct EditorShared {
     close_ready: bool,
     close_now: bool,
     close_after_save: bool,
-
-    pub inference: InferenceEngine,
 }
 
 impl EditorShared {
@@ -72,7 +69,6 @@ impl EditorShared {
             close_ready: false,
             close_now: false,
             close_after_save: false,
-            inference: InferenceEngine::new(shared),
         }
     }
     fn from_preload(preload: EditorPreloadHandle, shared: &mut AppShared) -> Self {
@@ -91,7 +87,6 @@ impl EditorShared {
             close_ready: false,
             close_now: false,
             close_after_save: false,
-            inference: InferenceEngine::new(shared),
         }
     }
     fn clear_path(&mut self, shared: &mut AppShared) {
@@ -113,7 +108,7 @@ impl EditorShared {
             shared.open_documents_updated = true;
         }
 
-        self.inference.cancel(shared);
+        shared.inference.cancel(self.id);
 
         debug!("Closed Editor (path = {:?})", &self.path);
     }
@@ -167,9 +162,9 @@ impl EditorShared {
             DiskTask::None => {}
         }
 
-        self.inference.update(shared, &mut self.weave);
+        shared.inference.update(self.id, &mut self.weave);
 
-        if !self.disk_task.is_none() || self.inference.requests() > 0 {
+        if !self.disk_task.is_none() || shared.inference.requests(self.id) > 0 {
             ctx.request_repaint_after(BACKGROUND_REFRESH_INTERVAL);
         }
     }
@@ -302,7 +297,7 @@ impl EditorShared {
                 });
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if let Some(weave) = &self.weave {
-                        let requests = self.inference.requests();
+                        let requests = shared.inference.requests(self.id);
 
                         if requests > 0 {
                             ui.add(Spinner::new());
@@ -311,7 +306,7 @@ impl EditorShared {
                             ))
                             .on_hover_ui(|ui| {
                                 if ui.button("Cancel requests").clicked() {
-                                    self.inference.cancel(shared);
+                                    shared.inference.cancel(self.id);
                                 }
                             });
                         } else {

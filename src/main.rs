@@ -21,11 +21,13 @@ use env_logger::Env;
 use log::{debug, error, trace};
 use mimalloc::MiMalloc;
 use parking_lot::Mutex;
-use reqwest::{Client, ClientBuilder};
 use tokio::runtime::{self, Runtime};
 
 use crate::{
-    common::view::{View, ViewContainer},
+    common::{
+        inference::InferenceEngine,
+        view::{View, ViewContainer},
+    },
     editor::{Editor, preload::EditorPreloadHandle},
     files::FileManager,
     settings::{Settings, SettingsView},
@@ -260,7 +262,7 @@ struct AppShared {
     runtime: Arc<Runtime>,
     async_toasts: Arc<Mutex<Vec<Toast>>>,
 
-    client: Client,
+    inference: InferenceEngine,
     toasts: Toasts,
     settings: Settings,
 
@@ -293,16 +295,13 @@ impl AppShared {
             Settings::default()
         };
 
-        let client = ClientBuilder::new()
-            .connect_timeout(Duration::from_secs(15))
-            .timeout(Duration::from_secs(300))
-            .build()?;
+        let inference = InferenceEngine::new(runtime.clone())?;
 
         Ok(Self {
             runtime,
             async_toasts: Arc::new(Mutex::new(Vec::with_capacity(8))),
             toasts,
-            client,
+            inference,
             settings,
 
             open_documents: HashSet::with_capacity(8),
