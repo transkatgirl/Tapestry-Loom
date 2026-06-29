@@ -66,8 +66,6 @@ impl View<AppShared> for SettingsView {
 
         self.visible = true;
         ShortcutSettings::clear(&mut shared.shortcuts);
-
-        ui.request_repaint_after(BACKGROUND_REFRESH_INTERVAL);
     }
 }
 
