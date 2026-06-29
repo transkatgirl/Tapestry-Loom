@@ -11,8 +11,8 @@ use std::{
 use eframe::{
     CreationContext, NativeOptions,
     egui::{
-        self, CentralPanel, Context, FontData, FontDefinitions, FontFamily, FontTweak, IconData,
-        Memory, Rangef, Ui, ViewportBuilder, ViewportCommand, WidgetText, style::ScrollAnimation,
+        self, CentralPanel, Context, FontData, FontDefinitions, FontFamily, IconData, Memory,
+        Rangef, Ui, ViewportBuilder, ViewportCommand, WidgetText, style::ScrollAnimation,
     },
 };
 use egui_notify::{Toast, Toasts};
@@ -95,10 +95,10 @@ impl App {
         cc.egui_ctx.memory_mut(|memory| {
             *memory = Memory::default();
         });
-
-        cc.egui_ctx.set_zoom_factor(1.25); // TODO: Allow customizing zoom
         cc.egui_ctx.options_mut(|options| {
-            options.theme_preference = egui::ThemePreference::Dark; // TODO: Allow customizing theme preference
+            options.theme_preference = egui::ThemePreference::Dark;
+            options.zoom_factor = 1.25;
+            options.zoom_with_keyboard = false;
             options.tessellation_options.feathering = false;
         });
         cc.egui_ctx.all_styles_mut(|style| {
@@ -112,7 +112,6 @@ impl App {
             };
             style.compact_menu_style = true;
         });
-
         cc.egui_ctx.set_fonts(FontDefinitions {
             font_data: BTreeMap::from([
                 (
@@ -167,6 +166,7 @@ impl App {
                 ),
             ]),
         });
+        cc.egui_ctx.request_repaint();
 
         let mut tiles = Tiles::default();
 

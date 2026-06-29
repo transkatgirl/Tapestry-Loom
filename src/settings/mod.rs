@@ -12,14 +12,27 @@ use crate::{
 mod document;
 mod interface;
 
-#[derive(Default, Debug)]
-pub struct SettingsView {}
+#[derive(Debug)]
+pub struct SettingsView {
+    first_frame: bool,
+}
+
+impl Default for SettingsView {
+    fn default() -> Self {
+        Self { first_frame: true }
+    }
+}
 
 impl View<AppShared> for SettingsView {
     fn title(&self, _shared: &AppShared) -> WidgetText {
         WidgetText::Text("\u{E154} Settings".to_string())
     }
-    fn logic(&mut self, _shared: &mut AppShared, _force_close: impl FnOnce(), _ctx: &Context) {}
+    fn logic(&mut self, shared: &mut AppShared, _force_close: impl FnOnce(), ctx: &Context) {
+        if self.first_frame {
+            shared.settings.interface.apply(ctx);
+            self.first_frame = false;
+        }
+    }
     fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {
         ScrollArea::both()
             .auto_shrink(false)

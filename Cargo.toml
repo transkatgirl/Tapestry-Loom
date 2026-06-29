@@ -87,8 +87,6 @@ flagset = { version = "0.4.7", features = [
 	"std",
 ] }
 bytes = "1.12.0"
-#egui_solarized = 0.35.0"
-egui_solarized = "0.34.0"
 #egui_virtual_list = "0.11.0"
 egui_virtual_list = "0.10.0"
 #egui_plot = "0.36.0"

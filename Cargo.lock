@@ -1852,15 +1852,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "egui_solarized"
-version = "0.34.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b77da7ff99bc19b4b495db02ddbf8fca9d96405c54e74e114bcc387101f67e2"
-dependencies = [
- "egui",
-]
-
-[[package]]
 name = "egui_tiles"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5683,7 +5674,6 @@ dependencies = [
  "egui-probe",
  "egui_dnd",
  "egui_plot",
- "egui_solarized",
  "egui_tiles",
  "egui_virtual_list",
  "elkai-rs",
