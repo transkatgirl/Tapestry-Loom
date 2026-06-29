@@ -1,10 +1,12 @@
-use eframe::egui::{Context, Key, KeyboardShortcut, TextStyle, Ui};
-use egui_keybind::Keybind;
+use eframe::egui::{Context, KeyboardShortcut, TextStyle, Ui};
 use flagset::{FlagSet, flags};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    common::{ui::consume_shortcut, view::Edit},
+    common::{
+        ui::{consume_shortcut, shortcut_ui},
+        view::Edit,
+    },
     editor::settings::shortcuts::{
         ShortcutSettings as EditorShortcutSettings, Shortcuts as EditorShortcuts,
     },
@@ -37,6 +39,7 @@ impl ShortcutSettings {
 
 impl Edit for ShortcutSettings {
     fn ui(&mut self, ui: &mut Ui) {
+        ui.label("Press escape to clear a keybind.");
         self.editor.ui(ui);
         ui.add_space(ui.text_style_height(&TextStyle::Body) * 0.5);
         self.global.ui(ui);
@@ -51,6 +54,7 @@ pub struct Shortcuts {
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct GlobalShortcutSettings {
+    #[serde(default)]
     save: Option<KeyboardShortcut>,
 }
 
@@ -73,12 +77,7 @@ impl GlobalShortcutSettings {
 
 impl Edit for GlobalShortcutSettings {
     fn ui(&mut self, ui: &mut Ui) {
-        ui.add(
-            Keybind::new(&mut self.save, "keybind-save_all")
-                .with_text("Save immediately")
-                .with_reset(None)
-                .with_reset_key(Some(Key::Escape)),
-        );
+        shortcut_ui(ui, &mut self.save, "keybind-save_all", "Save immediately");
     }
 }
 

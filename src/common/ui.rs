@@ -2,11 +2,12 @@ use std::path::Path;
 
 use eframe::{
     egui::{
-        Event, InputState, Key, KeyboardShortcut, Modifiers, PointerButton, Response, Ui,
+        self, Event, InputState, Key, KeyboardShortcut, Modifiers, PointerButton, Response, Ui,
         response::Flags,
     },
     epaint::MarginF32,
 };
+use egui_keybind::Keybind;
 
 pub fn clicked_rising_edge(response: &Response) -> bool {
     // egui default is falling-edge
@@ -43,6 +44,20 @@ pub fn count_and_consume_key(
     });
 
     count
+}
+
+pub fn shortcut_ui(
+    ui: &mut Ui,
+    bind: &mut Option<KeyboardShortcut>,
+    id: impl Into<egui::Id>,
+    label: &str,
+) {
+    ui.add(
+        Keybind::new(bind, id)
+            .with_text(label)
+            .with_reset(None)
+            .with_reset_key(Some(Key::Escape)),
+    );
 }
 
 // Copied from egui source code
