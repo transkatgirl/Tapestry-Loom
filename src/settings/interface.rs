@@ -1,7 +1,7 @@
 use eframe::egui::{ComboBox, Context, Slider, SliderClamping, ThemePreference, Ui};
 use serde::{Deserialize, Serialize};
 
-use crate::settings::{Editable, SettingsView};
+use crate::common::view::Edit;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct InterfaceSettings {
@@ -34,8 +34,8 @@ impl InterfaceSettings {
     }
 }
 
-impl Editable<SettingsView> for InterfaceSettings {
-    fn ui(&mut self, shared: &mut SettingsView, ui: &mut Ui) {
+impl Edit for InterfaceSettings {
+    fn ui(&mut self, ui: &mut Ui) {
         ComboBox::from_label("Theme")
             .selected_text(match self.theme {
                 ThemePreference::Dark => "Dark",

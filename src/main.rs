@@ -295,7 +295,7 @@ impl AppShared {
             Settings::default()
         };
 
-        let inference = InferenceEngine::new(runtime.clone())?;
+        let inference = InferenceEngine::new(runtime.clone(), settings.inference.clone())?;
 
         Ok(Self {
             runtime,

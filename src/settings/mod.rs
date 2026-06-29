@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use eframe::egui::{Context, Frame, ScrollArea, Ui, WidgetText};
 #[cfg(feature = "donation-link")]
 use eframe::egui::{Layout, OpenUrl, Sides};
@@ -5,7 +7,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     AppShared,
-    common::{task::BACKGROUND_REFRESH_INTERVAL, view::View},
+    common::{
+        inference::InferenceEngineSettings,
+        task::BACKGROUND_REFRESH_INTERVAL,
+        view::{Edit, View},
+    },
     settings::{document::DocumentSettings, interface::InterfaceSettings},
 };
 
@@ -41,7 +47,7 @@ impl View<AppShared> for SettingsView {
                 Frame::new()
                     .outer_margin(ui.style().spacing.menu_margin)
                     .show(ui, |ui| {
-                        shared.settings.ui(self, ui);
+                        shared.settings.ui(ui);
                     })
             });
 
@@ -53,6 +59,7 @@ impl View<AppShared> for SettingsView {
 pub struct Settings {
     pub interface: InterfaceSettings,
     pub documents: DocumentSettings,
+    pub inference: Rc<RefCell<InferenceEngineSettings>>,
 }
 
 impl Settings {
@@ -64,8 +71,8 @@ impl Settings {
     }
 }
 
-impl Editable<SettingsView> for Settings {
-    fn ui(&mut self, shared: &mut SettingsView, ui: &mut Ui) {
+impl Edit for Settings {
+    fn ui(&mut self, ui: &mut Ui) {
         #[cfg(feature = "donation-link")]
         Sides::new().show(
             ui,
@@ -90,15 +97,14 @@ impl Editable<SettingsView> for Settings {
         #[cfg(not(feature = "donation-link"))]
         {
             ui.heading("Interface");
-            self.interface.ui(shared, ui);
+            self.interface.ui(ui);
         }
 
         ui.separator();
         ui.heading("Document");
-        self.documents.ui(shared, ui);
+        self.documents.ui(ui);
+        ui.separator();
+        ui.heading("Inference");
+        self.inference.borrow_mut().ui(ui);
     }
-}
-
-trait Editable<T> {
-    fn ui(&mut self, shared: &mut T, ui: &mut Ui);
 }

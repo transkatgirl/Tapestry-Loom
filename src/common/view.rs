@@ -306,3 +306,7 @@ pub trait View<T> {
         true
     }
 }
+
+pub trait Edit {
+    fn ui(&mut self, ui: &mut Ui);
+}
