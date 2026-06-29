@@ -1,9 +1,12 @@
 use std::{path::PathBuf, time::Duration};
 
-use eframe::egui::{Slider, SliderClamping};
+use eframe::egui::{Slider, SliderClamping, Ui};
 use serde::{Deserialize, Serialize};
 
-use crate::{APP_NAME, settings::Editable};
+use crate::{
+    APP_NAME,
+    settings::{Editable, SettingsView},
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DocumentSettings {
@@ -28,8 +31,8 @@ impl Default for DocumentSettings {
     }
 }
 
-impl Editable for DocumentSettings {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) {
+impl Editable<SettingsView> for DocumentSettings {
+    fn ui(&mut self, _shared: &mut SettingsView, ui: &mut Ui) {
         let location_hover_text = "Changes the path used by the built in file manager.\n\nFile paths in the UI are abbreviated to be relative to the root location whenever possible.";
 
         let location_label = ui
