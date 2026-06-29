@@ -23,8 +23,13 @@ tapestry-weave = { path = "tapestry-weave", features = [
 	"v1", # TODO: Add v0 feature after rewrite is finished? Or should we require using migration-assistant instead of automatically updating weaves?
 ], default-features = false }
 eframe = { version = "0.34.3", features = [ # egui 0.35.0 has a serious performance regression
+	"accesskit",
+	"wayland",
+	#"web_screen_reader",
+	"wgpu",
+	"x11",
 	"persistence",
-] }
+], default-features = false }
 env_logger = { version = "0.11.11", features = [
 	"auto-color",
 	"humantime",
@@ -82,7 +87,6 @@ flagset = { version = "0.4.7", features = [
 	"std",
 ] }
 bytes = "1.12.0"
-font-kit = "0.14.3"
 #egui_solarized = 0.35.0"
 egui_solarized = "0.34.0"
 #egui_virtual_list = "0.11.0"
@@ -111,8 +115,10 @@ cargo_metadata = "0.23.1"
 opt-level = 3
 
 [profile.release]
-strip = "symbols"
-panic = "abort"
+lto           = "thin"
+codegen-units = 1
+strip         = "symbols"
+panic         = "abort"
 
 [workspace]
 members = [

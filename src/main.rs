@@ -1,12 +1,18 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{collections::HashSet, mem, path::PathBuf, sync::Arc, time::Duration};
+use std::{
+    collections::{BTreeMap, HashSet},
+    mem,
+    path::PathBuf,
+    sync::Arc,
+    time::Duration,
+};
 
 use eframe::{
     CreationContext, NativeOptions,
     egui::{
-        self, CentralPanel, Context, FontData, FontDefinitions, FontFamily, IconData, Memory,
-        Rangef, Ui, ViewportBuilder, ViewportCommand, WidgetText, style::ScrollAnimation,
+        self, CentralPanel, Context, FontData, FontDefinitions, FontFamily, FontTweak, IconData,
+        Memory, Rangef, Ui, ViewportBuilder, ViewportCommand, WidgetText, style::ScrollAnimation,
     },
 };
 use egui_notify::{Toast, Toasts};
@@ -90,7 +96,7 @@ impl App {
             *memory = Memory::default();
         });
 
-        cc.egui_ctx.set_zoom_factor(1.2); // TODO: Allow customizing zoom
+        cc.egui_ctx.set_zoom_factor(1.25); // TODO: Allow customizing zoom
         cc.egui_ctx.options_mut(|options| {
             options.theme_preference = egui::ThemePreference::Dark; // TODO: Allow customizing theme preference
             options.tessellation_options.feathering = false;
@@ -107,35 +113,60 @@ impl App {
             style.compact_menu_style = true;
         });
 
-        let mut fonts = FontDefinitions::default();
-        fonts.font_data.insert(
-            "lucide".into(),
-            Arc::new(FontData::from_static(include_bytes!(
-                "../fonts/icons/Lucide.ttf"
-            ))),
-        );
-        fonts.font_data.insert(
-            "unifontex".into(),
-            Arc::new(FontData::from_static(include_bytes!(
-                "../fonts/UnifontExMono.ttf"
-            ))),
-        );
-        fonts.font_data.insert(
-            "noto-emoji".into(),
-            Arc::new(FontData::from_static(include_bytes!(
-                "../fonts/NotoEmoji.ttf"
-            ))),
-        );
-        if let Some(font_keys) = fonts.families.get_mut(&FontFamily::Monospace) {
-            font_keys.push("unifontex".into());
-            font_keys.insert(1, "noto-emoji".into());
-        }
-        if let Some(font_keys) = fonts.families.get_mut(&FontFamily::Proportional) {
-            font_keys.push("unifontex".into());
-            font_keys.insert(1, "noto-emoji".into());
-            font_keys.insert(1, "lucide".into());
-        }
-        cc.egui_ctx.set_fonts(fonts);
+        cc.egui_ctx.set_fonts(FontDefinitions {
+            font_data: BTreeMap::from([
+                (
+                    "hack".to_owned(),
+                    Arc::new(FontData::from_static(include_bytes!(
+                        "../fonts/Hack-Regular.ttf"
+                    ))),
+                ),
+                (
+                    "lucide".to_owned(),
+                    Arc::new(FontData::from_static(include_bytes!(
+                        "../fonts/icons/Lucide.ttf"
+                    ))),
+                ),
+                (
+                    "noto-emoji".to_owned(),
+                    Arc::new(FontData::from_static(include_bytes!(
+                        "../fonts/NotoEmoji-Regular.ttf"
+                    ))),
+                ),
+                (
+                    "ubuntu-light".to_owned(),
+                    Arc::new(FontData::from_static(include_bytes!(
+                        "../fonts/Ubuntu-Light.ttf"
+                    ))),
+                ),
+                (
+                    "unifontex".to_owned(),
+                    Arc::new(FontData::from_static(include_bytes!(
+                        "../fonts/UnifontExMono.ttf"
+                    ))),
+                ),
+            ]),
+            families: BTreeMap::from([
+                (
+                    FontFamily::Proportional,
+                    vec![
+                        "ubuntu-light".to_owned(),
+                        "lucide".to_owned(),
+                        "noto-emoji".to_owned(),
+                        "unifontex".to_owned(),
+                    ],
+                ),
+                (
+                    FontFamily::Monospace,
+                    vec![
+                        "hack".to_owned(),
+                        "ubuntu-light".to_owned(),
+                        "noto-emoji".to_owned(),
+                        "unifontex".to_owned(),
+                    ],
+                ),
+            ]),
+        });
 
         let mut tiles = Tiles::default();
 
