@@ -1,4 +1,4 @@
-use eframe::egui::Context;
+use eframe::egui::{Context, Ui};
 use flagset::{FlagSet, flags};
 use serde::{Deserialize, Serialize};
 
@@ -12,12 +12,14 @@ impl ShortcutSettings {
         *shortcuts = FlagSet::<Shortcuts>::empty();
     }
     pub fn update(&mut self, shortcuts: &mut FlagSet<Shortcuts>, ctx: &Context) {
-        ShortcutSettings::clear(shortcuts);
+        Self::clear(shortcuts);
+
+        // TODO
     }
 }
 
 impl Edit for ShortcutSettings {
-    fn ui(&mut self, ui: &mut eframe::egui::Ui) {}
+    fn ui(&mut self, ui: &mut Ui) {}
 }
 
 flags! {
