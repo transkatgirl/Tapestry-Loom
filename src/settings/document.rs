@@ -9,13 +9,6 @@ use crate::{APP_NAME, common::view::Edit};
 pub struct DocumentSettings {
     pub location: PathBuf,
     pub save_interval: Duration,
-
-    #[serde(default = "default_natural_sort")]
-    pub natural_sort: bool,
-}
-
-fn default_natural_sort() -> bool {
-    true
 }
 
 impl Default for DocumentSettings {
@@ -23,7 +16,6 @@ impl Default for DocumentSettings {
         Self {
             location: dirs_next::document_dir().unwrap_or_default().join(APP_NAME),
             save_interval: Duration::from_secs(30),
-            natural_sort: true,
         }
     }
 }
@@ -60,8 +52,5 @@ impl Edit for DocumentSettings {
         {
             self.save_interval = Duration::from_secs_f32(save_interval);
         }
-
-        ui.checkbox(&mut self.natural_sort, "Use natural filename sorting")
-            .on_hover_text("If this is enabled, filenames in the built-in file manager are sorted using case-insensitive lexicographical natural sorting. If this is disabled, filenames are sorted alphabetically.");
     }
 }

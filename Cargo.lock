@@ -261,6 +261,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "any_ascii"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70033777eb8b5124a81a1889416543dddef2de240019b674c81285a2635a7e1e"
+
+[[package]]
 name = "anyhow"
 version = "1.0.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1490,12 +1496,6 @@ dependencies = [
  "derive_builder_core",
  "syn 2.0.118",
 ]
-
-[[package]]
-name = "deunicode"
-version = "1.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abd57806937c9cc163efc8ea3910e00a62e2aeb0b8119f1793a978088f8f6b04"
 
 [[package]]
 name = "devise"
@@ -3153,12 +3153,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
-name = "lexicmp"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e8f89da8fd95c4eb6274e914694bea90c7826523b26f2a2fd863d44b9d42c43"
+name = "lexical-sort"
+version = "0.3.1"
+source = "git+https://github.com/transkatgirl/lexicmp.git?rev=4d5457eebb9e6a7f2ee56a25fc2528d88f2bb4c3#4d5457eebb9e6a7f2ee56a25fc2528d88f2bb4c3"
 dependencies = [
- "deunicode",
+ "any_ascii",
 ]
 
 [[package]]
@@ -5630,7 +5629,7 @@ dependencies = [
  "env_logger",
  "flagset",
  "futures",
- "lexicmp",
+ "lexical-sort",
  "linked-hash-map",
  "log",
  "mimalloc",

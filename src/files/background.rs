@@ -23,7 +23,6 @@ use crate::{
 #[derive(Default, Debug)]
 pub struct BackgroundFsManager {
     last_root: Option<PathBuf>,
-    last_natural_sort: bool,
     crawler: BackgroundCrawler,
     tasks: VecDeque<JoinHandle<()>>,
 }
@@ -46,19 +45,16 @@ impl BackgroundFsManager {
         }
 
         if self.last_root.as_ref() != Some(&shared.settings.documents.location)
-            || self.last_natural_sort != shared.settings.documents.natural_sort
             || (had_tasks && self.tasks.is_empty())
             || shared.fs_needs_refresh
         {
             self.last_root = Some(shared.settings.documents.location.clone());
-            self.last_natural_sort = shared.settings.documents.natural_sort;
             shared.fs_needs_refresh = false;
 
             let _runtime = shared.runtime.enter();
             self.crawler.crawl(
                 shared.settings.documents.location.clone(),
                 shared.async_toasts.clone(),
-                shared.settings.documents.natural_sort,
             );
         }
     }
@@ -335,7 +331,7 @@ impl BackgroundCrawler {
             task: None,
         }
     }
-    fn crawl(&mut self, root: PathBuf, toasts: Arc<Mutex<Vec<Toast>>>, natural_sort: bool) {
+    fn crawl(&mut self, root: PathBuf, toasts: Arc<Mutex<Vec<Toast>>>) {
         if let Some(task) = &self.task {
             task.abort();
             if !task.is_finished() {
@@ -379,23 +375,14 @@ impl BackgroundCrawler {
                 return false;
             }
 
-            let walkdir = if natural_sort {
-                WalkDir::new(&root).follow_links(false).sort_by(|a, b| {
-                    b.file_type().is_dir().cmp(&a.file_type().is_dir()).then(
-                        lexicmp::natural_lexical_cmp(
-                            &a.file_name().to_string_lossy(),
-                            &b.file_name().to_string_lossy(),
-                        ),
-                    )
-                })
-            } else {
-                WalkDir::new(&root).follow_links(false).sort_by(|a, b| {
-                    b.file_type()
-                        .is_dir()
-                        .cmp(&a.file_type().is_dir())
-                        .then(a.file_name().cmp(b.file_name()))
-                })
-            };
+            let walkdir = WalkDir::new(&root).follow_links(false).sort_by(|a, b| {
+                b.file_type().is_dir().cmp(&a.file_type().is_dir()).then(
+                    lexical_sort::natural_lexical_cmp(
+                        &a.file_name().to_string_lossy(),
+                        &b.file_name().to_string_lossy(),
+                    ),
+                )
+            });
 
             for entry in walkdir {
                 match entry {
