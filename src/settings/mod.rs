@@ -7,10 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     AppShared,
-    common::{
-        inference::InferenceEngineSettings,
-        view::{Edit, View},
-    },
+    common::view::{Edit, View},
+    inference::InferenceEngineSettings,
     settings::{
         document::DocumentSettings, interface::InterfaceSettings, shortcuts::ShortcutSettings,
     },

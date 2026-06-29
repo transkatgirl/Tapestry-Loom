@@ -24,12 +24,10 @@ use parking_lot::Mutex;
 use tokio::runtime::{self, Runtime};
 
 use crate::{
-    common::{
-        inference::InferenceEngine,
-        view::{View, ViewContainer},
-    },
+    common::view::{View, ViewContainer},
     editor::{Editor, preload::EditorPreloadHandle},
     files::FileManager,
+    inference::InferenceEngine,
     settings::{
         Settings, SettingsView,
         shortcuts::{GlobalShortcuts, Shortcuts},
@@ -39,6 +37,7 @@ use crate::{
 mod common;
 mod editor;
 mod files;
+mod inference;
 mod settings;
 
 const APP_NAME: &str = "Tapestry Loom (WIP REWRITE)"; // TODO
