@@ -1,4 +1,6 @@
-use eframe::egui::{ComboBox, Context, Slider, SliderClamping, ThemePreference, Ui};
+use std::collections::BTreeMap;
+
+use eframe::egui::{ComboBox, Context, FontFamily, Slider, SliderClamping, ThemePreference, Ui};
 use serde::{Deserialize, Serialize};
 
 use crate::common::view::Edit;
@@ -10,6 +12,9 @@ pub struct InterfaceSettings {
 
     #[serde(default = "default_scale")]
     pub scale: f32,
+
+    #[serde(default)]
+    pub font: FontPreference,
 }
 
 impl Default for InterfaceSettings {
@@ -17,6 +22,7 @@ impl Default for InterfaceSettings {
         Self {
             theme: ThemePreference::System,
             scale: 1.25,
+            font: FontPreference::Default,
         }
     }
 }
@@ -31,6 +37,9 @@ impl InterfaceSettings {
             options.theme_preference = self.theme;
             options.zoom_factor = self.scale;
         });
+        if self.font != FontPreference::Default {
+            self.font.apply(ctx);
+        }
     }
 }
 
@@ -66,5 +75,92 @@ impl Edit for InterfaceSettings {
         if !(zoom_slider.has_focus() || zoom_slider.contains_pointer()) {
             ui.set_zoom_factor(self.scale);
         }
+
+        let last_font = self.font;
+
+        ComboBox::from_label("Fontset")
+            .selected_text(match self.font {
+                FontPreference::Default => "egui Default",
+                FontPreference::Monospace => "egui Monospace",
+                FontPreference::UnifontEX => "UnifontEX",
+            })
+            .show_ui(ui, |ui| {
+                ui.selectable_value(&mut self.font, FontPreference::Default, "egui Default");
+                ui.selectable_value(&mut self.font, FontPreference::Monospace, "egui Monospace");
+                ui.selectable_value(&mut self.font, FontPreference::UnifontEX, "UnifontEX");
+            })
+            .response
+            .on_hover_text("This application uses multiple built-in fonts in order to display the widest range of unicode characters possible. However, some of these fonts may be considered less visually appealing.\n\nThis setting allows you to change which built-in fontset is used for rendering.");
+
+        if self.font != last_font {
+            self.font.apply(ui);
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum FontPreference {
+    #[default]
+    Default,
+    Monospace,
+    UnifontEX,
+}
+
+impl FontPreference {
+    fn apply(&self, ctx: &Context) {
+        let mut fonts = ctx.fonts(|fonts| fonts.definitions().clone());
+
+        fonts.families = match self {
+            FontPreference::Default => BTreeMap::from([
+                (
+                    FontFamily::Proportional,
+                    vec![
+                        "ubuntu-light".to_owned(),
+                        "lucide".to_owned(),
+                        "noto-emoji".to_owned(),
+                        "unifontex".to_owned(),
+                    ],
+                ),
+                (
+                    FontFamily::Monospace,
+                    vec![
+                        "hack".to_owned(),
+                        "ubuntu-light".to_owned(),
+                        "noto-emoji".to_owned(),
+                        "unifontex".to_owned(),
+                    ],
+                ),
+            ]),
+            FontPreference::Monospace => BTreeMap::from([
+                (
+                    FontFamily::Proportional,
+                    vec![
+                        "hack".to_owned(),
+                        "ubuntu-light".to_owned(),
+                        "lucide".to_owned(),
+                        "noto-emoji".to_owned(),
+                        "unifontex".to_owned(),
+                    ],
+                ),
+                (
+                    FontFamily::Monospace,
+                    vec![
+                        "hack".to_owned(),
+                        "ubuntu-light".to_owned(),
+                        "noto-emoji".to_owned(),
+                        "unifontex".to_owned(),
+                    ],
+                ),
+            ]),
+            FontPreference::UnifontEX => BTreeMap::from([
+                (
+                    FontFamily::Proportional,
+                    vec!["unifontex".to_owned(), "lucide".to_owned()],
+                ),
+                (FontFamily::Monospace, vec!["unifontex".to_owned()]),
+            ]),
+        };
+
+        ctx.set_fonts(fonts);
     }
 }
