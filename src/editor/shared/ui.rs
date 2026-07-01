@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use eframe::egui::Ui;
-use egui_ltreeview::TreeViewState;
+use eframe::egui::{Frame, Sense, Ui, UiBuilder};
 use flagset::{FlagSet, flags};
 use tapestry_weave::{
     jiff::Zoned,
@@ -18,8 +17,10 @@ use crate::{editor::settings::interface::InterfaceSettings, inference::Inference
 
 #[derive(Default)]
 pub struct WeaveUi {
-    tree: TreeViewState<u64>,
+    cursor: Option<u64>,
+    opened: HashMap<u64, bool>,
     hovered: Option<u64>,
+    scroll_to: Option<u64>,
 
     generate: Option<u64>,
     seriate: Option<u64>,
@@ -48,20 +49,50 @@ impl WeaveUi {
     pub fn horizontal_node_label(
         &mut self,
         weave: &mut TapestryWeave,
-        node: u64,
+        node: &TapestryNode,
         ui: &mut Ui,
         settings: &InterfaceSettings,
         options: &LabelOptions,
+        user: &Option<Author>,
     ) {
+        let mut mouse_hovered = false;
+
+        let response = ui
+            .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                let mut frame = Frame::new();
+
+                let is_hovered = self.hovered == Some(node.id);
+                let is_cursor = self.cursor == Some(node.id);
+                //let is_changed = state.get_changed_node() == Some(Ulid(node.id));
+
+                // TODO
+            })
+            .response;
+
+        response.context_menu(|ui| {
+            self.node_context_menu(weave, &node, ui, options.collapsing, user);
+        });
+
+        if response.contains_pointer() {
+            self.hovered = Some(node.id);
+        }
+
+        if response.clicked() {
+            weave.set_node_active_status(
+                &node.id,
+                true,
+                response.clicked_with_open_in_background(),
+            );
+            self.cursor = Some(node.id);
+        }
     }
     pub fn node_context_menu(
         &mut self,
         weave: &mut TapestryWeave,
         node: &TapestryNode,
         ui: &mut Ui,
-        settings: &InterfaceSettings,
         collapsing: bool,
-        user: Option<Author>,
+        user: &Option<Author>,
     ) {
         let is_modifier_pressed = ui.input(|input| input.modifiers.any());
 
@@ -71,10 +102,10 @@ impl WeaveUi {
 
             if generate_response.clicked_with_open_in_background() {
                 weave.set_node_active_status(&node.id, true, false);
-                self.tree.set_one_selected(node.id);
+                self.cursor = Some(node.id);
             }
 
-            self.tree.set_openness(node.id, true);
+            self.opened.insert(node.id, true);
         }
 
         if ui
@@ -119,10 +150,10 @@ impl WeaveUi {
                 },
             }) {
                 if active {
-                    self.tree.set_one_selected(identifier);
+                    self.cursor = Some(identifier);
                 }
 
-                self.tree.set_openness(node.id, true);
+                self.opened.insert(node.id, true);
             }
         };
 
@@ -151,11 +182,11 @@ impl WeaveUi {
                     content: InnerNodeContent::MetadataOnly,
                     metadata: MetadataMap::default(),
                     aux_metadata: AuxMetadataMap::default(),
-                    creator: Creator::User(user),
+                    creator: Creator::User(user.clone()),
                 },
             }) && active
             {
-                self.tree.set_one_selected(identifier);
+                self.cursor = Some(identifier);
             }
         }
 
@@ -165,13 +196,13 @@ impl WeaveUi {
             if collapsing {
                 if ui.button("Collapse all children").clicked() {
                     for child in node.to.iter().copied() {
-                        self.tree.set_openness(child, false);
+                        self.opened.insert(child, false);
                     }
                 }
 
                 if ui.button("Expand all children").clicked() {
                     for child in node.to.iter().copied() {
-                        self.tree.set_openness(child, true);
+                        self.opened.insert(child, true);
                     }
                 }
 
@@ -226,13 +257,13 @@ impl WeaveUi {
         node: &TapestryNode,
         ui: &mut Ui,
         flags: FlagSet<ButtonFlags>,
-        user: Option<Author>,
+        user: &Option<Author>,
     ) {
         let is_modifier_pressed = ui.input(|input| input.modifiers.any());
 
         if flags.contains(ButtonFlags::Rtl) {
             if flags.contains(ButtonFlags::Collapse) {
-                let is_open = self.tree.is_open(&node.id).unwrap_or(DEFAULT_OPEN);
+                let is_open = self.opened.get(&node.id).copied().unwrap_or(DEFAULT_OPEN);
 
                 let label = if is_open { "\u{E43C}" } else { "\u{E43E}" };
                 let hover_text = if is_open {
@@ -241,7 +272,7 @@ impl WeaveUi {
                     "Expand node"
                 };
                 if ui.button(label).on_hover_text(hover_text).clicked() {
-                    self.tree.set_openness(node.id, !is_open);
+                    self.opened.insert(node.id, !is_open);
                 };
             }
 
@@ -299,14 +330,14 @@ impl WeaveUi {
                             content: InnerNodeContent::MetadataOnly,
                             metadata: MetadataMap::default(),
                             aux_metadata: AuxMetadataMap::default(),
-                            creator: Creator::User(user),
+                            creator: Creator::User(user.clone()),
                         },
                     }) {
                         if active {
-                            self.tree.set_one_selected(identifier);
+                            self.cursor = Some(identifier);
                         }
 
-                        self.tree.set_openness(node.id, true);
+                        self.opened.insert(node.id, true);
                     }
                 };
             }
@@ -324,10 +355,10 @@ impl WeaveUi {
 
                     if generate_response.clicked_with_open_in_background() {
                         weave.set_node_active_status(&node.id, true, false);
-                        self.tree.set_one_selected(node.id);
+                        self.cursor = Some(node.id);
                     }
 
-                    self.tree.set_openness(node.id, true);
+                    self.opened.insert(node.id, true);
                 }
             }
 
@@ -348,7 +379,7 @@ impl WeaveUi {
                     .on_hover_text("Show parents")
                     .clicked()
             {
-                self.tree.set_one_selected(parent);
+                self.cursor = Some(parent);
             };
         } else {
             if flags.contains(ButtonFlags::Hoist)
@@ -358,7 +389,7 @@ impl WeaveUi {
                     .on_hover_text("Show parents")
                     .clicked()
             {
-                self.tree.set_one_selected(parent);
+                self.cursor = Some(parent);
             };
 
             if flags.contains(ButtonFlags::Merge)
@@ -384,10 +415,10 @@ impl WeaveUi {
 
                     if generate_response.clicked_with_open_in_background() {
                         weave.set_node_active_status(&node.id, true, false);
-                        self.tree.set_one_selected(node.id);
+                        self.cursor = Some(node.id);
                     }
 
-                    self.tree.set_openness(node.id, true);
+                    self.opened.insert(node.id, true);
                 }
             }
 
@@ -419,14 +450,14 @@ impl WeaveUi {
                             content: InnerNodeContent::MetadataOnly,
                             metadata: MetadataMap::default(),
                             aux_metadata: AuxMetadataMap::default(),
-                            creator: Creator::User(user),
+                            creator: Creator::User(user.clone()),
                         },
                     }) {
                         if active {
-                            self.tree.set_one_selected(identifier);
+                            self.cursor = Some(identifier);
                         }
 
-                        self.tree.set_openness(node.id, true);
+                        self.opened.insert(node.id, true);
                     }
                 };
             }
@@ -458,7 +489,7 @@ impl WeaveUi {
             };
 
             if flags.contains(ButtonFlags::Collapse) {
-                let is_open = self.tree.is_open(&node.id).unwrap_or(DEFAULT_OPEN);
+                let is_open = self.opened.get(&node.id).copied().unwrap_or(DEFAULT_OPEN);
 
                 let label = if is_open { "\u{E43C}" } else { "\u{E43E}" };
                 let hover_text = if is_open {
@@ -467,7 +498,7 @@ impl WeaveUi {
                     "Expand node"
                 };
                 if ui.button(label).on_hover_text(hover_text).clicked() {
-                    self.tree.set_openness(node.id, !is_open);
+                    self.opened.insert(node.id, !is_open);
                 };
             }
         }
