@@ -161,7 +161,64 @@ impl WeaveUi {
 
         ui.separator();
 
-        // TODO
+        if !node.to.is_empty() {
+            if collapsing {
+                if ui.button("Collapse all children").clicked() {
+                    for child in node.to.iter().copied() {
+                        self.tree.set_openness(child, false);
+                    }
+                }
+
+                if ui.button("Expand all children").clicked() {
+                    for child in node.to.iter().copied() {
+                        self.tree.set_openness(child, true);
+                    }
+                }
+
+                ui.separator();
+            }
+
+            if ui.button("Seriate children").clicked() {
+                self.seriate = Some(node.id);
+            }
+
+            if ui.button("Sort children by confidence").clicked() {
+                // TODO
+            }
+
+            if ui.button("Sort children by timestamp").clicked() {
+                // TODO
+            }
+
+            ui.separator();
+
+            if ui.button("Delete all children").clicked() {
+                for child in &node.to {
+                    weave.remove_node(child);
+                }
+            }
+        }
+
+        if ui.button("Delete all siblings").clicked() {
+            let siblings: Vec<u64> = weave
+                .get_node_siblings(&node.id)
+                .map(|i| i.collect())
+                .unwrap_or_default();
+
+            for sibling in siblings {
+                weave.remove_node(&sibling);
+            }
+        }
+
+        if weave.is_mergeable_with_parent(&node.id) && ui.button("Merge with parent").clicked() {
+            weave.merge_with_parent(&node.id);
+        }
+
+        ui.separator();
+
+        if ui.button("Delete").clicked() {
+            weave.remove_node(&node.id);
+        }
     }
     pub fn node_buttons(
         &mut self,
