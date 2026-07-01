@@ -172,6 +172,15 @@ impl EditorShared {
 
         shared.inference.update(self.id, &mut self.weave);
 
+        if let Some(weave) = &mut self.weave {
+            self.ui.logic(
+                weave,
+                &shared.settings.interface.editor,
+                &mut shared.inference,
+                self.id,
+            );
+        }
+
         if !self.disk_task.is_none() || shared.inference.requests(self.id) > 0 {
             ctx.request_repaint_after(BACKGROUND_REFRESH_INTERVAL);
         }

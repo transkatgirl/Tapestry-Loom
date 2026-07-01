@@ -1,6 +1,7 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use eframe::egui::Ui;
+use egui_ltreeview::TreeViewState;
 use flagset::{FlagSet, flags};
 use tapestry_weave::{
     jiff::Zoned,
@@ -11,21 +12,37 @@ use tapestry_weave::{
         metadata::{AuxMetadataMap, MetadataMap},
     },
 };
+use ulid::Ulid;
 
-use crate::editor::settings::interface::InterfaceSettings;
+use crate::{editor::settings::interface::InterfaceSettings, inference::InferenceEngine};
 
 #[derive(Default)]
 pub struct WeaveUi {
-    cursor: Option<u64>,
+    tree: TreeViewState<u64>,
     hovered: Option<u64>,
-    collapsed: HashSet<u64>,
+
+    generate: Option<u64>,
+    seriate: Option<u64>,
 }
 
+const DEFAULT_OPEN: bool = false;
+
 impl WeaveUi {
-    fn is_collapsed(&mut self, weave: &mut TapestryWeave, id: u64) -> bool {
-        todo!()
-    }
-    fn set_collapsed(&mut self, weave: &mut TapestryWeave, id: u64, collapsed: bool) {
+    pub fn logic(
+        &mut self,
+        weave: &mut TapestryWeave,
+        settings: &InterfaceSettings,
+        inference: &mut InferenceEngine,
+        id: Ulid,
+    ) {
+        if let Some(generate) = self.generate {
+            inference.generate_children(id, weave, generate);
+        }
+
+        if let Some(seriate) = self.seriate {
+            inference.seriate_siblings(id, weave, seriate);
+        }
+
         // TODO
     }
     pub fn horizontal_node_label(
@@ -67,7 +84,7 @@ impl WeaveUi {
                     .on_hover_text("Show parents")
                     .clicked()
             {
-                self.cursor = Some(parent);
+                self.tree.set_one_selected(parent);
             };
 
             if flags.contains(ButtonFlags::Merge)
@@ -89,15 +106,14 @@ impl WeaveUi {
                             "Generate completions & focus node"
                         });
                 if generate_response.clicked() {
-                    // TODO
-                    //state.generate_children(weave, Some(Ulid(node.id)), settings);
+                    self.generate = Some(node.id);
 
                     if generate_response.clicked_with_open_in_background() {
                         weave.set_node_active_status(&node.id, true, false);
-                        self.cursor = Some(node.id);
+                        self.tree.set_one_selected(node.id);
                     }
 
-                    self.set_collapsed(weave, node.id, false);
+                    self.tree.set_openness(node.id, false);
                 }
             }
 
@@ -133,9 +149,9 @@ impl WeaveUi {
                         },
                     }) {
                         if active {
-                            self.cursor = Some(identifier);
+                            self.tree.set_one_selected(identifier);
                         } else {
-                            self.set_collapsed(weave, identifier, false);
+                            self.tree.set_openness(identifier, false);
                         }
                     }
                 };
@@ -168,7 +184,7 @@ impl WeaveUi {
             };
 
             if flags.contains(ButtonFlags::Collapse) {
-                let is_collapsed = self.is_collapsed(weave, node.id);
+                let is_collapsed = !self.tree.is_open(&node.id).unwrap_or(DEFAULT_OPEN);
 
                 let label = if is_collapsed { "\u{E43E}" } else { "\u{E43C}" };
                 let hover_text = if is_collapsed {
@@ -177,7 +193,7 @@ impl WeaveUi {
                     "Collapse node"
                 };
                 if ui.button(label).on_hover_text(hover_text).clicked() {
-                    self.set_collapsed(weave, node.id, !is_collapsed);
+                    self.tree.set_openness(node.id, !is_collapsed);
                 };
             }
         }

@@ -1808,6 +1808,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui_ltreeview"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0965f8d97626fed9ce7e533feeb956a5c720bd83ff59266badf7073831fc22bf"
+dependencies = [
+ "egui",
+ "make_table_of_contents",
+]
+
+[[package]]
 name = "egui_plot"
 version = "0.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3291,6 +3301,16 @@ name = "macro_rules_attribute-proc_macro"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "670fdfda89751bc4a84ac13eaa63e205cf0fd22b4c9a5fbfa085b63c1f1d3a30"
+
+[[package]]
+name = "make_table_of_contents"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db565fc4ba6da61a7a2fb20c73dc87149cdc148ecb36ce6effee6e3d1a393d21"
+dependencies = [
+ "quote",
+ "syn 2.0.118",
+]
 
 [[package]]
 name = "matchers"
@@ -5622,6 +5642,7 @@ dependencies = [
  "egui-keybind",
  "egui-notify",
  "egui-probe",
+ "egui_ltreeview",
  "egui_plot",
  "egui_tiles",
  "egui_virtual_list",

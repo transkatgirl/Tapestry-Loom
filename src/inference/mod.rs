@@ -33,6 +33,12 @@ impl InferenceEngine {
     pub fn requests(&self, document: Ulid) -> usize {
         0 // TODO
     }
+    pub fn generate_children(&mut self, document: Ulid, weave: &mut TapestryWeave, id: u64) {
+        // TODO
+    }
+    pub fn seriate_siblings(&mut self, document: Ulid, weave: &mut TapestryWeave, id: u64) {
+        // TODO
+    }
     pub fn update(&mut self, document: Ulid, weave: &mut Option<TapestryWeave>) {}
     pub fn cancel(&mut self, document: Ulid) {}
 }
