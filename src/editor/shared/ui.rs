@@ -7,7 +7,7 @@ use tapestry_weave::{
     jiff::Zoned,
     universal_weave::{dependent::DependentNode, indexmap::IndexSet},
     v1::{
-        content::{Creator, InnerNodeContent, NodeContent},
+        content::{Author, Creator, InnerNodeContent, NodeContent},
         dependent::{TapestryNode, TapestryWeave},
         metadata::{AuxMetadataMap, MetadataMap},
     },
@@ -69,8 +69,8 @@ impl WeaveUi {
         weave: &mut TapestryWeave,
         node: &TapestryNode,
         ui: &mut Ui,
-        settings: &InterfaceSettings,
         flags: FlagSet<ButtonFlags>,
+        user: Option<Author>,
     ) {
         let is_modifier_pressed = ui.input(|input| input.modifiers.any());
 
@@ -113,7 +113,7 @@ impl WeaveUi {
                         self.tree.set_one_selected(node.id);
                     }
 
-                    self.tree.set_openness(node.id, false);
+                    self.tree.set_openness(node.id, true);
                 }
             }
 
@@ -145,14 +145,14 @@ impl WeaveUi {
                             content: InnerNodeContent::MetadataOnly,
                             metadata: MetadataMap::default(),
                             aux_metadata: AuxMetadataMap::default(),
-                            creator: Creator::User(None), // TODO
+                            creator: Creator::User(user),
                         },
                     }) {
                         if active {
                             self.tree.set_one_selected(identifier);
-                        } else {
-                            self.tree.set_openness(identifier, false);
                         }
+
+                        self.tree.set_openness(node.id, true);
                     }
                 };
             }
@@ -184,16 +184,16 @@ impl WeaveUi {
             };
 
             if flags.contains(ButtonFlags::Collapse) {
-                let is_collapsed = !self.tree.is_open(&node.id).unwrap_or(DEFAULT_OPEN);
+                let is_open = self.tree.is_open(&node.id).unwrap_or(DEFAULT_OPEN);
 
-                let label = if is_collapsed { "\u{E43E}" } else { "\u{E43C}" };
-                let hover_text = if is_collapsed {
-                    "Expand node"
-                } else {
+                let label = if is_open { "\u{E43C}" } else { "\u{E43E}" };
+                let hover_text = if is_open {
                     "Collapse node"
+                } else {
+                    "Expand node"
                 };
                 if ui.button(label).on_hover_text(hover_text).clicked() {
-                    self.tree.set_openness(node.id, !is_collapsed);
+                    self.tree.set_openness(node.id, !is_open);
                 };
             }
         }
