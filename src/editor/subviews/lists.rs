@@ -1,4 +1,5 @@
 use eframe::egui::{Context, ScrollArea, Ui, WidgetText};
+use tapestry_weave::v1::dependent::{TapestryNode, TapestryWeave};
 
 use crate::{
     common::{
@@ -7,12 +8,14 @@ use crate::{
     },
     editor::{
         EditorShared,
-        shared::ui::{ButtonFlags, LabelOptions},
+        shared::ui::{AutoscrollData, ButtonFlags, LabelOptions, WeaveUi},
     },
 };
 
 #[derive(Default, Debug)]
 pub struct TreeListView {}
+
+impl TreeListView {}
 
 impl View<EditorShared> for TreeListView {
     fn title(&self, _shared: &EditorShared) -> WidgetText {
@@ -28,6 +31,42 @@ impl View<EditorShared> for TreeListView {
 
 #[derive(Default, Debug)]
 pub struct ListView {}
+
+impl ListView {
+    fn render_item(
+        &mut self,
+        weave: &mut TapestryWeave,
+        node: &TapestryNode,
+        ui: &mut Ui,
+        shared: &mut WeaveUi,
+        autoscroll: Option<AutoscrollData>,
+        is_start: bool,
+    ) {
+        if !is_start {
+            label_separator(ui, 0.3);
+        }
+
+        ui.horizontal_wrapped(|ui| {
+            ui.add_space(ui.spacing().icon_spacing);
+            shared.horizontal_node_label(
+                weave,
+                node,
+                ui,
+                &LabelOptions {
+                    buttons: ButtonFlags::Merge
+                        | ButtonFlags::Generate
+                        | ButtonFlags::Add
+                        | ButtonFlags::Bookmark
+                        | ButtonFlags::Delete,
+                    collapsing: false,
+                    show_info: true,
+                    autoscroll,
+                },
+                &None,
+            );
+        });
+    }
+}
 
 impl View<EditorShared> for ListView {
     fn title(&self, _shared: &EditorShared) -> WidgetText {
@@ -54,29 +93,14 @@ impl View<EditorShared> for ListView {
 
                         for (index, item) in items.into_iter().enumerate() {
                             if let Some(node) = weave.get_node(&item).cloned() {
-                                if index != 0 {
-                                    label_separator(ui, 0.3);
-                                }
-
-                                ui.horizontal_wrapped(|ui| {
-                                    ui.add_space(ui.spacing().icon_spacing);
-                                    shared.ui.horizontal_node_label(
-                                        weave,
-                                        &node,
-                                        ui,
-                                        &LabelOptions {
-                                            buttons: ButtonFlags::Merge
-                                                | ButtonFlags::Generate
-                                                | ButtonFlags::Add
-                                                | ButtonFlags::Bookmark
-                                                | ButtonFlags::Delete,
-                                            collapsing: false,
-                                            show_info: true,
-                                            autoscroll,
-                                        },
-                                        &None,
-                                    );
-                                });
+                                self.render_item(
+                                    weave,
+                                    &node,
+                                    ui,
+                                    &mut shared.ui,
+                                    autoscroll,
+                                    index == 0,
+                                );
                             }
                         }
                     }
@@ -87,6 +111,40 @@ impl View<EditorShared> for ListView {
 
 #[derive(Default, Debug)]
 pub struct BookmarkView {}
+
+impl BookmarkView {
+    fn render_item(
+        &mut self,
+        weave: &mut TapestryWeave,
+        node: &TapestryNode,
+        ui: &mut Ui,
+        shared: &mut WeaveUi,
+        autoscroll: Option<AutoscrollData>,
+        is_start: bool,
+    ) {
+        if !is_start {
+            label_separator(ui, 0.3);
+        }
+
+        ui.horizontal_wrapped(|ui| {
+            ui.add_space(ui.spacing().icon_spacing);
+            ui.label("\u{E060}");
+
+            shared.horizontal_node_label(
+                weave,
+                node,
+                ui,
+                &LabelOptions {
+                    buttons: ButtonFlags::Bookmark.into(),
+                    collapsing: false,
+                    show_info: false,
+                    autoscroll,
+                },
+                &None,
+            );
+        });
+    }
+}
 
 impl View<EditorShared> for BookmarkView {
     fn title(&self, _shared: &EditorShared) -> WidgetText {
@@ -106,27 +164,14 @@ impl View<EditorShared> for BookmarkView {
 
                         for (index, bookmark) in bookmarks.into_iter().enumerate() {
                             if let Some(node) = weave.get_node(&bookmark).cloned() {
-                                if index != 0 {
-                                    label_separator(ui, 0.3);
-                                }
-
-                                ui.horizontal_wrapped(|ui| {
-                                    ui.add_space(ui.spacing().icon_spacing);
-                                    ui.label("\u{E060}");
-
-                                    shared.ui.horizontal_node_label(
-                                        weave,
-                                        &node,
-                                        ui,
-                                        &LabelOptions {
-                                            buttons: ButtonFlags::Bookmark.into(),
-                                            collapsing: false,
-                                            show_info: false,
-                                            autoscroll,
-                                        },
-                                        &None,
-                                    );
-                                });
+                                self.render_item(
+                                    weave,
+                                    &node,
+                                    ui,
+                                    &mut shared.ui,
+                                    autoscroll,
+                                    index == 0,
+                                );
                             }
                         }
                     }

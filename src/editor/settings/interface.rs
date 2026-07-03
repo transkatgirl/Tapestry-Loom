@@ -7,6 +7,7 @@ use crate::common::view::Edit;
 pub struct InterfaceSettings {
     pub node_colors: NodeColors,
     pub token_colors: TokenColors,
+    pub min_token_opacity: f32,
 }
 
 impl Default for InterfaceSettings {
@@ -14,6 +15,7 @@ impl Default for InterfaceSettings {
         Self {
             node_colors: NodeColors::default(),
             token_colors: TokenColors::default(),
+            min_token_opacity: 0.65,
         }
     }
 }

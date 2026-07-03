@@ -21,7 +21,7 @@ use tapestry_weave::{
 use ulid::Ulid;
 
 use crate::{
-    common::ui::{from_oklch, from_utf8_lossy, into_oklch, multiply_color_alpha},
+    common::ui::{from_utf8_lossy, multiply_color_alpha},
     editor::settings::interface::{InterfaceSettings, NodeColors, TokenColors},
     inference::InferenceEngine,
 };
@@ -100,7 +100,7 @@ impl WeaveUi {
         let mut mouse_hovered = false;
 
         let response = ui
-            .scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+            .scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
                 let mut frame = Frame::new();
 
                 let is_hovered = self.hovered == Some(node.id);
@@ -197,7 +197,7 @@ impl WeaveUi {
                             .layout(Layout::right_to_left(Align::Center)),
                         |ui| {
                             if mouse_hovered {
-                                ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                                ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
                                     ui.add_space(ui.spacing().icon_spacing);
                                     self.node_buttons(
                                         weave,
@@ -433,7 +433,10 @@ impl WeaveUi {
         if intensity == 1.0 {
             node_color
         } else {
-            multiply_color_alpha(node_color, intensity)
+            multiply_color_alpha(
+                node_color,
+                intensity.clamp(self.settings.min_token_opacity, 1.0),
+            )
         }
     }
     pub fn node_context_menu(
