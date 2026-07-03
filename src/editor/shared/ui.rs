@@ -505,6 +505,73 @@ impl WeaveUi {
             weave.remove_node(&node.id);
         }
     }
+    pub fn node_tooltip(&mut self, weave: &mut TapestryWeave, node: &TapestryNode, ui: &mut Ui) {
+        ui.set_max_width(ui.spacing().tooltip_width);
+
+        match &node.contents.creator {
+            Creator::Model(Some(model)) => {
+                let color = model.color.as_ref().and_then(|h| Color32::from_hex(h).ok());
+
+                if let Some(color) = color {
+                    ui.colored_label(color, &model.label);
+                } else {
+                    ui.label(&model.label);
+                }
+            }
+            Creator::Model(None) => {}
+            Creator::User(Some(user)) => {
+                let color = user.color.as_ref().and_then(|h| Color32::from_hex(h).ok());
+
+                if let Some(color) = color {
+                    ui.colored_label(color, format!("USER {}", &user.label));
+                } else {
+                    ui.label(format!("USER {}", &user.label));
+                }
+            }
+            Creator::User(None) => {}
+            Creator::Unknown => {}
+        }
+
+        if let Some(mean_logprob) = node.contents.content.calculate_average_logprob()
+            && let Some(cum_logprob) = node.contents.content.calculate_cumulative_logprob()
+            && let Some(tokens) = node.contents.content.token_count()
+        {
+            ui.label(format!(
+                "logprobs: (μ = {}, sum = {}, n = {})",
+                mean_logprob, cum_logprob, tokens
+            ));
+
+            if let Some(mean_entropy) = node.contents.content.calculate_average_entropy() {
+                ui.label(format!("entropy: (μ = {})", mean_entropy));
+            }
+
+            if let Some((confidence, confidence_k, confidence_n)) =
+                node.contents.content.calculate_confidence()
+            {
+                ui.label(format!(
+                    "confidence: {} (k = {}, n = {})",
+                    confidence, confidence_k, confidence_n
+                ));
+            }
+        }
+
+        for (key, value) in &node.contents.metadata {
+            ui.label(format!("{key}: {value}"));
+        }
+
+        ui.label(format!("{}", node.contents.timestamp));
+
+        #[cfg(debug_assertions)]
+        ui.label(node.id.to_string());
+    }
+    pub fn node_token_tooltip(
+        &mut self,
+        weave: &mut TapestryWeave,
+        node: &TapestryNode,
+        token: &InnerNodeToken,
+        ui: &mut Ui,
+    ) {
+    }
     pub fn node_buttons(
         &mut self,
         weave: &mut TapestryWeave,
