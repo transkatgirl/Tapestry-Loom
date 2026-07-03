@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::common::view::Edit;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct InterfaceSettings {
     pub node_colors: NodeColors,
     pub token_colors: TokenColors,
@@ -18,14 +18,14 @@ impl Default for InterfaceSettings {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy)]
 pub enum NodeColors {
     None,
     #[default]
     Creator,
 }
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy)]
 pub enum TokenColors {
     None,
     Logprob,

@@ -1,9 +1,4 @@
-use std::{
-    cmp,
-    collections::{HashMap, HashSet},
-    ops::Range,
-    sync::Arc,
-};
+use std::{collections::HashMap, ops::Range, sync::Arc};
 
 use eframe::egui::{
     Align, Button, Color32, Frame, Layout, Pos2, Rect, RichText, ScrollArea, Sense, TextFormat,
@@ -40,6 +35,8 @@ pub struct WeaveUi {
 
     generate: Option<u64>,
     seriate: Option<u64>,
+
+    settings: InterfaceSettings,
 }
 
 const DEFAULT_OPEN: bool = false;
@@ -75,6 +72,8 @@ impl WeaveUi {
             inference.seriate_siblings(id, weave, seriate);
         }
 
+        self.settings = *settings;
+
         // TODO
     }
     pub fn calculate_autoscroll(&mut self, ui: &mut Ui) -> Option<AutoscrollData> {
@@ -95,7 +94,6 @@ impl WeaveUi {
         weave: &mut TapestryWeave,
         node: &TapestryNode,
         ui: &mut Ui,
-        settings: &InterfaceSettings,
         options: &LabelOptions,
         user: &Option<Author>,
     ) {
@@ -117,10 +115,9 @@ impl WeaveUi {
                     let label = WidgetText::LayoutJob(Arc::new(self.node_text(
                         ui,
                         node,
-                        settings,
                         TextFlags::EmptyNotice.into(),
                     )));
-                    let label_color = self.node_color(node, settings);
+                    let label_color = self.node_color(node);
 
                     let mut label_button = if node.active {
                         if let Some(label_color) = label_color {
@@ -251,11 +248,10 @@ impl WeaveUi {
         &mut self,
         ui: &Ui,
         node: &TapestryNode,
-        settings: &InterfaceSettings,
         flags: FlagSet<TextFlags>,
     ) -> LayoutJob {
         let node_color = self
-            .node_color(node, settings)
+            .node_color(node)
             .unwrap_or(ui.visuals().widgets.inactive.text_color());
         let font_id = TextStyle::Monospace.resolve(ui.style());
 
@@ -297,7 +293,7 @@ impl WeaveUi {
                     && str::from_utf8(&tokens[0].bytes).is_err()
                 {
                     let token = &tokens[0];
-                    let token_color = self.token_color(node_color, token, settings);
+                    let token_color = self.token_color(node_color, token);
                     let token_text = format!("{:?}", &token.bytes);
                     let token_text_length = token_text.len();
 
@@ -336,7 +332,7 @@ impl WeaveUi {
                             continue;
                         }
 
-                        let token_color = self.token_color(node_color, token, settings);
+                        let token_color = self.token_color(node_color, token);
                         let token_length = token.bytes.len();
 
                         sections.push(LayoutSection {
@@ -390,12 +386,8 @@ impl WeaveUi {
             InnerNodeContent::MetadataOnly => handle_empty(),
         }
     }
-    pub fn node_color(
-        &mut self,
-        node: &TapestryNode,
-        settings: &InterfaceSettings,
-    ) -> Option<Color32> {
-        match settings.node_colors {
+    pub fn node_color(&mut self, node: &TapestryNode) -> Option<Color32> {
+        match self.settings.node_colors {
             NodeColors::None => None,
             NodeColors::Creator => node
                 .contents
@@ -404,8 +396,8 @@ impl WeaveUi {
                 .and_then(|h| Color32::from_hex(h).ok()),
         }
     }
-    pub fn token_intensity(&mut self, token: &InnerNodeToken, settings: &InterfaceSettings) -> f32 {
-        match settings.token_colors {
+    pub fn token_intensity(&mut self, token: &InnerNodeToken) -> f32 {
+        match self.settings.token_colors {
             TokenColors::None => 1.0,
             TokenColors::Logprob => {
                 1.0 - (f32::ln(1.0 / token.logprob.exp().clamp(f32::EPSILON, 1.0)) / 10.0)
@@ -430,17 +422,12 @@ impl WeaveUi {
             TokenColors::Entropy => todo!(),
         }
     }
-    pub fn token_color(
-        &mut self,
-        node_color: Color32,
-        token: &InnerNodeToken,
-        settings: &InterfaceSettings,
-    ) -> Color32 {
-        let intensity = self.token_intensity(token, settings);
+    pub fn token_color(&mut self, node_color: Color32, token: &InnerNodeToken) -> Color32 {
+        let intensity = self.token_intensity(token);
         if intensity == 1.0 {
             node_color
         } else {
-            from_oklch(into_oklch(node_color).map_lightness(|l| l * intensity))
+            multiply_color_alpha(node_color, intensity)
         }
     }
     pub fn node_context_menu(
@@ -1096,6 +1083,7 @@ pub struct LabelOptions {
     pub autoscroll: Option<AutoscrollData>,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct AutoscrollData {
     max_autoscroll_height: f32,
 }

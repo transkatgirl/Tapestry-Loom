@@ -4,7 +4,7 @@ use color::{AlphaColor, Oklch, OpaqueColor, PremulColor, PremulRgba8, Srgb};
 use eframe::{
     egui::{
         self, Color32, Event, InputState, Key, KeyboardShortcut, Modifiers, PointerButton,
-        Response, Ui, response::Flags,
+        Response, Sense, Ui, Vec2, response::Flags, vec2,
     },
     epaint::MarginF32,
 };
@@ -208,4 +208,29 @@ pub fn from_oklch(color: AlphaColor<Oklch>) -> Color32 {
         .to_u8_array();
 
     Color32::from_rgba_premultiplied(color[0], color[1], color[2], color[3])
+}
+
+// Based on egui::widgets::Separator
+pub fn label_separator(ui: &mut Ui, opacity: f32) {
+    if opacity < f32::EPSILON {
+        return;
+    }
+
+    let available_space = if ui.is_sizing_pass() {
+        Vec2::ZERO
+    } else {
+        ui.available_size_before_wrap()
+    };
+
+    let size = vec2(available_space.x, 0.0);
+
+    let (rect, response) = ui.allocate_at_least(size, Sense::empty());
+
+    if ui.is_rect_visible(response.rect) {
+        let mut stroke = ui.visuals().widgets.noninteractive.bg_stroke;
+        stroke.color = multiply_color_alpha(stroke.color, opacity);
+        let painter = ui.painter();
+
+        painter.hline(rect.left()..=rect.right(), rect.center().y, stroke);
+    }
 }
