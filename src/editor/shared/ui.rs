@@ -16,7 +16,8 @@ use tapestry_weave::{
     universal_weave::{dependent::DependentNode, indexmap::IndexSet},
     v1::{
         content::{
-            Author, Creator, InnerNodeContent, InnerNodeToken, NodeContent, UNKNOWN_MODEL_LABEL,
+            Author, Creator, InnerNodeContent, InnerNodeToken, NodeContent, OriginalToken,
+            UNKNOWN_MODEL_LABEL,
         },
         dependent::{TapestryNode, TapestryWeave},
         metadata::{AuxMetadataMap, MetadataMap},
@@ -544,7 +545,7 @@ impl WeaveUi {
                 }
             }
             Creator::User(None) => {
-                ui.label(RichText::new("User node").small());
+                ui.label(RichText::new("USER").small());
             }
             Creator::Unknown => {}
         }
@@ -574,19 +575,22 @@ impl WeaveUi {
             && let Some(tokens) = node.contents.content.token_count()
         {
             ui.label(format!(
-                "logprobs: (μ = {}, sum = {}, n = {})",
-                mean_logprob, cum_logprob, tokens
+                "logprobs: (μ = {:.4} ({:.2}%), sum = {:.4}, n = {})",
+                mean_logprob,
+                mean_logprob.exp() * 100.0,
+                cum_logprob,
+                tokens
             ));
 
             if let Some(mean_entropy) = node.contents.content.calculate_average_entropy() {
-                ui.label(format!("entropy: (μ = {})", mean_entropy));
+                ui.label(format!("entropy: (μ = {:.4})", mean_entropy));
             }
 
             if let Some((confidence, confidence_k, confidence_n)) =
                 node.contents.content.calculate_confidence()
             {
                 ui.label(format!(
-                    "confidence: {} (k = {}, n = {})",
+                    "confidence: {:.2} (k = {}, n = {})",
                     confidence, confidence_k, confidence_n
                 ));
             }
@@ -603,7 +607,59 @@ impl WeaveUi {
         node: &TapestryNode,
         token: &InnerNodeToken,
         ui: &mut Ui,
+        flags: FlagSet<TokenTooltipFlags>,
     ) {
+        if flags.contains(TokenTooltipFlags::Counterfactual) {
+            // TODO
+
+            ui.separator();
+        }
+
+        if !token.is_modified() {
+            if let Ok(string) = str::from_utf8(&token.bytes) {
+                ui.label(RichText::new(format!("{string:#?}")).monospace());
+            } else {
+                ui.label(RichText::new(format!("{:?}", &token.bytes)).monospace());
+            }
+        } else {
+            if flags.contains(TokenTooltipFlags::WarnModified) {
+                ui.colored_label(ui.visuals().warn_fg_color, "modified: true");
+            }
+            if let OriginalToken::Known(original) = &token.original
+                && original != &token.bytes
+            {
+                if let Ok(string) = str::from_utf8(original) {
+                    ui.label(RichText::new(format!("original: {string:#?}")).monospace());
+                } else {
+                    ui.label(RichText::new(format!("original: {:?}", &original)).monospace());
+                }
+            }
+        }
+
+        ui.label(format!(
+            "probability: {:.2}% [{:.4}]",
+            token.logprob.exp() * 100.0,
+            token.logprob
+        ));
+
+        if let Some(entropy) = token.entropy {
+            ui.label(format!("entropy: {:.4}", entropy));
+        }
+
+        if let Some((confidence, confidence_k)) = token.calculate_confidence() {
+            ui.label(format!(
+                "confidence: {:.2} (k = {})",
+                confidence, confidence_k
+            ));
+        }
+
+        if let Some(id) = token.id {
+            ui.label(format!("id: {}", id));
+        }
+
+        for (key, value) in &token.metadata {
+            ui.label(format!("{key}: {value}"));
+        }
     }
     pub fn node_buttons(
         &mut self,
@@ -878,5 +934,9 @@ flags! {
     pub enum TextFlags: u8 {
         EmptyNotice,
         FirstTokenBytes,
+    }
+    pub enum TokenTooltipFlags: u8 {
+        WarnModified,
+        Counterfactual,
     }
 }
