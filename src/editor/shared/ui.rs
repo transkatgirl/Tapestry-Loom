@@ -52,6 +52,21 @@ impl WeaveUi {
         inference: &mut InferenceEngine,
         id: Ulid,
     ) {
+        self.hovered = None;
+        self.scroll_to = None;
+
+        if let Some(cursor) = self.cursor
+            && !weave.contains(&cursor)
+        {
+            self.cursor = None;
+        }
+
+        if self.cursor.is_none()
+            && let Some(thread_tail) = weave.get_active_thread_ids().first().copied()
+        {
+            self.cursor = Some(thread_tail);
+        }
+
         if let Some(generate) = self.generate {
             inference.generate_children(id, weave, generate);
         }
@@ -61,6 +76,19 @@ impl WeaveUi {
         }
 
         // TODO
+    }
+    pub fn calculate_autoscroll(&mut self, ui: &mut Ui) -> Option<AutoscrollData> {
+        let contains_pointer = ui
+            .clip_rect()
+            .contains(ui.ctx().pointer_hover_pos().unwrap_or_default());
+
+        if !contains_pointer || self.cursor == self.scroll_to {
+            Some(AutoscrollData {
+                max_autoscroll_height: ui.available_size_before_wrap().y,
+            })
+        } else {
+            None
+        }
     }
     pub fn horizontal_node_label(
         &mut self,
@@ -86,7 +114,7 @@ impl WeaveUi {
                 }
 
                 frame.show(ui, |ui| {
-                    let mut label = WidgetText::LayoutJob(Arc::new(self.node_text(
+                    let label = WidgetText::LayoutJob(Arc::new(self.node_text(
                         ui,
                         node,
                         settings,
@@ -124,14 +152,13 @@ impl WeaveUi {
                         self.node_tooltip(node, ui);
                     });
 
-                    /*if settings.interface.auto_scroll
-                        && is_changed
-                        && (is_cursor || !contains_pointer)
-                        && (max_autoscroll_height >= label_button_response.rect.height()
+                    if let Some(autoscroll) = &options.autoscroll
+                        && is_focus
+                        && (autoscroll.max_autoscroll_height >= label_button_response.rect.height()
                             || ui.input(|i| i.modifiers.any()))
                     {
-                        label_button_response.scroll_to_me_animation(None, INSTANT_SCROLL);
-                    }*/
+                        label_button_response.scroll_to_me(None);
+                    }
 
                     label_button_response.context_menu(|ui| {
                         self.node_context_menu(weave, node, ui, options.collapsing, user);
@@ -1063,9 +1090,14 @@ impl WeaveUi {
 }
 
 pub struct LabelOptions {
-    buttons: FlagSet<ButtonFlags>,
-    collapsing: bool,
-    show_info: bool,
+    pub buttons: FlagSet<ButtonFlags>,
+    pub collapsing: bool,
+    pub show_info: bool,
+    pub autoscroll: Option<AutoscrollData>,
+}
+
+pub struct AutoscrollData {
+    max_autoscroll_height: f32,
 }
 
 flags! {
