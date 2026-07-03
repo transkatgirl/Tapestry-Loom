@@ -1,8 +1,8 @@
-use eframe::egui::{Context, Frame, ScrollArea, Ui, WidgetText};
+use eframe::egui::{Context, ScrollArea, Ui, WidgetText};
 
 use crate::{
     common::{
-        ui::{label_separator, listing_margin},
+        ui::{label_separator, listing},
         view::View,
     },
     editor::{
@@ -54,41 +54,39 @@ impl View<EditorShared> for BookmarkView {
             .auto_shrink(false)
             .animated(false)
             .show(ui, |ui| {
-                Frame::new()
-                    .outer_margin(listing_margin(ui))
-                    .show(ui, |ui| {
-                        if let Some(weave) = &mut shared.weave {
-                            let autoscroll = shared.ui.calculate_autoscroll(ui);
+                listing(ui, |ui| {
+                    if let Some(weave) = &mut shared.weave {
+                        let autoscroll = shared.ui.calculate_autoscroll(ui);
 
-                            let bookmarks: Vec<u64> = weave.bookmarks().iter().copied().collect();
+                        let bookmarks: Vec<u64> = weave.bookmarks().iter().copied().collect();
 
-                            for (index, bookmark) in bookmarks.into_iter().enumerate() {
-                                if let Some(node) = weave.get_node(&bookmark).cloned() {
-                                    if index != 0 {
-                                        label_separator(ui, 0.3);
-                                    }
-
-                                    ui.horizontal_wrapped(|ui| {
-                                        ui.add_space(ui.spacing().icon_spacing);
-                                        ui.label("\u{E060}");
-
-                                        shared.ui.horizontal_node_label(
-                                            weave,
-                                            &node,
-                                            ui,
-                                            &LabelOptions {
-                                                buttons: ButtonFlags::Bookmark.into(),
-                                                collapsing: false,
-                                                show_info: false,
-                                                autoscroll,
-                                            },
-                                            &None,
-                                        );
-                                    });
+                        for (index, bookmark) in bookmarks.into_iter().enumerate() {
+                            if let Some(node) = weave.get_node(&bookmark).cloned() {
+                                if index != 0 {
+                                    label_separator(ui, 0.3);
                                 }
+
+                                ui.horizontal_wrapped(|ui| {
+                                    ui.add_space(ui.spacing().icon_spacing);
+                                    ui.label("\u{E060}");
+
+                                    shared.ui.horizontal_node_label(
+                                        weave,
+                                        &node,
+                                        ui,
+                                        &LabelOptions {
+                                            buttons: ButtonFlags::Bookmark.into(),
+                                            collapsing: false,
+                                            show_info: false,
+                                            autoscroll,
+                                        },
+                                        &None,
+                                    );
+                                });
                             }
                         }
-                    })
+                    }
+                })
             });
     }
 }

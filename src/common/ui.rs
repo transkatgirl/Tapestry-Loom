@@ -1,12 +1,9 @@
 use std::{borrow::Cow, path::Path};
 
-use color::{AlphaColor, Oklch, OpaqueColor, PremulColor, PremulRgba8, Srgb};
-use eframe::{
-    egui::{
-        self, Color32, Event, InputState, Key, KeyboardShortcut, Modifiers, PointerButton,
-        Response, Sense, Ui, Vec2, response::Flags, vec2,
-    },
-    epaint::MarginF32,
+use color::{AlphaColor, Oklch, PremulColor, PremulRgba8, Srgb};
+use eframe::egui::{
+    self, Color32, Event, Frame, InnerResponse, InputState, Key, KeyboardShortcut, Modifiers,
+    PointerButton, Response, Sense, Ui, Vec2, response::Flags, vec2,
 };
 use egui_keybind::Keybind;
 
@@ -80,8 +77,10 @@ pub fn is_shortcut_pressed(input: &mut InputState, shortcut: &KeyboardShortcut) 
         && input.keys_down.contains(&logical_key)
 }
 
-pub fn listing_margin(ui: &mut Ui) -> MarginF32 {
-    MarginF32::same(ui.style().spacing.menu_spacing)
+pub fn listing<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> InnerResponse<R> {
+    Frame::new()
+        .outer_margin(ui.style().spacing.menu_spacing)
+        .show(ui, add_contents)
 }
 
 pub fn abbreviate_path<'a>(root: &Path, path: &'a Path) -> &'a Path {

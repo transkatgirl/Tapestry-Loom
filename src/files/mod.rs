@@ -9,9 +9,8 @@ use std::{
 };
 
 use eframe::egui::{
-    Align, Button, Context, Frame, Id, Key, Layout, Modal, OutputCommand, Panel, PointerButton,
-    RichText, ScrollArea, Sense, Sides, Spinner, TextStyle, Ui, UiBuilder, UiKind, UiStackInfo,
-    WidgetText,
+    Align, Button, Context, Id, Key, Layout, Modal, OutputCommand, Panel, PointerButton, RichText,
+    ScrollArea, Sense, Sides, Spinner, TextStyle, Ui, UiBuilder, UiKind, UiStackInfo, WidgetText,
 };
 use tapestry_weave::{
     VERSIONED_WEAVE_FILE_EXTENSION,
@@ -23,7 +22,7 @@ use crate::{
     AppShared,
     common::{
         task::BACKGROUND_REFRESH_INTERVAL,
-        ui::{abbreviate_path, format_large_number_detailed, listing_margin},
+        ui::{abbreviate_path, format_large_number_detailed, listing},
         view::View,
     },
     files::{
@@ -144,12 +143,10 @@ impl View<AppShared> for FileManager {
                 .sense(Sense::CLICK),
             |ui| {
                 if self.displayed.is_empty() {
-                    Frame::new()
-                        .outer_margin(listing_margin(ui))
-                        .show(ui, |ui| {
-                            ui.disable();
-                            ui.label("No files found");
-                        });
+                    listing(ui, |ui| {
+                        ui.disable();
+                        ui.label("No files found");
+                    });
                     return;
                 }
 
@@ -162,11 +159,9 @@ impl View<AppShared> for FileManager {
                         self.displayed.len(),
                         |ui, range| {
                             ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
-                                Frame::new()
-                                    .outer_margin(listing_margin(ui))
-                                    .show(ui, |ui| {
-                                        self.file_listing(shared, ui, range);
-                                    });
+                                listing(ui, |ui| {
+                                    self.file_listing(shared, ui, range);
+                                });
 
                                 ui.response().context_menu(|ui| {
                                     self.global_context_menu(shared, ui);
