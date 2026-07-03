@@ -18,6 +18,7 @@ use tapestry_weave::{
 use ulid::Ulid;
 
 use crate::{
+    common::ui::{from_opaque_oklch, into_oklch_opaque},
     editor::settings::interface::{InterfaceSettings, NodeColors, TokenColors},
     inference::InferenceEngine,
 };
@@ -101,15 +102,18 @@ impl WeaveUi {
     }
     pub fn node_text(
         &mut self,
+        ui: &Ui,
         node: &TapestryNode,
         settings: &InterfaceSettings,
         flags: FlagSet<TextFlags>,
     ) -> LayoutJob {
+        let color = self.node_color(ui, node, settings);
+
         todo!()
     }
     pub fn node_color(
         &mut self,
-        ui: &mut Ui,
+        ui: &Ui,
         node: &TapestryNode,
         settings: &InterfaceSettings,
     ) -> Color32 {
@@ -123,18 +127,43 @@ impl WeaveUi {
         }
         .unwrap_or(ui.visuals().widgets.inactive.text_color())
     }
+    pub fn token_intensity(&mut self, token: &InnerNodeToken, settings: &InterfaceSettings) -> f32 {
+        match settings.token_colors {
+            TokenColors::None => 1.0,
+            TokenColors::Logprob => {
+                1.0 - (f32::ln(1.0 / token.logprob.exp().clamp(f32::EPSILON, 1.0)) / 10.0)
+            }
+            TokenColors::Confidence => {
+                if let Some((confidence, confidence_k)) = token.calculate_confidence() {
+                    f32::ln(1.0 / (-(confidence)).exp().clamp(f32::EPSILON, 1.0))
+                        / (f32::ln(confidence_k as f32) + 2.0)
+                } else {
+                    1.0
+                }
+            }
+            TokenColors::HybridLogprobConfidence => {
+                if let Some((confidence, confidence_k)) = token.calculate_confidence() {
+                    f32::ln(1.0 / (-(confidence)).exp().clamp(f32::EPSILON, 1.0))
+                        / (f32::ln(confidence_k as f32) + 2.0)
+                } else {
+                    1.0
+                }
+                .min(1.0 - (f32::ln(1.0 / token.logprob.exp().clamp(f32::EPSILON, 1.0)) / 10.0))
+            }
+            TokenColors::Entropy => todo!(),
+        }
+    }
     pub fn token_color(
         &mut self,
         node_color: Color32,
         token: &InnerNodeToken,
         settings: &InterfaceSettings,
     ) -> Color32 {
-        match settings.token_colors {
-            TokenColors::None => node_color,
-            TokenColors::Logprob => todo!(),
-            TokenColors::Confidence => todo!(),
-            TokenColors::HybridLogprobConfidence => todo!(),
-            TokenColors::Entropy => todo!(),
+        let intensity = self.token_intensity(token, settings);
+        if intensity == 1.0 {
+            node_color
+        } else {
+            from_opaque_oklch(into_oklch_opaque(node_color).map_lightness(|l| l * intensity))
         }
     }
     pub fn node_context_menu(
