@@ -1,19 +1,26 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    cmp,
+    collections::{HashMap, HashSet},
+};
 
-use eframe::egui::{Frame, Sense, Ui, UiBuilder};
+use eframe::egui::{Color32, Frame, Sense, Ui, UiBuilder, text::LayoutJob};
+use egui_plot::Text;
 use flagset::{FlagSet, flags};
 use tapestry_weave::{
     jiff::Zoned,
     universal_weave::{dependent::DependentNode, indexmap::IndexSet},
     v1::{
-        content::{Author, Creator, InnerNodeContent, NodeContent},
+        content::{Author, Creator, InnerNodeContent, InnerNodeToken, NodeContent},
         dependent::{TapestryNode, TapestryWeave},
         metadata::{AuxMetadataMap, MetadataMap},
     },
 };
 use ulid::Ulid;
 
-use crate::{editor::settings::interface::InterfaceSettings, inference::InferenceEngine};
+use crate::{
+    editor::settings::interface::{InterfaceSettings, NodeColors, TokenColors},
+    inference::InferenceEngine,
+};
 
 #[derive(Default)]
 pub struct WeaveUi {
@@ -63,14 +70,20 @@ impl WeaveUi {
 
                 let is_hovered = self.hovered == Some(node.id);
                 let is_cursor = self.cursor == Some(node.id);
-                //let is_changed = state.get_changed_node() == Some(Ulid(node.id));
+                let is_focus = self.scroll_to == Some(node.id);
 
-                // TODO
+                if is_hovered {
+                    frame = frame.fill(ui.visuals().widgets.hovered.weak_bg_fill);
+                }
+
+                frame.show(ui, |ui| {
+                    // TODO
+                });
             })
             .response;
 
         response.context_menu(|ui| {
-            self.node_context_menu(weave, &node, ui, options.collapsing, user);
+            self.node_context_menu(weave, node, ui, options.collapsing, user);
         });
 
         if response.contains_pointer() {
@@ -84,6 +97,44 @@ impl WeaveUi {
                 response.clicked_with_open_in_background(),
             );
             self.cursor = Some(node.id);
+        }
+    }
+    pub fn node_text(
+        &mut self,
+        node: &TapestryNode,
+        settings: &InterfaceSettings,
+        flags: FlagSet<TextFlags>,
+    ) -> LayoutJob {
+        todo!()
+    }
+    pub fn node_color(
+        &mut self,
+        ui: &mut Ui,
+        node: &TapestryNode,
+        settings: &InterfaceSettings,
+    ) -> Color32 {
+        match settings.node_colors {
+            NodeColors::None => None,
+            NodeColors::Creator => node
+                .contents
+                .creator
+                .color()
+                .and_then(|h| Color32::from_hex(h).ok()),
+        }
+        .unwrap_or(ui.visuals().widgets.inactive.text_color())
+    }
+    pub fn token_color(
+        &mut self,
+        node_color: Color32,
+        token: &InnerNodeToken,
+        settings: &InterfaceSettings,
+    ) -> Color32 {
+        match settings.token_colors {
+            TokenColors::None => node_color,
+            TokenColors::Logprob => todo!(),
+            TokenColors::Confidence => todo!(),
+            TokenColors::HybridLogprobConfidence => todo!(),
+            TokenColors::Entropy => todo!(),
         }
     }
     pub fn node_context_menu(
@@ -520,5 +571,9 @@ flags! {
         Bookmark,
         Delete,
         Collapse,
+    }
+    pub enum TextFlags: u8 {
+        EmptyNotice,
+        FirstTokenBytes,
     }
 }

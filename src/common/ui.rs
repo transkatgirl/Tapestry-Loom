@@ -1,9 +1,10 @@
 use std::path::Path;
 
+use color::{AlphaColor, Oklch, OpaqueColor, PremulColor, PremulRgba8, Srgb};
 use eframe::{
     egui::{
-        self, Event, InputState, Key, KeyboardShortcut, Modifiers, PointerButton, Response, Ui,
-        response::Flags,
+        self, Color32, Event, InputState, Key, KeyboardShortcut, Modifiers, PointerButton,
+        Response, Ui, response::Flags,
     },
     epaint::MarginF32,
 };
@@ -139,4 +140,37 @@ pub fn format_file_size(size: usize) -> String {
     } else {
         format!("{} bytes", size)
     }
+}
+
+pub fn into_oklch(color: Color32) -> AlphaColor<Oklch> {
+    PremulColor::from(PremulRgba8::from_u8_array(color.to_array()))
+        .un_premultiply()
+        .convert::<Oklch>()
+}
+
+pub fn into_oklch_opaque(color: Color32) -> OpaqueColor<Oklch> {
+    let color_unmultiplied = color.to_srgba_unmultiplied();
+
+    OpaqueColor::from_rgb8(
+        color_unmultiplied[0],
+        color_unmultiplied[1],
+        color_unmultiplied[2],
+    )
+    .convert::<Oklch>()
+}
+
+pub fn from_oklch(color: AlphaColor<Oklch>) -> Color32 {
+    let color = color
+        .convert::<Srgb>()
+        .premultiply()
+        .to_rgba8()
+        .to_u8_array();
+
+    Color32::from_rgba_premultiplied(color[0], color[1], color[2], color[3])
+}
+
+pub fn from_opaque_oklch(color: OpaqueColor<Oklch>) -> Color32 {
+    let color = color.convert::<Srgb>().to_rgba8().to_u8_array();
+
+    Color32::from_rgba_premultiplied(color[0], color[1], color[2], color[3])
 }

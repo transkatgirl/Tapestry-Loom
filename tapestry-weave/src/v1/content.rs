@@ -722,6 +722,27 @@ pub enum Creator {
 }
 
 impl Creator {
+    pub fn label(&self) -> Option<&String> {
+        match &self {
+            Self::Model(Some(model)) => Some(&model.label),
+            Self::User(Some(user)) => Some(&user.label),
+            _ => None,
+        }
+    }
+    pub fn color(&self) -> Option<&String> {
+        match &self {
+            Self::Model(Some(model)) => model.color.as_ref(),
+            Self::User(Some(user)) => user.color.as_ref(),
+            _ => None,
+        }
+    }
+    pub fn identifier(&self) -> Option<NonZeroU128> {
+        match &self {
+            Self::Model(Some(model)) => model.identifier,
+            Self::User(Some(user)) => user.identifier,
+            _ => None,
+        }
+    }
     pub fn is_model(&self) -> bool {
         matches!(self, Self::Model(_))
     }

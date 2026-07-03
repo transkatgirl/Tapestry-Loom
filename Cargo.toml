@@ -96,7 +96,12 @@ egui-probe = { version = "0.11.0", features = [
 	"derive",
 ] }
 lexical-sort = { git = "https://github.com/transkatgirl/lexicmp.git", rev = "4d5457eebb9e6a7f2ee56a25fc2528d88f2bb4c3" }
-egui_ltreeview = { version = "0.7.1", features = ["doc"] }
+egui_ltreeview = { version = "0.7.1", features = [
+	"doc",
+] }
+color = { version = "0.3.3", features = [
+	"serde",
+] }
 
 [build-dependencies]
 cargo_metadata = "0.23.1"

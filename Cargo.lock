@@ -1138,6 +1138,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2ec7c5eb7a16992b1904d76c517d170ab353b0e0b3d5a0c81a8a0cd1037893cf"
 dependencies = [
  "bytemuck",
+ "serde",
 ]
 
 [[package]]
@@ -5636,6 +5637,7 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "cargo_metadata",
+ "color",
  "ctrlc",
  "dirs-next",
  "eframe",
