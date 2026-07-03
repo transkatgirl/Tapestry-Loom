@@ -2,10 +2,11 @@ use std::{
     cmp,
     collections::{HashMap, HashSet},
     ops::Range,
+    sync::Arc,
 };
 
 use eframe::egui::{
-    Color32, Frame, Sense, TextFormat, TextStyle, Ui, UiBuilder,
+    Button, Color32, Frame, Sense, TextFormat, TextStyle, Ui, UiBuilder, WidgetText,
     text::{LayoutJob, LayoutSection},
 };
 use egui_plot::Text;
@@ -22,7 +23,7 @@ use tapestry_weave::{
 use ulid::Ulid;
 
 use crate::{
-    common::ui::{from_opaque_oklch, from_utf8_lossy, into_oklch_opaque},
+    common::ui::{from_oklch, from_utf8_lossy, into_oklch, multiply_color_alpha},
     editor::settings::interface::{InterfaceSettings, NodeColors, TokenColors},
     inference::InferenceEngine,
 };
@@ -82,6 +83,45 @@ impl WeaveUi {
                 }
 
                 frame.show(ui, |ui| {
+                    let mut label = WidgetText::LayoutJob(Arc::new(self.node_text(
+                        ui,
+                        node,
+                        settings,
+                        TextFlags::EmptyNotice.into(),
+                    )));
+                    let label_color = self.node_color(node, settings);
+
+                    let mut label_button = if node.active {
+                        if let Some(label_color) = label_color {
+                            Button::new(label)
+                                .fill(multiply_color_alpha(label_color, 0.5))
+                                .selected(true)
+                        } else {
+                            Button::new(label).selected(true)
+                        }
+                    } else {
+                        Button::new(label).fill(Color32::TRANSPARENT)
+                    };
+
+                    if
+                    /*is_hovered ||*/
+                    is_cursor {
+                        label_button = label_button.stroke(ui.visuals().widgets.hovered.bg_stroke);
+                    }
+
+                    let label_button_response = ui.add(label_button).on_hover_ui(|ui| {
+                        /*if let InnerNodeContent::Tokens(tokens) = &node.contents.content
+                            && tokens.len() == 1
+                            && let Some(token) = tokens.first()
+                        {
+                            render_token_tooltip(ui, &token.0, &token.1);
+
+                            ui.separator();
+                        }
+
+                        render_node_metadata_tooltip(ui, node)*/
+                    });
+
                     // TODO
                 });
             })
@@ -111,7 +151,9 @@ impl WeaveUi {
         settings: &InterfaceSettings,
         flags: FlagSet<TextFlags>,
     ) -> LayoutJob {
-        let node_color = self.node_color(ui, node, settings);
+        let node_color = self
+            .node_color(node, settings)
+            .unwrap_or(ui.visuals().widgets.inactive.text_color());
         let font_id = TextStyle::Monospace.resolve(ui.style());
 
         let handle_empty = || {
@@ -247,10 +289,9 @@ impl WeaveUi {
     }
     pub fn node_color(
         &mut self,
-        ui: &Ui,
         node: &TapestryNode,
         settings: &InterfaceSettings,
-    ) -> Color32 {
+    ) -> Option<Color32> {
         match settings.node_colors {
             NodeColors::None => None,
             NodeColors::Creator => node
@@ -259,7 +300,6 @@ impl WeaveUi {
                 .color()
                 .and_then(|h| Color32::from_hex(h).ok()),
         }
-        .unwrap_or(ui.visuals().widgets.inactive.text_color())
     }
     pub fn token_intensity(&mut self, token: &InnerNodeToken, settings: &InterfaceSettings) -> f32 {
         match settings.token_colors {
@@ -297,7 +337,7 @@ impl WeaveUi {
         if intensity == 1.0 {
             node_color
         } else {
-            from_opaque_oklch(into_oklch_opaque(node_color).map_lightness(|l| l * intensity))
+            from_oklch(into_oklch(node_color).map_lightness(|l| l * intensity))
         }
     }
     pub fn node_context_menu(

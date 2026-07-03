@@ -172,21 +172,32 @@ pub fn from_utf8_lossy(v: &[u8]) -> Cow<'_, str> {
     Cow::Owned(res)
 }
 
+pub fn change_color_alpha(color: Color32, alpha: f32) -> Color32 {
+    let color = PremulColor::from(PremulRgba8::from_u8_array(color.to_array()))
+        .un_premultiply()
+        .with_alpha(alpha)
+        .premultiply()
+        .to_rgba8()
+        .to_u8_array();
+
+    Color32::from_rgba_premultiplied(color[0], color[1], color[2], color[3])
+}
+
+pub fn multiply_color_alpha(color: Color32, rhs: f32) -> Color32 {
+    let color = PremulColor::from(PremulRgba8::from_u8_array(color.to_array()))
+        .un_premultiply()
+        .multiply_alpha(rhs)
+        .premultiply()
+        .to_rgba8()
+        .to_u8_array();
+
+    Color32::from_rgba_premultiplied(color[0], color[1], color[2], color[3])
+}
+
 pub fn into_oklch(color: Color32) -> AlphaColor<Oklch> {
     PremulColor::from(PremulRgba8::from_u8_array(color.to_array()))
         .un_premultiply()
         .convert::<Oklch>()
-}
-
-pub fn into_oklch_opaque(color: Color32) -> OpaqueColor<Oklch> {
-    let color_unmultiplied = color.to_srgba_unmultiplied();
-
-    OpaqueColor::from_rgb8(
-        color_unmultiplied[0],
-        color_unmultiplied[1],
-        color_unmultiplied[2],
-    )
-    .convert::<Oklch>()
 }
 
 pub fn from_oklch(color: AlphaColor<Oklch>) -> Color32 {
@@ -195,12 +206,6 @@ pub fn from_oklch(color: AlphaColor<Oklch>) -> Color32 {
         .premultiply()
         .to_rgba8()
         .to_u8_array();
-
-    Color32::from_rgba_premultiplied(color[0], color[1], color[2], color[3])
-}
-
-pub fn from_opaque_oklch(color: OpaqueColor<Oklch>) -> Color32 {
-    let color = color.convert::<Srgb>().to_rgba8().to_u8_array();
 
     Color32::from_rgba_premultiplied(color[0], color[1], color[2], color[3])
 }
