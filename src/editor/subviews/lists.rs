@@ -35,9 +35,53 @@ impl View<EditorShared> for ListView {
     }
     fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
-        if let Some(weave) = &mut shared.weave {
-            // TODO
-        }
+        ScrollArea::vertical()
+            .auto_shrink(false)
+            .animated(false)
+            .show(ui, |ui| {
+                listing(ui, |ui| {
+                    if let Some(weave) = &mut shared.weave {
+                        let autoscroll = shared.ui.calculate_autoscroll(ui);
+
+                        let items: Vec<u64> = if let Some(cursor) = shared.ui.cursor {
+                            weave
+                                .get_node_children(&cursor)
+                                .map(|c| c.iter().copied().collect())
+                                .unwrap_or_default()
+                        } else {
+                            weave.roots().iter().copied().collect()
+                        };
+
+                        for (index, item) in items.into_iter().enumerate() {
+                            if let Some(node) = weave.get_node(&item).cloned() {
+                                if index != 0 {
+                                    label_separator(ui, 0.3);
+                                }
+
+                                ui.horizontal_wrapped(|ui| {
+                                    ui.add_space(ui.spacing().icon_spacing);
+                                    shared.ui.horizontal_node_label(
+                                        weave,
+                                        &node,
+                                        ui,
+                                        &LabelOptions {
+                                            buttons: ButtonFlags::Merge
+                                                | ButtonFlags::Generate
+                                                | ButtonFlags::Add
+                                                | ButtonFlags::Bookmark
+                                                | ButtonFlags::Delete,
+                                            collapsing: false,
+                                            show_info: true,
+                                            autoscroll,
+                                        },
+                                        &None,
+                                    );
+                                });
+                            }
+                        }
+                    }
+                })
+            });
     }
 }
 

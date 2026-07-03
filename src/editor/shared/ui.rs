@@ -28,10 +28,10 @@ use crate::{
 
 #[derive(Default)]
 pub struct WeaveUi {
-    cursor: Option<u64>,
-    opened: HashMap<u64, bool>,
-    hovered: Option<u64>,
-    scroll_to: Option<u64>,
+    pub cursor: Option<u64>,
+    pub opened: HashMap<u64, bool>,
+    pub hovered: Option<u64>,
+    pub scroll_to: Option<u64>,
 
     generate: Option<u64>,
     seriate: Option<u64>,
@@ -199,7 +199,13 @@ impl WeaveUi {
                             if mouse_hovered {
                                 ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
                                     ui.add_space(ui.spacing().icon_spacing);
-                                    self.node_buttons(weave, node, ui, options.buttons, user);
+                                    self.node_buttons(
+                                        weave,
+                                        node,
+                                        ui,
+                                        options.buttons | ButtonFlags::Rtl,
+                                        user,
+                                    );
 
                                     ui.add_space(0.0);
                                 });
