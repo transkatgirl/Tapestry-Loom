@@ -1,6 +1,7 @@
 use std::{fs, mem, path::PathBuf, sync::Arc};
 
 use eframe::egui::{Align, Context, Key, Layout, Modal, OutputCommand, Panel, Sides, Spinner, Ui};
+use flagset::FlagSet;
 use log::debug;
 use parking_lot::Mutex;
 use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, v1::dependent::TapestryWeave};
@@ -40,6 +41,7 @@ pub(super) struct EditorShared {
     close_after_save: bool,
 
     pub ui: WeaveUi,
+    last_visible: bool,
 }
 
 impl EditorShared {
@@ -76,6 +78,7 @@ impl EditorShared {
             close_now: false,
             close_after_save: false,
             ui: WeaveUi::default(),
+            last_visible: false,
         }
     }
     fn from_preload(preload: EditorPreloadHandle, shared: &mut AppShared) -> Self {
@@ -95,6 +98,7 @@ impl EditorShared {
             close_now: false,
             close_after_save: false,
             ui: WeaveUi::default(),
+            last_visible: false,
         }
     }
     fn clear_path(&mut self, shared: &mut AppShared) {
@@ -178,8 +182,15 @@ impl EditorShared {
                 &shared.settings.interface.editor,
                 &mut shared.inference,
                 self.id,
+                if self.last_visible {
+                    shared.shortcuts.editor
+                } else {
+                    FlagSet::empty()
+                },
             );
         }
+
+        self.last_visible = false;
 
         if !self.disk_task.is_none() || shared.inference.requests(self.id) > 0 {
             ctx.request_repaint_after(BACKGROUND_REFRESH_INTERVAL);
@@ -278,6 +289,7 @@ impl EditorShared {
         }
     }
     pub(super) fn ui(&mut self, ui: &mut Ui, shared: &mut AppShared) {
+        self.last_visible = true;
         self.close_ready = self.close_after_save;
 
         Panel::bottom(ui.id()).show_inside(ui, |ui| {

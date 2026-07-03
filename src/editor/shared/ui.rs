@@ -22,7 +22,10 @@ use ulid::Ulid;
 
 use crate::{
     common::ui::{from_utf8_lossy, multiply_color_alpha},
-    editor::settings::interface::{InterfaceSettings, NodeColors, TokenColors},
+    editor::settings::{
+        interface::{InterfaceSettings, NodeColors, TokenColors},
+        shortcuts::Shortcuts,
+    },
     inference::InferenceEngine,
 };
 
@@ -48,6 +51,7 @@ impl WeaveUi {
         settings: &InterfaceSettings,
         inference: &mut InferenceEngine,
         id: Ulid,
+        shortcuts: FlagSet<Shortcuts>,
     ) {
         self.hovered = None;
         self.scroll_to = None;
