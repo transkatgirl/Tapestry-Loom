@@ -172,7 +172,31 @@ impl WeaveUi {
                             .max_rect(hover_rect)
                             .layout(Layout::right_to_left(Align::Center)),
                         |ui| {
-                            // TODO
+                            if mouse_hovered {
+                                ui.scope_builder(UiBuilder::new().sense(Sense::click()), |ui| {
+                                    ui.add_space(ui.spacing().icon_spacing);
+                                    self.node_buttons(weave, node, ui, options.buttons, user);
+
+                                    ui.add_space(0.0);
+                                });
+                            } else if options.show_info {
+                                ui.add_space(ui.spacing().icon_spacing);
+
+                                if node.bookmarked {
+                                    ui.label("\u{E060}");
+                                }
+
+                                if let InnerNodeContent::Tokens(tokens) = &node.contents.content
+                                    && tokens.len() == 1
+                                    && tokens[0].logprob.is_finite()
+                                {
+                                    ui.label(format!("{:.1}%", tokens[0].logprob.exp() * 100.0));
+                                }
+
+                                ui.add_space(ui.spacing().icon_spacing);
+                            } else {
+                                ui.add_space(0.0);
+                            }
                         },
                     );
                 });
@@ -622,6 +646,8 @@ impl WeaveUi {
         if let Some(mean_logprob) = node.contents.content.calculate_average_logprob()
             && let Some(cum_logprob) = node.contents.content.calculate_cumulative_logprob()
             && let Some(tokens) = node.contents.content.token_count()
+            && mean_logprob.is_finite()
+            && cum_logprob.is_finite()
         {
             ui.label(format!(
                 "logprobs: (μ = {:.4} ({:.2}%), sum = {:.4}, n = {})",
@@ -631,12 +657,15 @@ impl WeaveUi {
                 tokens
             ));
 
-            if let Some(mean_entropy) = node.contents.content.calculate_average_entropy() {
+            if let Some(mean_entropy) = node.contents.content.calculate_average_entropy()
+                && mean_entropy.is_finite()
+            {
                 ui.label(format!("entropy: (μ = {:.4})", mean_entropy));
             }
 
             if let Some((confidence, confidence_k, confidence_n)) =
                 node.contents.content.calculate_confidence()
+                && confidence.is_finite()
             {
                 ui.label(format!(
                     "confidence: {:.2} (k = {}, n = {})",
@@ -665,6 +694,10 @@ impl WeaveUi {
             ScrollArea::horizontal().animated(false).show(ui, |ui| {
                 ui.horizontal(|ui| {
                     for (index, counterfactual) in token.counterfactual.iter().enumerate() {
+                        if !counterfactual.logprob.is_finite() {
+                            continue;
+                        }
+
                         if ui
                             .button(
                                 if let Ok(string) = str::from_utf8(&counterfactual.bytes) {
@@ -742,17 +775,23 @@ impl WeaveUi {
             }
         }
 
-        ui.label(format!(
-            "probability: {:.2}% [{:.4}]",
-            token.logprob.exp() * 100.0,
-            token.logprob
-        ));
+        if token.logprob.is_finite() {
+            ui.label(format!(
+                "probability: {:.2}% [{:.4}]",
+                token.logprob.exp() * 100.0,
+                token.logprob
+            ));
+        }
 
-        if let Some(entropy) = token.entropy {
+        if let Some(entropy) = token.entropy
+            && entropy.is_finite()
+        {
             ui.label(format!("entropy: {:.4}", entropy));
         }
 
-        if let Some((confidence, confidence_k)) = token.calculate_confidence() {
+        if let Some((confidence, confidence_k)) = token.calculate_confidence()
+            && confidence.is_finite()
+        {
             ui.label(format!(
                 "confidence: {:.2} (k = {})",
                 confidence, confidence_k
@@ -1026,6 +1065,7 @@ impl WeaveUi {
 pub struct LabelOptions {
     buttons: FlagSet<ButtonFlags>,
     collapsing: bool,
+    show_info: bool,
 }
 
 flags! {
