@@ -6,11 +6,10 @@ use std::{
 };
 
 use eframe::egui::{
-    Button, Color32, Frame, RichText, ScrollArea, Sense, TextFormat, TextStyle, Ui, UiBuilder,
-    WidgetText,
+    Align, Button, Color32, Frame, Layout, Pos2, Rect, RichText, ScrollArea, Sense, TextFormat,
+    TextStyle, Ui, UiBuilder, WidgetText,
     text::{LayoutJob, LayoutSection},
 };
-use egui_plot::Text;
 use flagset::{FlagSet, flags};
 use tapestry_weave::{
     jiff::Zoned,
@@ -114,19 +113,68 @@ impl WeaveUi {
                     }
 
                     let label_button_response = ui.add(label_button).on_hover_ui(|ui| {
-                        /*if let InnerNodeContent::Tokens(tokens) = &node.contents.content
+                        if let InnerNodeContent::Tokens(tokens) = &node.contents.content
                             && tokens.len() == 1
                             && let Some(token) = tokens.first()
                         {
-                            render_token_tooltip(ui, &token.0, &token.1);
-
+                            self.token_tooltip(token, ui, TokenTooltipFlags::WarnModified.into());
                             ui.separator();
                         }
 
-                        render_node_metadata_tooltip(ui, node)*/
+                        self.node_tooltip(node, ui);
                     });
 
-                    // TODO
+                    /*if settings.interface.auto_scroll
+                        && is_changed
+                        && (is_cursor || !contains_pointer)
+                        && (max_autoscroll_height >= label_button_response.rect.height()
+                            || ui.input(|i| i.modifiers.any()))
+                    {
+                        label_button_response.scroll_to_me_animation(None, INSTANT_SCROLL);
+                    }*/
+
+                    label_button_response.context_menu(|ui| {
+                        self.node_context_menu(weave, node, ui, options.collapsing, user);
+                    });
+
+                    if label_button_response.contains_pointer() {
+                        mouse_hovered = true;
+                        self.hovered = Some(node.id);
+                    }
+
+                    if label_button_response.clicked() {
+                        weave.set_node_active_status(
+                            &node.id,
+                            true,
+                            label_button_response.clicked_with_open_in_background(),
+                        );
+                        self.cursor = Some(node.id);
+                    }
+
+                    let hover_rect = Rect {
+                        min: Pos2 {
+                            x: ui.min_rect().min.x,
+                            y: ui.max_rect().min.y,
+                        },
+                        max: Pos2 {
+                            x: ui.max_rect().max.x,
+                            y: ui.min_rect().max.y,
+                        },
+                    };
+
+                    if ui.rect_contains_pointer(hover_rect) {
+                        mouse_hovered = true;
+                        self.hovered = Some(node.id);
+                    }
+
+                    ui.scope_builder(
+                        UiBuilder::new()
+                            .max_rect(hover_rect)
+                            .layout(Layout::right_to_left(Align::Center)),
+                        |ui| {
+                            // TODO
+                        },
+                    );
                 });
             })
             .response;
@@ -509,7 +557,7 @@ impl WeaveUi {
             weave.remove_node(&node.id);
         }
     }
-    pub fn node_tooltip(&mut self, weave: &mut TapestryWeave, node: &TapestryNode, ui: &mut Ui) {
+    pub fn node_tooltip(&mut self, node: &TapestryNode, ui: &mut Ui) {
         ui.set_max_width(ui.spacing().tooltip_width);
 
         match &node.contents.creator {
@@ -665,19 +713,22 @@ impl WeaveUi {
         }
 
         if !token.is_modified() {
-            ui.label(
-                if let Ok(string) = str::from_utf8(&token.bytes) {
-                    RichText::new(format!("{string:#?}"))
-                } else {
-                    RichText::new(format!("{:?}", &token.bytes))
-                }
-                .monospace(),
-            );
+            if flags.contains(TokenTooltipFlags::Contents) {
+                ui.label(
+                    if let Ok(string) = str::from_utf8(&token.bytes) {
+                        RichText::new(format!("{string:#?}"))
+                    } else {
+                        RichText::new(format!("{:?}", &token.bytes))
+                    }
+                    .monospace(),
+                );
+            }
         } else {
             if flags.contains(TokenTooltipFlags::WarnModified) {
                 ui.colored_label(ui.visuals().warn_fg_color, "modified: true");
             }
-            if let OriginalToken::Known(original) = &token.original
+            if flags.contains(TokenTooltipFlags::Counterfactual)
+                && let OriginalToken::Known(original) = &token.original
                 && original != &token.bytes
             {
                 ui.label(
@@ -687,7 +738,7 @@ impl WeaveUi {
                         RichText::new(format!("original: {:?}", &original))
                     }
                     .monospace(),
-                ); // TODO: click on original token to restore it?
+                ); // TODO: click on original token to restore it
             }
         }
 
@@ -995,5 +1046,6 @@ flags! {
     pub enum TokenTooltipFlags: u8 {
         WarnModified,
         Counterfactual,
+        Contents,
     }
 }
