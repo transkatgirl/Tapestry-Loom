@@ -6,7 +6,8 @@ use std::{
 };
 
 use eframe::egui::{
-    Button, Color32, Frame, RichText, Sense, TextFormat, TextStyle, Ui, UiBuilder, WidgetText,
+    Button, Color32, Frame, RichText, ScrollArea, Sense, TextFormat, TextStyle, Ui, UiBuilder,
+    WidgetText,
     text::{LayoutJob, LayoutSection},
 };
 use egui_plot::Text;
@@ -601,26 +602,77 @@ impl WeaveUi {
         #[cfg(debug_assertions)]
         ui.label(node.id.to_string());
     }
-    pub fn node_token_tooltip(
+    pub fn token_tooltip(
         &mut self,
-        weave: &mut TapestryWeave,
-        node: &TapestryNode,
         token: &InnerNodeToken,
         ui: &mut Ui,
         flags: FlagSet<TokenTooltipFlags>,
-    ) {
-        if flags.contains(TokenTooltipFlags::Counterfactual) {
-            // TODO
+    ) -> Option<usize> {
+        if flags.contains(TokenTooltipFlags::Counterfactual)
+            && token.counterfactual.len() > 1
+            && !token.is_modified()
+        {
+            let mut choice = None;
+
+            ScrollArea::horizontal().animated(false).show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    for (index, counterfactual) in token.counterfactual.iter().enumerate() {
+                        if ui
+                            .button(
+                                if let Ok(string) = str::from_utf8(&counterfactual.bytes) {
+                                    RichText::new(format!(
+                                        "{string:#?}\n({:.2}%)",
+                                        counterfactual.logprob.exp() * 100.0
+                                    ))
+                                } else {
+                                    RichText::new(format!(
+                                        "{:?}\n({:.2}%)",
+                                        &counterfactual.bytes,
+                                        counterfactual.logprob.exp() * 100.0
+                                    ))
+                                }
+                                .monospace(),
+                            )
+                            .on_hover_ui(|ui| {
+                                ui.label(format!(
+                                    "probability: {:.2}% [{:.4}]",
+                                    counterfactual.logprob.exp() * 100.0,
+                                    counterfactual.logprob
+                                ));
+
+                                if let Some(id) = counterfactual.id {
+                                    ui.label(format!("id: {}", id));
+                                }
+
+                                for (key, value) in &counterfactual.metadata {
+                                    ui.label(format!("{key}: {value}"));
+                                }
+                            })
+                            .clicked()
+                        {
+                            choice = Some(index);
+                        }
+                    }
+                })
+            });
+
+            if let Some(choice) = choice {
+                ui.request_discard("Token selected");
+                return Some(choice);
+            }
 
             ui.separator();
         }
 
         if !token.is_modified() {
-            if let Ok(string) = str::from_utf8(&token.bytes) {
-                ui.label(RichText::new(format!("{string:#?}")).monospace());
-            } else {
-                ui.label(RichText::new(format!("{:?}", &token.bytes)).monospace());
-            }
+            ui.label(
+                if let Ok(string) = str::from_utf8(&token.bytes) {
+                    RichText::new(format!("{string:#?}"))
+                } else {
+                    RichText::new(format!("{:?}", &token.bytes))
+                }
+                .monospace(),
+            );
         } else {
             if flags.contains(TokenTooltipFlags::WarnModified) {
                 ui.colored_label(ui.visuals().warn_fg_color, "modified: true");
@@ -628,11 +680,14 @@ impl WeaveUi {
             if let OriginalToken::Known(original) = &token.original
                 && original != &token.bytes
             {
-                if let Ok(string) = str::from_utf8(original) {
-                    ui.label(RichText::new(format!("original: {string:#?}")).monospace());
-                } else {
-                    ui.label(RichText::new(format!("original: {:?}", &original)).monospace());
-                }
+                ui.label(
+                    if let Ok(string) = str::from_utf8(original) {
+                        RichText::new(format!("original: {string:#?}"))
+                    } else {
+                        RichText::new(format!("original: {:?}", &original))
+                    }
+                    .monospace(),
+                ); // TODO: click on original token to restore it?
             }
         }
 
@@ -660,6 +715,8 @@ impl WeaveUi {
         for (key, value) in &token.metadata {
             ui.label(format!("{key}: {value}"));
         }
+
+        None
     }
     pub fn node_buttons(
         &mut self,
