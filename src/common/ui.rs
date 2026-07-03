@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{borrow::Cow, path::Path};
 
 use color::{AlphaColor, Oklch, OpaqueColor, PremulColor, PremulRgba8, Srgb};
 use eframe::{
@@ -140,6 +140,36 @@ pub fn format_file_size(size: usize) -> String {
     } else {
         format!("{} bytes", size)
     }
+}
+
+// Modified version of String::from_utf8_lossy() which uses the ASCII substitution character
+pub fn from_utf8_lossy(v: &[u8]) -> Cow<'_, str> {
+    let mut iter = v.utf8_chunks();
+
+    let first_valid = if let Some(chunk) = iter.next() {
+        let valid = chunk.valid();
+        if chunk.invalid().is_empty() {
+            return Cow::Borrowed(valid);
+        }
+        valid
+    } else {
+        return Cow::Borrowed("");
+    };
+
+    const REPLACEMENT: &str = "\u{1A}";
+
+    let mut res = String::with_capacity(v.len());
+    res.push_str(first_valid);
+    res.push_str(REPLACEMENT);
+
+    for chunk in iter {
+        res.push_str(chunk.valid());
+        if !chunk.invalid().is_empty() {
+            res.push_str(REPLACEMENT);
+        }
+    }
+
+    Cow::Owned(res)
 }
 
 pub fn into_oklch(color: Color32) -> AlphaColor<Oklch> {

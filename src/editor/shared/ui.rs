@@ -1,9 +1,13 @@
 use std::{
     cmp,
     collections::{HashMap, HashSet},
+    ops::Range,
 };
 
-use eframe::egui::{Color32, Frame, Sense, Ui, UiBuilder, text::LayoutJob};
+use eframe::egui::{
+    Color32, Frame, Sense, TextFormat, TextStyle, Ui, UiBuilder,
+    text::{LayoutJob, LayoutSection},
+};
 use egui_plot::Text;
 use flagset::{FlagSet, flags};
 use tapestry_weave::{
@@ -18,7 +22,7 @@ use tapestry_weave::{
 use ulid::Ulid;
 
 use crate::{
-    common::ui::{from_opaque_oklch, into_oklch_opaque},
+    common::ui::{from_opaque_oklch, from_utf8_lossy, into_oklch_opaque},
     editor::settings::interface::{InterfaceSettings, NodeColors, TokenColors},
     inference::InferenceEngine,
 };
@@ -107,9 +111,139 @@ impl WeaveUi {
         settings: &InterfaceSettings,
         flags: FlagSet<TextFlags>,
     ) -> LayoutJob {
-        let color = self.node_color(ui, node, settings);
+        let node_color = self.node_color(ui, node, settings);
+        let font_id = TextStyle::Monospace.resolve(ui.style());
 
-        todo!()
+        let handle_empty = || {
+            if !flags.contains(TextFlags::EmptyNotice) {
+                LayoutJob {
+                    break_on_newline: true,
+                    ..Default::default()
+                }
+            } else {
+                let mut notice_font_id = TextStyle::Body.resolve(ui.style());
+                notice_font_id.size = font_id.size;
+
+                LayoutJob {
+                    text: "No text".to_string(),
+                    sections: vec![LayoutSection {
+                        leading_space: 0.0,
+                        byte_range: 0..("No text").len(),
+                        format: TextFormat {
+                            font_id: notice_font_id,
+                            color: node_color,
+                            valign: ui.text_valign(),
+                            ..Default::default()
+                        },
+                    }],
+                    break_on_newline: true,
+                    ..Default::default()
+                }
+            }
+        };
+
+        match &node.contents.content {
+            InnerNodeContent::Tokens(tokens) => {
+                if tokens.iter().all(|t| t.bytes.is_empty()) {
+                    handle_empty()
+                } else if flags.contains(TextFlags::FirstTokenBytes)
+                    && tokens.len() == 1
+                    && !tokens[0].is_modified()
+                    && str::from_utf8(&tokens[0].bytes).is_err()
+                {
+                    let token = &tokens[0];
+                    let token_color = self.token_color(node_color, token, settings);
+                    let token_text = format!("{:?}", &token.bytes);
+                    let token_text_length = token_text.len();
+
+                    LayoutJob {
+                        text: token_text,
+                        sections: vec![LayoutSection {
+                            leading_space: 0.0,
+                            byte_range: Range {
+                                start: 0,
+                                end: token_text_length,
+                            },
+                            format: TextFormat {
+                                font_id,
+                                color: token_color,
+                                valign: ui.text_valign(),
+                                ..Default::default()
+                            },
+                        }],
+                        break_on_newline: true,
+                        ..Default::default()
+                    }
+                } else {
+                    let text = from_utf8_lossy(
+                        &tokens
+                            .iter()
+                            .flat_map(|t| t.bytes.iter().cloned())
+                            .collect::<Vec<u8>>(),
+                    )
+                    .to_string();
+                    let mut offset = 0;
+
+                    let mut sections = Vec::with_capacity(tokens.len());
+
+                    for token in tokens {
+                        if token.bytes.is_empty() {
+                            continue;
+                        }
+
+                        let token_color = self.token_color(node_color, token, settings);
+                        let token_length = token.bytes.len();
+
+                        sections.push(LayoutSection {
+                            leading_space: 0.0,
+                            byte_range: Range {
+                                start: text.floor_char_boundary(offset),
+                                end: text.floor_char_boundary(offset + token_length),
+                            },
+                            format: TextFormat {
+                                font_id: font_id.clone(),
+                                color: token_color,
+                                valign: ui.text_valign(),
+                                ..Default::default()
+                            },
+                        });
+                        offset += token_length;
+                    }
+
+                    LayoutJob {
+                        text,
+                        sections,
+                        break_on_newline: true,
+                        ..Default::default()
+                    }
+                }
+            }
+            InnerNodeContent::Snippet(snippet) => {
+                if snippet.is_empty() {
+                    handle_empty()
+                } else {
+                    let text = from_utf8_lossy(snippet).to_string();
+                    let text_length = text.len();
+
+                    LayoutJob {
+                        text,
+                        sections: vec![LayoutSection {
+                            leading_space: 0.0,
+                            byte_range: 0..text_length,
+                            format: TextFormat {
+                                font_id,
+                                color: node_color,
+                                valign: ui.text_valign(),
+                                ..Default::default()
+                            },
+                        }],
+                        break_on_newline: true,
+                        ..Default::default()
+                    }
+                }
+            }
+            InnerNodeContent::MetadataOnly => handle_empty(),
+        }
     }
     pub fn node_color(
         &mut self,
