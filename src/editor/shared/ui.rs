@@ -6,7 +6,7 @@ use std::{
 };
 
 use eframe::egui::{
-    Button, Color32, Frame, Sense, TextFormat, TextStyle, Ui, UiBuilder, WidgetText,
+    Button, Color32, Frame, RichText, Sense, TextFormat, TextStyle, Ui, UiBuilder, WidgetText,
     text::{LayoutJob, LayoutSection},
 };
 use egui_plot::Text;
@@ -15,7 +15,9 @@ use tapestry_weave::{
     jiff::Zoned,
     universal_weave::{dependent::DependentNode, indexmap::IndexSet},
     v1::{
-        content::{Author, Creator, InnerNodeContent, InnerNodeToken, NodeContent},
+        content::{
+            Author, Creator, InnerNodeContent, InnerNodeToken, NodeContent, UNKNOWN_MODEL_LABEL,
+        },
         dependent::{TapestryNode, TapestryWeave},
         metadata::{AuxMetadataMap, MetadataMap},
     },
@@ -517,19 +519,54 @@ impl WeaveUi {
                 } else {
                     ui.label(&model.label);
                 }
-            }
-            Creator::Model(None) => {}
-            Creator::User(Some(user)) => {
-                let color = user.color.as_ref().and_then(|h| Color32::from_hex(h).ok());
 
-                if let Some(color) = color {
-                    ui.colored_label(color, format!("USER {}", &user.label));
-                } else {
-                    ui.label(format!("USER {}", &user.label));
+                #[cfg(debug_assertions)]
+                if let Some(identifier) = model.identifier {
+                    ui.weak(identifier.to_string());
                 }
             }
-            Creator::User(None) => {}
+            Creator::Model(None) => {
+                ui.label(UNKNOWN_MODEL_LABEL);
+            }
+            Creator::User(Some(user)) => {
+                let color = user.color.as_ref().and_then(|h| Color32::from_hex(h).ok());
+                let text = RichText::new(format!("USER {}", &user.label)).small();
+
+                if let Some(color) = color {
+                    ui.label(text.color(color));
+                } else {
+                    ui.label(text);
+                }
+
+                #[cfg(debug_assertions)]
+                if let Some(identifier) = user.identifier {
+                    ui.weak(identifier.to_string());
+                }
+            }
+            Creator::User(None) => {
+                ui.label(RichText::new("User node").small());
+            }
             Creator::Unknown => {}
+        }
+
+        if node.contents.creator.is_model() && node.contents.modified {
+            ui.colored_label(ui.visuals().warn_fg_color, "modified: true");
+        }
+
+        for (key, value) in &node.contents.metadata {
+            ui.label(format!("{key}: {value}"));
+        }
+
+        if let Creator::Model(Some(model)) = &node.contents.creator {
+            if let Some(seed) = model.seed {
+                ui.label(format!("seed: {}", seed));
+            }
+            if let Some(finish_reason) = &model.finish_reason {
+                ui.label(format!("finish_reason: {}", finish_reason));
+            }
+            if let Some(system_fingerprint) = &model.system_fingerprint {
+                ui.label(format!("system_fingerprint: {}", system_fingerprint));
+            }
         }
 
         if let Some(mean_logprob) = node.contents.content.calculate_average_logprob()
@@ -553,10 +590,6 @@ impl WeaveUi {
                     confidence, confidence_k, confidence_n
                 ));
             }
-        }
-
-        for (key, value) in &node.contents.metadata {
-            ui.label(format!("{key}: {value}"));
         }
 
         ui.label(format!("{}", node.contents.timestamp));
