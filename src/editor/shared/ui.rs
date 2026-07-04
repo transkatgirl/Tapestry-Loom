@@ -38,6 +38,7 @@ pub struct WeaveUi {
 
     generate: Option<u64>,
     seriate: Option<u64>,
+    rendered_collapsing_labels: Vec<u64>,
 
     settings: InterfaceSettings,
 }
@@ -67,6 +68,8 @@ impl WeaveUi {
         {
             self.cursor = Some(thread_tail);
         }
+
+        self.rendered_collapsing_labels.clear();
 
         if let Some(generate) = self.generate {
             inference.generate_children(id, weave, generate);
@@ -102,6 +105,10 @@ impl WeaveUi {
         user: &Option<Author>,
     ) {
         let mut mouse_hovered = false;
+
+        if options.collapsing {
+            self.rendered_collapsing_labels.push(node.id);
+        }
 
         let response = ui
             .scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
@@ -631,7 +638,7 @@ impl WeaveUi {
             }
             Creator::User(Some(user)) => {
                 let color = user.color.as_ref().and_then(|h| Color32::from_hex(h).ok());
-                let text = RichText::new(format!("USER {}", &user.label)).small();
+                let text = RichText::new(format!("[USER] {}", &user.label)).small();
 
                 if let Some(color) = color {
                     ui.label(text.color(color));
@@ -704,7 +711,7 @@ impl WeaveUi {
         ui.label(format!("{}", node.contents.timestamp));
 
         #[cfg(debug_assertions)]
-        ui.label(node.id.to_string());
+        ui.weak(node.id.to_string());
     }
     pub fn token_tooltip(
         &mut self,
