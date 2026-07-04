@@ -13,10 +13,13 @@ use crate::{
     },
 };
 
+pub const LABEL_SEPARATOR_OPACITY: f32 = 0.35;
+
 #[derive(Default, Debug)]
 pub struct TreeListView {}
 
 impl TreeListView {
+    #[allow(clippy::too_many_arguments)]
     fn render_row(
         &mut self,
         weave: &mut TapestryWeave,
@@ -30,7 +33,7 @@ impl TreeListView {
         for (index, node) in nodes.enumerate() {
             if let Some(node) = weave.get_node(&node).cloned() {
                 if indent_level != 0 || index != 0 {
-                    label_separator(ui, 0.3);
+                    label_separator(ui, LABEL_SEPARATOR_OPACITY);
                 }
 
                 let id = Id::new((editor_id.0, node.id));
@@ -172,7 +175,7 @@ impl ListView {
         is_start: bool,
     ) {
         if !is_start {
-            label_separator(ui, 0.3);
+            label_separator(ui, LABEL_SEPARATOR_OPACITY);
         }
 
         ui.horizontal_wrapped(|ui| {
@@ -252,7 +255,7 @@ impl BookmarkView {
         is_start: bool,
     ) {
         if !is_start {
-            label_separator(ui, 0.3);
+            label_separator(ui, LABEL_SEPARATOR_OPACITY);
         }
 
         ui.horizontal_wrapped(|ui| {
