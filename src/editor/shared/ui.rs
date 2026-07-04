@@ -677,7 +677,8 @@ impl WeaveUi {
             }
         }
 
-        if let Some(mean_logprob) = node.contents.content.calculate_average_logprob()
+        if ui.input(|i| i.modifiers.any())
+            && let Some(mean_logprob) = node.contents.content.calculate_average_logprob()
             && let Some(cum_logprob) = node.contents.content.calculate_cumulative_logprob()
             && let Some(tokens) = node.contents.content.token_count()
             && mean_logprob.is_finite()
@@ -708,7 +709,12 @@ impl WeaveUi {
             }
         }
 
-        ui.label(format!("{}", node.contents.timestamp));
+        ui.label(
+            node.contents
+                .timestamp
+                .strftime("%m/%d/%Y %I:%M:%S %p")
+                .to_string(),
+        );
 
         #[cfg(debug_assertions)]
         ui.weak(node.id.to_string());
