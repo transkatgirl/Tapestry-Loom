@@ -272,7 +272,7 @@ impl FileManager {
             };
 
             ui.scope_builder(
-                UiBuilder::new().id(Id::new(["filemanager-item-", &path.to_string_lossy()])),
+                UiBuilder::new().id(Id::new(("filemanager-item-", &path))),
                 |ui| {
                     ui.horizontal(|ui| {
                         ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {

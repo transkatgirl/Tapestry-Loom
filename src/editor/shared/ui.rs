@@ -43,7 +43,7 @@ pub struct WeaveUi {
     settings: InterfaceSettings,
 }
 
-const DEFAULT_OPEN: bool = false;
+pub const DEFAULT_OPEN: bool = true;
 
 impl WeaveUi {
     pub fn logic(
@@ -677,20 +677,21 @@ impl WeaveUi {
             }
         }
 
-        if ui.input(|i| i.modifiers.any())
-            && let Some(mean_logprob) = node.contents.content.calculate_average_logprob()
+        if let Some(mean_logprob) = node.contents.content.calculate_average_logprob()
             && let Some(cum_logprob) = node.contents.content.calculate_cumulative_logprob()
             && let Some(tokens) = node.contents.content.token_count()
             && mean_logprob.is_finite()
             && cum_logprob.is_finite()
         {
-            ui.label(format!(
-                "logprobs: (μ = {:.4} ({:.2}%), sum = {:.4}, n = {})",
-                mean_logprob,
-                mean_logprob.exp() * 100.0,
-                cum_logprob,
-                tokens
-            ));
+            if ui.input(|i| i.modifiers.any()) {
+                ui.label(format!(
+                    "logprobs: (μ = {:.4} ({:.2}%), sum = {:.4}, n = {})",
+                    mean_logprob,
+                    mean_logprob.exp() * 100.0,
+                    cum_logprob,
+                    tokens
+                ));
+            }
 
             if let Some(mean_entropy) = node.contents.content.calculate_average_entropy()
                 && mean_entropy.is_finite()
