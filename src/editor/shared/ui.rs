@@ -32,6 +32,7 @@ use crate::{
 #[derive(Default)]
 pub struct WeaveUi {
     pub cursor: Option<u64>,
+    last_cursor: Option<u64>,
     pub opened: HashMap<u64, bool>,
     hovered: Option<u64>,
     last_hovered: Option<u64>,
@@ -45,7 +46,7 @@ pub struct WeaveUi {
     settings: InterfaceSettings,
 }
 
-pub const DEFAULT_OPEN: bool = true;
+pub const DEFAULT_OPEN: bool = false;
 
 impl WeaveUi {
     pub fn logic(
@@ -72,6 +73,16 @@ impl WeaveUi {
         {
             self.cursor = Some(thread_tail);
         }
+
+        if self.last_cursor != self.cursor
+            && let Some(cursor) = self.cursor
+        {
+            for node in weave.get_active_thread_ids().iter().copied() {
+                self.opened.insert(node, true);
+            }
+        }
+
+        self.last_cursor = self.cursor;
 
         self.rendered_collapsing_labels.clear();
 
