@@ -33,8 +33,10 @@ use crate::{
 pub struct WeaveUi {
     pub cursor: Option<u64>,
     pub opened: HashMap<u64, bool>,
-    pub hovered: Option<u64>,
-    pub scroll_to: Option<u64>,
+    hovered: Option<u64>,
+    last_hovered: Option<u64>,
+    scroll_to: Option<u64>,
+    last_scroll_to: Option<u64>,
 
     generate: Option<u64>,
     seriate: Option<u64>,
@@ -54,7 +56,9 @@ impl WeaveUi {
         id: Ulid,
         shortcuts: FlagSet<Shortcuts>,
     ) {
+        self.last_hovered = self.hovered;
         self.hovered = None;
+        self.last_scroll_to = self.scroll_to;
         self.scroll_to = None;
 
         if let Some(cursor) = self.cursor
@@ -88,7 +92,7 @@ impl WeaveUi {
             .clip_rect()
             .contains(ui.ctx().pointer_hover_pos().unwrap_or_default());
 
-        if !contains_pointer || self.cursor == self.scroll_to {
+        if !contains_pointer || self.cursor == self.last_scroll_to {
             Some(AutoscrollData {
                 max_autoscroll_height: ui.available_size_before_wrap().y,
             })
@@ -114,9 +118,9 @@ impl WeaveUi {
             .scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
                 let mut frame = Frame::new();
 
-                let is_hovered = self.hovered == Some(node.id);
+                let is_hovered = self.last_hovered == Some(node.id);
                 let is_cursor = self.cursor == Some(node.id);
-                let is_focus = self.scroll_to == Some(node.id);
+                let is_focus = self.last_scroll_to == Some(node.id);
 
                 if is_hovered {
                     frame = frame.fill(ui.visuals().widgets.hovered.weak_bg_fill);
@@ -130,23 +134,25 @@ impl WeaveUi {
                     )));
                     let label_color = self.node_color(node);
 
-                    let mut label_button = if node.active {
-                        if let Some(label_color) = label_color {
-                            Button::new(label)
-                                .fill(multiply_color_alpha(label_color, 0.5))
-                                .selected(true)
-                        } else {
-                            Button::new(label).selected(true)
-                        }
-                    } else {
-                        Button::new(label).fill(Color32::TRANSPARENT)
-                    };
+                    let mut label_button = Button::new(label);
 
                     if
                     /*is_hovered ||*/
                     is_cursor {
                         label_button = label_button.stroke(ui.visuals().widgets.hovered.bg_stroke);
                     }
+
+                    label_button = if node.active {
+                        if let Some(label_color) = label_color {
+                            label_button
+                                .fill(multiply_color_alpha(label_color, 0.5))
+                                .selected(true)
+                        } else {
+                            label_button.selected(true)
+                        }
+                    } else {
+                        label_button.fill(Color32::TRANSPARENT)
+                    };
 
                     let label_button_response = ui.add(label_button).on_hover_ui(|ui| {
                         if let InnerNodeContent::Tokens(tokens) = &node.contents.content
@@ -268,7 +274,7 @@ impl WeaveUi {
             .scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
                 let mut frame = Frame::new();
 
-                let is_hovered = self.hovered == Some(node);
+                let is_hovered = self.last_hovered == Some(node);
 
                 if is_hovered {
                     frame = frame.fill(ui.visuals().widgets.hovered.weak_bg_fill);
