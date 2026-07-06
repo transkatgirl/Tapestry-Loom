@@ -11,8 +11,8 @@ use std::{
 use eframe::{
     CreationContext, NativeOptions,
     egui::{
-        self, CentralPanel, Context, FontData, FontDefinitions, FontFamily, IconData, Memory,
-        Rangef, Ui, ViewportBuilder, ViewportCommand, WidgetText, style::ScrollAnimation,
+        self, CentralPanel, Context, CornerRadius, FontData, FontDefinitions, FontFamily, IconData,
+        Memory, Rangef, Ui, ViewportBuilder, ViewportCommand, WidgetText, style::ScrollAnimation,
     },
 };
 use egui_notify::{Toast, Toasts};
@@ -115,6 +115,16 @@ impl App {
                 },
             };
             style.compact_menu_style = true;
+            style.visuals.widgets.noninteractive.corner_radius = CornerRadius::same(2);
+            style.visuals.widgets.inactive.corner_radius = CornerRadius::same(2);
+            style.visuals.widgets.hovered.corner_radius = CornerRadius::same(2);
+            style.visuals.widgets.active.corner_radius = CornerRadius::same(2);
+            style.visuals.widgets.open.corner_radius = CornerRadius::same(2);
+            style.visuals.widgets.noninteractive.bg_stroke.width = 1.0;
+            style.visuals.widgets.inactive.bg_stroke.width = 1.0;
+            style.visuals.widgets.hovered.bg_stroke.width = 1.0;
+            style.visuals.widgets.active.bg_stroke.width = 1.0;
+            style.visuals.widgets.open.bg_stroke.width = 1.0;
         });
         cc.egui_ctx.set_fonts(FontDefinitions {
             font_data: BTreeMap::from([
