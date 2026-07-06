@@ -37,7 +37,6 @@ pub struct WeaveUi {
     hovered: Option<u64>,
     last_hovered: Option<u64>,
     scroll_to: Option<u64>,
-    last_scroll_to: Option<u64>,
 
     generate: Option<u64>,
     seriate: Option<u64>,
@@ -57,10 +56,12 @@ impl WeaveUi {
         id: Ulid,
         shortcuts: FlagSet<Shortcuts>,
     ) {
+        self.scroll_to = None;
+        if self.last_hovered != self.hovered && self.hovered.is_some() {
+            self.scroll_to = self.hovered;
+        }
         self.last_hovered = self.hovered;
         self.hovered = None;
-        self.last_scroll_to = self.scroll_to;
-        self.scroll_to = None;
 
         if let Some(cursor) = self.cursor
             && !weave.contains(&cursor)
@@ -77,7 +78,9 @@ impl WeaveUi {
         if self.last_cursor != self.cursor
             && let Some(cursor) = self.cursor
         {
-            for node in weave.get_active_thread_ids().iter().copied() {
+            self.scroll_to = Some(cursor);
+
+            for node in weave.get_thread_from_ids(&cursor).iter().copied() {
                 self.opened.insert(node, true);
             }
         }
@@ -89,6 +92,8 @@ impl WeaveUi {
         if let Some(generate) = self.generate {
             inference.generate_children(id, weave, generate);
         }
+
+        // TODO: generated children should be scroll_to
 
         if let Some(seriate) = self.seriate {
             inference.seriate_siblings(id, weave, seriate);
@@ -103,7 +108,7 @@ impl WeaveUi {
             .clip_rect()
             .contains(ui.ctx().pointer_hover_pos().unwrap_or_default());
 
-        if !contains_pointer || self.cursor == self.last_scroll_to {
+        if !contains_pointer || self.cursor == self.scroll_to {
             Some(AutoscrollData {
                 max_autoscroll_height: ui.available_size_before_wrap().y,
             })
@@ -131,7 +136,7 @@ impl WeaveUi {
 
                 let is_hovered = self.last_hovered == Some(node.id);
                 let is_cursor = self.cursor == Some(node.id);
-                let is_focus = self.last_scroll_to == Some(node.id);
+                let is_focus = self.scroll_to == Some(node.id);
 
                 if is_hovered {
                     frame = frame.fill(ui.visuals().widgets.hovered.weak_bg_fill);
