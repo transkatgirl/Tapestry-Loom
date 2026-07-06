@@ -42,7 +42,6 @@ where
         if let Some(Tile::Pane(pane)) = tiles.get(tile_id) {
             pane.closable(&self.shared)
         } else {
-            warn!("Tile {:?} is in an invalid state", tile_id);
             false
         }
     }
@@ -69,7 +68,6 @@ where
         if let Some(Tile::Pane(pane)) = tiles.get_mut(tile_id) {
             pane.close(&mut self.shared)
         } else {
-            warn!("Tile {:?} is in an invalid state", tile_id);
             false
         }
     }
