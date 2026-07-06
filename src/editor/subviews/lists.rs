@@ -154,15 +154,21 @@ impl View<EditorShared> for TreeListView {
                             weave.roots().iter().copied().collect()
                         };
 
-                        self.render_row(
-                            weave,
-                            roots.into_iter(),
-                            ui,
-                            &mut shared.ui,
-                            autoscroll,
-                            shared.id,
-                            0,
-                        );
+                        if weave.roots().is_empty() {
+                            ui.horizontal_wrapped(|ui| {
+                                shared.ui.horizontal_empty_document_label(weave, ui, &None);
+                            });
+                        } else {
+                            self.render_row(
+                                weave,
+                                roots.into_iter(),
+                                ui,
+                                &mut shared.ui,
+                                autoscroll,
+                                shared.id,
+                                0,
+                            );
+                        }
                     }
                 })
             });

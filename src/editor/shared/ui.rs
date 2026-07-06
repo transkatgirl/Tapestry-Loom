@@ -348,6 +348,86 @@ impl WeaveUi {
             self.cursor = Some(node);
         }
     }
+    pub fn horizontal_empty_document_label(
+        &mut self,
+        weave: &mut TapestryWeave,
+        ui: &mut Ui,
+        user: &Option<Author>,
+    ) {
+        let response = ui
+            .scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
+                let frame = Frame::new();
+
+                frame.show(ui, |ui| {
+                    let label_button_response = ui.add_enabled(
+                        false,
+                        Button::new(RichText::new("No nodes").family(FontFamily::Proportional))
+                            .fill(Color32::TRANSPARENT),
+                    );
+
+                    label_button_response
+                        .context_menu(|ui| self.document_context_menu(weave, ui, user));
+
+                    let hover_rect = Rect {
+                        min: Pos2 {
+                            x: ui.min_rect().min.x,
+                            y: ui.max_rect().min.y,
+                        },
+                        max: Pos2 {
+                            x: ui.max_rect().max.x,
+                            y: ui.min_rect().max.y,
+                        },
+                    };
+
+                    let mouse_hovered = label_button_response.contains_pointer()
+                        || ui.rect_contains_pointer(hover_rect);
+
+                    ui.scope_builder(
+                        UiBuilder::new()
+                            .max_rect(hover_rect)
+                            .layout(Layout::right_to_left(Align::Center)),
+                        |ui| {
+                            if mouse_hovered {
+                                ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
+                                    ui.add_space(ui.spacing().icon_spacing);
+
+                                    let add_response =
+                                        ui.button("\u{E40C}").on_hover_text("Add node");
+                                    if add_response.clicked() {
+                                        let identifier = weave.generate_id();
+
+                                        if weave.add_node(DependentNode {
+                                            id: identifier,
+                                            from: None,
+                                            to: IndexSet::default(),
+                                            active: true,
+                                            bookmarked: false,
+                                            contents: NodeContent {
+                                                timestamp: Zoned::now(),
+                                                modified: false,
+                                                content: InnerNodeContent::MetadataOnly,
+                                                metadata: MetadataMap::default(),
+                                                aux_metadata: AuxMetadataMap::default(),
+                                                creator: Creator::User(user.clone()),
+                                            },
+                                        }) {
+                                            self.cursor = Some(identifier);
+                                        }
+                                    };
+
+                                    ui.add_space(0.0);
+                                });
+                            } else {
+                                ui.add_space(0.0);
+                            }
+                        },
+                    );
+                });
+            })
+            .response;
+
+        response.context_menu(|ui| self.document_context_menu(weave, ui, user));
+    }
     pub fn node_text(
         &mut self,
         ui: &Ui,
@@ -701,6 +781,13 @@ impl WeaveUi {
         if ui.button("Delete").clicked() {
             weave.remove_node(&node.id);
         }
+    }
+    pub fn document_context_menu(
+        &mut self,
+        weave: &mut TapestryWeave,
+        ui: &mut Ui,
+        user: &Option<Author>,
+    ) {
     }
     pub fn node_tooltip(&mut self, node: &TapestryNode, ui: &mut Ui) {
         ui.set_max_width(ui.spacing().tooltip_width);
