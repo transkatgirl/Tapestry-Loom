@@ -1,8 +1,8 @@
 use std::{collections::HashMap, ops::Range, sync::Arc};
 
 use eframe::egui::{
-    Align, Button, Color32, Frame, Layout, Pos2, Rect, RichText, ScrollArea, Sense, TextFormat,
-    TextStyle, Ui, UiBuilder, WidgetText,
+    Align, Button, Color32, FontFamily, Frame, Layout, Pos2, Rect, RichText, ScrollArea, Sense,
+    TextFormat, TextStyle, Ui, UiBuilder, WidgetText,
     text::{LayoutJob, LayoutSection},
 };
 use flagset::{FlagSet, flags};
@@ -259,6 +259,71 @@ impl WeaveUi {
                 response.clicked_with_open_in_background(),
             );
             self.cursor = Some(node.id);
+        }
+    }
+    pub fn horizontal_omitted_node_label(&mut self, node: u64, ui: &mut Ui) {
+        let mut mouse_hovered = false;
+
+        let response = ui
+            .scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
+                let mut frame = Frame::new();
+
+                let is_hovered = self.hovered == Some(node);
+
+                if is_hovered {
+                    frame = frame.fill(ui.visuals().widgets.hovered.weak_bg_fill);
+                }
+
+                frame.show(ui, |ui| {
+                    let label =
+                        RichText::new("\u{E04A} Show more").family(FontFamily::Proportional);
+
+                    let label_button_response =
+                        ui.add(Button::new(label).fill(Color32::TRANSPARENT));
+
+                    if label_button_response.contains_pointer() {
+                        mouse_hovered = true;
+                        self.hovered = Some(node);
+                    }
+
+                    if label_button_response.clicked() {
+                        self.cursor = Some(node);
+                    }
+
+                    let hover_rect = Rect {
+                        min: Pos2 {
+                            x: ui.min_rect().min.x,
+                            y: ui.max_rect().min.y,
+                        },
+                        max: Pos2 {
+                            x: ui.max_rect().max.x,
+                            y: ui.min_rect().max.y,
+                        },
+                    };
+
+                    if ui.rect_contains_pointer(hover_rect) {
+                        mouse_hovered = true;
+                        self.hovered = Some(node);
+                    }
+
+                    ui.scope_builder(
+                        UiBuilder::new()
+                            .max_rect(hover_rect)
+                            .layout(Layout::right_to_left(Align::Center)),
+                        |ui| {
+                            ui.add_space(0.0);
+                        },
+                    );
+                });
+            })
+            .response;
+
+        if response.contains_pointer() {
+            self.hovered = Some(node);
+        }
+
+        if response.clicked() {
+            self.cursor = Some(node);
         }
     }
     pub fn node_text(

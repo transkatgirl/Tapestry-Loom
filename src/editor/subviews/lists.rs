@@ -85,8 +85,16 @@ impl TreeListView {
                             render_label(ui);
                         })
                         .body(|ui| {
-                            if indent_level > 3 && ui.available_size_before_wrap().x < 150.0 {
-                                // TODO
+                            if indent_level > 3 && ui.available_size_before_wrap().x < 250.0 {
+                                ui.horizontal_wrapped(|ui| {
+                                    ui.add_space(
+                                        ui.spacing().icon_width + ui.spacing().icon_spacing,
+                                    );
+                                    shared.horizontal_omitted_node_label(
+                                        *node.to.first().unwrap(),
+                                        ui,
+                                    );
+                                });
                             } else {
                                 let nodes: Vec<u64> = node.to.iter().copied().collect();
 
