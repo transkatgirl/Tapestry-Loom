@@ -118,8 +118,6 @@ impl TreeListView {
                         );
                     }
                 }
-
-                // TODO
             }
         }
     }
@@ -129,7 +127,7 @@ impl View<EditorShared> for TreeListView {
     fn title(&self, _shared: &EditorShared) -> WidgetText {
         WidgetText::Text("\u{E408} Tree".to_string())
     }
-    fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
+    fn logic(&mut self, _shared: &mut EditorShared, _force_close: impl FnOnce(), _ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
         ScrollArea::vertical()
             .auto_shrink(false)
@@ -169,6 +167,8 @@ impl View<EditorShared> for TreeListView {
                                 0,
                             );
                         }
+
+                        // TODO: Listing right-click menu
                     }
                 })
             });
@@ -218,7 +218,7 @@ impl View<EditorShared> for ListView {
     fn title(&self, _shared: &EditorShared) -> WidgetText {
         WidgetText::Text("\u{E106} List".to_string())
     }
-    fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
+    fn logic(&mut self, _shared: &mut EditorShared, _force_close: impl FnOnce(), _ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
         ScrollArea::vertical()
             .auto_shrink(false)
@@ -249,6 +249,8 @@ impl View<EditorShared> for ListView {
                                 );
                             }
                         }
+
+                        // TODO: Listing right-click menu
                     }
                 })
             });
@@ -296,7 +298,7 @@ impl View<EditorShared> for BookmarkView {
     fn title(&self, _shared: &EditorShared) -> WidgetText {
         WidgetText::Text("\u{E060} Bookmarks".to_string())
     }
-    fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
+    fn logic(&mut self, _shared: &mut EditorShared, _force_close: impl FnOnce(), _ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
         ScrollArea::vertical()
             .auto_shrink(false)
@@ -320,6 +322,8 @@ impl View<EditorShared> for BookmarkView {
                                 );
                             }
                         }
+
+                        // TODO: Listing right-click menu
                     }
                 })
             });
