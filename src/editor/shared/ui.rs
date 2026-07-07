@@ -3,6 +3,7 @@ use std::{collections::HashMap, ops::Range, sync::Arc};
 use eframe::egui::{
     Align, Button, Color32, FontFamily, Frame, Layout, Pos2, Rect, RichText, ScrollArea, Sense,
     TextFormat, TextStyle, TextWrapMode, Ui, UiBuilder, WidgetText,
+    containers::menu::SubMenuButton,
     text::{LayoutJob, LayoutSection},
 };
 use flagset::{FlagSet, flags};
@@ -743,17 +744,19 @@ impl WeaveUi {
                 ui.separator();
             }
 
-            if ui.button("Seriate children").clicked() {
-                self.seriate = Some(node.id);
-            }
+            SubMenuButton::new("Sort children by...").ui(ui, |ui| {
+                if ui.button("Seriation").clicked() {
+                    self.seriate = Some(node.id);
+                }
 
-            if ui.button("Sort children by confidence").clicked() {
-                // TODO
-            }
+                if ui.button("Confidence").clicked() {
+                    // TODO
+                }
 
-            if ui.button("Sort children by timestamp").clicked() {
-                // TODO
-            }
+                if ui.button("Timestamp").clicked() {
+                    // TODO
+                }
+            });
 
             ui.separator();
 
@@ -832,17 +835,19 @@ impl WeaveUi {
             if !weave.roots().is_empty() {
                 ui.separator();
 
-                if ui.button("Seriate roots").clicked() {
-                    // TODO
-                }
+                SubMenuButton::new("Sort roots by...").ui(ui, |ui| {
+                    if ui.button("Seriation").clicked() {
+                        // TODO
+                    }
 
-                if ui.button("Sort roots by confidence").clicked() {
-                    // TODO
-                }
+                    if ui.button("Confidence").clicked() {
+                        // TODO
+                    }
 
-                if ui.button("Sort roots by timestamp").clicked() {
-                    // TODO
-                }
+                    if ui.button("Timestamp").clicked() {
+                        // TODO
+                    }
+                });
             }
         }
 
@@ -851,17 +856,19 @@ impl WeaveUi {
                 ui.separator();
             }
 
-            if ui.button("Seriate bookmarks").clicked() {
-                // TODO
-            }
+            SubMenuButton::new("Sort bookmarks by...").ui(ui, |ui| {
+                if ui.button("Seriation").clicked() {
+                    // TODO
+                }
 
-            if ui.button("Sort bookmarks by confidence").clicked() {
-                // TODO
-            }
+                if ui.button("Confidence").clicked() {
+                    // TODO
+                }
 
-            if ui.button("Sort bookmarks by timestamp").clicked() {
-                // TODO
-            }
+                if ui.button("Timestamp").clicked() {
+                    // TODO
+                }
+            });
         }
 
         // TODO
