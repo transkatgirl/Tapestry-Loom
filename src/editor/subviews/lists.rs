@@ -1,4 +1,5 @@
 use eframe::egui::{Context, Id, ScrollArea, Ui, WidgetText, collapsing_header::CollapsingState};
+use flagset::FlagSet;
 use tapestry_weave::v1::dependent::{TapestryNode, TapestryWeave};
 use ulid::Ulid;
 
@@ -9,7 +10,9 @@ use crate::{
     },
     editor::{
         EditorShared,
-        shared::ui::{AutoscrollData, ButtonFlags, DEFAULT_OPEN, LabelOptions, WeaveUi},
+        shared::ui::{
+            AutoscrollData, ButtonFlags, DEFAULT_OPEN, DocumentContextFlags, LabelOptions, WeaveUi,
+        },
     },
 };
 
@@ -177,7 +180,16 @@ impl View<EditorShared> for TreeListView {
                                 ui.take_available_space();
                             },
                             |ui| {
-                                shared.ui.document_context_menu(weave, ui, !hoisted, &None);
+                                shared.ui.document_context_menu(
+                                    weave,
+                                    ui,
+                                    if hoisted {
+                                        FlagSet::empty()
+                                    } else {
+                                        DocumentContextFlags::Roots.into()
+                                    },
+                                    &None,
+                                );
                             },
                         );
                     }
@@ -270,7 +282,11 @@ impl View<EditorShared> for ListView {
                                 shared.ui.document_context_menu(
                                     weave,
                                     ui,
-                                    shared.ui.cursor.is_none(),
+                                    if shared.ui.cursor.is_some() {
+                                        FlagSet::empty()
+                                    } else {
+                                        DocumentContextFlags::Roots.into()
+                                    },
                                     &None,
                                 );
                             },
@@ -353,7 +369,12 @@ impl View<EditorShared> for BookmarkView {
                                 ui.take_available_space();
                             },
                             |ui| {
-                                shared.ui.document_context_menu(weave, ui, false, &None);
+                                shared.ui.document_context_menu(
+                                    weave,
+                                    ui,
+                                    DocumentContextFlags::Bookmarks.into(),
+                                    &None,
+                                );
                             },
                         );
                     }

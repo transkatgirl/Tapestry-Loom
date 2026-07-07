@@ -563,6 +563,14 @@ impl TapestryWeave {
             false
         }
     }
+    pub fn sort_bookmarks_by(
+        &mut self,
+        compare: impl FnMut(&TapestryNode, &TapestryNode) -> Ordering,
+    ) {
+        self.changed = true;
+        self.changed_shape = true;
+        self.weave.sort_bookmarks_by(compare)
+    }
     pub fn modify_inner<T>(
         &mut self,
         callback: impl FnOnce(&mut WyRand, &mut TapestryWeaveInner, &[u64]) -> T,

@@ -365,8 +365,14 @@ impl WeaveUi {
                             .fill(Color32::TRANSPARENT),
                     );
 
-                    label_button_response
-                        .context_menu(|ui| self.document_context_menu(weave, ui, true, user));
+                    label_button_response.context_menu(|ui| {
+                        self.document_context_menu(
+                            weave,
+                            ui,
+                            DocumentContextFlags::Roots.into(),
+                            user,
+                        )
+                    });
 
                     let hover_rect = Rect {
                         min: Pos2 {
@@ -426,7 +432,9 @@ impl WeaveUi {
             })
             .response;
 
-        response.context_menu(|ui| self.document_context_menu(weave, ui, true, user));
+        response.context_menu(|ui| {
+            self.document_context_menu(weave, ui, DocumentContextFlags::Roots.into(), user)
+        });
     }
     pub fn node_text(
         &mut self,
@@ -781,7 +789,7 @@ impl WeaveUi {
         &mut self,
         weave: &mut TapestryWeave,
         ui: &mut Ui,
-        root_options: bool,
+        flags: FlagSet<DocumentContextFlags>,
         user: &Option<Author>,
     ) {
         let style = ui.style_mut();
@@ -789,7 +797,7 @@ impl WeaveUi {
 
         let is_modifier_pressed = ui.input(|input| input.modifiers.any());
 
-        if root_options {
+        if flags.contains(DocumentContextFlags::Roots) {
             let add_child_response =
                 ui.button(if !is_modifier_pressed || weave.roots().is_empty() {
                     "Create root"
@@ -835,6 +843,24 @@ impl WeaveUi {
                 if ui.button("Sort roots by timestamp").clicked() {
                     // TODO
                 }
+            }
+        }
+
+        if flags.contains(DocumentContextFlags::Bookmarks) {
+            if flags.contains(DocumentContextFlags::Roots) {
+                ui.separator();
+            }
+
+            if ui.button("Seriate bookmarks").clicked() {
+                // TODO
+            }
+
+            if ui.button("Sort bookmarks by confidence").clicked() {
+                // TODO
+            }
+
+            if ui.button("Sort bookmarks by timestamp").clicked() {
+                // TODO
             }
         }
 
@@ -1355,5 +1381,9 @@ flags! {
         WarnModified,
         Counterfactual,
         Contents,
+    }
+    pub enum DocumentContextFlags: u8 {
+        Roots,
+        Bookmarks,
     }
 }
