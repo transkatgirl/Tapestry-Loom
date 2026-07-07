@@ -53,6 +53,7 @@ pub struct TapestryWeave {
     weave: TapestryWeaveInner,
     active: Vec<u64>,
     scratchpad: Vec<u64>,
+    scratchpad_2: HashSet<u64, BuildHasherDefault<RandomIdHasher>>,
     changed: bool,
     changed_shape: bool,
 }
@@ -66,6 +67,10 @@ impl From<TapestryWeaveInner> for TapestryWeave {
             rng: WyRand::new(),
             active,
             scratchpad: Vec::with_capacity(value.capacity()),
+            scratchpad_2: HashSet::with_capacity_and_hasher(
+                value.capacity(),
+                BuildHasherDefault::default(),
+            ),
             weave: value,
             changed: false,
             changed_shape: false,
@@ -117,6 +122,10 @@ impl TapestryWeave {
             weave: IndependentWeave::with_capacity(capacity, WeaveMetadata::new()),
             active: Vec::with_capacity(capacity),
             scratchpad: Vec::with_capacity(capacity),
+            scratchpad_2: HashSet::with_capacity_and_hasher(
+                capacity,
+                BuildHasherDefault::default(),
+            ),
             changed: false,
             changed_shape: false,
         }
@@ -127,6 +136,10 @@ impl TapestryWeave {
             weave: IndependentWeave::with_capacity(capacity, metadata),
             active: Vec::with_capacity(capacity),
             scratchpad: Vec::with_capacity(capacity),
+            scratchpad_2: HashSet::with_capacity_and_hasher(
+                capacity,
+                BuildHasherDefault::default(),
+            ),
             changed: false,
             changed_shape: false,
         }
@@ -140,11 +153,17 @@ impl TapestryWeave {
             .reserve(self.weave.capacity().saturating_sub(self.active.len()));
         self.scratchpad
             .reserve(self.weave.capacity().saturating_sub(self.scratchpad.len()));
+        self.scratchpad_2.reserve(
+            self.weave
+                .capacity()
+                .saturating_sub(self.scratchpad_2.len()),
+        );
     }
     pub fn shrink_to(&mut self, min_capacity: usize) {
         self.weave.shrink_to(min_capacity);
         self.active.shrink_to(min_capacity);
         self.scratchpad.shrink_to(min_capacity);
+        self.scratchpad_2.shrink_to(min_capacity);
     }
     pub fn metadata(&mut self) -> &mut WeaveMetadata {
         &mut self.weave.metadata
@@ -277,10 +296,9 @@ impl TapestryWeave {
     }
     pub fn add_node(&mut self, node: TapestryNode) -> bool {
         let identifier = node.id;
-        let last_active_set: HashSet<u64, BuildHasherDefault<RandomIdHasher>> = if node.active {
-            HashSet::from_iter(self.active.iter().copied())
-        } else {
-            HashSet::default()
+        self.scratchpad_2.clear();
+        if node.active {
+            self.scratchpad_2.extend(self.active.iter().copied())
         };
         let is_active = node.active;
 
@@ -294,7 +312,7 @@ impl TapestryWeave {
                     let mut has_active = false;
 
                     for duplicate in &duplicates {
-                        if last_active_set.contains(duplicate) {
+                        if self.scratchpad_2.contains(duplicate) {
                             self.weave.set_node_active_status_in_place(duplicate, true);
                             has_active = true;
                             break;
@@ -346,13 +364,17 @@ impl TapestryWeave {
             false
         }
     }
-    pub fn get_active_content(&mut self) -> Vec<u8> {
-        self.active
+    pub fn get_active_content(&self, output: &mut Vec<u8>) {
+        output.clear();
+
+        for node in self
+            .active
             .iter()
             .rev()
             .filter_map(|id| self.weave.get_node(id))
-            .flat_map(|node| node.contents.content.as_bytes().into_owned())
-            .collect()
+        {
+            output.extend(node.contents.content.as_bytes().iter().copied());
+        }
     }
     pub fn split_node(&mut self, id: &u64, at: usize) -> Option<(u64, Option<u64>, u64)> {
         let new_id = generate_unique_id(&mut self.rng, &self.weave);

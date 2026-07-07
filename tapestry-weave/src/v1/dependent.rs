@@ -349,13 +349,17 @@ impl TapestryWeave {
             false
         }
     }
-    pub fn get_active_content(&mut self) -> Vec<u8> {
-        self.active
+    pub fn get_active_content(&self, output: &mut Vec<u8>) {
+        output.clear();
+
+        for node in self
+            .active
             .iter()
             .rev()
             .filter_map(|id| self.weave.get_node(id))
-            .flat_map(|node| node.contents.content.as_bytes().into_owned())
-            .collect()
+        {
+            output.extend(node.contents.content.as_bytes().iter().copied());
+        }
     }
     pub fn split_node(&mut self, id: &u64, at: usize) -> Option<(u64, Option<u64>, u64)> {
         let new_id = generate_unique_id(&mut self.rng, &self.weave);
