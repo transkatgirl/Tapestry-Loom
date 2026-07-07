@@ -366,7 +366,7 @@ impl WeaveUi {
                     );
 
                     label_button_response
-                        .context_menu(|ui| self.document_context_menu(weave, ui, user));
+                        .context_menu(|ui| self.document_context_menu(weave, ui, true, user));
 
                     let hover_rect = Rect {
                         min: Pos2 {
@@ -426,7 +426,7 @@ impl WeaveUi {
             })
             .response;
 
-        response.context_menu(|ui| self.document_context_menu(weave, ui, user));
+        response.context_menu(|ui| self.document_context_menu(weave, ui, true, user));
     }
     pub fn node_text(
         &mut self,
@@ -652,18 +652,14 @@ impl WeaveUi {
 
         ui.separator();
 
-        let add_child_response = ui.button(if !is_modifier_pressed {
+        let add_child_response = ui.button(if !is_modifier_pressed || node.active {
             "Create child"
         } else {
             "Create active child"
         });
         if add_child_response.clicked() {
             let identifier = weave.generate_id();
-            let active = if add_child_response.clicked_with_open_in_background() {
-                true
-            } else {
-                node.active
-            };
+            let active = add_child_response.clicked_with_open_in_background() || node.active;
 
             if weave.add_node(DependentNode {
                 id: identifier,
@@ -695,11 +691,7 @@ impl WeaveUi {
         });
         if add_sibling_response.clicked() {
             let identifier = weave.generate_id();
-            let active = if add_sibling_response.clicked_with_open_in_background() {
-                true
-            } else {
-                node.active
-            };
+            let active = add_sibling_response.clicked_with_open_in_background();
 
             if weave.add_node(DependentNode {
                 id: identifier,
@@ -786,8 +778,59 @@ impl WeaveUi {
         &mut self,
         weave: &mut TapestryWeave,
         ui: &mut Ui,
+        root_options: bool,
         user: &Option<Author>,
     ) {
+        let is_modifier_pressed = ui.input(|input| input.modifiers.any());
+
+        if root_options {
+            let add_child_response =
+                ui.button(if !is_modifier_pressed || weave.roots().is_empty() {
+                    "Create root node"
+                } else {
+                    "Create active root node"
+                });
+            if add_child_response.clicked() {
+                let identifier = weave.generate_id();
+                let active = add_child_response.clicked_with_open_in_background()
+                    || weave.roots().is_empty();
+
+                if weave.add_node(DependentNode {
+                    id: identifier,
+                    from: None,
+                    to: IndexSet::default(),
+                    active,
+                    bookmarked: false,
+                    contents: NodeContent {
+                        timestamp: Zoned::now(),
+                        modified: false,
+                        content: InnerNodeContent::MetadataOnly,
+                        metadata: MetadataMap::default(),
+                        aux_metadata: AuxMetadataMap::default(),
+                        creator: Creator::User(user.clone()),
+                    },
+                }) && active
+                {
+                    self.cursor = Some(identifier);
+                }
+            };
+
+            if !weave.roots().is_empty() {
+                if ui.button("Seriate root nodes").clicked() {
+                    // TODO
+                }
+
+                if ui.button("Sort root nodes by confidence").clicked() {
+                    // TODO
+                }
+
+                if ui.button("Sort root nodes by timestamp").clicked() {
+                    // TODO
+                }
+            }
+        }
+
+        // TODO
     }
     pub fn node_tooltip(&mut self, node: &TapestryNode, ui: &mut Ui) {
         ui.set_max_width(ui.spacing().tooltip_width);
@@ -1075,20 +1118,16 @@ impl WeaveUi {
             }
 
             if flags.contains(ButtonFlags::Add) {
-                let add_response = ui
-                    .button("\u{E40C}")
-                    .on_hover_text(if !is_modifier_pressed {
-                        "Add node"
-                    } else {
-                        "Add active node"
-                    });
+                let add_response =
+                    ui.button("\u{E40C}")
+                        .on_hover_text(if !is_modifier_pressed || node.active {
+                            "Add node"
+                        } else {
+                            "Add active node"
+                        });
                 if add_response.clicked() {
                     let identifier = weave.generate_id();
-                    let active = if add_response.clicked_with_open_in_background() {
-                        true
-                    } else {
-                        node.active
-                    };
+                    let active = add_response.clicked_with_open_in_background() || node.active;
 
                     if weave.add_node(DependentNode {
                         id: identifier,
