@@ -152,31 +152,39 @@ pub fn format_file_size(size: usize) -> String {
 }
 
 // Modified version of String::from_utf8_lossy() which uses the ASCII substitution character
+// Because the ASCII substitution character is 1 byte long, the converted string is always the same length as the input bytes
 pub fn from_utf8_lossy(v: &[u8]) -> Cow<'_, str> {
     let mut iter = v.utf8_chunks();
 
-    let first_valid = if let Some(chunk) = iter.next() {
+    let (first_valid, first_invalid) = if let Some(chunk) = iter.next() {
         let valid = chunk.valid();
-        if chunk.invalid().is_empty() {
+        let invalid = chunk.invalid();
+        if invalid.is_empty() {
             return Cow::Borrowed(valid);
         }
-        valid
+        (valid, invalid)
     } else {
         return Cow::Borrowed("");
     };
 
     const REPLACEMENT: &str = "\u{1A}";
 
+    debug_assert_eq!(REPLACEMENT.len(), 1);
+
     let mut res = String::with_capacity(v.len());
     res.push_str(first_valid);
-    res.push_str(REPLACEMENT);
+    for _ in first_invalid {
+        res.push_str(REPLACEMENT);
+    }
 
     for chunk in iter {
         res.push_str(chunk.valid());
-        if !chunk.invalid().is_empty() {
+        for _ in chunk.invalid() {
             res.push_str(REPLACEMENT);
         }
     }
+
+    debug_assert_eq!(v.len(), res.len());
 
     Cow::Owned(res)
 }
