@@ -2,7 +2,7 @@ use std::{collections::HashMap, ops::Range, sync::Arc};
 
 use eframe::egui::{
     Align, Button, Color32, FontFamily, Frame, Layout, Pos2, Rect, RichText, ScrollArea, Sense,
-    TextFormat, TextStyle, Ui, UiBuilder, WidgetText,
+    TextFormat, TextStyle, TextWrapMode, Ui, UiBuilder, WidgetText,
     text::{LayoutJob, LayoutSection},
 };
 use flagset::{FlagSet, flags};
@@ -625,6 +625,9 @@ impl WeaveUi {
         collapsing: bool,
         user: &Option<Author>,
     ) {
+        let style = ui.style_mut();
+        style.wrap_mode = Some(TextWrapMode::Extend);
+
         let is_modifier_pressed = ui.input(|input| input.modifiers.any());
 
         let generate_response = ui.button("Generate completions");
@@ -781,14 +784,17 @@ impl WeaveUi {
         root_options: bool,
         user: &Option<Author>,
     ) {
+        let style = ui.style_mut();
+        style.wrap_mode = Some(TextWrapMode::Extend);
+
         let is_modifier_pressed = ui.input(|input| input.modifiers.any());
 
         if root_options {
             let add_child_response =
                 ui.button(if !is_modifier_pressed || weave.roots().is_empty() {
-                    "Create root node"
+                    "Create root"
                 } else {
-                    "Create active root node"
+                    "Create active root"
                 });
             if add_child_response.clicked() {
                 let identifier = weave.generate_id();
@@ -816,15 +822,17 @@ impl WeaveUi {
             };
 
             if !weave.roots().is_empty() {
-                if ui.button("Seriate root nodes").clicked() {
+                ui.separator();
+
+                if ui.button("Seriate roots").clicked() {
                     // TODO
                 }
 
-                if ui.button("Sort root nodes by confidence").clicked() {
+                if ui.button("Sort roots by confidence").clicked() {
                     // TODO
                 }
 
-                if ui.button("Sort root nodes by timestamp").clicked() {
+                if ui.button("Sort roots by timestamp").clicked() {
                     // TODO
                 }
             }

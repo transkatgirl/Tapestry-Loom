@@ -4,7 +4,7 @@ use ulid::Ulid;
 
 use crate::{
     common::{
-        ui::{label_separator, listing},
+        ui::{label_separator, listing, with_context_menu},
         view::View,
     },
     editor::{
@@ -137,6 +137,7 @@ impl View<EditorShared> for TreeListView {
                     if let Some(weave) = &mut shared.weave {
                         let autoscroll = shared.ui.calculate_autoscroll(ui);
 
+                        let mut hoisted = true;
                         let roots: Vec<u64> = if let Some(cursor) = shared.ui.cursor
                             && let Some(cursor_node) = weave.get_node(&cursor)
                             && let Some(cursor_parent) = &cursor_node.from
@@ -149,6 +150,8 @@ impl View<EditorShared> for TreeListView {
                                 vec![*cursor_parent_parent]
                             }
                         } else {
+                            hoisted = false;
+
                             weave.roots().iter().copied().collect()
                         };
 
@@ -168,9 +171,17 @@ impl View<EditorShared> for TreeListView {
                             );
                         }
 
-                        // TODO: Listing right-click menu
+                        with_context_menu(
+                            ui,
+                            |ui| {
+                                ui.take_available_space();
+                            },
+                            |ui| {
+                                shared.ui.document_context_menu(weave, ui, !hoisted, &None);
+                            },
+                        );
                     }
-                })
+                });
             });
     }
 }
@@ -250,7 +261,20 @@ impl View<EditorShared> for ListView {
                             }
                         }
 
-                        // TODO: Listing right-click menu
+                        with_context_menu(
+                            ui,
+                            |ui| {
+                                ui.take_available_space();
+                            },
+                            |ui| {
+                                shared.ui.document_context_menu(
+                                    weave,
+                                    ui,
+                                    shared.ui.cursor.is_none(),
+                                    &None,
+                                );
+                            },
+                        );
                     }
                 })
             });
@@ -323,7 +347,15 @@ impl View<EditorShared> for BookmarkView {
                             }
                         }
 
-                        // TODO: Listing right-click menu
+                        with_context_menu(
+                            ui,
+                            |ui| {
+                                ui.take_available_space();
+                            },
+                            |ui| {
+                                shared.ui.document_context_menu(weave, ui, false, &None);
+                            },
+                        );
                     }
                 })
             });

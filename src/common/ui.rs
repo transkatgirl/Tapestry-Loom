@@ -3,7 +3,7 @@ use std::{borrow::Cow, path::Path};
 use color::{AlphaColor, Oklch, PremulColor, PremulRgba8, Srgb};
 use eframe::egui::{
     self, Color32, Event, Frame, InnerResponse, InputState, Key, KeyboardShortcut, Modifiers,
-    PointerButton, Response, Sense, Ui, Vec2, response::Flags, vec2,
+    PointerButton, Response, Sense, Ui, UiBuilder, Vec2, response::Flags, vec2,
 };
 use egui_keybind::Keybind;
 
@@ -81,6 +81,16 @@ pub fn listing<R>(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> Inner
     Frame::new()
         .outer_margin(ui.style().spacing.menu_spacing)
         .show(ui, add_contents)
+}
+
+pub fn with_context_menu<R>(
+    ui: &mut Ui,
+    add_contents: impl FnOnce(&mut Ui) -> R,
+    add_context_contents: impl FnOnce(&mut Ui),
+) -> InnerResponse<R> {
+    let response = ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), add_contents);
+    response.response.context_menu(add_context_contents);
+    response
 }
 
 pub fn abbreviate_path<'a>(root: &Path, path: &'a Path) -> &'a Path {
