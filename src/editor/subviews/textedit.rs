@@ -1,4 +1,9 @@
-use eframe::egui::{Color32, Context, Ui, WidgetText};
+use std::ops::Range;
+
+use eframe::egui::{
+    Color32, Context, TextBuffer, TextFormat, TextStyle, Ui, WidgetText,
+    text::{LayoutJob, LayoutSection, TextWrapping},
+};
 use tapestry_weave::v1::content::InnerNodeContent;
 
 use crate::{
@@ -78,6 +83,7 @@ impl View<EditorShared> for TextEditView {
     fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {
         if let Some(weave) = &mut shared.weave
             && weave.has_changed()
+        // TODO: Handle setting changes
         {
             self.build_contents(shared);
         }

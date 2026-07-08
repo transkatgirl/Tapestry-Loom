@@ -144,6 +144,7 @@ impl WeaveUi {
                 }
 
                 frame.show(ui, |ui| {
+                    // TODO: Cache node LayoutJobs
                     let label = WidgetText::LayoutJob(Arc::new(self.node_text(
                         ui,
                         node,
