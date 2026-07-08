@@ -1,4 +1,4 @@
-use std::hash::BuildHasher;
+use std::{collections::HashMap, hash::BuildHasher};
 
 use nanorand::{Rng, WyRand};
 use universal_weave::{Node, Weave};
@@ -27,11 +27,15 @@ See also: https://github.com/transkatgirl/Tapestry-Loom/blob/a232fbbb4119a8a9047
 
 */
 
-pub fn generate_unique_id<W, N, T, S>(rng: &mut WyRand, weave: &W) -> u64
+pub fn generate_unique_id<W, N, T, S, R, B, F, O>(rng: &mut WyRand, weave: &W) -> u64
 where
-    W: Weave<u64, N, T, S>,
-    N: Node<u64, T, S>,
+    W: Weave<u64, N, T, Nodes = HashMap<u64, N, S>, Roots = R, Bookmarks = B>,
+    N: Node<u64, T, From = F, To = O>,
     S: BuildHasher + Default + Clone,
+    for<'a> &'a R: IntoIterator<Item = &'a u64, IntoIter: ExactSizeIterator>,
+    for<'a> &'a B: IntoIterator<Item = &'a u64, IntoIter: ExactSizeIterator>,
+    for<'a> &'a F: IntoIterator<Item = &'a u64, IntoIter: ExactSizeIterator>,
+    for<'a> &'a O: IntoIterator<Item = &'a u64, IntoIter: ExactSizeIterator>,
 {
     let mut id = rng.generate();
 
@@ -42,11 +46,19 @@ where
     id
 }
 
-pub fn generate_unique_id_with_list<W, N, T, S>(rng: &mut WyRand, weave: &W, ids: &[u64]) -> u64
+pub fn generate_unique_id_with_list<W, N, T, S, R, B, F, O>(
+    rng: &mut WyRand,
+    weave: &W,
+    ids: &[u64],
+) -> u64
 where
-    W: Weave<u64, N, T, S>,
-    N: Node<u64, T, S>,
+    W: Weave<u64, N, T, Nodes = HashMap<u64, N, S>, Roots = R, Bookmarks = B>,
+    N: Node<u64, T, From = F, To = O>,
     S: BuildHasher + Default + Clone,
+    for<'a> &'a R: IntoIterator<Item = &'a u64, IntoIter: ExactSizeIterator>,
+    for<'a> &'a B: IntoIterator<Item = &'a u64, IntoIter: ExactSizeIterator>,
+    for<'a> &'a F: IntoIterator<Item = &'a u64, IntoIter: ExactSizeIterator>,
+    for<'a> &'a O: IntoIterator<Item = &'a u64, IntoIter: ExactSizeIterator>,
 {
     let mut id = rng.generate();
 
