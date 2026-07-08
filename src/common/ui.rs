@@ -189,6 +189,27 @@ pub fn from_utf8_lossy(v: &[u8]) -> Cow<'_, str> {
     Cow::Owned(res)
 }
 
+// Modified in-place version of String::from_utf8_lossy() which uses the ASCII substitution character
+// Because the ASCII substitution character is 1 byte long, the converted string is always the same length as the input bytes
+pub fn from_utf8_lossy_in_place(input: &[u8], output: &mut String) {
+    output.clear();
+    output.reserve(input.len());
+
+    const REPLACEMENT: char = '\u{1A}';
+
+    debug_assert_eq!(REPLACEMENT.len_utf8(), 1);
+
+    for chunk in input.utf8_chunks() {
+        output.push_str(chunk.valid());
+
+        for _ in chunk.invalid() {
+            output.push(REPLACEMENT);
+        }
+    }
+
+    debug_assert_eq!(input.len(), output.len());
+}
+
 pub fn change_color_alpha(color: Color32, alpha: f32) -> Color32 {
     let color = PremulColor::from(PremulRgba8::from_u8_array(color.to_array()))
         .un_premultiply()
