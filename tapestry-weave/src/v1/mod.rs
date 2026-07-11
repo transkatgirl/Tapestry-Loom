@@ -1,6 +1,9 @@
-use std::{collections::HashMap, hash::BuildHasher};
+use std::{
+    collections::HashMap,
+    hash::{BuildHasher, Hash},
+};
 
-use nanorand::{Rng, WyRand};
+use nanorand::{RandomGen, Rng, WyRand};
 use universal_weave::{Node, Weave};
 
 pub mod content;
@@ -27,15 +30,12 @@ See also: https://github.com/transkatgirl/Tapestry-Loom/blob/a232fbbb4119a8a9047
 
 */
 
-pub fn generate_unique_id<W, N, T, S, R, B, F, O>(rng: &mut WyRand, weave: &W) -> u64
+pub fn generate_unique_id<W, K, N, T, S>(rng: &mut WyRand, weave: &W) -> K
 where
-    W: Weave<u64, N, T, Nodes = HashMap<u64, N, S>, Roots = R, Bookmarks = B>,
-    N: Node<u64, T, From = F, To = O>,
+    W: Weave<K, N, T, Nodes = HashMap<K, N, S>>,
+    K: RandomGen<WyRand, 8> + Hash + Copy + Eq,
+    N: Node<K, T>,
     S: BuildHasher + Default + Clone,
-    for<'a> &'a R: IntoIterator<Item = &'a u64, IntoIter: ExactSizeIterator>,
-    for<'a> &'a B: IntoIterator<Item = &'a u64, IntoIter: ExactSizeIterator>,
-    for<'a> &'a F: IntoIterator<Item = &'a u64, IntoIter: ExactSizeIterator>,
-    for<'a> &'a O: IntoIterator<Item = &'a u64, IntoIter: ExactSizeIterator>,
 {
     let mut id = rng.generate();
 
@@ -46,19 +46,12 @@ where
     id
 }
 
-pub fn generate_unique_id_with_list<W, N, T, S, R, B, F, O>(
-    rng: &mut WyRand,
-    weave: &W,
-    ids: &[u64],
-) -> u64
+pub fn generate_unique_id_with_list<W, K, N, T, S>(rng: &mut WyRand, weave: &W, ids: &[K]) -> K
 where
-    W: Weave<u64, N, T, Nodes = HashMap<u64, N, S>, Roots = R, Bookmarks = B>,
-    N: Node<u64, T, From = F, To = O>,
+    W: Weave<K, N, T, Nodes = HashMap<K, N, S>>,
+    K: RandomGen<WyRand, 8> + Hash + Copy + Eq,
+    N: Node<K, T>,
     S: BuildHasher + Default + Clone,
-    for<'a> &'a R: IntoIterator<Item = &'a u64, IntoIter: ExactSizeIterator>,
-    for<'a> &'a B: IntoIterator<Item = &'a u64, IntoIter: ExactSizeIterator>,
-    for<'a> &'a F: IntoIterator<Item = &'a u64, IntoIter: ExactSizeIterator>,
-    for<'a> &'a O: IntoIterator<Item = &'a u64, IntoIter: ExactSizeIterator>,
 {
     let mut id = rng.generate();
 

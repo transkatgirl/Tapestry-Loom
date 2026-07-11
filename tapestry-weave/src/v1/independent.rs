@@ -184,16 +184,7 @@ impl TapestryWeave {
         self.weave.contains_active(id)
     }
     pub fn generate_id(&mut self) -> u64 {
-        generate_unique_id::<
-            TapestryWeaveInner,
-            IndependentNode<u64, NodeContent, BuildHasherDefault<RandomIdHasher>>,
-            NodeContent,
-            BuildHasherDefault<RandomIdHasher>,
-            IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-            IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-            IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-            IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-        >(&mut self.rng, &self.weave) // Compiler limitation
+        generate_unique_id(&mut self.rng, &self.weave)
     }
     pub fn has_changed(&mut self) -> bool {
         let changed = self.changed;
@@ -386,16 +377,7 @@ impl TapestryWeave {
         }
     }
     pub fn split_node(&mut self, id: &u64, at: usize) -> Option<(u64, Option<u64>, u64)> {
-        let new_id = generate_unique_id::<
-            TapestryWeaveInner,
-            IndependentNode<u64, NodeContent, BuildHasherDefault<RandomIdHasher>>,
-            NodeContent,
-            BuildHasherDefault<RandomIdHasher>,
-            IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-            IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-            IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-            IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-        >(&mut self.rng, &self.weave); // Compiler limitation
+        let new_id = generate_unique_id(&mut self.rng, &self.weave);
 
         if at > 0
             && let Some(node) = self.weave.get_node(id).cloned()
@@ -415,27 +397,13 @@ impl TapestryWeave {
             }
 
             if within_token {
-                let first_split_id = generate_unique_id_with_list::<
-                    TapestryWeaveInner,
-                    IndependentNode<u64, NodeContent, BuildHasherDefault<RandomIdHasher>>,
-                    NodeContent,
-                    BuildHasherDefault<RandomIdHasher>,
-                    IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-                    IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-                    IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-                    IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-                >(&mut self.rng, &self.weave, &[new_id]); // Compiler limitation
-                let second_split_id =
-                    generate_unique_id_with_list::<
-                        TapestryWeaveInner,
-                        IndependentNode<u64, NodeContent, BuildHasherDefault<RandomIdHasher>>,
-                        NodeContent,
-                        BuildHasherDefault<RandomIdHasher>,
-                        IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-                        IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-                        IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-                        IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-                    >(&mut self.rng, &self.weave, &[new_id, first_split_id]); // Compiler limitation
+                let first_split_id =
+                    generate_unique_id_with_list(&mut self.rng, &self.weave, &[new_id]);
+                let second_split_id = generate_unique_id_with_list(
+                    &mut self.rng,
+                    &self.weave,
+                    &[new_id, first_split_id],
+                );
 
                 assert!(self.weave.split_node(id, byte_index, first_split_id));
 
@@ -507,16 +475,7 @@ impl TapestryWeave {
             if let InnerNodeContent::Tokens(tokens) = &node.contents.content
                 && tokens.len() > index
             {
-                let tail_id = generate_unique_id::<
-                    TapestryWeaveInner,
-                    IndependentNode<u64, NodeContent, BuildHasherDefault<RandomIdHasher>>,
-                    NodeContent,
-                    BuildHasherDefault<RandomIdHasher>,
-                    IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-                    IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-                    IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-                    IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-                >(&mut self.rng, &self.weave); // Compiler limitation
+                let tail_id = generate_unique_id(&mut self.rng, &self.weave);
 
                 let chosen_parent = node
                     .from
@@ -545,16 +504,8 @@ impl TapestryWeave {
                 };
 
                 if split_index > 0 {
-                    let middle_id = generate_unique_id_with_list::<
-                        TapestryWeaveInner,
-                        IndependentNode<u64, NodeContent, BuildHasherDefault<RandomIdHasher>>,
-                        NodeContent,
-                        BuildHasherDefault<RandomIdHasher>,
-                        IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-                        IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-                        IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-                        IndexSet<u64, BuildHasherDefault<RandomIdHasher>>,
-                    >(&mut self.rng, &self.weave, &[tail_id]); // Compiler limitation
+                    let middle_id =
+                        generate_unique_id_with_list(&mut self.rng, &self.weave, &[tail_id]);
 
                     assert!(self.weave.split_node(id, split_index, middle_id));
 
