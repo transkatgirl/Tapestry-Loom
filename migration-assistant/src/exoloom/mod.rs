@@ -7,6 +7,7 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
+use stacksafe::stacksafe;
 use tapestry_weave::{
     VersionedWeave,
     chrono::{DateTime, Utc},
@@ -148,6 +149,7 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
     }
 }
 
+#[stacksafe]
 fn build_node_list(weave: &ExoloomTree, node: u64, nodes: &mut IndexSet<u64>) {
     if nodes.contains(&node) {
         return;

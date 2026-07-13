@@ -8,6 +8,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use stacksafe::stacksafe;
 use tapestry_weave::{
     VersionedWeave,
     hashers::RandomIdHasher,
@@ -138,6 +139,7 @@ fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<Versi
     Ok(output.to_versioned_weave())
 }
 
+#[stacksafe]
 fn build_node_list(
     weave: &IndexMap<Uuid, LoomsidianNode>,
     node: &Uuid,

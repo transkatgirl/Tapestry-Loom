@@ -12,6 +12,7 @@ use frontmatter::{Yaml, parse_and_find_content};
 use miniz_oxide::inflate::decompress_to_vec_zlib;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use stacksafe::stacksafe;
 use tapestry_weave::{
     VersionedWeave,
     hashers::{RandomIdHasher, UlidHasher},
@@ -214,6 +215,7 @@ impl LegacyWeave {
                 .collect();
         }
     }
+    #[stacksafe]
     fn build_node_list(&self, id: Ulid, nodes: &mut Vec<Ulid>) {
         nodes.push(id);
 

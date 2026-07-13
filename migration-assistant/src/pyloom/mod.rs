@@ -5,6 +5,7 @@ use std::hash::BuildHasherDefault;
 
 use chrono::{Local, NaiveDateTime};
 use serde::{Deserialize, Serialize};
+use stacksafe::stacksafe;
 use tapestry_weave::{
     VersionedWeave,
     hashers::{RandomIdHasher, RandomState},
@@ -66,6 +67,7 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
     }
 }
 
+#[stacksafe]
 fn convert_node(
     weave: &mut TapestryWeaveInner,
     convert_old_identifier: &mut impl FnMut(String) -> u64,
@@ -217,7 +219,7 @@ pub fn migrate_simple(input: &str, created: Zoned) -> anyhow::Result<Option<Vers
         let mut output = new_weave(node_count_guess, created, "PyLoomSimple", None);
 
         output.modify_inner(|rng, output, _| -> anyhow::Result<()> {
-            convert_export_node(rng, output, data, None)?;
+            convert_export_node(rng, output, data, None);
 
             Ok(())
         })?;
@@ -228,12 +230,13 @@ pub fn migrate_simple(input: &str, created: Zoned) -> anyhow::Result<Option<Vers
     }
 }
 
+#[stacksafe]
 fn convert_export_node(
     rng: &mut WyRand,
     weave: &mut TapestryWeaveInner,
     node: PyloomSimpleNode,
     parent: Option<u64>,
-) -> anyhow::Result<()> {
+) {
     let mut id = rng.generate();
 
     while weave.contains(&id) {
@@ -257,8 +260,6 @@ fn convert_export_node(
     }));
 
     for child in node.children {
-        convert_export_node(rng, weave, child, Some(id))?;
+        convert_export_node(rng, weave, child, Some(id));
     }
-
-    Ok(())
 }
