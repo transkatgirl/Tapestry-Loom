@@ -203,7 +203,7 @@ impl LegacyWeave {
         sort_node_list(&mut roots);
         self.rootNodes = roots.into_iter().map(|node| node.identifier).collect();
 
-        for (_, children) in self.nodeChildren.iter_mut() {
+        for children in self.nodeChildren.values_mut() {
             let mut children_nodes = children
                 .iter()
                 .filter_map(|id| self.nodes.get(id))

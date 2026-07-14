@@ -6326,26 +6326,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c0e973b34477b7823833469eb0f5a3a60370fef7a453e02d751b59180d0a5a05"
 
 [[package]]
-name = "tailcall"
-version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6be08989072ee5adeece48612b4f43ecf8ffce901dee274c33f7310c89f18de"
-dependencies = [
- "tailcall-impl",
-]
-
-[[package]]
-name = "tailcall-impl"
-version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44f72925e9aaaefcfbef1cf809d408e8a80bdb644ebe9fff0b94714d1d2d8e4d"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.118",
-]
-
-[[package]]
 name = "tap"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7040,7 +7020,6 @@ dependencies = [
  "rkyv",
  "serde",
  "stacksafe",
- "tailcall",
  "wincode",
 ]
 

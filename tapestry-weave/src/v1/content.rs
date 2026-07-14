@@ -194,11 +194,8 @@ impl InnerNodeContent {
             let mut entropy_sum = 0.0;
 
             for token in tokens {
-                if let Some(entropy) = token.entropy {
-                    entropy_sum += entropy as f64;
-                } else {
-                    return None;
-                }
+                let entropy = token.entropy?;
+                entropy_sum += entropy as f64;
             }
 
             Some((entropy_sum / tokens.len() as f64) as f32)
