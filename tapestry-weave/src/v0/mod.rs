@@ -33,7 +33,7 @@ pub struct NodeContent {
 impl DiscreteContents for NodeContent {
     fn split(mut self, at: usize) -> DiscreteContentResult<Self> {
         match self.content.split(at) {
-            DiscreteContentResult::Two((left, right)) => {
+            DiscreteContentResult::Two(left, right) => {
                 self.content = left;
 
                 let right_content = NodeContent {
@@ -42,7 +42,7 @@ impl DiscreteContents for NodeContent {
                     model: self.model.clone(),
                 };
 
-                DiscreteContentResult::Two((self, right_content))
+                DiscreteContentResult::Two(self, right_content)
             }
             DiscreteContentResult::One(center) => {
                 self.content = center;
@@ -52,15 +52,15 @@ impl DiscreteContents for NodeContent {
     }
     fn merge(mut self, mut value: Self) -> DiscreteContentResult<Self> {
         if self.metadata != value.metadata || self.model != value.model {
-            return DiscreteContentResult::Two((self, value));
+            return DiscreteContentResult::Two(self, value);
         }
 
         match self.content.merge(value.content) {
-            DiscreteContentResult::Two((left, right)) => {
+            DiscreteContentResult::Two(left, right) => {
                 self.content = left;
                 value.content = right;
 
-                DiscreteContentResult::Two((self, value))
+                DiscreteContentResult::Two(self, value)
             }
             DiscreteContentResult::One(center) => {
                 self.content = center;
@@ -108,7 +108,7 @@ impl InnerNodeContent {
                 let right = snippet.split_off(at);
                 snippet.shrink_to_fit();
 
-                DiscreteContentResult::Two((Self::Snippet(snippet), Self::Snippet(right)))
+                DiscreteContentResult::Two(Self::Snippet(snippet), Self::Snippet(right))
             }
             Self::Tokens(tokens) => {
                 if tokens.iter().map(|token| token.0.len()).sum::<usize>() <= at {
@@ -145,7 +145,7 @@ impl InnerNodeContent {
                     }
                     right[0].0 = right_token;
 
-                    DiscreteContentResult::Two((Self::Tokens(left), Self::Tokens(right)))
+                    DiscreteContentResult::Two(Self::Tokens(left), Self::Tokens(right))
                 } else {
                     DiscreteContentResult::One(Self::Tokens(tokens))
                 }
@@ -159,16 +159,16 @@ impl InnerNodeContent {
                     left_snippet.append(&mut right_snippet);
                     DiscreteContentResult::One(Self::Snippet(left_snippet))
                 }
-                Self::Tokens(right_tokens) => DiscreteContentResult::Two((
+                Self::Tokens(right_tokens) => DiscreteContentResult::Two(
                     Self::Snippet(left_snippet),
                     Self::Tokens(right_tokens),
-                )),
+                ),
             },
             Self::Tokens(mut left_tokens) => match value {
-                Self::Snippet(right_snippet) => DiscreteContentResult::Two((
+                Self::Snippet(right_snippet) => DiscreteContentResult::Two(
                     Self::Tokens(left_tokens),
                     Self::Snippet(right_snippet),
-                )),
+                ),
                 Self::Tokens(mut right_tokens) => {
                     left_tokens.append(&mut right_tokens);
                     DiscreteContentResult::One(Self::Tokens(left_tokens))

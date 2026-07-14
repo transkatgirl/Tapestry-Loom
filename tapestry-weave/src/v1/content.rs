@@ -50,7 +50,7 @@ impl IndependentContents for NodeContent {}
 impl DiscreteContents for NodeContent {
     fn split(mut self, at: usize) -> DiscreteContentResult<Self> {
         match self.content.split(at) {
-            DiscreteContentResult::Two((left, right)) => {
+            DiscreteContentResult::Two(left, right) => {
                 self.content = left;
                 self.modified = true;
 
@@ -63,7 +63,7 @@ impl DiscreteContents for NodeContent {
                     creator: self.creator.clone(),
                 };
 
-                DiscreteContentResult::Two((self, right_content))
+                DiscreteContentResult::Two(self, right_content)
             }
             DiscreteContentResult::One(center) => {
                 self.content = center;
@@ -76,15 +76,15 @@ impl DiscreteContents for NodeContent {
             || self.metadata != value.metadata
             || !self.creator.is_mergeable_with(&value.creator)
         {
-            return DiscreteContentResult::Two((self, value));
+            return DiscreteContentResult::Two(self, value);
         }
 
         match self.content.merge(value.content) {
-            DiscreteContentResult::Two((left, right)) => {
+            DiscreteContentResult::Two(left, right) => {
                 self.content = left;
                 value.content = right;
 
-                DiscreteContentResult::Two((self, value))
+                DiscreteContentResult::Two(self, value)
             }
             DiscreteContentResult::One(center) => {
                 self.content = center;
@@ -481,7 +481,7 @@ impl InnerNodeContent {
                 let right = snippet.split_off(at);
                 snippet.shrink_to_fit();
 
-                DiscreteContentResult::Two((Self::Snippet(snippet), Self::Snippet(right)))
+                DiscreteContentResult::Two(Self::Snippet(snippet), Self::Snippet(right))
             }
             Self::Tokens(tokens) => {
                 if tokens.iter().map(|token| token.bytes.len()).sum::<usize>() <= at {
@@ -528,7 +528,7 @@ impl InnerNodeContent {
 
                     left.shrink_to_fit();
 
-                    DiscreteContentResult::Two((Self::Tokens(left), Self::Tokens(right)))
+                    DiscreteContentResult::Two(Self::Tokens(left), Self::Tokens(right))
                 } else {
                     DiscreteContentResult::One(Self::Tokens(tokens))
                 }
@@ -543,33 +543,33 @@ impl InnerNodeContent {
                     left_snippet.append(&mut right_snippet);
                     DiscreteContentResult::One(Self::Snippet(left_snippet))
                 }
-                Self::Tokens(right_tokens) => DiscreteContentResult::Two((
+                Self::Tokens(right_tokens) => DiscreteContentResult::Two(
                     Self::Snippet(left_snippet),
                     Self::Tokens(right_tokens),
-                )),
+                ),
                 Self::MetadataOnly => {
-                    DiscreteContentResult::Two((Self::Snippet(left_snippet), Self::MetadataOnly))
+                    DiscreteContentResult::Two(Self::Snippet(left_snippet), Self::MetadataOnly)
                 }
             },
             Self::Tokens(mut left_tokens) => match value {
-                Self::Snippet(right_snippet) => DiscreteContentResult::Two((
+                Self::Snippet(right_snippet) => DiscreteContentResult::Two(
                     Self::Tokens(left_tokens),
                     Self::Snippet(right_snippet),
-                )),
+                ),
                 Self::Tokens(mut right_tokens) => {
                     left_tokens.append(&mut right_tokens);
                     DiscreteContentResult::One(Self::Tokens(left_tokens))
                 }
                 Self::MetadataOnly => {
-                    DiscreteContentResult::Two((Self::Tokens(left_tokens), Self::MetadataOnly))
+                    DiscreteContentResult::Two(Self::Tokens(left_tokens), Self::MetadataOnly)
                 }
             },
             Self::MetadataOnly => match value {
                 Self::Snippet(right_snippet) => {
-                    DiscreteContentResult::Two((Self::MetadataOnly, Self::Snippet(right_snippet)))
+                    DiscreteContentResult::Two(Self::MetadataOnly, Self::Snippet(right_snippet))
                 }
                 Self::Tokens(right_tokens) => {
-                    DiscreteContentResult::Two((Self::MetadataOnly, Self::Tokens(right_tokens)))
+                    DiscreteContentResult::Two(Self::MetadataOnly, Self::Tokens(right_tokens))
                 }
                 Self::MetadataOnly => DiscreteContentResult::One(Self::MetadataOnly),
             },
