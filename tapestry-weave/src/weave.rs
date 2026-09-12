@@ -104,6 +104,8 @@ impl TapestryWeave {
         self.0.is_empty() && self.0.metadata.is_empty()
     }
     /// Convenience method which returns the siblings of the node corresponding to the identifier.
+    ///
+    /// This function may return duplicate identifiers.
     pub fn get_siblings<'a>(
         &'a self,
         id: &ShortId,
@@ -111,17 +113,23 @@ impl TapestryWeave {
     ) -> Option<Box<dyn Iterator<Item = ShortId> + 'a>> {
         if let Some(node) = self.0.get(id) {
             Some(if include_roots && node.from.is_empty() {
-                Box::new(self.0.roots().iter().copied())
+                Box::new(
+                    self.0
+                        .roots()
+                        .iter()
+                        .copied()
+                        .filter(|id| node.id != *id && !node.to.contains(id)),
+                )
             } else {
                 Box::new(
                     node.from
                         .iter()
                         .filter_map(|id| self.0.get_children(id))
                         .flatten()
+                        .copied()
                         .filter(|id| {
-                            node.id != **id && !node.from.contains(*id) && !node.to.contains(*id)
-                        })
-                        .copied(),
+                            node.id != *id && !node.from.contains(id) && !node.to.contains(id)
+                        }),
                 )
             })
         } else {
@@ -132,7 +140,13 @@ impl TapestryWeave {
     #[must_use]
     pub fn insert_deduplicated(&mut self, node: TapestryNode) -> bool {
         let siblings: Box<dyn Iterator<Item = ShortId>> = if node.from.is_empty() {
-            Box::new(self.0.roots().iter().copied())
+            Box::new(
+                self.0
+                    .roots()
+                    .iter()
+                    .copied()
+                    .filter(|id| node.id != *id && !node.to.contains(id)),
+            )
         } else {
             Box::new(
                 node.from
@@ -175,14 +189,14 @@ impl TapestryWeave {
             && let InnerNodeContent::Tokens(tokens) = &node.contents.content
         {
             let mut byte_index = 0;
-            let mut token_length = 0;
+            let mut token_length = None;
             let mut within_unmodified_token = false;
-            for token in tokens {
+            for (index, token) in tokens.iter().enumerate() {
                 let next = byte_index + token.bytes.len();
 
                 if next >= at {
                     within_unmodified_token = next > at && !token.is_modified();
-                    token_length = token.bytes.len();
+                    token_length = (index + 1 != tokens.len()).then_some(token.bytes.len());
                     break;
                 }
 
@@ -190,15 +204,26 @@ impl TapestryWeave {
             }
 
             if within_unmodified_token {
-                let first_split_id = generate_id();
-                let second_split_id = generate_id();
+                let first_split_id = if byte_index != 0 {
+                    let new_id = generate_id();
 
-                assert!(self.0.split(id, byte_index, first_split_id));
-                assert!(self.0.split(&first_split_id, token_length, second_split_id));
+                    assert!(self.0.split(id, byte_index, new_id));
+
+                    new_id
+                } else {
+                    *id
+                };
+                if let Some(at) = token_length {
+                    let second_split_id = generate_id();
+
+                    assert!(self.0.split(&first_split_id, at, second_split_id));
+                }
 
                 let mut token_node = self.0.get(&first_split_id).unwrap().clone();
-                token_node.id = generate_id();
                 token_node.active = false;
+                token_node.bookmarked = false;
+
+                assert!(self.0.split(&first_split_id, at - byte_index, new_id));
 
                 let token_node_duplicate = token_node
                     .from
@@ -213,11 +238,11 @@ impl TapestryWeave {
                             .is_some_and(|c| c.is_duplicate_of(&token_node.contents))
                     });
 
-                assert!(self.0.split(&first_split_id, at - byte_index, new_id));
-
                 match token_node_duplicate {
                     Some(duplicate) => Some((Some(duplicate), new_id)),
                     None => {
+                        token_node.id = generate_id();
+
                         let token_node_id = token_node.id;
 
                         assert!(self.0.insert(token_node));
