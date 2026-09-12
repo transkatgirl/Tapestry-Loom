@@ -1,8 +1,9 @@
-use std::hash::BuildHasherDefault;
+use std::{hash::BuildHasherDefault, str::FromStr};
 
 use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
+use chrono::DateTime;
 use foldhash::fast::RandomState;
-use jiff::{Timestamp, Zoned};
+use jiff::{Timestamp, Zoned, fmt::rfc2822::DateTimeParser};
 use nanorand::{Rng, WyRand};
 use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
 use ulid::Ulid;
@@ -20,7 +21,7 @@ use crate::{
         Model as NewModel, NodeContent as NewNodeContent, OriginalToken, UNKNOWN_MODEL_LABEL,
     },
     hashers::{RandomIdHasher, UlidHasher},
-    metadata::AuxMetadataMap,
+    metadata::{AuxMetadataMap, ConvertedFrom, WeaveMetadata as NewWeaveMetadata},
     weave::{LongId, TapestryNode as NewTapestryNode, TapestryWeave as NewTapestryWeave},
     wrappers::UniqueIdentifierRemapper,
 };
@@ -458,5 +459,48 @@ impl From<TapestryWeave> for NewTapestryWeave {
         }
 
         output
+    }
+}
+
+const PARSER: DateTimeParser = DateTimeParser::new();
+
+impl From<MetadataMap> for NewWeaveMetadata {
+    fn from(mut value: MetadataMap) -> Self {
+        let conversion_timestamp = value
+            .shift_remove("converted")
+            .and_then(|value| Zoned::from_str(&value).ok());
+        let source = value.shift_remove("converted_from");
+        let source_version = value.shift_remove("converted_from_version");
+
+        let mut converted_from = Vec::with_capacity(2);
+
+        if source.is_some() || source_version.is_some() || conversion_timestamp.is_some() {
+            converted_from.push(ConvertedFrom {
+                source: source.unwrap_or_else(|| "Unknown".to_string()),
+                source_version,
+                converter: "Unknown (likely migration-assistant)".to_string(),
+                converter_version: None,
+                timestamp: conversion_timestamp.unwrap_or_default(),
+            });
+        }
+
+        converted_from.push(ConvertedFrom::from_v0(Zoned::now()));
+
+        Self {
+            title: value.shift_remove("title"),
+            description: value
+                .shift_remove("description")
+                .or_else(|| value.shift_remove("notes")),
+            created: value
+                .shift_remove("created")
+                .and_then(|value| {
+                    DateTime::parse_from_rfc3339(&value)
+                        .ok()
+                        .and_then(|v| PARSER.parse_zoned(v.to_rfc2822()).ok())
+                })
+                .unwrap_or_default(),
+            converted_from,
+            metadata: value,
+        }
     }
 }

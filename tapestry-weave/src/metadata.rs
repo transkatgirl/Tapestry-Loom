@@ -1,20 +1,10 @@
-#[cfg(feature = "v0")]
-use std::str::FromStr;
-
 use foldhash::fast::RandomState;
 use jiff::Zoned;
 use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
-
 use universal_weave::{
     indexmap::IndexMap,
     rkyv::{Archive, Deserialize, Serialize},
 };
-
-#[cfg(feature = "v0")]
-use chrono::DateTime;
-
-#[cfg(feature = "v0")]
-use jiff::fmt::rfc2822::DateTimeParser;
 
 use super::wrappers::{AsBinaryZoned, IAsVec};
 
@@ -142,50 +132,5 @@ impl ConvertedFrom {
     }
     pub fn is_from_v1_independent(&self) -> bool {
         self.source == "Tapestry Loom" && self.source_version.as_deref() == Some("1.independent")
-    }
-}
-
-#[cfg(feature = "v0")]
-const PARSER: DateTimeParser = DateTimeParser::new();
-
-#[cfg(feature = "v0")]
-impl From<MetadataMap> for WeaveMetadata {
-    fn from(mut value: MetadataMap) -> Self {
-        let conversion_timestamp = value
-            .shift_remove("converted")
-            .and_then(|value| Zoned::from_str(&value).ok());
-        let source = value.shift_remove("converted_from");
-        let source_version = value.shift_remove("converted_from_version");
-
-        let mut converted_from = Vec::with_capacity(2);
-
-        if source.is_some() || source_version.is_some() || conversion_timestamp.is_some() {
-            converted_from.push(ConvertedFrom {
-                source: source.unwrap_or_else(|| "Unknown".to_string()),
-                source_version,
-                converter: "Unknown (likely migration-assistant)".to_string(),
-                converter_version: None,
-                timestamp: conversion_timestamp.unwrap_or_default(),
-            });
-        }
-
-        converted_from.push(ConvertedFrom::from_v0(Zoned::now()));
-
-        WeaveMetadata {
-            title: value.shift_remove("title"),
-            description: value
-                .shift_remove("description")
-                .or_else(|| value.shift_remove("notes")),
-            created: value
-                .shift_remove("created")
-                .and_then(|value| {
-                    DateTime::parse_from_rfc3339(&value)
-                        .ok()
-                        .and_then(|v| PARSER.parse_zoned(v.to_rfc2822()).ok())
-                })
-                .unwrap_or_default(),
-            converted_from,
-            metadata: value,
-        }
     }
 }
