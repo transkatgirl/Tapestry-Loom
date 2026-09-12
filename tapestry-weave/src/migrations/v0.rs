@@ -1,4 +1,4 @@
-use std::{hash::BuildHasherDefault, num::NonZeroU128};
+use std::hash::BuildHasherDefault;
 
 use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
 use foldhash::fast::RandomState;
@@ -23,7 +23,7 @@ use crate::{
     },
     hashers::{RandomIdHasher, UlidHasher},
     metadata::AuxMetadataMap,
-    weave::{TapestryNode as NewTapestryNode, TapestryWeave as NewTapestryWeave},
+    weave::{LongId, TapestryNode as NewTapestryNode, TapestryWeave as NewTapestryWeave},
     wrappers::UniqueIdentifierRemapper,
 };
 
@@ -370,7 +370,7 @@ impl From<NodeContent> for NewNodeContent {
 
             if let Some(model_id) = model_id
                 .and_then(|id| Ulid::from_string(&id).ok())
-                .and_then(|id| NonZeroU128::new(id.0))
+                .and_then(|id| LongId::new(id.0))
             {
                 model.identifier = Some(model_id);
             }

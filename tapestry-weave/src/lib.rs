@@ -19,6 +19,12 @@ pub mod metadata;
 pub mod weave;
 pub mod wrappers;
 
+pub use content::{
+    Author, CounterfactualToken, Creator, InnerNodeContent, InnerNodeToken, Model, NodeContent,
+    OriginalToken, UNKNOWN_MODEL_LABEL,
+};
+pub use weave::{LongId, ShortId, TapestryNode, TapestryWeave};
+
 pub const FILE_EXTENSION: &str = "tapestry";
 pub const HEADER_MAGIC_BYTES: [u8; 24] = *b"VersionedTapestryWeave__";
 

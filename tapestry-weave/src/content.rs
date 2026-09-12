@@ -1,4 +1,4 @@
-use std::{borrow::Cow, num::NonZeroU128};
+use std::borrow::Cow;
 
 use jiff::Zoned;
 use universal_weave::{
@@ -16,6 +16,7 @@ use super::wrappers::Base64Standard;
 
 use super::{
     metadata::{AuxMetadataMap, MetadataMap},
+    weave::LongId,
     wrappers::{AsBinaryZoned, IAsVec},
 };
 
@@ -734,7 +735,7 @@ impl Creator {
             _ => None,
         }
     }
-    pub fn identifier(&self) -> Option<NonZeroU128> {
+    pub fn identifier(&self) -> Option<LongId> {
         match &self {
             Self::Model(Some(model)) => model.identifier,
             Self::User(Some(user)) => user.identifier,
@@ -867,7 +868,7 @@ pub struct Model {
     pub color: Option<String>,
 
     #[rkyv(with = NicheInto<niching::Zero>)]
-    pub identifier: Option<NonZeroU128>,
+    pub identifier: Option<LongId>,
 
     pub seed: Option<u32>,
     pub system_fingerprint: Option<String>,
@@ -941,7 +942,7 @@ pub struct Author {
     pub color: Option<String>,
 
     #[rkyv(with = NicheInto<niching::Zero>)]
-    pub identifier: Option<NonZeroU128>,
+    pub identifier: Option<LongId>,
 
     #[rkyv(with = IAsVec)]
     pub metadata: MetadataMap,

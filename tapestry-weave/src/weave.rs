@@ -134,7 +134,7 @@ impl TapestryWeave {
         self.0.insert(node)
     }
     /// Sets the active status of a node with the specified identifier, using identical activation behavior to a tree-based Weave.
-    pub fn set_active_dependent_semantics(&mut self, id: &ShortId, value: bool) -> bool {
+    pub fn set_active_tree_semantics(&mut self, id: &ShortId, value: bool) -> bool {
         self.0.set_active_dependent_semantics(id, value)
     }
     pub fn is_mergeable_with_parent(&self, id: &ShortId) -> bool {
