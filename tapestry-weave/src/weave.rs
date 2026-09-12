@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, hash::BuildHasherDefault, num::NonZeroU128};
+use std::{cmp::Ordering, hash::BuildHasherDefault, iter, num::NonZeroU128};
 
 use universal_weave::{
     ActivePathWeave, BookmarkableWeave, DeduplicatableContents, DiscreteWeave,
@@ -38,7 +38,7 @@ pub type ArchivedTapestryWeaveInner = <TapestryWeaveInner as Archive>::Archived;
 ///
 /// # DoS Resistance
 ///
-/// This Weave implementation does not make use of DoS-resistant hashers. As a result, a maliciously crafted document could hang indefinitely during deserialization.
+/// This Weave implementation does not make use of DoS-resistant hashers.
 pub struct TapestryWeave(TapestryWeaveInner);
 
 impl Default for TapestryWeave {
@@ -213,10 +213,12 @@ impl TapestryWeave {
                 } else {
                     *id
                 };
-                if let Some(at) = token_length {
-                    let second_split_id = generate_id();
+                if let Some(at) = token_length
+                    && at != 0
+                {
+                    let new_id = generate_id();
 
-                    assert!(self.0.split(&first_split_id, at, second_split_id));
+                    assert!(self.0.split(&first_split_id, at, new_id));
                 }
 
                 let mut token_node = self.0.get(&first_split_id).unwrap().clone();
@@ -225,21 +227,54 @@ impl TapestryWeave {
 
                 assert!(self.0.split(&first_split_id, at - byte_index, new_id));
 
-                let token_node_duplicate = token_node
-                    .from
-                    .iter()
-                    .filter_map(|id| self.0.get_children(id))
-                    .flatten()
-                    .copied()
-                    .filter(|id| !token_node.from.contains(id) && !token_node.to.contains(id))
-                    .find(|id| {
+                let token_node_duplicate = {
+                    let mut siblings: Box<dyn Iterator<Item = ShortId>> =
+                        if token_node.from.is_empty() {
+                            Box::new(
+                                self.0
+                                    .roots()
+                                    .iter()
+                                    .copied()
+                                    .filter(|id| !token_node.to.contains(id)),
+                            )
+                        } else {
+                            Box::new(
+                                token_node
+                                    .from
+                                    .iter()
+                                    .filter_map(|id| self.0.get_children(id))
+                                    .flatten()
+                                    .copied()
+                                    .filter(|id| {
+                                        !token_node.from.contains(id) && !token_node.to.contains(id)
+                                    }),
+                            )
+                        };
+
+                    siblings.find(|id| {
                         self.0
                             .get_contents(id)
                             .is_some_and(|c| c.is_duplicate_of(&token_node.contents))
-                    });
+                    })
+                };
 
                 match token_node_duplicate {
-                    Some(duplicate) => Some((Some(duplicate), new_id)),
+                    Some(duplicate) => {
+                        for token_child in token_node.to {
+                            let parents = self.0.get_children(&token_child).unwrap();
+
+                            if !parents.contains(&duplicate) {
+                                assert!(self.0.move_to(
+                                    &token_child,
+                                    &Vec::from_iter(
+                                        parents.iter().copied().chain(iter::once(duplicate)),
+                                    )
+                                ));
+                            }
+                        }
+
+                        Some((Some(duplicate), new_id))
+                    }
                     None => {
                         token_node.id = generate_id();
 
