@@ -1,8 +1,8 @@
 use std::{cmp::Ordering, hash::BuildHasherDefault, num::NonZeroU128};
 
 use universal_weave::{
-    ActivePathWeave, BookmarkableWeave, DiscreteWeave, ImmutableActivePathWeave,
-    ImmutableBookmarkableWeave, ImmutableMetadataWeave, ImmutableWeave,
+    ActivePathWeave, BookmarkableWeave, DeduplicatableContents, DiscreteWeave,
+    ImmutableActivePathWeave, ImmutableBookmarkableWeave, ImmutableMetadataWeave, ImmutableWeave,
     IndependentWeave as IndependentWeaveTrait, MetadataWeave, SemiIndependentWeave,
     SortableBookmarkableWeave, SortableWeave, Weave,
     hashbrown::{HashMap, HashSet},
@@ -83,66 +83,76 @@ impl TapestryWeave {
     pub fn is_empty_including_metadata(&self) -> bool {
         self.0.is_empty() && self.0.metadata.is_empty()
     }
+    pub fn get_siblings<'a>(
+        &'a self,
+        id: &ShortId,
+        include_roots: bool,
+    ) -> Option<Box<dyn Iterator<Item = ShortId> + 'a>> {
+        if let Some(node) = self.0.get(id) {
+            Some(if include_roots && node.from.is_empty() {
+                Box::new(self.0.roots().iter().copied())
+            } else {
+                Box::new(
+                    node.from
+                        .iter()
+                        .filter_map(|id| self.0.get_children(id))
+                        .flatten()
+                        .filter(|id| {
+                            node.id != **id && !node.from.contains(*id) && !node.to.contains(*id)
+                        })
+                        .copied(),
+                )
+            })
+        } else {
+            None
+        }
+    }
+    #[must_use]
+    pub fn insert_deduplicated(&mut self, node: TapestryNode) -> bool {
+        let siblings: Box<dyn Iterator<Item = ShortId>> = if node.from.is_empty() {
+            Box::new(self.0.roots().iter().copied())
+        } else {
+            Box::new(
+                node.from
+                    .iter()
+                    .filter_map(|id| self.0.get_children(id))
+                    .flatten()
+                    .filter(|id| {
+                        node.id != **id && !node.from.contains(*id) && !node.to.contains(*id)
+                    })
+                    .copied(),
+            )
+        };
+
+        if siblings
+            .filter_map(|id| self.0.get_contents(&id))
+            .any(|c| c.is_duplicate_of(&node.contents))
+        {
+            return false;
+        }
+
+        self.0.insert(node)
+    }
+    /// Sets the active status of a node with the specified identifier, using identical activation behavior to a tree-based Weave.
     pub fn set_active_dependent_semantics(&mut self, id: &ShortId, value: bool) -> bool {
         self.0.set_active_dependent_semantics(id, value)
     }
-}
-
-// TODO: insert_node_deduplicated, split_out_token, get_active_content, siblings, siblings_or_roots, is_mergeable_with_parent
-
-/*
-
-pub fn add_node(&mut self, node: TapestryNode) -> bool {
-        let identifier = node.id;
-        self.scratchpad_2.clear();
-        if node.active {
-            self.scratchpad_2.extend(self.active.iter().copied())
-        };
-        let is_active = node.active;
-
-        let status = self.weave.add_node(node);
-
-        if status {
-            let duplicates: Vec<u64> = self.weave.find_duplicates(&identifier).collect();
-
-            if !duplicates.is_empty() {
-                if is_active {
-                    let mut has_active = false;
-
-                    for duplicate in &duplicates {
-                        if self.scratchpad_2.contains(duplicate) {
-                            self.weave.set_node_active_status(duplicate, true);
-                            has_active = true;
-                            break;
-                        }
-                    }
-
-                    if !has_active {
-                        self.weave
-                            .set_node_active_status(duplicates.first().unwrap(), true);
-                    }
-                }
-                self.weave.remove_node(&identifier);
-            }
-
-            self.update_shape_and_active();
-        }
-
-        status
-    }
-pub fn is_mergeable_with_parent(&self, id: &u64) -> bool {
-        if let Some(node) = self.weave.get_node(id) {
+    pub fn is_mergeable_with_parent(&self, id: &ShortId) -> bool {
+        self.0.get(id).is_some_and(|node| {
             if node.from.len() == 1
-                && let Some(parent) = node.from.first().and_then(|id| self.weave.get_node(id))
+                && let Some(parent) = self.0.get(&node.from[0])
             {
                 parent.to.len() == 1 && parent.contents.is_mergeable_with(&node.contents)
             } else {
                 false
             }
-        } else {
-            false
-        }
+        })
     }
+}
+
+// TODO: split_out_token, is_mergeable_with_parent
+
+/*
 
     pub fn split_node(&mut self, id: &u64, at: usize) -> Option<(u64, Option<u64>, u64)> {
         let new_id = generate_unique_id(&mut self.rng, &self.weave);
