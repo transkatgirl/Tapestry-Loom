@@ -32,7 +32,7 @@ pub type ArchivedShortId = <ShortId as Archive>::Archived;
 pub type ArchivedTapestryNode = <TapestryNode as Archive>::Archived;
 pub type ArchivedTapestryWeaveInner = <TapestryWeaveInner as Archive>::Archived;
 
-pub struct TapestryWeave(pub TapestryWeaveInner);
+pub struct TapestryWeave(TapestryWeaveInner);
 
 impl Default for TapestryWeave {
     fn default() -> Self {
@@ -59,24 +59,36 @@ impl AsRef<TapestryWeaveInner> for TapestryWeave {
 }
 
 impl TapestryWeave {
+    /// Creates a new, empty [`TapestryWeave`].
     pub fn new() -> Self {
         Self(IndependentWeave::new(WeaveMetadata::new()))
     }
+    /// Creates a new, empty [`TapestryWeave`] with at least the specified capacity.
+    ///
+    /// This function over-allocates for worst-case memory usage rather than average-case.
     pub fn with_capacity(capacity: usize) -> Self {
         Self(IndependentWeave::with_capacity(
             capacity,
             WeaveMetadata::new(),
         ))
     }
+    /// Creates a new, empty [`TapestryWeave`] with the specified metadata and at least the specified capacity.
+    ///
+    /// This function over-allocates for worst-case memory usage rather than average-case.
     pub fn with_capacity_and_metadata(capacity: usize, metadata: WeaveMetadata) -> Self {
         Self(IndependentWeave::with_capacity(capacity, metadata))
     }
+    /// Returns the worst-case number of nodes that the weave can hold without reallocating.
+    ///
+    /// May be lower than `self.len()`.
     pub fn capacity(&self) -> usize {
         self.0.capacity()
     }
+    /// Reserves capacity for at least `additional` more nodes.
     pub fn reserve(&mut self, additional: usize) {
         self.0.reserve(additional);
     }
+    /// Shrinks the capacity of the weave as much as possible.
     pub fn shrink_to_fit(&mut self) {
         self.0.shrink_to_fit();
     }
@@ -137,6 +149,23 @@ impl TapestryWeave {
     pub fn set_active_tree_semantics(&mut self, id: &ShortId, value: bool) -> bool {
         self.0.set_active_dependent_semantics(id, value)
     }
+    // TODO
+    /*pub fn split_tokenized(
+        &self,
+        id: &ShortId,
+        at: usize,
+        generate_id: impl FnMut() -> ShortId,
+    ) -> bool {
+        todo!()
+    }
+    pub fn split_out_token(
+        &self,
+        id: &ShortId,
+        index: usize,
+        generate_id: impl FnMut() -> ShortId,
+    ) -> bool {
+        todo!()
+    }*/
     pub fn is_mergeable_with_parent(&self, id: &ShortId) -> bool {
         self.0.get(id).is_some_and(|node| {
             if node.from.len() == 1
@@ -149,8 +178,6 @@ impl TapestryWeave {
         })
     }
 }
-
-// TODO: split_out_token, is_mergeable_with_parent
 
 /*
 
@@ -218,14 +245,6 @@ impl TapestryWeave {
             } else {
                 None
             }
-        }
-    }
-    pub fn split_node_direct(&mut self, id: &u64, at: usize, new_id: u64) -> bool {
-        if self.weave.split_node(id, at, new_id) {
-            self.update_shape_and_active();
-            true
-        } else {
-            false
         }
     }
 pub fn split_out_token(

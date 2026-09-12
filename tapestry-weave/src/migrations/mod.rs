@@ -40,11 +40,10 @@ impl TapestryWeave {
             match versioned.version {
                 #[cfg(feature = "v0")]
                 v0::FORMAT_VERSION => {
-                    from_bytes::<v0::TapestryWeave, Error>(versioned.data).map(|weave| weave.into())
+                    from_bytes::<v0::TapestryWeave, Error>(versioned.data).map(Self::from)
                 }
                 super::weave::FORMAT_VERSION => {
-                    from_bytes::<TapestryWeaveInner, Error>(versioned.data)
-                        .map(|weave| weave.into())
+                    from_bytes::<TapestryWeaveInner, Error>(versioned.data).map(Self::from)
                 }
                 _ => Err(Error::new(HeaderError::UnsupportedVersion)),
             }
@@ -73,17 +72,17 @@ impl TapestryWeave {
         writer.write(&HEADER_MAGIC_BYTES)?;
         writer.write(&super::weave::FORMAT_VERSION.to_le_bytes())?;
 
-        assert!(self.0.validate());
-        to_bytes_in::<IoWriter<W>, Error>(&self.0, writer)?;
+        assert!(self.as_ref().validate());
+        to_bytes_in::<IoWriter<W>, Error>(self.as_ref(), writer)?;
 
         Ok(())
     }
     pub fn to_json(&self) -> Result<String, serde_json::Error> {
-        assert!(self.0.validate());
+        assert!(self.as_ref().validate());
 
         to_string(&VersionedJson {
             version: super::weave::FORMAT_VERSION,
-            data: to_value(&self.0)?,
+            data: to_value(self.as_ref())?,
         })
     }
 }
@@ -96,7 +95,7 @@ impl<'a> ArchivedTapestryWeave<'a> {
 
         if let Some(versioned) = VersionedBytes::try_from_bytes(bytes, HEADER_MAGIC_BYTES) {
             if versioned.version == super::weave::FORMAT_VERSION {
-                access::<ArchivedTapestryWeaveInner, Error>(versioned.data).map(Self)
+                access::<ArchivedTapestryWeaveInner, Error>(versioned.data).map(Self::from)
             } else {
                 Err(Error::new(HeaderError::UnsupportedVersion))
             }

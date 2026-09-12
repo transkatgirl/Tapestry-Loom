@@ -1,5 +1,3 @@
-#![allow(clippy::missing_safety_doc)]
-
 use std::hash::{BuildHasher, Hash};
 
 use nanorand::{RandomGen, Rng, WyRand};
