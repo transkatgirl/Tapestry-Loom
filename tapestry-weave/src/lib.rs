@@ -3,7 +3,7 @@
 use std::hash::{BuildHasher, Hash};
 
 use nanorand::{RandomGen, Rng, WyRand};
-use universal_weave::{Node, Weave, hashbrown::HashMap};
+use universal_weave::{BuildableNode, Weave, hashbrown::HashMap};
 
 pub use foldhash;
 
@@ -44,7 +44,7 @@ pub fn generate_unique_id<W, K, N, T, S>(rng: &mut WyRand, weave: &W) -> K
 where
     W: Weave<K, N, T, Nodes = HashMap<K, N, S>>,
     K: RandomGen<WyRand, 8> + Hash + Copy + Eq + Ord,
-    N: Node<K, T>,
+    N: BuildableNode<K, T>,
     S: BuildHasher + Default + Clone,
 {
     let mut id = rng.generate();
@@ -60,7 +60,7 @@ pub fn generate_unique_id_with_list<W, K, N, T, S>(rng: &mut WyRand, weave: &W, 
 where
     W: Weave<K, N, T, Nodes = HashMap<K, N, S>>,
     K: RandomGen<WyRand, 8> + Hash + Copy + Eq + Ord,
-    N: Node<K, T>,
+    N: BuildableNode<K, T>,
     S: BuildHasher + Default + Clone,
 {
     let mut id = rng.generate();

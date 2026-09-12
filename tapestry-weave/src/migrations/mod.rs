@@ -1,13 +1,15 @@
 use std::{fmt::Display, io::Write};
 
-use rkyv::{
-    access,
-    api::high::to_bytes_in,
-    from_bytes,
-    rancor::{Error, Source},
-    ser::{Writer, writer::IoWriter},
+use universal_weave::{
+    rkyv::{
+        access,
+        api::high::to_bytes_in,
+        from_bytes,
+        rancor::{Error, Source},
+        ser::{Writer, writer::IoWriter},
+    },
+    versioning::VersionedBytes,
 };
-use universal_weave::versioning::VersionedBytes;
 
 use crate::{
     HEADER_MAGIC_BYTES,
@@ -62,7 +64,7 @@ impl<'a> ArchivedTapestryWeave<'a> {
         if let Some(versioned) = VersionedBytes::try_from_bytes(bytes, HEADER_MAGIC_BYTES) {
             if versioned.version == super::weave::FORMAT_VERSION {
                 access::<ArchivedTapestryWeaveInner, Error>(versioned.data)
-                    .map(|weave| Self { weave })
+                    .map(|weave| Self { inner: weave })
             } else {
                 Err(Error::new(HeaderError::UnsupportedVersion))
             }

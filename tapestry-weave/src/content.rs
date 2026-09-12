@@ -39,6 +39,12 @@ pub struct NodeContent {
 impl IndependentContents for NodeContent {}
 
 impl DiscreteContents for NodeContent {
+    fn len(&self) -> usize {
+        self.content.len()
+    }
+    fn is_empty(&self) -> bool {
+        self.content.is_empty()
+    }
     fn split(mut self, at: usize) -> DiscreteContentResult<Self> {
         match self.content.split(at) {
             DiscreteContentResult::Two(left, right) => {

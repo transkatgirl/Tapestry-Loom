@@ -1,15 +1,14 @@
-#![allow(deprecated)]
-
 use std::{hash::BuildHasherDefault, num::NonZeroU128};
 
 use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
 use foldhash::fast::RandomState;
 use jiff::{Timestamp, Zoned};
-use nanorand::Rng;
+use nanorand::{Rng, WyRand};
 use ulid::Ulid;
+#[allow(deprecated)]
 use universal_weave::{
     DiscreteContentResult, DiscreteContents, Weave,
-    dependent::legacy_dependent::DependentWeave,
+    dependent::{DependentWeave, legacy_dependent::DependentWeave as LegacyDependentWeave},
     indexmap::{IndexMap, IndexSet},
     rkyv::{Archive, Deserialize, Serialize},
 };
@@ -24,7 +23,10 @@ use crate::{
     },
     hashers::{RandomIdHasher, UlidHasher},
     metadata::AuxMetadataMap,
-    weave::{TapestryNode as NewTapestryNode, TapestryWeave as NewTapestryWeave},
+    weave::{
+        TapestryNode as NewTapestryNode, TapestryWeave as NewTapestryWeave,
+        TapestryWeaveInner as NewTapestryWeaveInner,
+    },
     wrappers::UniqueIdentifierRemapper,
 };
 
@@ -39,6 +41,12 @@ pub struct NodeContent {
 }
 
 impl DiscreteContents for NodeContent {
+    fn len(&self) -> usize {
+        self.content.len()
+    }
+    fn is_empty(&self) -> bool {
+        self.content.is_empty()
+    }
     fn split(mut self, at: usize) -> DiscreteContentResult<Self> {
         match self.content.split(at) {
             DiscreteContentResult::Two(left, right) => {
@@ -86,6 +94,18 @@ pub enum InnerNodeContent {
 }
 
 impl InnerNodeContent {
+    fn len(&self) -> usize {
+        match self {
+            Self::Snippet(snippet) => snippet.len(),
+            Self::Tokens(tokens) => tokens.iter().map(|token| token.0.len()).sum(),
+        }
+    }
+    fn is_empty(&self) -> bool {
+        match self {
+            Self::Snippet(snippet) => snippet.is_empty(),
+            Self::Tokens(tokens) => tokens.iter().all(|token| token.0.is_empty()),
+        }
+    }
     fn split(self, at: usize) -> DiscreteContentResult<Self> {
         if at == 0 {
             return DiscreteContentResult::One(self);
@@ -177,8 +197,9 @@ pub struct Model {
     pub metadata: MetadataMap,
 }
 
+#[allow(deprecated)]
 pub type TapestryWeave =
-    DependentWeave<u128, NodeContent, MetadataMap, BuildHasherDefault<UlidHasher>>;
+    LegacyDependentWeave<u128, NodeContent, MetadataMap, BuildHasherDefault<UlidHasher>>;
 //pub type TapestryNode = DependentNode<u128, NodeContent, BuildHasherDefault<UlidHasher>>;
 pub type MetadataMap = IndexMap<String, String, RandomState>;
 
@@ -207,7 +228,7 @@ pub fn deserialize_counterfactual_logprobs(logprobs: &str) -> Option<Vec<(Vec<u8
         })
 }
 
-impl From<InnerNodeContent> for crate::content::InnerNodeContent {
+impl From<InnerNodeContent> for NewInnerNodeContent {
     fn from(value: InnerNodeContent) -> Self {
         match value {
             InnerNodeContent::Snippet(snippet) => Self::Snippet(snippet),
@@ -392,14 +413,14 @@ impl From<NodeContent> for NewNodeContent {
 }
 
 impl From<TapestryWeave> for NewTapestryWeave {
-    fn from(mut value: TapestryWeave) -> Self {
-        let mut output = NewTapestryWeave::with_capacity_and_metadata(
-            value.capacity(),
-            value.metadata.clone().into(),
-        );
+    fn from(value: TapestryWeave) -> Self {
+        let mut value = DependentWeave::from(value);
+
+        let mut output =
+            NewTapestryWeaveInner::with_capacity(value.capacity(), value.metadata.clone().into());
 
         let mut identifiers = Vec::with_capacity(value.len());
-        value.get_ordered_node_identifiers(&mut identifiers);
+        value.get_ordered_identifiers(&mut identifiers);
 
         let mut mapper: UniqueIdentifierRemapper<
             u128,
@@ -408,45 +429,43 @@ impl From<TapestryWeave> for NewTapestryWeave {
             BuildHasherDefault<RandomIdHasher>,
         > = UniqueIdentifierRemapper::with_capacity(identifiers.len());
 
-        let time_zone = output.metadata().created.time_zone().clone();
+        let time_zone = output.metadata.created.time_zone().clone();
 
-        output.modify_inner(|rng, output, _| {
-            let mut convert_old_identifier = move |id| {
-                *mapper
-                    .map_with_initial(
-                        id,
-                        unsafe { std::mem::transmute::<u128, [u64; 2]>(id)[1] },
-                        || rng.generate(),
-                    )
-                    .get()
+        let mut rng = WyRand::new();
+
+        let mut convert_old_identifier = |id| {
+            *mapper
+                .map_with_initial(
+                    id,
+                    unsafe { std::mem::transmute::<u128, [u64; 2]>(id)[1] },
+                    || rng.generate(),
+                )
+                .get()
+        };
+
+        for identifier in identifiers {
+            let node = value.get(&identifier).unwrap().clone();
+
+            let timestamp = Timestamp::try_from(Ulid(node.id).datetime())
+                .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
+                .unwrap_or(Zoned::default());
+
+            let mut node = NewTapestryNode {
+                id: convert_old_identifier(node.id),
+                from: IndexSet::from_iter(node.from.into_iter().map(&mut convert_old_identifier)),
+                to: IndexSet::with_capacity_and_hasher(
+                    node.to.len(),
+                    BuildHasherDefault::default(),
+                ),
+                active: node.active,
+                bookmarked: node.bookmarked,
+                contents: node.contents.into(),
             };
+            node.contents.timestamp = timestamp;
 
-            for identifier in identifiers {
-                let node = value.get_node(&identifier).unwrap().clone();
+            assert!(output.insert(node));
+        }
 
-                let timestamp = Timestamp::try_from(Ulid(node.id).datetime())
-                    .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
-                    .unwrap_or(Zoned::default());
-
-                let mut node = NewTapestryNode {
-                    id: convert_old_identifier(node.id),
-                    from: IndexSet::from_iter(
-                        node.from.into_iter().map(&mut convert_old_identifier),
-                    ),
-                    to: IndexSet::with_capacity_and_hasher(
-                        node.to.len(),
-                        BuildHasherDefault::default(),
-                    ),
-                    active: node.active,
-                    bookmarked: node.bookmarked,
-                    contents: node.contents.into(),
-                };
-                node.contents.timestamp = timestamp;
-
-                assert!(output.add_node(node));
-            }
-        });
-
-        output
+        NewTapestryWeave { rng, weave: output }
     }
 }
