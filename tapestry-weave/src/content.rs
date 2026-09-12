@@ -683,7 +683,11 @@ impl ArchivedInnerNodeContent {
                 Self::Tokens(_) => true,
                 Self::MetadataOnly => false,
             },
-            Self::MetadataOnly => false,
+            Self::MetadataOnly => match value {
+                Self::Snippet(_) => false,
+                Self::Tokens(_) => false,
+                Self::MetadataOnly => true,
+            },
         }
     }
     pub fn as_bytes(&'_ self) -> Vec<u8> {

@@ -213,9 +213,7 @@ impl TapestryWeave {
                 } else {
                     *id
                 };
-                if let Some(at) = token_length
-                    && at != 0
-                {
+                if let Some(at) = token_length {
                     let new_id = generate_id();
 
                     assert!(self.0.split(&first_split_id, at, new_id));
