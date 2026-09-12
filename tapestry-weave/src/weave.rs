@@ -188,15 +188,17 @@ impl TapestryWeave {
             && let Some(node) = self.0.get(id)
             && let InnerNodeContent::Tokens(tokens) = &node.contents.content
         {
+            let total_length = tokens.iter().map(|token| token.bytes.len()).sum::<usize>();
+
             let mut byte_index = 0;
             let mut token_length = None;
             let mut within_unmodified_token = false;
-            for (index, token) in tokens.iter().enumerate() {
+            for token in tokens {
                 let next = byte_index + token.bytes.len();
 
                 if next >= at {
                     within_unmodified_token = next > at && !token.is_modified();
-                    token_length = (index + 1 != tokens.len()).then_some(token.bytes.len());
+                    token_length = (next < total_length).then_some(token.bytes.len());
                     break;
                 }
 
@@ -318,20 +320,15 @@ impl TapestryWeave {
                     .iter()
                     .take(index)
                     .map(|token| token.bytes.len())
-                    .sum();
+                    .sum::<usize>();
+                let token_length = tokens[index].bytes.len();
+                let remaining_length = tokens
+                    .iter()
+                    .skip(index + 1)
+                    .map(|token| token.bytes.len())
+                    .sum::<usize>();
 
-                let second_split_index = if tokens.len() > index + 1 {
-                    Some(
-                        tokens
-                            .iter()
-                            .take(index + 1)
-                            .map(|token| token.bytes.len())
-                            .sum::<usize>()
-                            - split_index,
-                    )
-                } else {
-                    None
-                };
+                let second_split_index = (remaining_length > 0).then_some(token_length);
 
                 if split_index > 0 {
                     let middle_id = generate_id();
