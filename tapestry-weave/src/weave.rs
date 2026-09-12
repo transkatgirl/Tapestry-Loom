@@ -113,13 +113,7 @@ impl TapestryWeave {
     ) -> Option<Box<dyn Iterator<Item = ShortId> + 'a>> {
         if let Some(node) = self.0.get(id) {
             Some(if include_roots && node.from.is_empty() {
-                Box::new(
-                    self.0
-                        .roots()
-                        .iter()
-                        .copied()
-                        .filter(|id| node.id != *id && !node.to.contains(id)),
-                )
+                Box::new(self.0.roots().iter().copied().filter(|id| node.id != *id))
             } else {
                 Box::new(
                     node.from
@@ -140,13 +134,7 @@ impl TapestryWeave {
     #[must_use]
     pub fn insert_deduplicated(&mut self, node: TapestryNode) -> bool {
         let siblings: Box<dyn Iterator<Item = ShortId>> = if node.from.is_empty() {
-            Box::new(
-                self.0
-                    .roots()
-                    .iter()
-                    .copied()
-                    .filter(|id| node.id != *id && !node.to.contains(id)),
-            )
+            Box::new(self.0.roots().iter().copied().filter(|id| node.id != *id))
         } else {
             Box::new(
                 node.from
@@ -230,13 +218,7 @@ impl TapestryWeave {
                 let token_node_duplicate = {
                     let mut siblings: Box<dyn Iterator<Item = ShortId>> =
                         if token_node.from.is_empty() {
-                            Box::new(
-                                self.0
-                                    .roots()
-                                    .iter()
-                                    .copied()
-                                    .filter(|id| !token_node.to.contains(id)),
-                            )
+                            Box::new(self.0.roots().iter().copied())
                         } else {
                             Box::new(
                                 token_node
