@@ -139,10 +139,10 @@ impl TapestryWeave {
                     .iter()
                     .filter_map(|id| self.0.get_children(id))
                     .flatten()
+                    .copied()
                     .filter(|id| {
-                        node.id != **id && !node.from.contains(*id) && !node.to.contains(*id)
-                    })
-                    .copied(),
+                        node.id != *id && !node.from.contains(id) && !node.to.contains(id)
+                    }),
             )
         };
 
@@ -159,9 +159,9 @@ impl TapestryWeave {
     pub fn set_active_tree_semantics(&mut self, id: &ShortId, value: bool) -> bool {
         self.0.set_active_dependent_semantics(id, value)
     }
-    /// A wrapper around [`DiscreteWeave::split`] which duplicates unmodified tokens before splitting.
+    /// A wrapper around [`Self::split`] which separates out the unmodified version of the token before splitting.
     ///
-    /// If successful, returns a tuple of identifiers corresponding to (duplicated_token_node, split_right_side)
+    /// If successful, returns a tuple of identifiers corresponding to (original_token_node, split_right_side)
     pub fn split_tokenized(
         &mut self,
         id: &ShortId,
@@ -175,16 +175,18 @@ impl TapestryWeave {
             && let InnerNodeContent::Tokens(tokens) = &node.contents.content
         {
             let mut byte_index = 0;
+            let mut token_length = 0;
             let mut within_unmodified_token = false;
             for token in tokens {
-                byte_index += token.bytes.len();
-                if byte_index >= at {
-                    if byte_index > at {
-                        within_unmodified_token = !token.is_modified();
-                    }
-                    byte_index -= token.bytes.len();
+                let next = byte_index + token.bytes.len();
+
+                if next >= at {
+                    within_unmodified_token = next > at && !token.is_modified();
+                    token_length = token.bytes.len();
                     break;
                 }
+
+                byte_index = next;
             }
 
             if within_unmodified_token {
@@ -192,23 +194,37 @@ impl TapestryWeave {
                 let second_split_id = generate_id();
 
                 assert!(self.0.split(id, byte_index, first_split_id));
+                assert!(self.0.split(&first_split_id, token_length, second_split_id));
 
                 let mut token_node = self.0.get(&first_split_id).unwrap().clone();
-                token_node.id = new_id;
+                token_node.id = generate_id();
+                token_node.active = false;
 
-                //token_node.to = IndexSet::default();
-                token_node.contents.content.truncate_tokens(1);
+                let token_node_duplicate = token_node
+                    .from
+                    .iter()
+                    .filter_map(|id| self.0.get_children(id))
+                    .flatten()
+                    .copied()
+                    .filter(|id| !token_node.from.contains(id) && !token_node.to.contains(id))
+                    .find(|id| {
+                        self.0
+                            .get_contents(id)
+                            .is_some_and(|c| c.is_duplicate_of(&token_node.contents))
+                    });
 
-                let token_node_id = token_node.id;
+                assert!(self.0.split(&first_split_id, at - byte_index, new_id));
 
-                assert!(self.0.insert(token_node));
+                match token_node_duplicate {
+                    Some(duplicate) => Some((Some(duplicate), new_id)),
+                    None => {
+                        let token_node_id = token_node.id;
 
-                assert!(
-                    self.0
-                        .split(&token_node_id, at - byte_index, second_split_id)
-                );
+                        assert!(self.0.insert(token_node));
 
-                Some((Some(token_node_id), second_split_id))
+                        Some((Some(token_node_id), new_id))
+                    }
+                }
             } else {
                 if self.0.split(id, at, new_id) {
                     Some((None, new_id))
@@ -299,7 +315,7 @@ impl TapestryWeave {
             None
         }
     }
-    /// Returns `true` if [`DiscreteWeave::merge_with_parent`] would succeed.
+    /// Returns `true` if [`Self::merge_with_parent`] would succeed.
     pub fn is_mergeable_with_parent(&self, id: &ShortId) -> bool {
         self.0.get(id).is_some_and(|node| {
             if node.from.len() == 1
