@@ -201,15 +201,6 @@ pub type TapestryWeave =
 //pub type TapestryNode = DependentNode<u128, NodeContent, BuildHasherDefault<UlidHasher>>;
 pub type MetadataMap = IndexMap<String, String, RandomState>;
 
-/*pub fn serialize_counterfactual_logprobs(logprobs: Vec<(Vec<u8>, MetadataMap)>) -> String {
-    let logprobs: Vec<_> = logprobs
-        .into_iter()
-        .map(|(data, metadata)| (BASE64_URL_SAFE_NO_PAD.encode(data), metadata))
-        .collect();
-
-    serde_json::to_string(&logprobs).unwrap()
-}*/
-
 pub fn deserialize_counterfactual_logprobs(logprobs: &str) -> Option<Vec<(Vec<u8>, MetadataMap)>> {
     serde_json::from_str::<Vec<(String, MetadataMap)>>(logprobs)
         .ok()

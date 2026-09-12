@@ -32,6 +32,13 @@ pub type ArchivedShortId = <ShortId as Archive>::Archived;
 pub type ArchivedTapestryNode = <TapestryNode as Archive>::Archived;
 pub type ArchivedTapestryWeaveInner = <TapestryWeaveInner as Archive>::Archived;
 
+/// An [`IndependentWeave`] wrapper which implements the Tapestry Loom document format.
+///
+/// All identifiers *must be* randomly generated, because the underlying [`Weave`]'s hashmaps use an identity hasher.
+///
+/// # DoS Resistance
+///
+/// This Weave implementation does not make use of DoS-resistant hashers. As a result, a maliciously crafted document could hang forever during deserialization.
 pub struct TapestryWeave(TapestryWeaveInner);
 
 impl Default for TapestryWeave {

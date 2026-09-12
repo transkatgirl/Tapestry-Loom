@@ -28,7 +28,7 @@ struct VersionedJson {
 }
 
 impl TapestryWeave {
-    pub fn is_valid_header(bytes: &[u8]) -> bool {
+    pub fn is_header_valid(bytes: &[u8]) -> bool {
         bytes.starts_with(&HEADER_MAGIC_BYTES) && bytes.len() >= 32
     }
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
