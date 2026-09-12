@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use jiff::Zoned;
+use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
 use universal_weave::{
     DeduplicatableContents, DiscreteContentResult, DiscreteContents, IndependentContents,
     rkyv::{
@@ -8,20 +9,15 @@ use universal_weave::{
     },
 };
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
-
-#[cfg(feature = "serde")]
-use super::wrappers::Base64Standard;
-
 use super::{
     metadata::{AuxMetadataMap, MetadataMap},
     weave::LongId,
-    wrappers::{AsBinaryZoned, IAsVec},
+    wrappers::{AsBinaryZoned, Base64Standard, IAsVec},
 };
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
+#[derive(
+    SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq,
+)]
 pub struct NodeContent {
     #[rkyv(with = AsBinaryZoned)]
     pub timestamp: Zoned,
@@ -117,10 +113,11 @@ impl DeduplicatableContents for NodeContent {
     }
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
+#[derive(
+    SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq,
+)]
 pub enum InnerNodeContent {
-    Snippet(#[cfg_attr(feature = "serde", serde(with = "Base64Standard"))] Vec<u8>),
+    Snippet(#[serde(with = "Base64Standard")] Vec<u8>),
     Tokens(Vec<InnerNodeToken>),
     MetadataOnly,
 }
@@ -311,10 +308,11 @@ impl ArchivedInnerNodeContent {
     }
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
+#[derive(
+    SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq,
+)]
 pub struct InnerNodeToken {
-    #[cfg_attr(feature = "serde", serde(with = "Base64Standard"))]
+    #[serde(with = "Base64Standard")]
     pub bytes: Vec<u8>,
     pub logprob: f32,
     pub id: Option<u64>,
@@ -412,11 +410,12 @@ impl ArchivedInnerNodeToken {
     }
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
+#[derive(
+    SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq,
+)]
 pub enum OriginalToken {
     Unmodified,
-    Known(#[cfg_attr(feature = "serde", serde(with = "Base64Standard"))] Vec<u8>),
+    Known(#[serde(with = "Base64Standard")] Vec<u8>),
     Unknown, // Necessary for backwards compatibility with v0 format
 }
 
@@ -440,10 +439,11 @@ impl ArchivedOriginalToken {
     }
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
+#[derive(
+    SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq,
+)]
 pub struct CounterfactualToken {
-    #[cfg_attr(feature = "serde", serde(with = "Base64Standard"))]
+    #[serde(with = "Base64Standard")]
     pub bytes: Vec<u8>,
     pub logprob: f32,
     pub id: Option<u64>,
@@ -712,8 +712,9 @@ impl ArchivedInnerNodeContent {
     }
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
+#[derive(
+    SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq,
+)]
 pub enum Creator {
     Model(Option<Model>),
     User(Option<Author>),
@@ -861,8 +862,9 @@ impl ArchivedCreator {
     }
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
+#[derive(
+    SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq,
+)]
 pub struct Model {
     pub label: String,
     pub color: Option<String>,
@@ -935,8 +937,9 @@ impl Model {
 
 pub const UNKNOWN_MODEL_LABEL: &str = "Unknown Model";
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
+#[derive(
+    SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq,
+)]
 pub struct Author {
     pub label: String,
     pub color: Option<String>,

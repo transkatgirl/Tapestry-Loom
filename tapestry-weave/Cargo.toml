@@ -18,15 +18,7 @@ v0 = [
 	"universal-weave/serde",
 	"dep:ulid",
 	"dep:serde_json",
-	"dep:base64",
 	"dep:chrono",
-]
-serde = [ # serde integration
-	"universal-weave/serde",
-	"jiff/serde",
-	"dep:serde",
-	"dep:base64",
-	"dep:base64-serde",
 ]
 
 [dependencies]
@@ -36,22 +28,24 @@ rkyv = { version = "0.8.18", features = [
 	"pointer_width_32",
 	"indexmap-2",
 ] }
-universal-weave = "0.8.1"
+universal-weave = { version = "0.8.1", features = [
+	"serde",
+] }
 foldhash = "0.2.0"
-jiff = "0.2.35"
+jiff = { version = "0.2.35", features = [
+	"serde",
+] }
 nanorand = { version = "0.8.0", features = [
 	"alloc",
 	"wyrand",
 	"getrandom",
 ], default-features = false }
-
-# serde
-serde = { version = "1.0.229", optional = true, features = [
+serde = { version = "1.0.229", features = [
 	"derive",
 	"rc",
 ] }
-base64 = { version = "0.23.1", optional = true } # also used by v0
-base64-serde = { version = "0.8.0", optional = true }
+base64 = "0.23.1"
+base64-serde = "0.8.0"
 
 # v0
 ulid = { version = "3.0.0", features = [

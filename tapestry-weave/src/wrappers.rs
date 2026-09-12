@@ -6,6 +6,13 @@ use std::{
     hash::{BuildHasher, Hash},
 };
 
+use base64::engine::general_purpose::STANDARD;
+use base64_serde::base64_serde_type;
+use jiff::{
+    SignedDuration, Timestamp, Zoned,
+    fmt::temporal::{DateTimeParser, DateTimePrinter},
+    tz::TimeZone,
+};
 use universal_weave::{
     indexmap::{IndexMap, IndexSet},
     rkyv::{
@@ -17,23 +24,10 @@ use universal_weave::{
     },
 };
 
-use jiff::{
-    SignedDuration, Timestamp, Zoned,
-    fmt::temporal::{DateTimeParser, DateTimePrinter},
-    tz::TimeZone,
-};
-
-#[cfg(feature = "serde")]
-use base64::engine::general_purpose::STANDARD;
-
-#[cfg(feature = "serde")]
-use base64_serde::base64_serde_type;
-
 const PRINTER: DateTimePrinter = DateTimePrinter::new();
 
 const PARSER: DateTimeParser = DateTimeParser::new();
 
-#[cfg(feature = "serde")]
 base64_serde_type!(pub(crate) Base64Standard, STANDARD);
 
 pub struct IAsVec;

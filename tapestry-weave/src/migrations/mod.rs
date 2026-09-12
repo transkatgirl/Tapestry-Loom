@@ -1,5 +1,7 @@
 use std::{fmt::Display, io::Write};
 
+use serde::{Deserialize, Serialize, de::Error as DeError};
+use serde_json::{Value, from_str, from_value, to_string, to_value};
 use universal_weave::{
     rkyv::{
         access,
@@ -19,7 +21,16 @@ use crate::{
 #[cfg(feature = "v0")]
 mod v0;
 
+#[derive(Serialize, Deserialize, Debug)]
+struct VersionedJson {
+    version: u64,
+    data: Value,
+}
+
 impl TapestryWeave {
+    pub fn is_valid_header(bytes: &[u8]) -> bool {
+        bytes.starts_with(&HEADER_MAGIC_BYTES) && bytes.len() >= 32
+    }
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         if bytes.len() < 32 {
             return Err(Error::new(HeaderError::TooShort));
@@ -41,6 +52,20 @@ impl TapestryWeave {
             Err(Error::new(HeaderError::BadHeader))
         }
     }
+    pub fn from_json_str(json: &str) -> Result<Self, serde_json::Error> {
+        let versioned = from_str::<VersionedJson>(json)?;
+
+        match versioned.version {
+            #[cfg(feature = "v0")]
+            v0::FORMAT_VERSION => {
+                from_value::<v0::TapestryWeave>(versioned.data).map(|weave| weave.into())
+            }
+            super::weave::FORMAT_VERSION => {
+                from_value::<TapestryWeaveInner>(versioned.data).map(|weave| weave.into())
+            }
+            _ => Err(serde_json::Error::custom("unsupported version")),
+        }
+    }
     pub fn to_bytes_in<W: Write>(&self, writer: W) -> Result<(), Error> {
         let mut writer = IoWriter::new(writer);
 
@@ -52,6 +77,14 @@ impl TapestryWeave {
         to_bytes_in::<IoWriter<W>, Error>(&self.0, writer)?;
 
         Ok(())
+    }
+    pub fn to_json(&self) -> Result<String, serde_json::Error> {
+        assert!(self.0.validate());
+
+        to_string(&VersionedJson {
+            version: super::weave::FORMAT_VERSION,
+            data: to_value(&self.0)?,
+        })
     }
 }
 

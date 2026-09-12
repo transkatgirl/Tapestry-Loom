@@ -4,6 +4,7 @@ use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
 use foldhash::fast::RandomState;
 use jiff::{Timestamp, Zoned};
 use nanorand::{Rng, WyRand};
+use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
 use ulid::Ulid;
 #[allow(deprecated)]
 use universal_weave::{
@@ -12,9 +13,6 @@ use universal_weave::{
     indexmap::{IndexMap, IndexSet},
     rkyv::{Archive, Deserialize, Serialize},
 };
-
-#[cfg(feature = "serde")]
-use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
 
 use crate::{
     content::{
@@ -27,10 +25,11 @@ use crate::{
     wrappers::UniqueIdentifierRemapper,
 };
 
-pub(crate) const FORMAT_VERSION: u64 = 0;
+pub const FORMAT_VERSION: u64 = 0;
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
+#[derive(
+    SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq,
+)]
 pub struct NodeContent {
     pub content: InnerNodeContent,
     pub metadata: MetadataMap,
@@ -83,8 +82,9 @@ impl DiscreteContents for NodeContent {
     }
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
+#[derive(
+    SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq,
+)]
 pub enum InnerNodeContent {
     Snippet(Vec<u8>),
     Tokens(Vec<(Vec<u8>, MetadataMap)>),
@@ -187,8 +187,9 @@ impl InnerNodeContent {
     }
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
+#[derive(
+    SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq,
+)]
 pub struct Model {
     pub label: String,
     pub metadata: MetadataMap,

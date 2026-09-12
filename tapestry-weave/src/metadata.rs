@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 use foldhash::fast::RandomState;
 use jiff::Zoned;
+use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
 
 use universal_weave::{
     indexmap::IndexMap,
@@ -15,16 +16,14 @@ use chrono::DateTime;
 #[cfg(feature = "v0")]
 use jiff::fmt::rfc2822::DateTimeParser;
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
-
 use super::wrappers::{AsBinaryZoned, IAsVec};
 
 pub type MetadataMap = IndexMap<String, String, RandomState>;
 pub type AuxMetadataMap = IndexMap<String, Vec<u8>, RandomState>;
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
+#[derive(
+    SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq,
+)]
 pub struct WeaveMetadata {
     pub title: Option<String>,
     pub description: Option<String>,
@@ -72,8 +71,9 @@ impl ArchivedWeaveMetadata {
     }
 }
 
-#[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(SerdeSerialize, SerdeDeserialize))]
+#[derive(
+    SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq,
+)]
 pub struct ConvertedFrom {
     pub source: String,
     pub source_version: Option<String>,
