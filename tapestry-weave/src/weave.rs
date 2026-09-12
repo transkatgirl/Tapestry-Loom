@@ -228,49 +228,62 @@ impl TapestryWeave {
                 assert!(self.0.split(&first_split_id, at - byte_index, new_id));
 
                 let token_node_duplicate = {
-                    let mut siblings: Box<dyn Iterator<Item = ShortId>> =
-                        if token_node.from.is_empty() {
-                            Box::new(
-                                self.0
-                                    .roots()
-                                    .iter()
-                                    .copied()
-                                    .filter(|id| !token_node.to.contains(id)),
-                            )
-                        } else {
-                            Box::new(
-                                token_node
-                                    .from
-                                    .iter()
-                                    .filter_map(|id| self.0.get_children(id))
-                                    .flatten()
-                                    .copied()
-                                    .filter(|id| {
-                                        !token_node.from.contains(id) && !token_node.to.contains(id)
-                                    }),
-                            )
-                        };
+                    if byte_index != 0 {
+                        None
+                    } else {
+                        let mut siblings: Box<dyn Iterator<Item = ShortId>> =
+                            if token_node.from.is_empty() {
+                                Box::new(
+                                    self.0
+                                        .roots()
+                                        .iter()
+                                        .copied()
+                                        .filter(|id| !token_node.to.contains(id)),
+                                )
+                            } else {
+                                Box::new(
+                                    token_node
+                                        .from
+                                        .iter()
+                                        .filter_map(|id| self.0.get_children(id))
+                                        .flatten()
+                                        .copied()
+                                        .filter(|id| {
+                                            !token_node.from.contains(id)
+                                                && !token_node.to.contains(id)
+                                        }),
+                                )
+                            };
 
-                    siblings.find(|id| {
-                        self.0
-                            .get_contents(id)
-                            .is_some_and(|c| c.is_duplicate_of(&token_node.contents))
-                    })
+                        siblings.find(|id| {
+                            self.0
+                                .get_contents(id)
+                                .is_some_and(|c| c.is_duplicate_of(&token_node.contents))
+                        })
+                    }
                 };
 
                 match token_node_duplicate {
                     Some(duplicate) => {
-                        for token_child in token_node.to {
-                            let parents = self.0.get_parents(&token_child).unwrap();
+                        for token_child in &token_node.to {
+                            let parents = self.0.get_parents(token_child).unwrap();
 
-                            if !parents.contains(&duplicate) {
-                                self.0.move_to(
-                                    &token_child,
+                            if !parents.contains(&duplicate)
+                                && !self.0.move_to(
+                                    token_child,
                                     &Vec::from_iter(
                                         parents.iter().copied().chain(iter::once(duplicate)),
                                     ),
-                                );
-                            }
+                                )
+                            {
+                                token_node.id = generate_id();
+
+                                let token_node_id = token_node.id;
+
+                                assert!(self.0.insert(token_node));
+
+                                return Some((Some(token_node_id), new_id));
+                            };
                         }
 
                         Some((Some(duplicate), new_id))
