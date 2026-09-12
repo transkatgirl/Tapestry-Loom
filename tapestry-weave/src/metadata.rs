@@ -96,7 +96,6 @@ impl ConvertedFrom {
     pub fn is_from_plaintext(&self) -> bool {
         self.source == "Plaintext" && self.source_version.is_none()
     }
-    #[cfg(feature = "v0")]
     pub fn from_v0(timestamp: Zoned) -> Self {
         ConvertedFrom {
             source: "Tapestry Loom".to_string(),
@@ -109,28 +108,16 @@ impl ConvertedFrom {
     pub fn is_from_v0(&self) -> bool {
         self.source == "Tapestry Loom" && self.source_version.as_deref() == Some("0")
     }
-    pub fn from_v1_dependent(timestamp: Zoned) -> Self {
+    pub fn from_v1(timestamp: Zoned) -> Self {
         ConvertedFrom {
             source: "Tapestry Loom".to_string(),
-            source_version: Some("1.dependent".to_string()),
+            source_version: Some("1".to_string()),
             converter: env!("CARGO_PKG_NAME").to_string(),
             converter_version: Some(env!("CARGO_PKG_VERSION").to_string()),
             timestamp,
         }
     }
-    pub fn is_from_v1_dependent(&self) -> bool {
-        self.source == "Tapestry Loom" && self.source_version.as_deref() == Some("1.dependent")
-    }
-    pub fn from_v1_independent(timestamp: Zoned) -> Self {
-        ConvertedFrom {
-            source: "Tapestry Loom".to_string(),
-            source_version: Some("1.independent".to_string()),
-            converter: env!("CARGO_PKG_NAME").to_string(),
-            converter_version: Some(env!("CARGO_PKG_VERSION").to_string()),
-            timestamp,
-        }
-    }
-    pub fn is_from_v1_independent(&self) -> bool {
-        self.source == "Tapestry Loom" && self.source_version.as_deref() == Some("1.independent")
+    pub fn is_from_v1(&self) -> bool {
+        self.source == "Tapestry Loom" && self.source_version.as_deref() == Some("1")
     }
 }
