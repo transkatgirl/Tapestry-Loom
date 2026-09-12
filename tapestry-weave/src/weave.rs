@@ -1,39 +1,20 @@
-//! Experimental & untested
+use std::{cmp::Ordering, hash::BuildHasherDefault, num::NonZeroU128};
 
-use std::{cmp::Ordering, collections::HashSet, hash::BuildHasherDefault, num::NonZeroU128};
-
-use jiff::Zoned;
 use nanorand::WyRand;
 use universal_weave::{
-    ActivePathWeave, ArchivedWeave, DeduplicatableWeave, DiscreteWeave, SortableWeave, Weave,
+    ActivePathWeave, ArchivedBookmarkableWeave, ArchivedSortableWeave, ArchivedWeave,
+    BookmarkableWeave, DeduplicatableWeave, DiscreteWeave, SortableBookmarkableWeave,
+    SortableWeave, Weave,
+    hashbrown::HashSet,
     independent::{ArchivedIndependentNode, IndependentNode, IndependentWeave},
     indexmap::IndexSet,
-    rkyv::{
-        Archive, access, access_unchecked, api::high::to_bytes_in,
-        collections::swiss_table::ArchivedIndexSet, deserialize, from_bytes, from_bytes_unchecked,
-        rancor::Error, rend::u64_le, ser::Writer,
-    },
-};
-
-#[cfg(feature = "v0")]
-use jiff::Timestamp;
-
-#[cfg(feature = "v0")]
-use ulid::Ulid;
-
-#[cfg(feature = "v0")]
-use nanorand::Rng;
-
-#[cfg(feature = "v0")]
-use crate::{
-    hashers::UlidHasher, v0::TapestryWeave as OldTapestryWeave, wrappers::UniqueIdentifierRemapper,
+    rkyv::{Archive, collections::swiss_table::ArchivedIndexSet, rend::u64_le},
 };
 
 use super::{
-    super::{VersionedWeave, hashers::RandomIdHasher, v1::metadata::ConvertedFrom, write_header},
     content::{InnerNodeContent, NodeContent},
-    dependent::TapestryWeave as DependentTapestryWeave,
     generate_unique_id, generate_unique_id_with_list,
+    hashers::RandomIdHasher,
     metadata::{ArchivedWeaveMetadata, WeaveMetadata},
 };
 
@@ -50,7 +31,7 @@ pub type ArchivedTapestryWeaveInner = <TapestryWeaveInner as Archive>::Archived;
 
 pub struct TapestryWeave {
     pub rng: WyRand,
-    weave: TapestryWeaveInner,
+    pub(crate) weave: TapestryWeaveInner,
     active: Vec<u64>,
     scratchpad: Vec<u64>,
     scratchpad_2: HashSet<u64, BuildHasherDefault<RandomIdHasher>>,
@@ -91,31 +72,6 @@ impl AsRef<TapestryWeaveInner> for TapestryWeave {
 }
 
 impl TapestryWeave {
-    pub fn from_unversioned_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        Ok(Self::from(from_bytes::<TapestryWeaveInner, Error>(bytes)?))
-    }
-    pub unsafe fn from_unversioned_bytes_unchecked(bytes: &[u8]) -> Result<Self, Error> {
-        Ok(Self::from(unsafe {
-            from_bytes_unchecked::<TapestryWeaveInner, Error>(bytes)?
-        }))
-    }
-    pub fn from_archived(value: &ArchivedTapestryWeave) -> Result<Self, Error> {
-        Ok(Self::from(deserialize::<TapestryWeaveInner, Error>(
-            value.weave,
-        )?))
-    }
-    pub fn write_unversioned_bytes<W: Writer<Error>>(&self, writer: W) -> Result<W, Error> {
-        assert!(self.weave.validate());
-        to_bytes_in::<W, Error>(&self.weave, writer)
-    }
-    pub fn write_versioned_bytes<W: Writer<Error>>(&self, mut writer: W) -> Result<W, Error> {
-        assert!(self.weave.validate());
-        write_header(&mut writer, FORMAT_VERSION)?;
-        to_bytes_in::<W, Error>(&self.weave, writer)
-    }
-    pub fn to_versioned_weave(self) -> VersionedWeave {
-        VersionedWeave::V1Independent(self)
-    }
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             rng: WyRand::new(),
@@ -313,7 +269,7 @@ impl TapestryWeave {
 
                     for duplicate in &duplicates {
                         if self.scratchpad_2.contains(duplicate) {
-                            self.weave.set_node_active_status_in_place(duplicate, true);
+                            self.weave.set_node_active_status(duplicate, true);
                             has_active = true;
                             break;
                         }
@@ -321,7 +277,7 @@ impl TapestryWeave {
 
                     if !has_active {
                         self.weave
-                            .set_node_active_status_in_place(duplicates.first().unwrap(), true);
+                            .set_node_active_status(duplicates.first().unwrap(), true);
                     }
                 }
                 self.weave.remove_node(&identifier);
@@ -340,16 +296,8 @@ impl TapestryWeave {
             false
         }
     }
-    pub fn set_node_active_status(&mut self, id: &u64, value: bool, alternate: bool) -> bool {
-        if self.weave.set_node_active_status(id, value, alternate) {
-            self.update_shape_and_active();
-            true
-        } else {
-            false
-        }
-    }
-    pub fn set_node_active_status_in_place(&mut self, id: &u64, value: bool) -> bool {
-        if self.weave.set_node_active_status_in_place(id, value) {
+    pub fn set_node_active_status(&mut self, id: &u64, value: bool) -> bool {
+        if self.weave.set_node_active_status(id, value) {
             self.update_shape_and_active();
             true
         } else {
@@ -742,16 +690,6 @@ impl AsRef<ArchivedTapestryWeaveInner> for ArchivedTapestryWeave<'_> {
 }
 
 impl<'a> ArchivedTapestryWeave<'a> {
-    pub fn from_unversioned_bytes(bytes: &'a [u8]) -> Result<Self, Error> {
-        Ok(Self {
-            weave: access::<ArchivedTapestryWeaveInner, Error>(bytes)?,
-        })
-    }
-    pub unsafe fn from_unversioned_bytes_unchecked(bytes: &'a [u8]) -> Self {
-        Self {
-            weave: unsafe { access_unchecked::<ArchivedTapestryWeaveInner>(bytes) },
-        }
-    }
     pub fn metadata(&self) -> &ArchivedWeaveMetadata {
         &self.weave.metadata
     }
@@ -881,80 +819,5 @@ impl<'a> ArchivedTapestryWeave<'a> {
             .filter_map(|id| self.weave.get_node(&id))
             .flat_map(|node| node.contents.content.as_bytes())
             .collect()
-    }
-}
-
-#[cfg(feature = "v0")]
-impl From<OldTapestryWeave> for TapestryWeave {
-    fn from(mut value: OldTapestryWeave) -> Self {
-        let mut output = TapestryWeave::with_capacity_and_metadata(
-            value.capacity(),
-            value.weave.metadata.clone().into(),
-        );
-
-        let mut identifiers = Vec::with_capacity(value.weave.len());
-        value.weave.get_ordered_node_identifiers(&mut identifiers);
-
-        let mut mapper: UniqueIdentifierRemapper<
-            u128,
-            u64,
-            BuildHasherDefault<UlidHasher>,
-            BuildHasherDefault<RandomIdHasher>,
-        > = UniqueIdentifierRemapper::with_capacity(identifiers.len());
-
-        let time_zone = output.metadata().created.time_zone().clone();
-
-        output.modify_inner(|rng, output, _| {
-            let mut convert_old_identifier = move |id| {
-                *mapper
-                    .map_with_initial(
-                        id,
-                        unsafe { std::mem::transmute::<u128, [u64; 2]>(id)[1] },
-                        || rng.generate(),
-                    )
-                    .get()
-            };
-
-            for identifier in identifiers {
-                let node = value.weave.get_node(&identifier).unwrap().clone();
-
-                let timestamp = Timestamp::try_from(Ulid(node.id).datetime())
-                    .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
-                    .unwrap_or(Zoned::default());
-
-                let mut node = TapestryNode {
-                    id: convert_old_identifier(node.id),
-                    from: IndexSet::from_iter(
-                        node.from.into_iter().map(&mut convert_old_identifier),
-                    ),
-                    to: IndexSet::with_capacity_and_hasher(
-                        node.to.len(),
-                        BuildHasherDefault::default(),
-                    ),
-                    active: node.active,
-                    bookmarked: node.bookmarked,
-                    contents: node.contents.into(),
-                };
-                node.contents.timestamp = timestamp;
-
-                assert!(output.add_node(node));
-            }
-        });
-
-        output
-    }
-}
-
-impl From<DependentTapestryWeave> for TapestryWeave {
-    fn from(value: DependentTapestryWeave) -> Self {
-        let mut weave = TapestryWeave::from(TapestryWeaveInner::from(value.weave));
-
-        weave
-            .weave
-            .metadata
-            .converted_from
-            .push(ConvertedFrom::from_v1_dependent(Zoned::now()));
-
-        weave
     }
 }

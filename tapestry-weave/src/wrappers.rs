@@ -1,4 +1,3 @@
-#[cfg(feature = "v1")]
 use std::{
     collections::{
         HashMap, HashSet,
@@ -7,7 +6,6 @@ use std::{
     hash::{BuildHasher, Hash},
 };
 
-#[cfg(feature = "v1")]
 use universal_weave::{
     indexmap::{IndexMap, IndexSet},
     rkyv::{
@@ -16,14 +14,12 @@ use universal_weave::{
     },
 };
 
-#[cfg(feature = "v1")]
 use universal_weave::rkyv::{
     Archive, Deserialize, Place, Resolver, Serialize, SerializeUnsized,
     rancor::{Fallible, Source},
     with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
 
-#[cfg(feature = "v1")]
 use jiff::{
     SignedDuration, Timestamp, Zoned,
     fmt::temporal::{DateTimeParser, DateTimePrinter},
@@ -36,19 +32,15 @@ use base64::engine::general_purpose::STANDARD;
 #[cfg(feature = "serde")]
 use base64_serde::base64_serde_type;
 
-#[cfg(feature = "v1")]
 const PRINTER: DateTimePrinter = DateTimePrinter::new();
 
-#[cfg(feature = "v1")]
 const PARSER: DateTimeParser = DateTimeParser::new();
 
 #[cfg(feature = "serde")]
 base64_serde_type!(pub(crate) Base64Standard, STANDARD);
 
-#[cfg(feature = "v1")]
 pub struct IAsVec;
 
-#[cfg(feature = "v1")]
 impl<K: Archive, V: Archive, H> ArchiveWith<IndexMap<K, V, H>> for IAsVec {
     type Archived = ArchivedVec<util::Entry<K::Archived, V::Archived>>;
     type Resolver = VecResolver;
@@ -62,7 +54,6 @@ impl<K: Archive, V: Archive, H> ArchiveWith<IndexMap<K, V, H>> for IAsVec {
     }
 }
 
-#[cfg(feature = "v1")]
 impl<K, V, H, S> SerializeWith<IndexMap<K, V, H>, S> for IAsVec
 where
     K: Serialize<S>,
@@ -82,7 +73,6 @@ where
     }
 }
 
-#[cfg(feature = "v1")]
 impl<K, V, H, D>
     DeserializeWith<ArchivedVec<util::Entry<K::Archived, V::Archived>>, IndexMap<K, V, H>, D>
     for IAsVec
@@ -109,7 +99,6 @@ where
     }
 }
 
-#[cfg(feature = "v1")]
 impl<T: Archive, H> ArchiveWith<IndexSet<T, H>> for IAsVec {
     type Archived = ArchivedVec<T::Archived>;
     type Resolver = VecResolver;
@@ -119,7 +108,6 @@ impl<T: Archive, H> ArchiveWith<IndexSet<T, H>> for IAsVec {
     }
 }
 
-#[cfg(feature = "v1")]
 impl<T, H, S> SerializeWith<IndexSet<T, H>, S> for IAsVec
 where
     T: Serialize<S>,
@@ -133,7 +121,6 @@ where
     }
 }
 
-#[cfg(feature = "v1")]
 impl<T, H, D> DeserializeWith<ArchivedVec<T::Archived>, IndexSet<T, H>, D> for IAsVec
 where
     T: Archive + Hash + Eq,
@@ -153,7 +140,6 @@ where
     }
 }
 
-#[cfg(feature = "v1")]
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct BinaryZoned {
     pub secs: i64,
@@ -161,7 +147,6 @@ pub struct BinaryZoned {
     pub timezone: String, // Timezones are usually IANA names, so wasting bytes when storing offsets or POSIX timestamps is probably fine.
 }
 
-#[cfg(feature = "v1")]
 impl From<&Zoned> for BinaryZoned {
     fn from(value: &Zoned) -> Self {
         let timezone = {
@@ -185,7 +170,6 @@ impl From<&Zoned> for BinaryZoned {
     }
 }
 
-#[cfg(feature = "v1")]
 impl From<BinaryZoned> for Zoned {
     fn from(value: BinaryZoned) -> Self {
         let timezone = if value.timezone.is_empty() {
@@ -202,10 +186,8 @@ impl From<BinaryZoned> for Zoned {
     }
 }
 
-#[cfg(feature = "v1")]
 pub struct AsBinaryZoned;
 
-#[cfg(feature = "v1")]
 impl ArchiveWith<Zoned> for AsBinaryZoned {
     type Archived = ArchivedBinaryZoned;
     type Resolver = Resolver<BinaryZoned>;
@@ -216,7 +198,6 @@ impl ArchiveWith<Zoned> for AsBinaryZoned {
     }
 }
 
-#[cfg(feature = "v1")]
 impl<S> SerializeWith<Zoned, S> for AsBinaryZoned
 where
     S: Fallible + ?Sized,
@@ -228,7 +209,6 @@ where
     }
 }
 
-#[cfg(feature = "v1")]
 impl<D> DeserializeWith<ArchivedBinaryZoned, Zoned, D> for AsBinaryZoned
 where
     D: Fallible + ?Sized,
@@ -241,7 +221,6 @@ where
     }
 }
 
-#[cfg(feature = "v1")]
 pub struct UniqueIdentifierRemapper<K, V, KS, VS>
 where
     K: Hash + Eq,
@@ -253,7 +232,6 @@ where
     new_ids: HashSet<V, VS>,
 }
 
-#[cfg(feature = "v1")]
 impl<K, V, KS, VS> UniqueIdentifierRemapper<K, V, KS, VS>
 where
     K: Hash + Eq,

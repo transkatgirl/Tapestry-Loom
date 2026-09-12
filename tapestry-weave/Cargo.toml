@@ -9,13 +9,9 @@ description = "An implementation of Tapestry Loom's document format."
 edition = "2024"
 
 [features]
-default = [
-	"v0",
-	"v1",
-]
+default = [ "v0" ]
 all_versions = [
 	"v0",
-	"v1",
 ]
 v0 = [
 	"universal-weave/legacy",
@@ -24,10 +20,6 @@ v0 = [
 	"dep:serde_json",
 	"dep:base64",
 	"dep:chrono",
-]
-v1 = [
-	"dep:jiff",
-	"dep:nanorand",
 ]
 serde = [ # serde integration
 	"universal-weave/serde",
@@ -47,6 +39,12 @@ rkyv = { version = "0.8.16", features = [
 ] }
 universal-weave = { path = "../universal-weave" }
 foldhash = "0.2.0"
+jiff = "0.2.29"
+nanorand = { version = "0.8.0", features = [
+	"alloc",
+	"wyrand",
+	"getrandom",
+], default-features = false }
 
 # serde
 serde = { version = "1.0.228", optional = true, features = [
@@ -67,12 +65,4 @@ serde_json = { version = "1.0.150", features = [
 chrono = { version = "0.4.45", features = [
 	"alloc",
 	"std",
-], default-features = false, optional = true }
-
-# v1+
-jiff = { version = "0.2.29", optional = true }
-nanorand = { version = "0.8.0", features = [
-	"alloc",
-	"wyrand",
-	"getrandom",
 ], default-features = false, optional = true }

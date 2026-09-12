@@ -7,24 +7,15 @@ use universal_weave::{
     rkyv::{Archive, Deserialize, Serialize, niche::niching, with::NicheInto},
 };
 
-#[cfg(feature = "v0")]
-use ulid::Ulid;
-
-#[cfg(feature = "v0")]
-use crate::v0::{
-    InnerNodeContent as OldInnerNodeContent, Model as OldModel, NodeContent as OldNodeContent,
-    deserialize_counterfactual_logprobs,
-};
-
 #[cfg(feature = "serde")]
 use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
 
 #[cfg(feature = "serde")]
-use super::super::wrappers::Base64Standard;
+use super::wrappers::Base64Standard;
 
 use super::{
-    super::wrappers::{AsBinaryZoned, IAsVec},
     metadata::{AuxMetadataMap, MetadataMap},
+    wrappers::{AsBinaryZoned, IAsVec},
 };
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq)]
@@ -980,193 +971,6 @@ impl Author {
             }
         } else {
             Err((self, value))
-        }
-    }
-}
-
-#[cfg(feature = "v0")]
-impl From<OldInnerNodeContent> for InnerNodeContent {
-    fn from(value: OldInnerNodeContent) -> Self {
-        match value {
-            OldInnerNodeContent::Snippet(snippet) => Self::Snippet(snippet),
-            OldInnerNodeContent::Tokens(tokens) => Self::Tokens(
-                tokens
-                    .into_iter()
-                    .map(|(token, mut metadata)| {
-                        metadata.shift_remove("model_id");
-                        metadata.shift_remove("confidence");
-                        metadata.shift_remove("confidence_k");
-
-                        let mut modified = metadata
-                            .shift_remove("original_length")
-                            .and_then(|value| value.parse::<usize>().ok())
-                            .map(|original_length| original_length != token.len())
-                            .unwrap_or(false);
-
-                        if let Some(value) = metadata.shift_remove("modified")
-                            && value == "true"
-                        {
-                            modified = true;
-                        }
-
-                        InnerNodeToken {
-                            bytes: token,
-                            logprob: metadata
-                                .shift_remove("probability")
-                                .and_then(|value| value.parse::<f32>().ok())
-                                .unwrap_or(f32::NAN)
-                                .ln(),
-                            id: if !modified {
-                                metadata
-                                    .shift_remove("token_id")
-                                    .and_then(|value| value.parse::<u64>().ok())
-                            } else {
-                                None
-                            },
-                            entropy: None,
-                            counterfactual: metadata
-                                .shift_remove("counterfactual")
-                                .and_then(|value| {
-                                    deserialize_counterfactual_logprobs(&value).map(
-                                        |counterfactual| {
-                                            counterfactual
-                                                .into_iter()
-                                                .map(|(token, mut metadata)| {
-                                                    metadata.shift_remove("model_id");
-                                                    metadata.shift_remove("confidence");
-                                                    metadata.shift_remove("confidence_k");
-                                                    metadata.shift_remove("original_length");
-                                                    metadata.shift_remove("modified");
-
-                                                    CounterfactualToken {
-                                                        bytes: token,
-                                                        logprob: metadata
-                                                            .shift_remove("probability")
-                                                            .and_then(|value| {
-                                                                value.parse::<f32>().ok()
-                                                            })
-                                                            .unwrap_or(f32::NAN)
-                                                            .ln(),
-                                                        id: metadata
-                                                            .shift_remove("token_id")
-                                                            .and_then(|value| {
-                                                                value.parse::<u64>().ok()
-                                                            }),
-                                                        metadata,
-                                                    }
-                                                })
-                                                .collect()
-                                        },
-                                    )
-                                })
-                                .unwrap_or_default(),
-                            metadata,
-                            original: if modified {
-                                OriginalToken::Unknown
-                            } else {
-                                OriginalToken::Unmodified
-                            },
-                        }
-                    })
-                    .collect(),
-            ),
-        }
-    }
-}
-
-#[cfg(feature = "v0")]
-impl From<OldModel> for Creator {
-    fn from(mut value: OldModel) -> Self {
-        if value.label.to_lowercase() == "unknown model"
-            || value.label.to_lowercase() == "unknown"
-            || value.label.to_lowercase() == "n/a"
-            || value.label.is_empty()
-        {
-            value.label = UNKNOWN_MODEL_LABEL.to_string();
-        }
-
-        Self::Model(
-            if value.label == UNKNOWN_MODEL_LABEL && value.metadata.is_empty() {
-                None
-            } else {
-                Some(Model {
-                    label: value.label,
-                    color: value.metadata.shift_remove("color"),
-                    identifier: None,
-                    seed: None,
-                    system_fingerprint: None,
-                    finish_reason: None,
-                    metadata: value.metadata,
-                })
-            },
-        )
-    }
-}
-
-#[cfg(feature = "v0")]
-impl From<OldNodeContent> for NodeContent {
-    fn from(mut value: OldNodeContent) -> Self {
-        value.metadata.shift_remove("confidence");
-        value.metadata.shift_remove("confidence_k");
-        value.metadata.shift_remove("confidence_n");
-
-        let mut creator = value.model.map(Creator::from).unwrap_or(Creator::Unknown);
-
-        if let Creator::Model(Some(model)) = &mut creator
-            && let OldInnerNodeContent::Tokens(tokens) = &mut value.content
-        {
-            let mut model_id = None;
-
-            for (_, metadata) in tokens {
-                if let Some(value) = metadata.shift_remove("model_id") {
-                    if let Some(existing_id) = &model_id
-                        && *existing_id != value
-                    {
-                        model_id = None;
-                        break;
-                    } else {
-                        model_id = Some(value);
-                    }
-                }
-            }
-
-            if let Some(model_id) = model_id
-                .and_then(|id| Ulid::from_string(&id).ok())
-                .and_then(|id| NonZeroU128::new(id.0))
-            {
-                model.identifier = Some(model_id);
-            }
-
-            model.seed = value
-                .metadata
-                .shift_remove("seed")
-                .and_then(|id| id.parse::<u32>().ok());
-
-            model.system_fingerprint = value.metadata.shift_remove("system_fingerprint");
-            model.finish_reason = value.metadata.shift_remove("finish_reason");
-        }
-
-        let content = InnerNodeContent::from(value.content);
-
-        let mut modified = if let InnerNodeContent::Tokens(tokens) = &content {
-            tokens.iter().any(|token| token.original.is_modified())
-        } else {
-            false
-        };
-
-        if let Some(value) = value.metadata.shift_remove("modified")
-            && value.to_lowercase() == "true"
-        {
-            modified = true;
-        }
-
-        Self {
-            timestamp: Zoned::default(),
-            modified,
-            metadata: value.metadata,
-            aux_metadata: AuxMetadataMap::default(),
-            creator,
-            content,
         }
     }
 }

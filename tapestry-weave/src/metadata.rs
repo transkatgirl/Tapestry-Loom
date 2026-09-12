@@ -18,7 +18,7 @@ use jiff::fmt::rfc2822::DateTimeParser;
 #[cfg(feature = "serde")]
 use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
 
-use super::super::wrappers::{AsBinaryZoned, IAsVec};
+use super::wrappers::{AsBinaryZoned, IAsVec};
 
 pub type MetadataMap = IndexMap<String, String, RandomState>;
 pub type AuxMetadataMap = IndexMap<String, Vec<u8>, RandomState>;
