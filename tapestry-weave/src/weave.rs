@@ -15,7 +15,7 @@ use universal_weave::{
 };
 
 use super::{
-    content::{ArchivedNodeContent, NodeContent},
+    content::{ArchivedNodeContent, InnerNodeContent, NodeContent},
     hashers::RandomIdHasher,
     metadata::{ArchivedWeaveMetadata, WeaveMetadata},
 };
@@ -32,13 +32,13 @@ pub type ArchivedShortId = <ShortId as Archive>::Archived;
 pub type ArchivedTapestryNode = <TapestryNode as Archive>::Archived;
 pub type ArchivedTapestryWeaveInner = <TapestryWeaveInner as Archive>::Archived;
 
-/// An [`IndependentWeave`] wrapper which implements the Tapestry Loom document format.
+/// An [`IndependentWeave`] wrapper which implements Tapestry Loom's document format.
 ///
-/// All identifiers *must be* randomly generated, because the underlying [`Weave`]'s hashmaps use an identity hasher.
+/// All identifiers *must be* randomly generated because the underlying [`Weave`]'s hashmaps use an identity hasher.
 ///
 /// # DoS Resistance
 ///
-/// This Weave implementation does not make use of DoS-resistant hashers. As a result, a maliciously crafted document could hang forever during deserialization.
+/// This Weave implementation does not make use of DoS-resistant hashers. As a result, a maliciously crafted document could hang indefinitely during deserialization.
 pub struct TapestryWeave(TapestryWeaveInner);
 
 impl Default for TapestryWeave {
@@ -99,9 +99,11 @@ impl TapestryWeave {
     pub fn shrink_to_fit(&mut self) {
         self.0.shrink_to_fit();
     }
+    /// Convenience method for `self.is_empty() && self.metadata().is_empty()`
     pub fn is_empty_including_metadata(&self) -> bool {
         self.0.is_empty() && self.0.metadata.is_empty()
     }
+    /// Convenience method which returns the siblings of the node corresponding to the identifier.
     pub fn get_siblings<'a>(
         &'a self,
         id: &ShortId,
@@ -126,6 +128,7 @@ impl TapestryWeave {
             None
         }
     }
+    /// A wrapper around [`Weave::insert`] which prevents nodes with duplicate siblings from being inserted.
     #[must_use]
     pub fn insert_deduplicated(&mut self, node: TapestryNode) -> bool {
         let siblings: Box<dyn Iterator<Item = ShortId>> = if node.from.is_empty() {
@@ -156,43 +159,16 @@ impl TapestryWeave {
     pub fn set_active_tree_semantics(&mut self, id: &ShortId, value: bool) -> bool {
         self.0.set_active_dependent_semantics(id, value)
     }
-    // TODO
-    /*pub fn split_tokenized(
-        &self,
+    pub fn split_tokenized(
+        &mut self,
         id: &ShortId,
         at: usize,
-        generate_id: impl FnMut() -> ShortId,
-    ) -> bool {
-        todo!()
-    }
-    pub fn split_out_token(
-        &self,
-        id: &ShortId,
-        index: usize,
-        generate_id: impl FnMut() -> ShortId,
-    ) -> bool {
-        todo!()
-    }*/
-    pub fn is_mergeable_with_parent(&self, id: &ShortId) -> bool {
-        self.0.get(id).is_some_and(|node| {
-            if node.from.len() == 1
-                && let Some(parent) = self.0.get(&node.from[0])
-            {
-                parent.to.len() == 1 && parent.contents.is_mergeable_with(&node.contents)
-            } else {
-                false
-            }
-        })
-    }
-}
-
-/*
-
-    pub fn split_node(&mut self, id: &u64, at: usize) -> Option<(u64, Option<u64>, u64)> {
-        let new_id = generate_unique_id(&mut self.rng, &self.weave);
+        mut generate_id: impl FnMut() -> ShortId,
+    ) -> Option<(ShortId, Option<ShortId>, ShortId)> {
+        let new_id = generate_id();
 
         if at > 0
-            && let Some(node) = self.weave.get_node(id).cloned()
+            && let Some(node) = self.0.get(id).cloned()
             && let InnerNodeContent::Tokens(tokens) = &node.contents.content
         {
             let mut byte_index = 0;
@@ -209,17 +185,12 @@ impl TapestryWeave {
             }
 
             if within_token {
-                let first_split_id =
-                    generate_unique_id_with_list(&mut self.rng, &self.weave, &[new_id]);
-                let second_split_id = generate_unique_id_with_list(
-                    &mut self.rng,
-                    &self.weave,
-                    &[new_id, first_split_id],
-                );
+                let first_split_id = generate_id();
+                let second_split_id = generate_id();
 
-                assert!(self.weave.split_node(id, byte_index, first_split_id));
+                assert!(self.0.split(id, byte_index, first_split_id));
 
-                let mut token_node = self.weave.get_node(&first_split_id).unwrap().clone();
+                let mut token_node = self.0.get(&first_split_id).unwrap().clone();
                 token_node.id = new_id;
 
                 //token_node.to = IndexSet::default();
@@ -227,65 +198,48 @@ impl TapestryWeave {
 
                 let token_node_id = token_node.id;
 
-                assert!(self.weave.add_node(token_node));
+                assert!(self.0.insert(token_node));
 
                 assert!(
-                    self.weave
-                        .split_node(&token_node_id, at - byte_index, second_split_id)
+                    self.0
+                        .split(&token_node_id, at - byte_index, second_split_id)
                 );
-
-                self.update_shape_and_active();
 
                 Some((*id, Some(token_node_id), second_split_id))
             } else {
-                if self.weave.split_node(id, at, new_id) {
-                    self.update_shape_and_active();
+                if self.0.split(id, at, new_id) {
                     Some((*id, None, new_id))
                 } else {
                     None
                 }
             }
         } else {
-            if self.weave.split_node(id, at, new_id) {
-                self.update_shape_and_active();
+            if self.0.split(id, at, new_id) {
                 Some((*id, None, new_id))
             } else {
                 None
             }
         }
     }
-pub fn split_out_token(
+    pub fn split_out_token(
         &mut self,
-        id: &u64,
+        id: &ShortId,
         index: usize,
-    ) -> Option<(Option<u64>, u64, Option<u64>)> {
-        if let Some(result) = self.split_out_token_inner(id, index) {
-            if result.0 == Some(*id) || result.2.is_some() {
-                self.update_shape_and_active();
-            }
-
-            Some(result)
-        } else {
-            None
-        }
-    }
-    fn split_out_token_inner(
-        &mut self,
-        id: &u64,
-        index: usize,
-    ) -> Option<(Option<u64>, u64, Option<u64>)> {
+        mut generate_id: impl FnMut() -> ShortId,
+    ) -> Option<(Option<ShortId>, ShortId, Option<ShortId>)> {
         // before_token, token, after_token
-        if let Some(node) = self.weave.get_node(id) {
+
+        if let Some(node) = self.0.get(id) {
             if let InnerNodeContent::Tokens(tokens) = &node.contents.content
                 && tokens.len() > index
             {
-                let tail_id = generate_unique_id(&mut self.rng, &self.weave);
+                let tail_id = generate_id();
 
                 let chosen_parent = node
                     .from
                     .iter()
                     .copied()
-                    .find(|id| self.weave.contains_active(id))
+                    .find(|id| self.0.contains_active(id))
                     .or_else(|| node.from.first().copied());
 
                 let split_index: usize = tokens
@@ -308,18 +262,14 @@ pub fn split_out_token(
                 };
 
                 if split_index > 0 {
-                    let middle_id =
-                        generate_unique_id_with_list(&mut self.rng, &self.weave, &[tail_id]);
+                    let middle_id = generate_id();
 
-                    assert!(self.weave.split_node(id, split_index, middle_id));
+                    assert!(self.0.split(id, split_index, middle_id));
 
                     if let Some(second_split_index) = second_split_index
                         && second_split_index > 0
                     {
-                        assert!(
-                            self.weave
-                                .split_node(&middle_id, second_split_index, tail_id)
-                        );
+                        assert!(self.0.split(&middle_id, second_split_index, tail_id));
 
                         Some((Some(*id), middle_id, Some(tail_id)))
                     } else {
@@ -328,7 +278,7 @@ pub fn split_out_token(
                 } else if let Some(second_split_index) = second_split_index
                     && second_split_index > 0
                 {
-                    assert!(self.weave.split_node(id, second_split_index, tail_id));
+                    assert!(self.0.split(id, second_split_index, tail_id));
 
                     Some((chosen_parent, *id, Some(tail_id)))
                 } else {
@@ -340,7 +290,19 @@ pub fn split_out_token(
         } else {
             None
         }
-    }*/
+    }
+    pub fn is_mergeable_with_parent(&self, id: &ShortId) -> bool {
+        self.0.get(id).is_some_and(|node| {
+            if node.from.len() == 1
+                && let Some(parent) = self.0.get(&node.from[0])
+            {
+                parent.to.len() == 1 && parent.contents.is_mergeable_with(&node.contents)
+            } else {
+                false
+            }
+        })
+    }
+}
 
 impl Weave<ShortId, TapestryNode, NodeContent> for TapestryWeave {
     type Nodes = HashMap<ShortId, TapestryNode, BuildHasherDefault<RandomIdHasher>>;
