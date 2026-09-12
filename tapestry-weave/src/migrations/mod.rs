@@ -41,15 +41,15 @@ impl TapestryWeave {
             Err(Error::new(HeaderError::BadHeader))
         }
     }
-    pub fn write_bytes<W: Write>(&self, writer: W) -> Result<(), Error> {
+    pub fn to_bytes_in<W: Write>(&self, writer: W) -> Result<(), Error> {
         let mut writer = IoWriter::new(writer);
 
         // Copied from VersionedBytes::write_header()
         writer.write(&HEADER_MAGIC_BYTES)?;
         writer.write(&super::weave::FORMAT_VERSION.to_le_bytes())?;
 
-        assert!(self.weave.validate());
-        to_bytes_in::<IoWriter<W>, Error>(&self.weave, writer)?;
+        assert!(self.0.validate());
+        to_bytes_in::<IoWriter<W>, Error>(&self.0, writer)?;
 
         Ok(())
     }
@@ -63,8 +63,7 @@ impl<'a> ArchivedTapestryWeave<'a> {
 
         if let Some(versioned) = VersionedBytes::try_from_bytes(bytes, HEADER_MAGIC_BYTES) {
             if versioned.version == super::weave::FORMAT_VERSION {
-                access::<ArchivedTapestryWeaveInner, Error>(versioned.data)
-                    .map(|weave| Self { inner: weave })
+                access::<ArchivedTapestryWeaveInner, Error>(versioned.data).map(Self)
             } else {
                 Err(Error::new(HeaderError::UnsupportedVersion))
             }

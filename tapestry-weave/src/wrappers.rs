@@ -9,15 +9,12 @@ use std::{
 use universal_weave::{
     indexmap::{IndexMap, IndexSet},
     rkyv::{
+        Archive, Deserialize, Place, Resolver, Serialize, SerializeUnsized,
         collections::util,
+        rancor::{Fallible, Source},
         vec::{ArchivedVec, VecResolver},
+        with::{ArchiveWith, DeserializeWith, SerializeWith},
     },
-};
-
-use universal_weave::rkyv::{
-    Archive, Deserialize, Place, Resolver, Serialize, SerializeUnsized,
-    rancor::{Fallible, Source},
-    with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
 
 use jiff::{

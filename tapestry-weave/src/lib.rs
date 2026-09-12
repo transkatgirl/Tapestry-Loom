@@ -40,7 +40,7 @@ See also: https://github.com/transkatgirl/Tapestry-Loom/blob/a232fbbb4119a8a9047
 
 */
 
-pub fn generate_unique_id<W, K, N, T, S>(rng: &mut WyRand, weave: &W) -> K
+pub fn generate_id<W, K, N, T, S>(rng: &mut WyRand, weave: &W) -> K
 where
     W: Weave<K, N, T, Nodes = HashMap<K, N, S>>,
     K: RandomGen<WyRand, 8> + Hash + Copy + Eq + Ord,
@@ -56,18 +56,24 @@ where
     id
 }
 
-pub fn generate_unique_id_with_list<W, K, N, T, S>(rng: &mut WyRand, weave: &W, ids: &[K]) -> K
+pub fn generate_ids<W, K, N, T, S, const COUNT: usize>(rng: &mut WyRand, weave: &W) -> [K; COUNT]
 where
     W: Weave<K, N, T, Nodes = HashMap<K, N, S>>,
-    K: RandomGen<WyRand, 8> + Hash + Copy + Eq + Ord,
+    K: RandomGen<WyRand, 8> + Hash + Copy + Eq + Ord + Default,
     N: BuildableNode<K, T>,
     S: BuildHasher + Default + Clone,
 {
-    let mut id = rng.generate();
+    let mut output = [K::default(); COUNT];
 
-    while weave.contains(&id) || ids.contains(&id) {
-        id = rng.generate();
+    for index in 0..COUNT {
+        let mut id = rng.generate();
+
+        while weave.contains(&id) || output.contains(&id) {
+            id = rng.generate();
+        }
+
+        output[index] = id;
     }
 
-    id
+    output
 }

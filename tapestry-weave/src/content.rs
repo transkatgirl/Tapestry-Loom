@@ -1,10 +1,11 @@
 use std::{borrow::Cow, num::NonZeroU128};
 
 use jiff::Zoned;
-use rkyv::option::ArchivedOption;
 use universal_weave::{
     DeduplicatableContents, DiscreteContentResult, DiscreteContents, IndependentContents,
-    rkyv::{Archive, Deserialize, Serialize, niche::niching, with::NicheInto},
+    rkyv::{
+        Archive, Deserialize, Serialize, niche::niching, option::ArchivedOption, with::NicheInto,
+    },
 };
 
 #[cfg(feature = "serde")]

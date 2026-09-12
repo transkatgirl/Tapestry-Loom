@@ -7,7 +7,7 @@ use nanorand::{Rng, WyRand};
 use ulid::Ulid;
 #[allow(deprecated)]
 use universal_weave::{
-    DiscreteContentResult, DiscreteContents, Weave,
+    DiscreteContentResult, DiscreteContents, MetadataWeave, Weave,
     dependent::{DependentWeave, legacy_dependent::DependentWeave as LegacyDependentWeave},
     indexmap::{IndexMap, IndexSet},
     rkyv::{Archive, Deserialize, Serialize},
@@ -23,10 +23,7 @@ use crate::{
     },
     hashers::{RandomIdHasher, UlidHasher},
     metadata::AuxMetadataMap,
-    weave::{
-        TapestryNode as NewTapestryNode, TapestryWeave as NewTapestryWeave,
-        TapestryWeaveInner as NewTapestryWeaveInner,
-    },
+    weave::{TapestryNode as NewTapestryNode, TapestryWeave as NewTapestryWeave},
     wrappers::UniqueIdentifierRemapper,
 };
 
@@ -416,8 +413,10 @@ impl From<TapestryWeave> for NewTapestryWeave {
     fn from(value: TapestryWeave) -> Self {
         let mut value = DependentWeave::from(value);
 
-        let mut output =
-            NewTapestryWeaveInner::with_capacity(value.capacity(), value.metadata.clone().into());
+        let mut output = NewTapestryWeave::with_capacity_and_metadata(
+            value.capacity(),
+            value.metadata.clone().into(),
+        );
 
         let mut identifiers = Vec::with_capacity(value.len());
         value.get_ordered_identifiers(&mut identifiers);
@@ -429,7 +428,7 @@ impl From<TapestryWeave> for NewTapestryWeave {
             BuildHasherDefault<RandomIdHasher>,
         > = UniqueIdentifierRemapper::with_capacity(identifiers.len());
 
-        let time_zone = output.metadata.created.time_zone().clone();
+        let time_zone = output.metadata().created.time_zone().clone();
 
         let mut rng = WyRand::new();
 
@@ -466,6 +465,6 @@ impl From<TapestryWeave> for NewTapestryWeave {
             assert!(output.insert(node));
         }
 
-        NewTapestryWeave { rng, weave: output }
+        output
     }
 }

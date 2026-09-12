@@ -1,7 +1,5 @@
 use std::{cmp::Ordering, hash::BuildHasherDefault, num::NonZeroU128};
 
-use nanorand::WyRand;
-use rkyv::collections::swiss_table::{ArchivedHashMap, ArchivedHashSet};
 use universal_weave::{
     ActivePathWeave, BookmarkableWeave, DiscreteWeave, ImmutableActivePathWeave,
     ImmutableBookmarkableWeave, ImmutableMetadataWeave, ImmutableWeave,
@@ -10,7 +8,10 @@ use universal_weave::{
     hashbrown::{HashMap, HashSet},
     independent::{IndependentNode, IndependentWeave},
     indexmap::IndexSet,
-    rkyv::{Archive, collections::swiss_table::ArchivedIndexSet},
+    rkyv::{
+        Archive,
+        collections::swiss_table::{ArchivedHashMap, ArchivedHashSet, ArchivedIndexSet},
+    },
 };
 
 use super::{
@@ -31,10 +32,7 @@ pub type ArchivedShortId = <ShortId as Archive>::Archived;
 pub type ArchivedTapestryNode = <TapestryNode as Archive>::Archived;
 pub type ArchivedTapestryWeaveInner = <TapestryWeaveInner as Archive>::Archived;
 
-pub struct TapestryWeave {
-    pub rng: WyRand,
-    pub weave: TapestryWeaveInner,
-}
+pub struct TapestryWeave(pub TapestryWeaveInner);
 
 impl Default for TapestryWeave {
     fn default() -> Self {
@@ -44,62 +42,53 @@ impl Default for TapestryWeave {
 
 impl From<TapestryWeaveInner> for TapestryWeave {
     fn from(value: TapestryWeaveInner) -> Self {
-        Self {
-            rng: WyRand::new(),
-            weave: value,
-        }
+        Self(value)
     }
 }
 
 impl From<TapestryWeave> for TapestryWeaveInner {
     fn from(value: TapestryWeave) -> Self {
-        value.weave
+        value.0
     }
 }
 
 impl AsRef<TapestryWeaveInner> for TapestryWeave {
     fn as_ref(&self) -> &TapestryWeaveInner {
-        &self.weave
+        &self.0
     }
 }
 
 impl TapestryWeave {
     pub fn new() -> Self {
-        Self {
-            rng: WyRand::new(),
-            weave: IndependentWeave::new(WeaveMetadata::new()),
-        }
+        Self(IndependentWeave::new(WeaveMetadata::new()))
     }
     pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            rng: WyRand::new(),
-            weave: IndependentWeave::with_capacity(capacity, WeaveMetadata::new()),
-        }
+        Self(IndependentWeave::with_capacity(
+            capacity,
+            WeaveMetadata::new(),
+        ))
     }
     pub fn with_capacity_and_metadata(capacity: usize, metadata: WeaveMetadata) -> Self {
-        Self {
-            rng: WyRand::new(),
-            weave: IndependentWeave::with_capacity(capacity, metadata),
-        }
+        Self(IndependentWeave::with_capacity(capacity, metadata))
     }
     pub fn capacity(&self) -> usize {
-        self.weave.capacity()
+        self.0.capacity()
     }
     pub fn reserve(&mut self, additional: usize) {
-        self.weave.reserve(additional);
+        self.0.reserve(additional);
     }
     pub fn shrink_to_fit(&mut self) {
-        self.weave.shrink_to_fit();
+        self.0.shrink_to_fit();
     }
     pub fn is_empty_including_metadata(&self) -> bool {
-        self.weave.is_empty() && self.weave.metadata.is_empty()
+        self.0.is_empty() && self.0.metadata.is_empty()
     }
     pub fn set_active_dependent_semantics(&mut self, id: &ShortId, value: bool) -> bool {
-        self.weave.set_active_dependent_semantics(id, value)
+        self.0.set_active_dependent_semantics(id, value)
     }
 }
 
-// TODO: insert_node_deduplicated, split_out_token, generate_id, get_active_content, siblings, siblings_or_roots, is_mergeable_with_parent
+// TODO: insert_node_deduplicated, split_out_token, get_active_content, siblings, siblings_or_roots, is_mergeable_with_parent
 
 /*
 
@@ -322,76 +311,76 @@ impl Weave<ShortId, TapestryNode, NodeContent> for TapestryWeave {
     type Roots = IndexSet<ShortId, BuildHasherDefault<RandomIdHasher>>;
 
     fn len(&self) -> usize {
-        self.weave.len()
+        self.0.len()
     }
     fn is_empty(&self) -> bool {
-        self.weave.is_empty()
+        self.0.is_empty()
     }
     fn nodes(&self) -> &Self::Nodes {
-        self.weave.nodes()
+        self.0.nodes()
     }
     fn roots(&self) -> &Self::Roots {
-        self.weave.roots()
+        self.0.roots()
     }
     fn contains(&self, id: &ShortId) -> bool {
-        self.weave.contains(id)
+        self.0.contains(id)
     }
     fn contains_active(&self, id: &ShortId) -> bool {
-        self.weave.contains_active(id)
+        self.0.contains_active(id)
     }
     fn get(&self, id: &ShortId) -> Option<&TapestryNode> {
-        self.weave.get(id)
+        self.0.get(id)
     }
     fn get_parents(
         &self,
         id: &ShortId,
     ) -> Option<&IndexSet<ShortId, BuildHasherDefault<RandomIdHasher>>> {
-        self.weave.get_parents(id)
+        self.0.get_parents(id)
     }
     fn get_children(
         &self,
         id: &ShortId,
     ) -> Option<&IndexSet<ShortId, BuildHasherDefault<RandomIdHasher>>> {
-        self.weave.get_children(id)
+        self.0.get_children(id)
     }
     fn get_contents(&self, id: &ShortId) -> Option<&NodeContent> {
-        self.weave.get_contents(id)
+        self.0.get_contents(id)
     }
     fn get_ordered_identifiers(&mut self, output: &mut Vec<ShortId>) {
-        self.weave.get_ordered_identifiers(output);
+        self.0.get_ordered_identifiers(output);
     }
     fn get_ordered_identifiers_from(&mut self, id: &ShortId, output: &mut Vec<ShortId>) {
-        self.weave.get_ordered_identifiers_from(id, output);
+        self.0.get_ordered_identifiers_from(id, output);
     }
     fn get_active_path(&mut self, output: &mut Vec<ShortId>) {
-        self.weave.get_active_path(output);
+        self.0.get_active_path(output);
     }
     fn get_path_from(&mut self, id: &ShortId, output: &mut Vec<ShortId>) {
-        self.weave.get_path_from(id, output);
+        self.0.get_path_from(id, output);
     }
     fn insert(&mut self, node: TapestryNode) -> bool {
-        self.weave.insert(node)
+        self.0.insert(node)
     }
     fn set_active(&mut self, id: &ShortId, value: bool) -> bool {
-        self.weave.set_active(id, value)
+        self.0.set_active(id, value)
     }
     fn remove(&mut self, id: &ShortId) -> Option<TapestryNode> {
-        self.weave.remove(id)
+        self.0.remove(id)
     }
     fn remove_tracked(&mut self, id: &ShortId, on_removal: impl FnMut(TapestryNode)) -> bool {
-        self.weave.remove_tracked(id, on_removal)
+        self.0.remove_tracked(id, on_removal)
     }
     fn clear(&mut self) {
-        self.weave.clear();
+        self.0.clear();
     }
 }
 
 impl MetadataWeave<ShortId, TapestryNode, NodeContent, WeaveMetadata> for TapestryWeave {
     fn metadata(&self) -> &WeaveMetadata {
-        self.weave.metadata()
+        self.0.metadata()
     }
     fn metadata_mut<O>(&mut self, callback: impl FnOnce(&mut WeaveMetadata) -> O) -> O {
-        self.weave.metadata_mut(callback)
+        self.0.metadata_mut(callback)
     }
 }
 
@@ -399,13 +388,13 @@ impl BookmarkableWeave<ShortId, TapestryNode, NodeContent> for TapestryWeave {
     type Bookmarks = IndexSet<ShortId, BuildHasherDefault<RandomIdHasher>>;
 
     fn bookmarks(&self) -> &Self::Bookmarks {
-        self.weave.bookmarks()
+        self.0.bookmarks()
     }
     fn contains_bookmark(&self, id: &ShortId) -> bool {
-        self.weave.contains_bookmark(id)
+        self.0.contains_bookmark(id)
     }
     fn set_bookmarked(&mut self, id: &ShortId, value: bool) -> bool {
-        self.weave.set_bookmarked(id, value)
+        self.0.set_bookmarked(id, value)
     }
 }
 
@@ -415,29 +404,29 @@ impl SortableWeave<ShortId, TapestryNode, NodeContent> for TapestryWeave {
         id: &ShortId,
         cmp: impl FnMut(&TapestryNode, &TapestryNode) -> Ordering,
     ) -> bool {
-        self.weave.sort_children_by(id, cmp)
+        self.0.sort_children_by(id, cmp)
     }
     fn sort_children_by_id(
         &mut self,
         id: &ShortId,
         cmp: impl FnMut(&ShortId, &ShortId) -> Ordering,
     ) -> bool {
-        self.weave.sort_children_by_id(id, cmp)
+        self.0.sort_children_by_id(id, cmp)
     }
     fn sort_roots_by(&mut self, cmp: impl FnMut(&TapestryNode, &TapestryNode) -> Ordering) {
-        self.weave.sort_roots_by(cmp);
+        self.0.sort_roots_by(cmp);
     }
     fn sort_roots_by_id(&mut self, cmp: impl FnMut(&ShortId, &ShortId) -> Ordering) {
-        self.weave.sort_roots_by_id(cmp);
+        self.0.sort_roots_by_id(cmp);
     }
 }
 
 impl SortableBookmarkableWeave<ShortId, TapestryNode, NodeContent> for TapestryWeave {
     fn sort_bookmarks_by(&mut self, cmp: impl FnMut(&TapestryNode, &TapestryNode) -> Ordering) {
-        self.weave.sort_bookmarks_by(cmp);
+        self.0.sort_bookmarks_by(cmp);
     }
     fn sort_bookmarks_by_id(&mut self, cmp: impl FnMut(&ShortId, &ShortId) -> Ordering) {
-        self.weave.sort_bookmarks_by_id(cmp);
+        self.0.sort_bookmarks_by_id(cmp);
     }
 }
 
@@ -445,16 +434,16 @@ impl ActivePathWeave<ShortId, TapestryNode, NodeContent> for TapestryWeave {
     type Active = HashSet<ShortId, BuildHasherDefault<RandomIdHasher>>;
 
     fn active(&self) -> &Self::Active {
-        self.weave.active()
+        self.0.active()
     }
     fn set_active_path(&mut self, active: impl Iterator<Item = ShortId>) {
-        self.weave.set_active_path(active);
+        self.0.set_active_path(active);
     }
 }
 
 impl IndependentWeaveTrait<ShortId, TapestryNode, NodeContent> for TapestryWeave {
     fn move_to(&mut self, id: &ShortId, new_parents: &[ShortId]) -> bool {
-        self.weave.move_to(id, new_parents)
+        self.0.move_to(id, new_parents)
     }
 }
 
@@ -464,38 +453,36 @@ impl SemiIndependentWeave<ShortId, TapestryNode, NodeContent> for TapestryWeave 
         id: &ShortId,
         callback: impl FnOnce(&mut NodeContent) -> O,
     ) -> Option<O> {
-        self.weave.get_contents_mut(id, callback)
+        self.0.get_contents_mut(id, callback)
     }
 }
 
 impl DiscreteWeave<ShortId, TapestryNode, NodeContent> for TapestryWeave {
     fn split(&mut self, id: &ShortId, at: usize, new_id: ShortId) -> bool {
-        self.weave.split(id, at, new_id)
+        self.0.split(id, at, new_id)
     }
     fn merge_with_parent(&mut self, id: &ShortId) -> Option<ShortId> {
-        self.weave.merge_with_parent(id)
+        self.0.merge_with_parent(id)
     }
 }
 
-pub struct ArchivedTapestryWeave<'a> {
-    pub inner: &'a ArchivedTapestryWeaveInner,
-}
+pub struct ArchivedTapestryWeave<'a>(pub &'a ArchivedTapestryWeaveInner);
 
 impl<'a> From<&'a ArchivedTapestryWeaveInner> for ArchivedTapestryWeave<'a> {
     fn from(value: &'a ArchivedTapestryWeaveInner) -> Self {
-        Self { inner: value }
+        Self(value)
     }
 }
 
 impl<'a> From<ArchivedTapestryWeave<'a>> for &'a ArchivedTapestryWeaveInner {
     fn from(value: ArchivedTapestryWeave<'a>) -> Self {
-        value.inner
+        value.0
     }
 }
 
 impl<'a> AsRef<ArchivedTapestryWeaveInner> for ArchivedTapestryWeave<'a> {
     fn as_ref(&self) -> &'a ArchivedTapestryWeaveInner {
-        self.inner
+        self.0
     }
 }
 
@@ -506,50 +493,50 @@ impl ImmutableWeave<ArchivedShortId, ArchivedTapestryNode, ArchivedNodeContent>
     type Roots = ArchivedIndexSet<ArchivedShortId>;
 
     fn len(&self) -> usize {
-        self.inner.len()
+        self.0.len()
     }
     fn is_empty(&self) -> bool {
-        self.inner.is_empty()
+        self.0.is_empty()
     }
     fn nodes(&self) -> &Self::Nodes {
-        self.inner.nodes()
+        self.0.nodes()
     }
     fn roots(&self) -> &Self::Roots {
-        self.inner.roots()
+        self.0.roots()
     }
     fn contains(&self, id: &ArchivedShortId) -> bool {
-        self.inner.contains(id)
+        self.0.contains(id)
     }
     fn contains_active(&self, id: &ArchivedShortId) -> bool {
-        self.inner.contains_active(id)
+        self.0.contains_active(id)
     }
     fn get(&self, id: &ArchivedShortId) -> Option<&ArchivedTapestryNode> {
-        self.inner.get(id)
+        self.0.get(id)
     }
     fn get_parents(&self, id: &ArchivedShortId) -> Option<&ArchivedIndexSet<ArchivedShortId>> {
-        self.inner.get_parents(id)
+        self.0.get_parents(id)
     }
     fn get_children(&self, id: &ArchivedShortId) -> Option<&ArchivedIndexSet<ArchivedShortId>> {
-        self.inner.get_children(id)
+        self.0.get_children(id)
     }
     fn get_contents(&self, id: &ArchivedShortId) -> Option<&ArchivedNodeContent> {
-        self.inner.get_contents(id)
+        self.0.get_contents(id)
     }
     fn get_ordered_identifiers(&self, output: &mut Vec<ArchivedShortId>) {
-        self.inner.get_ordered_identifiers(output);
+        self.0.get_ordered_identifiers(output);
     }
     fn get_ordered_identifiers_from(
         &self,
         id: &ArchivedShortId,
         output: &mut Vec<ArchivedShortId>,
     ) {
-        self.inner.get_ordered_identifiers_from(id, output);
+        self.0.get_ordered_identifiers_from(id, output);
     }
     fn get_active_path(&self, output: &mut Vec<ArchivedShortId>) {
-        self.inner.get_active_path(output);
+        self.0.get_active_path(output);
     }
     fn get_path_from(&self, id: &ArchivedShortId, output: &mut Vec<ArchivedShortId>) {
-        self.inner.get_path_from(id, output);
+        self.0.get_path_from(id, output);
     }
 }
 
@@ -562,7 +549,7 @@ impl
     > for ArchivedTapestryWeave<'_>
 {
     fn metadata(&self) -> &ArchivedWeaveMetadata {
-        self.inner.metadata()
+        self.0.metadata()
     }
 }
 
@@ -572,10 +559,10 @@ impl ImmutableBookmarkableWeave<ArchivedShortId, ArchivedTapestryNode, ArchivedN
     type Bookmarks = ArchivedIndexSet<ArchivedShortId>;
 
     fn bookmarks(&self) -> &Self::Bookmarks {
-        self.inner.bookmarks()
+        self.0.bookmarks()
     }
     fn contains_bookmark(&self, id: &ArchivedShortId) -> bool {
-        self.inner.contains_bookmark(id)
+        self.0.contains_bookmark(id)
     }
 }
 
@@ -585,6 +572,6 @@ impl ImmutableActivePathWeave<ArchivedShortId, ArchivedTapestryNode, ArchivedNod
     type Active = ArchivedHashSet<ArchivedShortId>;
 
     fn active(&self) -> &Self::Active {
-        self.inner.active()
+        self.0.active()
     }
 }
