@@ -159,32 +159,35 @@ impl TapestryWeave {
     pub fn set_active_tree_semantics(&mut self, id: &ShortId, value: bool) -> bool {
         self.0.set_active_dependent_semantics(id, value)
     }
+    /// A wrapper around [`DiscreteWeave::split`] which duplicates unmodified tokens before splitting.
+    ///
+    /// If successful, returns a tuple of identifiers corresponding to (duplicated_token_node, split_right_side)
     pub fn split_tokenized(
         &mut self,
         id: &ShortId,
         at: usize,
         mut generate_id: impl FnMut() -> ShortId,
-    ) -> Option<(ShortId, Option<ShortId>, ShortId)> {
+    ) -> Option<(Option<ShortId>, ShortId)> {
         let new_id = generate_id();
 
         if at > 0
-            && let Some(node) = self.0.get(id).cloned()
+            && let Some(node) = self.0.get(id)
             && let InnerNodeContent::Tokens(tokens) = &node.contents.content
         {
             let mut byte_index = 0;
-            let mut within_token = false;
+            let mut within_unmodified_token = false;
             for token in tokens {
                 byte_index += token.bytes.len();
                 if byte_index >= at {
                     if byte_index > at {
-                        within_token = true;
+                        within_unmodified_token = !token.is_modified();
                     }
                     byte_index -= token.bytes.len();
                     break;
                 }
             }
 
-            if within_token {
+            if within_unmodified_token {
                 let first_split_id = generate_id();
                 let second_split_id = generate_id();
 
@@ -205,44 +208,36 @@ impl TapestryWeave {
                         .split(&token_node_id, at - byte_index, second_split_id)
                 );
 
-                Some((*id, Some(token_node_id), second_split_id))
+                Some((Some(token_node_id), second_split_id))
             } else {
                 if self.0.split(id, at, new_id) {
-                    Some((*id, None, new_id))
+                    Some((None, new_id))
                 } else {
                     None
                 }
             }
         } else {
             if self.0.split(id, at, new_id) {
-                Some((*id, None, new_id))
+                Some((None, new_id))
             } else {
                 None
             }
         }
     }
+    /// Splits the `index` token out of the node corresponding to the identifier `id`.
+    ///
+    /// If successful, returns a tuple of identifiers corresponding to (before_token, token, after_token).
     pub fn split_out_token(
         &mut self,
         id: &ShortId,
         index: usize,
         mut generate_id: impl FnMut() -> ShortId,
     ) -> Option<(Option<ShortId>, ShortId, Option<ShortId>)> {
-        // before_token, token, after_token
-
         if let Some(node) = self.0.get(id) {
             if let InnerNodeContent::Tokens(tokens) = &node.contents.content
                 && tokens.len() > index
             {
-                let tail_id = generate_id();
-
-                let chosen_parent = node
-                    .from
-                    .iter()
-                    .copied()
-                    .find(|id| self.0.contains_active(id))
-                    .or_else(|| node.from.first().copied());
-
-                let split_index: usize = tokens
+                let split_index = tokens
                     .iter()
                     .take(index)
                     .map(|token| token.bytes.len())
@@ -269,20 +264,33 @@ impl TapestryWeave {
                     if let Some(second_split_index) = second_split_index
                         && second_split_index > 0
                     {
+                        let tail_id = generate_id();
+
                         assert!(self.0.split(&middle_id, second_split_index, tail_id));
 
                         Some((Some(*id), middle_id, Some(tail_id)))
                     } else {
                         Some((Some(*id), middle_id, None))
                     }
-                } else if let Some(second_split_index) = second_split_index
-                    && second_split_index > 0
-                {
-                    assert!(self.0.split(id, second_split_index, tail_id));
-
-                    Some((chosen_parent, *id, Some(tail_id)))
                 } else {
-                    Some((chosen_parent, *id, None))
+                    let chosen_parent = node
+                        .from
+                        .iter()
+                        .copied()
+                        .find(|id| self.0.contains_active(id))
+                        .or_else(|| node.from.first().copied());
+
+                    if let Some(second_split_index) = second_split_index
+                        && second_split_index > 0
+                    {
+                        let tail_id = generate_id();
+
+                        assert!(self.0.split(id, second_split_index, tail_id));
+
+                        Some((chosen_parent, *id, Some(tail_id)))
+                    } else {
+                        Some((chosen_parent, *id, None))
+                    }
                 }
             } else {
                 None
@@ -291,6 +299,7 @@ impl TapestryWeave {
             None
         }
     }
+    /// Returns `true` if [`DiscreteWeave::merge_with_parent`] would succeed.
     pub fn is_mergeable_with_parent(&self, id: &ShortId) -> bool {
         self.0.get(id).is_some_and(|node| {
             if node.from.len() == 1
