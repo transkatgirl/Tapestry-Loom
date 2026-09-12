@@ -15,9 +15,7 @@ all_versions = [
 ]
 v0 = [
 	"universal-weave/legacy",
-	"universal-weave/serde",
 	"dep:ulid",
-	"dep:serde_json",
 	"dep:chrono",
 ]
 
@@ -44,16 +42,16 @@ serde = { version = "1.0.229", features = [
 	"derive",
 	"rc",
 ] }
+serde_json = { version = "1.0.151", features = [
+	"preserve_order",
+	"float_roundtrip",
+] }
 base64 = "0.23.1"
 base64-serde = "0.8.0"
 
 # v0
 ulid = { version = "3.0.0", features = [
 	"serde",
-], optional = true }
-serde_json = { version = "1.0.151", features = [
-	"preserve_order",
-	"float_roundtrip",
 ], optional = true }
 chrono = { version = "0.4.45", features = [
 	"alloc",
