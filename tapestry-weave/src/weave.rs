@@ -264,12 +264,12 @@ impl TapestryWeave {
                             let parents = self.0.get_parents(&token_child).unwrap();
 
                             if !parents.contains(&duplicate) {
-                                assert!(self.0.move_to(
+                                self.0.move_to(
                                     &token_child,
                                     &Vec::from_iter(
                                         parents.iter().copied().chain(iter::once(duplicate)),
-                                    )
-                                ));
+                                    ),
+                                );
                             }
                         }
 
@@ -304,7 +304,7 @@ impl TapestryWeave {
     ///
     /// The token being split out must not be empty.
     ///
-    /// If successful, returns a tuple of identifiers corresponding to (before_token, token, after_token).
+    /// If successful, returns a tuple of identifiers corresponding to (token_parent, token, token_child).
     pub fn split_out_token(
         &mut self,
         id: &ShortId,
