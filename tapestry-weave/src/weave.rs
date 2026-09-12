@@ -268,22 +268,14 @@ impl TapestryWeave {
                         for token_child in &token_node.to {
                             let parents = self.0.get_parents(token_child).unwrap();
 
-                            if !parents.contains(&duplicate)
-                                && !self.0.move_to(
+                            if !parents.contains(&duplicate) {
+                                self.0.move_to(
                                     token_child,
                                     &Vec::from_iter(
                                         parents.iter().copied().chain(iter::once(duplicate)),
                                     ),
-                                )
-                            {
-                                token_node.id = generate_id();
-
-                                let token_node_id = token_node.id;
-
-                                assert!(self.0.insert(token_node));
-
-                                return Some((Some(token_node_id), new_id));
-                            };
+                                );
+                            }
                         }
 
                         Some((Some(duplicate), new_id))
