@@ -37,7 +37,7 @@ rkyv = { version = "0.8.16", features = [
 	"pointer_width_32",
 	"indexmap-2",
 ] }
-universal-weave = { path = "../universal-weave" }
+universal-weave = "0.2.0"
 foldhash = "0.2.0"
 jiff = "0.2.29"
 nanorand = { version = "0.8.0", features = [
