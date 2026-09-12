@@ -261,7 +261,7 @@ impl TapestryWeave {
                 match token_node_duplicate {
                     Some(duplicate) => {
                         for token_child in token_node.to {
-                            let parents = self.0.get_children(&token_child).unwrap();
+                            let parents = self.0.get_parents(&token_child).unwrap();
 
                             if !parents.contains(&duplicate) {
                                 assert!(self.0.move_to(
@@ -302,6 +302,8 @@ impl TapestryWeave {
     }
     /// Splits the `index` token out of the node corresponding to the identifier `id`.
     ///
+    /// The token being split out must not be empty.
+    ///
     /// If successful, returns a tuple of identifiers corresponding to (before_token, token, after_token).
     pub fn split_out_token(
         &mut self,
@@ -312,6 +314,7 @@ impl TapestryWeave {
         if let Some(node) = self.0.get(id) {
             if let InnerNodeContent::Tokens(tokens) = &node.contents.content
                 && tokens.len() > index
+                && !tokens[index].bytes.is_empty()
             {
                 let split_index = tokens
                     .iter()
