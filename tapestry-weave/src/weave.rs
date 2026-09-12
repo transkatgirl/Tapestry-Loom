@@ -224,6 +224,7 @@ impl TapestryWeave {
                 let mut token_node = self.0.get(&first_split_id).unwrap().clone();
                 token_node.active = false;
                 token_node.bookmarked = false;
+                token_node.contents.content.truncate_tokens(1);
 
                 assert!(self.0.split(&first_split_id, at - byte_index, new_id));
 
@@ -256,9 +257,11 @@ impl TapestryWeave {
                             };
 
                         siblings.find(|id| {
-                            self.0
-                                .get_contents(id)
-                                .is_some_and(|c| c.is_duplicate_of(&token_node.contents))
+                            self.0.get_contents(id).is_some_and(|c| {
+                                c.metadata == token_node.contents.metadata
+                                    && c.content.is_duplicate_of(&token_node.contents.content)
+                                    && c.creator.is_duplicate_of(&token_node.contents.creator)
+                            })
                         })
                     }
                 };
