@@ -48,6 +48,9 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWea
         return Ok(None);
     };
 
+    let root = std::mem::take(&mut data.root);
+    data.root = unzip_masks(root, &mut data.selected_node_id);
+
     assign_missing_identifiers(&mut data.root, &mut 0);
 
     let selected = data
@@ -107,6 +110,52 @@ fn assign_missing_identifiers(node: &mut PyloomNode, counter: &mut usize) {
 }
 
 #[stacksafe]
+fn unzip_masks(mut node: PyloomNode, selected: &mut Option<String>) -> PyloomNode {
+    node.children = node
+        .children
+        .into_iter()
+        .map(|child| unzip_masks(child, selected))
+        .collect();
+
+    let Some(head) = node.masked_head.take() else {
+        return node;
+    };
+
+    let mut head = unzip_masks(*head, selected);
+
+    let tail = node.tail_id.as_deref().and_then(|tail_id| {
+        let mut stack = vec![&mut head];
+
+        while let Some(node) = stack.pop() {
+            if node.id == tail_id {
+                return Some(node);
+            }
+
+            stack.extend(node.children.iter_mut());
+        }
+
+        None
+    });
+
+    match tail {
+        Some(tail) => {
+            tail.children.append(&mut node.children);
+
+            if selected.as_deref() == Some(node.id.as_str()) {
+                *selected = Some(head.id.clone());
+            }
+
+            head
+        }
+        None => {
+            eprintln!("Warning: Missing tail for node {:?}", node.id);
+
+            node
+        }
+    }
+}
+
+#[stacksafe]
 fn convert_node(
     weave: &mut TapestryWeave,
     convert_old_identifier: &mut impl FnMut(String) -> u64,
@@ -127,9 +176,22 @@ fn convert_node(
 
     let chapter = node.chapter_id.and_then(|chapter| chapters.get(&chapter));
 
-    let tags = node.tags.unwrap_or_default();
+    let mut tags = node.tags.unwrap_or_default();
 
-    let mut metadata = IndexMap::with_capacity_and_hasher(3, RandomState::default());
+    for (flag, tag) in [
+        (node.bookmark, "bookmark"),
+        (node.archived, "archived"),
+        (node.canonical, "canonical"),
+    ] {
+        if flag.unwrap_or_default() && !tags.iter().any(|t| t == tag) {
+            tags.push(tag.to_string());
+        }
+    }
+
+    let bookmarked = chapter.is_some() || tags.iter().any(|tag| tag == "bookmark");
+    let archived = tags.iter().any(|tag| tag == "archived");
+
+    let mut metadata = IndexMap::with_capacity_and_hasher(4, RandomState::default());
 
     let _suffix = if let Some(attributes) = node.text_attributes {
         if let Some(preview) = attributes.child_preview {
@@ -158,6 +220,10 @@ fn convert_node(
         metadata.insert("tags".to_string(), serde_json::to_string(&tags)?);
     }
 
+    if archived {
+        metadata.insert("pruned".to_string(), "true".to_string());
+    }
+
     let text = node.text;
     //text.push_str(&suffix);
 
@@ -167,7 +233,7 @@ fn convert_node(
             from: IndexSet::from_iter(parent),
             to: IndexSet::default(),
             active: false,
-            bookmarked: chapter.is_some() || tags.iter().any(|tag| tag == "bookmark"),
+            bookmarked,
             contents: NodeContent {
                 timestamp,
                 modified: node
@@ -234,6 +300,11 @@ struct PyloomNode {
     children: Vec<PyloomNode>,
     meta: Option<PyloomMeta>,
     tags: Option<Vec<String>>,
+    bookmark: Option<bool>,
+    archived: Option<bool>,
+    canonical: Option<bool>,
+    masked_head: Option<Box<PyloomNode>>,
+    tail_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
