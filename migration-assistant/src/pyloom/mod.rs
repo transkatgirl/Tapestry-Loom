@@ -51,7 +51,7 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWea
     let root = std::mem::take(&mut data.root);
     data.root = unzip_masks(root, &mut data.selected_node_id);
 
-    assign_missing_identifiers(&mut data.root, &mut 0);
+    let node_count = assign_missing_identifiers(&mut data.root, &mut 0);
 
     let selected = data
         .selected_node_id
@@ -64,16 +64,14 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWea
         .map(|(id, chapter)| (id, chapter.title))
         .collect();
 
-    let node_count_guess = (input.len() as f64 / 34.0).ceil() as usize;
-
-    let mut output = new_weave(node_count_guess, created, "PyLoom", None);
+    let mut output = new_weave(node_count, created, "PyLoom", None);
 
     let mut mapper: UniqueIdentifierRemapper<
         String,
         u64,
         RandomState,
         BuildHasherDefault<RandomIdHasher>,
-    > = UniqueIdentifierRemapper::with_capacity(node_count_guess);
+    > = UniqueIdentifierRemapper::with_capacity(node_count);
 
     let mut rng = WyRand::new();
 
@@ -98,15 +96,19 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWea
 }
 
 #[stacksafe]
-fn assign_missing_identifiers(node: &mut PyloomNode, counter: &mut usize) {
+fn assign_missing_identifiers(node: &mut PyloomNode, counter: &mut usize) -> usize {
     if node.id.is_empty() {
         node.id = format!("\0generated:{counter}");
         *counter += 1;
     }
 
+    let mut count = 1;
+
     for child in &mut node.children {
-        assign_missing_identifiers(child, counter);
+        count += assign_missing_identifiers(child, counter);
     }
+
+    count
 }
 
 #[stacksafe]
