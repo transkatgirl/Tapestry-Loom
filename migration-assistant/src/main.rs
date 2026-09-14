@@ -239,13 +239,7 @@ fn migrate_json_weave(input_path: &Path, output_path: &Path, json: bool) -> anyh
         return write_weave_to_file(output_path, weave, json);
     }
 
-    if let Some(weave) = pyloom::migrate(&input, created.clone())? {
-        println!("{} -> {}", input_path.display(), output_path.display());
-
-        return write_weave_to_file(output_path, weave, json);
-    }
-
-    if let Some(weave) = pyloom::migrate_simple(&input, created)? {
+    if let Some(weave) = pyloom::migrate(&input, created)? {
         println!("{} -> {}", input_path.display(), output_path.display());
 
         return write_weave_to_file(output_path, weave, json);

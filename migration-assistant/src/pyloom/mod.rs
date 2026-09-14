@@ -5,6 +5,7 @@ use std::hash::BuildHasherDefault;
 
 use chrono::{Local, NaiveDateTime};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use stacksafe::stacksafe;
 use tapestry_weave::{
     TapestryNode, TapestryWeave,
@@ -24,44 +25,84 @@ use crate::new_weave;
 const PARSER: DateTimeParser = DateTimeParser::new();
 
 pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWeave>> {
-    if let Ok(data) = serde_json::from_str::<PyloomWeave>(input) {
-        let chapters: IndexMap<String, String> = data
-            .chapters
-            .into_iter()
-            .map(|(id, chapter)| (id, chapter.title))
-            .collect();
+    let Ok(value) = serde_json::from_str::<Value>(input) else {
+        return Ok(None);
+    };
 
-        let node_count_guess = (input.len() as f64 / 34.0).ceil() as usize;
+    let data = if value.is_array() {
+        serde_json::from_value::<Vec<PyloomNode>>(value).map(|children| {
+            PyloomWeave::from_root(PyloomNode {
+                children,
+                ..PyloomNode::default()
+            })
+        })
+    } else if value.get("root").is_some() {
+        serde_json::from_value::<PyloomWeave>(value)
+    } else if value.get("text").is_some() {
+        serde_json::from_value::<PyloomNode>(value).map(PyloomWeave::from_root)
+    } else {
+        return Ok(None);
+    };
 
-        let mut output = new_weave(node_count_guess, created, "PyLoom", None);
+    let Ok(mut data) = data else {
+        return Ok(None);
+    };
 
-        let mut mapper: UniqueIdentifierRemapper<
-            String,
-            u64,
-            RandomState,
-            BuildHasherDefault<RandomIdHasher>,
-        > = UniqueIdentifierRemapper::with_capacity(node_count_guess);
+    assign_missing_identifiers(&mut data.root, &mut 0);
 
-        let mut rng = WyRand::new();
+    let selected = data
+        .selected_node_id
+        .or_else(|| data.root.children.first().map(|child| child.id.clone()))
+        .unwrap_or_default();
 
-        let mut convert_old_identifier = move |id| *mapper.map(id, || rng.generate()).get();
+    let chapters: IndexMap<String, String> = data
+        .chapters
+        .into_iter()
+        .map(|(id, chapter)| (id, chapter.title))
+        .collect();
 
-        convert_node(
-            &mut output,
-            &mut convert_old_identifier,
-            data.root,
-            None,
-            &chapters,
-        )?;
+    let node_count_guess = (input.len() as f64 / 34.0).ceil() as usize;
 
-        let selected = convert_old_identifier(data.selected_node_id);
+    let mut output = new_weave(node_count_guess, created, "PyLoom", None);
+
+    let mut mapper: UniqueIdentifierRemapper<
+        String,
+        u64,
+        RandomState,
+        BuildHasherDefault<RandomIdHasher>,
+    > = UniqueIdentifierRemapper::with_capacity(node_count_guess);
+
+    let mut rng = WyRand::new();
+
+    let mut convert_old_identifier = move |id| *mapper.map(id, || rng.generate()).get();
+
+    convert_node(
+        &mut output,
+        &mut convert_old_identifier,
+        data.root,
+        None,
+        &chapters,
+    )?;
+
+    if !selected.is_empty() {
+        let selected = convert_old_identifier(selected);
         if output.contains(&selected) {
             output.set_active_tree_semantics(&selected, true);
         }
+    }
 
-        Ok(Some(output))
-    } else {
-        Ok(None)
+    Ok(Some(output))
+}
+
+#[stacksafe]
+fn assign_missing_identifiers(node: &mut PyloomNode, counter: &mut usize) {
+    if node.id.is_empty() {
+        node.id = format!("\0generated:{counter}");
+        *counter += 1;
+    }
+
+    for child in &mut node.children {
+        assign_missing_identifiers(child, counter);
     }
 }
 
@@ -85,6 +126,8 @@ fn convert_node(
     let id = convert_old_identifier(node.id.clone());
 
     let chapter = node.chapter_id.and_then(|chapter| chapters.get(&chapter));
+
+    let tags = node.tags.unwrap_or_default();
 
     let mut metadata = IndexMap::with_capacity_and_hasher(3, RandomState::default());
 
@@ -111,8 +154,8 @@ fn convert_node(
         metadata.insert("chapter".to_string(), chapter.clone());
     }
 
-    if !node.tags.is_empty() {
-        metadata.insert("tags".to_string(), serde_json::to_string(&node.tags)?);
+    if !tags.is_empty() {
+        metadata.insert("tags".to_string(), serde_json::to_string(&tags)?);
     }
 
     let text = node.text;
@@ -124,7 +167,7 @@ fn convert_node(
             from: IndexSet::from_iter(parent),
             to: IndexSet::default(),
             active: false,
-            bookmarked: chapter.is_some(),
+            bookmarked: chapter.is_some() || tags.iter().any(|tag| tag == "bookmark"),
             contents: NodeContent {
                 timestamp,
                 modified: node
@@ -159,8 +202,19 @@ fn convert_node(
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct PyloomWeave {
     root: PyloomNode,
+    #[serde(default)]
     chapters: IndexMap<String, PyloomChapter>,
-    selected_node_id: String,
+    selected_node_id: Option<String>,
+}
+
+impl PyloomWeave {
+    fn from_root(root: PyloomNode) -> Self {
+        Self {
+            root,
+            chapters: IndexMap::default(),
+            selected_node_id: None,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -168,18 +222,18 @@ struct PyloomChapter {
     title: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 struct PyloomNode {
+    #[serde(default)]
     id: String,
-    parent_id: Option<String>,
     chapter_id: Option<String>,
+    #[serde(default)]
     text: String,
     text_attributes: Option<PyloomTextAttr>,
+    #[serde(default)]
     children: Vec<PyloomNode>,
     meta: Option<PyloomMeta>,
-
-    #[serde(default)]
-    tags: Vec<String>,
+    tags: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -194,58 +248,4 @@ struct PyloomMeta {
     creation_timestamp: Option<String>,
     source: Option<String>,
     modified: Option<bool>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct PyloomSimpleNode {
-    text: String,
-    children: Vec<PyloomSimpleNode>,
-}
-
-pub fn migrate_simple(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWeave>> {
-    if let Ok(data) = serde_json::from_str::<PyloomSimpleNode>(input) {
-        let node_count_guess = (input.len() as f64 / 26.0).ceil() as usize;
-
-        let mut output = new_weave(node_count_guess, created, "PyLoomSimple", None);
-
-        convert_export_node(&mut WyRand::new(), &mut output, data, None);
-
-        Ok(Some(output))
-    } else {
-        Ok(None)
-    }
-}
-
-#[stacksafe]
-fn convert_export_node(
-    rng: &mut WyRand,
-    weave: &mut TapestryWeave,
-    node: PyloomSimpleNode,
-    parent: Option<u64>,
-) {
-    let mut id = rng.generate();
-
-    while weave.contains(&id) {
-        id = rng.generate();
-    }
-
-    assert!(weave.insert(TapestryNode {
-        id,
-        from: IndexSet::from_iter(parent),
-        to: IndexSet::default(),
-        active: false,
-        bookmarked: false,
-        contents: NodeContent {
-            timestamp: Zoned::default(),
-            modified: false,
-            content: InnerNodeContent::Snippet(node.text.into_bytes()),
-            metadata: IndexMap::default(),
-            aux_metadata: IndexMap::default(),
-            creator: Creator::Unknown,
-        },
-    }));
-
-    for child in node.children {
-        convert_export_node(rng, weave, child, Some(id));
-    }
 }
