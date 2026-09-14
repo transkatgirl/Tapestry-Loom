@@ -154,7 +154,7 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<TapestryWeave>
                                     .map(|(probability, token)| {
                                         InnerNodeToken {
                                             bytes: token.into_bytes(),
-                                            logprob: finite_logprob(probability),
+                                            logprob: probability.ln() as f32,
                                             id: None,
                                             metadata: IndexMap::default(),
                                             entropy: None,
@@ -269,16 +269,6 @@ struct LegacyDocumentNode {
 enum LegacyNodeContent {
     Snippet(String),
     Tokens(Vec<(f64, String)>),
-}
-
-fn finite_logprob(probability: f64) -> f32 {
-    let logprob = probability.ln() as f32;
-
-    if logprob.is_finite() {
-        logprob
-    } else {
-        f32::MIN
-    }
 }
 
 fn sort_node_list(nodes: &mut Vec<&LegacyDocumentNode>) {
