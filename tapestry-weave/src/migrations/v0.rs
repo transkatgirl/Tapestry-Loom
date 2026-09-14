@@ -427,11 +427,7 @@ impl From<TapestryWeave> for NewTapestryWeave {
 
         let mut convert_old_identifier = |id| {
             *mapper
-                .map_with_initial(
-                    id,
-                    unsafe { std::mem::transmute::<u128, [u64; 2]>(id)[1] },
-                    || rng.generate(),
-                )
+                .map_with_initial(id, (id >> 64) as u64, || rng.generate())
                 .get()
         };
 

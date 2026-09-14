@@ -13,7 +13,7 @@ impl Hasher for UlidHasher {
     }
 
     fn write_u128(&mut self, i: u128) {
-        self.0 = unsafe { std::mem::transmute::<u128, [u64; 2]>(i)[1] };
+        self.0 = (i >> 64) as u64;
     }
 
     fn finish(&self) -> u64 {

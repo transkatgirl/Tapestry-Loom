@@ -30,6 +30,7 @@ serde = { version = "1.0.228", features = [
 serde_json = { version = "1.0.150", features = [
 	"preserve_order",
 	"float_roundtrip",
+	"arbitrary_precision",
 ] }
 chrono = { version = "0.4.45", features = [
 	"alloc",
