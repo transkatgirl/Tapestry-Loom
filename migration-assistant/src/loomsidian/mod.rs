@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use std::{
-    hash::{BuildHasherDefault, RandomState},
+    hash::BuildHasherDefault,
     path::PathBuf,
     time::{Duration, SystemTime},
 };
@@ -12,7 +12,7 @@ use stacksafe::stacksafe;
 use tapestry_weave::{
     TapestryNode, TapestryWeave,
     content::{Creator, InnerNodeContent, Model, NodeContent},
-    hashers::RandomIdHasher,
+    hashers::{RandomIdHasher, RandomState},
     jiff::{Timestamp, Zoned},
     nanorand::{Rng, WyRand},
     universal_weave::{
@@ -30,10 +30,19 @@ pub fn migrate_all(input: &str, created: Zoned) -> anyhow::Result<Vec<(PathBuf, 
         serde_json::from_str::<Value>(input).and_then(serde_json::from_value::<LoomsidianData>)
     // Makes parsing untagged enums more reliable
     {
+        let presets = data.settings.into_preset_map();
+
         let mut output = Vec::with_capacity(data.state.len());
 
         for (filename, weave) in data.state {
-            output.push((filename, convert_weave(weave, created.clone())?));
+            let title = filename
+                .file_stem()
+                .map(|stem| stem.to_string_lossy().into_owned());
+
+            output.push((
+                filename,
+                convert_weave(weave, created.clone(), &presets, title)?,
+            ));
         }
 
         Ok(output)
@@ -47,13 +56,25 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWea
     if let Ok(data) =
         serde_json::from_str::<Value>(input).and_then(serde_json::from_value::<LoomsidianWeave>)
     {
-        Ok(Some(convert_weave(data, created)?))
+        Ok(Some(convert_weave(
+            data,
+            created,
+            &IndexMap::default(),
+            None,
+        )?))
     } else {
         Ok(None)
     }
 }
 
-fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<TapestryWeave> {
+type PresetMap = IndexMap<String, Option<LoomsidianModelPreset>>;
+
+fn convert_weave(
+    input: LoomsidianWeave,
+    created: Zoned,
+    presets: &PresetMap,
+    title: Option<String>,
+) -> anyhow::Result<TapestryWeave> {
     let mut nodes = input.nodes.into_map();
 
     let mut id_list = IndexSet::with_capacity(nodes.len());
@@ -63,6 +84,8 @@ fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<Tapes
     }
 
     let mut output = new_weave(nodes.len(), created, "Loomsidian", None);
+
+    output.metadata_mut(|metadata| metadata.title = title);
 
     let mut mapper: UniqueIdentifierRemapper<
         Uuid,
@@ -88,6 +111,16 @@ fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<Tapes
             .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
             .unwrap_or_default();
 
+        let mut metadata = IndexMap::with_capacity_and_hasher(2, RandomState::default());
+
+        if node.unread {
+            metadata.insert("unread".to_string(), "true".to_string());
+        }
+
+        if let Some(color) = node.color {
+            metadata.insert("color".to_string(), color);
+        }
+
         assert!(
             output.insert(TapestryNode {
                 id: convert_old_identifier(id),
@@ -107,24 +140,16 @@ fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<Tapes
                 contents: NodeContent {
                     timestamp,
                     modified: false,
-                    content: InnerNodeContent::Snippet(
-                        node.text.or(node.value).unwrap_or_default().into_bytes()
-                    ),
-                    metadata: IndexMap::default(),
+                    content: InnerNodeContent::Snippet(unescape_obsidian_markdown(
+                        node.text.or(node.value).unwrap_or_default()
+                    )),
+                    metadata,
                     aux_metadata: IndexMap::default(),
                     creator: node
                         .author
                         .map(|author| {
                             if author != "genesis" && author != "N/A" {
-                                Creator::Model(Some(Model {
-                                    label: author,
-                                    color: None,
-                                    metadata: IndexMap::default(),
-                                    identifier: None,
-                                    seed: None,
-                                    system_fingerprint: None,
-                                    finish_reason: None,
-                                }))
+                                Creator::Model(Some(convert_model(author, presets)))
                             } else {
                                 Creator::User(None)
                             }
@@ -136,6 +161,63 @@ fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<Tapes
     }
 
     Ok(output)
+}
+
+fn unescape_obsidian_markdown(text: String) -> Vec<u8> {
+    if !text.contains('\\') {
+        return text.into_bytes();
+    }
+
+    let bytes = text.as_bytes();
+    let mut output = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+
+    while i < bytes.len() {
+        if bytes[i] == b'\\'
+            && let Some(next) = bytes.get(i + 1)
+            && matches!(next, b'<' | b'[')
+        {
+            output.push(*next);
+            i += 2;
+        } else {
+            output.push(bytes[i]);
+            i += 1;
+        }
+    }
+
+    output
+}
+
+fn convert_model(author: String, presets: &PresetMap) -> Model {
+    let mut metadata = IndexMap::with_capacity_and_hasher(5, RandomState::default());
+
+    if let Some(Some(preset)) = presets.get(&author) {
+        let fields = [
+            ("provider", &preset.provider),
+            ("model", &preset.model),
+            ("url", &preset.url),
+            ("organization", &preset.organization),
+            ("quantization", &preset.quantization),
+        ];
+
+        for (key, value) in fields {
+            if let Some(value) = value
+                && !value.is_empty()
+            {
+                metadata.insert(key.to_string(), value.clone());
+            }
+        }
+    }
+
+    Model {
+        label: author,
+        color: None,
+        metadata,
+        identifier: None,
+        seed: None,
+        system_fingerprint: None,
+        finish_reason: None,
+    }
 }
 
 #[stacksafe]
@@ -160,7 +242,52 @@ fn build_node_list(
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct LoomsidianData {
+    #[serde(default)]
+    settings: LoomsidianSettings,
+
     state: IndexMap<PathBuf, LoomsidianWeave>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+struct LoomsidianSettings {
+    #[serde(default)]
+    modelPresets: Vec<LoomsidianModelPreset>,
+}
+
+impl LoomsidianSettings {
+    fn into_preset_map(self) -> PresetMap {
+        let mut presets: PresetMap = IndexMap::with_capacity(self.modelPresets.len());
+
+        for preset in self.modelPresets {
+            let name = preset.name.clone();
+
+            match presets.get(&name) {
+                None => {
+                    presets.insert(name, Some(preset));
+                }
+                Some(Some(existing)) if *existing != preset => {
+                    eprintln!(
+                        "Warning: Multiple model presets are named {:?}; nodes authored by it will not be attributed to a specific preset",
+                        name
+                    );
+                    presets.insert(name, None);
+                }
+                Some(_) => {}
+            }
+        }
+
+        presets
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+struct LoomsidianModelPreset {
+    name: String,
+    provider: Option<String>,
+    model: Option<String>,
+    url: Option<String>,
+    organization: Option<String>,
+    quantization: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -191,6 +318,8 @@ impl LoomsidianNodes {
                             author: node.author,
                             parentId: node.parentId,
                             bookmarked: node.bookmarked,
+                            unread: node.unread,
+                            color: node.color,
                             lastVisited: node.lastVisited,
                         },
                     )
@@ -211,6 +340,11 @@ struct LoomsidianListNode {
     #[serde(default)]
     bookmarked: bool,
 
+    #[serde(default)]
+    unread: bool,
+
+    color: Option<String>,
+
     lastVisited: Option<u64>,
 }
 
@@ -223,6 +357,11 @@ struct LoomsidianNode {
 
     #[serde(default)]
     bookmarked: bool,
+
+    #[serde(default)]
+    unread: bool,
+
+    color: Option<String>,
 
     lastVisited: Option<u64>,
 }
