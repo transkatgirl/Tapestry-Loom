@@ -114,9 +114,9 @@ fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<Tapes
                     aux_metadata: IndexMap::default(),
                     creator: node
                         .author
-                        .and_then(|author| {
+                        .map(|author| {
                             if author != "genesis" && author != "N/A" {
-                                Some(Creator::Model(Some(Model {
+                                Creator::Model(Some(Model {
                                     label: author,
                                     color: None,
                                     metadata: IndexMap::default(),
@@ -124,9 +124,9 @@ fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<Tapes
                                     seed: None,
                                     system_fingerprint: None,
                                     finish_reason: None,
-                                })))
+                                }))
                             } else {
-                                None
+                                Creator::User(None)
                             }
                         })
                         .unwrap_or(Creator::Unknown)
