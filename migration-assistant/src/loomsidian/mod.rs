@@ -10,23 +10,22 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use stacksafe::stacksafe;
 use tapestry_weave::{
-    VersionedWeave,
+    TapestryNode, TapestryWeave,
+    content::{Creator, InnerNodeContent, Model, NodeContent},
     hashers::RandomIdHasher,
     jiff::{Timestamp, Zoned},
-    nanorand::Rng,
+    nanorand::{Rng, WyRand},
     universal_weave::{
-        Weave,
-        dependent::DependentNode,
+        MetadataWeave, Weave,
         indexmap::{IndexMap, IndexSet},
     },
-    v1::content::{Creator, InnerNodeContent, Model, NodeContent},
     wrappers::UniqueIdentifierRemapper,
 };
 use uuid::Uuid;
 
 use crate::new_weave;
 
-pub fn migrate_all(input: &str, created: Zoned) -> anyhow::Result<Vec<(PathBuf, VersionedWeave)>> {
+pub fn migrate_all(input: &str, created: Zoned) -> anyhow::Result<Vec<(PathBuf, TapestryWeave)>> {
     if let Ok(data) =
         serde_json::from_str::<Value>(input).and_then(serde_json::from_value::<LoomsidianData>)
     // Makes parsing untagged enums more reliable
@@ -43,10 +42,10 @@ pub fn migrate_all(input: &str, created: Zoned) -> anyhow::Result<Vec<(PathBuf, 
     }
 }
 
-pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWeave>> {
+pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWeave>> {
+    // Hack which makes parsing untagged enums more reliable
     if let Ok(data) =
         serde_json::from_str::<Value>(input).and_then(serde_json::from_value::<LoomsidianWeave>)
-    // Makes parsing untagged enums more reliable
     {
         Ok(Some(convert_weave(data, created)?))
     } else {
@@ -54,7 +53,7 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
     }
 }
 
-fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<VersionedWeave> {
+fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<TapestryWeave> {
     let mut nodes = input.nodes.into_map();
 
     let mut id_list = IndexSet::with_capacity(nodes.len());
@@ -74,69 +73,69 @@ fn convert_weave(input: LoomsidianWeave, created: Zoned) -> anyhow::Result<Versi
 
     let time_zone = output.metadata().created.time_zone().clone();
 
-    output.modify_inner(|rng, output, _| {
-        let mut convert_old_identifier = move |id| *mapper.map(id, || rng.generate()).get();
+    let mut rng = WyRand::new();
 
-        for id in id_list {
-            let node = nodes.swap_remove(&id).unwrap();
+    let mut convert_old_identifier = move |id| *mapper.map(id, || rng.generate()).get();
 
-            let timestamp = node
-                .lastVisited
-                .and_then(|unix_time| {
-                    Timestamp::try_from(SystemTime::UNIX_EPOCH + Duration::from_millis(unix_time))
-                        .ok()
-                })
-                .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
-                .unwrap_or_default();
+    for id in id_list {
+        let node = nodes.swap_remove(&id).unwrap();
 
-            assert!(
-                output.add_node(DependentNode {
-                    id: convert_old_identifier(id),
-                    from: node
-                        .parentId
-                        .map(&mut convert_old_identifier)
-                        .and_then(|id| if output.contains(&id) {
-                            Some(id)
+        let timestamp = node
+            .lastVisited
+            .and_then(|unix_time| {
+                Timestamp::try_from(SystemTime::UNIX_EPOCH + Duration::from_millis(unix_time)).ok()
+            })
+            .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
+            .unwrap_or_default();
+
+        assert!(
+            output.insert(TapestryNode {
+                id: convert_old_identifier(id),
+                from: IndexSet::from_iter(node.parentId.map(&mut convert_old_identifier).filter(
+                    |parent_id| {
+                        if output.contains(parent_id) {
+                            true
                         } else {
                             eprintln!("Warning: Node {} has missing parents", id);
-                            None
-                        }),
-                    to: IndexSet::default(),
-                    active: input.current == id,
-                    bookmarked: node.bookmarked,
-                    contents: NodeContent {
-                        timestamp,
-                        modified: false,
-                        content: InnerNodeContent::Snippet(
-                            node.text.or(node.value).unwrap_or_default().into_bytes()
-                        ),
-                        metadata: IndexMap::default(),
-                        aux_metadata: IndexMap::default(),
-                        creator: node
-                            .author
-                            .and_then(|author| {
-                                if author != "genesis" && author != "N/A" {
-                                    Some(Creator::Model(Some(Model {
-                                        label: author,
-                                        color: None,
-                                        metadata: IndexMap::default(),
-                                        identifier: None,
-                                        seed: None,
-                                        system_fingerprint: None,
-                                        finish_reason: None,
-                                    })))
-                                } else {
-                                    None
-                                }
-                            })
-                            .unwrap_or(Creator::Unknown)
-                    },
-                })
-            );
-        }
-    });
+                            false
+                        }
+                    }
+                )),
+                to: IndexSet::default(),
+                active: input.current == id,
+                bookmarked: node.bookmarked,
+                contents: NodeContent {
+                    timestamp,
+                    modified: false,
+                    content: InnerNodeContent::Snippet(
+                        node.text.or(node.value).unwrap_or_default().into_bytes()
+                    ),
+                    metadata: IndexMap::default(),
+                    aux_metadata: IndexMap::default(),
+                    creator: node
+                        .author
+                        .and_then(|author| {
+                            if author != "genesis" && author != "N/A" {
+                                Some(Creator::Model(Some(Model {
+                                    label: author,
+                                    color: None,
+                                    metadata: IndexMap::default(),
+                                    identifier: None,
+                                    seed: None,
+                                    system_fingerprint: None,
+                                    finish_reason: None,
+                                })))
+                            } else {
+                                None
+                            }
+                        })
+                        .unwrap_or(Creator::Unknown)
+                },
+            })
+        );
+    }
 
-    Ok(output.to_versioned_weave())
+    Ok(output)
 }
 
 #[stacksafe]

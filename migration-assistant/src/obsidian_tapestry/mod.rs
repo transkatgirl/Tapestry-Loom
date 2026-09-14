@@ -14,26 +14,23 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use stacksafe::stacksafe;
 use tapestry_weave::{
-    VersionedWeave,
+    TapestryNode, TapestryWeave,
+    content::{Creator, InnerNodeContent, InnerNodeToken, Model, NodeContent, OriginalToken},
     hashers::{RandomIdHasher, UlidHasher},
     jiff::{Timestamp, Zoned},
-    nanorand::Rng,
-    ulid::Ulid,
+    metadata::MetadataMap,
+    nanorand::{Rng, WyRand},
     universal_weave::{
-        Weave,
-        dependent::DependentNode,
+        MetadataWeave, Weave,
         indexmap::{IndexMap, IndexSet},
-    },
-    v1::{
-        content::{Creator, InnerNodeContent, InnerNodeToken, Model, NodeContent, OriginalToken},
-        metadata::MetadataMap,
     },
     wrappers::UniqueIdentifierRemapper,
 };
+use ulid::Ulid;
 
 use crate::new_weave;
 
-pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWeave>> {
+pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWeave>> {
     if let Ok((Some(Yaml::Hash(mut frontmatter)), _)) = parse_and_find_content(input) {
         let weave = if let Some(Yaml::String(compressed_weave)) =
             frontmatter.remove(&Yaml::String("TapestryLoomWeaveCompressed".to_string()))
@@ -57,7 +54,7 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
     Ok(None)
 }
 
-fn convert_weave(input: String, created: Zoned) -> anyhow::Result<VersionedWeave> {
+fn convert_weave(input: String, created: Zoned) -> anyhow::Result<TapestryWeave> {
     let mut context = Context::default();
 
     context
@@ -98,87 +95,88 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<VersionedWeave
 
     let time_zone = output.metadata().created.time_zone().clone();
 
-    output.modify_inner(|rng, output, _| {
-        let mut convert_old_identifier = move |id| {
-            *mapper
-                .map_with_initial(
-                    id,
-                    unsafe { std::mem::transmute::<u128, [u64; 2]>(id)[1] },
-                    || rng.generate(),
-                )
-                .get()
-        };
+    let mut rng = WyRand::new();
 
-        for node in input_nodes {
-            if let Some(node) = input.nodes.get(&node).cloned() {
-                let timestamp = Timestamp::try_from(Ulid(node.identifier.0).datetime())
-                    .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
-                    .unwrap_or(Zoned::default());
+    let mut convert_old_identifier = move |id| {
+        *mapper
+            .map_with_initial(
+                id,
+                unsafe { std::mem::transmute::<u128, [u64; 2]>(id)[1] },
+                || rng.generate(),
+            )
+            .get()
+    };
 
-                assert!(
-                    output.add_node(DependentNode {
-                        id: convert_old_identifier(node.identifier.0),
-                        from: node
-                            .parentNode
+    for node in input_nodes {
+        if let Some(node) = input.nodes.get(&node).cloned() {
+            let timestamp = Timestamp::try_from(Ulid(node.identifier.0).datetime())
+                .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
+                .unwrap_or(Zoned::default());
+
+            assert!(
+                output.insert(TapestryNode {
+                    id: convert_old_identifier(node.identifier.0),
+                    from: IndexSet::from_iter(
+                        node.parentNode
                             .map(|id| convert_old_identifier(id.0))
-                            .and_then(|id| if output.contains(&id) {
-                                Some(id)
+                            .filter(|id| if output.contains(id) {
+                                true
                             } else {
                                 eprintln!("Warning: Node {} has missing parents", node.identifier);
-                                None
-                            }),
-                        to: IndexSet::default(),
-                        active: input.currentNode == Some(node.identifier),
-                        bookmarked: input.bookmarks.contains(&node.identifier),
-                        contents: NodeContent {
-                            timestamp,
-                            modified: false,
-                            content: match node.content {
-                                LegacyNodeContent::Snippet(snippet) =>
-                                    InnerNodeContent::Snippet(snippet.into_bytes()),
-                                LegacyNodeContent::Tokens(tokens) => InnerNodeContent::Tokens(
-                                    tokens
-                                        .into_iter()
-                                        .map(|(probability, token)| {
-                                            InnerNodeToken {
-                                                bytes: token.into_bytes(),
-                                                logprob: probability.ln() as f32,
-                                                id: None,
-                                                metadata: IndexMap::default(),
-                                                entropy: None,
-                                                counterfactual: vec![],
-                                                original: OriginalToken::Unmodified,
-                                            }
-                                        })
-                                        .collect()
-                                ),
-                            },
-                            metadata: node.parameters.unwrap_or_default(),
-                            aux_metadata: IndexMap::default(),
-                            creator: node
-                                .model
-                                .map(|id| Creator::Model(input.models.get(&id).cloned().map(
-                                    |model| {
-                                        Model {
-                                            label: model.label,
-                                            color: model.color,
-                                            identifier: NonZeroU128::try_from(id.0).ok(),
+                                false
+                            })
+                    ),
+                    to: IndexSet::default(),
+                    active: input.currentNode == Some(node.identifier),
+                    bookmarked: input.bookmarks.contains(&node.identifier),
+                    contents: NodeContent {
+                        timestamp,
+                        modified: false,
+                        content: match node.content {
+                            LegacyNodeContent::Snippet(snippet) =>
+                                InnerNodeContent::Snippet(snippet.into_bytes()),
+                            LegacyNodeContent::Tokens(tokens) => InnerNodeContent::Tokens(
+                                tokens
+                                    .into_iter()
+                                    .map(|(probability, token)| {
+                                        InnerNodeToken {
+                                            bytes: token.into_bytes(),
+                                            logprob: probability.ln() as f32,
+                                            id: None,
                                             metadata: IndexMap::default(),
-                                            seed: None,
-                                            system_fingerprint: None,
-                                            finish_reason: None,
+                                            entropy: None,
+                                            counterfactual: vec![],
+                                            original: OriginalToken::Unmodified,
                                         }
+                                    })
+                                    .collect()
+                            ),
+                        },
+                        metadata: node.parameters.unwrap_or_default(),
+                        aux_metadata: IndexMap::default(),
+                        creator: node
+                            .model
+                            .map(
+                                |id| Creator::Model(input.models.get(&id).cloned().map(|model| {
+                                    Model {
+                                        label: model.label,
+                                        color: model.color,
+                                        identifier: NonZeroU128::try_from(id.0).ok(),
+                                        metadata: IndexMap::default(),
+                                        seed: None,
+                                        system_fingerprint: None,
+                                        finish_reason: None,
                                     }
-                                )))
-                                .unwrap_or(Creator::Unknown)
-                        }
-                    })
-                );
-            }
+                                }))
+                            )
+                            .unwrap_or(Creator::Unknown)
+                    }
+                })
+            );
         }
-    });
+    }
 
-    Ok(output.to_versioned_weave())
+    Ok(output)
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

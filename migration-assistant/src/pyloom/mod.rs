@@ -7,18 +7,14 @@ use chrono::{Local, NaiveDateTime};
 use serde::{Deserialize, Serialize};
 use stacksafe::stacksafe;
 use tapestry_weave::{
-    VersionedWeave,
+    TapestryNode, TapestryWeave,
+    content::{Creator, InnerNodeContent, NodeContent},
     hashers::{RandomIdHasher, RandomState},
     jiff::{Zoned, fmt::rfc2822::DateTimeParser},
     nanorand::{Rng, WyRand},
     universal_weave::{
         Weave,
-        dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
-    },
-    v1::{
-        content::{Creator, InnerNodeContent, NodeContent},
-        dependent::TapestryWeaveInner,
     },
     wrappers::UniqueIdentifierRemapper,
 };
@@ -27,7 +23,7 @@ use crate::new_weave;
 
 const PARSER: DateTimeParser = DateTimeParser::new();
 
-pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWeave>> {
+pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWeave>> {
     if let Ok(data) = serde_json::from_str::<PyloomWeave>(input) {
         let chapters: IndexMap<String, String> = data
             .chapters
@@ -46,22 +42,20 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
             BuildHasherDefault<RandomIdHasher>,
         > = UniqueIdentifierRemapper::with_capacity(node_count_guess);
 
-        output.modify_inner(|rng, output, _| -> anyhow::Result<()> {
-            let mut convert_old_identifier = move |id| *mapper.map(id, || rng.generate()).get();
+        let mut rng = WyRand::new();
 
-            convert_node(
-                output,
-                &mut convert_old_identifier,
-                data.root,
-                None,
-                &data.selected_node_id,
-                &chapters,
-            )?;
+        let mut convert_old_identifier = move |id| *mapper.map(id, || rng.generate()).get();
 
-            Ok(())
-        })?;
+        convert_node(
+            &mut output,
+            &mut convert_old_identifier,
+            data.root,
+            None,
+            &data.selected_node_id,
+            &chapters,
+        )?;
 
-        Ok(Some(output.to_versioned_weave()))
+        Ok(Some(output))
     } else {
         Ok(None)
     }
@@ -69,7 +63,7 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
 
 #[stacksafe]
 fn convert_node(
-    weave: &mut TapestryWeaveInner,
+    weave: &mut TapestryWeave,
     convert_old_identifier: &mut impl FnMut(String) -> u64,
     node: PyloomNode,
     parent: Option<u64>,
@@ -122,9 +116,9 @@ fn convert_node(
     //text.push_str(&suffix);
 
     assert!(
-        weave.add_node(DependentNode {
+        weave.insert(TapestryNode {
             id,
-            from: parent,
+            from: IndexSet::from_iter(parent),
             to: IndexSet::default(),
             active: &node.id == selected,
             bookmarked: chapter.is_some(),
@@ -212,19 +206,15 @@ struct PyloomSimpleNode {
     children: Vec<PyloomSimpleNode>,
 }
 
-pub fn migrate_simple(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWeave>> {
+pub fn migrate_simple(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWeave>> {
     if let Ok(data) = serde_json::from_str::<PyloomSimpleNode>(input) {
         let node_count_guess = (input.len() as f64 / 26.0).ceil() as usize;
 
         let mut output = new_weave(node_count_guess, created, "PyLoomSimple", None);
 
-        output.modify_inner(|rng, output, _| -> anyhow::Result<()> {
-            convert_export_node(rng, output, data, None);
+        convert_export_node(&mut WyRand::new(), &mut output, data, None);
 
-            Ok(())
-        })?;
-
-        Ok(Some(output.to_versioned_weave()))
+        Ok(Some(output))
     } else {
         Ok(None)
     }
@@ -233,7 +223,7 @@ pub fn migrate_simple(input: &str, created: Zoned) -> anyhow::Result<Option<Vers
 #[stacksafe]
 fn convert_export_node(
     rng: &mut WyRand,
-    weave: &mut TapestryWeaveInner,
+    weave: &mut TapestryWeave,
     node: PyloomSimpleNode,
     parent: Option<u64>,
 ) {
@@ -243,9 +233,9 @@ fn convert_export_node(
         id = rng.generate();
     }
 
-    assert!(weave.add_node(DependentNode {
+    assert!(weave.insert(TapestryNode {
         id,
-        from: parent,
+        from: IndexSet::from_iter(parent),
         to: IndexSet::default(),
         active: false,
         bookmarked: false,

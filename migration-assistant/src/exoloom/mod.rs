@@ -6,20 +6,19 @@ use std::{
     hash::{BuildHasherDefault, RandomState},
 };
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use stacksafe::stacksafe;
 use tapestry_weave::{
-    VersionedWeave,
-    chrono::{DateTime, Utc},
+    TapestryNode, TapestryWeave,
+    content::{Author, Creator, InnerNodeContent, Model, NodeContent},
     hashers::RandomIdHasher,
     jiff::{Zoned, fmt::rfc2822::DateTimeParser},
-    nanorand::Rng,
+    nanorand::{Rng, WyRand},
     universal_weave::{
-        Weave,
-        dependent::DependentNode,
+        MetadataWeave, Weave,
         indexmap::{IndexMap, IndexSet},
     },
-    v1::content::{Author, Creator, InnerNodeContent, Model, NodeContent},
     wrappers::UniqueIdentifierRemapper,
 };
 
@@ -30,7 +29,7 @@ use crate::{
 
 const PARSER: DateTimeParser = DateTimeParser::new();
 
-pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWeave>> {
+pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWeave>> {
     if let Ok(mut data) = serde_json::from_str::<ExoloomWeave>(input) {
         assert!(data.loomType == "Exoloom" && data.schemaVersion == 1);
 
@@ -83,67 +82,69 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<VersionedWe
             BuildHasherDefault<RandomIdHasher>,
         > = UniqueIdentifierRemapper::with_capacity(id_list.len());
 
-        output.modify_inner(|rng, output, _| {
-            let mut convert_old_identifier = move |id| *mapper.map(id, || rng.generate()).get();
+        let mut rng = WyRand::new();
 
-            for id in id_list {
-                let node = data.tree.nodes.remove(&id).unwrap();
-                let bookmarked = bookmarks.contains(&id);
-                let pruned = pruned.contains(&id);
+        let mut convert_old_identifier = move |id| *mapper.map(id, || rng.generate()).get();
 
-                assert!(
-                    output.add_node(DependentNode {
-                        id: convert_old_identifier(id),
-                        from: node.parentId.map(&mut convert_old_identifier),
-                        to: IndexSet::default(),
-                        active: false,
-                        bookmarked,
-                        contents: NodeContent {
-                            timestamp: node
-                                .createdAt
-                                .and_then(|timestamp| {
-                                    PARSER.parse_zoned(timestamp.to_rfc2822()).ok()
-                                })
-                                .unwrap_or_default(),
-                            modified: false,
-                            content: InnerNodeContent::Snippet(node.content.into_bytes()),
-                            metadata: if pruned {
-                                IndexMap::from_iter([("pruned".to_string(), "true".to_string())])
-                            } else {
-                                IndexMap::default()
-                            },
-                            aux_metadata: IndexMap::default(),
-                            creator: match node.authorType {
-                                LLM => {
-                                    Creator::Model(node.authorName.map(|label| Model {
-                                        label,
-                                        color: None,
-                                        identifier: None,
-                                        seed: None,
-                                        system_fingerprint: None,
-                                        finish_reason: None,
-                                        metadata: IndexMap::default(),
-                                    }))
-                                }
-                                USER => {
-                                    Creator::User(node.authorName.map(|label| Author {
-                                        label,
-                                        color: None,
-                                        identifier: None,
-                                        metadata: IndexMap::default(),
-                                    }))
-                                }
-                            },
+        for id in id_list {
+            let node = data.tree.nodes.remove(&id).unwrap();
+            let bookmarked = bookmarks.contains(&id);
+            let pruned = pruned.contains(&id);
+
+            assert!(
+                output.insert(TapestryNode {
+                    id: convert_old_identifier(id),
+                    from: IndexSet::from_iter(node.parentId.map(&mut convert_old_identifier)),
+                    to: IndexSet::default(),
+                    active: false,
+                    bookmarked,
+                    contents: NodeContent {
+                        timestamp: node
+                            .createdAt
+                            .and_then(|timestamp| {
+                                PARSER.parse_zoned(timestamp.to_rfc2822()).ok()
+                            })
+                            .unwrap_or_default(),
+                        modified: false,
+                        content: InnerNodeContent::Snippet(node.content.into_bytes()),
+                        metadata: if pruned {
+                            IndexMap::from_iter([("pruned".to_string(), "true".to_string())])
+                        } else {
+                            IndexMap::default()
                         },
-                    })
-                );
-            }
+                        aux_metadata: IndexMap::default(),
+                        creator: match node.authorType {
+                            LLM => {
+                                Creator::Model(node.authorName.map(|label| Model {
+                                    label,
+                                    color: None,
+                                    identifier: None,
+                                    seed: None,
+                                    system_fingerprint: None,
+                                    finish_reason: None,
+                                    metadata: IndexMap::default(),
+                                }))
+                            }
+                            USER => {
+                                Creator::User(node.authorName.map(|label| Author {
+                                    label,
+                                    color: None,
+                                    identifier: None,
+                                    metadata: IndexMap::default(),
+                                }))
+                            }
+                        },
+                    },
+                })
+            );
+        }
 
-            output.metadata.title = data.tree.title;
-            output.metadata.description = data.tree.description;
+        output.metadata_mut(|metadata| {
+            metadata.title = data.tree.title;
+            metadata.description = data.tree.description;
         });
 
-        Ok(Some(output.to_versioned_weave()))
+        Ok(Some(output))
     } else {
         Ok(None)
     }
