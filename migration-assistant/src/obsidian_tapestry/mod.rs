@@ -1,6 +1,8 @@
 #![allow(non_snake_case)]
 
 use std::{
+    borrow::Cow,
+    cmp::Ordering,
     collections::{HashMap, HashSet},
     hash::BuildHasherDefault,
     num::NonZeroU128,
@@ -15,7 +17,10 @@ use serde_json::Value;
 use stacksafe::stacksafe;
 use tapestry_weave::{
     TapestryNode, TapestryWeave,
-    content::{Creator, InnerNodeContent, InnerNodeToken, Model, NodeContent, OriginalToken},
+    content::{
+        Creator, InnerNodeContent, InnerNodeToken, Model, NodeContent, OriginalToken,
+        UNKNOWN_MODEL_LABEL,
+    },
     hashers::{RandomIdHasher, UlidHasher},
     jiff::{Timestamp, Zoned},
     metadata::MetadataMap,
@@ -31,7 +36,9 @@ use ulid::Ulid;
 use crate::new_weave;
 
 pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWeave>> {
-    if let Ok((Some(Yaml::Hash(mut frontmatter)), _)) = parse_and_find_content(input) {
+    if let Ok((Some(Yaml::Hash(mut frontmatter)), _)) =
+        parse_and_find_content(&normalize_line_endings(input))
+    {
         let weave = if let Some(Yaml::String(compressed_weave)) =
             frontmatter.remove(&Yaml::String("TapestryLoomWeaveCompressed".to_string()))
         {
@@ -52,6 +59,16 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWea
     }
 
     Ok(None)
+}
+
+fn normalize_line_endings(input: &str) -> Cow<'_, str> {
+    let input = input.strip_prefix('\u{feff}').unwrap_or(input);
+
+    if input.contains('\r') {
+        Cow::Owned(input.replace("\r\n", "\n"))
+    } else {
+        Cow::Borrowed(input)
+    }
 }
 
 fn convert_weave(input: String, created: Zoned) -> anyhow::Result<TapestryWeave> {
@@ -156,19 +173,23 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<TapestryWeave>
                         aux_metadata: IndexMap::default(),
                         creator: node
                             .model
-                            .map(
-                                |id| Creator::Model(input.models.get(&id).cloned().map(|model| {
-                                    Model {
-                                        label: model.label,
-                                        color: model.color,
-                                        identifier: NonZeroU128::try_from(id.0).ok(),
-                                        metadata: IndexMap::default(),
-                                        seed: None,
-                                        system_fingerprint: None,
-                                        finish_reason: None,
-                                    }
+                            .map(|id| {
+                                let model =
+                                    input.models.get(&id).cloned().unwrap_or(LegacyModelLabel {
+                                        label: UNKNOWN_MODEL_LABEL.to_string(),
+                                        color: None,
+                                    });
+
+                                Creator::Model(Some(Model {
+                                    label: model.label,
+                                    color: model.color,
+                                    identifier: NonZeroU128::try_from(id.0).ok(),
+                                    metadata: IndexMap::default(),
+                                    seed: None,
+                                    system_fingerprint: None,
+                                    finish_reason: None,
                                 }))
-                            )
+                            })
                             .unwrap_or(Creator::Unknown)
                     }
                 })
@@ -248,7 +269,7 @@ enum LegacyNodeContent {
 }
 
 fn sort_node_list(nodes: &mut Vec<&LegacyDocumentNode>) {
-    nodes.sort_unstable_by(|a, b| {
+    nodes.sort_by(|a, b| {
         let a_tokens = if let LegacyNodeContent::Tokens(tokens) = &a.content {
             Some(tokens)
         } else {
@@ -266,13 +287,14 @@ fn sort_node_list(nodes: &mut Vec<&LegacyDocumentNode>) {
         if x && y {
             a.model.cmp(&b.model).then(
                 b_tokens.unwrap()[0]
-                    .partial_cmp(&a_tokens.unwrap()[0])
-                    .unwrap(),
+                    .0
+                    .partial_cmp(&a_tokens.unwrap()[0].0)
+                    .unwrap_or(Ordering::Equal),
             )
         } else {
             a.model
                 .cmp(&b.model)
-                .then(y.cmp(&x))
+                .then(x.cmp(&y))
                 .then(a.identifier.cmp(&b.identifier))
         }
     });
