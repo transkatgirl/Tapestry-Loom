@@ -51,9 +51,13 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWea
             &mut convert_old_identifier,
             data.root,
             None,
-            &data.selected_node_id,
             &chapters,
         )?;
+
+        let selected = convert_old_identifier(data.selected_node_id);
+        if output.contains(&selected) {
+            output.set_active_tree_semantics(&selected, true);
+        }
 
         Ok(Some(output))
     } else {
@@ -67,7 +71,6 @@ fn convert_node(
     convert_old_identifier: &mut impl FnMut(String) -> u64,
     node: PyloomNode,
     parent: Option<u64>,
-    selected: &String,
     chapters: &IndexMap<String, String>,
 ) -> anyhow::Result<()> {
     let timestamp = node
@@ -120,7 +123,7 @@ fn convert_node(
             id,
             from: IndexSet::from_iter(parent),
             to: IndexSet::default(),
-            active: &node.id == selected,
+            active: false,
             bookmarked: chapter.is_some(),
             contents: NodeContent {
                 timestamp,
@@ -147,14 +150,7 @@ fn convert_node(
     );
 
     for child in node.children {
-        convert_node(
-            weave,
-            convert_old_identifier,
-            child,
-            Some(id),
-            selected,
-            chapters,
-        )?;
+        convert_node(weave, convert_old_identifier, child, Some(id), chapters)?;
     }
 
     Ok(())

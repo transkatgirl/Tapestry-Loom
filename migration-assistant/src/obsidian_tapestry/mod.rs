@@ -140,7 +140,7 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<TapestryWeave>
                             })
                     ),
                     to: IndexSet::default(),
-                    active: input.currentNode == Some(node.identifier),
+                    active: false,
                     bookmarked: input.bookmarks.contains(&node.identifier),
                     contents: NodeContent {
                         timestamp,
@@ -190,6 +190,13 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<TapestryWeave>
                     }
                 })
             );
+        }
+    }
+
+    if let Some(current) = input.currentNode {
+        let current = convert_old_identifier(current.0);
+        if output.contains(&current) {
+            output.set_active_tree_semantics(&current, true);
         }
     }
 

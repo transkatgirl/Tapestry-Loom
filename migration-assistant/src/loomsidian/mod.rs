@@ -131,7 +131,7 @@ fn convert_weave(
                     }
                 )),
                 to: IndexSet::default(),
-                active: input.current == id,
+                active: false,
                 bookmarked: node.bookmarked,
                 contents: NodeContent {
                     timestamp,
@@ -154,6 +154,11 @@ fn convert_weave(
                 },
             })
         );
+    }
+
+    let current = convert_old_identifier(input.current);
+    if output.contains(&current) {
+        output.set_active_tree_semantics(&current, true);
     }
 
     Ok(output)
