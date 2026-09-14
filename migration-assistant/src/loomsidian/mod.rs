@@ -111,11 +111,7 @@ fn convert_weave(
             .map(|timestamp| Zoned::new(timestamp, time_zone.clone()))
             .unwrap_or_default();
 
-        let mut metadata = IndexMap::with_capacity_and_hasher(2, RandomState::default());
-
-        if node.unread {
-            metadata.insert("unread".to_string(), "true".to_string());
-        }
+        let mut metadata = IndexMap::with_capacity_and_hasher(1, RandomState::default());
 
         if let Some(color) = node.color {
             metadata.insert("color".to_string(), color);
@@ -318,7 +314,6 @@ impl LoomsidianNodes {
                             author: node.author,
                             parentId: node.parentId,
                             bookmarked: node.bookmarked,
-                            unread: node.unread,
                             color: node.color,
                             lastVisited: node.lastVisited,
                         },
@@ -340,9 +335,6 @@ struct LoomsidianListNode {
     #[serde(default)]
     bookmarked: bool,
 
-    #[serde(default)]
-    unread: bool,
-
     color: Option<String>,
 
     lastVisited: Option<u64>,
@@ -357,9 +349,6 @@ struct LoomsidianNode {
 
     #[serde(default)]
     bookmarked: bool,
-
-    #[serde(default)]
-    unread: bool,
 
     color: Option<String>,
 
