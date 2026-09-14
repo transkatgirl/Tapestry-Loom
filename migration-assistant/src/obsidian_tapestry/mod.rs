@@ -116,11 +116,7 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<TapestryWeave>
 
     let mut convert_old_identifier = move |id| {
         *mapper
-            .map_with_initial(
-                id,
-                unsafe { std::mem::transmute::<u128, [u64; 2]>(id)[1] },
-                || rng.generate(),
-            )
+            .map_with_initial(id, (id >> 64) as u64, || rng.generate())
             .get()
     };
 
@@ -158,7 +154,7 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<TapestryWeave>
                                     .map(|(probability, token)| {
                                         InnerNodeToken {
                                             bytes: token.into_bytes(),
-                                            logprob: probability.ln() as f32,
+                                            logprob: finite_logprob(probability),
                                             id: None,
                                             metadata: IndexMap::default(),
                                             entropy: None,
@@ -190,7 +186,7 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<TapestryWeave>
                                     finish_reason: None,
                                 }))
                             })
-                            .unwrap_or(Creator::Unknown)
+                            .unwrap_or(Creator::User(None))
                     }
                 })
             );
@@ -203,12 +199,18 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<TapestryWeave>
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct LegacyWeave {
     identifier: Ulid,
+    #[serde(default)]
     models: HashMap<Ulid, LegacyModelLabel>,
+    #[serde(default)]
     modelNodes: HashMap<Ulid, HashSet<Ulid>>,
+    #[serde(default)]
     nodes: HashMap<Ulid, LegacyDocumentNode>,
+    #[serde(default)]
     rootNodes: Vec<Ulid>,
+    #[serde(default)]
     nodeChildren: HashMap<Ulid, Vec<Ulid>>,
     currentNode: Option<Ulid>,
+    #[serde(default)]
     bookmarks: HashSet<Ulid>,
 }
 
@@ -258,6 +260,7 @@ struct LegacyDocumentNode {
     content: LegacyNodeContent,
     model: Option<Ulid>,
     parentNode: Option<Ulid>,
+    #[serde(alias = "metadata")]
     parameters: Option<MetadataMap>,
 }
 
@@ -266,6 +269,16 @@ struct LegacyDocumentNode {
 enum LegacyNodeContent {
     Snippet(String),
     Tokens(Vec<(f64, String)>),
+}
+
+fn finite_logprob(probability: f64) -> f32 {
+    let logprob = probability.ln() as f32;
+
+    if logprob.is_finite() {
+        logprob
+    } else {
+        f32::MIN
+    }
 }
 
 fn sort_node_list(nodes: &mut Vec<&LegacyDocumentNode>) {
