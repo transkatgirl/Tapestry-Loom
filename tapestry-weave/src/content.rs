@@ -31,7 +31,7 @@ pub struct NodeContent {
     /// The inner contents of the node.
     pub content: InnerNodeContent,
 
-    /// Human-readable metadata associated with the node.
+    /// User-readable metadata associated with the node.
     #[rkyv(with = IAsVec)]
     pub metadata: MetadataMap,
 
@@ -940,7 +940,7 @@ pub struct Model {
     /// The reason the content finished being generated.
     pub finish_reason: Option<String>,
 
-    /// Additional information about the model used to generate the content.
+    /// Additional user-readable information about the model used to generate the content.
     ///
     /// **This should not contain sensitive information**, such as endpoint URLs or API keys, as documents may be shared publicly.
     #[rkyv(with = IAsVec)]
@@ -1016,7 +1016,7 @@ pub struct Author {
     #[rkyv(with = NicheInto<niching::Zero>)]
     pub identifier: Option<LongId>,
 
-    /// Additional information about the user.
+    /// Additional user-readable information about the user.
     ///
     /// **This should not contain sensitive information**, such as email addresses or legal names, as documents may be shared publicly.
     #[rkyv(with = IAsVec)]

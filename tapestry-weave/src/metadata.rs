@@ -26,7 +26,7 @@ pub struct WeaveMetadata {
     /// A list of format conversions that the document has undergone, ordered from oldest to newest.
     pub converted_from: Vec<ConvertedFrom>,
 
-    /// Human-readable metadata associated with the document.
+    /// User-readable metadata associated with the document.
     #[rkyv(with = IAsVec)]
     pub metadata: MetadataMap,
 
@@ -50,7 +50,7 @@ impl WeaveMetadata {
             aux_metadata: AuxMetadataMap::default(),
         }
     }
-    /// Returns `true` if all human-readable metadata fields are empty.
+    /// Returns `true` if all user-readable metadata fields are empty.
     pub fn is_empty(&self) -> bool {
         self.title.as_ref().map(|v| v.is_empty()).unwrap_or(true)
             && self
@@ -64,7 +64,7 @@ impl WeaveMetadata {
 }
 
 impl ArchivedWeaveMetadata {
-    /// Returns `true` if all human-readable metadata fields are empty.
+    /// Returns `true` if all user-readable metadata fields are empty.
     pub fn is_empty(&self) -> bool {
         self.title.as_ref().map(|v| v.is_empty()).unwrap_or(true)
             && self
