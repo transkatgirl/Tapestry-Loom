@@ -155,10 +155,14 @@ impl InnerNodeContent {
         if let Self::Tokens(tokens) = self
             && !tokens.is_empty()
         {
-            Some(
-                (tokens.iter().map(|token| token.logprob as f64).sum::<f64>() / tokens.len() as f64)
-                    as f32,
-            )
+            let mut logprob_sum = 0.0;
+
+            for token in tokens {
+                let logprob = token.logprob?;
+                logprob_sum += logprob as f64;
+            }
+
+            Some((logprob_sum / tokens.len() as f64) as f32)
         } else {
             None
         }
@@ -167,7 +171,14 @@ impl InnerNodeContent {
         if let Self::Tokens(tokens) = self
             && !tokens.is_empty()
         {
-            Some(tokens.iter().map(|token| token.logprob as f64).sum::<f64>() as f32)
+            let mut logprob_sum = 0.0;
+
+            for token in tokens {
+                let logprob = token.logprob?;
+                logprob_sum += logprob as f64;
+            }
+
+            Some(logprob_sum as f32)
         } else {
             None
         }
@@ -210,7 +221,7 @@ impl InnerNodeContent {
         {
             let mut entropy_sum = 0.0;
 
-            for token in tokens {
+            for token in tokens.iter() {
                 let entropy = token.entropy?;
                 entropy_sum += entropy as f64;
             }
@@ -254,13 +265,14 @@ impl ArchivedInnerNodeContent {
         if let Self::Tokens(tokens) = self
             && !tokens.is_empty()
         {
-            Some(
-                (tokens
-                    .iter()
-                    .map(|token| token.logprob.to_native() as f64)
-                    .sum::<f64>()
-                    / tokens.len() as f64) as f32,
-            )
+            let mut logprob_sum = 0.0;
+
+            for token in tokens.iter() {
+                let logprob = token.logprob.as_ref()?.to_native();
+                logprob_sum += logprob as f64;
+            }
+
+            Some((logprob_sum / tokens.len() as f64) as f32)
         } else {
             None
         }
@@ -269,12 +281,14 @@ impl ArchivedInnerNodeContent {
         if let Self::Tokens(tokens) = self
             && !tokens.is_empty()
         {
-            Some(
-                tokens
-                    .iter()
-                    .map(|token| token.logprob.to_native() as f64)
-                    .sum::<f64>() as f32,
-            )
+            let mut logprob_sum = 0.0;
+
+            for token in tokens.iter() {
+                let logprob = token.logprob.as_ref()?.to_native();
+                logprob_sum += logprob as f64;
+            }
+
+            Some(logprob_sum as f32)
         } else {
             None
         }
@@ -312,17 +326,17 @@ impl ArchivedInnerNodeContent {
         }
     }
     pub fn calculate_average_entropy(&self) -> Option<f32> {
-        if let Self::Tokens(tokens) = self {
-            let (count, sum) = tokens
-                .iter()
-                .filter_map(|token| token.entropy.as_ref().map(|e| e.to_native() as f64))
-                .fold((0usize, 0.0), |acc, x| (acc.0 + 1, acc.1 + x));
+        if let Self::Tokens(tokens) = self
+            && !tokens.is_empty()
+        {
+            let mut entropy_sum = 0.0;
 
-            if count > 0 {
-                Some((sum / count as f64) as f32)
-            } else {
-                None
+            for token in tokens.iter() {
+                let entropy = token.entropy.as_ref()?;
+                entropy_sum += entropy.to_native() as f64;
             }
+
+            Some((entropy_sum / tokens.len() as f64) as f32)
         } else {
             None
         }
@@ -346,9 +360,8 @@ pub struct InnerNodeToken {
     #[serde(with = "Base64Standard")]
     pub bytes: Vec<u8>,
     /// The natural logarithm of the probability associated with the token.
-    ///
-    /// If the token has no associated probability, this should be set to `f32::NAN`.
-    pub logprob: f32,
+    #[rkyv(with = NicheInto<niching::NaN>)]
+    pub logprob: Option<f32>,
     /// The generator-specific numeric ID associated with the token.
     pub id: Option<u64>,
 
@@ -377,8 +390,13 @@ impl InnerNodeToken {
         }
     }
     pub fn sort_counterfactual(&mut self) {
-        self.counterfactual
-            .sort_unstable_by(|a, b| b.logprob.total_cmp(&a.logprob));
+        self.counterfactual.sort_unstable_by(|a, b| {
+            b.logprob.is_some().cmp(&a.logprob.is_some()).then_with(|| {
+                b.logprob
+                    .unwrap_or_default()
+                    .total_cmp(&a.logprob.unwrap_or_default())
+            })
+        });
     }
     pub fn truncate_counterfactual(&mut self, len: usize) {
         self.counterfactual.truncate(len);
@@ -390,12 +408,15 @@ impl InnerNodeToken {
     }
     fn calculate_confidence_f64(&self) -> Option<(f64, usize)> {
         if !self.counterfactual.is_empty() {
+            let mut counterfactual_logprob_sum = 0.0;
+
+            for token in &self.counterfactual {
+                let logprob = token.logprob? as f64;
+                counterfactual_logprob_sum += logprob;
+            }
+
             Some((
-                self.counterfactual
-                    .iter()
-                    .map(|token| token.logprob as f64)
-                    .sum::<f64>()
-                    / -(self.counterfactual.len() as f64),
+                counterfactual_logprob_sum / -(self.counterfactual.len() as f64),
                 self.counterfactual.len(),
             ))
         } else {
@@ -426,12 +447,15 @@ impl ArchivedInnerNodeToken {
     }
     fn calculate_confidence_f64(&self) -> Option<(f64, usize)> {
         if !self.counterfactual.is_empty() {
+            let mut counterfactual_logprob_sum = 0.0;
+
+            for token in self.counterfactual.iter() {
+                let logprob = token.logprob.as_ref()?.to_native() as f64;
+                counterfactual_logprob_sum += logprob;
+            }
+
             Some((
-                self.counterfactual
-                    .iter()
-                    .map(|token| token.logprob.to_native() as f64)
-                    .sum::<f64>()
-                    / -(self.counterfactual.len() as f64),
+                counterfactual_logprob_sum / -(self.counterfactual.len() as f64),
                 self.counterfactual.len(),
             ))
         } else {
@@ -486,18 +510,24 @@ pub struct CounterfactualToken {
     #[serde(with = "Base64Standard")]
     pub bytes: Vec<u8>,
     /// The natural logarithm of the probability associated with the token.
-    ///
-    /// If the token has no associated probability, this should be set to `f32::NAN`.
-    pub logprob: f32,
+    #[rkyv(with = NicheInto<niching::NaN>)]
+    pub logprob: Option<f32>,
     /// The generator-specific numeric ID associated with the token.
     pub id: Option<u64>,
 }
 
 impl CounterfactualToken {
     /// Calculates an entropy value from an iterator containing all possible tokens for a given position.
+    ///
+    /// # Panics
+    ///
+    /// Panics if a token has no associated probability.
     pub fn calculate_entropy<'a>(tokens: impl Iterator<Item = &'a CounterfactualToken>) -> f64 {
         -tokens
-            .map(|token| (token.logprob as f64).exp() * (token.logprob as f64))
+            .map(|token| {
+                let logprob = token.logprob.unwrap() as f64;
+                logprob.exp() * logprob
+            })
             .sum::<f64>()
     }
     /// Returns true if two tokens contain duplicate contents.

@@ -154,7 +154,7 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<TapestryWeave>
                                     .map(|(probability, token)| {
                                         InnerNodeToken {
                                             bytes: token.into_bytes(),
-                                            logprob: probability.ln() as f32,
+                                            logprob: Some(probability.ln() as f32),
                                             id: None,
                                             entropy: None,
                                             counterfactual: vec![],

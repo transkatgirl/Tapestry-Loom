@@ -579,7 +579,7 @@ fn build_tokens(
     for (token_bytes, logprob, counterfactual, original) in tokens {
         let mut token = InnerNodeToken {
             bytes: token_bytes,
-            logprob: logprob.map(|p| p as f32).unwrap_or(f32::NAN),
+            logprob: logprob.map(|p| p as f32),
             id: None,
             entropy: None,
             counterfactual,
@@ -600,7 +600,7 @@ fn build_tokens(
 fn unknown_token(bytes: Vec<u8>) -> InnerNodeToken {
     InnerNodeToken {
         bytes,
-        logprob: f32::NAN,
+        logprob: None,
         id: None,
         entropy: None,
         counterfactual: Vec::new(),
@@ -913,7 +913,7 @@ fn parse_counterfactuals(value: Option<&Value>) -> Vec<CounterfactualToken> {
         if let Some(logprob) = logprob.as_f64() {
             output.push(CounterfactualToken {
                 bytes: decode_token(token),
-                logprob: logprob as f32,
+                logprob: Some(logprob as f32),
                 id: None,
             });
         }

@@ -243,8 +243,7 @@ impl From<InnerNodeContent> for NewInnerNodeContent {
                             logprob: metadata
                                 .shift_remove("probability")
                                 .and_then(|value| value.parse::<f32>().ok())
-                                .unwrap_or(f32::NAN)
-                                .ln(),
+                                .map(|prob| prob.ln()),
                             id: if !modified {
                                 metadata
                                     .shift_remove("token_id")
@@ -265,8 +264,7 @@ impl From<InnerNodeContent> for NewInnerNodeContent {
                                                     logprob: metadata
                                                         .shift_remove("probability")
                                                         .and_then(|value| value.parse::<f32>().ok())
-                                                        .unwrap_or(f32::NAN)
-                                                        .ln(),
+                                                        .map(|prob| prob.ln()),
                                                     id: metadata.shift_remove("token_id").and_then(
                                                         |value| value.parse::<u64>().ok(),
                                                     ),
