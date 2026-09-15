@@ -194,8 +194,6 @@ fn convert_model(author: String, presets: &PresetMap) -> Model {
         let fields = [
             ("provider", &preset.provider),
             ("model", &preset.model),
-            ("url", &preset.url),
-            ("organization", &preset.organization),
             ("quantization", &preset.quantization),
         ];
 

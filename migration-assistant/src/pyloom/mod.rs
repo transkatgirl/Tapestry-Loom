@@ -386,17 +386,12 @@ fn convert_node(
     let text = node.text;
 
     let mut model_label = None;
-    let mut prompt = None;
     let mut finish_reason = None;
     let mut tokens = None;
 
     if let Some(generation) = &node.generation {
         if let Some(response) = response {
             model_label = response.model.clone();
-            prompt = response
-                .prompt
-                .as_ref()
-                .and_then(|prompt| prompt.text.clone());
 
             if let Some(completion) = response.completions.get(generation.index) {
                 finish_reason = parse_finish_reason(completion.finishReason.as_ref());
@@ -425,7 +420,6 @@ fn convert_node(
         }
     } else if let Some(legacy) = node.meta.as_ref().and_then(|meta| meta.generation.as_ref()) {
         model_label = legacy.model.clone();
-        prompt = legacy.prompt.clone();
         finish_reason = legacy.finish_reason.clone();
         tokens = build_legacy_tokens(&text, legacy);
     }
@@ -450,10 +444,7 @@ fn convert_node(
         seed: None,
         system_fingerprint: None,
         finish_reason,
-        metadata: prompt
-            .into_iter()
-            .map(|prompt| ("prompt".to_string(), prompt))
-            .collect(),
+        metadata: IndexMap::default(),
     });
 
     let creator = match source.as_deref() {
