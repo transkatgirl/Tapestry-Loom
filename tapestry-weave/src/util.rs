@@ -39,7 +39,7 @@ impl Hasher for UlidHasher {
     }
 
     fn write_u128(&mut self, i: u128) {
-        self.0 = (i >> 64) as u64;
+        self.0 = i as u64;
     }
 
     fn finish(&self) -> u64 {

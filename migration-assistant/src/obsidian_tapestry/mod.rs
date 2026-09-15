@@ -115,7 +115,7 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<TapestryWeave>
 
     let mut convert_old_identifier = move |id| {
         *mapper
-            .map_with_initial(id, (id >> 64) as u64, || rng.generate())
+            .map_with_initial(id, id as u64, || rng.generate())
             .get()
     };
 
