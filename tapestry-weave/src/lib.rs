@@ -42,6 +42,7 @@ See also: https://github.com/transkatgirl/Tapestry-Loom/blob/a232fbbb4119a8a9047
 
 */
 
+/// Generates a random identifier using `rng` which is guaranteed to not be present in `weave`.
 pub fn generate_id<W, K, N, T, S>(rng: &mut WyRand, weave: &W) -> K
 where
     W: Weave<K, N, T, Nodes = HashMap<K, N, S>>,
@@ -58,24 +59,19 @@ where
     id
 }
 
-pub fn generate_ids<W, K, N, T, S, const COUNT: usize>(rng: &mut WyRand, weave: &W) -> [K; COUNT]
+/// Generates a random identifier using `rng` which is guaranteed to not be present in `weave` or `generated`.
+pub fn generate_unqiue_id<W, K, N, T, S>(rng: &mut WyRand, weave: &W, generated: &[K]) -> K
 where
     W: Weave<K, N, T, Nodes = HashMap<K, N, S>>,
-    K: RandomGen<WyRand, 8> + Hash + Copy + Eq + Ord + Default,
+    K: RandomGen<WyRand, 8> + Hash + Copy + Eq + Ord,
     N: BuildableNode<K, T>,
     S: BuildHasher + Default + Clone,
 {
-    let mut output = [K::default(); COUNT];
+    let mut id = rng.generate();
 
-    for index in 0..COUNT {
-        let mut id = rng.generate();
-
-        while weave.contains(&id) || output.contains(&id) {
-            id = rng.generate();
-        }
-
-        output[index] = id;
+    while weave.contains(&id) || generated.contains(&id) {
+        id = rng.generate();
     }
 
-    output
+    id
 }

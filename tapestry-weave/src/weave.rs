@@ -579,7 +579,7 @@ impl DiscreteWeave<ShortId, TapestryNode, NodeContent> for TapestryWeave {
     }
 }
 
-/// A [`TapestryWeave`] created using zero-copy deserialization.
+/// A [`TapestryWeave`] loaded using zero-copy deserialization.
 pub struct ArchivedTapestryWeave<'a>(pub &'a ArchivedTapestryWeaveInner);
 
 impl<'a> From<&'a ArchivedTapestryWeaveInner> for ArchivedTapestryWeave<'a> {

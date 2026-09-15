@@ -8,6 +8,7 @@ use crate::{
 };
 
 impl TapestryWeave {
+    /// Converts a plain-text UTF-8 document into a [`TapestryWeave`].
     pub fn from_plaintext(created: Zoned, bytes: Vec<u8>) -> Self {
         let mut output = Self::with_capacity_and_metadata(
             1,

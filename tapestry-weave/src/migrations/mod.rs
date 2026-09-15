@@ -30,9 +30,13 @@ struct VersionedJson {
 }
 
 impl TapestryWeave {
+    /// Returns `true` if `bytes` starts with a valid Tapestry Loom document header.
+    ///
+    /// This function always returns `false` if `bytes.len() < 32`.
     pub fn is_header_valid(bytes: &[u8]) -> bool {
         bytes.starts_with(&HEADER_MAGIC_BYTES) && bytes.len() >= 32
     }
+    /// Deserializes a [`TapestryWeave`] from the binary Tapestry Loom document format.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         if bytes.len() < 32 {
             return Err(Error::new(HeaderError::TooShort));
@@ -53,6 +57,7 @@ impl TapestryWeave {
             Err(Error::new(HeaderError::BadHeader))
         }
     }
+    /// Deserializes a [`TapestryWeave`] from the Tapestry Loom Migration Assistant JSON format.
     pub fn from_json_str(json: &str) -> Result<Self, serde_json::Error> {
         let versioned = from_str::<VersionedJson>(json)?;
 
@@ -67,6 +72,7 @@ impl TapestryWeave {
             _ => Err(serde_json::Error::custom("unsupported version")),
         }
     }
+    /// Serializes a [`TapestryWeave`] into the binary Tapestry Loom document format.
     pub fn to_bytes_in<W: Write>(&self, writer: W) -> Result<(), Error> {
         let mut writer = IoWriter::new(writer);
 
@@ -79,6 +85,7 @@ impl TapestryWeave {
 
         Ok(())
     }
+    /// Serializes a [`TapestryWeave`] into the Tapestry Loom Migration Assistant JSON format.
     pub fn to_json(&self) -> Result<String, serde_json::Error> {
         assert!(self.as_ref().validate());
 
@@ -90,6 +97,7 @@ impl TapestryWeave {
 }
 
 impl<'a> ArchivedTapestryWeave<'a> {
+    /// Loads a [`ArchivedTapestryWeave`] from the binary Tapestry Loom document format using zero-copy deserialization.
     pub fn from_bytes(bytes: &'a [u8]) -> Result<Self, Error> {
         if bytes.len() < 32 {
             return Err(Error::new(HeaderError::TooShort));
