@@ -756,13 +756,17 @@ impl ArchivedInnerNodeContent {
     }
 }
 
+/// The entity which produced an [`InnerNodeContent`]'s value.
 #[derive(
     SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq,
 )]
 pub enum Creator {
+    /// The content was produced by a generative model *which is not the user*.
     Model(Option<Model>),
+    /// The content was produced by the user.
     User(Option<Author>),
-    Unknown, // Necessary for backwards compatibility with v0 format
+    /// It is unknown or uncertain what produced the content.
+    Unknown,
 }
 
 impl Creator {
