@@ -10,7 +10,7 @@ use universal_weave::{
 };
 
 use super::{
-    metadata::{AuxMetadataMap, MetadataMap},
+    metadata::MetadataMap,
     weave::LongId,
     wrappers::{AsBinaryZoned, Base64Standard, IAsVec},
 };
@@ -31,7 +31,7 @@ pub struct NodeContent {
     /// The inner contents of the node.
     pub content: InnerNodeContent,
 
-    /// Metadata associated with the node.
+    /// User-readable metadata associated with the node.
     ///
     /// This is typically used to store the following data:
     /// - Generation parameters not currently stored in [`Model`]
@@ -42,14 +42,6 @@ pub struct NodeContent {
     /// Split nodes inherit the original node's metadata, and nodes can only be merged if they have identical metadata.
     #[rkyv(with = IAsVec)]
     pub metadata: MetadataMap,
-
-    /// Machine-readable metadata associated with the node.
-    ///
-    /// Fields not recognized by the application are not displayed to the user.
-    ///
-    /// Split nodes inherit the original node's aux_metadata. If two merged nodes have conflicting aux_metadata, the aux_metadata is cleared.
-    #[rkyv(with = IAsVec)]
-    pub aux_metadata: AuxMetadataMap,
 
     /// The entity which created this node's contents.
     pub creator: Creator,
@@ -75,7 +67,6 @@ impl DiscreteContents for NodeContent {
                     modified: true,
                     content: right,
                     metadata: self.metadata.clone(),
-                    aux_metadata: self.aux_metadata.clone(),
                     creator: self.creator.clone(),
                 };
 
@@ -107,9 +98,6 @@ impl DiscreteContents for NodeContent {
                 self.modified = true;
                 self.timestamp = self.timestamp.max(value.timestamp);
                 self.creator = self.creator.merge(value.creator).unwrap();
-                if self.aux_metadata != value.aux_metadata {
-                    self.aux_metadata.clear();
-                }
                 DiscreteContentResult::One(self)
             }
         }

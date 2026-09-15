@@ -8,7 +8,12 @@ use universal_weave::{
 
 use super::wrappers::{AsBinaryZoned, IAsVec};
 
+/// User-readable metadata.
 pub type MetadataMap = IndexMap<String, String, RandomState>;
+
+/// Machine-readable metadata.
+///
+/// Fields not recognized by the application should not be displayed to the user.
 pub type AuxMetadataMap = IndexMap<String, Vec<u8>, RandomState>;
 
 /// Document-wide metadata.
@@ -32,7 +37,7 @@ pub struct WeaveMetadata {
 
     /// Machine-readable metadata associated with the document.
     ///
-    /// Unsupported items are not displayed to the user.
+    /// Fields not recognized by the application should not be displayed to the user.
     #[rkyv(with = IAsVec)]
     pub aux_metadata: AuxMetadataMap,
 }

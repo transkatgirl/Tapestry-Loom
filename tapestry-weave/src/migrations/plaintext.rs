@@ -32,7 +32,6 @@ impl TapestryWeave {
                 modified: false,
                 content: InnerNodeContent::Snippet(bytes),
                 metadata: MetadataMap::default(),
-                aux_metadata: AuxMetadataMap::default(),
                 creator: Creator::User(None),
             },
         }));

@@ -375,7 +375,6 @@ impl From<NodeContent> for NewNodeContent {
             timestamp: Zoned::default(),
             modified,
             metadata: value.metadata,
-            aux_metadata: AuxMetadataMap::default(),
             creator,
             content,
         }
