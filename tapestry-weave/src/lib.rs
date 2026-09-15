@@ -30,11 +30,19 @@ pub use weave::{LongId, ShortId, TapestryNode, TapestryWeave};
 
 TODO:
 - Diff-based tree updates
-- Editor undo/redo
+    - Widen diffs to unicode graphemes and node token boundaries
+    - Maybe add custom widening (such as nearest word)?
+- Wrappers
+    - TapestryWeave trait??
+    - LoggedTapestryWeave
+        - Bounded editor undo/redo
+        - Modification serialization and deserialization
+        - Modification application
+        - Rollback
+    - Node-specific AuxMetadata
 
 Ideas for future formats:
 - Longest common prefix deduplication
-- Event-based invalidation support for multi-user weaves
 - Bookmark labels
 - Metadata storage for LLM-as-weaver
 
