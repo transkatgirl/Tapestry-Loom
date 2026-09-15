@@ -31,13 +31,23 @@ pub struct NodeContent {
     /// The inner contents of the node.
     pub content: InnerNodeContent,
 
-    /// User-readable metadata associated with the node.
+    /// Metadata associated with the node.
+    ///
+    /// This is typically used to store the following data:
+    /// - Generation parameters not currently stored in [`Model`]
+    /// - (Atypical) response fields not currently stored in [`Model`]
+    /// - Converted node-specific metadata lacking a dedicated field (such as tags or associated media)
+    /// - Anything else important to the user
+    ///
+    /// Split nodes inherit the original node's metadata, and nodes can only be merged if they have identical metadata.
     #[rkyv(with = IAsVec)]
     pub metadata: MetadataMap,
 
     /// Machine-readable metadata associated with the node.
     ///
-    /// Unsupported items are not displayed to the user.
+    /// Fields not recognized by the application are not displayed to the user.
+    ///
+    /// Split nodes inherit the original node's aux_metadata. If two merged nodes have conflicting aux_metadata, the aux_metadata is cleared.
     #[rkyv(with = IAsVec)]
     pub aux_metadata: AuxMetadataMap,
 
@@ -972,6 +982,12 @@ pub struct Model {
 
     /// Additional user-readable information about the model used to generate the content.
     ///
+    /// For example, this could be used to store:
+    /// - Hugging Face repo_id
+    /// - Quanization metadata
+    /// - Backend type
+    /// - Request template (such as a prefix for doing "fake-base" ChatCompletions requests)
+    ///
     /// **This should not contain sensitive information**, such as endpoint URLs or API keys, as documents may be shared publicly.
     #[rkyv(with = IAsVec)]
     pub metadata: MetadataMap,
@@ -1047,6 +1063,11 @@ pub struct Author {
     pub identifier: Option<LongId>,
 
     /// Additional user-readable information about the user.
+    ///
+    /// For example, this could be used to store:
+    /// - Usernames
+    /// - Pronoun preferences
+    /// - Alternative names / plural system metadata
     ///
     /// **This should not contain sensitive information**, such as email addresses or legal names, as documents may be shared publicly.
     #[rkyv(with = IAsVec)]
