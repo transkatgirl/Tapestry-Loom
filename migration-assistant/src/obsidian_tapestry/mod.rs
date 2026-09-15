@@ -28,7 +28,7 @@ use tapestry_weave::{
         MetadataWeave, Weave,
         indexmap::{IndexMap, IndexSet},
     },
-    util::{RandomIdHasher, RandomState, UniqueIdentifierRemapper},
+    util::{RandomIdHasher, UniqueIdentifierRemapper},
 };
 use ulid::Ulid;
 
@@ -105,7 +105,7 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<TapestryWeave>
     let mut mapper: UniqueIdentifierRemapper<
         u128,
         u64,
-        RandomState,
+        BuildHasherDefault<RandomIdHasher>,
         BuildHasherDefault<RandomIdHasher>,
     > = UniqueIdentifierRemapper::with_capacity(input.nodes.len());
 

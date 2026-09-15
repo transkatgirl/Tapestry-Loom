@@ -21,7 +21,7 @@ use crate::{
         Model as NewModel, NodeContent as NewNodeContent, OriginalToken, UNKNOWN_MODEL_LABEL,
     },
     metadata::{AuxMetadataMap, ConvertedFrom, WeaveMetadata as NewWeaveMetadata},
-    util::{RandomIdHasher, UlidHasher, UniqueIdentifierRemapper},
+    util::{RandomIdHasher, UniqueIdentifierRemapper},
     weave::{LongId, TapestryNode as NewTapestryNode, TapestryWeave as NewTapestryWeave},
 };
 
@@ -197,8 +197,8 @@ pub struct Model {
 
 #[allow(deprecated)]
 pub type TapestryWeave =
-    LegacyDependentWeave<u128, NodeContent, MetadataMap, BuildHasherDefault<UlidHasher>>;
-//pub type TapestryNode = DependentNode<u128, NodeContent, BuildHasherDefault<UlidHasher>>;
+    LegacyDependentWeave<u128, NodeContent, MetadataMap, BuildHasherDefault<RandomIdHasher>>;
+//pub type TapestryNode = DependentNode<u128, NodeContent, BuildHasherDefault<RandomIdHasher>>;
 pub type MetadataMap = IndexMap<String, String, RandomState>;
 
 pub fn deserialize_counterfactual_logprobs(logprobs: &str) -> Option<Vec<(Vec<u8>, MetadataMap)>> {
@@ -395,7 +395,7 @@ impl From<TapestryWeave> for NewTapestryWeave {
         let mut mapper: UniqueIdentifierRemapper<
             u128,
             u64,
-            BuildHasherDefault<UlidHasher>,
+            BuildHasherDefault<RandomIdHasher>,
             BuildHasherDefault<RandomIdHasher>,
         > = UniqueIdentifierRemapper::with_capacity(identifiers.len());
 

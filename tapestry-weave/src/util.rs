@@ -28,25 +28,6 @@ use universal_weave::{
 
 pub use foldhash::fast::RandomState;
 
-#[cfg(feature = "v0")]
-#[derive(Default)]
-pub(crate) struct UlidHasher(u64);
-
-#[cfg(feature = "v0")]
-impl Hasher for UlidHasher {
-    fn write(&mut self, _: &[u8]) {
-        unimplemented!()
-    }
-
-    fn write_u128(&mut self, i: u128) {
-        self.0 = i as u64;
-    }
-
-    fn finish(&self) -> u64 {
-        self.0
-    }
-}
-
 #[derive(Default)]
 pub struct RandomIdHasher(u64);
 
@@ -57,6 +38,10 @@ impl Hasher for RandomIdHasher {
 
     fn write_u64(&mut self, i: u64) {
         self.0 = i;
+    }
+
+    fn write_u128(&mut self, i: u128) {
+        self.0 = i as u64;
     }
 
     fn finish(&self) -> u64 {
