@@ -28,6 +28,11 @@ use universal_weave::{
 
 pub use foldhash::fast::RandomState;
 
+/// A [`Hasher`] implementation which passes through values without modification, intended for sets and maps keyed by randomly generated identifiers.
+///
+/// # Panics
+///
+/// Panics if methods other than [`Hasher::write_u64`] or [`Hasher::write_u128`] are called.
 #[derive(Default)]
 pub struct RandomIdHasher(u64);
 
@@ -237,6 +242,9 @@ where
     }
 }
 
+/// A mapper for converting between two different types of identifiers.
+///
+/// Mappings are guaranteed to be unique; No two inputs are mapped to the same output.
 pub struct UniqueIdentifierRemapper<K, V, KS, VS>
 where
     K: Hash + Eq,
@@ -248,6 +256,18 @@ where
     new_ids: HashSet<V, VS>,
 }
 
+impl<K, V, KS, VS> Default for UniqueIdentifierRemapper<K, V, KS, VS>
+where
+    K: Hash + Eq,
+    V: Hash + Clone + Eq,
+    KS: BuildHasher + Default + Clone,
+    VS: BuildHasher + Default + Clone,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<K, V, KS, VS> UniqueIdentifierRemapper<K, V, KS, VS>
 where
     K: Hash + Eq,
@@ -255,18 +275,33 @@ where
     KS: BuildHasher + Default + Clone,
     VS: BuildHasher + Default + Clone,
 {
+    /// Creates a new, empty [`UniqueIdentifierRemapper`].
+    pub fn new() -> Self {
+        Self {
+            old_to_new: HashMap::with_hasher(KS::default()),
+            new_ids: HashSet::with_hasher(VS::default()),
+        }
+    }
+    /// Creates a new, empty [`UniqueIdentifierRemapper`] with at least the specified capacity.
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             old_to_new: HashMap::with_capacity_and_hasher(capacity, KS::default()),
             new_ids: HashSet::with_capacity_and_hasher(capacity, VS::default()),
         }
     }
-    pub fn extend_output_id_set(&mut self, iter: impl Iterator<Item = V>) {
+    /// Extends the set of used identifiers with the following iterator.
+    ///
+    /// Identifiers consumed by this iterator which were not already used as a mapping value will never be returned during mapping.
+    pub fn extend_taken_id_set(&mut self, iter: impl Iterator<Item = V>) {
         self.new_ids.extend(iter);
     }
+    /// Converts the mapper into a [`HashMap`] between the old and new identifier types.
     pub fn into_map(self) -> HashMap<K, V, KS> {
         self.old_to_new
     }
+    /// Maps the input identifier to its corresponding output identifier.
+    ///
+    /// If the input has not already been mapped, a unique identifier will be created using `generator`.
     pub fn map(&mut self, input: K, mut generator: impl FnMut() -> V) -> OccupiedEntry<'_, K, V> {
         let mut generate_unique = || {
             let mut id = generator();
@@ -285,6 +320,9 @@ where
             Entry::Vacant(vacant) => vacant.insert_entry(generate_unique()),
         }
     }
+    /// Maps the input identifier to its corresponding output identifier.
+    ///
+    /// If the input has not already been mapped, `initial` will be used as the output if it has not already been used by a mapping. If `initial` has been used previously, a unique identifier will be created using `generator`.
     pub fn map_with_initial(
         &mut self,
         input: K,
@@ -306,51 +344,6 @@ where
         match self.old_to_new.entry(input) {
             Entry::Occupied(occupied) => occupied,
             Entry::Vacant(vacant) => vacant.insert_entry(generate_unique()),
-        }
-    }
-    pub fn try_map<E>(
-        &mut self,
-        input: K,
-        mut generator: impl FnMut() -> Result<V, E>,
-    ) -> Result<OccupiedEntry<'_, K, V>, E> {
-        let mut generate_unique = || {
-            let mut id = generator()?;
-
-            while self.new_ids.contains(&id) {
-                id = generator()?;
-            }
-
-            self.new_ids.insert(id.clone());
-
-            Ok(id)
-        };
-
-        match self.old_to_new.entry(input) {
-            Entry::Occupied(occupied) => Ok(occupied),
-            Entry::Vacant(vacant) => Ok(vacant.insert_entry(generate_unique()?)),
-        }
-    }
-    pub fn try_map_with_initial<E>(
-        &mut self,
-        input: K,
-        initial: V,
-        mut generator: impl FnMut() -> Result<V, E>,
-    ) -> Result<OccupiedEntry<'_, K, V>, E> {
-        let generate_unique = || {
-            let mut id = initial;
-
-            while self.new_ids.contains(&id) {
-                id = generator()?;
-            }
-
-            self.new_ids.insert(id.clone());
-
-            Ok(id)
-        };
-
-        match self.old_to_new.entry(input) {
-            Entry::Occupied(occupied) => Ok(occupied),
-            Entry::Vacant(vacant) => Ok(vacant.insert_entry(generate_unique()?)),
         }
     }
 }
