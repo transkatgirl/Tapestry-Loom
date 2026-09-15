@@ -707,16 +707,20 @@ fn build_diff_tokens(
         return None;
     }
 
-    let prompt_length = generation
-        .and_then(|generation| generation.prompt.as_ref())
-        .map(|prompt| prompt.chars().count());
+    let prompt_end = if original_positions.iter().any(|offset| *offset < 0) {
+        Some(0)
+    } else {
+        generation
+            .and_then(|generation| generation.prompt.as_ref())
+            .map(|prompt| prompt.chars().count() as i64)
+    };
 
     let mut kept: Vec<usize> = (0..original_tokens.len())
         .filter(|i| {
-            prompt_length.is_none_or(|length| {
+            prompt_end.is_none_or(|prompt_end| {
                 original_positions
                     .get(*i)
-                    .is_none_or(|offset| *offset >= length)
+                    .is_none_or(|offset| *offset >= prompt_end)
             })
         })
         .collect();
@@ -839,7 +843,7 @@ fn extend_original(record: &mut TokenRecord, removed: &[u8]) {
     }
 }
 
-fn parse_tokenization(value: &Value) -> Option<(Vec<String>, Vec<usize>)> {
+fn parse_tokenization(value: &Value) -> Option<(Vec<String>, Vec<i64>)> {
     let parts = value.as_array()?;
 
     let tokens = parts
@@ -855,7 +859,7 @@ fn parse_tokenization(value: &Value) -> Option<(Vec<String>, Vec<usize>)> {
         .map(|positions| {
             positions
                 .iter()
-                .filter_map(|position| position.as_f64().map(|position| position as usize))
+                .filter_map(|position| position.as_f64().map(|position| position as i64))
                 .collect()
         })
         .unwrap_or_default();

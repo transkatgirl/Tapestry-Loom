@@ -2,25 +2,26 @@
 
 A tool for converting weaves from other Loom implementations into the Tapestry Loom weave format.
 
-Supported input formats:
+Fully supported input formats:
 - [tapestry-weave](../tapestry-weave)
-	- Rkyv serialized (**Tapestry Loom format**)
-		- Useful for verifying that all weaves within a folder are valid
-	- JSON serialized
+	- Binary (**Tapestry Loom format**)
+		- Useful for upgrading outdated weaves
+	- JSON
 		- Useful for editing weaves using 3rd party tools
 - [Legacy Tapestry Loom Obsidian plugin](https://github.com/transkatgirl/Tapestry-Loom/tree/legacy)
-- [loom](https://github.com/socketteer/loom)*, tested with commit 91ca920551120ad4508540e8da057c0b94067afc
-- [loomsidian](https://github.com/cosmicoptima/loom)*, tested with commit afbb3519f10d668d4688c68370d7b9305c9f80dc
-- [exoloom](https://exoloom.io)*, last tested on December 17, 2025
+
+Partially supported input formats:
+- [loom](https://github.com/socketteer/loom), tested with commit 91ca920551120ad4508540e8da057c0b94067afc
+- [loomsidian](https://github.com/cosmicoptima/loom), tested with commit afbb3519f10d668d4688c68370d7b9305c9f80dc
+- [exoloom](https://exoloom.io), last tested on December 17, 2025
 	- Note: Exoloom's export format does not contain information on which nodes are active
+- Please file any bugs that you find and/or submit PRs to improve format support
 
 Supported output formats:
 - [tapestry-weave](../tapestry-weave)
-	- Rkyv serialized (**Tapestry Loom format**, default)
-	- JSON serialized
+	- Binary (**Tapestry Loom format**, default)
+	- JSON
 		- Useful for editing weaves using 3rd party tools; *Cannot be read inside Tapestry Loom*
-
-\* = Supported on a best-effort basis & likely incomplete; Please file any bugs that you find and/or submit PRs to improve format support
 
 ## Getting Started
 
