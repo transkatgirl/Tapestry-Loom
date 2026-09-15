@@ -20,10 +20,9 @@ use crate::{
         CounterfactualToken, Creator, InnerNodeContent as NewInnerNodeContent, InnerNodeToken,
         Model as NewModel, NodeContent as NewNodeContent, OriginalToken, UNKNOWN_MODEL_LABEL,
     },
-    hashers::{RandomIdHasher, UlidHasher},
     metadata::{AuxMetadataMap, ConvertedFrom, WeaveMetadata as NewWeaveMetadata},
+    util::{RandomIdHasher, UlidHasher, UniqueIdentifierRemapper},
     weave::{LongId, TapestryNode as NewTapestryNode, TapestryWeave as NewTapestryWeave},
-    wrappers::UniqueIdentifierRemapper,
 };
 
 pub const FORMAT_VERSION: u64 = 0;

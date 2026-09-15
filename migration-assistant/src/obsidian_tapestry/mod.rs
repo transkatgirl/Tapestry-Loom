@@ -21,7 +21,6 @@ use tapestry_weave::{
         Creator, InnerNodeContent, InnerNodeToken, Model, NodeContent, OriginalToken,
         UNKNOWN_MODEL_LABEL,
     },
-    hashers::{RandomIdHasher, UlidHasher},
     jiff::{Timestamp, Zoned},
     metadata::MetadataMap,
     nanorand::{Rng, WyRand},
@@ -29,7 +28,7 @@ use tapestry_weave::{
         MetadataWeave, Weave,
         indexmap::{IndexMap, IndexSet},
     },
-    wrappers::UniqueIdentifierRemapper,
+    util::{RandomIdHasher, RandomState, UniqueIdentifierRemapper},
 };
 use ulid::Ulid;
 
@@ -106,7 +105,7 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<TapestryWeave>
     let mut mapper: UniqueIdentifierRemapper<
         u128,
         u64,
-        BuildHasherDefault<UlidHasher>,
+        RandomState,
         BuildHasherDefault<RandomIdHasher>,
     > = UniqueIdentifierRemapper::with_capacity(input.nodes.len());
 
@@ -165,7 +164,6 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<TapestryWeave>
                             ),
                         },
                         metadata: node.parameters.unwrap_or_default(),
-                        aux_metadata: IndexMap::default(),
                         creator: node
                             .model
                             .map(|id| {

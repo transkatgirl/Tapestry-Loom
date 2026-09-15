@@ -1,3 +1,5 @@
+//! Document format implementations.
+
 use std::{cmp::Ordering, hash::BuildHasherDefault, iter, num::NonZeroU128};
 
 use universal_weave::{
@@ -16,20 +18,42 @@ use universal_weave::{
 
 use super::{
     content::{ArchivedNodeContent, InnerNodeContent, NodeContent},
-    hashers::RandomIdHasher,
     metadata::{ArchivedWeaveMetadata, WeaveMetadata},
+    util::RandomIdHasher,
 };
+
+/// The file extension used for Tapestry Loom documents.
+pub const FILE_EXTENSION: &str = "tapestry";
+
+/// The magic bytes at the start of every Tapestry Loom document.
+pub const HEADER_MAGIC_BYTES: [u8; 24] = *b"VersionedTapestryWeave__";
 
 pub(crate) const FORMAT_VERSION: u64 = 1;
 
+/// A *randomly generated* node identifier used within a [`TapestryWeave`].
+///
+/// This identifier must be unique within the document, but may not be unique between documents.
 pub type ShortId = u64;
+
+/// A *randomly generated* node identifier used within an [`ArchivedTapestryWeave`].
+///
+/// This identifier must be unique within the document, but may not be unique between documents.
+pub type ArchivedShortId = <ShortId as Archive>::Archived;
+
+/// A universally unique identifier used for entities referenced in a [`TapestryWeave`].
 pub type LongId = NonZeroU128;
+
+/// A node in a [`TapestryWeave`] document.
 pub type TapestryNode = IndependentNode<u64, NodeContent, BuildHasherDefault<RandomIdHasher>>;
+
+/// A node in an [`ArchivedTapestryWeave`] document.
+pub type ArchivedTapestryNode = <TapestryNode as Archive>::Archived;
+
+/// The inner contents of a [`TapestryWeave`].
 pub type TapestryWeaveInner =
     IndependentWeave<u64, NodeContent, WeaveMetadata, BuildHasherDefault<RandomIdHasher>>;
 
-pub type ArchivedShortId = <ShortId as Archive>::Archived;
-pub type ArchivedTapestryNode = <TapestryNode as Archive>::Archived;
+/// The inner contents of an [`ArchivedTapestryWeave`].
 pub type ArchivedTapestryWeaveInner = <TapestryWeaveInner as Archive>::Archived;
 
 /// An [`IndependentWeave`] wrapper which implements Tapestry Loom's document format.
@@ -555,6 +579,7 @@ impl DiscreteWeave<ShortId, TapestryNode, NodeContent> for TapestryWeave {
     }
 }
 
+/// A [`TapestryWeave`] created using zero-copy deserialization.
 pub struct ArchivedTapestryWeave<'a>(pub &'a ArchivedTapestryWeaveInner);
 
 impl<'a> From<&'a ArchivedTapestryWeaveInner> for ArchivedTapestryWeave<'a> {

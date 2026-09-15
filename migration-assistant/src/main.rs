@@ -12,6 +12,7 @@ use tapestry_weave::{
     jiff::Zoned,
     metadata::{AuxMetadataMap, ConvertedFrom, MetadataMap, WeaveMetadata},
     universal_weave::rkyv::util::AlignedVec,
+    weave::FILE_EXTENSION,
 };
 use walkdir::WalkDir;
 
@@ -76,7 +77,7 @@ fn main() -> anyhow::Result<()> {
                 }
 
                 migrate_json_weave(entry.path(), &output, args.output_debug_json)?;
-            } else if extension == "tapestry" {
+            } else if extension == FILE_EXTENSION {
                 if let Some(parent) = output.parent()
                     && !parent.as_os_str().is_empty()
                 {

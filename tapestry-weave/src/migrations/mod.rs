@@ -13,9 +13,9 @@ use universal_weave::{
     versioning::VersionedBytes,
 };
 
-use crate::{
-    HEADER_MAGIC_BYTES,
-    weave::{ArchivedTapestryWeave, ArchivedTapestryWeaveInner, TapestryWeave, TapestryWeaveInner},
+use crate::weave::{
+    ArchivedTapestryWeave, ArchivedTapestryWeaveInner, HEADER_MAGIC_BYTES, TapestryWeave,
+    TapestryWeaveInner,
 };
 
 mod plaintext;

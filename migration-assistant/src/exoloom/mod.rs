@@ -12,14 +12,13 @@ use stacksafe::stacksafe;
 use tapestry_weave::{
     TapestryNode, TapestryWeave,
     content::{Author, Creator, InnerNodeContent, Model, NodeContent},
-    hashers::RandomIdHasher,
     jiff::{Zoned, fmt::rfc2822::DateTimeParser},
     nanorand::{Rng, WyRand},
     universal_weave::{
         MetadataWeave, Weave,
         indexmap::{IndexMap, IndexSet},
     },
-    wrappers::UniqueIdentifierRemapper,
+    util::{RandomIdHasher, UniqueIdentifierRemapper},
 };
 
 use crate::{
@@ -112,7 +111,6 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWea
                         } else {
                             IndexMap::default()
                         },
-                        aux_metadata: IndexMap::default(),
                         creator: match node.authorType {
                             LLM => {
                                 Creator::Model(node.authorName.map(|label| Model {

@@ -1,3 +1,5 @@
+//! [`Node`](universal_weave::Node) content representations.
+
 use std::borrow::Cow;
 
 use jiff::Zoned;
@@ -11,8 +13,8 @@ use universal_weave::{
 
 use super::{
     metadata::MetadataMap,
+    util::{AsBinaryZoned, Base64Standard, IAsVec},
     weave::LongId,
-    wrappers::{AsBinaryZoned, Base64Standard, IAsVec},
 };
 
 /// The contents of a [`TapestryNode`](crate::weave::TapestryNode).

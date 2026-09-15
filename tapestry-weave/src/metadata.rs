@@ -1,3 +1,5 @@
+//! Document metadata representations.
+
 use foldhash::fast::RandomState;
 use jiff::Zoned;
 use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
@@ -6,7 +8,7 @@ use universal_weave::{
     rkyv::{Archive, Deserialize, Serialize},
 };
 
-use super::wrappers::{AsBinaryZoned, IAsVec};
+use super::util::{AsBinaryZoned, IAsVec};
 
 /// User-readable metadata.
 pub type MetadataMap = IndexMap<String, String, RandomState>;

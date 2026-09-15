@@ -12,14 +12,13 @@ use tapestry_weave::{
         CounterfactualToken, Creator, InnerNodeContent, InnerNodeToken, Model, NodeContent,
         OriginalToken,
     },
-    hashers::{RandomIdHasher, RandomState},
     jiff::{Zoned, civil::DateTime, tz::TimeZone},
     nanorand::{Rng, WyRand},
     universal_weave::{
         MetadataWeave, Weave,
         indexmap::{IndexMap, IndexSet},
     },
-    wrappers::UniqueIdentifierRemapper,
+    util::{RandomIdHasher, RandomState, UniqueIdentifierRemapper},
 };
 
 use crate::new_weave;
@@ -475,7 +474,6 @@ fn convert_node(
             modified,
             content,
             metadata,
-            aux_metadata: IndexMap::default(),
             creator,
         },
     }));

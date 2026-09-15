@@ -12,14 +12,13 @@ use stacksafe::stacksafe;
 use tapestry_weave::{
     TapestryNode, TapestryWeave,
     content::{Creator, InnerNodeContent, Model, NodeContent},
-    hashers::{RandomIdHasher, RandomState},
     jiff::{Timestamp, Zoned},
     nanorand::{Rng, WyRand},
     universal_weave::{
         MetadataWeave, Weave,
         indexmap::{IndexMap, IndexSet},
     },
-    wrappers::UniqueIdentifierRemapper,
+    util::{RandomIdHasher, RandomState, UniqueIdentifierRemapper},
 };
 use uuid::Uuid;
 
@@ -140,7 +139,6 @@ fn convert_weave(
                         node.text.or(node.value).unwrap_or_default()
                     )),
                     metadata,
-                    aux_metadata: IndexMap::default(),
                     creator: node
                         .author
                         .map(|author| {
