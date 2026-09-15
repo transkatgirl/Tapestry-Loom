@@ -577,21 +577,10 @@ fn build_tokens(
     }
 
     for (token_bytes, logprob, counterfactual, original) in tokens {
-        let mut metadata = IndexMap::default();
-
-        let logprob = match logprob {
-            Some(logprob) => logprob as f32,
-            None => {
-                metadata.insert("logprob".to_string(), "unknown".to_string());
-                0.0
-            }
-        };
-
         let mut token = InnerNodeToken {
             bytes: token_bytes,
-            logprob,
+            logprob: logprob.map(|p| p as f32).unwrap_or(f32::NAN),
             id: None,
-            metadata,
             entropy: None,
             counterfactual,
             original,
@@ -611,9 +600,8 @@ fn build_tokens(
 fn unknown_token(bytes: Vec<u8>) -> InnerNodeToken {
     InnerNodeToken {
         bytes,
-        logprob: 0.0,
+        logprob: f32::NAN,
         id: None,
-        metadata: IndexMap::from_iter([("logprob".to_string(), "unknown".to_string())]),
         entropy: None,
         counterfactual: Vec::new(),
         original: OriginalToken::Unmodified,
@@ -927,7 +915,6 @@ fn parse_counterfactuals(value: Option<&Value>) -> Vec<CounterfactualToken> {
                 bytes: decode_token(token),
                 logprob: logprob as f32,
                 id: None,
-                metadata: IndexMap::default(),
             });
         }
     };

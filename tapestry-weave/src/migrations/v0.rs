@@ -226,10 +226,6 @@ impl From<InnerNodeContent> for NewInnerNodeContent {
                 tokens
                     .into_iter()
                     .map(|(token, mut metadata)| {
-                        metadata.shift_remove("model_id");
-                        metadata.shift_remove("confidence");
-                        metadata.shift_remove("confidence_k");
-
                         let mut modified = metadata
                             .shift_remove("original_length")
                             .and_then(|value| value.parse::<usize>().ok())
@@ -264,36 +260,22 @@ impl From<InnerNodeContent> for NewInnerNodeContent {
                                         |counterfactual| {
                                             counterfactual
                                                 .into_iter()
-                                                .map(|(token, mut metadata)| {
-                                                    metadata.shift_remove("model_id");
-                                                    metadata.shift_remove("confidence");
-                                                    metadata.shift_remove("confidence_k");
-                                                    metadata.shift_remove("original_length");
-                                                    metadata.shift_remove("modified");
-
-                                                    CounterfactualToken {
-                                                        bytes: token,
-                                                        logprob: metadata
-                                                            .shift_remove("probability")
-                                                            .and_then(|value| {
-                                                                value.parse::<f32>().ok()
-                                                            })
-                                                            .unwrap_or(f32::NAN)
-                                                            .ln(),
-                                                        id: metadata
-                                                            .shift_remove("token_id")
-                                                            .and_then(|value| {
-                                                                value.parse::<u64>().ok()
-                                                            }),
-                                                        metadata,
-                                                    }
+                                                .map(|(token, mut metadata)| CounterfactualToken {
+                                                    bytes: token,
+                                                    logprob: metadata
+                                                        .shift_remove("probability")
+                                                        .and_then(|value| value.parse::<f32>().ok())
+                                                        .unwrap_or(f32::NAN)
+                                                        .ln(),
+                                                    id: metadata.shift_remove("token_id").and_then(
+                                                        |value| value.parse::<u64>().ok(),
+                                                    ),
                                                 })
                                                 .collect()
                                         },
                                     )
                                 })
                                 .unwrap_or_default(),
-                            metadata,
                             original: if modified {
                                 OriginalToken::Unknown
                             } else {

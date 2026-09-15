@@ -19,18 +19,28 @@ use super::{
     SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq,
 )]
 pub struct NodeContent {
+    /// The instant the node was created.
     #[rkyv(with = AsBinaryZoned)]
     pub timestamp: Zoned,
+    /// If the node has been split or merged.
+    ///
+    /// Other types of content modifications should update the `creator` field and reset this field to `false`.
     pub modified: bool,
 
+    /// The contents of the node.
     pub content: InnerNodeContent,
 
+    /// Human-readable metadata associated with the node.
     #[rkyv(with = IAsVec)]
     pub metadata: MetadataMap,
 
+    /// Machine-readable metadata associated with the node.
+    ///
+    /// Unsupported items are not displayed to the user.
     #[rkyv(with = IAsVec)]
     pub aux_metadata: AuxMetadataMap,
 
+    /// The entity which created this node's contents.
     pub creator: Creator,
 }
 
@@ -113,12 +123,22 @@ impl DeduplicatableContents for NodeContent {
     }
 }
 
+/// The inner contents of a [`TapestryNode`](crate::weave::TapestryNode).
+///
+/// # Text Encoding
+///
+/// Text is stored as bytes which should be interpreted as UTF-8.
+///
+/// However, LLM tokenization does not guarantee that individual tokens are UTF-8. As a result, contents may contain invalid UTF-8, or UTF-8 which is only valid when combined with the contents of another node.
 #[derive(
     SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq,
 )]
 pub enum InnerNodeContent {
+    /// A text segment.
     Snippet(#[serde(with = "Base64Standard")] Vec<u8>),
+    /// A tokenized text segment.
     Tokens(Vec<InnerNodeToken>),
+    /// A node without any associated contents.
     MetadataOnly,
 }
 
@@ -308,22 +328,35 @@ impl ArchivedInnerNodeContent {
     }
 }
 
+/// A textual token from [`InnerNodeContent::Tokens`].
+///
+/// # Text Encoding
+///
+/// Text is stored as bytes which should be interpreted as UTF-8.
+///
+/// However, LLM tokenization does not guarantee that individual tokens are UTF-8. As a result, tokens may contain invalid UTF-8, or UTF-8 which is only valid when combined with other tokens.
 #[derive(
     SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq,
 )]
 pub struct InnerNodeToken {
+    /// The token's textual representation.
+    ///
+    /// If the token is not printable, this field should be empty.
     #[serde(with = "Base64Standard")]
     pub bytes: Vec<u8>,
+    /// The natural logarithm of the probability associated with the token.
+    ///
+    /// If the token has no associated probability, this should be set to `f32::NAN`.
     pub logprob: f32,
+    /// The generator-specific numeric ID associated with the token.
     pub id: Option<u64>,
-
-    #[rkyv(with = IAsVec)]
-    pub metadata: MetadataMap,
 
     #[rkyv(with = NicheInto<niching::NaN>)]
     pub entropy: Option<f32>,
+    /// The counterfactual tokens for the current position.
     pub counterfactual: Vec<CounterfactualToken>,
 
+    /// The token's original `bytes` value, if any.
     pub original: OriginalToken,
 }
 
@@ -336,7 +369,6 @@ impl InnerNodeToken {
             bytes: token.bytes,
             logprob: token.logprob,
             id: token.id,
-            metadata: token.metadata,
             entropy: None,
             counterfactual,
             original: OriginalToken::Unmodified,
@@ -374,7 +406,6 @@ impl InnerNodeToken {
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
         self.bytes == value.bytes
             && self.id == value.id
-            && self.metadata == value.metadata
             && self.entropy.is_some() == value.entropy.is_some()
             && self.original == value.original
             && self.counterfactual.len() == value.counterfactual.len()
@@ -405,18 +436,23 @@ impl ArchivedInnerNodeToken {
             None
         }
     }
+    /// Returns `true` if the token's contents were modified.
     pub fn is_modified(&self) -> bool {
         self.original.is_modified()
     }
 }
 
+/// The original contents of an [`InnerNodeToken`].
 #[derive(
     SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq,
 )]
 pub enum OriginalToken {
+    /// The token has not been modified.
     Unmodified,
+    /// The token has been modified and the original contents are known.
     Known(#[serde(with = "Base64Standard")] Vec<u8>),
-    Unknown, // Necessary for backwards compatibility with v0 format
+    /// The token has been modified and the original contents are unknown.
+    Unknown,
 }
 
 impl OriginalToken {
@@ -439,27 +475,32 @@ impl ArchivedOriginalToken {
     }
 }
 
+/// A counterfactual [`InnerNodeToken`].
 #[derive(
     SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq,
 )]
 pub struct CounterfactualToken {
+    /// The token's textual representation.
     #[serde(with = "Base64Standard")]
     pub bytes: Vec<u8>,
+    /// The natural logarithm of the probability associated with the token.
+    ///
+    /// If the token has no associated probability, this should be set to `f32::NAN`.
     pub logprob: f32,
+    /// The generator-specific numeric ID associated with the token.
     pub id: Option<u64>,
-
-    #[rkyv(with = IAsVec)]
-    pub metadata: MetadataMap,
 }
 
 impl CounterfactualToken {
+    /// Calculates an entropy value from an iterator containing all possible tokens for a given position.
     pub fn calculate_entropy<'a>(tokens: impl Iterator<Item = &'a CounterfactualToken>) -> f64 {
         -tokens
             .map(|token| (token.logprob as f64).exp() * (token.logprob as f64))
             .sum::<f64>()
     }
+    /// Returns true if two tokens contain duplicate contents.
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
-        self.bytes == value.bytes && self.id == value.id && self.metadata == value.metadata
+        self.bytes == value.bytes && self.id == value.id
     }
 }
 
@@ -517,7 +558,6 @@ impl InnerNodeContent {
                             id: None,
                             entropy: right[0].entropy,
                             logprob: right[0].logprob,
-                            metadata: right[0].metadata.clone(),
                             counterfactual: right[0].counterfactual.clone(),
                             original: right[0].original.clone(),
                         });

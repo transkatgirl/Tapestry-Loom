@@ -156,7 +156,6 @@ fn convert_weave(input: String, created: Zoned) -> anyhow::Result<TapestryWeave>
                                             bytes: token.into_bytes(),
                                             logprob: probability.ln() as f32,
                                             id: None,
-                                            metadata: IndexMap::default(),
                                             entropy: None,
                                             counterfactual: vec![],
                                             original: OriginalToken::Unmodified,
