@@ -15,6 +15,7 @@ use super::{
     wrappers::{AsBinaryZoned, Base64Standard, IAsVec},
 };
 
+/// The contents of a [`TapestryNode`](crate::weave::TapestryNode).
 #[derive(
     SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq,
 )]
@@ -27,7 +28,7 @@ pub struct NodeContent {
     /// Other types of content modifications should update the `creator` field and reset this field to `false`.
     pub modified: bool,
 
-    /// The contents of the node.
+    /// The inner contents of the node.
     pub content: InnerNodeContent,
 
     /// Human-readable metadata associated with the node.
@@ -351,6 +352,7 @@ pub struct InnerNodeToken {
     /// The generator-specific numeric ID associated with the token.
     pub id: Option<u64>,
 
+    /// The entropy value associated with the current position.
     #[rkyv(with = NicheInto<niching::NaN>)]
     pub entropy: Option<f32>,
     /// The counterfactual tokens for the current position.
@@ -765,7 +767,7 @@ pub enum Creator {
     Model(Option<Model>),
     /// The content was produced by the user.
     User(Option<Author>),
-    /// It is unknown or uncertain what produced the content.
+    /// It is unknown or uncertain what type of entity produced the content.
     Unknown,
 }
 
@@ -910,20 +912,37 @@ impl ArchivedCreator {
     }
 }
 
+/// A label used to represent an unknown model name.
+pub const UNKNOWN_MODEL_LABEL: &str = "Unknown Model";
+
+/// Information about a generative model which produced an [`InnerNodeContent`]'s value.
+///
+/// *This not be used to represent a user, regardless of their identity.*
 #[derive(
     SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq,
 )]
 pub struct Model {
+    /// A name associated with the model.
+    ///
+    /// If the model's name is unknown, this should be set to [`UNKNOWN_MODEL_LABEL`].
     pub label: String,
+    /// An optional color associated with the model.
     pub color: Option<String>,
 
+    /// A unique identifier for the model.
     #[rkyv(with = NicheInto<niching::Zero>)]
     pub identifier: Option<LongId>,
 
+    /// The seed used to generate the content.
     pub seed: Option<u32>,
+    /// A string which identifies the backend configuration used to generate the content.
     pub system_fingerprint: Option<String>,
+    /// The reason the content finished being generated.
     pub finish_reason: Option<String>,
 
+    /// Additional information about the model used to generate the content.
+    ///
+    /// **This should not contain sensitive information**, such as endpoint URLs or API keys, as documents may be shared publicly.
     #[rkyv(with = IAsVec)]
     pub metadata: MetadataMap,
 }
@@ -983,18 +1002,23 @@ impl Model {
     }
 }
 
-pub const UNKNOWN_MODEL_LABEL: &str = "Unknown Model";
-
+/// Information about a user which produced an [`InnerNodeContent`]'s value.
 #[derive(
     SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq,
 )]
 pub struct Author {
+    /// The user's preferred name.
     pub label: String,
+    /// An optional color associated with the user.
     pub color: Option<String>,
 
+    /// A unique identifier for the user.
     #[rkyv(with = NicheInto<niching::Zero>)]
     pub identifier: Option<LongId>,
 
+    /// Additional information about the user.
+    ///
+    /// **This should not contain sensitive information**, such as email addresses or legal names, as documents may be shared publicly.
     #[rkyv(with = IAsVec)]
     pub metadata: MetadataMap,
 }
