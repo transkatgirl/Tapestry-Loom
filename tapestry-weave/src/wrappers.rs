@@ -30,7 +30,7 @@ const PARSER: DateTimeParser = DateTimeParser::new();
 
 base64_serde_type!(pub(crate) Base64Standard, STANDARD);
 
-pub struct IAsVec;
+pub(crate) struct IAsVec;
 
 impl<K: Archive, V: Archive, H> ArchiveWith<IndexMap<K, V, H>> for IAsVec {
     type Archived = ArchivedVec<util::Entry<K::Archived, V::Archived>>;
@@ -132,10 +132,10 @@ where
 }
 
 #[derive(Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-pub struct BinaryZoned {
-    pub secs: i64,
-    pub nanos: i32,
-    pub timezone: String, // Timezones are usually IANA names, so wasting bytes when storing offsets or POSIX timestamps is probably fine.
+pub(crate) struct BinaryZoned {
+    pub(crate) secs: i64,
+    pub(crate) nanos: i32,
+    pub(crate) timezone: String, // Timezones are usually IANA names, so wasting bytes when storing offsets for POSIX timestamps is probably fine.
 }
 
 impl From<&Zoned> for BinaryZoned {
@@ -177,7 +177,7 @@ impl From<BinaryZoned> for Zoned {
     }
 }
 
-pub struct AsBinaryZoned;
+pub(crate) struct AsBinaryZoned;
 
 impl ArchiveWith<Zoned> for AsBinaryZoned {
     type Archived = ArchivedBinaryZoned;
