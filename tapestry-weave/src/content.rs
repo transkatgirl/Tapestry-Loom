@@ -107,6 +107,7 @@ impl DiscreteContents for NodeContent {
 }
 
 impl NodeContent {
+    /// Returns `true` if [`Self::merge`] would succeed.
     pub fn is_mergeable_with(&self, value: &Self) -> bool {
         self.timestamp.time_zone() == value.timestamp.time_zone()
             && self.metadata == value.metadata
@@ -426,6 +427,7 @@ impl InnerNodeToken {
     pub fn is_modified(&self) -> bool {
         self.original.is_modified()
     }
+    /// Returns `true` if `self` and `value` should be considered duplicates.
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
         self.bytes == value.bytes
             && self.id == value.id
@@ -530,7 +532,7 @@ impl CounterfactualToken {
             })
             .sum::<f64>()
     }
-    /// Returns true if two tokens contain duplicate contents.
+    /// Returns `true` if `self` and `value` should be considered duplicates.
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
         self.bytes == value.bytes && self.id == value.id
     }
@@ -539,6 +541,9 @@ impl CounterfactualToken {
 const EMPTY_VEC_REF: &Vec<u8> = &Vec::new();
 
 impl InnerNodeContent {
+    /// Splits the item at the specified index.
+    ///
+    /// If splitting the item fails, the original contents are returned.
     pub fn split(self, at: usize) -> DiscreteContentResult<Self> {
         if at == 0 {
             return DiscreteContentResult::One(self);
@@ -607,6 +612,9 @@ impl InnerNodeContent {
             Self::MetadataOnly => DiscreteContentResult::One(Self::MetadataOnly),
         }
     }
+    /// Merges two items together.
+    ///
+    /// If merging the two items fails, the original contents are returned in the order they were specified.
     pub fn merge(self, value: Self) -> DiscreteContentResult<Self> {
         match self {
             Self::Snippet(mut left_snippet) => match value {
@@ -682,6 +690,7 @@ impl InnerNodeContent {
             },
         }
     }
+    /// Returns `true` if `self` and `value` should be considered duplicates.
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
         if let Self::Tokens(left) = self
             && let Self::Tokens(right) = value
@@ -695,6 +704,7 @@ impl InnerNodeContent {
             self == value
         }
     }
+    /// Returns `true` if [`Self::merge`] would succeed.
     pub fn is_mergeable_with(&self, value: &Self) -> bool {
         match self {
             Self::Snippet(_) => match value {
@@ -743,6 +753,7 @@ impl InnerNodeContent {
 }
 
 impl ArchivedInnerNodeContent {
+    /// Returns `true` if [`InnerNodeContent::merge`] would succeed.
     pub fn is_mergeable_with(&self, value: &Self) -> bool {
         match self {
             Self::Snippet(_) => match value {
@@ -843,6 +854,7 @@ impl Creator {
             None
         }
     }
+    /// Returns `true` if `self` and `value` should be considered duplicates.
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
         match self {
             Self::Model(Some(left)) => {
@@ -862,6 +874,7 @@ impl Creator {
             _ => self == value,
         }
     }
+    /// Returns `true` if [`Self::merge`] would succeed.
     pub fn is_mergeable_with(&self, value: &Self) -> bool {
         match self {
             Self::Model(Some(left)) => {
@@ -881,6 +894,9 @@ impl Creator {
             _ => self == value,
         }
     }
+    /// Merges two items together.
+    ///
+    /// If merging the two items fails, the original items are returned in the order they were specified.
     #[allow(clippy::result_large_err)]
     pub fn merge(self, value: Self) -> Result<Self, (Self, Self)> {
         match self {
@@ -984,6 +1000,7 @@ pub struct Model {
 }
 
 impl Model {
+    /// Returns `true` if `self` and `value` should be considered duplicates.
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
         ((self.identifier.is_some()
             && value.identifier.is_some()
@@ -995,12 +1012,16 @@ impl Model {
             && self.finish_reason == value.finish_reason
             && self.metadata == value.metadata
     }
+    /// Returns `true` if [`Self::merge`] would succeed.
     pub fn is_mergeable_with(&self, value: &Self) -> bool {
         self.label == value.label
             && (self.color == value.color || self.color.is_none() || value.color.is_none())
             && self.identifier == value.identifier
             && self.metadata == value.metadata
     }
+    /// Merges two items together.
+    ///
+    /// If merging the two items fails, the original items are returned in the order they were specified.
     #[allow(clippy::result_large_err)]
     pub fn merge(mut self, mut value: Self) -> Result<Self, (Self, Self)> {
         if self.label == value.label
@@ -1065,6 +1086,7 @@ pub struct Author {
 }
 
 impl Author {
+    /// Returns `true` if `self` and `value` should be considered duplicates.
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
         ((self.identifier.is_some()
             && value.identifier.is_some()
@@ -1074,12 +1096,16 @@ impl Author {
                 && self.label == value.label))
             && self.metadata == value.metadata
     }
+    /// Returns `true` if [`Self::merge`] would succeed.
     pub fn is_mergeable_with(&self, value: &Self) -> bool {
         self.label == value.label
             && (self.color == value.color || self.color.is_none() || value.color.is_none())
             && self.identifier == value.identifier
             && self.metadata == value.metadata
     }
+    /// Merges two items together.
+    ///
+    /// If merging the two items fails, the original items are returned in the order they were specified.
     #[allow(clippy::result_large_err)]
     pub fn merge(self, value: Self) -> Result<Self, (Self, Self)> {
         if self.label == value.label
