@@ -29,9 +29,11 @@ pub use weave::{LongId, ShortId, TapestryNode, TapestryWeave};
 /*
 
 TODO:
-- Diff-based tree updates
+
+- Diff-based tree updates using PatchablePathWeave + similar
     - Widen diffs to unicode graphemes and node token boundaries
     - Maybe add custom widening (such as nearest word)?
+- Content module documentation
 - Wrappers
     - TapestryWeave trait??
     - LoggedTapestryWeave
