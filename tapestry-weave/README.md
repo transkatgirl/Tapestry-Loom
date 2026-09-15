@@ -1,11 +1,8 @@
 ## Tapestry Weave
 
-This crate contains [Tapestry Loom](https://github.com/transkatgirl/Tapestry-Loom)'s document format, which is built using the [universal-weave](../universal-weave) crate.
+This crate contains [Tapestry Loom](https://github.com/transkatgirl/Tapestry-Loom)'s document format, which is built using the [universal-weave](https://crates.io/crates/universal-weave) crate.
 
-Unlike Tapestry Loom (which is licensed under AGPLv3), both universal-weave and tapestry-weave are licensed under the [Unlicense](./LICENSE).
-
-> [!WARNING]
-> Most of the code contained within this repository is very lightly tested and may contain major bugs. Please report any bugs that you find.
+Unlike Tapestry Loom (which is licensed under AGPLv3), tapestry-weave is licensed under the [Unlicense](./LICENSE).
 
 > [!IMPORTANT]
 > This library's API has not yet been stabilized. Expect breaking changes.

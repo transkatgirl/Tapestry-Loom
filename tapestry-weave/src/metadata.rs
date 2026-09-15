@@ -11,18 +11,30 @@ use super::wrappers::{AsBinaryZoned, IAsVec};
 pub type MetadataMap = IndexMap<String, String, RandomState>;
 pub type AuxMetadataMap = IndexMap<String, Vec<u8>, RandomState>;
 
+/// Document-wide metadata.
 #[derive(
     SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq,
 )]
 pub struct WeaveMetadata {
+    /// The title of the document.
     pub title: Option<String>,
+    /// The document's description or notes.
     pub description: Option<String>,
+    /// The instant the document was created.
     #[rkyv(with = AsBinaryZoned)]
     pub created: Zoned,
+    /// A list of format conversions that the document has undergone, ordered from oldest to newest.
     pub converted_from: Vec<ConvertedFrom>,
 
+    /// Human-readable metadata associated with the document.
     #[rkyv(with = IAsVec)]
     pub metadata: MetadataMap,
+
+    /// Machine-readable metadata associated with the document.
+    ///
+    /// Unsupported items are not displayed to the user.
+    #[rkyv(with = IAsVec)]
+    pub aux_metadata: AuxMetadataMap,
 }
 
 impl WeaveMetadata {
@@ -34,6 +46,7 @@ impl WeaveMetadata {
             created: Zoned::now(),
             converted_from: Vec::new(),
             metadata: MetadataMap::default(),
+            aux_metadata: AuxMetadataMap::default(),
         }
     }
     pub fn is_empty(&self) -> bool {
@@ -61,16 +74,22 @@ impl ArchivedWeaveMetadata {
     }
 }
 
+/// A format conversion that a document has undergone.
 #[derive(
     SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq,
 )]
 pub struct ConvertedFrom {
+    /// The name of the source format.
     pub source: String,
+    /// The version of the source format.
     pub source_version: Option<String>,
 
+    /// The software used to perform the format conversion.
     pub converter: String,
+    /// The version of the software used to perform the format conversion.
     pub converter_version: Option<String>,
 
+    /// The instant the document was converted.
     #[rkyv(with = AsBinaryZoned)]
     pub timestamp: Zoned,
 }

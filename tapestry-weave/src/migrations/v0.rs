@@ -497,6 +497,7 @@ impl From<MetadataMap> for NewWeaveMetadata {
                 .unwrap_or_default(),
             converted_from,
             metadata: value,
+            aux_metadata: AuxMetadataMap::default(),
         }
     }
 }
