@@ -107,43 +107,53 @@ impl ConvertedFrom {
         self.converter == env!("CARGO_PKG_NAME")
             && self.converter_version.as_deref() == Some(env!("CARGO_PKG_VERSION"))
     }
-    pub(crate) fn from_plaintext(timestamp: Zoned) -> Self {
+    pub(crate) fn from_plaintext() -> Self {
         ConvertedFrom {
             source: "Plain Text".to_string(),
             source_version: None,
             converter: env!("CARGO_PKG_NAME").to_string(),
             converter_version: Some(env!("CARGO_PKG_VERSION").to_string()),
-            timestamp,
+            timestamp: Zoned::now(),
         }
     }
-    /// Convenience function for `self.source == "Plain Text" && self.source_version.is_none()`
+    /// Returns `true` if the conversion was from plaintext.
     pub fn is_from_plaintext(&self) -> bool {
         self.source == "Plain Text" && self.source_version.is_none()
     }
-    pub(crate) fn from_v0(timestamp: Zoned) -> Self {
+    pub(crate) fn from_version(version: u64) -> Self {
         ConvertedFrom {
             source: "Tapestry Loom".to_string(),
-            source_version: Some("0".to_string()),
+            source_version: Some(version.to_string()),
             converter: env!("CARGO_PKG_NAME").to_string(),
             converter_version: Some(env!("CARGO_PKG_VERSION").to_string()),
-            timestamp,
+            timestamp: Zoned::now(),
         }
     }
-    /// Convenience function for `self.source == "Tapestry Loom" && self.source_version.as_deref() == Some("0")`
-    pub fn is_from_v0(&self) -> bool {
-        self.source == "Tapestry Loom" && self.source_version.as_deref() == Some("0")
+    /// Returns `true` if the conversion was from an older version of the Tapestry Loom format.
+    pub fn is_from_older(&self) -> bool {
+        self.source == "Tapestry Loom"
+            && self
+                .source_version
+                .as_deref()
+                .and_then(|v| v.parse::<u64>().ok())
+                .is_some_and(|value| value < crate::weave::FORMAT_VERSION)
     }
-    /*pub(crate) fn from_v1(timestamp: Zoned) -> Self {
-        ConvertedFrom {
-            source: "Tapestry Loom".to_string(),
-            source_version: Some("1".to_string()),
-            converter: env!("CARGO_PKG_NAME").to_string(),
-            converter_version: Some(env!("CARGO_PKG_VERSION").to_string()),
-            timestamp,
-        }
-    }*/
-    /// Convenience function for `self.source == "Tapestry Loom" && self.source_version.as_deref() == Some("1")`
-    pub fn is_from_v1(&self) -> bool {
-        self.source == "Tapestry Loom" && self.source_version.as_deref() == Some("1")
+    /// Returns `true` if the conversion was from the current version of the Tapestry Loom format.
+    pub fn is_from_current(&self) -> bool {
+        self.source == "Tapestry Loom"
+            && self
+                .source_version
+                .as_deref()
+                .and_then(|v| v.parse::<u64>().ok())
+                .is_some_and(|value| value == crate::weave::FORMAT_VERSION)
+    }
+    /// Returns `true` if the conversion was from a future (not yet implemented by this library) version of the Tapestry Loom format.
+    pub fn is_from_newer(&self) -> bool {
+        self.source == "Tapestry Loom"
+            && self
+                .source_version
+                .as_deref()
+                .and_then(|v| v.parse::<u64>().ok())
+                .is_some_and(|value| value > crate::weave::FORMAT_VERSION)
     }
 }

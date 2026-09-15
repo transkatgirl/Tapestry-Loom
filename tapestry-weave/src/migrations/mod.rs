@@ -44,7 +44,7 @@ impl TapestryWeave {
                 v0::FORMAT_VERSION => {
                     from_bytes::<v0::TapestryWeave, Error>(versioned.data).map(Self::from)
                 }
-                super::weave::FORMAT_VERSION => {
+                crate::weave::FORMAT_VERSION => {
                     from_bytes::<TapestryWeaveInner, Error>(versioned.data).map(Self::from)
                 }
                 _ => Err(Error::new(HeaderError::UnsupportedVersion)),
@@ -61,7 +61,7 @@ impl TapestryWeave {
             v0::FORMAT_VERSION => {
                 from_value::<v0::TapestryWeave>(versioned.data).map(|weave| weave.into())
             }
-            super::weave::FORMAT_VERSION => {
+            crate::weave::FORMAT_VERSION => {
                 from_value::<TapestryWeaveInner>(versioned.data).map(|weave| weave.into())
             }
             _ => Err(serde_json::Error::custom("unsupported version")),
@@ -72,7 +72,7 @@ impl TapestryWeave {
 
         // Copied from VersionedBytes::write_header()
         writer.write(&HEADER_MAGIC_BYTES)?;
-        writer.write(&super::weave::FORMAT_VERSION.to_le_bytes())?;
+        writer.write(&crate::weave::FORMAT_VERSION.to_le_bytes())?;
 
         assert!(self.as_ref().validate());
         to_bytes_in::<IoWriter<W>, Error>(self.as_ref(), writer)?;
@@ -83,7 +83,7 @@ impl TapestryWeave {
         assert!(self.as_ref().validate());
 
         to_string(&VersionedJson {
-            version: super::weave::FORMAT_VERSION,
+            version: crate::weave::FORMAT_VERSION,
             data: to_value(self.as_ref())?,
         })
     }
@@ -96,7 +96,7 @@ impl<'a> ArchivedTapestryWeave<'a> {
         }
 
         if let Some(versioned) = VersionedBytes::try_from_bytes(bytes, HEADER_MAGIC_BYTES) {
-            if versioned.version == super::weave::FORMAT_VERSION {
+            if versioned.version == crate::weave::FORMAT_VERSION {
                 access::<ArchivedTapestryWeaveInner, Error>(versioned.data).map(Self::from)
             } else {
                 Err(Error::new(HeaderError::UnsupportedVersion))

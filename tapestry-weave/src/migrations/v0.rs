@@ -480,7 +480,7 @@ impl From<MetadataMap> for NewWeaveMetadata {
             });
         }
 
-        converted_from.push(ConvertedFrom::from_v0(Zoned::now()));
+        converted_from.push(ConvertedFrom::from_version(FORMAT_VERSION));
 
         Self {
             title: value.shift_remove("title"),

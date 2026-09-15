@@ -15,7 +15,7 @@ impl TapestryWeave {
                 title: None,
                 description: None,
                 created: created.clone(),
-                converted_from: vec![ConvertedFrom::from_plaintext(Zoned::now())],
+                converted_from: vec![ConvertedFrom::from_plaintext()],
                 metadata: MetadataMap::default(),
                 aux_metadata: AuxMetadataMap::default(),
             },
