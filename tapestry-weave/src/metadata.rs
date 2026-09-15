@@ -38,6 +38,7 @@ pub struct WeaveMetadata {
 }
 
 impl WeaveMetadata {
+    /// Creates a new, empty `WeaveMetadata` with the current timestamp.
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
@@ -49,6 +50,7 @@ impl WeaveMetadata {
             aux_metadata: AuxMetadataMap::default(),
         }
     }
+    /// Returns `true` if all human-readable metadata fields are empty.
     pub fn is_empty(&self) -> bool {
         self.title.as_ref().map(|v| v.is_empty()).unwrap_or(true)
             && self
@@ -62,6 +64,7 @@ impl WeaveMetadata {
 }
 
 impl ArchivedWeaveMetadata {
+    /// Returns `true` if all human-readable metadata fields are empty.
     pub fn is_empty(&self) -> bool {
         self.title.as_ref().map(|v| v.is_empty()).unwrap_or(true)
             && self
@@ -95,27 +98,29 @@ pub struct ConvertedFrom {
 }
 
 impl ConvertedFrom {
+    /// Returns `true` if the format conversion was performed by this library.
     pub fn is_converter_native(&self) -> bool {
         self.converter == env!("CARGO_PKG_NAME")
     }
+    /// Returns `true` if the format conversion was performed by the current version of this library.
     pub fn is_converter_native_current_version(&self) -> bool {
         self.converter == env!("CARGO_PKG_NAME")
             && self.converter_version.as_deref() == Some(env!("CARGO_PKG_VERSION"))
     }
-
-    pub fn from_plaintext(timestamp: Zoned) -> Self {
+    pub(crate) fn from_plaintext(timestamp: Zoned) -> Self {
         ConvertedFrom {
-            source: "Plaintext".to_string(),
+            source: "Plain Text".to_string(),
             source_version: None,
             converter: env!("CARGO_PKG_NAME").to_string(),
             converter_version: Some(env!("CARGO_PKG_VERSION").to_string()),
             timestamp,
         }
     }
+    /// Convenience function for `self.source == "Plain Text" && self.source_version.is_none()`
     pub fn is_from_plaintext(&self) -> bool {
-        self.source == "Plaintext" && self.source_version.is_none()
+        self.source == "Plain Text" && self.source_version.is_none()
     }
-    pub fn from_v0(timestamp: Zoned) -> Self {
+    pub(crate) fn from_v0(timestamp: Zoned) -> Self {
         ConvertedFrom {
             source: "Tapestry Loom".to_string(),
             source_version: Some("0".to_string()),
@@ -124,10 +129,11 @@ impl ConvertedFrom {
             timestamp,
         }
     }
+    /// Convenience function for `self.source == "Tapestry Loom" && self.source_version.as_deref() == Some("0")`
     pub fn is_from_v0(&self) -> bool {
         self.source == "Tapestry Loom" && self.source_version.as_deref() == Some("0")
     }
-    pub fn from_v1(timestamp: Zoned) -> Self {
+    /*pub(crate) fn from_v1(timestamp: Zoned) -> Self {
         ConvertedFrom {
             source: "Tapestry Loom".to_string(),
             source_version: Some("1".to_string()),
@@ -135,7 +141,8 @@ impl ConvertedFrom {
             converter_version: Some(env!("CARGO_PKG_VERSION").to_string()),
             timestamp,
         }
-    }
+    }*/
+    /// Convenience function for `self.source == "Tapestry Loom" && self.source_version.as_deref() == Some("1")`
     pub fn is_from_v1(&self) -> bool {
         self.source == "Tapestry Loom" && self.source_version.as_deref() == Some("1")
     }

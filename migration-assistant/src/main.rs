@@ -10,7 +10,7 @@ use clap::Parser;
 use tapestry_weave::{
     TapestryWeave,
     jiff::Zoned,
-    metadata::{ConvertedFrom, MetadataMap, WeaveMetadata},
+    metadata::{AuxMetadataMap, ConvertedFrom, MetadataMap, WeaveMetadata},
     universal_weave::rkyv::util::AlignedVec,
 };
 use walkdir::WalkDir;
@@ -111,6 +111,7 @@ fn new_weave(
                 timestamp: Zoned::now(),
             }],
             metadata: MetadataMap::default(),
+            aux_metadata: AuxMetadataMap::default(),
         },
     )
 }

@@ -18,6 +18,8 @@ use crate::{
     weave::{ArchivedTapestryWeave, ArchivedTapestryWeaveInner, TapestryWeave, TapestryWeaveInner},
 };
 
+mod plaintext;
+
 #[cfg(feature = "v0")]
 mod v0;
 
