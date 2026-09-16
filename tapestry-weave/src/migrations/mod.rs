@@ -38,7 +38,7 @@ impl TapestryWeave {
     }
     /// Deserializes a [`TapestryWeave`] from the binary Tapestry Loom document format.
     ///
-    /// `bytes` must be [aligned to 16-byte boundaries](https://rkyv.org/format/alignment.html).
+    /// `bytes` must be aligned to 16-byte boundaries, which can be accomplished using [`AlignedVec`](crate::util::AlignedVec).
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
         if bytes.len() < 32 {
             return Err(Error::new(HeaderError::TooShort));
@@ -101,7 +101,7 @@ impl TapestryWeave {
 impl<'a> ArchivedTapestryWeave<'a> {
     /// Loads a [`ArchivedTapestryWeave`] from the binary Tapestry Loom document format using zero-copy deserialization.
     ///
-    /// `bytes` must be [aligned to 16-byte boundaries](https://rkyv.org/format/alignment.html).
+    /// `bytes` must be aligned to 16-byte boundaries, which can be accomplished using [`AlignedVec`](crate::util::AlignedVec).
     pub fn from_bytes(bytes: &'a [u8]) -> Result<Self, Error> {
         if bytes.len() < 32 {
             return Err(Error::new(HeaderError::TooShort));

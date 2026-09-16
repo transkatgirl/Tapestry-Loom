@@ -25,6 +25,7 @@ pub use content::{
     Author, CounterfactualToken, Creator, InnerNodeContent, InnerNodeToken, Model, NodeContent,
     OriginalToken, UNKNOWN_MODEL_LABEL,
 };
+pub use metadata::{MetadataMap, WeaveMetadata};
 pub use weave::{LongId, ShortId, TapestryNode, TapestryWeave};
 
 /*

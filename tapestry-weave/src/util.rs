@@ -30,6 +30,7 @@ use universal_weave::{
 };
 
 pub use foldhash::fast::RandomState;
+pub use rkyv::util::AlignedVec;
 
 /// A [`Hasher`] implementation which passes through values without modification, intended for sets and maps keyed by randomly generated identifiers.
 ///
