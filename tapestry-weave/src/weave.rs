@@ -473,16 +473,51 @@ impl TapestryWeave {
     ///
     /// If the range is empty or starts past the end of the active path, this function does nothing. If the range extends beyond the active path, its length is clamped to the active path's length.
     ///
-    /// If the range starts at zero, an empty root node ([`NodeContent::default()`]) may be inserted at the start of the active path.
+    /// If the range starts at zero, an empty root node attributed to `author` may be inserted at the start of the active path. The identifier of this node is returned if it was inserted.
     ///
     /// # Panics
     ///
     /// May panic if `generate_id` panics or returns an identifier already in the Weave.
-    pub fn split_out<F>(&mut self, range: Range<usize>, generate_id: F)
+    pub fn split_out<F>(
+        &mut self,
+        range: Range<usize>,
+        author: &Option<Author>,
+        mut generate_id: F,
+    ) -> Option<ShortId>
     where
         F: FnMut() -> ShortId,
     {
-        self.0.split_out(range, generate_id);
+        if range.start == 0
+            && self
+                .0
+                .active_content()
+                .next()
+                .is_some_and(|contents| !contents.content.is_empty())
+        {
+            let mut generated_ids = Vec::new();
+
+            self.0.split_out(range, || {
+                let id = generate_id();
+                generated_ids.push(id);
+                id
+            });
+
+            let id = generated_ids.into_iter().find(|id| {
+                self.0.get(id).is_some_and(|node| {
+                    node.from.is_empty()
+                        && matches!(node.contents.content, InnerNodeContent::MetadataOnly)
+                })
+            })?;
+
+            let _ = self.0.get_contents_mut(&id, |contents| {
+                contents.creator = Creator::User(author.clone());
+            });
+
+            Some(id)
+        } else {
+            self.0.split_out(range, generate_id);
+            None
+        }
     }
     /// Splits the active path at the specified index without deactivating the right side of the split.
     ///
@@ -503,7 +538,7 @@ impl TapestryWeave {
     ///
     /// If the index extends past the end of the active path, it is clamped to the active path's length.
     ///
-    /// If the index is zero, an empty root node ([`NodeContent::default()`]) may be inserted at the start of the active path. In this case, `prefix_all` has no effect.
+    /// If the index is zero, an empty root node attributed to `author` may be inserted at the start of the active path. In this case, `prefix_all` has no effect. The identifier of this node is returned if it was inserted.
     ///
     /// # Panics
     ///
@@ -513,17 +548,51 @@ impl TapestryWeave {
         at: usize,
         contents: NodeContent,
         prefix_all: bool,
-        generate_id: F,
-    ) where
+        author: &Option<Author>,
+        mut generate_id: F,
+    ) -> Option<ShortId>
+    where
         F: FnMut() -> ShortId,
     {
-        self.0.insert_at(at, contents, prefix_all, generate_id);
+        if at == 0
+            && self
+                .0
+                .active_content()
+                .next()
+                .is_some_and(|contents| !contents.content.is_empty())
+        {
+            let mut generated_ids = Vec::new();
+
+            self.0.insert_at(at, contents, prefix_all, || {
+                let id = generate_id();
+                generated_ids.push(id);
+                id
+            });
+
+            let id = generated_ids.into_iter().find(|id| {
+                self.0.get(id).is_some_and(|node| {
+                    node.from.is_empty()
+                        && matches!(node.contents.content, InnerNodeContent::MetadataOnly)
+                })
+            })?;
+
+            let _ = self.0.get_contents_mut(&id, |contents| {
+                contents.creator = Creator::User(author.clone());
+            });
+
+            Some(id)
+        } else {
+            self.0.insert_at(at, contents, prefix_all, generate_id);
+            None
+        }
     }
     /// Replaces the specified range of the active path without removing the old content from the underlying Weave.
     ///
     /// If `prefix_all` is true, the inserted content prefixes all continuations of the last replaced node, not just the active continuation. This may result in quadratic connection growth when repeatedly replacing the same range.
     ///
     /// If the range extends beyond the active path, its length is clamped to the active path's length.
+    ///
+    /// If the range is empty, this function behaves identically to [`Self::insert_at()`].
     ///
     /// # Panics
     ///
@@ -533,11 +602,18 @@ impl TapestryWeave {
         range: Range<usize>,
         contents: NodeContent,
         prefix_all: bool,
+        author: &Option<Author>,
         generate_id: F,
-    ) where
+    ) -> Option<ShortId>
+    where
         F: FnMut() -> ShortId,
     {
-        self.0.replace(range, contents, prefix_all, generate_id)
+        if range.is_empty() {
+            self.insert_at(range.start, contents, prefix_all, author, generate_id)
+        } else {
+            self.0.replace(range, contents, prefix_all, generate_id);
+            None
+        }
     }
     /// Calculates a readable diff between `new` and the text bytes corresponding to the active path.
     ///
@@ -615,9 +691,9 @@ impl TapestryWeave {
 
         for hunk in self.diff_active_text(new).into_iter().rev() {
             if hunk.new.is_empty() {
-                self.0.split_out(hunk.old, &mut generate_id);
+                self.split_out(hunk.old, author, &mut generate_id);
             } else {
-                self.0.replace(
+                self.replace(
                     hunk.old,
                     NodeContent {
                         timestamp: timestamp.clone(),
@@ -627,6 +703,7 @@ impl TapestryWeave {
                         creator: Creator::User(author.clone()),
                     },
                     false,
+                    author,
                     &mut generate_id,
                 );
             }

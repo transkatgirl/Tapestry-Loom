@@ -30,9 +30,9 @@ serde = { version = "1.0.229", features = [
 	"derive",
 	"rc",
 ] }
-universal-weave = { version = "0.8.1", features = [
+universal-weave = { version = "=0.8.1", features = [
 	"serde",
-] }
+] } # depends on LoggedWeave internals
 foldhash = "0.2.0"
 jiff = { version = "0.2.35", features = [
 	"serde",
