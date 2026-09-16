@@ -7,7 +7,7 @@ use std::{
     },
     hash::{BuildHasher, Hash, Hasher},
     ops::Range,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 use base64::engine::general_purpose::STANDARD;
@@ -351,32 +351,38 @@ where
     }
 }
 
+/// A contiguous region of difference between an old and a new sequence.
+///
+/// Hunks are applied by replacing `old[hunk.old]` with `new[hunk.new]`. Either range may be empty.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[must_use]
-pub(crate) struct Hunk {
-    pub(crate) old: Range<usize>,
-    pub(crate) new: Range<usize>,
+pub struct Hunk {
+    /// The range of the old sequence which is replaced.
+    pub old: Range<usize>,
+    /// The range of the new sequence which replaces [`Self::old`].
+    pub new: Range<usize>,
 }
 
 impl Hunk {
-    pub(crate) fn calculate_diff(old: &[u8], new: &[u8], deadline: Option<Duration>) -> Vec<Self> {
-        capture_diff_slices_deadline(
-            Algorithm::Myers,
-            old,
-            new,
-            deadline.map(|duration| Instant::now() + duration),
-        )
-        .into_iter()
-        .filter_map(|op| {
-            let (tag, old, new) = op.as_tag_tuple();
+    /// Calculates the hunks which transform `old` into `new` by `deadline`.
+    ///
+    /// Returned hunks are sorted by position, non-overlapping, and the content between consecutive hunks is identical in both sequences.
+    pub fn calculate_diff<T>(old: &[T], new: &[T], deadline: Option<Instant>) -> Vec<Self>
+    where
+        T: Eq + Hash,
+    {
+        capture_diff_slices_deadline(Algorithm::Myers, old, new, deadline)
+            .into_iter()
+            .filter_map(|op| {
+                let (tag, old, new) = op.as_tag_tuple();
 
-            if tag == DiffTag::Equal {
-                None
-            } else {
-                Some(Self { old, new })
-            }
-        })
-        .collect()
+                if tag == DiffTag::Equal {
+                    None
+                } else {
+                    Some(Self { old, new })
+                }
+            })
+            .collect()
     }
     pub(crate) fn expand_ordered(
         hunks: &mut Vec<Self>,
