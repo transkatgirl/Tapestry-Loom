@@ -8,9 +8,10 @@ use nanorand::{RandomGen, Rng, WyRand};
 use universal_weave::{BuildableNode, Weave, hashbrown::HashMap};
 
 pub use foldhash;
-
 pub use jiff;
 pub use nanorand;
+pub use similar;
+pub use unicode_segmentation;
 pub use universal_weave;
 
 mod migrations;

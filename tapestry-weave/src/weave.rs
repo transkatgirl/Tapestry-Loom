@@ -14,6 +14,7 @@ use universal_weave::{
         Archive,
         collections::swiss_table::{ArchivedHashMap, ArchivedHashSet, ArchivedIndexSet},
     },
+    wrappers::PatchablePathWeave,
 };
 
 use super::{
@@ -44,14 +45,14 @@ pub type ArchivedShortId = <ShortId as Archive>::Archived;
 pub type LongId = NonZeroU128;
 
 /// A node in a [`TapestryWeave`] document.
-pub type TapestryNode = IndependentNode<u64, NodeContent, BuildHasherDefault<RandomIdHasher>>;
+pub type TapestryNode = IndependentNode<ShortId, NodeContent, BuildHasherDefault<RandomIdHasher>>;
 
 /// A node in an [`ArchivedTapestryWeave`] document.
 pub type ArchivedTapestryNode = <TapestryNode as Archive>::Archived;
 
 /// The inner contents of a [`TapestryWeave`].
 pub type TapestryWeaveInner =
-    IndependentWeave<u64, NodeContent, WeaveMetadata, BuildHasherDefault<RandomIdHasher>>;
+    IndependentWeave<ShortId, NodeContent, WeaveMetadata, BuildHasherDefault<RandomIdHasher>>;
 
 /// The inner contents of an [`ArchivedTapestryWeave`].
 pub type ArchivedTapestryWeaveInner = <TapestryWeaveInner as Archive>::Archived;
@@ -63,7 +64,9 @@ pub type ArchivedTapestryWeaveInner = <TapestryWeaveInner as Archive>::Archived;
 /// # DoS Resistance
 ///
 /// This Weave implementation does not make use of DoS-resistant hashers.
-pub struct TapestryWeave(TapestryWeaveInner);
+pub struct TapestryWeave(
+    PatchablePathWeave<TapestryWeaveInner, ShortId, TapestryNode, NodeContent>,
+);
 
 impl Default for TapestryWeave {
     fn default() -> Self {
@@ -73,32 +76,32 @@ impl Default for TapestryWeave {
 
 impl From<TapestryWeaveInner> for TapestryWeave {
     fn from(value: TapestryWeaveInner) -> Self {
-        Self(value)
+        Self(PatchablePathWeave::new(value))
     }
 }
 
 impl From<TapestryWeave> for TapestryWeaveInner {
     fn from(value: TapestryWeave) -> Self {
-        value.0
+        value.0.weave
     }
 }
 
 impl AsRef<TapestryWeaveInner> for TapestryWeave {
     fn as_ref(&self) -> &TapestryWeaveInner {
-        &self.0
+        &self.0.weave
     }
 }
 
 impl TapestryWeave {
     /// Creates a new, empty [`TapestryWeave`].
     pub fn new() -> Self {
-        Self(IndependentWeave::new(WeaveMetadata::new()))
+        Self::from(IndependentWeave::new(WeaveMetadata::new()))
     }
     /// Creates a new, empty [`TapestryWeave`] with at least the specified capacity.
     ///
     /// This function over-allocates for worst-case memory usage rather than average-case.
     pub fn with_capacity(capacity: usize) -> Self {
-        Self(IndependentWeave::with_capacity(
+        Self::from(IndependentWeave::with_capacity(
             capacity,
             WeaveMetadata::new(),
         ))
@@ -107,25 +110,11 @@ impl TapestryWeave {
     ///
     /// This function over-allocates for worst-case memory usage rather than average-case.
     pub fn with_capacity_and_metadata(capacity: usize, metadata: WeaveMetadata) -> Self {
-        Self(IndependentWeave::with_capacity(capacity, metadata))
-    }
-    /// Returns the worst-case number of nodes that the weave can hold without reallocating.
-    ///
-    /// May be lower than `self.len()`.
-    pub fn capacity(&self) -> usize {
-        self.0.capacity()
-    }
-    /// Reserves capacity for at least `additional` more nodes.
-    pub fn reserve(&mut self, additional: usize) {
-        self.0.reserve(additional);
-    }
-    /// Shrinks the capacity of the weave as much as possible.
-    pub fn shrink_to_fit(&mut self) {
-        self.0.shrink_to_fit();
+        Self::from(IndependentWeave::with_capacity(capacity, metadata))
     }
     /// Convenience method for `self.is_empty() && self.metadata().is_empty()`
     pub fn is_empty_including_metadata(&self) -> bool {
-        self.0.is_empty() && self.0.metadata.is_empty()
+        self.0.is_empty() && self.0.metadata().is_empty()
     }
     /// Convenience method which returns the siblings of the node corresponding to the identifier.
     ///
@@ -195,7 +184,7 @@ impl TapestryWeave {
     }
     /// Sets the active status of a node with the specified identifier, using identical activation behavior to a tree-based Weave.
     pub fn set_active_tree_semantics(&mut self, id: &ShortId, value: bool) -> bool {
-        self.0.set_active_dependent_semantics(id, value)
+        self.0.weave.set_active_dependent_semantics(id, value)
     }
     /// A wrapper around [`Self::split`] which separates out the unmodified version of the token before splitting.
     ///
@@ -416,6 +405,16 @@ impl TapestryWeave {
                 false
             }
         })
+    }
+    /// Convenience function which returns an iterator over the content corresponding to the active path.
+    pub fn active_content(&mut self) -> impl Iterator<Item = &NodeContent> {
+        self.0.active_content()
+    }
+    /// Convenience function which returns an iterator over the text bytes corresponding to the active path.
+    pub fn active_text(&mut self) -> impl Iterator<Item = u8> {
+        self.0
+            .active_content()
+            .flat_map(|content| content.content.iter_bytes())
     }
 }
 

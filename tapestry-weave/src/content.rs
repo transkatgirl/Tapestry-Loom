@@ -1,6 +1,6 @@
 //! [`Node`](universal_weave::Node) content representations.
 
-use std::borrow::Cow;
+use std::{borrow::Cow, iter};
 
 use jiff::Zoned;
 use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
@@ -47,6 +47,18 @@ pub struct NodeContent {
 
     /// The entity which created this node's contents.
     pub creator: Creator,
+}
+
+impl Default for NodeContent {
+    fn default() -> Self {
+        Self {
+            timestamp: Zoned::now(),
+            modified: false,
+            content: InnerNodeContent::MetadataOnly,
+            metadata: MetadataMap::default(),
+            creator: Creator::User(None),
+        }
+    }
 }
 
 impl IndependentContents for NodeContent {}
@@ -734,6 +746,15 @@ impl InnerNodeContent {
                     .collect(),
             ),
             Self::MetadataOnly => Cow::Borrowed(EMPTY_VEC_REF),
+        }
+    }
+    pub fn iter_bytes(&self) -> Box<dyn Iterator<Item = u8> + '_> {
+        match self {
+            Self::Snippet(snippet) => Box::new(snippet.iter().copied()),
+            Self::Tokens(tokens) => {
+                Box::new(tokens.iter().flat_map(|token| token.bytes.iter().copied()))
+            }
+            Self::MetadataOnly => Box::new(iter::empty()),
         }
     }
     pub fn len(&self) -> usize {

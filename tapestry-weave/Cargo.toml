@@ -26,6 +26,10 @@ rkyv = { version = "0.8.18", features = [
 	"pointer_width_32",
 	"indexmap-2",
 ] }
+serde = { version = "1.0.229", features = [
+	"derive",
+	"rc",
+] }
 universal-weave = { version = "0.8.1", features = [
 	"serde",
 ] }
@@ -38,10 +42,6 @@ nanorand = { version = "0.8.0", features = [
 	"wyrand",
 	"getrandom",
 ], default-features = false }
-serde = { version = "1.0.229", features = [
-	"derive",
-	"rc",
-] }
 serde_json = { version = "1.0.151", features = [
 	"preserve_order",
 	"float_roundtrip",
@@ -52,6 +52,7 @@ similar = { version = "3.2.0", features = [
 	"unicode",
 	"bytes",
 ] }
+unicode-segmentation = "1.13.3"
 
 # v0
 ulid = { version = "3.0.0", features = [

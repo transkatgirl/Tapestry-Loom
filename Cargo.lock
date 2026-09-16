@@ -5918,6 +5918,7 @@ dependencies = [
  "serde_json",
  "similar",
  "ulid 3.0.0",
+ "unicode-segmentation",
  "universal-weave",
 ]
 
