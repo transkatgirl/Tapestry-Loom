@@ -555,7 +555,7 @@ const EMPTY_VEC_REF: &Vec<u8> = &Vec::new();
 impl InnerNodeContent {
     /// Splits the item at the specified index.
     ///
-    /// If splitting the item fails, the original contents are returned.
+    /// If `at` is not inside the item, the original contents are returned.
     pub fn split(self, at: usize) -> DiscreteContentResult<Self> {
         if at == 0 {
             return DiscreteContentResult::One(self);
