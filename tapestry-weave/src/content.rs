@@ -95,10 +95,7 @@ impl DiscreteContents for NodeContent {
         }
     }
     fn merge(mut self, mut value: Self) -> DiscreteContentResult<Self> {
-        if self.timestamp.time_zone() != value.timestamp.time_zone()
-            || self.metadata != value.metadata
-            || !self.creator.is_mergeable_with(&value.creator)
-        {
+        if self.metadata != value.metadata || !self.creator.is_mergeable_with(&value.creator) {
             return DiscreteContentResult::Two(self, value);
         }
 
@@ -123,8 +120,7 @@ impl DiscreteContents for NodeContent {
 impl NodeContent {
     /// Returns `true` if [`Self::merge`] would succeed.
     pub fn is_mergeable_with(&self, value: &Self) -> bool {
-        self.timestamp.time_zone() == value.timestamp.time_zone()
-            && self.metadata == value.metadata
+        self.metadata == value.metadata
             && self.creator.is_mergeable_with(&value.creator)
             && self.content.is_mergeable_with(&value.content)
     }
@@ -445,6 +441,7 @@ impl InnerNodeToken {
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
         self.bytes == value.bytes
             && self.id == value.id
+            && self.logprob.is_some() == value.logprob.is_some()
             && self.entropy.is_some() == value.entropy.is_some()
             && self.original == value.original
             && self.counterfactual.len() == value.counterfactual.len()

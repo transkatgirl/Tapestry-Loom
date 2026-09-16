@@ -68,7 +68,7 @@ where
 }
 
 /// Generates a random identifier using `rng` which is guaranteed to not be present in `weave` or `generated`.
-pub fn generate_unqiue_id<W, K, N, T, S>(rng: &mut WyRand, weave: &W, generated: &[K]) -> K
+pub fn generate_unique_id<W, K, N, T, S>(rng: &mut WyRand, weave: &W, generated: &[K]) -> K
 where
     W: Weave<K, N, T, Nodes = HashMap<K, N, S>>,
     K: RandomGen<WyRand, 8> + Hash + Copy + Eq + Ord,
