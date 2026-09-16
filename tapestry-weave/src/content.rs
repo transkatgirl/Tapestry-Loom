@@ -18,6 +18,8 @@ use super::{
 };
 
 /// The contents of a [`TapestryNode`](crate::weave::TapestryNode).
+///
+/// **This should not be used to store sensitive information**, such as endpoint URLs or API keys, as the user may choose to share documents publicly.
 #[derive(
     SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq,
 )]

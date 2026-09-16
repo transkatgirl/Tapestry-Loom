@@ -19,6 +19,8 @@ pub type MetadataMap = IndexMap<String, String, RandomState>;
 pub type AuxMetadataMap = IndexMap<String, Vec<u8>, RandomState>;
 
 /// Document-wide metadata.
+///
+/// **This should not be used to store sensitive information**, such as endpoint URLs or API keys, as the user may choose to share documents publicly.
 #[derive(
     SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq,
 )]
