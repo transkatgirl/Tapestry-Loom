@@ -13,7 +13,7 @@ use std::{
 use base64::engine::general_purpose::STANDARD;
 use base64_serde::base64_serde_type;
 use jiff::{
-    SignedDuration, Timestamp, Zoned,
+    Timestamp, Zoned,
     fmt::temporal::{DateTimeParser, DateTimePrinter},
     tz::TimeZone,
 };
@@ -203,8 +203,7 @@ impl From<BinaryZoned> for Zoned {
                 .parse_time_zone(value.timezone)
                 .unwrap_or(TimeZone::unknown())
         };
-        let timestamp = Timestamp::from_duration(SignedDuration::new(value.secs, value.nanos))
-            .unwrap_or_default();
+        let timestamp = Timestamp::new(value.secs, value.nanos).unwrap_or_default();
 
         timestamp.to_zoned(timezone)
     }

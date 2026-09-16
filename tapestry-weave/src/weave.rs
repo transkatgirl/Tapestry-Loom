@@ -394,6 +394,10 @@ impl TapestryWeave {
 
                         assert!(self.0.split(&middle_id, second_split_index, tail_id));
 
+                        if self.0.contains_active(&middle_id) {
+                            assert!(self.0.set_active(&tail_id, true));
+                        }
+
                         Some((Some(*id), middle_id, Some(tail_id)))
                     } else {
                         Some((Some(*id), middle_id, None))
@@ -412,6 +416,10 @@ impl TapestryWeave {
                         let tail_id = generate_id();
 
                         assert!(self.0.split(id, second_split_index, tail_id));
+
+                        if self.0.contains_active(id) {
+                            assert!(self.0.set_active(&tail_id, true));
+                        }
 
                         Some((chosen_parent, *id, Some(tail_id)))
                     } else {

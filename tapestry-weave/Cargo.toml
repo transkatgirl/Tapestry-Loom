@@ -45,6 +45,7 @@ nanorand = { version = "0.8.0", features = [
 serde_json = { version = "1.0.151", features = [
 	"preserve_order",
 	"float_roundtrip",
+	"arbitrary_precision",
 ] }
 base64 = "0.23.1"
 base64-serde = "0.8.0"

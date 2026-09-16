@@ -1,9 +1,12 @@
-use std::{hash::BuildHasherDefault, str::FromStr};
+use std::hash::BuildHasherDefault;
 
 use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
 use chrono::DateTime;
 use foldhash::fast::RandomState;
-use jiff::{Timestamp, Zoned, fmt::rfc2822::DateTimeParser};
+use jiff::{
+    Timestamp, Zoned,
+    tz::{Offset, TimeZone},
+};
 use nanorand::{Rng, WyRand};
 use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
 use ulid::Ulid;
@@ -322,29 +325,29 @@ impl From<NodeContent> for NewNodeContent {
 
         let mut creator = value.model.map(Creator::from).unwrap_or(Creator::Unknown);
 
-        if let Creator::Model(Some(model)) = &mut creator
-            && let InnerNodeContent::Tokens(tokens) = &mut value.content
-        {
-            let mut model_id = None;
+        if let Creator::Model(Some(model)) = &mut creator {
+            if let InnerNodeContent::Tokens(tokens) = &mut value.content {
+                let mut model_id = None;
 
-            for (_, metadata) in tokens {
-                if let Some(value) = metadata.shift_remove("model_id") {
-                    if let Some(existing_id) = &model_id
-                        && *existing_id != value
-                    {
-                        model_id = None;
-                        break;
-                    } else {
-                        model_id = Some(value);
+                for (_, metadata) in tokens {
+                    if let Some(value) = metadata.shift_remove("model_id") {
+                        if let Some(existing_id) = &model_id
+                            && *existing_id != value
+                        {
+                            model_id = None;
+                            break;
+                        } else {
+                            model_id = Some(value);
+                        }
                     }
                 }
-            }
 
-            if let Some(model_id) = model_id
-                .and_then(|id| Ulid::from_string(&id).ok())
-                .and_then(|id| LongId::new(id.0))
-            {
-                model.identifier = Some(model_id);
+                if let Some(model_id) = model_id
+                    .and_then(|id| Ulid::from_string(&id).ok())
+                    .and_then(|id| LongId::new(id.0))
+                {
+                    model.identifier = Some(model_id);
+                }
             }
 
             model.seed = value
@@ -436,13 +439,23 @@ impl From<TapestryWeave> for NewTapestryWeave {
     }
 }
 
-const PARSER: DateTimeParser = DateTimeParser::new();
+fn parse_rfc3339(value: &str) -> Option<Zoned> {
+    let parsed = DateTime::parse_from_rfc3339(value.trim()).ok()?;
+    let timestamp = Timestamp::new(
+        parsed.timestamp(),
+        i32::try_from(parsed.timestamp_subsec_nanos().min(999_999_999)).ok()?,
+    )
+    .ok()?;
+    let offset = Offset::from_seconds(parsed.offset().local_minus_utc()).ok()?;
+
+    Some(timestamp.to_zoned(TimeZone::fixed(offset)))
+}
 
 impl From<MetadataMap> for NewWeaveMetadata {
     fn from(mut value: MetadataMap) -> Self {
         let conversion_timestamp = value
             .shift_remove("converted")
-            .and_then(|value| Zoned::from_str(&value).ok());
+            .and_then(|value| parse_rfc3339(&value));
         let source = value.shift_remove("converted_from");
         let source_version = value.shift_remove("converted_from_version");
 
@@ -467,11 +480,7 @@ impl From<MetadataMap> for NewWeaveMetadata {
                 .or_else(|| value.shift_remove("notes")),
             created: value
                 .shift_remove("created")
-                .and_then(|value| {
-                    DateTime::parse_from_rfc3339(&value)
-                        .ok()
-                        .and_then(|v| PARSER.parse_zoned(v.to_rfc2822()).ok())
-                })
+                .and_then(|value| parse_rfc3339(&value))
                 .unwrap_or_default(),
             converted_from,
             metadata: value,
