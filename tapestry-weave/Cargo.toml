@@ -48,10 +48,7 @@ serde_json = { version = "1.0.151", features = [
 ] }
 base64 = "0.23.1"
 base64-serde = "0.8.0"
-similar = { version = "3.2.0", features = [
-	"unicode",
-	"bytes",
-] }
+similar = "3.2.0"
 unicode-segmentation = "1.13.3"
 
 # v0

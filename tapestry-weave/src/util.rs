@@ -6,6 +6,8 @@ use std::{
         hash_map::{Entry, OccupiedEntry},
     },
     hash::{BuildHasher, Hash, Hasher},
+    ops::Range,
+    time::{Duration, Instant},
 };
 
 use base64::engine::general_purpose::STANDARD;
@@ -15,6 +17,7 @@ use jiff::{
     fmt::temporal::{DateTimeParser, DateTimePrinter},
     tz::TimeZone,
 };
+use similar::{Algorithm, DiffTag, capture_diff_slices_deadline};
 use universal_weave::{
     indexmap::{IndexMap, IndexSet},
     rkyv::{
@@ -345,5 +348,72 @@ where
             Entry::Occupied(occupied) => occupied,
             Entry::Vacant(vacant) => vacant.insert_entry(generate_unique()),
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[must_use]
+pub(crate) struct Hunk {
+    pub(crate) old: Range<usize>,
+    pub(crate) new: Range<usize>,
+}
+
+impl Hunk {
+    pub(crate) fn calculate_diff(old: &[u8], new: &[u8], deadline: Option<Duration>) -> Vec<Self> {
+        capture_diff_slices_deadline(
+            Algorithm::Myers,
+            old,
+            new,
+            deadline.map(|duration| Instant::now() + duration),
+        )
+        .into_iter()
+        .filter_map(|op| {
+            let (tag, old, new) = op.as_tag_tuple();
+
+            if tag == DiffTag::Equal {
+                None
+            } else {
+                Some(Self { old, new })
+            }
+        })
+        .collect()
+    }
+    pub(crate) fn expand_ordered(
+        hunks: &mut Vec<Self>,
+        old_len: usize,
+        delta: impl Fn(&Self) -> (usize, usize),
+    ) -> bool {
+        let mut last_end = 0;
+        let mut widened = false;
+
+        for index in 0..hunks.len() {
+            let next_start = hunks.get(index + 1).map_or(old_len, |next| next.old.start);
+            let hunk = &mut hunks[index];
+
+            let (mut left, mut right) = delta(hunk);
+            left = left.min(hunk.old.start - last_end);
+            right = right.min(next_start - hunk.old.end);
+
+            last_end = hunk.old.end;
+
+            widened |= left != 0 || right != 0;
+            hunk.old.start -= left;
+            hunk.new.start -= left;
+            hunk.old.end += right;
+            hunk.new.end += right;
+        }
+
+        hunks.dedup_by(|next, previous| {
+            if next.old.start <= previous.old.end {
+                previous.old.end = next.old.end;
+                previous.new.end = next.new.end;
+
+                true
+            } else {
+                false
+            }
+        });
+
+        widened
     }
 }
