@@ -68,7 +68,7 @@ pub type TapestryWeaveInner =
 /// The inner contents of an [`ArchivedTapestryWeave`].
 pub type ArchivedTapestryWeaveInner = <TapestryWeaveInner as Archive>::Archived;
 
-/// An [`IndependentWeave`] wrapper which implements Tapestry Loom's document format.
+/// An [`IndependentWeave`] + [`PatchablePathWeave`] wrapper which implements Tapestry Loom's document format.
 ///
 /// All identifiers *must be* randomly generated because the underlying [`Weave`]'s hashmaps use an identity hasher.
 ///
@@ -427,6 +427,76 @@ impl TapestryWeave {
             .active_content()
             .flat_map(|content| content.content.iter_bytes())
     }
+    /// Removes the specified range from the active path without removing the content from the underlying Weave.
+    ///
+    /// If the range is empty or starts past the end of the active path, this function does nothing. If the range extends beyond the active path, its length is clamped to the active path's length.
+    ///
+    /// If the range starts at zero, an empty root node ([`NodeContent::default()`]) may be inserted at the start of the active path.
+    ///
+    /// # Panics
+    ///
+    /// May panic if `generate_id` panics or returns an identifier already in the Weave.
+    pub fn split_out<F>(&mut self, range: Range<usize>, generate_id: F)
+    where
+        F: FnMut() -> ShortId,
+    {
+        self.0.split_out(range, generate_id);
+    }
+    /// Splits the active path at the specified index without deactivating the right side of the split.
+    ///
+    /// If `at` is zero or beyond the active path's length, this function does nothing.
+    ///
+    /// # Panics
+    ///
+    /// May panic if `generate_id` panics or returns an identifier already in the Weave.
+    pub fn split_at<F>(&mut self, at: usize, generate_id: F)
+    where
+        F: FnMut() -> ShortId,
+    {
+        assert!(self.0.split_at(at, generate_id), "Splitting node failed");
+    }
+    /// Inserts a new node into the active path at the specified index without removing existing node connections.
+    ///
+    /// If `prefix_all` is true, the inserted node prefixes all continuations, not just the active continuation. This may result in quadratic connection growth when repeatedly inserting at the same position.
+    ///
+    /// If the index extends past the end of the active path, it is clamped to the active path's length.
+    ///
+    /// If the index is zero, an empty root node ([`NodeContent::default()`]) may be inserted at the start of the active path. In this case, `prefix_all` has no effect.
+    ///
+    /// # Panics
+    ///
+    /// May panic if `generate_id` panics or returns an identifier already in the Weave.
+    pub fn insert_at<F>(
+        &mut self,
+        at: usize,
+        contents: NodeContent,
+        prefix_all: bool,
+        generate_id: F,
+    ) where
+        F: FnMut() -> ShortId,
+    {
+        self.0.insert_at(at, contents, prefix_all, generate_id);
+    }
+    /// Replaces the specified range of the active path without removing the old content from the underlying Weave.
+    ///
+    /// If `prefix_all` is true, the inserted content prefixes all continuations of the last replaced node, not just the active continuation. This may result in quadratic connection growth when repeatedly replacing the same range.
+    ///
+    /// If the range extends beyond the active path, its length is clamped to the active path's length.
+    ///
+    /// # Panics
+    ///
+    /// May panic if `generate_id` panics or returns an identifier already in the Weave.
+    pub fn replace<F>(
+        &mut self,
+        range: Range<usize>,
+        contents: NodeContent,
+        prefix_all: bool,
+        generate_id: F,
+    ) where
+        F: FnMut() -> ShortId,
+    {
+        self.0.replace(range, contents, prefix_all, generate_id)
+    }
     /// Calculates a readable diff between `new` and the text bytes corresponding to the active path.
     ///
     /// Diff calculation time (but not post-processing time) is bounded, making this function generally safe to use in user interfaces.
@@ -486,7 +556,7 @@ impl TapestryWeave {
 
         hunks
     }
-    /// Updates the text bytes corresponding to the active path using [`Self::diff_active_text`] followed by [`PatchablePathWeave`] operations.
+    /// Updates the text bytes corresponding to the active path using [`Self::diff_active_text`] followed by calls to [`Self::split_out`] and [`Self::replace`].
     ///
     /// Inserted content is attributed to `author` and replaced content is never removed from the Weave.
     ///
