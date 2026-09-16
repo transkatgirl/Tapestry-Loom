@@ -215,12 +215,14 @@ impl TapestryWeave {
             let total_length = tokens.iter().map(|token| token.bytes.len()).sum::<usize>();
 
             let mut byte_index = 0;
+            let mut token_index = 0;
             let mut token_length = None;
             let mut within_unmodified_token = false;
-            for token in tokens {
+            for (index, token) in tokens.iter().enumerate() {
                 let next = byte_index + token.bytes.len();
 
                 if next >= at {
+                    token_index = index;
                     within_unmodified_token = next > at && !token.is_modified();
                     token_length = (next < total_length).then_some(token.bytes.len());
                     break;
@@ -235,6 +237,16 @@ impl TapestryWeave {
 
                     assert!(self.0.split(id, byte_index, new_id));
 
+                    if self.0.contains_active(id) {
+                        assert!(self.0.set_active(&new_id, true));
+                    }
+
+                    token_index -= self
+                        .0
+                        .get_contents(id)
+                        .and_then(|contents| contents.content.token_count())
+                        .unwrap();
+
                     new_id
                 } else {
                     *id
@@ -248,7 +260,11 @@ impl TapestryWeave {
                 let mut token_node = self.0.get(&first_split_id).unwrap().clone();
                 token_node.active = false;
                 token_node.bookmarked = false;
-                token_node.contents.content.truncate_tokens(1);
+                if let InnerNodeContent::Tokens(tokens) = &mut token_node.contents.content {
+                    tokens.drain(..token_index);
+                    tokens.truncate(1);
+                    tokens.shrink_to_fit();
+                }
 
                 assert!(self.0.split(&first_split_id, at - byte_index, new_id));
 
@@ -366,6 +382,10 @@ impl TapestryWeave {
                     let middle_id = generate_id();
 
                     assert!(self.0.split(id, split_index, middle_id));
+
+                    if self.0.contains_active(id) {
+                        assert!(self.0.set_active(&middle_id, true));
+                    }
 
                     if let Some(second_split_index) = second_split_index
                         && second_split_index > 0
