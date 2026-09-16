@@ -388,25 +388,30 @@ impl Hunk {
         hunks: &mut Vec<Self>,
         old_len: usize,
         delta: impl Fn(&Self) -> (usize, usize),
-    ) -> bool {
+    ) {
         let mut last_end = 0;
-        let mut widened = false;
 
         for index in 0..hunks.len() {
             let next_start = hunks.get(index + 1).map_or(old_len, |next| next.old.start);
             let hunk = &mut hunks[index];
+            let original_old_end = hunk.old.end;
 
-            let (mut left, mut right) = delta(hunk);
-            left = left.min(hunk.old.start - last_end);
-            right = right.min(next_start - hunk.old.end);
+            loop {
+                let (mut left, mut right) = delta(hunk);
+                left = left.min(hunk.old.start - last_end);
+                right = right.min(next_start - hunk.old.end);
 
-            last_end = hunk.old.end;
+                if left == 0 && right == 0 {
+                    break;
+                }
 
-            widened |= left != 0 || right != 0;
-            hunk.old.start -= left;
-            hunk.new.start -= left;
-            hunk.old.end += right;
-            hunk.new.end += right;
+                hunk.old.start -= left;
+                hunk.new.start -= left;
+                hunk.old.end += right;
+                hunk.new.end += right;
+            }
+
+            last_end = original_old_end;
         }
 
         hunks.dedup_by(|next, previous| {
@@ -419,7 +424,5 @@ impl Hunk {
                 false
             }
         });
-
-        widened
     }
 }

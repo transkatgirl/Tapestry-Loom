@@ -429,7 +429,7 @@ impl TapestryWeave {
     }
     /// Calculates a readable diff between `new` and the text bytes corresponding to the active path.
     ///
-    /// Diff calculation time is bounded, making this function generally safe to use in user interfaces.
+    /// Diff calculation time (but not post-processing time) is bounded, making this function generally safe to use in user interfaces.
     ///
     /// The exact diff calculation and semantic post-processing algorithms used are implementation-specific and subject to change.
     pub fn diff_active_text(&mut self, new: &[u8]) -> Vec<Hunk> {
@@ -471,12 +471,12 @@ impl TapestryWeave {
         let old_words = segment_text_bytes(&old, str::split_word_bound_indices);
         let new_words = segment_text_bytes(new, str::split_word_bound_indices);
 
-        while Hunk::expand_ordered(&mut hunks, old.len(), |hunk| {
+        Hunk::expand_ordered(&mut hunks, old.len(), |hunk| {
             let (old_left, old_right) = slack(&old_words, &hunk.old);
             let (new_left, new_right) = slack(&new_words, &hunk.new);
 
             (old_left.max(new_left), old_right.max(new_right))
-        }) {}
+        });
 
         let mut boundaries = segment_text_bytes(&old, |text| text.grapheme_indices(true));
 
