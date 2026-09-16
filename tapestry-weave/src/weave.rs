@@ -77,6 +77,8 @@ pub type ArchivedTapestryWeaveInner = <TapestryWeaveInner as Archive>::Archived;
 /// # DoS Resistance
 ///
 /// This Weave implementation does not make use of DoS-resistant hashers.
+#[derive(Debug, Clone)]
+#[must_use]
 pub struct TapestryWeave(
     PatchablePathWeave<TapestryWeaveInner, ShortId, TapestryNode, NodeContent>,
 );
@@ -815,6 +817,8 @@ impl DiscreteWeave<ShortId, TapestryNode, NodeContent> for TapestryWeave {
 }
 
 /// A [`TapestryWeave`] loaded using zero-copy deserialization.
+#[derive(Clone)]
+#[must_use]
 pub struct ArchivedTapestryWeave<'a>(pub &'a ArchivedTapestryWeaveInner);
 
 impl<'a> From<&'a ArchivedTapestryWeaveInner> for ArchivedTapestryWeave<'a> {
