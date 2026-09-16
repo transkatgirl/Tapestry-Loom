@@ -70,6 +70,8 @@ pub type ArchivedTapestryWeaveInner = <TapestryWeaveInner as Archive>::Archived;
 
 /// An [`IndependentWeave`] + [`PatchablePathWeave`] wrapper which implements Tapestry Loom's document format.
 ///
+/// This wrapper is guaranteed to be stateless; `TapestryWeave::from(weave.into_inner())` does not result in data loss.
+///
 /// All identifiers *must be* randomly generated because the underlying [`Weave`]'s hashmaps use an identity hasher.
 ///
 /// # DoS Resistance
@@ -122,6 +124,16 @@ impl TapestryWeave {
     /// This function over-allocates for worst-case memory usage rather than average-case.
     pub fn with_capacity_and_metadata(capacity: usize, metadata: WeaveMetadata) -> Self {
         Self::from(IndependentWeave::with_capacity(capacity, metadata))
+    }
+    /// Converts a [`TapestryWeave`] into the underlying [`TapestryWeaveInner`].
+    #[inline]
+    pub fn into_inner(self) -> TapestryWeaveInner {
+        self.0.weave
+    }
+    /// Returns a reference to the underlying [`TapestryWeaveInner`].
+    #[inline]
+    pub const fn as_inner(&self) -> &TapestryWeaveInner {
+        &self.0.weave
     }
     /// Convenience method for `self.is_empty() && self.metadata().is_empty()`
     pub fn is_empty_including_metadata(&self) -> bool {
