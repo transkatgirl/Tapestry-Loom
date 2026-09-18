@@ -1,9 +1,12 @@
 #![allow(non_snake_case)]
 #![allow(non_camel_case_types)]
 
-use std::{collections::HashSet, hash::BuildHasherDefault};
+use std::{
+    collections::{HashMap, HashSet},
+    hash::BuildHasherDefault,
+};
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::Value;
 use stacksafe::stacksafe;
 use tapestry_weave::{
@@ -15,7 +18,7 @@ use tapestry_weave::{
     jiff::{Zoned, civil::DateTime, tz::TimeZone},
     nanorand::{Rng, WyRand},
     universal_weave::{
-        MetadataWeave, Weave,
+        DiscreteContentResult, MetadataWeave, Weave,
         indexmap::{IndexMap, IndexSet},
     },
     util::{RandomIdHasher, RandomState, UniqueIdentifierRemapper},
@@ -24,21 +27,21 @@ use tapestry_weave::{
 use crate::new_weave;
 
 pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWeave>> {
-    let Ok(value) = serde_json::from_str::<Value>(input) else {
+    let Ok(value) = parse_json(input) else {
         return Ok(None);
     };
 
     let data = if value.is_array() {
-        serde_json::from_value::<Vec<PyloomNode>>(value).map(|children| {
+        from_value::<Vec<PyloomNode>>(value).map(|children| {
             PyloomWeave::from_root(PyloomNode {
                 children,
                 ..PyloomNode::default()
             })
         })
     } else if value.get("root").is_some() {
-        serde_json::from_value::<PyloomWeave>(value)
+        from_value::<PyloomWeave>(value)
     } else if value.get("text").is_some() {
-        serde_json::from_value::<PyloomNode>(value).map(PyloomWeave::from_root)
+        from_value::<PyloomNode>(value).map(PyloomWeave::from_root)
     } else {
         return Ok(None);
     };
@@ -48,9 +51,12 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWea
     };
 
     let root = std::mem::take(&mut data.root);
-    data.root = unzip_masks(root, &mut data.selected_node_id);
+    data.root = unzip_masks(root, &mut data.selected_node_id, &mut HashMap::new());
 
     let node_count = assign_missing_identifiers(&mut data.root, &mut HashSet::new(), &mut 0);
+
+    let mut split_children = HashSet::new();
+    collect_split_children(&data.root, &mut split_children);
 
     let selected = data
         .selected_node_id
@@ -63,23 +69,27 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWea
         .map(|(id, chapter)| (id, chapter.title))
         .collect();
 
-    let mut hidden_tags = vec!["archived".to_string(), "note".to_string()];
+    let mut tags = default_tags();
 
     for (name, definition) in &data.tags {
-        match definition.get("hide").and_then(Value::as_bool) {
-            Some(true) if !hidden_tags.contains(name) => hidden_tags.push(name.clone()),
-            Some(false) => hidden_tags.retain(|tag| tag != name),
-            _ => {}
-        }
+        let definition = TagDefinition::from_value(definition, tags.get(name));
+        tags.insert(name.clone(), definition);
     }
+
+    let canonical: HashSet<String> = data.canonical.into_iter().collect();
+
+    let mut ancestry_tags = HashMap::new();
+    collect_ancestry_tags(&data.root, &tags, &canonical, &mut ancestry_tags);
 
     let mut output = new_weave(node_count, created, "PyLoom", None);
 
     let context = Context {
         chapters,
         responses: data.model_responses,
-        hidden_tags,
-        canonical: data.canonical.into_iter().collect(),
+        tags,
+        canonical,
+        split_children,
+        ancestry_tags,
         time_zone: output.metadata().created.time_zone().clone(),
     };
 
@@ -100,6 +110,7 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWea
         data.root,
         None,
         &context,
+        Inherited::default(),
     )?;
 
     if !selected.is_empty() {
@@ -115,9 +126,185 @@ pub fn migrate(input: &str, created: Zoned) -> anyhow::Result<Option<TapestryWea
 struct Context {
     chapters: IndexMap<String, String>,
     responses: IndexMap<String, PyloomModelResponse>,
-    hidden_tags: Vec<String>,
+    tags: IndexMap<String, TagDefinition>,
     canonical: HashSet<String>,
+    split_children: HashSet<String>,
+    ancestry_tags: HashMap<String, Vec<String>>,
     time_zone: TimeZone,
+}
+
+impl Context {
+    fn is_visible(&self, tags: &[String]) -> bool {
+        let mut show_only_defined = false;
+        let mut shown = false;
+
+        for (name, definition) in &self.tags {
+            let has_tag = tags.iter().any(|tag| tag == name);
+
+            if definition.hide && has_tag {
+                return false;
+            }
+
+            if definition.show_only {
+                show_only_defined = true;
+                shown |= has_tag;
+            }
+        }
+
+        !show_only_defined || shown
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum TagScope {
+    Node,
+    Subtree,
+    Ancestry,
+}
+
+#[derive(Clone, Copy)]
+struct TagDefinition {
+    scope: TagScope,
+    hide: bool,
+    show_only: bool,
+}
+
+impl TagDefinition {
+    const fn new(scope: TagScope, hide: bool) -> Self {
+        Self {
+            scope,
+            hide,
+            show_only: false,
+        }
+    }
+
+    fn from_value(value: &Value, fallback: Option<&Self>) -> Self {
+        let fallback = fallback
+            .copied()
+            .unwrap_or(Self::new(TagScope::Node, false));
+
+        Self {
+            scope: match value.get("scope").and_then(Value::as_str) {
+                Some("subtree") => TagScope::Subtree,
+                Some("ancestry") => TagScope::Ancestry,
+                Some(_) => TagScope::Node,
+                None => fallback.scope,
+            },
+            hide: value
+                .get("hide")
+                .and_then(Value::as_bool)
+                .unwrap_or(fallback.hide),
+            show_only: value
+                .get("show_only")
+                .and_then(Value::as_bool)
+                .unwrap_or(fallback.show_only),
+        }
+    }
+}
+
+fn default_tags() -> IndexMap<String, TagDefinition> {
+    IndexMap::from_iter([
+        (
+            "bookmark".to_string(),
+            TagDefinition::new(TagScope::Node, false),
+        ),
+        (
+            "canonical".to_string(),
+            TagDefinition::new(TagScope::Ancestry, false),
+        ),
+        (
+            "archived".to_string(),
+            TagDefinition::new(TagScope::Node, true),
+        ),
+        ("note".to_string(), TagDefinition::new(TagScope::Node, true)),
+        (
+            "pinned".to_string(),
+            TagDefinition::new(TagScope::Node, false),
+        ),
+    ])
+}
+
+fn own_tags(node: &PyloomNode, canonical: &HashSet<String>) -> Vec<String> {
+    let mut tags = node.tags.clone().unwrap_or_default();
+
+    let canonical = node.canonical.unwrap_or_default() || canonical.contains(&node.id);
+
+    for (flag, tag) in [
+        (node.bookmark.unwrap_or_default(), "bookmark"),
+        (node.archived.unwrap_or_default(), "archived"),
+        (canonical, "canonical"),
+    ] {
+        if flag && !tags.iter().any(|t| t == tag) {
+            tags.push(tag.to_string());
+        }
+    }
+
+    tags
+}
+
+#[stacksafe]
+fn collect_ancestry_tags(
+    node: &PyloomNode,
+    definitions: &IndexMap<String, TagDefinition>,
+    canonical: &HashSet<String>,
+    output: &mut HashMap<String, Vec<String>>,
+) -> Vec<String> {
+    let mut tags: Vec<String> = own_tags(node, canonical)
+        .into_iter()
+        .filter(|tag| {
+            definitions
+                .get(tag)
+                .is_some_and(|definition| definition.scope == TagScope::Ancestry)
+        })
+        .collect();
+
+    for child in &node.children {
+        for tag in collect_ancestry_tags(child, definitions, canonical, output) {
+            if !tags.contains(&tag) {
+                tags.push(tag);
+            }
+        }
+    }
+
+    if !tags.is_empty() {
+        output.insert(node.id.clone(), tags.clone());
+    }
+
+    tags
+}
+
+fn parse_json(input: &str) -> serde_json::Result<Value> {
+    let mut deserializer = serde_json::Deserializer::from_str(input);
+    deserializer.disable_recursion_limit();
+
+    let value = Value::deserialize(serde_stacker::Deserializer::new(&mut deserializer))?;
+    deserializer.end()?;
+
+    Ok(value)
+}
+
+fn from_value<T: DeserializeOwned>(value: Value) -> serde_json::Result<T> {
+    T::deserialize(serde_stacker::Deserializer::new(value))
+}
+
+#[stacksafe]
+fn collect_split_children(node: &PyloomNode, output: &mut HashSet<String>) {
+    if let Some(child) = node
+        .meta
+        .as_ref()
+        .and_then(|meta| meta.origin.as_deref())
+        .and_then(split_child_id)
+    {
+        output.insert(child.to_string());
+    }
+
+    for child in &node.children {
+        collect_split_children(child, output);
+    }
+}
+
+fn split_child_id(origin: &str) -> Option<&str> {
+    origin.strip_prefix("split (from child ")?.strip_suffix(')')
 }
 
 #[stacksafe]
@@ -155,32 +342,37 @@ fn generated_identifier(counter: &mut usize) -> String {
 }
 
 #[stacksafe]
-fn unzip_masks(mut node: PyloomNode, selected: &mut Option<String>) -> PyloomNode {
+fn unzip_masks(
+    mut node: PyloomNode,
+    selected: &mut Option<String>,
+    resolved: &mut HashMap<String, String>,
+) -> PyloomNode {
     node.children = node
         .children
         .into_iter()
-        .map(|child| unzip_masks(child, selected))
+        .map(|child| unzip_masks(child, selected, resolved))
         .collect();
 
     let Some(head) = node.masked_head.take() else {
         return node;
     };
 
-    let mut head = unzip_masks(*head, selected);
+    let mut head = unzip_masks(*head, selected, resolved);
 
-    let tail = node.tail_id.as_deref().and_then(|tail_id| {
-        let mut stack = vec![&mut head];
-
-        while let Some(node) = stack.pop() {
-            if node.id == tail_id {
-                return Some(node);
-            }
-
-            stack.extend(node.children.iter_mut());
+    let tail_id = node.tail_id.as_deref().map(|tail_id| {
+        if contains_node(&head, tail_id) {
+            tail_id.to_string()
+        } else {
+            resolved
+                .get(tail_id)
+                .cloned()
+                .unwrap_or_else(|| tail_id.to_string())
         }
-
-        None
     });
+
+    let tail = tail_id
+        .as_deref()
+        .and_then(|tail_id| find_node_mut(&mut head, tail_id));
 
     let merged = match tail {
         Some(tail) => {
@@ -191,22 +383,26 @@ fn unzip_masks(mut node: PyloomNode, selected: &mut Option<String>) -> PyloomNod
                 *selected = Some(tail.id.clone());
             }
 
-            true
+            Some(tail.id.clone())
         }
-        None => false,
+        None => None,
     };
 
     match merged {
-        true => {
+        Some(tail_id) => {
+            if !node.id.is_empty() {
+                resolved.insert(std::mem::take(&mut node.id), tail_id);
+            }
+
             if head.chapter_id.is_none() {
                 head.chapter_id = node.chapter_id.take();
             }
 
             head
         }
-        false => {
+        None => {
             eprintln!(
-                "Warning: Missing tail {:?} for node {:?}; keeping masked subtree as a child",
+                "Warning: Missing tail {:?} for node {:?}; keeping the masked subtree as a child of the mask node. The mask node's text repeats the text of the masked chain, so this branch will contain duplicated text",
                 node.tail_id, node.id
             );
 
@@ -215,6 +411,34 @@ fn unzip_masks(mut node: PyloomNode, selected: &mut Option<String>) -> PyloomNod
             node
         }
     }
+}
+
+fn contains_node(root: &PyloomNode, id: &str) -> bool {
+    let mut stack = vec![root];
+
+    while let Some(node) = stack.pop() {
+        if node.id == id {
+            return true;
+        }
+
+        stack.extend(node.children.iter());
+    }
+
+    false
+}
+
+fn find_node_mut<'a>(root: &'a mut PyloomNode, id: &str) -> Option<&'a mut PyloomNode> {
+    let mut stack = vec![root];
+
+    while let Some(node) = stack.pop() {
+        if node.id == id {
+            return Some(node);
+        }
+
+        stack.extend(node.children.iter_mut());
+    }
+
+    None
 }
 
 fn merge_mask_attributes(mask: &mut PyloomNode, target: &mut PyloomNode) {
@@ -268,69 +492,122 @@ fn merge_mask_attributes(mask: &mut PyloomNode, target: &mut PyloomNode) {
     }
 }
 
+#[derive(Default)]
+struct Inherited {
+    tags: Vec<String>,
+    split: Option<SplitChain>,
+}
+
+struct SplitChain {
+    remaining: Vec<(String, InnerNodeContent)>,
+    timestamp: Option<Zoned>,
+    model_label: Option<String>,
+    finish_reason: Option<String>,
+}
+
+struct Generated {
+    tokens: Option<Vec<InnerNodeToken>>,
+    model_label: Option<String>,
+    finish_reason: Option<String>,
+}
+
 #[stacksafe]
 fn convert_node(
     weave: &mut TapestryWeave,
     convert_old_identifier: &mut impl FnMut(String) -> u64,
-    node: PyloomNode,
+    mut node: PyloomNode,
     parent: Option<u64>,
     context: &Context,
+    inherited: Inherited,
 ) -> anyhow::Result<()> {
-    let response = node
-        .generation
-        .as_ref()
-        .and_then(|generation| context.responses.get(&generation.id));
+    let Inherited {
+        tags: inherited_tags,
+        split,
+    } = inherited;
 
-    let generated = node.generation.is_some()
+    let source = node.meta.as_ref().and_then(|meta| meta.source.clone());
+    let origin = node.meta.as_ref().and_then(|meta| meta.origin.clone());
+
+    let modified = origin
+        .as_deref()
+        .is_some_and(|origin| origin.starts_with("split"))
+        || context.split_children.contains(&node.id);
+
+    let edited = is_edited(&node);
+
+    let mut chain = split.or_else(|| start_split_chain(&node, context));
+
+    let piece = chain
+        .as_mut()
+        .filter(|chain| chain.remaining.last().is_some_and(|(id, _)| *id == node.id))
+        .and_then(|chain| chain.remaining.pop())
+        .map(|(_, content)| content);
+
+    if piece.is_none() {
+        chain = None;
+    }
+
+    let generated = piece.is_some()
+        || node.generation.is_some()
         || node
             .meta
             .as_ref()
             .is_some_and(|meta| meta.generation.is_some());
 
-    let timestamp = parse_timestamp(
-        node.meta
-            .as_ref()
-            .and_then(|meta| meta.creation_timestamp.as_deref()),
-        &context.time_zone,
-    )
-    .or_else(|| {
-        parse_timestamp(
-            response.and_then(|response| response.timestamp.as_deref()),
-            &context.time_zone,
-        )
-    })
-    .unwrap_or_default();
-
-    let source = node.meta.as_ref().and_then(|meta| meta.source.clone());
-
-    let modified = node
-        .meta
-        .as_ref()
-        .map(|meta| source.as_deref() == Some("mixed") || meta.modified.unwrap_or_default())
+    let timestamp = node_timestamp(&node, context)
+        .or_else(|| chain.as_ref().and_then(|chain| chain.timestamp.clone()))
         .unwrap_or_default();
+
+    let (content, model_label, finish_reason) = match (piece, &chain) {
+        (Some(content), Some(chain)) => (
+            content,
+            chain.model_label.clone(),
+            chain.finish_reason.clone(),
+        ),
+        _ => {
+            let generated = build_generated(&node, &node.text, edited, context);
+
+            let content = match generated.tokens {
+                Some(tokens) => InnerNodeContent::Tokens(tokens),
+                None => InnerNodeContent::Snippet(std::mem::take(&mut node.text).into_bytes()),
+            };
+
+            (content, generated.model_label, generated.finish_reason)
+        }
+    };
 
     let id = convert_old_identifier(node.id.clone());
 
     let chapter = node
         .chapter_id
-        .and_then(|chapter| context.chapters.get(&chapter));
+        .as_ref()
+        .and_then(|chapter| context.chapters.get(chapter));
 
-    let mut tags = node.tags.unwrap_or_default();
+    let mut tags = own_tags(&node, &context.canonical);
 
-    let canonical = node.canonical.unwrap_or_default() || context.canonical.contains(&node.id);
-
-    for (flag, tag) in [
-        (node.bookmark.unwrap_or_default(), "bookmark"),
-        (node.archived.unwrap_or_default(), "archived"),
-        (canonical, "canonical"),
-    ] {
-        if flag && !tags.iter().any(|t| t == tag) {
-            tags.push(tag.to_string());
+    for tag in inherited_tags
+        .iter()
+        .chain(context.ancestry_tags.get(&node.id).into_iter().flatten())
+    {
+        if !tags.contains(tag) {
+            tags.push(tag.clone());
         }
     }
 
     let bookmarked = chapter.is_some() || tags.iter().any(|tag| tag == "bookmark");
-    let hidden = tags.iter().any(|tag| context.hidden_tags.contains(tag));
+
+    let hidden = parent.is_some() && !context.is_visible(&tags);
+
+    let subtree_tags: Vec<String> = tags
+        .iter()
+        .filter(|tag| {
+            context
+                .tags
+                .get(*tag)
+                .is_some_and(|definition| definition.scope == TagScope::Subtree)
+        })
+        .cloned()
+        .collect();
 
     let mut metadata = IndexMap::with_capacity_and_hasher(6, RandomState::default());
 
@@ -360,7 +637,7 @@ fn convert_node(
         metadata.insert("pruned".to_string(), "true".to_string());
     }
 
-    if let Some(origin) = node.meta.as_ref().and_then(|meta| meta.origin.clone()) {
+    if let Some(origin) = origin {
         metadata.insert("origin".to_string(), origin);
     }
 
@@ -382,60 +659,6 @@ fn convert_node(
             serde_json::to_string(&multimedia)?,
         );
     }
-
-    let text = node.text;
-
-    let mut model_label = None;
-    let mut finish_reason = None;
-    let mut tokens = None;
-
-    if let Some(generation) = &node.generation {
-        if let Some(response) = response {
-            model_label = response.model.clone();
-
-            if let Some(completion) = response.completions.get(generation.index) {
-                finish_reason = parse_finish_reason(completion.finishReason.as_ref());
-                tokens = build_tokens(
-                    &text,
-                    completion
-                        .tokens
-                        .iter()
-                        .map(|token| {
-                            (
-                                decode_token(&token.generatedToken.token),
-                                token.generatedToken.logprob,
-                                parse_counterfactuals(token.counterfactuals.as_ref()),
-                                OriginalToken::Unmodified,
-                            )
-                        })
-                        .collect(),
-                    true,
-                );
-            } else {
-                eprintln!(
-                    "Warning: Node {:?} is missing completion {}",
-                    node.id, generation.index
-                );
-            }
-        }
-    } else if let Some(legacy) = node.meta.as_ref().and_then(|meta| meta.generation.as_ref()) {
-        model_label = legacy.model.clone();
-        finish_reason = legacy.finish_reason.clone();
-        tokens = build_legacy_tokens(&text, legacy);
-    }
-
-    if tokens.is_none()
-        && generated
-        && let Some(meta) = &node.meta
-        && let Some(diffs) = &meta.diffs
-    {
-        tokens = build_diff_tokens(&text, diffs, meta.generation.as_ref());
-    }
-
-    let content = match tokens {
-        Some(tokens) => InnerNodeContent::Tokens(tokens),
-        None => InnerNodeContent::Snippet(text.into_bytes()),
-    };
 
     let model = model_label.map(|label| Model {
         label,
@@ -470,10 +693,190 @@ fn convert_node(
     }));
 
     for child in node.children {
-        convert_node(weave, convert_old_identifier, child, Some(id), context)?;
+        let continues_chain = chain.as_ref().is_some_and(|chain| {
+            chain
+                .remaining
+                .last()
+                .is_some_and(|(id, _)| *id == child.id)
+        });
+
+        convert_node(
+            weave,
+            convert_old_identifier,
+            child,
+            Some(id),
+            context,
+            Inherited {
+                tags: subtree_tags.clone(),
+                split: if continues_chain { chain.take() } else { None },
+            },
+        )?;
     }
 
     Ok(())
+}
+
+fn is_edited(node: &PyloomNode) -> bool {
+    node.meta.as_ref().is_some_and(|meta| {
+        meta.source.as_deref() == Some("mixed") || meta.modified.unwrap_or_default()
+    })
+}
+
+fn node_timestamp(node: &PyloomNode, context: &Context) -> Option<Zoned> {
+    parse_timestamp(
+        node.meta
+            .as_ref()
+            .and_then(|meta| meta.creation_timestamp.as_deref()),
+        &context.time_zone,
+    )
+    .or_else(|| {
+        let response = node
+            .generation
+            .as_ref()
+            .and_then(|generation| context.responses.get(&generation.id));
+
+        parse_timestamp(
+            response.and_then(|response| response.timestamp.as_deref()),
+            &context.time_zone,
+        )
+    })
+}
+
+fn build_generated(node: &PyloomNode, text: &str, edited: bool, context: &Context) -> Generated {
+    let generated = node.generation.is_some()
+        || node
+            .meta
+            .as_ref()
+            .is_some_and(|meta| meta.generation.is_some());
+
+    let mut model_label = None;
+    let mut finish_reason = None;
+    let mut tokens = None;
+
+    if let Some(generation) = &node.generation {
+        if let Some(response) = context.responses.get(&generation.id) {
+            model_label = response.model.clone();
+
+            if let Some(completion) = response.completions.get(generation.index) {
+                finish_reason = parse_finish_reason(completion.finishReason.as_ref());
+                tokens = build_tokens(
+                    text,
+                    completion
+                        .tokens
+                        .iter()
+                        .map(|token| {
+                            (
+                                decode_token(&token.generatedToken.token),
+                                token.generatedToken.logprob,
+                                parse_counterfactuals(token.counterfactuals.as_ref()),
+                                OriginalToken::Unmodified,
+                            )
+                        })
+                        .collect(),
+                    true,
+                    edited,
+                );
+            } else {
+                eprintln!(
+                    "Warning: Node {:?} is missing completion {}",
+                    node.id, generation.index
+                );
+            }
+        }
+    } else if let Some(legacy) = node.meta.as_ref().and_then(|meta| meta.generation.as_ref()) {
+        model_label = legacy.model.clone();
+        finish_reason = legacy.finish_reason.clone();
+        tokens = build_legacy_tokens(text, legacy, edited);
+    }
+
+    if tokens.is_none()
+        && generated
+        && let Some(meta) = &node.meta
+        && let Some(diffs) = &meta.diffs
+    {
+        tokens = build_diff_tokens(text, diffs, meta.generation.as_ref());
+    }
+
+    Generated {
+        tokens,
+        model_label,
+        finish_reason,
+    }
+}
+
+fn start_split_chain(node: &PyloomNode, context: &Context) -> Option<SplitChain> {
+    let mut chain = vec![node];
+    let mut current = node;
+
+    while let Some(child_id) = current
+        .meta
+        .as_ref()
+        .and_then(|meta| meta.origin.as_deref())
+        .and_then(split_child_id)
+    {
+        let Some(child) = current.children.iter().find(|child| child.id == child_id) else {
+            break;
+        };
+
+        chain.push(child);
+        current = child;
+    }
+
+    if chain.len() < 2 {
+        return None;
+    }
+
+    let text: String = chain.iter().map(|node| node.text.as_str()).collect();
+    let edited = chain.iter().any(|node| is_edited(node));
+
+    let generated = build_generated(current, &text, edited, context);
+    let content = InnerNodeContent::Tokens(generated.tokens?);
+
+    if content.len() != text.len() {
+        return None;
+    }
+
+    let lengths: Vec<usize> = chain.iter().map(|node| node.text.len()).collect();
+
+    let remaining = chain
+        .iter()
+        .map(|node| node.id.clone())
+        .zip(split_content(content, &lengths))
+        .rev()
+        .collect();
+
+    Some(SplitChain {
+        remaining,
+        timestamp: node_timestamp(current, context),
+        model_label: generated.model_label,
+        finish_reason: generated.finish_reason,
+    })
+}
+
+fn split_content(mut content: InnerNodeContent, lengths: &[usize]) -> Vec<InnerNodeContent> {
+    let mut output = Vec::with_capacity(lengths.len());
+
+    for &length in lengths.iter().take(lengths.len().saturating_sub(1)) {
+        if length == 0 {
+            output.push(InnerNodeContent::Snippet(Vec::new()));
+            continue;
+        }
+
+        content = match content.split(length) {
+            DiscreteContentResult::Two(left, right) => {
+                output.push(left);
+                right
+            }
+            DiscreteContentResult::One(whole) => {
+                output.push(whole);
+                InnerNodeContent::Snippet(Vec::new())
+            }
+        };
+    }
+
+    output.push(content);
+
+    output
 }
 
 fn parse_notes(notes: Value) -> Vec<String> {
@@ -535,37 +938,74 @@ fn build_tokens(
     text: &str,
     tokens: Vec<TokenRecord>,
     partial: bool,
+    edited: bool,
 ) -> Option<Vec<InnerNodeToken>> {
     let joined: Vec<u8> = tokens
         .iter()
         .flat_map(|(bytes, _, _, _)| bytes.iter().copied())
         .collect();
 
-    if joined.is_empty() {
+    let bytes = text.as_bytes();
+
+    if joined.is_empty() || bytes.is_empty() {
         return None;
     }
 
-    let bytes = text.as_bytes();
-
-    let start = if partial {
-        bytes
-            .windows(joined.len())
-            .position(|window| window == joined.as_slice())?
-    } else if bytes == joined.as_slice() {
+    let origin: isize = if bytes == joined.as_slice() {
         0
-    } else {
+    } else if !partial {
         return None;
+    } else if let Some(position) = find(bytes, &joined) {
+        -(position as isize)
+    } else {
+        find_unique(&joined, bytes)? as isize
     };
 
-    let end = start + joined.len();
+    let joined_len = joined.len() as isize;
+    let end = origin + bytes.len() as isize;
 
     let mut output = Vec::with_capacity(tokens.len() + 2);
 
-    if start > 0 {
-        output.push(unknown_token(bytes[..start].to_vec()));
+    if origin < 0 {
+        output.push(unknown_token(
+            bytes[..origin.unsigned_abs()].to_vec(),
+            edited,
+        ));
     }
 
+    let mut position: isize = 0;
+
     for (token_bytes, logprob, counterfactual, original) in tokens {
+        let start = position;
+        let stop = start + token_bytes.len() as isize;
+        position = stop;
+
+        let window_start = start.max(origin);
+        let window_stop = stop.min(end);
+
+        if window_start > window_stop || (window_start == window_stop && !token_bytes.is_empty()) {
+            continue;
+        }
+
+        let (token_bytes, original) = if window_start == start && window_stop == stop {
+            (token_bytes, original)
+        } else {
+            let offset = (window_start - start) as usize;
+            let slice = token_bytes[offset..(window_stop - start) as usize].to_vec();
+
+            let original = if original.is_modified() {
+                original
+            } else {
+                OriginalToken::Known {
+                    bytes: token_bytes,
+                    id: None,
+                    offset,
+                }
+            };
+
+            (slice, original)
+        };
+
         let mut token = InnerNodeToken {
             bytes: token_bytes,
             logprob: logprob.map(|p| p as f32),
@@ -579,57 +1019,121 @@ fn build_tokens(
         output.push(token);
     }
 
-    if end < bytes.len() {
-        output.push(unknown_token(bytes[end..].to_vec()));
+    if end > joined_len {
+        output.push(unknown_token(
+            bytes[(joined_len - origin) as usize..].to_vec(),
+            edited,
+        ));
     }
 
     Some(output)
 }
 
-fn unknown_token(bytes: Vec<u8>) -> InnerNodeToken {
+fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
+}
+
+fn find_unique(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    let mut matches = haystack
+        .windows(needle.len())
+        .enumerate()
+        .filter(|(_, window)| *window == needle)
+        .map(|(position, _)| position);
+
+    let first = matches.next()?;
+
+    matches.next().is_none().then_some(first)
+}
+
+fn unknown_token(bytes: Vec<u8>, edited: bool) -> InnerNodeToken {
     InnerNodeToken {
         bytes,
         logprob: None,
         id: None,
         entropy: None,
         counterfactual: Vec::new(),
-        original: OriginalToken::Unmodified,
+        original: if edited {
+            OriginalToken::Unknown
+        } else {
+            OriginalToken::Unmodified
+        },
     }
 }
 
-type LegacyRecord<'a> = (&'a str, Option<f64>, Vec<CounterfactualToken>);
+type LegacyRecord = (Vec<u8>, Option<f64>, Vec<CounterfactualToken>);
+
+fn prompt_token_count(tokens: &[Vec<u8>], offsets: &[i64], prompt: Option<&str>) -> usize {
+    if offsets.iter().any(|offset| *offset < 0) {
+        return offsets
+            .iter()
+            .take(tokens.len())
+            .take_while(|offset| **offset < 0)
+            .count();
+    }
+
+    let Some(prompt) = prompt.filter(|prompt| !prompt.is_empty()) else {
+        return 0;
+    };
+
+    let first_offset_in_prompt = offsets
+        .first()
+        .is_none_or(|offset| *offset < prompt.chars().count() as i64);
+    let joined_len: usize = tokens.iter().map(Vec::len).sum();
+
+    if !first_offset_in_prompt
+        || joined_len < prompt.len()
+        || !tokens
+            .iter()
+            .flatten()
+            .zip(prompt.as_bytes())
+            .all(|(token, prompt)| token == prompt)
+    {
+        return 0;
+    }
+
+    let mut consumed = 0;
+    let mut count = 0;
+
+    for token in tokens {
+        if consumed >= prompt.len() {
+            break;
+        }
+
+        consumed += token.len();
+        count += 1;
+    }
+
+    count
+}
 
 fn legacy_records(
     generation: &PyloomLegacyGeneration,
     skip_prompt: bool,
-) -> Option<Vec<LegacyRecord<'_>>> {
+) -> Option<Vec<LegacyRecord>> {
     let logprobs = generation.logprobs.as_ref()?;
 
-    let prompt_end = if logprobs.text_offset.iter().any(|offset| *offset < 0) {
-        0
+    let tokens: Vec<Vec<u8>> = logprobs
+        .tokens
+        .iter()
+        .map(|token| decode_token(token))
+        .collect();
+
+    let skip = if skip_prompt {
+        prompt_token_count(&tokens, &logprobs.text_offset, generation.prompt.as_deref())
     } else {
-        generation
-            .prompt
-            .as_ref()
-            .map(|prompt| prompt.chars().count() as i64)
-            .unwrap_or_default()
+        0
     };
 
     Some(
-        logprobs
-            .tokens
-            .iter()
+        tokens
+            .into_iter()
             .enumerate()
-            .filter(|(i, _)| {
-                !skip_prompt
-                    || logprobs
-                        .text_offset
-                        .get(*i)
-                        .is_none_or(|offset| *offset >= prompt_end)
-            })
+            .skip(skip)
             .map(|(i, token)| {
                 (
-                    token.as_str(),
+                    token,
                     logprobs.token_logprobs.get(i).copied().flatten(),
                     parse_counterfactuals(
                         logprobs
@@ -646,27 +1150,23 @@ fn legacy_records(
 fn build_legacy_tokens(
     text: &str,
     generation: &PyloomLegacyGeneration,
+    edited: bool,
 ) -> Option<Vec<InnerNodeToken>> {
     let records = |skip_prompt: bool| -> Option<Vec<TokenRecord>> {
         Some(
             legacy_records(generation, skip_prompt)?
                 .into_iter()
                 .map(|(token, logprob, counterfactual)| {
-                    (
-                        decode_token(token),
-                        logprob,
-                        counterfactual,
-                        OriginalToken::Unmodified,
-                    )
+                    (token, logprob, counterfactual, OriginalToken::Unmodified)
                 })
                 .collect(),
         )
     };
 
-    build_tokens(text, records(true)?, false)
-        .or_else(|| build_tokens(text, records(false)?, false))
-        .or_else(|| build_tokens(text, records(false)?, true))
-        .or_else(|| build_tokens(text, records(true)?, true))
+    build_tokens(text, records(true)?, false, edited)
+        .or_else(|| build_tokens(text, records(false)?, false, edited))
+        .or_else(|| build_tokens(text, records(true)?, true, edited))
+        .or_else(|| build_tokens(text, records(false)?, true, edited))
 }
 
 fn build_diff_tokens(
@@ -684,31 +1184,25 @@ fn build_diff_tokens(
         return None;
     }
 
-    let prompt_end = if original_positions.iter().any(|offset| *offset < 0) {
-        Some(0)
-    } else {
-        generation
-            .and_then(|generation| generation.prompt.as_ref())
-            .map(|prompt| prompt.chars().count() as i64)
-    };
-
-    let mut kept: Vec<usize> = (0..original_tokens.len())
-        .filter(|i| {
-            prompt_end.is_none_or(|prompt_end| {
-                original_positions
-                    .get(*i)
-                    .is_none_or(|offset| *offset >= prompt_end)
-            })
-        })
+    let original: Vec<Vec<u8>> = original_tokens
+        .iter()
+        .map(|token| decode_token(token))
         .collect();
 
-    if kept.is_empty() {
-        kept = (0..original_tokens.len()).collect();
+    let mut skip = prompt_token_count(
+        &original,
+        &original_positions,
+        generation.and_then(|generation| generation.prompt.as_deref()),
+    );
+
+    if skip >= original.len() {
+        skip = 0;
     }
 
-    let mut records: Vec<(Vec<u8>, Option<f64>, Vec<CounterfactualToken>)> = kept
-        .iter()
-        .map(|&i| (decode_token(&original_tokens[i]), None, Vec::new()))
+    let mut records: Vec<LegacyRecord> = original
+        .into_iter()
+        .skip(skip)
+        .map(|token| (token, None, Vec::new()))
         .collect();
 
     if let Some(generation) = generation {
@@ -720,8 +1214,8 @@ fn build_diff_tokens(
             if legacy.len() == records.len()
                 && legacy
                     .iter()
-                    .zip(&kept)
-                    .all(|((token, _, _), &i)| *token == original_tokens[i])
+                    .zip(&records)
+                    .all(|(legacy, record)| legacy.0 == record.0)
             {
                 for (record, (_, logprob, counterfactual)) in records.iter_mut().zip(legacy) {
                     record.1 = logprob;
@@ -762,7 +1256,7 @@ fn build_diff_tokens(
         })
         .collect();
 
-    build_tokens(text, items.clone(), false).or_else(|| build_tokens(text, items, true))
+    build_tokens(text, items.clone(), false, true).or_else(|| build_tokens(text, items, true, true))
 }
 
 fn parse_tokenization(value: &Value) -> Option<(Vec<String>, Vec<i64>)> {

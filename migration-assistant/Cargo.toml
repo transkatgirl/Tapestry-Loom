@@ -31,6 +31,7 @@ serde_json = { version = "1.0.151", features = [
 	"preserve_order",
 	"float_roundtrip",
 	"arbitrary_precision",
+	"unbounded_depth",
 ] }
 chrono = { version = "0.4.45", features = [
 	"alloc",
@@ -43,3 +44,4 @@ uuid = { version = "1.26.1", features = [
 ], default-features = false }
 stacksafe = "1.0.3"
 ulid = "3.0.0"
+serde_stacker = "0.1.14"
