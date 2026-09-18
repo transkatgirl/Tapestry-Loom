@@ -519,13 +519,15 @@ impl ArchivedInnerNodeToken {
 pub enum OriginalToken {
     /// The token has not been modified.
     Unmodified,
-    /// The token has been modified and the original contents are known.
+    /// The token has been modified by a split operation and the original contents are known.
     Known {
         /// The token's textual representation.
         #[serde(with = "Base64Standard")]
         bytes: Vec<u8>,
         /// The generator-specific numeric ID associated with the token.
         id: Option<u64>,
+        /// The offset within `bytes` where the [`InnerNodeToken`]'s contents begin.
+        offset: usize,
     },
     /// The token has been modified and the original contents are unknown.
     Unknown,
@@ -642,10 +644,12 @@ impl InnerNodeContent {
                             right[0].original = OriginalToken::Known {
                                 bytes: right[0].bytes.clone(),
                                 id: right[0].id,
+                                offset: 0,
                             };
                         }
 
                         left_token.shrink_to_fit();
+                        let left_len = left_token.len();
                         left.push(InnerNodeToken {
                             bytes: left_token,
                             id: None,
@@ -655,6 +659,9 @@ impl InnerNodeContent {
                             original: right[0].original.clone(),
                         });
                         right[0].id = None;
+                        if let OriginalToken::Known { offset, .. } = &mut right[0].original {
+                            *offset += left_len;
+                        }
                     }
                     right[0].bytes = right_token;
 
@@ -693,6 +700,7 @@ impl InnerNodeContent {
                 ),
                 Self::Tokens(mut right_tokens) => {
                     left_tokens.append(&mut right_tokens);
+                    restore_split_tokens(&mut left_tokens);
                     DiscreteContentResult::One(Self::Tokens(left_tokens))
                 }
                 Self::MetadataOnly => {
@@ -735,6 +743,7 @@ impl InnerNodeContent {
                 }
                 Self::Tokens(mut right_tokens) => {
                     left_tokens.append(&mut right_tokens);
+                    restore_split_tokens(&mut left_tokens);
                     Self::Tokens(left_tokens)
                 }
                 Self::MetadataOnly => Self::Tokens(left_tokens),
@@ -786,7 +795,7 @@ impl InnerNodeContent {
             Self::Tokens(tokens) => Cow::Owned(
                 tokens
                     .iter()
-                    .flat_map(|token| token.bytes.clone())
+                    .flat_map(|token| token.bytes.iter().copied())
                     .collect(),
             ),
             Self::MetadataOnly => Cow::Borrowed(EMPTY_VEC_REF),
@@ -817,6 +826,65 @@ impl InnerNodeContent {
     }
 }
 
+fn restore_split_tokens(tokens: &mut Vec<InnerNodeToken>) {
+    let mut index = 0;
+
+    while index < tokens.len() {
+        let current = &tokens[index];
+
+        if let OriginalToken::Known {
+            bytes: original_bytes,
+            id: original_id,
+            offset: original_offset,
+        } = &current.original
+            && original_bytes.ends_with(&current.bytes)
+            && *original_offset == original_bytes.len() - current.bytes.len()
+        {
+            let orig_index = index;
+            let mut remaining = *original_offset;
+
+            while remaining != 0 && index != 0 {
+                let prev = &tokens[index - 1];
+
+                if let OriginalToken::Known {
+                    bytes: prev_bytes,
+                    id: prev_id,
+                    offset: prev_offset,
+                } = &prev.original
+                    && prev_bytes == original_bytes
+                    && prev_id == original_id
+                    && original_bytes[..remaining].ends_with(&prev.bytes)
+                    && *prev_offset == remaining - prev.bytes.len()
+                    && prev.logprob == current.logprob
+                    && prev.id == current.id
+                    && prev.entropy == current.entropy
+                    && prev.counterfactual == current.counterfactual
+                {
+                    remaining -= prev.bytes.len();
+                    index -= 1;
+                } else {
+                    break;
+                }
+            }
+
+            if remaining == 0 {
+                let (bytes, id) = (original_bytes.clone(), *original_id);
+                let current = &mut tokens[orig_index];
+
+                current.original = OriginalToken::Unmodified;
+                current.bytes = bytes;
+                current.id = id;
+
+                tokens.drain(index..orig_index);
+            } else {
+                index = orig_index;
+            }
+        }
+
+        index += 1;
+    }
+}
+
 impl ArchivedInnerNodeContent {
     /// Returns `true` if [`InnerNodeContent::merge`] would succeed.
     pub fn is_mergeable_with(&self, value: &Self) -> bool {
@@ -843,7 +911,7 @@ impl ArchivedInnerNodeContent {
             Self::Snippet(snippet) => snippet.to_vec(),
             Self::Tokens(tokens) => tokens
                 .iter()
-                .flat_map(|token| token.bytes.to_vec())
+                .flat_map(|token| token.bytes.iter().copied())
                 .collect(),
             Self::MetadataOnly => Vec::new(),
         }
