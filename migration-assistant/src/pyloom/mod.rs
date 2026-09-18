@@ -762,7 +762,10 @@ fn build_diff_tokens(
                 current[j].clone(),
                 None,
                 Vec::new(),
-                OriginalToken::Known(original),
+                OriginalToken::Known {
+                    bytes: original,
+                    id: None,
+                },
             ));
         }
     };
@@ -788,7 +791,10 @@ fn build_diff_tokens(
                         None => {
                             let mut original = std::mem::take(&mut removed);
                             original.extend_from_slice(&record.0);
-                            record.3 = OriginalToken::Known(original);
+                            record.3 = OriginalToken::Known {
+                                bytes: original,
+                                id: None,
+                            };
                         }
                     }
 
@@ -811,11 +817,14 @@ fn build_diff_tokens(
 
 fn extend_original(record: &mut TokenRecord, removed: &[u8]) {
     match &mut record.3 {
-        OriginalToken::Known(original) => original.extend_from_slice(removed),
+        OriginalToken::Known { bytes, id: _ } => bytes.extend_from_slice(removed),
         _ => {
             let mut original = record.0.clone();
             original.extend_from_slice(removed);
-            record.3 = OriginalToken::Known(original);
+            record.3 = OriginalToken::Known {
+                bytes: original,
+                id: None,
+            };
         }
     }
 }

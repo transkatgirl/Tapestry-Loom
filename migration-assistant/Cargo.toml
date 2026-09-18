@@ -10,24 +10,24 @@ description = "A tool for converting weaves from other Loom implementations into
 edition = "2024"
 
 [dependencies]
-base64 = "0.22.1"
+base64 = "0.23.1"
 miniz_oxide = { version = "0.9.1", features = [
 	"std",
 ] }
 frontmatter = "0.4.0"
-boa_engine = { version = "0.21.1", default-features = false }
+boa_engine = { version = "0.22.0", default-features = false }
 tapestry-weave = { path = "../tapestry-weave", features = [
 	"all_versions",
 ] }
-clap = { version = "4.6.1", features = [
+clap = { version = "4.6.7", features = [
 	"derive",
 ] }
-anyhow = "1.0.103"
+anyhow = "1.0.104"
 walkdir = "2.5.0"
-serde = { version = "1.0.228", features = [
+serde = { version = "1.0.229", features = [
 	"derive",
 ] }
-serde_json = { version = "1.0.150", features = [
+serde_json = { version = "1.0.151", features = [
 	"preserve_order",
 	"float_roundtrip",
 	"arbitrary_precision",
@@ -38,8 +38,8 @@ chrono = { version = "0.4.45", features = [
 	"clock",
 	"serde",
 ], default-features = false }
-uuid = { version = "1.23.4", features = [
+uuid = { version = "1.26.1", features = [
 	"serde",
 ], default-features = false }
-stacksafe = "1.0.2"
+stacksafe = "1.0.3"
 ulid = "3.0.0"

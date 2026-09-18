@@ -34,7 +34,7 @@ universal-weave = { version = "0.9.0", features = [
 	"serde",
 ] }
 foldhash = "0.2.0"
-jiff = { version = "0.2.35", features = [
+jiff = { version = "0.2.37", features = [
 	"serde",
 ] }
 nanorand = { version = "0.8.0", features = [
