@@ -746,87 +746,23 @@ fn build_diff_tokens(
         &current.iter().map(Vec::as_slice).collect::<Vec<_>>(),
     )?;
 
-    let mut items: Vec<TokenRecord> = Vec::with_capacity(current.len());
-    let mut removed: Vec<u8> = Vec::new();
-    let mut inserts: Vec<usize> = Vec::new();
-
-    let flush = |items: &mut Vec<TokenRecord>, removed: &mut Vec<u8>, inserts: &mut Vec<usize>| {
-        for (k, j) in inserts.drain(..).enumerate() {
-            let original = if k == 0 {
-                std::mem::take(removed)
-            } else {
-                Vec::new()
-            };
-
-            items.push((
+    let items: Vec<TokenRecord> = ops
+        .into_iter()
+        .filter_map(|op| match op {
+            AlignOp::Match(i, j) => Some((
                 current[j].clone(),
-                None,
-                Vec::new(),
-                OriginalToken::Known {
-                    bytes: original,
-                    id: None,
-                },
-            ));
-        }
-    };
-
-    for op in ops {
-        match op {
-            AlignOp::Delete(i) => removed.extend_from_slice(&records[i].0),
-            AlignOp::Insert(j) => inserts.push(j),
-            AlignOp::Match(i, j) => {
-                flush(&mut items, &mut removed, &mut inserts);
-
-                let (_, logprob, counterfactual) = records[i].clone();
-                let mut record = (
-                    current[j].clone(),
-                    logprob,
-                    counterfactual,
-                    OriginalToken::Unmodified,
-                );
-
-                if !removed.is_empty() {
-                    match items.last_mut() {
-                        Some(last) => extend_original(last, &removed),
-                        None => {
-                            let mut original = std::mem::take(&mut removed);
-                            original.extend_from_slice(&record.0);
-                            record.3 = OriginalToken::Known {
-                                bytes: original,
-                                id: None,
-                            };
-                        }
-                    }
-
-                    removed.clear();
-                }
-
-                items.push(record);
+                records[i].1,
+                std::mem::take(&mut records[i].2),
+                OriginalToken::Unmodified,
+            )),
+            AlignOp::Insert(j) => {
+                Some((current[j].clone(), None, Vec::new(), OriginalToken::Unknown))
             }
-        }
-    }
-
-    flush(&mut items, &mut removed, &mut inserts);
-
-    if !removed.is_empty() {
-        extend_original(items.last_mut()?, &removed);
-    }
+            AlignOp::Delete => None,
+        })
+        .collect();
 
     build_tokens(text, items.clone(), false).or_else(|| build_tokens(text, items, true))
-}
-
-fn extend_original(record: &mut TokenRecord, removed: &[u8]) {
-    match &mut record.3 {
-        OriginalToken::Known { bytes, id: _ } => bytes.extend_from_slice(removed),
-        _ => {
-            let mut original = record.0.clone();
-            original.extend_from_slice(removed);
-            record.3 = OriginalToken::Known {
-                bytes: original,
-                id: None,
-            };
-        }
-    }
 }
 
 fn parse_tokenization(value: &Value) -> Option<(Vec<String>, Vec<i64>)> {
@@ -855,7 +791,7 @@ fn parse_tokenization(value: &Value) -> Option<(Vec<String>, Vec<i64>)> {
 
 enum AlignOp {
     Match(usize, usize),
-    Delete(usize),
+    Delete,
     Insert(usize),
 }
 
@@ -890,7 +826,7 @@ fn align<T: PartialEq>(old: &[T], new: &[T]) -> Option<Vec<AlignOp>> {
             i += 1;
             j += 1;
         } else if table[(i + 1) * width + j] >= table[i * width + j + 1] {
-            ops.push(AlignOp::Delete(i));
+            ops.push(AlignOp::Delete);
             i += 1;
         } else {
             ops.push(AlignOp::Insert(j));
@@ -898,7 +834,7 @@ fn align<T: PartialEq>(old: &[T], new: &[T]) -> Option<Vec<AlignOp>> {
         }
     }
 
-    ops.extend((i..n).map(AlignOp::Delete));
+    ops.extend((i..n).map(|_| AlignOp::Delete));
     ops.extend((j..m).map(AlignOp::Insert));
 
     Some(ops)
