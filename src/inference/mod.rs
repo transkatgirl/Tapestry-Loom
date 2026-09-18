@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc, sync::Arc, time::Duration};
 
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize};
-use tapestry_weave::v1::dependent::TapestryWeave;
+use tapestry_weave::{ShortId, weave::wrappers::LoggedTapestryWeave};
 use tokio::runtime::Runtime;
 use ulid::Ulid;
 
@@ -33,13 +33,23 @@ impl InferenceEngine {
     pub fn requests(&self, document: Ulid) -> usize {
         0 // TODO
     }
-    pub fn generate_children(&mut self, document: Ulid, weave: &mut TapestryWeave, id: u64) {
+    pub fn generate_children(
+        &mut self,
+        document: Ulid,
+        weave: &mut LoggedTapestryWeave,
+        id: ShortId,
+    ) {
         // TODO
     }
-    pub fn seriate_siblings(&mut self, document: Ulid, weave: &mut TapestryWeave, id: u64) {
+    pub fn seriate_siblings(
+        &mut self,
+        document: Ulid,
+        weave: &mut LoggedTapestryWeave,
+        id: ShortId,
+    ) {
         // TODO
     }
-    pub fn update(&mut self, document: Ulid, weave: &mut Option<TapestryWeave>) {}
+    pub fn update(&mut self, document: Ulid, weave: &mut Option<LoggedTapestryWeave>) {}
     pub fn cancel(&mut self, document: Ulid) {}
 }
 

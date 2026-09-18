@@ -10,9 +10,7 @@ use std::{
 
 use log::{debug, error};
 use parking_lot::Mutex;
-use tapestry_weave::{
-    VersionedWeave, universal_weave::rkyv::ser::writer::IoWriter, v1::dependent::TapestryWeave,
-};
+use tapestry_weave::TapestryWeave;
 use tokio::{
     runtime::Runtime,
     task::{self, JoinHandle},
@@ -34,13 +32,13 @@ impl DiskTask {
     }
     pub(super) fn read(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Self {
         Self::Read(AbortableBlockingTaskHandle::new(move |abort| {
-            debug!("Started read task for {:?}", &path);
+            debug!("Started read task for {:?}", path);
 
             let mut data = data.try_lock().unwrap();
 
             if let Err(error) = data.open(&path, false, &abort) {
                 if abort.load(Ordering::Relaxed) {
-                    debug!("Aborted opening {:?}", &path);
+                    debug!("Aborted opening {:?}", path);
                 } else {
                     error!("Failed to open {:?}: {:?}", path, error);
                 }
@@ -50,7 +48,7 @@ impl DiskTask {
 
             if let Err(error) = data.read(&abort) {
                 if abort.load(Ordering::Relaxed) {
-                    debug!("Aborted reading {:?}", &path);
+                    debug!("Aborted reading {:?}", path);
                 } else {
                     error!("Failed to read {:?}: {:?}", path, error);
                 }
@@ -58,30 +56,13 @@ impl DiskTask {
                 return Err(format!("Failed to read {:?}", path));
             }
 
-            match VersionedWeave::from_bytes(&data.buffer) {
-                Some(Ok(weave)) => {
-                    if abort.load(Ordering::Relaxed) {
-                        debug!("Aborted deserializing {:?}", &path);
-                        return Err(format!("Failed to deserialize {:?}", path));
-                    }
-
-                    if let Some(weave) = weave.into_v1_dependent() {
-                        debug!("Finished reading {:?}", &path);
-                        Ok(weave)
-                    } else {
-                        error!(
-                            "Failed to deserialize {:?} due to unsupported version",
-                            path
-                        );
-                        Err(format!("Failed to deserialize {:?}", path))
-                    }
+            match TapestryWeave::from_bytes(&data.buffer) {
+                Ok(weave) => {
+                    debug!("Finished reading {:?}", path);
+                    Ok(weave)
                 }
-                Some(Err(error)) => {
+                Err(error) => {
                     error!("Failed to deserialize {:?}: {:?}", path, error);
-                    Err(format!("Failed to deserialize {:?}", path))
-                }
-                None => {
-                    error!("Failed to parse {:?} header", path);
                     Err(format!("Failed to deserialize {:?}", path))
                 }
             }
@@ -95,14 +76,11 @@ impl DiskTask {
         let serialization_result = {
             let mut data = data.try_lock().unwrap();
             data.buffer.clear();
-            weave
-                .write_versioned_bytes(IoWriter::new(&mut data.buffer))
-                .map(|_| ())
-            // TODO: benchmark this on commonly used platforms; rkyv serialization might be faster than cloning
+            weave.to_bytes_in(&mut data.buffer).map(|_| ())
         };
 
         Self::Write(task::spawn_blocking(move || {
-            debug!("Started write task for {:?}", &path);
+            debug!("Started write task for {:?}", path);
 
             if let Err(error) = serialization_result {
                 error!("Failed to serialize {:?}: {:?}", path, error);
@@ -123,7 +101,7 @@ impl DiskTask {
                 return Err(format!("Failed to write {:?}", path));
             }
 
-            debug!("Finished writing {:?}", &path);
+            debug!("Finished writing {:?}", path);
 
             Ok(())
         }))
@@ -172,13 +150,13 @@ impl DiskPreloadTask {
     pub(super) fn new(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Self {
         Self {
             handle: AbortableBlockingTaskHandle::new(move |abort| {
-                debug!("Started read task for {:?}", &path);
+                debug!("Started read task for {:?}", path);
 
                 let mut data = data.try_lock().unwrap();
 
                 if let Err(error) = data.open(&path, false, &abort) {
                     if abort.load(Ordering::Relaxed) {
-                        debug!("Aborted opening {:?}", &path);
+                        debug!("Aborted opening {:?}", path);
                     } else {
                         error!("Failed to open {:?}: {:?}", path, error);
                     }
@@ -188,7 +166,7 @@ impl DiskPreloadTask {
 
                 if let Err(error) = data.read_chunked(&abort) {
                     if abort.load(Ordering::Relaxed) {
-                        debug!("Aborted reading {:?}", &path);
+                        debug!("Aborted reading {:?}", path);
                     } else {
                         error!("Failed to read {:?}: {:?}", path, error);
                     }
@@ -196,30 +174,13 @@ impl DiskPreloadTask {
                     return Err(format!("Failed to read {:?}", path));
                 }
 
-                match VersionedWeave::from_bytes(&data.buffer) {
-                    Some(Ok(weave)) => {
-                        if abort.load(Ordering::Relaxed) {
-                            debug!("Aborted deserializing {:?}", &path);
-                            return Err(format!("Failed to deserialize {:?}", path));
-                        }
-
-                        if let Some(weave) = weave.into_v1_dependent() {
-                            debug!("Finished reading {:?}", &path);
-                            Ok(weave)
-                        } else {
-                            error!(
-                                "Failed to deserialize {:?} due to unsupported version",
-                                path
-                            );
-                            Err(format!("Failed to deserialize {:?}", path))
-                        }
+                match TapestryWeave::from_bytes(&data.buffer) {
+                    Ok(weave) => {
+                        debug!("Finished reading {:?}", path);
+                        Ok(weave)
                     }
-                    Some(Err(error)) => {
+                    Err(error) => {
                         error!("Failed to deserialize {:?}: {:?}", path, error);
-                        Err(format!("Failed to deserialize {:?}", path))
-                    }
-                    None => {
-                        error!("Failed to parse {:?} header", path);
                         Err(format!("Failed to deserialize {:?}", path))
                     }
                 }

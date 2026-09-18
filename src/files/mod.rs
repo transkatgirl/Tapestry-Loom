@@ -12,10 +12,7 @@ use eframe::egui::{
     Align, Button, Context, Id, Key, Layout, Modal, OutputCommand, Panel, PointerButton, RichText,
     ScrollArea, Sense, Sides, Spinner, TextStyle, Ui, UiBuilder, UiKind, UiStackInfo, WidgetText,
 };
-use tapestry_weave::{
-    VERSIONED_WEAVE_FILE_EXTENSION,
-    v1::{dependent::TapestryWeave, treeless::FILE_EXTENSION},
-};
+use tapestry_weave::{TapestryWeave, weave::FILE_EXTENSION};
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
@@ -128,9 +125,7 @@ impl View<AppShared> for FileManager {
                         self.modal = FileModal::CreateDirectory("Untitled Folder".to_string());
                     }
                     if ui.button("\u{E0C9}").on_hover_text("New weave").clicked() {
-                        self.modal = FileModal::CreateWeave(
-                            ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION].concat(),
-                        );
+                        self.modal = FileModal::CreateWeave(["Untitled.", FILE_EXTENSION].concat());
                     }
                 });
             });
@@ -185,7 +180,7 @@ fn global_context_menu(
     ui: &mut Ui,
 ) {
     if ui.button("New weave").clicked() {
-        *modal = FileModal::CreateWeave(["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION].concat());
+        *modal = FileModal::CreateWeave(["Untitled.", FILE_EXTENSION].concat());
     }
     if ui.button("New folder").clicked() {
         *modal = FileModal::CreateDirectory("Untitled Folder".to_string());
@@ -217,8 +212,7 @@ impl FileManager {
     fn file_listing(&mut self, shared: &mut AppShared, ui: &mut Ui, range: Range<usize>) {
         let text_style = TextStyle::Monospace;
         let ch = ui.fonts_mut(|f| f.glyph_width(&text_style.resolve(ui.style()), ' '));
-        let file_extension_normal = OsString::from(VERSIONED_WEAVE_FILE_EXTENSION);
-        let file_extension_treeless = OsString::from(FILE_EXTENSION);
+        let file_extension = OsString::from(FILE_EXTENSION);
 
         for (path, item_type) in &self.displayed[range] {
             let item_type = *item_type;
@@ -290,8 +284,7 @@ impl FileManager {
                                 let mut enabled = item_type != FileType::Other;
 
                                 if item_type == FileType::File {
-                                    if !(path.extension() == Some(&file_extension_normal)
-                                        || path.extension() == Some(&file_extension_treeless))
+                                    if path.extension() != Some(&file_extension)
                                         || shared.open_documents.contains(path)
                                     {
                                         enabled = false;
@@ -316,11 +309,7 @@ impl FileManager {
                                                 self.modal = FileModal::CreateWeave(
                                                     abbreviated_path
                                                         .join(
-                                                            [
-                                                                "Untitled.",
-                                                                VERSIONED_WEAVE_FILE_EXTENSION,
-                                                            ]
-                                                            .concat(),
+                                                            ["Untitled.", FILE_EXTENSION].concat(),
                                                         )
                                                         .to_string_lossy()
                                                         .to_string(),
@@ -336,9 +325,7 @@ impl FileManager {
                                             }
                                             ui.separator();
                                         } else if item_type == FileType::File
-                                            && (path.extension() == Some(&file_extension_normal)
-                                                || path.extension()
-                                                    == Some(&file_extension_treeless))
+                                            && path.extension() == Some(&file_extension)
                                         {
                                             let button_response = ui.button("Open weave");
 
@@ -426,13 +413,7 @@ impl FileManager {
                                         {
                                             self.modal = FileModal::CreateWeave(
                                                 abbreviated_path
-                                                    .join(
-                                                        [
-                                                            "Untitled.",
-                                                            VERSIONED_WEAVE_FILE_EXTENSION,
-                                                        ]
-                                                        .concat(),
-                                                    )
+                                                    .join(["Untitled.", FILE_EXTENSION].concat())
                                                     .to_string_lossy()
                                                     .to_string(),
                                             );
@@ -538,7 +519,7 @@ enum FileModal {
 fn blank_document_bytes() -> Vec<u8> {
     let mut container = Vec::with_capacity(4096);
     TapestryWeave::with_capacity(0)
-        .write_versioned_bytes(&mut container)
+        .to_bytes_in(&mut container)
         .unwrap();
     debug_assert!(container.len() <= container.capacity());
     container.shrink_to_fit();

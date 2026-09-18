@@ -19,7 +19,7 @@ pub struct EditorPreloadHandle {
 
 impl EditorPreloadHandle {
     pub fn new(path: PathBuf, shared: &mut AppShared) -> Self {
-        debug!("Preloading document {:?}", &path);
+        debug!("Preloading document {:?}", path);
 
         let task_data = Arc::new(Mutex::new(DiskTaskData::new()));
         let data = task_data.clone();
