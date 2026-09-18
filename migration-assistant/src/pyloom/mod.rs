@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::Value;
 use stacksafe::stacksafe;
 use tapestry_weave::{
-    TapestryNode, TapestryWeave,
     content::{
         CounterfactualToken, Creator, InnerNodeContent, InnerNodeToken, Model, NodeContent,
         OriginalToken,
@@ -22,6 +21,7 @@ use tapestry_weave::{
         indexmap::{IndexMap, IndexSet},
     },
     util::{RandomIdHasher, RandomState, UniqueIdentifierRemapper},
+    weave::{TapestryNode, TapestryWeave},
 };
 
 use crate::new_weave;

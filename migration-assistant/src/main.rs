@@ -8,11 +8,11 @@ use std::{
 
 use clap::Parser;
 use tapestry_weave::{
-    TapestryWeave,
     jiff::Zoned,
     metadata::{AuxMetadataMap, ConvertedFrom, MetadataMap, WeaveMetadata},
     universal_weave::rkyv::util::AlignedVec,
     weave::FILE_EXTENSION,
+    weave::TapestryWeave,
 };
 use walkdir::WalkDir;
 

@@ -3,8 +3,9 @@ use nanorand::{Rng, WyRand};
 use universal_weave::{Weave, indexmap::IndexSet};
 
 use crate::{
-    Creator, InnerNodeContent, NodeContent, TapestryNode, TapestryWeave,
+    content::{Creator, InnerNodeContent, NodeContent},
     metadata::{AuxMetadataMap, ConvertedFrom, MetadataMap, WeaveMetadata},
+    weave::{TapestryNode, TapestryWeave},
 };
 
 impl TapestryWeave {

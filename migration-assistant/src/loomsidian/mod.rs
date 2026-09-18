@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use stacksafe::stacksafe;
 use tapestry_weave::{
-    TapestryNode, TapestryWeave,
     content::{Creator, InnerNodeContent, Model, NodeContent},
     jiff::{Timestamp, Zoned},
     nanorand::{Rng, WyRand},
@@ -19,6 +18,7 @@ use tapestry_weave::{
         indexmap::{IndexMap, IndexSet},
     },
     util::{RandomIdHasher, RandomState, UniqueIdentifierRemapper},
+    weave::{TapestryNode, TapestryWeave},
 };
 use uuid::Uuid;
 

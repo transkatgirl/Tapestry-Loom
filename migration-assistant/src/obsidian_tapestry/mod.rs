@@ -16,7 +16,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use stacksafe::stacksafe;
 use tapestry_weave::{
-    TapestryNode, TapestryWeave,
     content::{
         Creator, InnerNodeContent, InnerNodeToken, Model, NodeContent, OriginalToken,
         UNKNOWN_MODEL_LABEL,
@@ -29,6 +28,7 @@ use tapestry_weave::{
         indexmap::{IndexMap, IndexSet},
     },
     util::{RandomIdHasher, UniqueIdentifierRemapper},
+    weave::{TapestryNode, TapestryWeave},
 };
 use ulid::Ulid;
 

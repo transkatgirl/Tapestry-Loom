@@ -10,7 +10,6 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use stacksafe::stacksafe;
 use tapestry_weave::{
-    TapestryNode, TapestryWeave,
     content::{Author, Creator, InnerNodeContent, Model, NodeContent},
     jiff::{Zoned, fmt::rfc2822::DateTimeParser},
     nanorand::{Rng, WyRand},
@@ -19,6 +18,7 @@ use tapestry_weave::{
         indexmap::{IndexMap, IndexSet},
     },
     util::{RandomIdHasher, UniqueIdentifierRemapper},
+    weave::{TapestryNode, TapestryWeave},
 };
 
 use crate::{

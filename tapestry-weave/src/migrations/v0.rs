@@ -25,7 +25,7 @@ use crate::{
     },
     metadata::{AuxMetadataMap, ConvertedFrom, WeaveMetadata as NewWeaveMetadata},
     util::{RandomIdHasher, UniqueIdentifierRemapper},
-    weave::{LongId, TapestryNode as NewTapestryNode, TapestryWeave as NewTapestryWeave},
+    weave::{LongId, ShortId, TapestryNode as NewTapestryNode, TapestryWeave as NewTapestryWeave},
 };
 
 pub const FORMAT_VERSION: u64 = 0;
@@ -261,7 +261,7 @@ impl From<TapestryWeave> for NewTapestryWeave {
 
         let mut mapper: UniqueIdentifierRemapper<
             u128,
-            u64,
+            ShortId,
             BuildHasherDefault<RandomIdHasher>,
             BuildHasherDefault<RandomIdHasher>,
         > = UniqueIdentifierRemapper::with_capacity(identifiers.len());
@@ -272,7 +272,7 @@ impl From<TapestryWeave> for NewTapestryWeave {
 
         let mut convert_old_identifier = |id| {
             *mapper
-                .map_with_initial(id, id as u64, || rng.generate())
+                .map_with_initial(id, id as ShortId, || rng.generate())
                 .get()
         };
 
