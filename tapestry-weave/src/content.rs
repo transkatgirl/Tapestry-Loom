@@ -516,7 +516,13 @@ pub enum OriginalToken {
     /// The token has not been modified.
     Unmodified,
     /// The token has been modified and the original contents are known.
-    Known(#[serde(with = "Base64Standard")] Vec<u8>),
+    Known {
+        /// The token's textual representation.
+        #[serde(with = "Base64Standard")]
+        bytes: Vec<u8>,
+        /// The generator-specific numeric ID associated with the token.
+        id: Option<u64>,
+    },
     /// The token has been modified and the original contents are unknown.
     Unknown,
 }
@@ -524,7 +530,7 @@ pub enum OriginalToken {
 impl OriginalToken {
     pub fn is_modified(&self) -> bool {
         match self {
-            Self::Known(_) => true,
+            Self::Known { .. } => true,
             Self::Unknown => true,
             Self::Unmodified => false,
         }
@@ -534,7 +540,7 @@ impl OriginalToken {
 impl ArchivedOriginalToken {
     pub fn is_modified(&self) -> bool {
         match self {
-            Self::Known(_) => true,
+            Self::Known { .. } => true,
             Self::Unknown => true,
             Self::Unmodified => false,
         }
@@ -624,7 +630,10 @@ impl InnerNodeContent {
 
                     if !left_token.is_empty() {
                         if !right[0].original.is_modified() {
-                            right[0].original = OriginalToken::Known(right[0].bytes.clone());
+                            right[0].original = OriginalToken::Known {
+                                bytes: right[0].bytes.clone(),
+                                id: right[0].id,
+                            };
                         }
 
                         left_token.shrink_to_fit();
