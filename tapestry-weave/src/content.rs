@@ -294,6 +294,10 @@ impl ArchivedInnerNodeContent {
             let mut logprob_sum = 0.0;
 
             for token in tokens.iter() {
+                if token.is_modified() {
+                    return None;
+                }
+
                 let logprob = token.logprob.as_ref()?.to_native();
                 logprob_sum += logprob as f64;
             }
