@@ -573,10 +573,15 @@ impl CounterfactualToken {
     ///
     /// Panics if a token has no associated probability.
     pub fn calculate_entropy<'a>(tokens: impl Iterator<Item = &'a CounterfactualToken>) -> f64 {
-        -tokens
+        0.0 - tokens
             .map(|token| {
                 let logprob = token.logprob.unwrap() as f64;
-                logprob.exp() * logprob
+
+                if logprob == f64::NEG_INFINITY {
+                    0.0
+                } else {
+                    logprob.exp() * logprob
+                }
             })
             .sum::<f64>()
     }
@@ -1023,7 +1028,7 @@ pub const UNKNOWN_MODEL_LABEL: &str = "Unknown Model";
 
 /// Information about a generative model which produced an [`InnerNodeContent`]'s value.
 ///
-/// *This not be used to represent a user, regardless of their identity.*
+/// *This should not be used to represent a user, regardless of their identity.*
 #[derive(
     SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq, Eq,
 )]
@@ -1050,7 +1055,7 @@ pub struct Model {
     ///
     /// For example, this could be used to store:
     /// - Hugging Face repo_id
-    /// - Quanization metadata
+    /// - Quantization metadata
     /// - Backend type
     /// - Request template (such as a prefix for doing "fake-base" ChatCompletions requests)
     ///
@@ -1078,6 +1083,7 @@ impl Model {
             && (self.color == value.color || self.color.is_none() || value.color.is_none())
             && self.identifier == value.identifier
             && self.metadata == value.metadata
+            && self.finish_reason == value.finish_reason
     }
     /// Merges two items together.
     ///
@@ -1087,6 +1093,7 @@ impl Model {
         if self.label == value.label
             && self.identifier == value.identifier
             && self.metadata == value.metadata
+            && self.finish_reason == value.finish_reason
         {
             if self.color == value.color || value.color.is_none() {
                 if self.seed != value.seed {
@@ -1095,9 +1102,6 @@ impl Model {
                 if self.system_fingerprint != value.system_fingerprint {
                     self.system_fingerprint = None;
                 }
-                if self.finish_reason != value.finish_reason {
-                    self.finish_reason = None;
-                }
                 Ok(self)
             } else if self.color.is_none() {
                 if self.seed != value.seed {
@@ -1105,9 +1109,6 @@ impl Model {
                 }
                 if self.system_fingerprint != value.system_fingerprint {
                     value.system_fingerprint = None;
-                }
-                if self.finish_reason != value.finish_reason {
-                    value.finish_reason = None;
                 }
                 Ok(value)
             } else {
