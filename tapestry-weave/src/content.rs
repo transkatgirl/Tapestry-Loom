@@ -128,8 +128,7 @@ impl NodeContent {
 
 impl DeduplicatableContents for NodeContent {
     fn is_duplicate_of(&self, value: &Self) -> bool {
-        self.modified == value.modified
-            && self.metadata == value.metadata
+        self.metadata == value.metadata
             && self.content.is_duplicate_of(&value.content)
             && self.creator.is_duplicate_of(&value.creator)
     }
@@ -169,6 +168,10 @@ impl InnerNodeContent {
             let mut logprob_sum = 0.0;
 
             for token in tokens {
+                if token.is_modified() {
+                    return None;
+                }
+
                 let logprob = token.logprob?;
                 logprob_sum += logprob as f64;
             }
@@ -185,6 +188,10 @@ impl InnerNodeContent {
             let mut logprob_sum = 0.0;
 
             for token in tokens {
+                if token.is_modified() {
+                    return None;
+                }
+
                 let logprob = token.logprob?;
                 logprob_sum += logprob as f64;
             }
@@ -200,6 +207,10 @@ impl InnerNodeContent {
             let mut confidence_k = None;
 
             for token in tokens {
+                if token.is_modified() {
+                    return None;
+                }
+
                 if let Some((confidence, k)) = token.calculate_confidence_f64() {
                     if let Some(last_k) = confidence_k
                         && last_k != k
@@ -233,6 +244,10 @@ impl InnerNodeContent {
             let mut entropy_sum = 0.0;
 
             for token in tokens.iter() {
+                if token.is_modified() {
+                    return None;
+                }
+
                 let entropy = token.entropy?;
                 entropy_sum += entropy as f64;
             }
@@ -295,6 +310,10 @@ impl ArchivedInnerNodeContent {
             let mut logprob_sum = 0.0;
 
             for token in tokens.iter() {
+                if token.is_modified() {
+                    return None;
+                }
+
                 let logprob = token.logprob.as_ref()?.to_native();
                 logprob_sum += logprob as f64;
             }
@@ -310,6 +329,10 @@ impl ArchivedInnerNodeContent {
             let mut confidence_k = None;
 
             for token in tokens.iter() {
+                if token.is_modified() {
+                    return None;
+                }
+
                 if let Some((confidence, k)) = token.calculate_confidence_f64() {
                     if let Some(last_k) = confidence_k
                         && last_k != k
@@ -343,6 +366,10 @@ impl ArchivedInnerNodeContent {
             let mut entropy_sum = 0.0;
 
             for token in tokens.iter() {
+                if token.is_modified() {
+                    return None;
+                }
+
                 let entropy = token.entropy.as_ref()?;
                 entropy_sum += entropy.to_native() as f64;
             }

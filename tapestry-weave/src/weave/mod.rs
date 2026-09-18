@@ -326,11 +326,9 @@ impl TapestryWeave {
                             };
 
                         siblings.find(|id| {
-                            self.0.get_contents(id).is_some_and(|c| {
-                                c.metadata == token_node.contents.metadata
-                                    && c.content.is_duplicate_of(&token_node.contents.content)
-                                    && c.creator.is_duplicate_of(&token_node.contents.creator)
-                            })
+                            self.0
+                                .get_contents(id)
+                                .is_some_and(|c| c.is_duplicate_of(&token_node.contents))
                         })
                     }
                 };

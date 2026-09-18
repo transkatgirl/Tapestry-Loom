@@ -5903,7 +5903,7 @@ dependencies = [
 
 [[package]]
 name = "tapestry-weave"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "base64 0.23.1",
  "base64-serde",
