@@ -33,14 +33,7 @@ pub use weave::{LongId, ShortId, TapestryNode, TapestryWeave};
 TODO:
 
 - Content module documentation
-- Wrappers
-    - TapestryWeave trait??
-    - LoggedTapestryWeave
-        - Bounded editor undo/redo
-        - Modification serialization and deserialization
-        - Modification application
-        - Rollback
-    - Node-specific AuxMetadata
+- Add #[inline] to minimal functions
 
 Ideas for future formats:
 - Longest common prefix deduplication
