@@ -82,14 +82,14 @@ impl TapestryWeave {
         writer.write(&HEADER_MAGIC_BYTES)?;
         writer.write(&crate::weave::FORMAT_VERSION.to_le_bytes())?;
 
-        assert!(self.as_ref().validate());
+        debug_assert!(self.as_ref().validate());
         to_bytes_in::<IoWriter<W>, Error>(self.as_ref(), writer)?;
 
         Ok(())
     }
     /// Serializes a [`TapestryWeave`] into the Tapestry Loom Migration Assistant JSON format.
     pub fn to_json(&self) -> Result<String, serde_json::Error> {
-        assert!(self.as_ref().validate());
+        debug_assert!(self.as_ref().validate());
 
         to_string(&VersionedJson {
             version: crate::weave::FORMAT_VERSION,
