@@ -8,7 +8,7 @@ use universal_weave::{
     rkyv::{Archive, Deserialize, Serialize},
 };
 
-use super::util::{AsBinaryZoned, IAsVec};
+use crate::util::{AsBinaryZoned, IAsVec};
 
 /// User-readable metadata.
 pub type MetadataMap = IndexMap<String, String, RandomState>;

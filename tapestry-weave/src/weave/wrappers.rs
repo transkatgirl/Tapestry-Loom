@@ -529,14 +529,12 @@ impl LoggedTapestryWeave {
         self.weave.is_empty_including_metadata()
     }
     /// Convenience method which returns the siblings of the node corresponding to the identifier.
-    ///
-    /// This function may return duplicate identifiers.
     #[inline]
-    pub fn get_siblings<'a>(
-        &'a self,
+    pub fn get_siblings(
+        &self,
         id: &ShortId,
         include_roots: bool,
-    ) -> Option<Box<dyn Iterator<Item = ShortId> + 'a>> {
+    ) -> Option<impl Iterator<Item = ShortId>> {
         self.weave.get_siblings(id, include_roots)
     }
     /// A wrapper around [`Weave::insert`] which prevents nodes with duplicate siblings from being inserted.

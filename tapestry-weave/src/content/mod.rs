@@ -11,11 +11,13 @@ use universal_weave::{
     },
 };
 
-use super::{
+use crate::{
     metadata::MetadataMap,
     util::{AsBinaryZoned, Base64Standard, IAsVec},
     weave::LongId,
 };
+
+pub mod sort;
 
 /// The contents of a [`TapestryNode`](crate::weave::TapestryNode).
 ///

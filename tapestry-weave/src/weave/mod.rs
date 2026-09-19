@@ -26,7 +26,7 @@ use universal_weave::{
     wrappers::PatchablePathWeave,
 };
 
-use super::{
+use crate::{
     content::{ArchivedNodeContent, Author, Creator, InnerNodeContent, NodeContent},
     metadata::{ArchivedWeaveMetadata, MetadataMap, WeaveMetadata},
     util::{Hunk, RandomIdHasher},
@@ -153,16 +153,14 @@ impl TapestryWeave {
         self.0.is_empty() && self.0.metadata().is_empty()
     }
     /// Convenience method which returns the siblings of the node corresponding to the identifier.
-    ///
-    /// This function may return duplicate identifiers.
-    pub fn get_siblings<'a>(
-        &'a self,
+    pub fn get_siblings(
+        &self,
         id: &ShortId,
         include_roots: bool,
-    ) -> Option<Box<dyn Iterator<Item = ShortId> + 'a>> {
-        if let Some(node) = self.0.get(id) {
-            Some(if include_roots && node.from.is_empty() {
-                Box::new(
+    ) -> Option<impl Iterator<Item = ShortId>> {
+        self.0.get(id).map(|node| {
+            if include_roots && node.from.is_empty() {
+                IndexSet::<ShortId, BuildHasherDefault<RandomIdHasher>>::from_iter(
                     self.0
                         .roots()
                         .iter()
@@ -170,7 +168,7 @@ impl TapestryWeave {
                         .filter(|id| node.id != *id && !node.to.contains(id)),
                 )
             } else {
-                Box::new(
+                IndexSet::<ShortId, BuildHasherDefault<RandomIdHasher>>::from_iter(
                     node.from
                         .iter()
                         .filter_map(|id| self.0.get_children(id))
@@ -180,10 +178,9 @@ impl TapestryWeave {
                             node.id != *id && !node.from.contains(id) && !node.to.contains(id)
                         }),
                 )
-            })
-        } else {
-            None
-        }
+            }
+            .into_iter()
+        })
     }
     /// A wrapper around [`Weave::insert`] which prevents nodes with duplicate siblings from being inserted.
     #[must_use]
