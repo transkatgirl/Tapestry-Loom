@@ -32,6 +32,7 @@ use super::{
     util::{Hunk, RandomIdHasher},
 };
 
+pub mod layout;
 pub mod wrappers;
 
 /// The file extension used for Tapestry Loom documents.
