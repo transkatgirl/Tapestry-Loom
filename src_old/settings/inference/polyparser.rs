@@ -41,23 +41,82 @@ TODO: write unit tests
 use base64::{Engine, prelude::BASE64_STANDARD};
 use log::trace;
 use serde_json::{Map, Value};
-use tapestry_weave::{
-    universal_weave::indexmap::IndexMap,
-    v1::{
-        content::{CounterfactualToken, InnerNodeContent, InnerNodeToken},
-        metadata::MetadataMap,
-    },
-};
-
-use super::shared::{json_object_to_metadata_map, json_value_to_metadata_field};
 
 #[derive(Debug)]
 pub struct ResponseItem {
     pub index: Option<usize>,
+    pub role: Option<String>,
     pub finish_reason: Option<String>,
-    pub fingerprint: Option<String>,
-    pub contents: InnerNodeContent,
-    pub metadata: MetadataMap,
+    pub contents: ResponseContents,
+}
+
+impl ResponseItem {
+    pub fn clear_normal(&mut self) {
+        if let Some(role) = &self.role
+            && role == "assistant"
+        {
+            self.role = None;
+        }
+    }
+    fn sort_top(&mut self) {
+        if let ResponseContents::Tokens(tokens) = &mut self.contents {
+            for token in tokens {
+                token.sort_top();
+            }
+        }
+    }
+    fn remove_excess_tokens(&mut self, requested_top: usize) {
+        if let ResponseContents::Tokens(tokens) = &mut self.contents {
+            for token in tokens {
+                token.remove_excess_tokens(requested_top);
+            }
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ResponseContents {
+    Text(Vec<u8>),
+    Tokens(Vec<Token>),
+    Empty,
+}
+
+impl ResponseContents {
+    pub fn into_text_bytes(self) -> Vec<u8> {
+        match self {
+            Self::Text(text) => text,
+            Self::Tokens(tokens) => tokens
+                .into_iter()
+                .flat_map(|token| token.token.contents)
+                .collect(),
+            Self::Empty => Vec::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Token {
+    pub token: LogprobToken,
+    pub top_tokens: Vec<LogprobToken>,
+}
+
+impl Token {
+    fn sort_top(&mut self) {
+        self.top_tokens
+            .sort_unstable_by(|a, b| b.logprob.total_cmp(&a.logprob));
+    }
+    fn remove_excess_tokens(&mut self, requested_top: usize) {
+        while self.top_tokens.len() > requested_top {
+            self.top_tokens.pop();
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LogprobToken {
+    pub id: Option<u64>,
+    pub contents: Vec<u8>,
+    pub logprob: f64,
 }
 
 pub fn parse_embedding_response(json: Value) -> Vec<Option<Vec<f32>>> {
@@ -132,25 +191,6 @@ pub fn parse_response(
 ) -> Vec<ResponseItem> {
     let mut items = Vec::with_capacity(1);
 
-    let fingerprint = json.remove("system_fingerprint").and_then(|v| {
-        if let Value::String(v) = v {
-            Some(v)
-        } else {
-            None
-        }
-    });
-
-    let metadata = json
-        .remove("metadata")
-        .and_then(|v| {
-            if let Value::Object(v) = v {
-                Some(json_object_to_metadata_map(v))
-            } else {
-                None
-            }
-        })
-        .unwrap_or_default();
-
     if let Some(Value::String(output_object)) = json.get("object") {
         match output_object.as_ref() {
             "text_completion" | "chat.completion" | "chat.completion.chunk" => {
@@ -170,10 +210,9 @@ pub fn parse_response(
                 if let Some(Value::Array(output)) = json.remove("output") {
                     let mut item_sum = ResponseItem {
                         index: None,
+                        role: None,
                         finish_reason: None,
-                        fingerprint,
-                        contents: InnerNodeContent::MetadataOnly,
-                        metadata,
+                        contents: ResponseContents::Empty,
                     };
 
                     for output in output {
@@ -187,7 +226,48 @@ pub fn parse_response(
                                 break;
                             }
 
-                            item_sum.contents = item_sum.contents.force_merge(item.contents);
+                            if let Some(role) = item.role {
+                                if let Some(sum_role) = &item_sum.role
+                                    && *sum_role != role
+                                {
+                                    break;
+                                } else {
+                                    item_sum.role = Some(role);
+                                }
+                            }
+
+                            match item.contents {
+                                ResponseContents::Tokens(mut tokens) => {
+                                    match &mut item_sum.contents {
+                                        ResponseContents::Tokens(sum_tokens) => {
+                                            sum_tokens.append(&mut tokens);
+                                        }
+                                        ResponseContents::Text(sum_text) => {
+                                            sum_text.append(
+                                                &mut ResponseContents::Tokens(tokens)
+                                                    .into_text_bytes(),
+                                            );
+                                        }
+                                        ResponseContents::Empty => {
+                                            item_sum.contents = ResponseContents::Tokens(tokens);
+                                        }
+                                    }
+                                }
+                                ResponseContents::Text(mut text) => match &mut item_sum.contents {
+                                    ResponseContents::Tokens(_) => {
+                                        let mut sum_text = item_sum.contents.into_text_bytes();
+                                        sum_text.append(&mut text);
+                                        item_sum.contents = ResponseContents::Text(sum_text);
+                                    }
+                                    ResponseContents::Text(sum_text) => {
+                                        sum_text.append(&mut text);
+                                    }
+                                    ResponseContents::Empty => {
+                                        item_sum.contents = ResponseContents::Text(text);
+                                    }
+                                },
+                                ResponseContents::Empty => {}
+                            }
 
                             if let Some(finish_reason) = item.finish_reason {
                                 item_sum.finish_reason = Some(finish_reason);
@@ -246,24 +326,23 @@ pub fn parse_response(
             "response.completed" => {
                 items.push(ResponseItem {
                     index: None,
+                    role: None,
                     finish_reason: Some("completed".to_string()),
-                    fingerprint,
-                    contents: InnerNodeContent::MetadataOnly,
-                    metadata,
+                    contents: ResponseContents::Empty,
                 });
             }
             "response.failed" => {
                 items.push(ResponseItem {
                     index: None,
+                    role: None,
                     finish_reason: Some("failed".to_string()),
-                    fingerprint,
-                    contents: InnerNodeContent::MetadataOnly,
-                    metadata,
+                    contents: ResponseContents::Empty,
                 });
             }
             "response.incomplete" => {
                 items.push(ResponseItem {
                     index: None,
+                    role: None,
                     finish_reason: if let Some(Value::Object(mut response)) =
                         json.remove("response")
                         && let Some(Value::Object(mut incomplete_details)) =
@@ -274,19 +353,20 @@ pub fn parse_response(
                     } else {
                         Some("incomplete".to_string())
                     },
-                    fingerprint,
-                    contents: InnerNodeContent::MetadataOnly,
-                    metadata,
+                    contents: ResponseContents::Empty,
                 });
             }
             "message_start" => {
-                items.push(ResponseItem {
-                    index: None,
-                    finish_reason: None,
-                    fingerprint,
-                    contents: InnerNodeContent::MetadataOnly,
-                    metadata,
-                });
+                if let Some(Value::Object(mut message)) = json.remove("message")
+                    && let Some(Value::String(role)) = message.remove("role")
+                {
+                    items.push(ResponseItem {
+                        index: None,
+                        role: Some(role),
+                        finish_reason: None,
+                        contents: ResponseContents::Empty,
+                    });
+                }
             }
             "message_delta" => {
                 if let Some(Value::Object(mut delta)) = json.remove("delta")
@@ -294,10 +374,9 @@ pub fn parse_response(
                 {
                     items.push(ResponseItem {
                         index: None,
+                        role: None,
                         finish_reason: Some(stop_reason),
-                        fingerprint,
-                        contents: InnerNodeContent::MetadataOnly,
-                        metadata,
+                        contents: ResponseContents::Empty,
                     });
                 }
             }
@@ -309,10 +388,9 @@ pub fn parse_response(
                 {
                     items.push(ResponseItem {
                         index: None,
+                        role: None,
                         finish_reason: None,
-                        fingerprint,
-                        contents: InnerNodeContent::Snippet(text.into_bytes()),
-                        metadata,
+                        contents: ResponseContents::Text(text.into_bytes()),
                     });
                 }
             }
@@ -347,9 +425,9 @@ pub fn parse_response(
     }
 
     for item in &mut items {
-        item.contents.sort_counterfactual();
+        item.sort_top();
         if let Some(requested_top) = requested_top_tokens {
-            item.contents.truncate_counterfactual(requested_top);
+            item.remove_excess_tokens(requested_top);
         }
     }
 
@@ -367,25 +445,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     {
         return None;
     }
-
-    let fingerprint = json.remove("system_fingerprint").and_then(|v| {
-        if let Value::String(v) = v {
-            Some(v)
-        } else {
-            None
-        }
-    });
-
-    let mut metadata = json
-        .remove("metadata")
-        .and_then(|v| {
-            if let Value::Object(v) = v {
-                Some(json_object_to_metadata_map(v))
-            } else {
-                None
-            }
-        })
-        .unwrap_or_default();
 
     let index = if let Some(Value::Number(index)) = json.remove("index")
         && let Some(index) = index.as_u64()
@@ -442,6 +501,14 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
         }
     }
 
+    let mut role = if let Some(Value::String(role)) = json.remove("role") {
+        Some(role)
+    } else if let Some(Value::String(author)) = json.remove("author") {
+        Some(author)
+    } else {
+        None
+    };
+
     let tokens = if let Some(logprobs_json) = json.remove("logprobs") {
         if let Value::Object(mut logprobs_json) = logprobs_json {
             let token_ids = json
@@ -479,46 +546,45 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     if let Some(tokens) = tokens {
         Some(ResponseItem {
             index,
+            role,
             finish_reason,
-            fingerprint,
-            contents: InnerNodeContent::Tokens(tokens),
-            metadata,
+            contents: ResponseContents::Tokens(tokens),
         })
     } else if let Some(Value::String(text)) = json.remove("text") {
         Some(ResponseItem {
             index,
+            role,
             finish_reason,
-            fingerprint,
-            contents: InnerNodeContent::Snippet(text.into_bytes()),
-            metadata,
+            contents: ResponseContents::Text(text.into_bytes()),
         })
     } else if let Some(Value::String(text)) = json.remove("generated_text") {
         Some(ResponseItem {
             index,
+            role,
             finish_reason,
-            fingerprint,
-            contents: InnerNodeContent::Snippet(text.into_bytes()),
-            metadata,
+            contents: ResponseContents::Text(text.into_bytes()),
         })
     } else if let Some(Value::String(output)) = json.remove("output") {
         Some(ResponseItem {
             index,
+            role,
             finish_reason,
-            fingerprint,
-            contents: InnerNodeContent::Snippet(output.into_bytes()),
-            metadata,
+            contents: ResponseContents::Text(output.into_bytes()),
         })
     } else if let Some(Value::String(completion)) = json.remove("completion") {
         Some(ResponseItem {
             index,
+            role,
             finish_reason,
-            fingerprint,
-            contents: InnerNodeContent::Snippet(completion.into_bytes()),
-            metadata,
+            contents: ResponseContents::Text(completion.into_bytes()),
         })
     } else if let Some(Value::Object(mut message)) = json.remove("message")
         && let Some(Value::String(content)) = message.remove("content")
     {
+        if let Some(Value::String(role_value)) = message.remove("role") {
+            role = Some(role_value);
+        }
+
         if finish_reason.is_none()
             && let Some(Value::String(finish_reason_value)) = message.remove("finish_reason")
         {
@@ -527,14 +593,17 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
 
         Some(ResponseItem {
             index,
+            role,
             finish_reason,
-            fingerprint,
-            contents: InnerNodeContent::Snippet(content.into_bytes()),
-            metadata,
+            contents: ResponseContents::Text(content.into_bytes()),
         })
     } else if let Some(delta) = json.remove("delta") {
         match delta {
             Value::Object(mut delta) => {
+                if let Some(Value::String(role_value)) = delta.remove("role") {
+                    role = Some(role_value);
+                }
+
                 if finish_reason.is_none()
                     && let Some(Value::String(finish_reason_value)) = delta.remove("finish_reason")
                 {
@@ -544,10 +613,9 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                 if let Some(Value::String(content)) = delta.remove("content") {
                     Some(ResponseItem {
                         index,
+                        role,
                         finish_reason,
-                        fingerprint,
-                        contents: InnerNodeContent::Snippet(content.into_bytes()),
-                        metadata,
+                        contents: ResponseContents::Text(content.into_bytes()),
                     })
                 } else {
                     None
@@ -555,24 +623,26 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             }
             Value::String(delta) => Some(ResponseItem {
                 index,
+                role,
                 finish_reason,
-                fingerprint,
-                contents: InnerNodeContent::Snippet(delta.into_bytes()),
-                metadata,
+                contents: ResponseContents::Text(delta.into_bytes()),
             }),
             _ => None,
         }
     } else if let Some(content) = json.remove("content") {
         if let Value::Object(mut content) = content {
+            if let Some(Value::String(role_value)) = content.remove("role") {
+                role = Some(role_value);
+            }
+
             if let Some(Value::String(content_type)) = content.get("type") {
                 if content_type == "text" {
                     if let Some(Value::String(text)) = content.remove("text") {
                         Some(ResponseItem {
                             index,
+                            role,
                             finish_reason,
-                            fingerprint,
-                            contents: InnerNodeContent::Snippet(text.into_bytes()),
-                            metadata,
+                            contents: ResponseContents::Text(text.into_bytes()),
                         })
                     } else {
                         None
@@ -602,18 +672,16 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                     if let Some(tokens) = tokens {
                         Some(ResponseItem {
                             index,
+                            role,
                             finish_reason,
-                            fingerprint,
-                            contents: InnerNodeContent::Tokens(tokens),
-                            metadata,
+                            contents: ResponseContents::Tokens(tokens),
                         })
                     } else {
                         Some(ResponseItem {
                             index,
+                            role,
                             finish_reason,
-                            fingerprint,
-                            contents: InnerNodeContent::Snippet(text.into_bytes()),
-                            metadata,
+                            contents: ResponseContents::Text(text.into_bytes()),
                         })
                     }
                 } else {
@@ -624,13 +692,6 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
                     .into_iter()
                     .flat_map(|part| {
                         if let Value::Object(mut part) = part {
-                            if let Some(Value::Object(data)) = part.remove("partMetadata") {
-                                metadata.extend(
-                                    data.into_iter()
-                                        .map(|(k, v)| (k, json_value_to_metadata_field(v))),
-                                );
-                            }
-
                             if let Some(Value::Bool(thought)) = part.get("thought")
                                 && *thought
                             {
@@ -648,10 +709,9 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
 
                 Some(ResponseItem {
                     index,
+                    role,
                     finish_reason,
-                    fingerprint,
-                    contents: InnerNodeContent::Snippet(text),
-                    metadata,
+                    contents: ResponseContents::Text(text),
                 })
             } else {
                 None
@@ -702,27 +762,24 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
             if !tokens.is_empty() {
                 Some(ResponseItem {
                     index,
+                    role,
                     finish_reason,
-                    fingerprint,
-                    contents: InnerNodeContent::Tokens(tokens),
-                    metadata,
+                    contents: ResponseContents::Tokens(tokens),
                 })
             } else {
                 Some(ResponseItem {
                     index,
+                    role,
                     finish_reason,
-                    fingerprint,
-                    contents: InnerNodeContent::Snippet(bytes),
-                    metadata,
+                    contents: ResponseContents::Text(bytes),
                 })
             }
         } else if let Value::String(content) = content {
             Some(ResponseItem {
                 index,
+                role,
                 finish_reason,
-                fingerprint,
-                contents: InnerNodeContent::Snippet(content.into_bytes()),
-                metadata,
+                contents: ResponseContents::Text(content.into_bytes()),
             })
         } else {
             None
@@ -730,10 +787,9 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     } else if let Some(Value::String(response)) = json.remove("response") {
         Some(ResponseItem {
             index,
+            role,
             finish_reason,
-            fingerprint,
-            contents: InnerNodeContent::Snippet(response.into_bytes()),
-            metadata,
+            contents: ResponseContents::Text(response.into_bytes()),
         })
     } else {
         None
@@ -744,7 +800,7 @@ fn parse_openai_completion_logprobs(
     mut logprobs_json: Map<String, Value>,
     text: Option<&str>,
     token_ids: Option<Vec<Value>>,
-) -> Option<Vec<InnerNodeToken>> {
+) -> Option<Vec<Token>> {
     let mut top_tokens_list = Vec::new();
 
     if let Some(Value::Array(top_logprobs_json)) = logprobs_json.remove("top_logprobs") {
@@ -760,11 +816,10 @@ fn parse_openai_completion_logprobs(
                     if let Value::Number(logprob) = logprob
                         && let Some(logprob) = logprob.as_f64()
                     {
-                        top_tokens.push(CounterfactualToken {
-                            bytes: contents.into_bytes(),
-                            logprob: logprob as f32,
+                        top_tokens.push(LogprobToken {
                             id: None,
-                            metadata: IndexMap::default(),
+                            contents: contents.into_bytes(),
+                            logprob,
                         });
                     } else {
                         top_tokens.clear();
@@ -838,11 +893,10 @@ fn parse_openai_completion_logprobs(
                     };
 
                     if let Some(contents) = contents.map(|contents| contents.to_owned()) {
-                        token_list.push(CounterfactualToken {
-                            bytes: contents,
-                            logprob: logprob.as_f64().unwrap_or(f64::NAN) as f32, // vllm
+                        token_list.push(LogprobToken {
                             id: None,
-                            metadata: IndexMap::default(),
+                            contents,
+                            logprob: logprob.as_f64().unwrap_or(f64::NAN), // vllm
                         });
                     } else {
                         token_list.clear();
@@ -861,11 +915,10 @@ fn parse_openai_completion_logprobs(
             {
                 for (token, logprob) in tokens.into_iter().zip(token_logprobs.into_iter()) {
                     if let Value::String(token) = token {
-                        token_list.push(CounterfactualToken {
-                            bytes: token.into_bytes(),
-                            logprob: logprob.as_f64().unwrap_or(f64::NAN) as f32, // vllm
+                        token_list.push(LogprobToken {
                             id: None,
-                            metadata: IndexMap::default(),
+                            contents: token.into_bytes(),
+                            logprob: logprob.as_f64().unwrap_or(f64::NAN), // vllm
                         });
                     } else {
                         return None;
@@ -890,16 +943,17 @@ fn parse_openai_completion_logprobs(
             token_list
                 .into_iter()
                 .zip(top_tokens_list)
-                .map(|(token, top_tokens)| {
-                    InnerNodeToken::from_counterfactual_pair(token, top_tokens)
-                })
+                .map(|(token, top_tokens)| Token { token, top_tokens })
                 .collect(),
         )
     } else {
         Some(
             token_list
                 .into_iter()
-                .map(|token| InnerNodeToken::from_counterfactual_pair(token, vec![]))
+                .map(|token| Token {
+                    token,
+                    top_tokens: Vec::new(),
+                })
                 .collect(),
         )
     }
@@ -908,7 +962,7 @@ fn parse_openai_completion_logprobs(
 fn parse_openai_chatcompletion_logprobs_content(
     logprobs_list_json: Vec<Value>,
     token_ids: Option<Vec<Value>>,
-) -> Option<Vec<InnerNodeToken>> {
+) -> Option<Vec<Token>> {
     let mut token_id_list = Vec::new();
 
     if let Some(token_ids) = token_ids {
@@ -941,7 +995,7 @@ fn parse_openai_chatcompletion_logprobs_content(
 
     if tokens.len() == token_id_list.len() {
         for (token, token_id) in tokens.iter_mut().zip(token_id_list) {
-            token.id = Some(token_id)
+            token.token.id = Some(token_id)
         }
     }
 
@@ -950,7 +1004,7 @@ fn parse_openai_chatcompletion_logprobs_content(
 
 fn parse_openai_chatcompletion_logprob_content_item(
     mut logprob_json: Map<String, Value>,
-) -> Option<InnerNodeToken> {
+) -> Option<Token> {
     let mut top_tokens = Vec::new();
 
     if let Some(Value::Array(top_logprobs_json)) = logprob_json.remove("top_logprobs") {
@@ -987,12 +1041,12 @@ fn parse_openai_chatcompletion_logprob_content_item(
     }
 
     parse_openai_chatcompletion_logprob_content_subitem(logprob_json)
-        .map(|token| InnerNodeToken::from_counterfactual_pair(token, top_tokens))
+        .map(|token| Token { token, top_tokens })
 }
 
 fn parse_openai_chatcompletion_logprob_content_subitem(
     mut logprob_json: Map<String, Value>,
-) -> Option<CounterfactualToken> {
+) -> Option<LogprobToken> {
     let contents = if let Some(bytes) = logprob_json.remove("bytes").and_then(|v| {
         if !v.is_null() {
             serde_json::from_value::<Vec<u8>>(v).ok()
@@ -1015,25 +1069,23 @@ fn parse_openai_chatcompletion_logprob_content_subitem(
         None
     };
 
-    if let Some(bytes) = contents {
+    if let Some(contents) = contents {
         if let Some(logprob) = logprob_json.remove("logprob")
             && (logprob.is_number() || logprob.is_null())
         {
-            Some(CounterfactualToken {
-                bytes,
-                logprob: logprob.as_f64().unwrap_or(f64::NAN) as f32,
+            Some(LogprobToken {
                 id,
-                metadata: json_object_to_metadata_map(logprob_json),
+                contents,
+                logprob: logprob.as_f64().unwrap_or(f64::NAN),
             })
         } else if let Some(prob) = logprob_json.remove("prob")
             && (prob.is_number() || prob.is_null())
         // llama-cpp
         {
-            Some(CounterfactualToken {
-                bytes,
-                logprob: prob.as_f64().unwrap_or(f64::NAN).ln() as f32,
+            Some(LogprobToken {
                 id,
-                metadata: json_object_to_metadata_map(logprob_json),
+                contents,
+                logprob: prob.as_f64().unwrap_or(f64::NAN).ln(),
             })
         } else {
             None
@@ -1043,7 +1095,7 @@ fn parse_openai_chatcompletion_logprob_content_subitem(
     }
 }
 
-fn parse_gemini_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<InnerNodeToken>> {
+fn parse_gemini_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<Token>> {
     if let Some(Value::Array(chosen_candidates)) = logprobs_json.remove("chosenCandidates") {
         let mut tokens = Vec::with_capacity(chosen_candidates.len());
 
@@ -1076,7 +1128,7 @@ fn parse_gemini_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<In
                 if let Value::Object(chosen_candidate) = chosen_candidate
                     && let Some(token) = parse_gemini_logprob_candidate(chosen_candidate)
                 {
-                    tokens.push(InnerNodeToken::from_counterfactual_pair(token, top_tokens));
+                    tokens.push(Token { token, top_tokens });
                 } else {
                     return None;
                 }
@@ -1086,7 +1138,10 @@ fn parse_gemini_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<In
                 if let Value::Object(chosen_candidate) = chosen_candidate
                     && let Some(token) = parse_gemini_logprob_candidate(chosen_candidate)
                 {
-                    tokens.push(InnerNodeToken::from_counterfactual_pair(token, vec![]));
+                    tokens.push(Token {
+                        token,
+                        top_tokens: Vec::new(),
+                    });
                 } else {
                     return None;
                 }
@@ -1099,15 +1154,11 @@ fn parse_gemini_logprobs(mut logprobs_json: Map<String, Value>) -> Option<Vec<In
     }
 }
 
-fn parse_gemini_logprob_candidate(
-    mut logprob_json: Map<String, Value>,
-) -> Option<CounterfactualToken> {
+fn parse_gemini_logprob_candidate(mut logprob_json: Map<String, Value>) -> Option<LogprobToken> {
     if let Some(Value::String(token)) = logprob_json.remove("token")
         && let Some(logprob) = logprob_json.remove("logProbability")
     {
-        Some(CounterfactualToken {
-            bytes: token.into_bytes(),
-            logprob: logprob.as_f64().unwrap_or(f64::NAN) as f32,
+        Some(LogprobToken {
             id: if let Some(Value::Number(token_id)) = logprob_json.remove("tokenId")
                 && let Some(token_id) = token_id.as_u64()
             {
@@ -1115,7 +1166,8 @@ fn parse_gemini_logprob_candidate(
             } else {
                 None
             },
-            metadata: json_object_to_metadata_map(logprob_json),
+            contents: token.into_bytes(),
+            logprob: logprob.as_f64().unwrap_or(f64::NAN),
         })
     } else {
         None

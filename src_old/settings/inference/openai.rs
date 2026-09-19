@@ -1,18 +1,18 @@
-use std::{fmt::Display, str::FromStr};
+use std::fmt::Display;
 
 use eframe::egui::{CollapsingHeader, TextEdit, Ui, Widget};
 use log::trace;
 use reqwest::{
-    Client, Method, Url,
+    Method, Url,
     header::{CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Number, Value};
-use ulid::Ulid;
+use tapestry_weave::ulid::Ulid;
 
 use super::{
     EMBEDDING_CACHE_MAX_SIZE, EmbeddingEndpoint, Endpoint, EndpointRequest, EndpointResponse,
-    InferenceCache, InferenceModel, RequestTokensOrBytes, Template, render_config_list,
+    InferenceCache, InferenceClient, RequestTokensOrBytes, Template, render_config_list,
     render_config_map,
     shared::{
         build_json_list, build_json_object, error_for_status, parse_embedding_response,
@@ -348,10 +348,8 @@ impl Endpoint for OpenAICompletionsConfig {
         &self.endpoint
     }
     fn default_parameters(&self) -> Vec<(String, String)> {
-        if self.endpoint.contains("openrouter.ai/api/v1")
-            || self.endpoint.contains("api.featherless.ai/v1")
-        {
-            // Disable logprobs for endpoints that don't reliably support it
+        if self.endpoint.contains("openrouter.ai/api/v1") {
+            // OpenRouter doesn't handle logprobs properly
             vec![
                 ("temperature".to_string(), "1".to_string()),
                 ("max_tokens".to_string(), "10".to_string()),
@@ -366,21 +364,24 @@ impl Endpoint for OpenAICompletionsConfig {
     }
     async fn perform_request(
         &self,
-        client: &Client,
+        client: &InferenceClient,
         cache: &InferenceCache,
-        model: &InferenceModel,
         request: EndpointRequest,
+        tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
         let mut headers = HeaderMap::with_capacity(self.headers.len());
 
         for (key, value) in &self.headers {
-            headers.insert(HeaderName::from_str(key)?, HeaderValue::from_str(value)?);
+            headers.insert(
+                HeaderName::from_bytes(key.as_bytes())?,
+                HeaderValue::from_str(value)?,
+            );
         }
 
         let mut body = Map::with_capacity(1 + request.parameters.len() + self.parameters.len());
 
         build_json_object(&mut body, self.parameters.clone());
-        build_json_object(&mut body, request.parameters.clone());
+        build_json_object(&mut body, request.parameters.as_ref().clone());
 
         let echo = body.get("echo").and_then(|t| t.as_bool()).unwrap_or(false);
 
@@ -395,27 +396,27 @@ impl Endpoint for OpenAICompletionsConfig {
             .and_then(|t| t.as_u64())
             .map(|t| t as usize);
 
-        if body.contains_key("stream") {
+        if body.remove("stream").is_some() {
             body.insert("stream".to_string(), Value::Bool(false));
         };
 
         if self.nonstandard.reuse_tokens && !self.nonstandard.tokenization_endpoint.is_empty() {
             let mut token_futures = Vec::with_capacity(request.content.len());
 
-            let url = Url::parse(&self.nonstandard.tokenization_endpoint)?;
-
-            for segment in request.content {
-                let url = url.clone();
-
+            for segment in request.content.as_ref().clone() {
                 token_futures.push(
-                    RequestTokensOrBytes::build(segment, &model.identifier)
+                    RequestTokensOrBytes::build(segment, &tokenization_identifier)
                         .cached_into_tokens_async(
-                            model.identifier,
+                            tokenization_identifier,
                             &cache.tokens,
                             |bytes: Vec<u8>| async {
                                 Ok(error_for_status(
                                     client
-                                        .request(Method::POST, url)
+                                        .client
+                                        .request(
+                                            Method::POST,
+                                            Url::parse(&self.nonstandard.tokenization_endpoint)?,
+                                        )
                                         .headers(headers.clone())
                                         .header(CONTENT_TYPE, "application/octet-stream")
                                         .body(bytes)
@@ -449,6 +450,8 @@ impl Endpoint for OpenAICompletionsConfig {
         } else {
             let request_bytes: Vec<u8> = request
                 .content
+                .as_ref()
+                .clone()
                 .into_iter()
                 .flat_map(|t| t.into_bytes())
                 .collect();
@@ -456,6 +459,7 @@ impl Endpoint for OpenAICompletionsConfig {
             if !self.nonstandard.tokenization_endpoint.is_empty() {
                 let tokenized: Value = error_for_status(
                     client
+                        .client
                         .request(
                             Method::POST,
                             Url::parse(&self.nonstandard.tokenization_endpoint)?,
@@ -480,7 +484,12 @@ impl Endpoint for OpenAICompletionsConfig {
         }
 
         if let Some(suffix) = request.suffix {
-            let suffix_bytes: Vec<u8> = suffix.into_iter().flat_map(|t| t.into_bytes()).collect();
+            let suffix_bytes: Vec<u8> = suffix
+                .as_ref()
+                .clone()
+                .into_iter()
+                .flat_map(|t| t.into_bytes())
+                .collect();
 
             if !suffix_bytes.is_empty() {
                 body.insert(
@@ -490,6 +499,8 @@ impl Endpoint for OpenAICompletionsConfig {
             }
         }
 
+        trace!("{:#?}", &body);
+
         if let Some(prompt) = body.get_mut("prompt")
             && let Value::Array(prompt_list) = prompt
             && prompt_list.is_empty()
@@ -497,10 +508,9 @@ impl Endpoint for OpenAICompletionsConfig {
             *prompt = Value::String(String::new());
         }
 
-        trace!("{:#?}", &body);
-
         let response: Map<String, Value> = error_for_status(
             client
+                .client
                 .request(Method::POST, Url::parse(&self.endpoint)?)
                 .headers(headers)
                 .json(&Value::Object(body))
@@ -511,13 +521,14 @@ impl Endpoint for OpenAICompletionsConfig {
         .json()
         .await?;
 
+        let metadata = request.parameters.as_ref().clone();
+
         let endpoint_response = parse_response(
             response,
-            request.parameters,
-            model,
+            metadata,
+            tokenization_identifier,
             echo,
             single_token,
-            None, // TODO
             requested_top,
         );
 
@@ -627,10 +638,8 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         &self.endpoint
     }
     fn default_parameters(&self) -> Vec<(String, String)> {
-        if self.endpoint.contains("openrouter.ai/api/v1")
-            || self.endpoint.contains("api.featherless.ai/v1")
-        {
-            // Disable logprobs for endpoints that don't reliably support it
+        if self.endpoint.contains("openrouter.ai/api/v1") {
+            // OpenRouter doesn't handle logprobs properly
             vec![
                 ("temperature".to_string(), "1".to_string()),
                 ("max_tokens".to_string(), "10".to_string()),
@@ -646,10 +655,10 @@ impl Endpoint for OpenAIChatCompletionsConfig {
     }
     async fn perform_request(
         &self,
-        client: &Client,
+        client: &InferenceClient,
         _cache: &InferenceCache,
-        model: &InferenceModel,
         request: EndpointRequest,
+        tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
         if request.suffix.is_some() {
             return Err(anyhow::Error::msg("Endpoint does not support FIM"));
@@ -658,28 +667,29 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         let mut headers = HeaderMap::with_capacity(self.headers.len());
 
         for (key, value) in &self.headers {
-            headers.insert(HeaderName::from_str(key)?, HeaderValue::from_str(value)?);
+            headers.insert(
+                HeaderName::from_bytes(key.as_bytes())?,
+                HeaderValue::from_str(value)?,
+            );
         }
 
         let mut body = Map::with_capacity(1 + request.parameters.len() + self.parameters.len());
 
         build_json_object(&mut body, self.parameters.clone());
-        build_json_object(&mut body, request.parameters.clone());
+        build_json_object(&mut body, request.parameters.as_ref().clone());
 
         let single_token = body
-            .get("max_completion_tokens")
+            .get("max_tokens")
             .and_then(|t| t.as_u64())
-            .or_else(|| body.get("max_tokens").and_then(|t| t.as_u64()))
             .map(|t| t == 1)
             .unwrap_or(false);
 
         let requested_top = body
-            .get("top_logprobs")
+            .get("logprobs")
             .and_then(|t| t.as_u64())
-            .or_else(|| body.get("logprobs").and_then(|t| t.as_u64()))
             .map(|t| t as usize);
 
-        if body.contains_key("stream") {
+        if body.remove("stream").is_some() {
             body.insert("stream".to_string(), Value::Bool(false));
         };
 
@@ -694,6 +704,8 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
         let request_bytes: Vec<u8> = request
             .content
+            .as_ref()
+            .clone()
             .into_iter()
             .flat_map(|t| t.into_bytes())
             .collect();
@@ -708,6 +720,13 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
         build_json_list(&mut messages, self.prefix_messages.clone());
 
+        /*if !(request_bytes.is_empty()
+            && !self.prefix_messages.is_empty()
+            && self.suffix_messages.is_empty())
+        {
+            messages.push(Value::Object(message));
+        }*/
+
         messages.push(Value::Object(message));
 
         build_json_list(&mut messages, self.suffix_messages.clone());
@@ -718,6 +737,7 @@ impl Endpoint for OpenAIChatCompletionsConfig {
 
         let response: Map<String, Value> = error_for_status(
             client
+                .client
                 .request(Method::POST, Url::parse(&self.endpoint)?)
                 .headers(headers)
                 .json(&Value::Object(body))
@@ -728,13 +748,14 @@ impl Endpoint for OpenAIChatCompletionsConfig {
         .json()
         .await?;
 
+        let metadata = request.parameters.as_ref().clone();
+
         let endpoint_response = parse_response(
             response,
-            request.parameters,
-            model,
+            metadata,
+            tokenization_identifier,
             false,
             single_token,
-            None, // TODO
             requested_top,
         );
 
@@ -872,7 +893,7 @@ impl EmbeddingEndpoint for OpenAIEmbeddingsConfig {
     }
     async fn perform_request(
         &self,
-        client: &Client,
+        client: &InferenceClient,
         cache: &InferenceCache,
         request: Vec<u8>,
     ) -> Result<Vec<f32>, anyhow::Error> {
@@ -883,7 +904,10 @@ impl EmbeddingEndpoint for OpenAIEmbeddingsConfig {
         let mut headers = HeaderMap::with_capacity(self.headers.len());
 
         for (key, value) in &self.headers {
-            headers.insert(HeaderName::from_str(key)?, HeaderValue::from_str(value)?);
+            headers.insert(
+                HeaderName::from_bytes(key.as_bytes())?,
+                HeaderValue::from_str(value)?,
+            );
         }
 
         let mut body = Map::with_capacity(1 + self.parameters.len());
@@ -905,6 +929,7 @@ impl EmbeddingEndpoint for OpenAIEmbeddingsConfig {
 
         let response: Value = error_for_status(
             client
+                .client
                 .request(Method::POST, Url::parse(&self.endpoint)?)
                 .headers(headers)
                 .json(&Value::Object(body))

@@ -38,7 +38,8 @@ use crate::{
     },
 };
 
-pub mod layout;
+pub(super) mod layout;
+pub(super) mod weave;
 
 pub const INSTANT_SCROLL: ScrollAnimation = ScrollAnimation {
     points_per_second: f32::MAX,

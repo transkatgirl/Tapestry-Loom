@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use elkai_rs::DistanceMatrix;
 use ml_distance::similarity::cosine;
+use tapestry_weave::ulid::Ulid;
 
-pub fn seriate<T>(embeddings: Vec<(T, Vec<f32>)>) -> Vec<T> {
+pub fn seriate(embeddings: Vec<(Ulid, Vec<f32>)>) -> Vec<Ulid> {
     if embeddings.len() < 3 {
         return embeddings.into_iter().map(|(id, _)| id).collect();
     }

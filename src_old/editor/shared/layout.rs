@@ -1,48 +1,43 @@
-use std::{
-    collections::HashMap,
-    hash::{BuildHasher, Hash},
-};
+use std::collections::{HashMap, hash_map::Entry};
 
 use eframe::egui::{Pos2, Rect, pos2};
 use rust_sugiyama::{
     configure::{Config, CrossingMinimization, RankingType},
     from_vertices_and_edges,
-}; // TODO: Compare w/ gen_sugiyama and mermaid-dagre
-use tapestry_weave::universal_weave::{Node, Weave, indexmap::IndexSet};
+};
+use tapestry_weave::ulid::Ulid;
+
+use crate::editor::shared::weave::WeaveWrapper;
 
 #[derive(Debug)]
-pub struct WeaveLayout<K, S>
-where
-    K: Hash + Copy + Eq,
-    S: BuildHasher + Default + Clone,
-{
-    identifiers: IndexSet<K, S>,
+pub struct WeaveLayout {
+    identifier_map: HashMap<Ulid, u32>,
+    identifier_unmap: HashMap<u32, Ulid>,
     vertices: Vec<(u32, (f64, f64))>,
     edges: Vec<(u32, u32)>,
+    id_counter: u32,
 }
 
-impl<K, S> WeaveLayout<K, S>
-where
-    K: Hash + Copy + Eq,
-    S: BuildHasher + Default + Clone,
-{
+impl WeaveLayout {
     pub fn with_capacity(node_capacity: usize, edge_capacity: usize) -> Self {
         Self {
-            identifiers: IndexSet::with_capacity_and_hasher(node_capacity, S::default()),
+            identifier_map: HashMap::with_capacity(node_capacity),
+            identifier_unmap: HashMap::with_capacity(node_capacity),
             vertices: Vec::with_capacity(node_capacity),
             edges: Vec::with_capacity(edge_capacity),
+            id_counter: 0,
         }
     }
-    pub fn load_weave<N, T>(
+    pub fn load_weave(
         &mut self,
-        weave: impl Weave<K, N, T, S>,
-        node_sizes: impl ExactSizeIterator<Item = (K, (f64, f64))>,
-    ) where
-        N: Node<K, T, S>,
-    {
-        self.identifiers.clear();
+        weave: &WeaveWrapper,
+        node_sizes: impl ExactSizeIterator<Item = (Ulid, (f64, f64))>,
+    ) {
+        self.identifier_map.clear();
+        self.identifier_unmap.clear();
         self.vertices.clear();
         self.edges.clear();
+        self.id_counter = 0;
 
         assert!(node_sizes.len() < (u32::MAX as usize));
 
@@ -51,25 +46,31 @@ where
 
             self.vertices.push((node_identifier, size));
 
-            if let Some(weave_node) = weave.get_node(&node) {
-                for parent_node in weave_node.from() {
-                    let parent_node_identifier = self.get_node_identifier(parent_node);
-                    self.edges.push((parent_node_identifier, node_identifier));
-                }
+            if let Some(weave_node) = weave.get_node(&node)
+                && let Some(parent_node) = weave_node.from.map(Ulid)
+            {
+                let parent_node_identifier = self.get_node_identifier(parent_node);
+                self.edges.push((parent_node_identifier, node_identifier));
             }
         }
 
-        assert_eq!(self.identifiers.len(), self.vertices.len());
+        assert_eq!(self.identifier_map.len(), self.vertices.len());
     }
-    fn get_node_identifier(&mut self, node: K) -> u32 {
-        if let Some(id) = self.identifiers.get_index_of(&node) {
-            id as u32
-        } else {
-            self.identifiers.insert(node);
-            (self.identifiers.len() - 1) as u32
+    fn get_node_identifier(&mut self, node: Ulid) -> u32 {
+        match self.identifier_map.entry(node) {
+            Entry::Occupied(occupied) => *occupied.get(),
+            Entry::Vacant(vacant) => {
+                let identifier = self.id_counter;
+                self.id_counter += 1;
+
+                vacant.insert(identifier);
+                self.identifier_unmap.insert(identifier, node);
+
+                identifier
+            }
         }
     }
-    pub fn layout_weave(&self, spacing: f64) -> ArrangedWeave<K, S> {
+    pub fn layout_weave(&self, spacing: f64) -> ArrangedWeave {
         let layout = from_vertices_and_edges(
             &self.vertices,
             &self.edges,
@@ -89,8 +90,8 @@ where
         let mut width = 0.0;
         let mut height = 0.0;
 
-        let mut positions = HashMap::with_capacity_and_hasher(self.vertices.len(), S::default());
-        let mut rects = HashMap::with_capacity_and_hasher(self.vertices.len(), S::default());
+        let mut positions = HashMap::with_capacity(self.vertices.len());
+        let mut rects = HashMap::with_capacity(self.vertices.len());
 
         for (subgraph, _, _) in layout {
             let mut subgraph_width: f64 = 0.0;
@@ -102,16 +103,10 @@ where
                 let x_pos = x + x_offset;
                 let y_pos = y + y_offset;
 
-                let identifier = *self.identifiers.get_index(id as usize).unwrap();
-                positions.insert(
-                    identifier,
-                    Pos2 {
-                        x: x_pos as f32,
-                        y: y_pos as f32,
-                    },
-                );
+                let identifier = self.identifier_unmap.get(&id).unwrap();
+                positions.insert(*identifier, (x_pos, y_pos));
                 rects.insert(
-                    identifier,
+                    *identifier,
                     Rect {
                         min: Pos2 {
                             x: (x_pos - (width / 2.0)) as f32,
@@ -136,22 +131,18 @@ where
         ArrangedWeave {
             positions,
             rects,
-            width: (width + spacing) as f32,
-            height: (height + (spacing * 2.0)) as f32,
+            width: width + spacing,
+            height: height + (spacing * 2.0),
         }
     }
 }
 
 #[derive(Default, Debug)]
-pub struct ArrangedWeave<K, S>
-where
-    K: Hash + Copy + Eq,
-    S: BuildHasher + Default + Clone,
-{
-    pub positions: HashMap<K, Pos2, S>, // TODO: Replace HashMaps with sorted Vecs
-    pub rects: HashMap<K, Rect, S>,
-    pub width: f32,
-    pub height: f32,
+pub struct ArrangedWeave {
+    pub positions: HashMap<Ulid, (f64, f64)>,
+    pub rects: HashMap<Ulid, Rect>,
+    pub width: f64,
+    pub height: f64,
 }
 
 // Copied from egui-snarl

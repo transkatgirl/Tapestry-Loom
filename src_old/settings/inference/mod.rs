@@ -18,14 +18,14 @@ use poll_promise::Promise;
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tapestry_weave::{
+    ulid::Ulid,
     universal_weave::{
         dependent::DependentNode,
         indexmap::{IndexMap, IndexSet},
     },
-    v1::{content::NodeContent, dependent::TapestryNode},
+    v0::{InnerNodeContent, Model, NodeContent, TapestryNode},
 };
 use tokio::{runtime::Runtime, sync::Mutex, task};
-use ulid::Ulid;
 
 use crate::settings::inference::openai::{
     OpenAIChatCompletionsConfig, OpenAIChatCompletionsTemplate, OpenAICompletionsConfig,
@@ -90,14 +90,21 @@ impl ClientConfig {
                 .suffix(" minutes"),
         ).on_hover_text("The maximum length of time to wait for a HTTP request to finish. Requests exceeding this duration will be dropped.");
     }
-    pub fn build(&self) -> Result<Client, reqwest::Error> {
-        ClientBuilder::new()
-            .connect_timeout(Duration::from_secs(15))
-            .danger_accept_invalid_certs(self.accept_invalid_tls)
-            .danger_accept_invalid_hostnames(self.accept_invalid_tls)
-            .timeout(Duration::from_secs_f32(self.timeout_minutes * 60.0))
-            .build()
+    pub fn build(&self) -> Result<InferenceClient, anyhow::Error> {
+        Ok(InferenceClient {
+            client: ClientBuilder::new()
+                .connect_timeout(Duration::from_secs(15))
+                .danger_accept_invalid_certs(self.accept_invalid_tls)
+                .danger_accept_invalid_hostnames(self.accept_invalid_tls)
+                .timeout(Duration::from_secs_f32(self.timeout_minutes * 60.0))
+                .build()?,
+        })
     }
+}
+
+#[derive(Clone)]
+pub struct InferenceClient {
+    client: Client,
 }
 
 #[derive(Clone)]
@@ -141,7 +148,7 @@ impl InferenceSettings {
                         label: String::new(),
                         color: None,
                         endpoint,
-                        identifier,
+                        tokenization_identifier: identifier,
                     },
                 );
             }
@@ -353,7 +360,7 @@ struct InferenceModel {
     endpoint: EndpointConfig,
 
     #[serde(default = "Ulid::new")]
-    identifier: Ulid,
+    tokenization_identifier: Ulid,
 }
 
 impl InferenceModel {
@@ -369,6 +376,16 @@ impl InferenceModel {
             WidgetText::RichText(Arc::new(RichText::new(self.label()).color(color)))
         } else {
             WidgetText::Text(self.label().to_string())
+        }
+    }
+    fn content_model(&self) -> Model {
+        Model {
+            label: self.label().to_string(),
+            metadata: if let Some(color) = self.color {
+                IndexMap::from_iter([("color".to_string(), color.to_hex())])
+            } else {
+                IndexMap::default()
+            },
         }
     }
     fn render(&mut self, ui: &mut Ui, id: &Ulid) {
@@ -403,7 +420,7 @@ impl InferenceModel {
 
         if self.endpoint.render_settings(ui, id) {
             trace!("Updating tokenization identifier for {}", id);
-            self.identifier = Ulid::new();
+            self.tokenization_identifier = Ulid::new();
         };
     }
 }
@@ -612,11 +629,11 @@ impl InferenceParameters {
         &self,
         settings: &InferenceSettings,
         runtime: &Runtime,
-        client: &Client,
+        client: &InferenceClient,
         cache: &InferenceCache,
-        parent: Option<u64>,
+        parent: Option<Ulid>,
         content: Vec<TokensOrBytes>,
-        output: &mut HashMap<u64, InferenceHandle>,
+        output: &mut HashMap<Ulid, InferenceHandle>,
     ) {
         self.create_request_inner(
             Rc::new(settings.models.clone()),
@@ -624,7 +641,7 @@ impl InferenceParameters {
             client,
             cache,
             parent,
-            content,
+            Arc::new(content),
             output,
         );
     }
@@ -632,30 +649,32 @@ impl InferenceParameters {
         &self,
         models: Rc<IndexMap<Ulid, InferenceModel>>,
         runtime: &Runtime,
-        client: &Client,
+        client: &InferenceClient,
         cache: &InferenceCache,
-        parent_node: Option<u64>,
-        content: Vec<TokensOrBytes>,
-        output: &mut HashMap<u64, InferenceHandle>,
+        parent_node: Option<Ulid>,
+        content: Arc<Vec<TokensOrBytes>>,
+        output: &mut HashMap<Ulid, InferenceHandle>,
     ) {
         let parameters = Rc::new(self.clone());
         let _guard = runtime.enter();
 
         for model in &self.models {
             if let Some(inference_model) = models.get(&model.model) {
+                let content_model = inference_model.content_model();
                 let request = EndpointRequest {
                     content: content.clone(),
                     suffix: None,
-                    parameters: model.parameters.clone(),
+                    parameters: Arc::new(model.parameters.clone()),
                 };
                 let endpoint = Arc::new(inference_model.endpoint.clone());
+                let tokenization_identifier = inference_model.tokenization_identifier;
 
                 for _ in 0..model.requests {
+                    let content_model = content_model.clone();
                     let request = request.clone();
                     let endpoint = endpoint.clone();
                     let client = client.clone();
                     let cache = cache.clone();
-                    let model = inference_model.clone();
                     output.insert(
                         Ulid::new(),
                         InferenceHandle {
@@ -664,10 +683,29 @@ impl InferenceParameters {
                             models: models.clone(),
                             parameters: parameters.clone(),
                             handle: Promise::spawn_async(async move {
-                                endpoint
+                                let responses = endpoint
                                     .as_ref()
-                                    .perform_request(&client, &cache, &model, request)
-                                    .await
+                                    .perform_request(
+                                        &client,
+                                        &cache,
+                                        request,
+                                        tokenization_identifier,
+                                    )
+                                    .await?;
+
+                                responses
+                                    .into_iter()
+                                    .map(|response| {
+                                        Ok((
+                                            NodeContent {
+                                                content: response.content,
+                                                metadata: IndexMap::from_iter(response.metadata),
+                                                model: Some(content_model.clone()),
+                                            },
+                                            response.root,
+                                        ))
+                                    })
+                                    .collect()
                             }),
                         },
                     );
@@ -690,7 +728,7 @@ impl InferenceParameters {
     }
     pub fn get_responses(
         runtime: &Runtime,
-        client: Option<&Client>,
+        client: Option<&InferenceClient>,
         cache: &InferenceCache,
         input: &mut HashMap<Ulid, InferenceHandle>,
         output: &mut Vec<Result<TapestryNode, anyhow::Error>>,
@@ -710,7 +748,9 @@ impl InferenceParameters {
                 let result = value.handle.block_and_take();
 
                 let identifiers = if let Ok(content) = &result {
-                    (0..content.len()).collect()
+                    (0..content.len())
+                        .map(|_| Ulid::from_datetime(key.datetime()))
+                        .collect()
                 } else {
                     vec![]
                 };
@@ -723,7 +763,7 @@ impl InferenceParameters {
                     parameters.recursion_depth -= 1;
 
                     for (i, item) in content.iter().enumerate() {
-                        let mut parent_content = value.parent_content;
+                        let mut parent_content = value.parent_content.as_ref().clone();
                         parent_content.push(item.0.content.clone().into());
 
                         parameters.create_request_inner(
@@ -740,14 +780,18 @@ impl InferenceParameters {
 
                 match result {
                     Ok(contents) => {
-                        for (i, response) in contents.into_iter().enumerate() {
+                        for (i, content) in contents.into_iter().enumerate() {
                             output.push(Ok(DependentNode {
-                                id: identifiers[i],
-                                from: if !response.root { value.parent } else { None },
+                                id: identifiers[i].0,
+                                from: if !content.1 {
+                                    value.parent.map(|id| id.0)
+                                } else {
+                                    None
+                                },
                                 to: IndexSet::default(),
                                 active: false,
                                 bookmarked: false,
-                                contents: response.content,
+                                contents: content.0,
                             }));
                         }
                     }
@@ -762,7 +806,7 @@ impl InferenceSettings {
     pub fn create_seriation_request(
         &mut self,
         runtime: &Runtime,
-        client: &Client,
+        client: &InferenceClient,
         cache: &InferenceCache,
         mut request: (Option<Ulid>, Vec<(Ulid, Vec<u8>)>),
         output: &mut HashMap<Option<Ulid>, SeriationInferenceHandle>,
@@ -849,11 +893,11 @@ impl InferenceSettings {
 }
 
 pub struct InferenceHandle {
-    parent: Option<u64>,
-    parent_content: Vec<TokensOrBytes>,
+    parent: Option<Ulid>,
+    parent_content: Arc<Vec<TokensOrBytes>>,
     models: Rc<IndexMap<Ulid, InferenceModel>>,
     parameters: Rc<InferenceParameters>,
-    handle: Promise<Result<Vec<EndpointResponse>, anyhow::Error>>,
+    handle: Promise<Result<Vec<(NodeContent, bool)>, anyhow::Error>>,
 }
 
 #[allow(clippy::type_complexity)]
@@ -991,20 +1035,20 @@ impl Endpoint for EndpointConfig {
     }
     async fn perform_request(
         &self,
-        client: &Client,
+        client: &InferenceClient,
         cache: &InferenceCache,
-        model: &InferenceModel,
         request: EndpointRequest,
+        tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
         match self {
             Self::OpenAICompletions(endpoint) => {
                 endpoint
-                    .perform_request(client, cache, model, request)
+                    .perform_request(client, cache, request, tokenization_identifier)
                     .await
             }
             Self::OpenAIChatCompletions(endpoint) => {
                 endpoint
-                    .perform_request(client, cache, model, request)
+                    .perform_request(client, cache, request, tokenization_identifier)
                     .await
             }
         }
@@ -1068,7 +1112,7 @@ impl EmbeddingEndpoint for EmbeddingEndpointConfig {
     }
     async fn perform_request(
         &self,
-        client: &Client,
+        client: &InferenceClient,
         cache: &InferenceCache,
         requests: Vec<u8>,
     ) -> Result<Vec<f32>, anyhow::Error> {
@@ -1081,14 +1125,15 @@ impl EmbeddingEndpoint for EmbeddingEndpointConfig {
 
 #[derive(Debug, Clone)]
 struct EndpointRequest {
-    content: Vec<TokensOrBytes>,
-    suffix: Option<Vec<TokensOrBytes>>,
-    parameters: Vec<(String, String)>,
+    content: Arc<Vec<TokensOrBytes>>,
+    suffix: Option<Arc<Vec<TokensOrBytes>>>,
+    parameters: Arc<Vec<(String, String)>>,
 }
 
 struct EndpointResponse {
     root: bool,
-    content: NodeContent,
+    content: InnerNodeContent,
+    metadata: Vec<(String, String)>,
 }
 
 trait Endpoint: Serialize + DeserializeOwned + Clone {
@@ -1097,10 +1142,10 @@ trait Endpoint: Serialize + DeserializeOwned + Clone {
     fn default_parameters(&self) -> Vec<(String, String)>;
     async fn perform_request(
         &self,
-        client: &Client,
+        client: &InferenceClient,
         cache: &InferenceCache,
-        model: &InferenceModel,
         request: EndpointRequest,
+        tokenization_identifier: Ulid,
     ) -> Result<Vec<EndpointResponse>, anyhow::Error>;
 }
 
@@ -1108,7 +1153,7 @@ trait EmbeddingEndpoint: Serialize + DeserializeOwned + Clone + Display {
     fn render_settings(&mut self, ui: &mut Ui) -> bool;
     async fn perform_request(
         &self,
-        client: &Client,
+        client: &InferenceClient,
         cache: &InferenceCache,
         request: Vec<u8>,
     ) -> Result<Vec<f32>, anyhow::Error>;
@@ -1225,7 +1270,7 @@ impl RequestTokensOrBytes {
 
                 for (token, token_id, token_model_id) in token_pairs {
                     bytes.extend(token);
-                    if token_model_id == *model_id {
+                    if &token_model_id == model_id {
                         token_ids.push(token_id);
                     }
                 }
@@ -1284,7 +1329,17 @@ impl RequestTokensOrBytes {
         match self {
             Self::Bytes(bytes) => {
                 let mut model_cache = match cache.lock().await.entry(identifier) {
-                    Entry::Occupied(occupied) => occupied.get().clone(),
+                    Entry::Occupied(occupied) => {
+                        if let Some(tokens) = occupied.get().lock().await.get(&bytes) {
+                            trace!(
+                                "Using cached tokenization of {:?}",
+                                String::from_utf8_lossy(&bytes)
+                            );
+                            return Ok(tokens.clone());
+                        } else {
+                            occupied.get().clone()
+                        }
+                    }
                     Entry::Vacant(vacant) => {
                         let occupied = vacant.insert_entry(Arc::new(Mutex::new(
                             LinkedHashMap::with_capacity(TOKENIZATION_CACHE_MAX_SIZE),
@@ -1295,19 +1350,13 @@ impl RequestTokensOrBytes {
                 .lock_owned()
                 .await;
 
-                if let Some(tokens) = model_cache.get(&bytes) {
-                    trace!(
-                        "Using cached tokenization of {:?}",
-                        String::from_utf8_lossy(&bytes)
-                    );
-                    return Ok(tokens.clone());
-                }
-
                 trace!("Tokenizing {:?}", String::from_utf8_lossy(&bytes));
 
                 let tokens = byte_handler(bytes.clone()).await?;
 
                 trace!("{:?} = {:?}", String::from_utf8_lossy(&bytes), tokens);
+
+                //let mut model_cache = model_cache.lock_owned().await;
 
                 model_cache.insert(bytes, tokens.clone());
 
