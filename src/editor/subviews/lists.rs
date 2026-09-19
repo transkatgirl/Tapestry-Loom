@@ -1,6 +1,10 @@
 use eframe::egui::{Context, Id, ScrollArea, Ui, WidgetText, collapsing_header::CollapsingState};
 use flagset::FlagSet;
-use tapestry_weave::v1::dependent::{TapestryNode, TapestryWeave};
+use tapestry_weave::{
+    ShortId, TapestryNode,
+    universal_weave::{BookmarkableWeave, Weave},
+    weave::wrappers::LoggedTapestryWeave,
+};
 use ulid::Ulid;
 
 use crate::{
@@ -12,6 +16,7 @@ use crate::{
         EditorShared,
         shared::ui::{
             AutoscrollData, ButtonFlags, DEFAULT_OPEN, DocumentContextFlags, LabelOptions, WeaveUi,
+            primary_parent,
         },
     },
 };
@@ -25,8 +30,8 @@ impl TreeListView {
     #[allow(clippy::too_many_arguments)]
     fn render_row(
         &mut self,
-        weave: &mut TapestryWeave,
-        nodes: impl Iterator<Item = u64>,
+        weave: &mut LoggedTapestryWeave,
+        nodes: impl Iterator<Item = ShortId>,
         ui: &mut Ui,
         shared: &mut WeaveUi,
         autoscroll: Option<AutoscrollData>,
@@ -34,7 +39,7 @@ impl TreeListView {
         indent_level: usize,
     ) {
         for (index, node) in nodes.enumerate() {
-            if let Some(node) = weave.get_node(&node).cloned() {
+            if let Some(node) = weave.get(&node).cloned() {
                 if indent_level != 0 || index != 0 {
                     label_separator(ui, LABEL_SEPARATOR_OPACITY);
                 }
@@ -57,7 +62,8 @@ impl TreeListView {
                             &node,
                             ui,
                             &LabelOptions {
-                                buttons: if indent_level == 0 && index == 0 && node.from.is_some() {
+                                buttons: if indent_level == 0 && index == 0 && !node.from.is_empty()
+                                {
                                     ButtonFlags::Hoist
                                         | ButtonFlags::Merge
                                         | ButtonFlags::Generate
@@ -76,6 +82,7 @@ impl TreeListView {
                                 autoscroll,
                             },
                             &None,
+                            true,
                         );
                     });
                 };
@@ -99,7 +106,7 @@ impl TreeListView {
                                     );
                                 });
                             } else {
-                                let nodes: Vec<u64> = node.to.iter().copied().collect();
+                                let nodes: Vec<ShortId> = node.to.iter().copied().collect();
 
                                 self.render_row(
                                     weave,
@@ -141,16 +148,17 @@ impl View<EditorShared> for TreeListView {
                         let autoscroll = shared.ui.calculate_autoscroll(ui);
 
                         let mut hoisted = true;
-                        let roots: Vec<u64> = if let Some(cursor) = shared.ui.cursor
-                            && let Some(cursor_node) = weave.get_node(&cursor)
-                            && let Some(cursor_parent) = &cursor_node.from
-                            && let Some(Some(cursor_parent_parent)) =
-                                weave.get_node_parent(cursor_parent)
+                        let roots: Vec<ShortId> = if let Some(cursor) = shared.ui.cursor
+                            && let Some(cursor_node) = weave.get(&cursor)
+                            && let Some(cursor_parent) = primary_parent(weave, cursor_node)
+                            && let Some(cursor_parent_node) = weave.get(&cursor_parent)
+                            && let Some(cursor_parent_parent) =
+                                primary_parent(weave, cursor_parent_node)
                         {
                             if !cursor_node.to.is_empty() {
-                                vec![*cursor_parent]
+                                vec![cursor_parent]
                             } else {
-                                vec![*cursor_parent_parent]
+                                vec![cursor_parent_parent]
                             }
                         } else {
                             hoisted = false;
@@ -204,7 +212,7 @@ pub struct ListView {}
 impl ListView {
     fn render_item(
         &mut self,
-        weave: &mut TapestryWeave,
+        weave: &mut LoggedTapestryWeave,
         node: &TapestryNode,
         ui: &mut Ui,
         shared: &mut WeaveUi,
@@ -232,6 +240,7 @@ impl ListView {
                     autoscroll,
                 },
                 &None,
+                false,
             );
         });
     }
@@ -251,9 +260,9 @@ impl View<EditorShared> for ListView {
                     if let Some(weave) = &mut shared.weave {
                         let autoscroll = shared.ui.calculate_autoscroll(ui);
 
-                        let items: Vec<u64> = if let Some(cursor) = shared.ui.cursor {
+                        let items: Vec<ShortId> = if let Some(cursor) = shared.ui.cursor {
                             weave
-                                .get_node_children(&cursor)
+                                .get_children(&cursor)
                                 .map(|c| c.iter().copied().collect())
                                 .unwrap_or_default()
                         } else {
@@ -261,7 +270,7 @@ impl View<EditorShared> for ListView {
                         };
 
                         for (index, item) in items.into_iter().enumerate() {
-                            if let Some(node) = weave.get_node(&item).cloned() {
+                            if let Some(node) = weave.get(&item).cloned() {
                                 self.render_item(
                                     weave,
                                     &node,
@@ -303,7 +312,7 @@ pub struct BookmarkView {}
 impl BookmarkView {
     fn render_item(
         &mut self,
-        weave: &mut TapestryWeave,
+        weave: &mut LoggedTapestryWeave,
         node: &TapestryNode,
         ui: &mut Ui,
         shared: &mut WeaveUi,
@@ -329,6 +338,7 @@ impl BookmarkView {
                     autoscroll,
                 },
                 &None,
+                false,
             );
         });
     }
@@ -348,10 +358,10 @@ impl View<EditorShared> for BookmarkView {
                     if let Some(weave) = &mut shared.weave {
                         let autoscroll = shared.ui.calculate_autoscroll(ui);
 
-                        let bookmarks: Vec<u64> = weave.bookmarks().iter().copied().collect();
+                        let bookmarks: Vec<ShortId> = weave.bookmarks().iter().copied().collect();
 
                         for (index, bookmark) in bookmarks.into_iter().enumerate() {
-                            if let Some(node) = weave.get_node(&bookmark).cloned() {
+                            if let Some(node) = weave.get(&bookmark).cloned() {
                                 self.render_item(
                                     weave,
                                     &node,

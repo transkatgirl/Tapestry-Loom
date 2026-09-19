@@ -8,16 +8,14 @@ use eframe::egui::{
 };
 use flagset::{FlagSet, flags};
 use tapestry_weave::{
+    Author, Creator, InnerNodeContent, InnerNodeToken, MetadataMap, NodeContent, OriginalToken,
+    ShortId, TapestryNode, UNKNOWN_MODEL_LABEL,
     jiff::Zoned,
-    universal_weave::{dependent::DependentNode, indexmap::IndexSet},
-    v1::{
-        content::{
-            Author, Creator, InnerNodeContent, InnerNodeToken, NodeContent, OriginalToken,
-            UNKNOWN_MODEL_LABEL,
-        },
-        dependent::{TapestryNode, TapestryWeave},
-        metadata::{AuxMetadataMap, MetadataMap},
+    nanorand::WyRand,
+    universal_weave::{
+        ActivePathWeave, BookmarkableWeave, DiscreteWeave, Weave, indexmap::IndexSet,
     },
+    weave::wrappers::LoggedTapestryWeave,
 };
 use ulid::Ulid;
 
@@ -32,26 +30,61 @@ use crate::{
 
 #[derive(Default)]
 pub struct WeaveUi {
-    pub cursor: Option<u64>,
-    last_cursor: Option<u64>,
-    pub opened: HashMap<u64, bool>,
-    hovered: Option<u64>,
-    last_hovered: Option<u64>,
-    scroll_to: Option<u64>,
+    pub cursor: Option<ShortId>,
+    last_cursor: Option<ShortId>,
+    pub opened: HashMap<ShortId, bool>,
+    hovered: Option<ShortId>,
+    last_hovered: Option<ShortId>,
+    scroll_to: Option<ShortId>,
 
-    generate: Option<u64>,
-    seriate: Option<u64>,
-    rendered_collapsing_labels: Vec<u64>,
+    generate: Option<ShortId>,
+    seriate: Option<ShortId>,
+    rendered_collapsing_labels: Vec<ShortId>,
+    path_buffer: Vec<ShortId>,
+    rng: WyRand,
 
     settings: InterfaceSettings,
 }
 
 pub const DEFAULT_OPEN: bool = false;
 
+/// Returns the parent of `node` which is on the active path, falling back to its first parent.
+pub fn primary_parent(weave: &LoggedTapestryWeave, node: &TapestryNode) -> Option<ShortId> {
+    node.from
+        .iter()
+        .copied()
+        .find(|id| weave.active().contains(id))
+        .or_else(|| node.from.first().copied())
+}
+
 impl WeaveUi {
+    fn generate_id(&mut self, weave: &LoggedTapestryWeave) -> ShortId {
+        tapestry_weave::generate_id(&mut self.rng, weave)
+    }
+    fn new_user_node(
+        id: ShortId,
+        from: impl IntoIterator<Item = ShortId>,
+        active: bool,
+        user: &Option<Author>,
+    ) -> TapestryNode {
+        TapestryNode {
+            id,
+            from: IndexSet::from_iter(from),
+            to: IndexSet::default(),
+            active,
+            bookmarked: false,
+            contents: NodeContent {
+                timestamp: Zoned::now(),
+                modified: false,
+                content: InnerNodeContent::MetadataOnly,
+                metadata: MetadataMap::default(),
+                creator: Creator::User(user.clone()),
+            },
+        }
+    }
     pub fn logic(
         &mut self,
-        weave: &mut TapestryWeave,
+        weave: &mut LoggedTapestryWeave,
         settings: &InterfaceSettings,
         inference: &mut InferenceEngine,
         id: Ulid,
@@ -70,10 +103,12 @@ impl WeaveUi {
             self.cursor = None;
         }
 
-        if self.cursor.is_none()
-            && let Some(thread_tail) = weave.get_active_thread_ids().first().copied()
-        {
-            self.cursor = Some(thread_tail);
+        if self.cursor.is_none() {
+            weave.get_active_path(&mut self.path_buffer);
+
+            if let Some(thread_tail) = self.path_buffer.first().copied() {
+                self.cursor = Some(thread_tail);
+            }
         }
 
         if self.last_cursor != self.cursor
@@ -81,7 +116,9 @@ impl WeaveUi {
         {
             self.scroll_to = Some(cursor);
 
-            for node in weave.get_thread_from_ids(&cursor).iter().copied() {
+            weave.get_path_from(&cursor, &mut self.path_buffer);
+
+            for node in self.path_buffer.iter().copied() {
                 self.opened.insert(node, true);
             }
         }
@@ -90,13 +127,13 @@ impl WeaveUi {
 
         self.rendered_collapsing_labels.clear();
 
-        if let Some(generate) = self.generate {
+        if let Some(generate) = self.generate.take() {
             inference.generate_children(id, weave, generate);
         }
 
         // TODO: generated children should be scroll_to
 
-        if let Some(seriate) = self.seriate {
+        if let Some(seriate) = self.seriate.take() {
             inference.seriate_siblings(id, weave, seriate);
         }
 
@@ -119,11 +156,12 @@ impl WeaveUi {
     }
     pub fn horizontal_node_label(
         &mut self,
-        weave: &mut TapestryWeave,
+        weave: &mut LoggedTapestryWeave,
         node: &TapestryNode,
         ui: &mut Ui,
         options: &LabelOptions,
         user: &Option<Author>,
+        in_place: bool,
     ) {
         let mut mouse_hovered = false;
 
@@ -202,11 +240,11 @@ impl WeaveUi {
                     }
 
                     if label_button_response.clicked() {
-                        weave.set_node_active_status(
-                            &node.id,
-                            true,
-                            label_button_response.clicked_with_open_in_background(),
-                        );
+                        if label_button_response.clicked_with_open_in_background() == in_place {
+                            weave.set_active(&node.id, true);
+                        } else {
+                            weave.set_active_tree_semantics(&node.id, true);
+                        }
                         self.cursor = Some(node.id);
                     }
 
@@ -253,9 +291,10 @@ impl WeaveUi {
 
                                 if let InnerNodeContent::Tokens(tokens) = &node.contents.content
                                     && tokens.len() == 1
-                                    && tokens[0].logprob.is_finite()
+                                    && let Some(logprob) = tokens[0].logprob
+                                    && logprob.is_finite()
                                 {
-                                    ui.label(format!("{:.1}%", tokens[0].logprob.exp() * 100.0));
+                                    ui.label(format!("{:.1}%", logprob.exp() * 100.0));
                                 }
 
                                 ui.add_space(ui.spacing().icon_spacing);
@@ -277,15 +316,11 @@ impl WeaveUi {
         }
 
         if response.clicked() {
-            weave.set_node_active_status(
-                &node.id,
-                true,
-                response.clicked_with_open_in_background(),
-            );
+            weave.set_active_tree_semantics(&node.id, true);
             self.cursor = Some(node.id);
         }
     }
-    pub fn horizontal_omitted_node_label(&mut self, node: u64, ui: &mut Ui) {
+    pub fn horizontal_omitted_node_label(&mut self, node: ShortId, ui: &mut Ui) {
         let mut mouse_hovered = false;
 
         let response = ui
@@ -352,7 +387,7 @@ impl WeaveUi {
     }
     pub fn horizontal_empty_document_label(
         &mut self,
-        weave: &mut TapestryWeave,
+        weave: &mut LoggedTapestryWeave,
         ui: &mut Ui,
         user: &Option<Author>,
     ) {
@@ -402,23 +437,14 @@ impl WeaveUi {
                                     let add_response =
                                         ui.button("\u{E40C}").on_hover_text("Add node");
                                     if add_response.clicked() {
-                                        let identifier = weave.generate_id();
+                                        let identifier = self.generate_id(weave);
 
-                                        if weave.add_node(DependentNode {
-                                            id: identifier,
-                                            from: None,
-                                            to: IndexSet::default(),
-                                            active: true,
-                                            bookmarked: false,
-                                            contents: NodeContent {
-                                                timestamp: Zoned::now(),
-                                                modified: false,
-                                                content: InnerNodeContent::MetadataOnly,
-                                                metadata: MetadataMap::default(),
-                                                aux_metadata: AuxMetadataMap::default(),
-                                                creator: Creator::User(user.clone()),
-                                            },
-                                        }) {
+                                        if weave.insert_deduplicated(Self::new_user_node(
+                                            identifier,
+                                            [],
+                                            true,
+                                            user,
+                                        )) {
                                             self.cursor = Some(identifier);
                                         }
                                     };
@@ -488,7 +514,7 @@ impl WeaveUi {
                 {
                     let token = &tokens[0];
                     let token_color = self.token_color(node_color, token);
-                    let token_text = format!("{:?}", &token.bytes);
+                    let token_text = format!("{:?}", token.bytes);
                     let token_text_length = token_text.len();
 
                     LayoutJob {
@@ -591,27 +617,31 @@ impl WeaveUi {
         }
     }
     pub fn token_intensity(&mut self, token: &InnerNodeToken) -> f32 {
+        let logprob_intensity = match token.logprob {
+            Some(logprob) if logprob.is_finite() => {
+                Some(1.0 - (f32::ln(1.0 / logprob.exp().clamp(f32::EPSILON, 1.0)) / 10.0))
+            }
+            _ => None,
+        };
+        let confidence_intensity =
+            token
+                .calculate_confidence()
+                .map(|(confidence, confidence_k)| {
+                    f32::ln(1.0 / (-(confidence)).exp().clamp(f32::EPSILON, 1.0))
+                        / (f32::ln(confidence_k as f32) + 2.0)
+                });
+
         match self.settings.token_colors {
             TokenColors::None => 1.0,
-            TokenColors::Logprob => {
-                1.0 - (f32::ln(1.0 / token.logprob.exp().clamp(f32::EPSILON, 1.0)) / 10.0)
-            }
-            TokenColors::Confidence => {
-                if let Some((confidence, confidence_k)) = token.calculate_confidence() {
-                    f32::ln(1.0 / (-(confidence)).exp().clamp(f32::EPSILON, 1.0))
-                        / (f32::ln(confidence_k as f32) + 2.0)
-                } else {
-                    1.0
-                }
-            }
+            TokenColors::Logprob => logprob_intensity.unwrap_or(1.0),
+            TokenColors::Confidence => confidence_intensity.unwrap_or(1.0),
             TokenColors::HybridLogprobConfidence => {
-                if let Some((confidence, confidence_k)) = token.calculate_confidence() {
-                    f32::ln(1.0 / (-(confidence)).exp().clamp(f32::EPSILON, 1.0))
-                        / (f32::ln(confidence_k as f32) + 2.0)
-                } else {
-                    1.0
+                let confidence_intensity = confidence_intensity.unwrap_or(1.0);
+
+                match logprob_intensity {
+                    Some(logprob_intensity) => confidence_intensity.min(logprob_intensity),
+                    None => confidence_intensity,
                 }
-                .min(1.0 - (f32::ln(1.0 / token.logprob.exp().clamp(f32::EPSILON, 1.0)) / 10.0))
             }
             TokenColors::Entropy => todo!(),
         }
@@ -629,7 +659,7 @@ impl WeaveUi {
     }
     pub fn node_context_menu(
         &mut self,
-        weave: &mut TapestryWeave,
+        weave: &mut LoggedTapestryWeave,
         node: &TapestryNode,
         ui: &mut Ui,
         collapsing: bool,
@@ -645,7 +675,7 @@ impl WeaveUi {
             self.generate = Some(node.id);
 
             if generate_response.clicked_with_open_in_background() {
-                weave.set_node_active_status(&node.id, true, false);
+                weave.set_active_tree_semantics(&node.id, true);
                 self.cursor = Some(node.id);
             }
 
@@ -660,7 +690,7 @@ impl WeaveUi {
             })
             .clicked()
         {
-            weave.set_node_bookmarked_status(&node.id, !node.bookmarked);
+            weave.set_bookmarked(&node.id, !node.bookmarked);
         };
 
         ui.separator();
@@ -671,24 +701,10 @@ impl WeaveUi {
             "Create active child"
         });
         if add_child_response.clicked() {
-            let identifier = weave.generate_id();
+            let identifier = self.generate_id(weave);
             let active = add_child_response.clicked_with_open_in_background() || node.active;
 
-            if weave.add_node(DependentNode {
-                id: identifier,
-                from: Some(node.id),
-                to: IndexSet::default(),
-                active,
-                bookmarked: false,
-                contents: NodeContent {
-                    timestamp: Zoned::now(),
-                    modified: false,
-                    content: InnerNodeContent::MetadataOnly,
-                    metadata: MetadataMap::default(),
-                    aux_metadata: AuxMetadataMap::default(),
-                    creator: Creator::User(user.clone()),
-                },
-            }) {
+            if weave.insert_deduplicated(Self::new_user_node(identifier, [node.id], active, user)) {
                 if active {
                     self.cursor = Some(identifier);
                 }
@@ -703,24 +719,15 @@ impl WeaveUi {
             "Create active sibling"
         });
         if add_sibling_response.clicked() {
-            let identifier = weave.generate_id();
+            let identifier = self.generate_id(weave);
             let active = add_sibling_response.clicked_with_open_in_background();
 
-            if weave.add_node(DependentNode {
-                id: identifier,
-                from: node.from,
-                to: IndexSet::default(),
+            if weave.insert_deduplicated(Self::new_user_node(
+                identifier,
+                node.from.iter().copied(),
                 active,
-                bookmarked: false,
-                contents: NodeContent {
-                    timestamp: Zoned::now(),
-                    modified: false,
-                    content: InnerNodeContent::MetadataOnly,
-                    metadata: MetadataMap::default(),
-                    aux_metadata: AuxMetadataMap::default(),
-                    creator: Creator::User(user.clone()),
-                },
-            }) && active
+                user,
+            )) && active
             {
                 self.cursor = Some(identifier);
             }
@@ -763,19 +770,19 @@ impl WeaveUi {
 
             if ui.button("Delete all children").clicked() {
                 for child in &node.to {
-                    weave.remove_node(child);
+                    weave.remove(child);
                 }
             }
         }
 
         if ui.button("Delete all siblings").clicked() {
-            let siblings: Vec<u64> = weave
-                .get_node_siblings(&node.id)
-                .map(|i| i.collect())
+            let siblings: Vec<ShortId> = weave
+                .get_siblings(&node.id, false)
+                .map(Iterator::collect)
                 .unwrap_or_default();
 
             for sibling in siblings {
-                weave.remove_node(&sibling);
+                weave.remove(&sibling);
             }
         }
 
@@ -786,12 +793,12 @@ impl WeaveUi {
         ui.separator();
 
         if ui.button("Delete").clicked() {
-            weave.remove_node(&node.id);
+            weave.remove(&node.id);
         }
     }
     pub fn document_context_menu(
         &mut self,
-        weave: &mut TapestryWeave,
+        weave: &mut LoggedTapestryWeave,
         ui: &mut Ui,
         flags: FlagSet<DocumentContextFlags>,
         user: &Option<Author>,
@@ -809,25 +816,12 @@ impl WeaveUi {
                     "Create active root"
                 });
             if add_child_response.clicked() {
-                let identifier = weave.generate_id();
+                let identifier = self.generate_id(weave);
                 let active = add_child_response.clicked_with_open_in_background()
                     || weave.roots().is_empty();
 
-                if weave.add_node(DependentNode {
-                    id: identifier,
-                    from: None,
-                    to: IndexSet::default(),
-                    active,
-                    bookmarked: false,
-                    contents: NodeContent {
-                        timestamp: Zoned::now(),
-                        modified: false,
-                        content: InnerNodeContent::MetadataOnly,
-                        metadata: MetadataMap::default(),
-                        aux_metadata: AuxMetadataMap::default(),
-                        creator: Creator::User(user.clone()),
-                    },
-                }) && active
+                if weave.insert_deduplicated(Self::new_user_node(identifier, [], active, user))
+                    && active
                 {
                     self.cursor = Some(identifier);
                 }
@@ -897,7 +891,7 @@ impl WeaveUi {
             }
             Creator::User(Some(user)) => {
                 let color = user.color.as_ref().and_then(|h| Color32::from_hex(h).ok());
-                let text = RichText::new(format!("[USER] {}", &user.label)).small();
+                let text = RichText::new(format!("[USER] {}", user.label)).small();
 
                 if let Some(color) = color {
                     ui.label(text.color(color));
@@ -994,22 +988,22 @@ impl WeaveUi {
             ScrollArea::horizontal().animated(false).show(ui, |ui| {
                 ui.horizontal(|ui| {
                     for (index, counterfactual) in token.counterfactual.iter().enumerate() {
-                        if !counterfactual.logprob.is_finite() {
+                        let Some(logprob) = counterfactual.logprob.filter(|l| l.is_finite()) else {
                             continue;
-                        }
+                        };
 
                         if ui
                             .button(
                                 if let Ok(string) = str::from_utf8(&counterfactual.bytes) {
                                     RichText::new(format!(
                                         "{string:#?}\n({:.2}%)",
-                                        counterfactual.logprob.exp() * 100.0
+                                        logprob.exp() * 100.0
                                     ))
                                 } else {
                                     RichText::new(format!(
                                         "{:?}\n({:.2}%)",
-                                        &counterfactual.bytes,
-                                        counterfactual.logprob.exp() * 100.0
+                                        counterfactual.bytes,
+                                        logprob.exp() * 100.0
                                     ))
                                 }
                                 .monospace(),
@@ -1017,16 +1011,12 @@ impl WeaveUi {
                             .on_hover_ui(|ui| {
                                 ui.label(format!(
                                     "probability: {:.2}% [{:.4}]",
-                                    counterfactual.logprob.exp() * 100.0,
-                                    counterfactual.logprob
+                                    logprob.exp() * 100.0,
+                                    logprob
                                 ));
 
                                 if let Some(id) = counterfactual.id {
                                     ui.label(format!("id: {}", id));
-                                }
-
-                                for (key, value) in &counterfactual.metadata {
-                                    ui.label(format!("{key}: {value}"));
                                 }
                             })
                             .clicked()
@@ -1051,7 +1041,7 @@ impl WeaveUi {
                     if let Ok(string) = str::from_utf8(&token.bytes) {
                         RichText::new(format!("{string:#?}"))
                     } else {
-                        RichText::new(format!("{:?}", &token.bytes))
+                        RichText::new(format!("{:?}", token.bytes))
                     }
                     .monospace(),
                 );
@@ -1061,25 +1051,29 @@ impl WeaveUi {
                 ui.colored_label(ui.visuals().warn_fg_color, "modified: true");
             }
             if flags.contains(TokenTooltipFlags::Counterfactual)
-                && let OriginalToken::Known(original) = &token.original
+                && let OriginalToken::Known {
+                    bytes: original, ..
+                } = &token.original
                 && original != &token.bytes
             {
                 ui.label(
                     if let Ok(string) = str::from_utf8(original) {
                         RichText::new(format!("original: {string:#?}"))
                     } else {
-                        RichText::new(format!("original: {:?}", &original))
+                        RichText::new(format!("original: {:?}", original))
                     }
                     .monospace(),
                 ); // TODO: click on original token to restore it
             }
         }
 
-        if token.logprob.is_finite() {
+        if let Some(logprob) = token.logprob
+            && logprob.is_finite()
+        {
             ui.label(format!(
                 "probability: {:.2}% [{:.4}]",
-                token.logprob.exp() * 100.0,
-                token.logprob
+                logprob.exp() * 100.0,
+                logprob
             ));
         }
 
@@ -1102,15 +1096,11 @@ impl WeaveUi {
             ui.label(format!("id: {}", id));
         }
 
-        for (key, value) in &token.metadata {
-            ui.label(format!("{key}: {value}"));
-        }
-
         None
     }
     pub fn node_buttons(
         &mut self,
-        weave: &mut TapestryWeave,
+        weave: &mut LoggedTapestryWeave,
         node: &TapestryNode,
         ui: &mut Ui,
         flags: FlagSet<ButtonFlags>,
@@ -1136,7 +1126,7 @@ impl WeaveUi {
             if flags.contains(ButtonFlags::Delete)
                 && ui.button("\u{E28F}").on_hover_text("Delete node").clicked()
             {
-                weave.remove_node(&node.id);
+                weave.remove(&node.id);
             };
 
             if flags.contains(ButtonFlags::Bookmark) {
@@ -1155,7 +1145,7 @@ impl WeaveUi {
                     .on_hover_text(bookmark_hover_text)
                     .clicked()
                 {
-                    weave.set_node_bookmarked_status(&node.id, !node.bookmarked);
+                    weave.set_bookmarked(&node.id, !node.bookmarked);
                 };
             }
 
@@ -1168,24 +1158,15 @@ impl WeaveUi {
                             "Add active node"
                         });
                 if add_response.clicked() {
-                    let identifier = weave.generate_id();
+                    let identifier = self.generate_id(weave);
                     let active = add_response.clicked_with_open_in_background() || node.active;
 
-                    if weave.add_node(DependentNode {
-                        id: identifier,
-                        from: Some(node.id),
-                        to: IndexSet::default(),
+                    if weave.insert_deduplicated(Self::new_user_node(
+                        identifier,
+                        [node.id],
                         active,
-                        bookmarked: false,
-                        contents: NodeContent {
-                            timestamp: Zoned::now(),
-                            modified: false,
-                            content: InnerNodeContent::MetadataOnly,
-                            metadata: MetadataMap::default(),
-                            aux_metadata: AuxMetadataMap::default(),
-                            creator: Creator::User(user.clone()),
-                        },
-                    }) {
+                        user,
+                    )) {
                         if active {
                             self.cursor = Some(identifier);
                         }
@@ -1207,7 +1188,7 @@ impl WeaveUi {
                     self.generate = Some(node.id);
 
                     if generate_response.clicked_with_open_in_background() {
-                        weave.set_node_active_status(&node.id, true, false);
+                        weave.set_active_tree_semantics(&node.id, true);
                         self.cursor = Some(node.id);
                     }
 
@@ -1226,7 +1207,7 @@ impl WeaveUi {
             };
 
             if flags.contains(ButtonFlags::Hoist)
-                && let Some(parent) = node.from
+                && let Some(parent) = primary_parent(weave, node)
                 && ui
                     .button("\u{E042}")
                     .on_hover_text("Show parents")
@@ -1236,7 +1217,7 @@ impl WeaveUi {
             };
         } else {
             if flags.contains(ButtonFlags::Hoist)
-                && let Some(parent) = node.from
+                && let Some(parent) = primary_parent(weave, node)
                 && ui
                     .button("\u{E042}")
                     .on_hover_text("Show parents")
@@ -1267,7 +1248,7 @@ impl WeaveUi {
                     self.generate = Some(node.id);
 
                     if generate_response.clicked_with_open_in_background() {
-                        weave.set_node_active_status(&node.id, true, false);
+                        weave.set_active_tree_semantics(&node.id, true);
                         self.cursor = Some(node.id);
                     }
 
@@ -1284,28 +1265,19 @@ impl WeaveUi {
                         "Add active node"
                     });
                 if add_response.clicked() {
-                    let identifier = weave.generate_id();
+                    let identifier = self.generate_id(weave);
                     let active = if add_response.clicked_with_open_in_background() {
                         true
                     } else {
                         node.active
                     };
 
-                    if weave.add_node(DependentNode {
-                        id: identifier,
-                        from: Some(node.id),
-                        to: IndexSet::default(),
+                    if weave.insert_deduplicated(Self::new_user_node(
+                        identifier,
+                        [node.id],
                         active,
-                        bookmarked: false,
-                        contents: NodeContent {
-                            timestamp: Zoned::now(),
-                            modified: false,
-                            content: InnerNodeContent::MetadataOnly,
-                            metadata: MetadataMap::default(),
-                            aux_metadata: AuxMetadataMap::default(),
-                            creator: Creator::User(user.clone()),
-                        },
-                    }) {
+                        user,
+                    )) {
                         if active {
                             self.cursor = Some(identifier);
                         }
@@ -1331,14 +1303,14 @@ impl WeaveUi {
                     .on_hover_text(bookmark_hover_text)
                     .clicked()
                 {
-                    weave.set_node_bookmarked_status(&node.id, !node.bookmarked);
+                    weave.set_bookmarked(&node.id, !node.bookmarked);
                 };
             }
 
             if flags.contains(ButtonFlags::Delete)
                 && ui.button("\u{E28F}").on_hover_text("Delete node").clicked()
             {
-                weave.remove_node(&node.id);
+                weave.remove(&node.id);
             };
 
             if flags.contains(ButtonFlags::Collapse) {

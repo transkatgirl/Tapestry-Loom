@@ -1,20 +1,18 @@
-use std::ops::Range;
-
-use eframe::egui::{
-    Color32, Context, TextBuffer, TextFormat, TextStyle, Ui, WidgetText,
-    text::{LayoutJob, LayoutSection, TextWrapping},
+use eframe::egui::{Color32, Context, Ui, WidgetText};
+use tapestry_weave::{
+    InnerNodeContent, ShortId, universal_weave::Weave, weave::wrappers::LoggedTapestryWeave,
 };
-use tapestry_weave::v1::content::InnerNodeContent;
 
 use crate::{
     common::{ui::from_utf8_lossy_in_place, view::View},
-    editor::EditorShared,
+    editor::{EditorShared, shared::ui::WeaveUi},
 };
 
 #[derive(Debug)]
 pub struct TextEditView {
     text_buffer: String,
     byte_buffer: Vec<u8>,
+    path_buffer: Vec<ShortId>,
     snippets: Vec<Snippet>,
 }
 
@@ -23,6 +21,7 @@ impl Default for TextEditView {
         Self {
             text_buffer: String::with_capacity(16384),
             byte_buffer: Vec::with_capacity(16384),
+            path_buffer: Vec::with_capacity(1024),
             snippets: Vec::with_capacity(16384),
         }
     }
@@ -31,21 +30,25 @@ impl Default for TextEditView {
 #[derive(Debug)]
 struct Snippet {
     length: usize,
-    node: u64,
+    node: ShortId,
     color: Option<Color32>,
     token_index: Option<usize>,
 }
 
 impl TextEditView {
-    fn build_contents(&mut self, shared: &mut EditorShared) {
-        let weave = shared.weave.as_mut().unwrap();
-
-        weave.get_active_content(&mut self.byte_buffer);
+    fn build_contents(&mut self, weave: &mut LoggedTapestryWeave, ui: &mut WeaveUi) {
+        self.byte_buffer.clear();
+        self.byte_buffer.extend(weave.active_text());
         from_utf8_lossy_in_place(&self.byte_buffer, &mut self.text_buffer);
 
         self.snippets.clear();
-        for node in weave.get_active_thread() {
-            let color = shared.ui.node_color(node);
+        weave.get_active_path(&mut self.path_buffer);
+
+        for id in self.path_buffer.iter().rev() {
+            let Some(node) = weave.get(id) else {
+                continue;
+            };
+            let color = ui.node_color(node);
 
             match &node.contents.content {
                 InnerNodeContent::Tokens(tokens) => {
@@ -80,12 +83,12 @@ impl View<EditorShared> for TextEditView {
     fn title(&self, _shared: &EditorShared) -> WidgetText {
         WidgetText::Text("\u{E265} Editor".to_string())
     }
-    fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {
-        if let Some(weave) = &mut shared.weave
-            && weave.has_changed()
-        // TODO: Handle setting changes
+    fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), _ctx: &Context) {
+        if shared.weave_changed
+            // TODO: Handle setting changes
+            && let Some(weave) = &mut shared.weave
         {
-            self.build_contents(shared);
+            self.build_contents(weave, &mut shared.ui);
         }
     }
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {

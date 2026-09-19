@@ -4,7 +4,11 @@ use eframe::egui::{Align, Context, Key, Layout, Modal, OutputCommand, Panel, Sid
 use flagset::FlagSet;
 use log::debug;
 use parking_lot::Mutex;
-use tapestry_weave::{VERSIONED_WEAVE_FILE_EXTENSION, v1::dependent::TapestryWeave};
+use tapestry_weave::{
+    TapestryWeave,
+    universal_weave::{ActivePathWeave, BookmarkableWeave, Weave},
+    weave::{FILE_EXTENSION, wrappers::LoggedTapestryWeave},
+};
 use ulid::Ulid;
 
 mod disk;
@@ -35,7 +39,8 @@ pub(super) struct EditorShared {
 
     disk_task: DiskTask,
     disk_task_data: Arc<Mutex<DiskTaskData>>, // Panics if more than one lock is held at a time
-    pub weave: Option<TapestryWeave>,
+    pub weave: Option<LoggedTapestryWeave>,
+    pub weave_changed: bool,
     close_ready: bool,
     close_now: bool,
     close_after_save: bool,
@@ -54,7 +59,7 @@ impl EditorShared {
             }
         }
 
-        debug!("Created Editor (path = {:?})", &path);
+        debug!("Created Editor (path = {:?})", path);
 
         let mut disk_task = DiskTask::None;
         let disk_task_data = Arc::new(Mutex::new(DiskTaskData::new()));
@@ -64,7 +69,9 @@ impl EditorShared {
             let _runtime = shared.runtime.enter();
             disk_task = DiskTask::read(path, disk_task_data.clone());
         } else {
-            weave = Some(TapestryWeave::with_capacity(16384));
+            weave = Some(LoggedTapestryWeave::new(TapestryWeave::with_capacity(
+                16384,
+            )));
         }
 
         Self {
@@ -74,6 +81,7 @@ impl EditorShared {
             disk_task,
             disk_task_data,
             weave,
+            weave_changed: false,
             close_ready: false,
             close_now: false,
             close_after_save: false,
@@ -82,7 +90,7 @@ impl EditorShared {
         }
     }
     fn from_preload(preload: EditorPreloadHandle, shared: &mut AppShared) -> Self {
-        debug!("Created Editor from preload (path = {:?})", &preload.path);
+        debug!("Created Editor from preload (path = {:?})", preload.path);
 
         assert!(shared.open_documents.insert(preload.path.clone()));
         shared.open_documents_updated = true;
@@ -94,6 +102,7 @@ impl EditorShared {
             disk_task: DiskTask::from(preload.task),
             disk_task_data: preload.task_data,
             weave: None,
+            weave_changed: false,
             close_ready: false,
             close_now: false,
             close_after_save: false,
@@ -122,7 +131,7 @@ impl EditorShared {
 
         shared.inference.cancel(self.id);
 
-        debug!("Closed Editor (path = {:?})", &self.path);
+        debug!("Closed Editor (path = {:?})", self.path);
     }
     pub(super) fn logic(
         &mut self,
@@ -130,6 +139,8 @@ impl EditorShared {
         force_close: impl FnOnce(),
         shared: &mut AppShared,
     ) {
+        self.weave_changed = false;
+
         if self.close_now {
             self.prepare_for_close(shared);
             force_close();
@@ -141,7 +152,8 @@ impl EditorShared {
                 if task.is_finished() {
                     match block_until_read(&shared.runtime, task) {
                         Ok(weave) => {
-                            self.weave = Some(weave);
+                            self.weave = Some(LoggedTapestryWeave::new(weave));
+                            self.weave_changed = true;
                         }
                         Err(error) => {
                             shared.toasts.error(error);
@@ -190,6 +202,13 @@ impl EditorShared {
             );
         }
 
+        if let Some(weave) = &mut self.weave
+            && !weave.actions.is_empty()
+        {
+            weave.clear_actions();
+            self.weave_changed = true;
+        }
+
         self.last_visible = false;
 
         if !self.disk_task.is_none() || shared.inference.requests(self.id) > 0 {
@@ -233,7 +252,7 @@ impl EditorShared {
                                     self.disk_task = DiskTask::write(
                                         new_path.clone(),
                                         self.disk_task_data.clone(),
-                                        self.weave.as_ref().unwrap(),
+                                        self.weave.as_ref().unwrap().as_weave(),
                                     );
                                     self.path = Some(new_path.clone());
 
@@ -319,9 +338,7 @@ impl EditorShared {
                             });
                         }
                     } else if ui.button("Save as...").clicked() {
-                        self.modal = EditorModal::SaveAs(
-                            ["Untitled.", VERSIONED_WEAVE_FILE_EXTENSION].concat(),
-                        );
+                        self.modal = EditorModal::SaveAs(["Untitled.", FILE_EXTENSION].concat());
                     }
                 });
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -340,7 +357,7 @@ impl EditorShared {
                             });
                         } else {
                             let node_count = weave.len();
-                            let active_node_count = weave.get_active_thread_ids().len();
+                            let active_node_count = weave.active().len();
                             let bookmarked_node_count = weave.bookmarks().len();
                             let label = ui.label(if bookmarked_node_count > 0 {
                                 format!(
@@ -381,7 +398,8 @@ impl EditorShared {
             && let Some(weave) = &self.weave
         {
             let _runtime = shared.runtime.enter();
-            self.disk_task = DiskTask::write(path.clone(), self.disk_task_data.clone(), weave);
+            self.disk_task =
+                DiskTask::write(path.clone(), self.disk_task_data.clone(), weave.as_weave());
             self.close_ready = true;
         }
     }
@@ -407,8 +425,11 @@ impl EditorShared {
             } else if let Some(path) = self.path.clone() {
                 if self.disk_task.is_none() {
                     let _runtime = shared.runtime.enter();
-                    self.disk_task =
-                        DiskTask::write(path.clone(), self.disk_task_data.clone(), weave);
+                    self.disk_task = DiskTask::write(
+                        path.clone(),
+                        self.disk_task_data.clone(),
+                        weave.as_weave(),
+                    );
                     self.close_ready = true;
                 }
 
@@ -443,7 +464,7 @@ impl EditorShared {
                     let _runtime = shared.runtime.enter();
 
                     if let DiskTask::Write(task) =
-                        DiskTask::write(path.clone(), self.disk_task_data.clone(), weave)
+                        DiskTask::write(path.clone(), self.disk_task_data.clone(), weave.as_weave())
                     {
                         match block_until_write(&shared.runtime, task) {
                             Ok(()) => {}
@@ -473,8 +494,11 @@ impl EditorShared {
                     }
 
                     let _runtime = shared.runtime.enter();
-                    self.disk_task =
-                        DiskTask::write(path.clone(), self.disk_task_data.clone(), weave);
+                    self.disk_task = DiskTask::write(
+                        path.clone(),
+                        self.disk_task_data.clone(),
+                        weave.as_weave(),
+                    );
                     self.close_ready = true;
                 }
 
