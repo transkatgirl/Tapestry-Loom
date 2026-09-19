@@ -191,14 +191,14 @@ impl DiskPreloadTask {
 
 pub(super) struct DiskTaskData {
     file: Option<File>,
-    buffer: Vec<u8>,
+    buffer: AlignedVec,
 }
 
 impl DiskTaskData {
     pub(super) fn new() -> Self {
         Self {
             file: None,
-            buffer: Vec::with_capacity(16384),
+            buffer: AlignedVec::with_capacity(16384),
         }
     }
     pub(super) fn len(&self) -> usize {
@@ -284,7 +284,7 @@ impl DiskTaskData {
             }
 
             self.buffer.clear();
-            file.read_to_end(&mut self.buffer)?;
+            self.buffer.extend_from_reader(file)?;
 
             if abort.load(Ordering::Relaxed) {
                 return Err(io::Error::from(io::ErrorKind::Interrupted));
@@ -327,7 +327,7 @@ impl DiskTaskData {
 
                     break;
                 } else {
-                    self.buffer.extend(&buffer[..len]);
+                    self.buffer.extend_from_slice(&buffer[..len]);
 
                     if abort.load(Ordering::Relaxed) {
                         return Err(io::Error::from(io::ErrorKind::Interrupted));

@@ -40,6 +40,7 @@ log = { version = "0.4.33", features = [
 mimalloc = "0.1.52"
 serde = { version = "1.0.228", features = [
 	"derive",
+	"rc",
 ] }
 serde_json = { version = "1.0.150", features = [
 	"preserve_order",
@@ -72,9 +73,6 @@ futures = "0.3.32"
 walkdir = "2.5.0"
 unicode-segmentation = "1.13.3"
 trash = "5.2.6"
-poll-promise = { version = "0.3.0", features = [
-	"tokio",
-] }
 ctrlc = "3.5.2"
 egui-keybind = { git = "https://github.com/transkatgirl/egui-keybind.git", rev = "86a29afc7e083b33c8bbec7278da59a66226bd97", features = [
 	"serde",
@@ -84,8 +82,6 @@ flagset = { version = "0.4.7", features = [
 ] }
 bytes = "1.12.0"
 egui_virtual_list = "0.10.0"
-egui_plot = "0.35.0"
-rust-sugiyama = "0.4.0"
 ml-distance = "1.0.1"
 elkai-rs = "0.1.7"
 base64 = "0.22.1"

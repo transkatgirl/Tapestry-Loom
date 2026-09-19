@@ -140,7 +140,7 @@ pub enum TapestryWeaveAction {
     Clear,
     /// [`MetadataWeave::metadata_mut()`]
     SetMetadata(WeaveMetadata),
-    /// Caused by [`SortableWeave::sort_children_by()`], [`SortableWeave::sort_children_by_id()`], [`SortableWeave::sort_roots_by()`], and [`SortableWeave::sort_roots_by_id()`]
+    /// Caused by [`SortableWeave::sort_children_by()`], [`SortableWeave::sort_children_by_id()`], [`SortableWeave::sort_roots_by()`], [`SortableWeave::sort_roots_by_id()`], [`TapestryWeave::sort_roots_or_children_by`], and [`TapestryWeave::sort_roots_or_children_by_id`]
     SetChildOrdering {
         parent: Option<ShortId>,
         children: Vec<ShortId>,
@@ -557,6 +557,34 @@ impl LoggedTapestryWeave {
             true
         } else {
             false
+        }
+    }
+    /// Convenience function which calls either [`Self::sort_roots_by`] or [`Self::sort_children_by`] depending on whether or not `id` is None
+    #[inline]
+    pub fn sort_roots_or_children_by(
+        &mut self,
+        id: &Option<ShortId>,
+        cmp: impl FnMut(&TapestryNode, &TapestryNode) -> Ordering,
+    ) -> bool {
+        if let Some(id) = id {
+            self.sort_children_by(id, cmp)
+        } else {
+            self.sort_roots_by(cmp);
+            true
+        }
+    }
+    /// Convenience function which calls either [`Self::sort_roots_by_id`] or [`Self::sort_children_by_id`] depending on whether or not `id` is None
+    #[inline]
+    pub fn sort_roots_or_children_by_id(
+        &mut self,
+        id: &Option<ShortId>,
+        cmp: impl FnMut(&ShortId, &ShortId) -> Ordering,
+    ) -> bool {
+        if let Some(id) = id {
+            self.sort_children_by_id(id, cmp)
+        } else {
+            self.sort_roots_by_id(cmp);
+            true
         }
     }
     /// A wrapper around [`Self::split`] which separates out the unmodified version of the token before splitting.

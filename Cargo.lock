@@ -1896,17 +1896,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "egui_plot"
-version = "0.35.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7bd66213736bf9a9a53dc4888570b9194fc0db906507517a7fcc787e888ac47"
-dependencies = [
- "ahash",
- "egui",
- "emath",
-]
-
-[[package]]
 name = "egui_tiles"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4297,18 +4286,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
-name = "petgraph"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8701b58ea97060d5e5b155d383a69952a60943f0e6dfe30b04c287beb0b27455"
-dependencies = [
- "fixedbitset",
- "hashbrown 0.15.5",
- "indexmap",
- "serde",
-]
-
-[[package]]
 name = "phf"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4453,17 +4430,6 @@ dependencies = [
  "fdeflate",
  "flate2",
  "miniz_oxide 0.8.9",
-]
-
-[[package]]
-name = "poll-promise"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f6a58fecbf9da8965bcdb20ce4fd29788d1acee68ddbb64f0ba1b81bccdb7df"
-dependencies = [
- "document-features",
- "static_assertions",
- "tokio",
 ]
 
 [[package]]
@@ -5171,16 +5137,6 @@ dependencies = [
  "typeid",
  "unicode-ident",
  "unicode-segmentation",
-]
-
-[[package]]
-name = "rust-sugiyama"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a81a3e22e7b3e9218ae4d1a3640a7e7ad142e120acd03e5e66d231d5861598b1"
-dependencies = [
- "log",
- "petgraph",
 ]
 
 [[package]]
@@ -5972,7 +5928,6 @@ dependencies = [
  "egui-notify",
  "egui-probe",
  "egui_ltreeview",
- "egui_plot",
  "egui_tiles",
  "egui_virtual_list",
  "elkai-rs",
@@ -5985,10 +5940,8 @@ dependencies = [
  "mimalloc",
  "ml-distance",
  "parking_lot",
- "poll-promise",
  "reqwest",
  "ron",
- "rust-sugiyama",
  "serde",
  "serde_json",
  "tapestry-weave",

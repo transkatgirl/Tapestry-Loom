@@ -223,6 +223,34 @@ impl TapestryWeave {
     pub fn set_active_tree_semantics(&mut self, id: &ShortId, value: bool) -> bool {
         self.0.weave.set_active_dependent_semantics(id, value)
     }
+    /// Convenience function which calls either [`Self::sort_roots_by`] or [`Self::sort_children_by`] depending on whether or not `id` is None
+    #[inline]
+    pub fn sort_roots_or_children_by(
+        &mut self,
+        id: &Option<ShortId>,
+        cmp: impl FnMut(&TapestryNode, &TapestryNode) -> Ordering,
+    ) -> bool {
+        if let Some(id) = id {
+            self.0.sort_children_by(id, cmp)
+        } else {
+            self.0.sort_roots_by(cmp);
+            true
+        }
+    }
+    /// Convenience function which calls either [`Self::sort_roots_by_id`] or [`Self::sort_children_by_id`] depending on whether or not `id` is None
+    #[inline]
+    pub fn sort_roots_or_children_by_id(
+        &mut self,
+        id: &Option<ShortId>,
+        cmp: impl FnMut(&ShortId, &ShortId) -> Ordering,
+    ) -> bool {
+        if let Some(id) = id {
+            self.0.sort_children_by_id(id, cmp)
+        } else {
+            self.0.sort_roots_by_id(cmp);
+            true
+        }
+    }
     /// A wrapper around [`Self::split`] which separates out the unmodified version of the token before splitting.
     ///
     /// If successful, returns a tuple of identifiers corresponding to (original_token_node, split_right_side)
