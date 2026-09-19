@@ -129,6 +129,7 @@ impl ConvertedFrom {
     pub fn is_from_plaintext(&self) -> bool {
         self.source == "Plain Text" && self.source_version.is_none()
     }
+    #[allow(dead_code)]
     pub(crate) fn from_version(version: u64) -> Self {
         ConvertedFrom {
             source: "Tapestry Loom".to_string(),
