@@ -81,7 +81,6 @@ flagset = { version = "0.4.7", features = [
 	"std",
 ] }
 bytes = "1.12.0"
-egui_virtual_list = "0.10.0"
 ml-distance = "1.0.1"
 elkai-rs = "0.1.7"
 base64 = "0.22.1"
@@ -93,9 +92,6 @@ egui-probe = { version = "0.11.0", features = [
 	"derive",
 ] }
 lexical-sort = { git = "https://github.com/transkatgirl/lexicmp.git", rev = "4d5457eebb9e6a7f2ee56a25fc2528d88f2bb4c3" }
-egui_ltreeview = { version = "0.7.1", features = [
-	"doc",
-] }
 color = { version = "0.3.3", features = [
 	"serde",
 ] }

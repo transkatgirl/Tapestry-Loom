@@ -1886,16 +1886,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "egui_ltreeview"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0965f8d97626fed9ce7e533feeb956a5c720bd83ff59266badf7073831fc22bf"
-dependencies = [
- "egui",
- "make_table_of_contents",
-]
-
-[[package]]
 name = "egui_tiles"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1906,16 +1896,6 @@ dependencies = [
  "itertools 0.14.0",
  "log",
  "serde",
-]
-
-[[package]]
-name = "egui_virtual_list"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c535bf4fb8bec34daa1a1c18d4233ab9a61a6b8f092f1d37278909c49fda5dd"
-dependencies = [
- "egui",
- "web-time",
 ]
 
 [[package]]
@@ -3407,16 +3387,6 @@ name = "macro_rules_attribute-proc_macro"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc04a4c58212d57930a24bf47d3fa87485264a3a054e9c10e042eb373573ad3c"
-
-[[package]]
-name = "make_table_of_contents"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db565fc4ba6da61a7a2fb20c73dc87149cdc148ecb36ce6effee6e3d1a393d21"
-dependencies = [
- "quote",
- "syn 2.0.119",
-]
 
 [[package]]
 name = "matchers"
@@ -5927,9 +5897,7 @@ dependencies = [
  "egui-keybind",
  "egui-notify",
  "egui-probe",
- "egui_ltreeview",
  "egui_tiles",
- "egui_virtual_list",
  "elkai-rs",
  "env_logger",
  "flagset",

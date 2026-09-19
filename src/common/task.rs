@@ -75,3 +75,32 @@ where
         self.handle.poll_unpin(cx)
     }
 }
+
+#[derive(Debug)]
+pub struct AbortOnDropHandle<T>(JoinHandle<T>);
+
+impl<T> AbortOnDropHandle<T> {
+    pub fn is_finished(&self) -> bool {
+        self.0.is_finished()
+    }
+}
+
+impl<T> From<JoinHandle<T>> for AbortOnDropHandle<T> {
+    fn from(handle: JoinHandle<T>) -> Self {
+        Self(handle)
+    }
+}
+
+impl<T> Drop for AbortOnDropHandle<T> {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
+}
+
+impl<T> Future for AbortOnDropHandle<T> {
+    type Output = Result<T, JoinError>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.0.poll_unpin(cx)
+    }
+}

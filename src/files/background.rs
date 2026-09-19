@@ -89,33 +89,33 @@ impl BackgroundFsManager {
         let _runtime = shared.runtime.enter();
 
         self.tasks.push_back(task::spawn_blocking(move || {
-            debug!("Started background task create_file({:?})", &path);
+            debug!("Started background task create_file({:?})", path);
 
             match fs::exists(&path) {
                 Ok(true) => {
                     toasts
                         .lock()
-                        .push(Toast::error(format!("{:?} already exists", &path)));
-                    warn!("Item {:?} already exists", &path);
+                        .push(Toast::error(format!("{:?} already exists", path)));
+                    warn!("Item {:?} already exists", path);
                 }
                 Ok(false) => {
                     if let Err(error) = fs::write(&path, contents()) {
                         toasts
                             .lock()
-                            .push(Toast::error(format!("Unable to create {:?}", &path)));
-                        warn!("Unable to create+write to file at {:?}: {:?}", &path, error);
+                            .push(Toast::error(format!("Unable to create {:?}", path)));
+                        warn!("Unable to create+write to file at {:?}: {:?}", path, error);
                     }
                 }
                 Err(error) => {
                     toasts.lock().push(Toast::error(format!(
                         "Unable to check if {:?} exists",
-                        &path
+                        path
                     )));
-                    warn!("Unable to check if {:?} exists: {:?}", &path, error);
+                    warn!("Unable to check if {:?} exists: {:?}", path, error);
                 }
             }
 
-            debug!("Finished background task create_file({:?})", &path);
+            debug!("Finished background task create_file({:?})", path);
         }));
     }
     pub fn create_directory(&mut self, shared: &mut AppShared, path: PathBuf) {
@@ -123,16 +123,16 @@ impl BackgroundFsManager {
         let _runtime = shared.runtime.enter();
 
         self.tasks.push_back(task::spawn_blocking(move || {
-            debug!("Started background task create_directory({:?})", &path);
+            debug!("Started background task create_directory({:?})", path);
 
             if let Err(error) = fs::create_dir_all(&path) {
                 toasts
                     .lock()
-                    .push(Toast::error(format!("Unable to create {:?}", &path)));
-                warn!("Unable to create directory at {:?}: {:?}", &path, error);
+                    .push(Toast::error(format!("Unable to create {:?}", path)));
+                warn!("Unable to create directory at {:?}: {:?}", path, error);
             }
 
-            debug!("Finished background task create_directory({:?})", &path);
+            debug!("Finished background task create_directory({:?})", path);
         }));
     }
     pub fn rename_item(&mut self, shared: &mut AppShared, from: PathBuf, to: PathBuf) {
@@ -142,35 +142,35 @@ impl BackgroundFsManager {
         self.tasks.push_back(task::spawn_blocking(move || {
             debug!(
                 "Started background task rename_item({:?}, {:?})",
-                &from, &to
+                from, to
             );
 
             match fs::exists(&to) {
                 Ok(true) => {
                     toasts
                         .lock()
-                        .push(Toast::error(format!("{:?} already exists", &to)));
-                    warn!("Item {:?} already exists", &to);
+                        .push(Toast::error(format!("{:?} already exists", to)));
+                    warn!("Item {:?} already exists", to);
                 }
                 Ok(false) => {
                     if let Err(error) = fs::rename(&from, &to) {
                         toasts
                             .lock()
-                            .push(Toast::error(format!("Unable to rename {:?}", &from)));
-                        warn!("Unable to rename {:?} to {:?}: {:?}", &from, &to, error);
+                            .push(Toast::error(format!("Unable to rename {:?}", from)));
+                        warn!("Unable to rename {:?} to {:?}: {:?}", from, to, error);
                     }
                 }
                 Err(error) => {
                     toasts
                         .lock()
-                        .push(Toast::error(format!("Unable to check if {:?} exists", &to)));
-                    warn!("Unable to check if {:?} exists: {:?}", &to, error);
+                        .push(Toast::error(format!("Unable to check if {:?} exists", to)));
+                    warn!("Unable to check if {:?} exists: {:?}", to, error);
                 }
             }
 
             debug!(
                 "Finished background task rename_item({:?}, {:?})",
-                &from, &to
+                from, to
             );
         }));
     }
@@ -179,14 +179,14 @@ impl BackgroundFsManager {
         let _runtime = shared.runtime.enter();
 
         self.tasks.push_back(task::spawn_blocking(move || {
-            debug!("Started background task copy_item({:?}, {:?})", &from, &to);
+            debug!("Started background task copy_item({:?}, {:?})", from, to);
 
             match fs::exists(&to) {
                 Ok(true) => {
                     toasts
                         .lock()
-                        .push(Toast::error(format!("{:?} already exists", &to)));
-                    warn!("Item {:?} already exists", &to);
+                        .push(Toast::error(format!("{:?} already exists", to)));
+                    warn!("Item {:?} already exists", to);
                 }
                 Ok(false) => match fs::symlink_metadata(&from) {
                     Ok(metadata) => {
@@ -194,38 +194,38 @@ impl BackgroundFsManager {
                             if let Err(error) = copy_dir_all(&from, &to) {
                                 toasts
                                     .lock()
-                                    .push(Toast::error(format!("Unable to copy {:?}", &from)));
+                                    .push(Toast::error(format!("Unable to copy {:?}", from)));
                                 warn!(
                                     "Unable to copy directory {:?} to {:?}: {:?}",
-                                    &from, &to, error
+                                    from, to, error
                                 );
                             }
                         } else {
                             if let Err(error) = fs::copy(&from, &to) {
                                 toasts
                                     .lock()
-                                    .push(Toast::error(format!("Unable to copy {:?}", &from)));
-                                warn!("Unable to copy file {:?} to {:?}: {:?}", &from, &to, error);
+                                    .push(Toast::error(format!("Unable to copy {:?}", from)));
+                                warn!("Unable to copy file {:?} to {:?}: {:?}", from, to, error);
                             }
                         }
                     }
                     Err(error) => {
                         toasts.lock().push(Toast::error(format!(
                             "Unable to retrieve metadata for {:?}",
-                            &from
+                            from
                         )));
-                        warn!("Unable to retrieve metadata for {:?}: {:?}", &from, error);
+                        warn!("Unable to retrieve metadata for {:?}: {:?}", from, error);
                     }
                 },
                 Err(error) => {
                     toasts
                         .lock()
-                        .push(Toast::error(format!("Unable to check if {:?} exists", &to)));
-                    warn!("Unable to check if {:?} exists: {:?}", &to, error);
+                        .push(Toast::error(format!("Unable to check if {:?} exists", to)));
+                    warn!("Unable to check if {:?} exists: {:?}", to, error);
                 }
             }
 
-            debug!("Finished background task copy_item({:?}, {:?})", &from, &to);
+            debug!("Finished background task copy_item({:?}, {:?})", from, to);
         }));
     }
     pub fn remove_item(&mut self, shared: &mut AppShared, path: PathBuf) {
@@ -233,13 +233,13 @@ impl BackgroundFsManager {
         let _runtime = shared.runtime.enter();
 
         self.tasks.push_back(task::spawn_blocking(move || {
-            debug!("Started background task remove_item({:?})", &path);
+            debug!("Started background task remove_item({:?})", path);
 
             if let Err(error) = trash::delete(&path) {
                 toasts
                     .lock()
-                    .push(Toast::error(format!("Unable to move {:?} to trash", &path)));
-                warn!("Unable to move {:?} to trash: {:?}", &path, error);
+                    .push(Toast::error(format!("Unable to move {:?} to trash", path)));
+                warn!("Unable to move {:?} to trash: {:?}", path, error);
 
                 match fs::symlink_metadata(&path) {
                     Ok(metadata) => {
@@ -247,29 +247,29 @@ impl BackgroundFsManager {
                             if let Err(error) = fs::remove_dir_all(&path) {
                                 toasts
                                     .lock()
-                                    .push(Toast::error(format!("Unable to remove {:?}", &path)));
-                                warn!("Unable to remove directory {:?}: {:?}", &path, error);
+                                    .push(Toast::error(format!("Unable to remove {:?}", path)));
+                                warn!("Unable to remove directory {:?}: {:?}", path, error);
                             }
                         } else {
                             if let Err(error) = fs::remove_file(&path) {
                                 toasts
                                     .lock()
-                                    .push(Toast::error(format!("Unable to remove {:?}", &path)));
-                                warn!("Unable to remove file {:?}: {:?}", &path, error);
+                                    .push(Toast::error(format!("Unable to remove {:?}", path)));
+                                warn!("Unable to remove file {:?}: {:?}", path, error);
                             }
                         }
                     }
                     Err(error) => {
                         toasts.lock().push(Toast::error(format!(
                             "Unable to retrieve metadata for {:?}",
-                            &path
+                            path
                         )));
-                        warn!("Unable to retrieve metadata for {:?}: {:?}", &path, error);
+                        warn!("Unable to retrieve metadata for {:?}: {:?}", path, error);
                     }
                 }
             }
 
-            debug!("Finished background task remove_item({:?})", &path);
+            debug!("Finished background task remove_item({:?})", path);
         }));
     }
     pub fn refresh(&mut self) {
@@ -348,30 +348,30 @@ impl BackgroundCrawler {
         let ignore_list = self.ignore_list.clone();
         let state = self.state.clone();
         self.task = Some(spawn_blocking_abortable(move |abort| {
-            debug!("Started crawl task for {:?}", &root);
+            debug!("Started crawl task for {:?}", root);
 
             match fs::exists(&root) {
                 Ok(true) => {}
                 Ok(false) => {
                     debug!(
                         "Root directory {:?} does not exist, ending crawl early",
-                        &root
+                        root
                     );
                     return true;
                 }
                 Err(error) => {
                     toasts.lock().push(Toast::error(format!(
                         "Unable to check if {:?} exists",
-                        &root
+                        root
                     )));
-                    error!("Unable to check if {:?} exists: {:?}", &root, error);
-                    debug!("Aborted crawling {:?}", &root);
+                    error!("Unable to check if {:?} exists: {:?}", root, error);
+                    debug!("Aborted crawling {:?}", root);
                     return false;
                 }
             }
 
             if abort.load(atomic::Ordering::Relaxed) {
-                debug!("Aborted crawling {:?}", &root);
+                debug!("Aborted crawling {:?}", root);
                 return false;
             }
 
@@ -410,12 +410,12 @@ impl BackgroundCrawler {
                 }
 
                 if abort.load(atomic::Ordering::Relaxed) {
-                    debug!("Aborted crawling {:?}", &root);
+                    debug!("Aborted crawling {:?}", root);
                     return false;
                 }
             }
 
-            debug!("Finished crawling {:?}", &root);
+            debug!("Finished crawling {:?}", root);
 
             true
         }));

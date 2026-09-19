@@ -88,7 +88,7 @@ impl TreeListView {
                 };
 
                 if node.to.is_empty() {
-                    render_label(ui)
+                    render_label(ui);
                 } else {
                     let collapsing_response = collapsing
                         .show_header(ui, |ui| {
@@ -155,11 +155,11 @@ impl View<EditorShared> for TreeListView {
                             && let Some(cursor_parent_parent) =
                                 primary_parent(weave, cursor_parent_node)
                         {
-                            if !cursor_node.to.is_empty() {
-                                vec![cursor_parent]
+                            vec![if !cursor_node.to.is_empty() {
+                                cursor_parent
                             } else {
-                                vec![cursor_parent_parent]
-                            }
+                                cursor_parent_parent
+                            }]
                         } else {
                             hoisted = false;
 

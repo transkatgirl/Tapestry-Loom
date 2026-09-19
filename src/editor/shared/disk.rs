@@ -10,7 +10,7 @@ use std::{
 
 use log::{debug, error};
 use parking_lot::Mutex;
-use tapestry_weave::TapestryWeave;
+use tapestry_weave::{TapestryWeave, util::AlignedVec};
 use tokio::{
     runtime::Runtime,
     task::{self, JoinHandle},

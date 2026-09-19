@@ -41,8 +41,7 @@ mod inference;
 mod settings;
 
 const APP_NAME: &str = "Tapestry Loom (WIP REWRITE)"; // TODO
-
-const DEFAULT_LOG_FILTER: &str = "debug,tapestry_loom=trace,tapestry_loom::settings::inference::polyparser=debug,winit=info,naga=info,wgpu_hal=info,layouting=warn,coordinate_calculation=warn,crossing_reduction=warn,ranking=warn,Cycle Removal=warn,connected_components=warn,rust_sugiyama::algorithm=warn";
+const DEFAULT_LOG_FILTER: &str = "debug,tapestry_loom=trace,tapestry_loom::inference::polyparser=debug,winit=info,naga=info,wgpu_hal=info";
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
