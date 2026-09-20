@@ -126,6 +126,11 @@ impl NodeContent {
             && self.creator.is_mergeable_with(&value.creator)
             && self.content.is_mergeable_with(&value.content)
     }
+    /// Clears empty or malformed fields
+    pub fn normalize(&mut self) {
+        self.content.normalize();
+        self.creator.normalize();
+    }
 }
 
 impl DeduplicatableContents for NodeContent {
@@ -276,6 +281,14 @@ impl InnerNodeContent {
         if let Self::Tokens(tokens) = self {
             for token in tokens {
                 token.sort_counterfactual();
+            }
+        }
+    }
+    /// Clears empty or malformed fields
+    pub fn normalize(&mut self) {
+        if let Self::Tokens(tokens) = self {
+            for token in tokens {
+                token.normalize();
             }
         }
     }
@@ -446,6 +459,22 @@ impl InnerNodeToken {
         self.counterfactual.truncate(len);
         self.counterfactual.shrink_to_fit();
     }
+    /// Clears empty or malformed fields
+    pub fn normalize(&mut self) {
+        if self.logprob.is_some_and(|prob| !prob.is_finite()) {
+            self.logprob = None;
+        }
+
+        if self.entropy.is_some_and(|prob| !prob.is_finite()) {
+            self.entropy = None;
+        }
+
+        for counterfactual in &mut self.counterfactual {
+            counterfactual.normalize();
+        }
+
+        self.sort_counterfactual();
+    }
     pub fn calculate_confidence(&self) -> Option<(f32, usize)> {
         self.calculate_confidence_f64()
             .map(|(confidence, k)| (confidence as f32, k))
@@ -571,16 +600,22 @@ pub struct CounterfactualToken {
 }
 
 impl CounterfactualToken {
+    /// Clears empty or malformed fields
+    pub fn normalize(&mut self) {
+        if self.logprob.is_some_and(|prob| !prob.is_finite()) {
+            self.logprob = None;
+        }
+    }
     /// Calculates an entropy value from an iterator containing all possible tokens for a given position.
     pub fn calculate_entropy<'a>(tokens: impl Iterator<Item = &'a CounterfactualToken>) -> f64 {
         0.0 - tokens
             .map(|token| {
                 let logprob = token.logprob.unwrap_or(f32::NEG_INFINITY) as f64;
 
-                if logprob == f64::NEG_INFINITY {
-                    0.0
-                } else {
+                if logprob.is_finite() {
                     logprob.exp() * logprob
+                } else {
+                    0.0
                 }
             })
             .sum::<f64>()
@@ -945,21 +980,21 @@ pub enum Creator {
 
 impl Creator {
     pub fn label(&self) -> Option<&String> {
-        match &self {
+        match self {
             Self::Model(Some(model)) => Some(&model.label),
             Self::User(Some(user)) => Some(&user.label),
             _ => None,
         }
     }
     pub fn color(&self) -> Option<&String> {
-        match &self {
+        match self {
             Self::Model(Some(model)) => model.color.as_ref(),
             Self::User(Some(user)) => user.color.as_ref(),
             _ => None,
         }
     }
     pub fn identifier(&self) -> Option<LongId> {
-        match &self {
+        match self {
             Self::Model(Some(model)) => model.identifier,
             Self::User(Some(user)) => user.identifier,
             _ => None,
@@ -983,6 +1018,14 @@ impl Creator {
             Some(user)
         } else {
             None
+        }
+    }
+    /// Clears empty or malformed fields
+    pub fn normalize(&mut self) {
+        match self {
+            Self::Model(Some(model)) => model.normalize(),
+            Self::User(Some(user)) => user.normalize(),
+            _ => {}
         }
     }
     /// Returns `true` if `self` and `value` should be considered duplicates.
@@ -1131,6 +1174,32 @@ pub struct Model {
 }
 
 impl Model {
+    /// Clears empty or malformed fields
+    pub fn normalize(&mut self) {
+        if self.label.is_empty() {
+            self.label = UNKNOWN_MODEL_LABEL.to_string();
+        }
+
+        if self.color.as_ref().is_some_and(|color| color.is_empty()) {
+            self.color = None;
+        }
+
+        if self
+            .system_fingerprint
+            .as_ref()
+            .is_some_and(|fingerprint| fingerprint.is_empty())
+        {
+            self.system_fingerprint = None;
+        }
+
+        if self
+            .finish_reason
+            .as_ref()
+            .is_some_and(|finish_reason| finish_reason.is_empty())
+        {
+            self.finish_reason = None;
+        }
+    }
     /// Returns `true` if `self` and `value` should be considered duplicates.
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
         ((self.identifier.is_some()
@@ -1213,6 +1282,12 @@ pub struct Author {
 }
 
 impl Author {
+    /// Clears empty or malformed fields
+    pub fn normalize(&mut self) {
+        if self.color.as_ref().is_some_and(|color| color.is_empty()) {
+            self.color = None;
+        }
+    }
     /// Returns `true` if `self` and `value` should be considered duplicates.
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
         ((self.identifier.is_some()

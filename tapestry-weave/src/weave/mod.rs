@@ -184,7 +184,9 @@ impl TapestryWeave {
     }
     /// A wrapper around [`Weave::insert`] which prevents nodes with duplicate siblings from being inserted.
     #[must_use]
-    pub fn insert_deduplicated(&mut self, node: TapestryNode) -> bool {
+    pub fn insert_deduplicated(&mut self, mut node: TapestryNode) -> bool {
+        node.contents.normalize();
+
         let siblings: Box<dyn Iterator<Item = ShortId>> = if node.from.is_empty() {
             Box::new(
                 self.0
@@ -548,7 +550,12 @@ impl TapestryWeave {
             })?;
 
             self.0.get_contents_mut(&id, |contents| {
-                contents.creator = Creator::User(author.clone());
+                let mut author = author.clone();
+                if let Some(author) = &mut author {
+                    author.normalize();
+                }
+
+                contents.creator = Creator::User(author);
             });
 
             Some(id)
@@ -585,7 +592,7 @@ impl TapestryWeave {
     pub fn insert_at<F>(
         &mut self,
         at: usize,
-        contents: NodeContent,
+        mut contents: NodeContent,
         prefix_all: bool,
         author: &Option<Author>,
         generate_id: F,
@@ -593,6 +600,8 @@ impl TapestryWeave {
     where
         F: FnMut() -> ShortId,
     {
+        contents.normalize();
+
         if at == 0
             && self
                 .0
@@ -617,7 +626,12 @@ impl TapestryWeave {
             })?;
 
             self.0.get_contents_mut(&id, |contents| {
-                contents.creator = Creator::User(author.clone());
+                let mut author = author.clone();
+                if let Some(author) = &mut author {
+                    author.normalize();
+                }
+
+                contents.creator = Creator::User(author);
             });
 
             Some(id)
@@ -641,7 +655,7 @@ impl TapestryWeave {
     pub fn replace<F>(
         &mut self,
         range: Range<usize>,
-        contents: NodeContent,
+        mut contents: NodeContent,
         prefix_all: bool,
         author: &Option<Author>,
         generate_id: F,
@@ -652,6 +666,7 @@ impl TapestryWeave {
         if range.is_empty() {
             self.insert_at(range.start, contents, prefix_all, author, generate_id)
         } else {
+            contents.normalize();
             self.0.replace(range, contents, prefix_all, generate_id);
             None
         }
@@ -841,7 +856,8 @@ impl Weave<ShortId, TapestryNode, NodeContent> for TapestryWeave {
         self.0.get_path_from(id, output);
     }
     #[inline]
-    fn insert(&mut self, node: TapestryNode) -> bool {
+    fn insert(&mut self, mut node: TapestryNode) -> bool {
+        node.contents.normalize();
         self.0.insert(node)
     }
     #[inline]
@@ -955,7 +971,11 @@ impl SemiIndependentWeave<ShortId, TapestryNode, NodeContent> for TapestryWeave 
         id: &ShortId,
         callback: impl FnOnce(&mut NodeContent) -> O,
     ) -> Option<O> {
-        self.0.get_contents_mut(id, callback)
+        self.0.get_contents_mut(id, |contents| {
+            let output = callback(contents);
+            contents.normalize();
+            output
+        })
     }
 }
 
