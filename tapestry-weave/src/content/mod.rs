@@ -1183,9 +1183,9 @@ pub struct Model {
 impl Model {
     /// Corrects empty or malformed fields
     pub fn normalize(&mut self) {
-        if self.label.is_empty() {
+        /*if self.label.is_empty() {
             self.label = UNKNOWN_MODEL_LABEL.to_string();
-        }
+        }*/
 
         if self.color.as_ref().is_some_and(|color| color.is_empty()) {
             self.color = None;
@@ -1335,6 +1335,7 @@ impl Author {
 }
 
 #[inline]
-fn normalize_float(item: Option<f32>) -> Option<f32> {
+/// Normalizes infinite and NaN values to None and Some(-0.0) to Some(0.0).
+pub fn normalize_float(item: Option<f32>) -> Option<f32> {
     item.filter(|item| item.is_finite()).map(|item| item + 0.0)
 }
