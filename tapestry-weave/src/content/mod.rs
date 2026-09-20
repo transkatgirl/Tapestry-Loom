@@ -179,7 +179,7 @@ impl InnerNodeContent {
                     return None;
                 }
 
-                let logprob = token.logprob?;
+                let logprob = normalize_float(token.logprob)?;
                 logprob_sum += logprob as f64;
             }
 
@@ -199,7 +199,7 @@ impl InnerNodeContent {
                     return None;
                 }
 
-                let logprob = token.logprob?;
+                let logprob = normalize_float(token.logprob)?;
                 logprob_sum += logprob as f64;
             }
 
@@ -255,7 +255,7 @@ impl InnerNodeContent {
                     return None;
                 }
 
-                let entropy = token.entropy?;
+                let entropy = normalize_float(token.entropy)?;
                 entropy_sum += entropy as f64;
             }
 
@@ -313,7 +313,8 @@ impl ArchivedInnerNodeContent {
                     return None;
                 }
 
-                let logprob = token.logprob.as_ref()?.to_native();
+                let logprob =
+                    normalize_float(token.logprob.as_ref().map(|logprob| logprob.to_native()))?;
                 logprob_sum += logprob as f64;
             }
 
@@ -333,7 +334,8 @@ impl ArchivedInnerNodeContent {
                     return None;
                 }
 
-                let logprob = token.logprob.as_ref()?.to_native();
+                let logprob =
+                    normalize_float(token.logprob.as_ref().map(|logprob| logprob.to_native()))?;
                 logprob_sum += logprob as f64;
             }
 
@@ -389,8 +391,9 @@ impl ArchivedInnerNodeContent {
                     return None;
                 }
 
-                let entropy = token.entropy.as_ref()?;
-                entropy_sum += entropy.to_native() as f64;
+                let entropy =
+                    normalize_float(token.entropy.as_ref().map(|entropy| entropy.to_native()))?;
+                entropy_sum += entropy as f64;
             }
 
             Some((entropy_sum / tokens.len() as f64) as f32)
@@ -447,15 +450,10 @@ impl InnerNodeToken {
         }
     }
     pub fn sort_counterfactual(&mut self) {
-        self.counterfactual.sort_unstable_by(|a, b| {
-            b.logprob
-                .filter(|logprob| logprob.is_finite())
+        self.counterfactual.sort_by(|a, b| {
+            normalize_float(b.logprob)
                 .unwrap_or(f32::NEG_INFINITY)
-                .total_cmp(
-                    &a.logprob
-                        .filter(|logprob| logprob.is_finite())
-                        .unwrap_or(f32::NEG_INFINITY),
-                )
+                .total_cmp(&normalize_float(a.logprob).unwrap_or(f32::NEG_INFINITY))
         });
     }
     pub fn truncate_counterfactual(&mut self, len: usize) {
@@ -464,14 +462,8 @@ impl InnerNodeToken {
     }
     /// Corrects empty or malformed fields
     pub fn normalize(&mut self) {
-        self.logprob = self
-            .logprob
-            .filter(|logprob| logprob.is_finite())
-            .map(|logprob| logprob.min(0.0) + 0.0);
-        self.entropy = self
-            .entropy
-            .filter(|entropy| entropy.is_finite())
-            .map(|entropy| entropy.max(0.0) + 0.0);
+        self.logprob = normalize_float(self.logprob);
+        self.entropy = normalize_float(self.entropy);
 
         for counterfactual in &mut self.counterfactual {
             counterfactual.normalize();
@@ -488,7 +480,7 @@ impl InnerNodeToken {
             let mut counterfactual_logprob_sum = 0.0;
 
             for token in &self.counterfactual {
-                let logprob = token.logprob? as f64;
+                let logprob = normalize_float(token.logprob)? as f64;
                 counterfactual_logprob_sum += logprob;
             }
 
@@ -507,8 +499,8 @@ impl InnerNodeToken {
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
         self.bytes == value.bytes
             && self.id == value.id
-            && self.logprob.is_some() == value.logprob.is_some()
-            && self.entropy.is_some() == value.entropy.is_some()
+            && normalize_float(self.logprob).is_some() == normalize_float(value.logprob).is_some()
+            && normalize_float(self.entropy).is_some() == normalize_float(value.entropy).is_some()
             && self.original == value.original
             && self.counterfactual.len() == value.counterfactual.len()
             && self
@@ -529,7 +521,9 @@ impl ArchivedInnerNodeToken {
             let mut counterfactual_logprob_sum = 0.0;
 
             for token in self.counterfactual.iter() {
-                let logprob = token.logprob.as_ref()?.to_native() as f64;
+                let logprob =
+                    normalize_float(token.logprob.as_ref().map(|logprob| logprob.to_native()))?
+                        as f64;
                 counterfactual_logprob_sum += logprob;
             }
 
@@ -606,10 +600,7 @@ pub struct CounterfactualToken {
 impl CounterfactualToken {
     /// Corrects empty or malformed fields
     pub fn normalize(&mut self) {
-        self.logprob = self
-            .logprob
-            .filter(|logprob| logprob.is_finite())
-            .map(|logprob| logprob.min(0.0) + 0.0);
+        self.logprob = normalize_float(self.logprob);
     }
     /// Calculates an entropy value from an iterator containing all possible tokens for a given position.
     pub fn calculate_entropy<'a>(tokens: impl Iterator<Item = &'a CounterfactualToken>) -> f64 {
@@ -629,7 +620,7 @@ impl CounterfactualToken {
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
         self.bytes == value.bytes
             && self.id == value.id
-            && self.logprob.is_some() == value.logprob.is_some()
+            && normalize_float(self.logprob).is_some() == normalize_float(value.logprob).is_some()
     }
 }
 
@@ -1341,4 +1332,9 @@ impl Author {
             Err((self, value))
         }
     }
+}
+
+#[inline]
+fn normalize_float(item: Option<f32>) -> Option<f32> {
+    item.filter(|item| item.is_finite()).map(|item| item + 0.0)
 }
