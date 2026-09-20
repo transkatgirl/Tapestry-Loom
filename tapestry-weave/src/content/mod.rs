@@ -459,6 +459,8 @@ impl InnerNodeToken {
             normalize_f32(b.logprob)
                 .unwrap_or(f32::NEG_INFINITY)
                 .total_cmp(&normalize_f32(a.logprob).unwrap_or(f32::NEG_INFINITY))
+                .then_with(|| a.bytes.cmp(&b.bytes))
+                .then_with(|| a.id.cmp(&b.id))
         });
     }
     pub fn truncate_counterfactual(&mut self, len: usize) {
@@ -469,6 +471,14 @@ impl InnerNodeToken {
     pub fn normalize(&mut self) {
         self.logprob = normalize_f32(self.logprob);
         self.entropy = normalize_f32(self.entropy);
+
+        if let OriginalToken::Known { bytes, offset, .. } = &self.original
+            && !bytes
+                .get(*offset..)
+                .is_some_and(|original| original.starts_with(&self.bytes))
+        {
+            self.original = OriginalToken::Unknown;
+        }
 
         for counterfactual in &mut self.counterfactual {
             counterfactual.normalize();
@@ -707,7 +717,7 @@ impl InnerNodeContent {
                         });
                         right[0].id = None;
                         if let OriginalToken::Known { offset, .. } = &mut right[0].original {
-                            *offset += left_len;
+                            *offset = offset.saturating_add(left_len);
                         }
                     }
                     right[0].bytes = right_token;
@@ -1241,7 +1251,6 @@ impl Model {
             && (self.color == value.color || self.color.is_none() || value.color.is_none())
             && self.identifier == value.identifier
             && self.metadata == value.metadata
-            && self.finish_reason == value.finish_reason
     }
     /// Merges two items together.
     ///
@@ -1251,7 +1260,6 @@ impl Model {
         if self.label == value.label
             && self.identifier == value.identifier
             && self.metadata == value.metadata
-            && self.finish_reason == value.finish_reason
         {
             if self.color == value.color || value.color.is_none() {
                 if self.seed != value.seed {
@@ -1260,6 +1268,9 @@ impl Model {
                 if self.system_fingerprint != value.system_fingerprint {
                     self.system_fingerprint = None;
                 }
+                if self.finish_reason != value.finish_reason {
+                    self.finish_reason = None;
+                }
                 Ok(self)
             } else if self.color.is_none() {
                 if self.seed != value.seed {
@@ -1267,6 +1278,9 @@ impl Model {
                 }
                 if self.system_fingerprint != value.system_fingerprint {
                     value.system_fingerprint = None;
+                }
+                if self.finish_reason != value.finish_reason {
+                    value.finish_reason = None;
                 }
                 Ok(value)
             } else {

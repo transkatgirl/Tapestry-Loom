@@ -55,5 +55,7 @@ pub fn by_timestamp(a: &TapestryNode, b: &TapestryNode) -> Ordering {
 }
 
 pub fn grouped(a: &TapestryNode, b: &TapestryNode) -> Ordering {
-    by_model(a, b).then_with(|| by_single_token(a, b).then_with(|| by_timestamp(a, b)))
+    by_model(a, b)
+        .then_with(|| by_single_token(a, b))
+        .then_with(|| by_timestamp(a, b))
 }
