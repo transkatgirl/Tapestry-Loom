@@ -24,8 +24,10 @@ pub fn by_confidence(a: &TapestryNode, b: &TapestryNode) -> Ordering {
 }
 
 pub fn by_single_token(a: &TapestryNode, b: &TapestryNode) -> Ordering {
-    let a_single_token = a.contents.content.token_count() == Some(1);
-    let b_single_token = b.contents.content.token_count() == Some(1);
+    let a_single_token = a.contents.content.token_count() == Some(1)
+        && a.contents.content.contains_modified_tokens() == Some(false);
+    let b_single_token = b.contents.content.token_count() == Some(1)
+        && b.contents.content.contains_modified_tokens() == Some(false);
 
     if a_single_token && b_single_token {
         b.contents

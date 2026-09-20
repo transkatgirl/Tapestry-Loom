@@ -217,7 +217,7 @@ impl From<NodeContent> for NewNodeContent {
             model.seed = value
                 .metadata
                 .shift_remove("seed")
-                .and_then(|id| id.parse::<u32>().ok());
+                .and_then(|id| id.parse::<u64>().ok());
 
             model.system_fingerprint = value.metadata.shift_remove("system_fingerprint");
             model.finish_reason = value.metadata.shift_remove("finish_reason");

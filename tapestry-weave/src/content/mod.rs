@@ -168,6 +168,13 @@ impl InnerNodeContent {
             None
         }
     }
+    pub fn contains_modified_tokens(&self) -> Option<bool> {
+        if let Self::Tokens(tokens) = self {
+            Some(tokens.iter().any(|token| token.is_modified()))
+        } else {
+            None
+        }
+    }
     pub fn calculate_average_logprob(&self) -> Option<f32> {
         if let Self::Tokens(tokens) = self
             && !tokens.is_empty()
@@ -179,16 +186,16 @@ impl InnerNodeContent {
                     return None;
                 }
 
-                let logprob = normalize_float(token.logprob)?;
+                let logprob = normalize_f32(token.logprob)?;
                 logprob_sum += logprob as f64;
             }
 
-            Some((logprob_sum / tokens.len() as f64) as f32)
+            normalize_f32(Some((logprob_sum / tokens.len() as f64) as f32))
         } else {
             None
         }
     }
-    pub fn calculate_cumulative_logprob(&self) -> Option<f32> {
+    pub fn calculate_cumulative_logprob(&self) -> Option<f64> {
         if let Self::Tokens(tokens) = self
             && !tokens.is_empty()
         {
@@ -199,17 +206,19 @@ impl InnerNodeContent {
                     return None;
                 }
 
-                let logprob = normalize_float(token.logprob)?;
+                let logprob = normalize_f32(token.logprob)?;
                 logprob_sum += logprob as f64;
             }
 
-            Some(logprob_sum as f32)
+            normalize_f64(Some(logprob_sum))
         } else {
             None
         }
     }
     pub fn calculate_confidence(&self) -> Option<(f32, usize, usize)> {
-        if let Self::Tokens(tokens) = self {
+        if let Self::Tokens(tokens) = self
+            && !tokens.is_empty()
+        {
             let mut confidence_sum = 0.0;
             let mut confidence_k = None;
 
@@ -218,7 +227,7 @@ impl InnerNodeContent {
                     return None;
                 }
 
-                if let Some((confidence, k)) = token.calculate_confidence_f64() {
+                if let Some((confidence, k)) = token.calculate_confidence_inner() {
                     if let Some(last_k) = confidence_k
                         && last_k != k
                     {
@@ -233,13 +242,10 @@ impl InnerNodeContent {
                 }
             }
 
-            confidence_k.map(|confidence_k| {
-                (
-                    (confidence_sum / tokens.len() as f64) as f32,
-                    confidence_k,
-                    tokens.len(),
-                )
-            })
+            let confidence = normalize_f32(Some((confidence_sum / tokens.len() as f64) as f32))?;
+            let confidence_k = confidence_k?;
+
+            Some((confidence, confidence_k, tokens.len()))
         } else {
             None
         }
@@ -255,11 +261,11 @@ impl InnerNodeContent {
                     return None;
                 }
 
-                let entropy = normalize_float(token.entropy)?;
+                let entropy = normalize_f32(token.entropy)?;
                 entropy_sum += entropy as f64;
             }
 
-            Some((entropy_sum / tokens.len() as f64) as f32)
+            normalize_f32(Some((entropy_sum / tokens.len() as f64) as f32))
         } else {
             None
         }
@@ -314,16 +320,16 @@ impl ArchivedInnerNodeContent {
                 }
 
                 let logprob =
-                    normalize_float(token.logprob.as_ref().map(|logprob| logprob.to_native()))?;
+                    normalize_f32(token.logprob.as_ref().map(|logprob| logprob.to_native()))?;
                 logprob_sum += logprob as f64;
             }
 
-            Some((logprob_sum / tokens.len() as f64) as f32)
+            normalize_f32(Some((logprob_sum / tokens.len() as f64) as f32))
         } else {
             None
         }
     }
-    pub fn calculate_cumulative_logprob(&self) -> Option<f32> {
+    pub fn calculate_cumulative_logprob(&self) -> Option<f64> {
         if let Self::Tokens(tokens) = self
             && !tokens.is_empty()
         {
@@ -335,17 +341,19 @@ impl ArchivedInnerNodeContent {
                 }
 
                 let logprob =
-                    normalize_float(token.logprob.as_ref().map(|logprob| logprob.to_native()))?;
+                    normalize_f32(token.logprob.as_ref().map(|logprob| logprob.to_native()))?;
                 logprob_sum += logprob as f64;
             }
 
-            Some(logprob_sum as f32)
+            normalize_f64(Some(logprob_sum))
         } else {
             None
         }
     }
     pub fn calculate_confidence(&self) -> Option<(f32, usize, usize)> {
-        if let Self::Tokens(tokens) = self {
+        if let Self::Tokens(tokens) = self
+            && !tokens.is_empty()
+        {
             let mut confidence_sum = 0.0;
             let mut confidence_k = None;
 
@@ -354,7 +362,7 @@ impl ArchivedInnerNodeContent {
                     return None;
                 }
 
-                if let Some((confidence, k)) = token.calculate_confidence_f64() {
+                if let Some((confidence, k)) = token.calculate_confidence_inner() {
                     if let Some(last_k) = confidence_k
                         && last_k != k
                     {
@@ -369,13 +377,10 @@ impl ArchivedInnerNodeContent {
                 }
             }
 
-            confidence_k.map(|confidence_k| {
-                (
-                    (confidence_sum / tokens.len() as f64) as f32,
-                    confidence_k,
-                    tokens.len(),
-                )
-            })
+            let confidence = normalize_f32(Some((confidence_sum / tokens.len() as f64) as f32))?;
+            let confidence_k = confidence_k?;
+
+            Some((confidence, confidence_k, tokens.len()))
         } else {
             None
         }
@@ -392,11 +397,11 @@ impl ArchivedInnerNodeContent {
                 }
 
                 let entropy =
-                    normalize_float(token.entropy.as_ref().map(|entropy| entropy.to_native()))?;
+                    normalize_f32(token.entropy.as_ref().map(|entropy| entropy.to_native()))?;
                 entropy_sum += entropy as f64;
             }
 
-            Some((entropy_sum / tokens.len() as f64) as f32)
+            normalize_f32(Some((entropy_sum / tokens.len() as f64) as f32))
         } else {
             None
         }
@@ -451,9 +456,9 @@ impl InnerNodeToken {
     }
     pub fn sort_counterfactual(&mut self) {
         self.counterfactual.sort_by(|a, b| {
-            normalize_float(b.logprob)
+            normalize_f32(b.logprob)
                 .unwrap_or(f32::NEG_INFINITY)
-                .total_cmp(&normalize_float(a.logprob).unwrap_or(f32::NEG_INFINITY))
+                .total_cmp(&normalize_f32(a.logprob).unwrap_or(f32::NEG_INFINITY))
         });
     }
     pub fn truncate_counterfactual(&mut self, len: usize) {
@@ -462,8 +467,8 @@ impl InnerNodeToken {
     }
     /// Corrects empty or malformed fields
     pub fn normalize(&mut self) {
-        self.logprob = normalize_float(self.logprob);
-        self.entropy = normalize_float(self.entropy);
+        self.logprob = normalize_f32(self.logprob);
+        self.entropy = normalize_f32(self.entropy);
 
         for counterfactual in &mut self.counterfactual {
             counterfactual.normalize();
@@ -472,15 +477,15 @@ impl InnerNodeToken {
         self.sort_counterfactual();
     }
     pub fn calculate_confidence(&self) -> Option<(f32, usize)> {
-        self.calculate_confidence_f64()
-            .map(|(confidence, k)| (confidence as f32, k))
+        self.calculate_confidence_inner()
+            .and_then(|(confidence, k)| normalize_f32(Some(confidence as f32)).map(|c| (c, k)))
     }
-    fn calculate_confidence_f64(&self) -> Option<(f64, usize)> {
+    fn calculate_confidence_inner(&self) -> Option<(f64, usize)> {
         if !self.counterfactual.is_empty() {
             let mut counterfactual_logprob_sum = 0.0;
 
             for token in &self.counterfactual {
-                let logprob = normalize_float(token.logprob)? as f64;
+                let logprob = normalize_f32(token.logprob)? as f64;
                 counterfactual_logprob_sum += logprob;
             }
 
@@ -499,8 +504,8 @@ impl InnerNodeToken {
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
         self.bytes == value.bytes
             && self.id == value.id
-            && normalize_float(self.logprob).is_some() == normalize_float(value.logprob).is_some()
-            && normalize_float(self.entropy).is_some() == normalize_float(value.entropy).is_some()
+            && normalize_f32(self.logprob).is_some() == normalize_f32(value.logprob).is_some()
+            && normalize_f32(self.entropy).is_some() == normalize_f32(value.entropy).is_some()
             && self.original == value.original
             && self.counterfactual.len() == value.counterfactual.len()
             && self
@@ -513,16 +518,16 @@ impl InnerNodeToken {
 
 impl ArchivedInnerNodeToken {
     pub fn calculate_confidence(&self) -> Option<(f32, usize)> {
-        self.calculate_confidence_f64()
-            .map(|(confidence, k)| (confidence as f32, k))
+        self.calculate_confidence_inner()
+            .and_then(|(confidence, k)| normalize_f32(Some(confidence as f32)).map(|c| (c, k)))
     }
-    fn calculate_confidence_f64(&self) -> Option<(f64, usize)> {
+    fn calculate_confidence_inner(&self) -> Option<(f64, usize)> {
         if !self.counterfactual.is_empty() {
             let mut counterfactual_logprob_sum = 0.0;
 
             for token in self.counterfactual.iter() {
                 let logprob =
-                    normalize_float(token.logprob.as_ref().map(|logprob| logprob.to_native()))?
+                    normalize_f32(token.logprob.as_ref().map(|logprob| logprob.to_native()))?
                         as f64;
                 counterfactual_logprob_sum += logprob;
             }
@@ -600,27 +605,38 @@ pub struct CounterfactualToken {
 impl CounterfactualToken {
     /// Corrects empty or malformed fields
     pub fn normalize(&mut self) {
-        self.logprob = normalize_float(self.logprob);
+        self.logprob = normalize_f32(self.logprob);
     }
     /// Calculates an entropy value from an iterator containing all possible tokens for a given position.
-    pub fn calculate_entropy<'a>(tokens: impl Iterator<Item = &'a CounterfactualToken>) -> f64 {
-        0.0 - tokens
-            .map(|token| {
-                let logprob = token.logprob.unwrap_or(f32::NEG_INFINITY) as f64;
+    pub fn calculate_entropy<'a>(
+        tokens: impl Iterator<Item = &'a CounterfactualToken>,
+    ) -> Option<f64> {
+        let mut sum = 0.0;
+        let mut empty = true;
 
-                if logprob.is_finite() {
-                    logprob.exp() * logprob
-                } else {
-                    0.0
-                }
-            })
-            .sum::<f64>()
+        for token in tokens {
+            let logprob = token.logprob? as f64;
+
+            sum += if logprob.is_finite() {
+                logprob.exp() * logprob
+            } else {
+                0.0
+            };
+
+            empty = false;
+        }
+
+        if empty {
+            return None;
+        }
+
+        normalize_f64(Some(0.0 - sum))
     }
     /// Returns `true` if `self` and `value` should be considered duplicates.
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
         self.bytes == value.bytes
             && self.id == value.id
-            && normalize_float(self.logprob).is_some() == normalize_float(value.logprob).is_some()
+            && normalize_f32(self.logprob).is_some() == normalize_f32(value.logprob).is_some()
     }
 }
 
@@ -1161,7 +1177,7 @@ pub struct Model {
     pub identifier: Option<LongId>,
 
     /// The seed used to generate the content.
-    pub seed: Option<u32>,
+    pub seed: Option<u64>,
     /// A string which identifies the backend configuration used to generate the content.
     pub system_fingerprint: Option<String>,
     /// The reason the content finished being generated.
@@ -1336,6 +1352,12 @@ impl Author {
 
 #[inline]
 /// Normalizes infinite and NaN values to None and Some(-0.0) to Some(0.0).
-pub fn normalize_float(item: Option<f32>) -> Option<f32> {
+pub fn normalize_f32(item: Option<f32>) -> Option<f32> {
+    item.filter(|item| item.is_finite()).map(|item| item + 0.0)
+}
+
+#[inline]
+/// Normalizes infinite and NaN values to None and Some(-0.0) to Some(0.0).
+pub fn normalize_f64(item: Option<f64>) -> Option<f64> {
     item.filter(|item| item.is_finite()).map(|item| item + 0.0)
 }
