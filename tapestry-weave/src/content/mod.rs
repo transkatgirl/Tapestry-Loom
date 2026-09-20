@@ -417,12 +417,16 @@ pub struct InnerNodeToken {
     #[serde(with = "Base64Standard")]
     pub bytes: Vec<u8>,
     /// The natural logarithm of the probability associated with the token.
+    ///
+    /// Non-finite values are discarded by [`TapestryWeave`](crate::weave::TapestryWeave).
     #[rkyv(with = NicheInto<niching::NaN>)]
     pub logprob: Option<f32>,
     /// The generator-specific numeric ID associated with the token.
     pub id: Option<u64>,
 
     /// The entropy value associated with the current position.
+    ///
+    /// Non-finite values are discarded by [`TapestryWeave`](crate::weave::TapestryWeave).
     #[rkyv(with = NicheInto<niching::NaN>)]
     pub entropy: Option<f32>,
     /// The counterfactual tokens for the current position.
@@ -448,11 +452,14 @@ impl InnerNodeToken {
     }
     pub fn sort_counterfactual(&mut self) {
         self.counterfactual.sort_unstable_by(|a, b| {
-            b.logprob.is_some().cmp(&a.logprob.is_some()).then_with(|| {
-                b.logprob
-                    .unwrap_or_default()
-                    .total_cmp(&a.logprob.unwrap_or_default())
-            })
+            b.logprob
+                .filter(|logprob| logprob.is_finite())
+                .unwrap_or(f32::NEG_INFINITY)
+                .total_cmp(
+                    &a.logprob
+                        .filter(|logprob| logprob.is_finite())
+                        .unwrap_or(f32::NEG_INFINITY),
+                )
         });
     }
     pub fn truncate_counterfactual(&mut self, len: usize) {
@@ -489,7 +496,7 @@ impl InnerNodeToken {
             }
 
             Some((
-                counterfactual_logprob_sum / -(self.counterfactual.len() as f64),
+                counterfactual_logprob_sum / -(self.counterfactual.len() as f64) + 0.0,
                 self.counterfactual.len(),
             ))
         } else {
@@ -530,7 +537,7 @@ impl ArchivedInnerNodeToken {
             }
 
             Some((
-                counterfactual_logprob_sum / -(self.counterfactual.len() as f64),
+                counterfactual_logprob_sum / -(self.counterfactual.len() as f64) + 0.0,
                 self.counterfactual.len(),
             ))
         } else {
@@ -593,6 +600,8 @@ pub struct CounterfactualToken {
     #[serde(with = "Base64Standard")]
     pub bytes: Vec<u8>,
     /// The natural logarithm of the probability associated with the token.
+    ///
+    /// Non-finite values are discarded by [`TapestryWeave`](crate::weave::TapestryWeave).
     #[rkyv(with = NicheInto<niching::NaN>)]
     pub logprob: Option<f32>,
     /// The generator-specific numeric ID associated with the token.
@@ -888,10 +897,19 @@ fn restore_split_tokens(tokens: &mut Vec<InnerNodeToken>) {
                     && prev_id == original_id
                     && original_bytes[..remaining].ends_with(&prev.bytes)
                     && *prev_offset == remaining - prev.bytes.len()
-                    && prev.logprob == current.logprob
+                    && prev.logprob.map(f32::to_bits) == current.logprob.map(f32::to_bits)
                     && prev.id == current.id
-                    && prev.entropy == current.entropy
-                    && prev.counterfactual == current.counterfactual
+                    && prev.entropy.map(f32::to_bits) == current.entropy.map(f32::to_bits)
+                    && prev.counterfactual.len() == current.counterfactual.len()
+                    && prev
+                        .counterfactual
+                        .iter()
+                        .zip(current.counterfactual.iter())
+                        .all(|(left, right)| {
+                            left.bytes == right.bytes
+                                && left.id == right.id
+                                && left.logprob.map(f32::to_bits) == right.logprob.map(f32::to_bits)
+                        })
                 {
                     remaining -= prev.bytes.len();
                     index -= 1;
