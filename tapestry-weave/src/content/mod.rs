@@ -572,14 +572,10 @@ pub struct CounterfactualToken {
 
 impl CounterfactualToken {
     /// Calculates an entropy value from an iterator containing all possible tokens for a given position.
-    ///
-    /// # Panics
-    ///
-    /// Panics if a token has no associated probability.
     pub fn calculate_entropy<'a>(tokens: impl Iterator<Item = &'a CounterfactualToken>) -> f64 {
         0.0 - tokens
             .map(|token| {
-                let logprob = token.logprob.unwrap() as f64;
+                let logprob = token.logprob.unwrap_or(f32::NEG_INFINITY) as f64;
 
                 if logprob == f64::NEG_INFINITY {
                     0.0
