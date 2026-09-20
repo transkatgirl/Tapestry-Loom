@@ -126,7 +126,7 @@ impl NodeContent {
             && self.creator.is_mergeable_with(&value.creator)
             && self.content.is_mergeable_with(&value.content)
     }
-    /// Clears empty or malformed fields
+    /// Corrects empty or malformed fields
     pub fn normalize(&mut self) {
         self.content.normalize();
         self.creator.normalize();
@@ -284,7 +284,7 @@ impl InnerNodeContent {
             }
         }
     }
-    /// Clears empty or malformed fields
+    /// Corrects empty or malformed fields
     pub fn normalize(&mut self) {
         if let Self::Tokens(tokens) = self {
             for token in tokens {
@@ -417,16 +417,12 @@ pub struct InnerNodeToken {
     #[serde(with = "Base64Standard")]
     pub bytes: Vec<u8>,
     /// The natural logarithm of the probability associated with the token.
-    ///
-    /// Non-finite values are discarded by [`TapestryWeave`](crate::weave::TapestryWeave).
     #[rkyv(with = NicheInto<niching::NaN>)]
     pub logprob: Option<f32>,
     /// The generator-specific numeric ID associated with the token.
     pub id: Option<u64>,
 
     /// The entropy value associated with the current position.
-    ///
-    /// Non-finite values are discarded by [`TapestryWeave`](crate::weave::TapestryWeave).
     #[rkyv(with = NicheInto<niching::NaN>)]
     pub entropy: Option<f32>,
     /// The counterfactual tokens for the current position.
@@ -466,15 +462,16 @@ impl InnerNodeToken {
         self.counterfactual.truncate(len);
         self.counterfactual.shrink_to_fit();
     }
-    /// Clears empty or malformed fields
+    /// Corrects empty or malformed fields
     pub fn normalize(&mut self) {
-        if self.logprob.is_some_and(|prob| !prob.is_finite()) {
-            self.logprob = None;
-        }
-
-        if self.entropy.is_some_and(|prob| !prob.is_finite()) {
-            self.entropy = None;
-        }
+        self.logprob = self
+            .logprob
+            .filter(|logprob| logprob.is_finite())
+            .map(|logprob| logprob.min(0.0) + 0.0);
+        self.entropy = self
+            .entropy
+            .filter(|entropy| entropy.is_finite())
+            .map(|entropy| entropy.max(0.0) + 0.0);
 
         for counterfactual in &mut self.counterfactual {
             counterfactual.normalize();
@@ -600,8 +597,6 @@ pub struct CounterfactualToken {
     #[serde(with = "Base64Standard")]
     pub bytes: Vec<u8>,
     /// The natural logarithm of the probability associated with the token.
-    ///
-    /// Non-finite values are discarded by [`TapestryWeave`](crate::weave::TapestryWeave).
     #[rkyv(with = NicheInto<niching::NaN>)]
     pub logprob: Option<f32>,
     /// The generator-specific numeric ID associated with the token.
@@ -609,11 +604,12 @@ pub struct CounterfactualToken {
 }
 
 impl CounterfactualToken {
-    /// Clears empty or malformed fields
+    /// Corrects empty or malformed fields
     pub fn normalize(&mut self) {
-        if self.logprob.is_some_and(|prob| !prob.is_finite()) {
-            self.logprob = None;
-        }
+        self.logprob = self
+            .logprob
+            .filter(|logprob| logprob.is_finite())
+            .map(|logprob| logprob.min(0.0) + 0.0);
     }
     /// Calculates an entropy value from an iterator containing all possible tokens for a given position.
     pub fn calculate_entropy<'a>(tokens: impl Iterator<Item = &'a CounterfactualToken>) -> f64 {
@@ -631,7 +627,9 @@ impl CounterfactualToken {
     }
     /// Returns `true` if `self` and `value` should be considered duplicates.
     pub fn is_duplicate_of(&self, value: &Self) -> bool {
-        self.bytes == value.bytes && self.id == value.id
+        self.bytes == value.bytes
+            && self.id == value.id
+            && self.logprob.is_some() == value.logprob.is_some()
     }
 }
 
@@ -1038,7 +1036,7 @@ impl Creator {
             None
         }
     }
-    /// Clears empty or malformed fields
+    /// Corrects empty or malformed fields
     pub fn normalize(&mut self) {
         match self {
             Self::Model(Some(model)) => model.normalize(),
@@ -1192,7 +1190,7 @@ pub struct Model {
 }
 
 impl Model {
-    /// Clears empty or malformed fields
+    /// Corrects empty or malformed fields
     pub fn normalize(&mut self) {
         if self.label.is_empty() {
             self.label = UNKNOWN_MODEL_LABEL.to_string();
@@ -1300,7 +1298,7 @@ pub struct Author {
 }
 
 impl Author {
-    /// Clears empty or malformed fields
+    /// Corrects empty or malformed fields
     pub fn normalize(&mut self) {
         if self.color.as_ref().is_some_and(|color| color.is_empty()) {
             self.color = None;
