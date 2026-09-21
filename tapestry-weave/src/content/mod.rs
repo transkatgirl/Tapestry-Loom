@@ -19,6 +19,10 @@ use crate::{
 
 pub mod sort;
 
+/// The 1-byte long ASCII substitution character, used to replace bytes which are invalid UTF-8.
+pub const SUBSTITUTION_CHARACTER: &str = "\u{1A}";
+const _: () = assert!(SUBSTITUTION_CHARACTER.len() == 1);
+
 /// The contents of a [`TapestryNode`](crate::weave::TapestryNode).
 ///
 /// **This should not be used to store sensitive information**, such as endpoint URLs or API keys, as the user may choose to share documents publicly.
@@ -1369,4 +1373,40 @@ pub fn normalize_f32(item: Option<f32>) -> Option<f32> {
 /// Normalizes infinite and NaN values to None and Some(-0.0) to Some(0.0).
 pub fn normalize_f64(item: Option<f64>) -> Option<f64> {
     item.filter(|item| item.is_finite()).map(|item| item + 0.0)
+}
+
+/// Modified version of String::from_utf8_lossy() which uses [`SUBSTITUTION_CHARACTER`].
+///
+/// Because [`SUBSTITUTION_CHARACTER`] is 1 byte long and is emitted for every invalid byte, the converted string always has the same length as the input bytes.
+#[inline]
+pub fn from_utf8_lossy(v: &[u8]) -> Cow<'_, str> {
+    let mut iter = v.utf8_chunks();
+
+    let (first_valid, first_invalid) = if let Some(chunk) = iter.next() {
+        let valid = chunk.valid();
+        let invalid = chunk.invalid();
+        if invalid.is_empty() {
+            return Cow::Borrowed(valid);
+        }
+        (valid, invalid)
+    } else {
+        return Cow::Borrowed("");
+    };
+
+    let mut res = String::with_capacity(v.len());
+    res.push_str(first_valid);
+    for _ in first_invalid {
+        res.push_str(SUBSTITUTION_CHARACTER);
+    }
+
+    for chunk in iter {
+        res.push_str(chunk.valid());
+        for _ in chunk.invalid() {
+            res.push_str(SUBSTITUTION_CHARACTER);
+        }
+    }
+
+    debug_assert_eq!(v.len(), res.len());
+
+    Cow::Owned(res)
 }

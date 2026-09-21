@@ -211,13 +211,13 @@ pub enum TapestryWeaveAction {
         #[rkyv(with = Map<AsBinaryZoned>)]
         root_timestamp: Option<Zoned>,
     },
-    /// [`TapestryWeave::update_active_text()`]
+    /// [`TapestryWeave::update_active_text()`] or [`TapestryWeave::update_active_text_str()`]
     UpdateActiveText {
         actions: Vec<TapestryWeaveTextUpdateAction>,
     },
 }
 
-/// An action performed on a [`TapestryWeave`] during the execution of [`TapestryWeave::update_active_text()`]
+/// An action performed on a [`TapestryWeave`] during the execution of [`TapestryWeave::update_active_text()`] or [`TapestryWeave::update_active_text_str()`]
 #[derive(
     SerdeSerialize, SerdeDeserialize, Archive, Deserialize, Serialize, Debug, Clone, PartialEq,
 )]
@@ -656,6 +656,13 @@ impl LoggedTapestryWeave {
     pub fn active_text(&mut self) -> impl Iterator<Item = u8> {
         self.weave.active_text()
     }
+    /// Convenience function for `content::from_utf8_lossy(&self.active_text().collect::<Vec<u8>>()).to_string()`
+    ///
+    /// Because [`content::from_utf8_lossy`](crate::content::from_utf8_lossy) replaces every invalid byte with a 1-byte long substitution character, the converted string is always the same length as [`Self::active_text`].
+    #[inline]
+    pub fn active_text_string(&mut self) -> String {
+        self.weave.active_text_string()
+    }
     /// Removes the specified range from the active path without removing the content from the underlying Weave.
     ///
     /// If the range is empty or starts past the end of the active path, this function does nothing. If the range extends beyond the active path, its length is clamped to the active path's length.
@@ -808,6 +815,15 @@ impl LoggedTapestryWeave {
     pub fn diff_active_text(&mut self, new: &[u8]) -> Vec<Hunk> {
         self.weave.diff_active_text(new)
     }
+    /// Calculates a readable diff between `new` and [`Self::active_text_string`].
+    ///
+    /// Diff calculation time (but not post-processing time) is bounded, making this function generally safe to use in user interfaces.
+    ///
+    /// The exact diff calculation and semantic post-processing algorithms used are implementation-specific and subject to change.
+    #[inline]
+    pub fn diff_active_text_str(&mut self, new: &str) -> Vec<Hunk> {
+        self.weave.diff_active_text_str(new)
+    }
     /// Updates the text bytes corresponding to the active path using [`Self::diff_active_text`] followed by calls to [`Self::split_out`] and [`Self::replace`].
     ///
     /// Inserted content is attributed to `author` and replaced content is never removed from the Weave.
@@ -824,6 +840,34 @@ impl LoggedTapestryWeave {
         let timestamp = Zoned::now();
         let hunks = self.diff_active_text(new);
 
+        self.apply_text_hunks(hunks, timestamp, new, author, &mut generate_id);
+    }
+    /// Updates the text bytes corresponding to the active path using [`Self::diff_active_text_str`] followed by calls to [`Self::split_out`] and [`Self::replace`].
+    ///
+    /// Inserted content is attributed to `author` and replaced content is never removed from the Weave.
+    ///
+    /// # Panics
+    ///
+    /// May panic if `generate_id` panics or returns an identifier already in the Weave.
+    pub fn update_active_text_str(
+        &mut self,
+        new: &str,
+        author: &Option<Author>,
+        mut generate_id: impl FnMut() -> ShortId,
+    ) {
+        let timestamp = Zoned::now();
+        let hunks = self.diff_active_text_str(new);
+
+        self.apply_text_hunks(hunks, timestamp, new.as_bytes(), author, &mut generate_id);
+    }
+    fn apply_text_hunks(
+        &mut self,
+        hunks: Vec<Hunk>,
+        timestamp: Zoned,
+        new: &[u8],
+        author: &Option<Author>,
+        mut generate_id: impl FnMut() -> ShortId,
+    ) {
         if hunks.is_empty() {
             return;
         }

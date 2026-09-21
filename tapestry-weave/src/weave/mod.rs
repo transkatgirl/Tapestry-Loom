@@ -27,7 +27,9 @@ use universal_weave::{
 };
 
 use crate::{
-    content::{ArchivedNodeContent, Author, Creator, InnerNodeContent, NodeContent},
+    content::{
+        ArchivedNodeContent, Author, Creator, InnerNodeContent, NodeContent, from_utf8_lossy,
+    },
     metadata::{ArchivedWeaveMetadata, MetadataMap, WeaveMetadata},
     util::{Hunk, RandomIdHasher},
 };
@@ -512,6 +514,13 @@ impl TapestryWeave {
             .active_content()
             .flat_map(|content| content.content.iter_bytes())
     }
+    /// Convenience function for `content::from_utf8_lossy(&self.active_text().collect::<Vec<u8>>()).to_string()`
+    ///
+    /// Because [`content::from_utf8_lossy`](crate::content::from_utf8_lossy) replaces every invalid byte with a 1-byte long substitution character, the converted string is always the same length as [`Self::active_text`].
+    #[inline]
+    pub fn active_text_string(&mut self) -> String {
+        from_utf8_lossy(&self.active_text().collect::<Vec<u8>>()).into_owned()
+    }
     /// Removes the specified range from the active path without removing the content from the underlying Weave.
     ///
     /// If the range is empty or starts past the end of the active path, this function does nothing. If the range extends beyond the active path, its length is clamped to the active path's length.
@@ -699,36 +708,39 @@ impl TapestryWeave {
             }
         }
 
-        let mut hunks = Hunk::calculate_diff(&old, new, Some(deadline));
+        calculate_text_diff(&old, &editable, new, deadline)
+    }
+    /// Calculates a readable diff between `new` and [`Self::active_text_string`].
+    ///
+    /// Diff calculation time (but not post-processing time) is bounded, making this function generally safe to use in user interfaces.
+    ///
+    /// The exact diff calculation and semantic post-processing algorithms used are implementation-specific and subject to change.
+    pub fn diff_active_text_str(&mut self, new: &str) -> Vec<Hunk> {
+        let deadline = Instant::now() + DIFF_DEADLINE;
 
-        if hunks.is_empty() {
-            return hunks;
+        let mut old = Vec::with_capacity(new.len());
+        let mut editable = vec![true];
+
+        for content in self.0.active_content() {
+            match &content.content {
+                InnerNodeContent::Tokens(tokens) => {
+                    for token in tokens {
+                        old.extend(token.bytes.iter().copied());
+                        editable.resize(old.len(), false);
+                        editable.push(true);
+                    }
+                }
+                InnerNodeContent::Snippet(snippet) => {
+                    old.extend(snippet.iter().copied());
+                    editable.resize(old.len() + 1, true);
+                }
+                InnerNodeContent::MetadataOnly => {}
+            }
         }
 
-        let slack = |boundaries: &[usize], range: &Range<usize>| {
-            let before = boundaries[boundaries.partition_point(|b| *b <= range.start) - 1];
-            let after = boundaries[boundaries.partition_point(|b| *b < range.end)];
+        let old = from_utf8_lossy(&old);
 
-            (range.start - before, after - range.end)
-        };
-
-        let old_words = segment_text_bytes(&old, str::split_word_bound_indices);
-        let new_words = segment_text_bytes(new, str::split_word_bound_indices);
-
-        Hunk::expand_ordered(&mut hunks, old.len(), |hunk| {
-            let (old_left, old_right) = slack(&old_words, &hunk.old);
-            let (new_left, new_right) = slack(&new_words, &hunk.new);
-
-            (old_left.max(new_left), old_right.max(new_right))
-        });
-
-        let mut boundaries = segment_text_bytes(&old, |text| text.grapheme_indices(true));
-
-        boundaries.retain(|b| editable[*b]);
-
-        Hunk::expand_ordered(&mut hunks, old.len(), |hunk| slack(&boundaries, &hunk.old));
-
-        hunks
+        calculate_text_diff(old.as_bytes(), &editable, new.as_bytes(), deadline)
     }
     /// Updates the text bytes corresponding to the active path using [`Self::diff_active_text`] followed by calls to [`Self::split_out`] and [`Self::replace`].
     ///
@@ -765,6 +777,41 @@ impl TapestryWeave {
             }
         }
     }
+    /// Updates the text bytes corresponding to the active path using [`Self::diff_active_text_str`] followed by calls to [`Self::split_out`] and [`Self::replace`].
+    ///
+    /// Inserted content is attributed to `author` and replaced content is never removed from the Weave.
+    ///
+    /// # Panics
+    ///
+    /// May panic if `generate_id` panics or returns an identifier already in the Weave.
+    pub fn update_active_text_str(
+        &mut self,
+        new: &str,
+        author: &Option<Author>,
+        mut generate_id: impl FnMut() -> ShortId,
+    ) {
+        let timestamp = Zoned::now();
+
+        for hunk in self.diff_active_text_str(new).into_iter().rev() {
+            if hunk.new.is_empty() {
+                self.split_out(hunk.old, author, &mut generate_id);
+            } else {
+                self.replace(
+                    hunk.old,
+                    NodeContent {
+                        timestamp: timestamp.clone(),
+                        modified: false,
+                        content: InnerNodeContent::Snippet(new.as_bytes()[hunk.new].to_vec()),
+                        metadata: MetadataMap::default(),
+                        creator: Creator::User(author.clone()),
+                    },
+                    false,
+                    author,
+                    &mut generate_id,
+                );
+            }
+        }
+    }
 }
 
 fn segment_text_bytes<'a, I>(bytes: &'a [u8], segment: impl Fn(&'a str) -> I) -> Vec<usize>
@@ -787,6 +834,39 @@ where
     boundaries.push(cursor);
 
     boundaries
+}
+
+fn calculate_text_diff(old: &[u8], editable: &[bool], new: &[u8], deadline: Instant) -> Vec<Hunk> {
+    let mut hunks = Hunk::calculate_diff(old, new, Some(deadline));
+
+    if hunks.is_empty() {
+        return hunks;
+    }
+
+    let slack = |boundaries: &[usize], range: &Range<usize>| {
+        let before = boundaries[boundaries.partition_point(|b| *b <= range.start) - 1];
+        let after = boundaries[boundaries.partition_point(|b| *b < range.end)];
+
+        (range.start - before, after - range.end)
+    };
+
+    let old_words = segment_text_bytes(old, str::split_word_bound_indices);
+    let new_words = segment_text_bytes(new, str::split_word_bound_indices);
+
+    Hunk::expand_ordered(&mut hunks, old.len(), |hunk| {
+        let (old_left, old_right) = slack(&old_words, &hunk.old);
+        let (new_left, new_right) = slack(&new_words, &hunk.new);
+
+        (old_left.max(new_left), old_right.max(new_right))
+    });
+
+    let mut boundaries = segment_text_bytes(old, |text| text.grapheme_indices(true));
+
+    boundaries.retain(|b| editable[*b]);
+
+    Hunk::expand_ordered(&mut hunks, old.len(), |hunk| slack(&boundaries, &hunk.old));
+
+    hunks
 }
 
 impl Weave<ShortId, TapestryNode, NodeContent> for TapestryWeave {
