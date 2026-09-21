@@ -6,7 +6,7 @@ use log::debug;
 use parking_lot::Mutex;
 use tapestry_weave::{
     TapestryWeave,
-    universal_weave::{ActivePathWeave, BookmarkableWeave, Weave},
+    universal_weave::{ActivePathWeave, BookmarkableWeave, MetadataWeave, Weave},
     weave::{FILE_EXTENSION, wrappers::LoggedTapestryWeave},
 };
 use ulid::Ulid;
@@ -406,10 +406,16 @@ impl EditorShared {
     pub(super) fn title(&self, _shared: &AppShared) -> String {
         match &self.path {
             Some(path) => {
-                if let Some(name) = path.file_prefix() {
-                    name.to_string_lossy().to_string()
+                if let Some(weave) = &self.weave
+                    && let Some(title) = &weave.metadata().title
+                {
+                    title.to_owned()
                 } else {
-                    "Untitled Weave".to_string()
+                    if let Some(name) = path.file_prefix() {
+                        name.to_string_lossy().to_string()
+                    } else {
+                        "Untitled Weave".to_string()
+                    }
                 }
             }
             None => "New Weave".to_string(),
