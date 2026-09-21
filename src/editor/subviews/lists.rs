@@ -36,6 +36,8 @@ impl TreeListView {
         autoscroll: Option<AutoscrollData>,
         editor_id: Ulid,
         indent_level: usize,
+        omittion_level: usize,
+        parent: Option<ShortId>,
     ) {
         for (index, node) in nodes.enumerate() {
             if let Some(node) = weave.get(&node).cloned() {
@@ -100,8 +102,9 @@ impl TreeListView {
                                         ui.spacing().icon_width + ui.spacing().icon_spacing,
                                     );
                                     shared.horizontal_omitted_node_label(
-                                        *node.to.first().unwrap(),
+                                        node.to.first().copied().unwrap(),
                                         ui,
+                                        "\u{E04A} Show more",
                                     );
                                 });
                             } else {
@@ -115,7 +118,33 @@ impl TreeListView {
                                     autoscroll,
                                     editor_id,
                                     indent_level + 1,
+                                    omittion_level,
+                                    Some(node.id),
                                 );
+
+                                if node.from.len() > 1
+                                    && indent_level > omittion_level
+                                    && let Some(omitted_parent) = node
+                                        .from
+                                        .iter()
+                                        .copied()
+                                        .find(|candidate| Some(*candidate) != parent)
+                                {
+                                    ui.horizontal_wrapped(|ui| {
+                                        ui.add_space(
+                                            ui.spacing().icon_width + ui.spacing().icon_spacing,
+                                        );
+                                        shared.horizontal_omitted_node_label(
+                                            omitted_parent,
+                                            ui,
+                                            &if node.from.len() == 2 {
+                                                "1 omitted parent".to_string()
+                                            } else {
+                                                format!("{} omitted parents", node.from.len() - 1)
+                                            },
+                                        );
+                                    });
+                                }
                             }
                         });
 
@@ -147,7 +176,8 @@ impl View<EditorShared> for TreeListView {
                         let autoscroll = shared.ui.calculate_autoscroll(ui);
 
                         let mut hoisted = true;
-                        let roots: Vec<ShortId> = if let Some(cursor) = shared.ui.cursor
+                        let (roots, omittion_level): (Vec<ShortId>, usize) = if let Some(cursor) =
+                            shared.ui.cursor
                             && let Some(cursor_node) = weave.get(&cursor)
                             && cursor_node
                                 .from
@@ -155,20 +185,27 @@ impl View<EditorShared> for TreeListView {
                                 .any(|cursor_parent| !weave.roots().contains(cursor_parent))
                         {
                             if !cursor_node.to.is_empty() {
-                                cursor_node.from.iter().copied().collect()
+                                (cursor_node.from.iter().copied().collect(), 1)
                             } else {
-                                cursor_node
-                                    .from
-                                    .iter()
-                                    .flat_map(|cursor_parent| {
-                                        weave.get_parents(cursor_parent).unwrap().iter().copied()
-                                    })
-                                    .collect()
+                                (
+                                    cursor_node
+                                        .from
+                                        .iter()
+                                        .flat_map(|cursor_parent| {
+                                            weave
+                                                .get_parents(cursor_parent)
+                                                .unwrap()
+                                                .iter()
+                                                .copied()
+                                        })
+                                        .collect(),
+                                    2,
+                                )
                             }
                         } else {
                             hoisted = false;
 
-                            weave.roots().iter().copied().collect()
+                            (weave.roots().iter().copied().collect(), 0)
                         };
 
                         if weave.roots().is_empty() {
@@ -184,6 +221,8 @@ impl View<EditorShared> for TreeListView {
                                 autoscroll,
                                 shared.id,
                                 0,
+                                omittion_level,
+                                None,
                             );
                         }
 

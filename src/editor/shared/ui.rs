@@ -313,7 +313,7 @@ impl WeaveUi {
             self.cursor = Some(node.id);
         }
     }
-    pub fn horizontal_omitted_node_label(&mut self, node: ShortId, ui: &mut Ui) {
+    pub fn horizontal_omitted_node_label(&mut self, node: ShortId, ui: &mut Ui, message: &str) {
         let mut mouse_hovered = false;
 
         let response = ui
@@ -327,8 +327,7 @@ impl WeaveUi {
                 }
 
                 frame.show(ui, |ui| {
-                    let label =
-                        RichText::new("\u{E04A} Show more").family(FontFamily::Proportional);
+                    let label = RichText::new(message).family(FontFamily::Proportional);
 
                     let label_button_response =
                         ui.add(Button::new(label).fill(Color32::TRANSPARENT));
