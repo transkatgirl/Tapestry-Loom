@@ -23,7 +23,7 @@ tapestry-weave = { path = "tapestry-weave", features = [
 	"v0",
 	# TODO: Add v0 feature after rewrite is finished? Or should we require using migration-assistant instead of automatically updating weaves?
 ], default-features = false }
-eframe = { version = "0.34.3", features = [ # egui 0.35.0 has a serious performance regression
+eframe = { version = "0.36.2", features = [ # egui 0.35.0 has a serious performance regression - likely https://github.com/emilk/egui/issues/8610
 	"accesskit",
 	"wayland",
 	#"web_screen_reader",
@@ -65,8 +65,8 @@ parking_lot = { version = "0.12.5", features = [
 ] }
 anyhow = "1.0.103"
 dirs-next = "2.0.0"
-egui_tiles = "0.15.0"
-egui-notify = "0.22.0"
+egui_tiles = "0.17.1"
+egui-notify = "0.23.0"
 tokio = { version = "1.52.3", features = [
 	"full",
 ] }
@@ -75,7 +75,7 @@ walkdir = "2.5.0"
 unicode-segmentation = "1.13.3"
 trash = "5.2.6"
 ctrlc = "3.5.2"
-egui-keybind = { git = "https://github.com/transkatgirl/egui-keybind.git", rev = "86a29afc7e083b33c8bbec7278da59a66226bd97", features = [
+egui-keybind = { git = "https://github.com/transkatgirl/egui-keybind.git", rev = "8ff2975f8575ed216528e84e016741afcd346bea", features = [
 	"serde",
 ] }
 flagset = { version = "0.4.7", features = [

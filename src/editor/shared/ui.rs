@@ -4,7 +4,7 @@ use eframe::egui::{
     Align, Button, Color32, FontFamily, Frame, Layout, Pos2, Rect, RichText, ScrollArea, Sense,
     TextFormat, TextStyle, TextWrapMode, Ui, UiBuilder, WidgetText,
     containers::menu::SubMenuButton,
-    text::{LayoutJob, LayoutSection},
+    text::{ByteIndex, LayoutJob, LayoutSection},
 };
 use flagset::{FlagSet, flags};
 use tapestry_weave::{
@@ -482,7 +482,7 @@ impl WeaveUi {
                     text: "No text".to_string(),
                     sections: vec![LayoutSection {
                         leading_space: 0.0,
-                        byte_range: 0..("No text").len(),
+                        byte_range: ByteIndex(0)..ByteIndex(("No text").len()),
                         format: TextFormat {
                             font_id: notice_font_id,
                             color: node_color,
@@ -515,8 +515,8 @@ impl WeaveUi {
                         sections: vec![LayoutSection {
                             leading_space: 0.0,
                             byte_range: Range {
-                                start: 0,
-                                end: token_text_length,
+                                start: ByteIndex(0),
+                                end: ByteIndex(token_text_length),
                             },
                             format: TextFormat {
                                 font_id,
@@ -551,8 +551,8 @@ impl WeaveUi {
                         sections.push(LayoutSection {
                             leading_space: 0.0,
                             byte_range: Range {
-                                start: text.floor_char_boundary(offset),
-                                end: text.floor_char_boundary(offset + token_length),
+                                start: ByteIndex(text.floor_char_boundary(offset)),
+                                end: ByteIndex(text.floor_char_boundary(offset + token_length)),
                             },
                             format: TextFormat {
                                 font_id: font_id.clone(),
@@ -583,7 +583,7 @@ impl WeaveUi {
                         text,
                         sections: vec![LayoutSection {
                             leading_space: 0.0,
-                            byte_range: 0..text_length,
+                            byte_range: ByteIndex(0)..ByteIndex(text_length),
                             format: TextFormat {
                                 font_id,
                                 color: node_color,
