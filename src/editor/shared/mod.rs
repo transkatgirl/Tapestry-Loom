@@ -75,7 +75,7 @@ impl EditorShared {
         }
 
         Self {
-            id: Ulid::new(),
+            id: Ulid::generate(),
             path,
             modal: EditorModal::None,
             disk_task,
@@ -96,7 +96,7 @@ impl EditorShared {
         shared.open_documents_updated = true;
 
         Self {
-            id: Ulid::new(),
+            id: Ulid::generate(),
             path: Some(preload.path),
             modal: EditorModal::None,
             disk_task: DiskTask::from(preload.task),
@@ -311,7 +311,7 @@ impl EditorShared {
         self.last_visible = true;
         self.close_ready = self.close_after_save;
 
-        Panel::bottom(ui.id()).show_inside(ui, |ui| {
+        Panel::bottom(ui.id()).show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                     if let Some(path) = &self.path {

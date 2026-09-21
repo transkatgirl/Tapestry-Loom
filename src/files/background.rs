@@ -140,10 +140,7 @@ impl BackgroundFsManager {
         let _runtime = shared.runtime.enter();
 
         self.tasks.push_back(task::spawn_blocking(move || {
-            debug!(
-                "Started background task rename_item({:?}, {:?})",
-                from, to
-            );
+            debug!("Started background task rename_item({:?}, {:?})", from, to);
 
             match fs::exists(&to) {
                 Ok(true) => {
@@ -168,10 +165,7 @@ impl BackgroundFsManager {
                 }
             }
 
-            debug!(
-                "Finished background task rename_item({:?}, {:?})",
-                from, to
-            );
+            debug!("Finished background task rename_item({:?}, {:?})", from, to);
         }));
     }
     pub fn copy_item(&mut self, shared: &mut AppShared, from: PathBuf, to: PathBuf) {
@@ -299,13 +293,13 @@ struct CrawlState {
 impl CrawlState {
     fn new() -> Self {
         Self {
-            id: Ulid::new(),
+            id: Ulid::generate(),
             paths: IndexMap::with_capacity(16384),
         }
     }
     fn reset(&mut self) {
         self.paths.clear();
-        self.id = Ulid::new();
+        self.id = Ulid::generate();
     }
 }
 
