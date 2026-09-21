@@ -1276,15 +1276,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "convert_case"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "baaaa0ecca5b51987b9423ccdc971514dd8b0bb7b4060b983d3664dad3f1f89f"
-dependencies = [
- "unicode-segmentation",
-]
-
-[[package]]
 name = "cookie"
 version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1800,29 +1791,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a29b39d9d60a29c217d0e86ef8221cd2e736f841aba75b5c32a3a0cade5f802"
 dependencies = [
  "egui",
-]
-
-[[package]]
-name = "egui-probe"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4cc89e4fd990df3e50ff7a1eb3872593cbc35e8228c840ededd478b2b299853"
-dependencies = [
- "egui",
- "egui-probe-proc",
-]
-
-[[package]]
-name = "egui-probe-proc"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8bcd5a45d46f8de2c353f38c6fee1e5169aab4edcdb8cbc71c6fd0b7f83bd8e"
-dependencies = [
- "convert_case",
- "proc-easy",
- "proc-macro2",
- "quote",
- "syn 2.0.119",
 ]
 
 [[package]]
@@ -4477,17 +4445,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8cf8e6a8aa66ce33f63993ffc4ea4271eb5b0530a9002db8455ea6050c77bfa"
 
 [[package]]
-name = "proc-easy"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "446f7efaa53a9589eaca5040dd749d9721e0ee60cf66f6c370e2716c031dcf7b"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
-]
-
-[[package]]
 name = "proc-macro-crate"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5896,7 +5853,6 @@ dependencies = [
  "eframe",
  "egui-keybind",
  "egui-notify",
- "egui-probe",
  "egui_tiles",
  "elkai-rs",
  "env_logger",

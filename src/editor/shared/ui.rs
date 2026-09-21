@@ -10,9 +10,13 @@ use flagset::{FlagSet, flags};
 use tapestry_weave::{
     Author, Creator, InnerNodeContent, InnerNodeToken, MetadataMap, NodeContent, OriginalToken,
     ShortId, TapestryNode, UNKNOWN_MODEL_LABEL,
+    content::sort,
     jiff::Zoned,
     nanorand::WyRand,
-    universal_weave::{BookmarkableWeave, DiscreteWeave, Weave, indexmap::IndexSet},
+    universal_weave::{
+        BookmarkableWeave, DiscreteWeave, SortableBookmarkableWeave, SortableWeave, Weave,
+        indexmap::IndexSet,
+    },
     weave::wrappers::LoggedTapestryWeave,
 };
 use ulid::Ulid;
@@ -747,11 +751,11 @@ impl WeaveUi {
                 }
 
                 if ui.button("Confidence").clicked() {
-                    // TODO
+                    weave.sort_children_by(&node.id, sort::by_confidence);
                 }
 
-                if ui.button("Timestamp").clicked() {
-                    // TODO
+                if ui.button("Metadata").clicked() {
+                    weave.sort_children_by(&node.id, sort::grouped);
                 }
             });
 
@@ -825,11 +829,11 @@ impl WeaveUi {
                     }
 
                     if ui.button("Confidence").clicked() {
-                        // TODO
+                        weave.sort_roots_by(sort::by_confidence);
                     }
 
-                    if ui.button("Timestamp").clicked() {
-                        // TODO
+                    if ui.button("Metadata").clicked() {
+                        weave.sort_roots_by(sort::grouped);
                     }
                 });
             }
@@ -846,11 +850,11 @@ impl WeaveUi {
                 }
 
                 if ui.button("Confidence").clicked() {
-                    // TODO
+                    weave.sort_bookmarks_by(sort::by_confidence);
                 }
 
-                if ui.button("Timestamp").clicked() {
-                    // TODO
+                if ui.button("Metadata").clicked() {
+                    weave.sort_bookmarks_by(sort::grouped);
                 }
             });
         }
