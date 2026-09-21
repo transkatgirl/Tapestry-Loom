@@ -16,7 +16,6 @@ use crate::{
         EditorShared,
         shared::ui::{
             AutoscrollData, ButtonFlags, DEFAULT_OPEN, DocumentContextFlags, LabelOptions, WeaveUi,
-            primary_parent,
         },
     },
 };
@@ -150,16 +149,22 @@ impl View<EditorShared> for TreeListView {
                         let mut hoisted = true;
                         let roots: Vec<ShortId> = if let Some(cursor) = shared.ui.cursor
                             && let Some(cursor_node) = weave.get(&cursor)
-                            && let Some(cursor_parent) = primary_parent(weave, cursor_node)
-                            && let Some(cursor_parent_node) = weave.get(&cursor_parent)
-                            && let Some(cursor_parent_parent) =
-                                primary_parent(weave, cursor_parent_node)
+                            && cursor_node
+                                .from
+                                .iter()
+                                .any(|cursor_parent| !weave.roots().contains(cursor_parent))
                         {
-                            vec![if !cursor_node.to.is_empty() {
-                                cursor_parent
+                            if !cursor_node.to.is_empty() {
+                                cursor_node.from.iter().copied().collect()
                             } else {
-                                cursor_parent_parent
-                            }]
+                                cursor_node
+                                    .from
+                                    .iter()
+                                    .flat_map(|cursor_parent| {
+                                        weave.get_parents(cursor_parent).unwrap().iter().copied()
+                                    })
+                                    .collect()
+                            }
                         } else {
                             hoisted = false;
 

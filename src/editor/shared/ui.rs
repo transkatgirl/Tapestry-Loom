@@ -48,7 +48,6 @@ pub struct WeaveUi {
 
 pub const DEFAULT_OPEN: bool = false;
 
-/// Returns the parent of `node` which is on the active path, falling back to its first parent.
 pub fn primary_parent(weave: &LoggedTapestryWeave, node: &TapestryNode) -> Option<ShortId> {
     node.from
         .iter()
