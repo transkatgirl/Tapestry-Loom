@@ -1268,9 +1268,7 @@ impl Model {
                 if self.system_fingerprint != value.system_fingerprint {
                     self.system_fingerprint = None;
                 }
-                if self.finish_reason != value.finish_reason {
-                    self.finish_reason = None;
-                }
+                self.finish_reason = value.finish_reason;
                 Ok(self)
             } else if self.color.is_none() {
                 if self.seed != value.seed {
@@ -1278,9 +1276,6 @@ impl Model {
                 }
                 if self.system_fingerprint != value.system_fingerprint {
                     value.system_fingerprint = None;
-                }
-                if self.finish_reason != value.finish_reason {
-                    value.finish_reason = None;
                 }
                 Ok(value)
             } else {
