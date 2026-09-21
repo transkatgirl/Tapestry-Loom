@@ -12,9 +12,7 @@ use tapestry_weave::{
     ShortId, TapestryNode, UNKNOWN_MODEL_LABEL,
     jiff::Zoned,
     nanorand::WyRand,
-    universal_weave::{
-        ActivePathWeave, BookmarkableWeave, DiscreteWeave, Weave, indexmap::IndexSet,
-    },
+    universal_weave::{BookmarkableWeave, DiscreteWeave, Weave, indexmap::IndexSet},
     weave::wrappers::LoggedTapestryWeave,
 };
 use ulid::Ulid;
@@ -47,14 +45,6 @@ pub struct WeaveUi {
 }
 
 pub const DEFAULT_OPEN: bool = false;
-
-pub fn primary_parent(weave: &LoggedTapestryWeave, node: &TapestryNode) -> Option<ShortId> {
-    node.from
-        .iter()
-        .copied()
-        .find(|id| weave.active().contains(id))
-        .or_else(|| node.from.first().copied())
-}
 
 impl WeaveUi {
     fn generate_id(&mut self, weave: &LoggedTapestryWeave) -> ShortId {
@@ -1206,23 +1196,23 @@ impl WeaveUi {
             };
 
             if flags.contains(ButtonFlags::Hoist)
-                && let Some(parent) = primary_parent(weave, node)
+                && node.from.len() == 1
                 && ui
                     .button("\u{E042}")
                     .on_hover_text("Show parents")
                     .clicked()
             {
-                self.cursor = Some(parent);
+                self.cursor = Some(node.from.first().copied().unwrap());
             };
         } else {
             if flags.contains(ButtonFlags::Hoist)
-                && let Some(parent) = primary_parent(weave, node)
+                && node.from.len() == 1
                 && ui
                     .button("\u{E042}")
                     .on_hover_text("Show parents")
                     .clicked()
             {
-                self.cursor = Some(parent);
+                self.cursor = Some(node.from.first().copied().unwrap());
             };
 
             if flags.contains(ButtonFlags::Merge)
