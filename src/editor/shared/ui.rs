@@ -10,7 +10,7 @@ use flagset::{FlagSet, flags};
 use tapestry_weave::{
     Author, Creator, InnerNodeContent, InnerNodeToken, MetadataMap, NodeContent, OriginalToken,
     ShortId, TapestryNode, UNKNOWN_MODEL_LABEL,
-    content::sort,
+    content::{from_utf8_lossy, sort},
     jiff::Zoned,
     nanorand::WyRand,
     universal_weave::{
@@ -22,7 +22,7 @@ use tapestry_weave::{
 use ulid::Ulid;
 
 use crate::{
-    common::ui::{from_utf8_lossy, multiply_color_alpha},
+    common::ui::multiply_color_alpha,
     editor::settings::{
         interface::{InterfaceSettings, NodeColors, TokenColors},
         shortcuts::Shortcuts,
