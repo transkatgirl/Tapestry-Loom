@@ -27,7 +27,7 @@ use crate::{
         interface::{InterfaceSettings, NodeColors, TokenColors},
         shortcuts::Shortcuts,
     },
-    inference::InferenceEngine,
+    inference::{InferenceEngine, InferenceRequest},
 };
 
 #[derive(Default)]
@@ -37,10 +37,9 @@ pub struct WeaveUi {
     pub opened: HashMap<ShortId, bool>,
     hovered: Option<ShortId>,
     last_hovered: Option<ShortId>,
-    scroll_to: Option<ShortId>,
+    pub(super) scroll_to: Option<ShortId>,
 
-    generate: Option<ShortId>,
-    seriate: Option<ShortId>,
+    requests: Vec<InferenceRequest>,
     rendered_collapsing_labels: Vec<ShortId>,
     path_buffer: Vec<ShortId>,
     rng: WyRand,
@@ -120,14 +119,8 @@ impl WeaveUi {
 
         self.rendered_collapsing_labels.clear();
 
-        if let Some(generate) = self.generate.take() {
-            inference.generate_children(id, weave, generate);
-        }
-
-        // TODO: generated children should be scroll_to
-
-        if let Some(seriate) = self.seriate.take() {
-            inference.seriate_siblings(id, weave, seriate);
+        for request in self.requests.drain(..) {
+            inference.request(id, weave, request);
         }
 
         self.settings = *settings;
@@ -157,6 +150,8 @@ impl WeaveUi {
         in_place: bool,
     ) {
         let mut mouse_hovered = false;
+
+        // TODO: improve label coloring
 
         if options.collapsing {
             self.rendered_collapsing_labels.push(node.id);
@@ -220,6 +215,7 @@ impl WeaveUi {
                         && (autoscroll.max_autoscroll_height >= label_button_response.rect.height()
                             || ui.input(|i| i.modifiers.any()))
                     {
+                        // TODO: handle the same node being displayed multiple times in the same subview (eg. if a treelist is displaying the node once for every parent it has, only scroll to the node label above the parent before the node in the active path)
                         label_button_response.scroll_to_me(None);
                     }
 
@@ -664,7 +660,8 @@ impl WeaveUi {
 
         let generate_response = ui.button("Generate completions");
         if generate_response.clicked() {
-            self.generate = Some(node.id);
+            self.requests
+                .push(InferenceRequest::GenerateAfter(Some(node.id)));
 
             if generate_response.clicked_with_open_in_background() {
                 weave.set_active_tree_semantics(&node.id, true);
@@ -746,7 +743,8 @@ impl WeaveUi {
 
             SubMenuButton::new("Sort children by...").ui(ui, |ui| {
                 if ui.button("Seriation").clicked() {
-                    self.seriate = Some(node.id);
+                    self.requests
+                        .push(InferenceRequest::SeriateChildren(Some(node.id)));
                 }
 
                 if ui.button("Confidence").clicked() {
@@ -824,7 +822,7 @@ impl WeaveUi {
 
                 SubMenuButton::new("Sort roots by...").ui(ui, |ui| {
                     if ui.button("Seriation").clicked() {
-                        // TODO
+                        self.requests.push(InferenceRequest::SeriateChildren(None));
                     }
 
                     if ui.button("Confidence").clicked() {
@@ -845,7 +843,7 @@ impl WeaveUi {
 
             SubMenuButton::new("Sort bookmarks by...").ui(ui, |ui| {
                 if ui.button("Seriation").clicked() {
-                    // TODO
+                    self.requests.push(InferenceRequest::SeriateBookmarks);
                 }
 
                 if ui.button("Confidence").clicked() {
@@ -1177,7 +1175,8 @@ impl WeaveUi {
                             "Generate completions & focus node"
                         });
                 if generate_response.clicked() {
-                    self.generate = Some(node.id);
+                    self.requests
+                        .push(InferenceRequest::GenerateAfter(Some(node.id)));
 
                     if generate_response.clicked_with_open_in_background() {
                         weave.set_active_tree_semantics(&node.id, true);
@@ -1237,7 +1236,8 @@ impl WeaveUi {
                             "Generate completions & focus node"
                         });
                 if generate_response.clicked() {
-                    self.generate = Some(node.id);
+                    self.requests
+                        .push(InferenceRequest::GenerateAfter(Some(node.id)));
 
                     if generate_response.clicked_with_open_in_background() {
                         weave.set_active_tree_semantics(&node.id, true);

@@ -16,6 +16,12 @@ pub struct InferenceEngine {
     client: Client,
 }
 
+pub enum InferenceRequest {
+    GenerateAfter(Option<ShortId>),
+    SeriateChildren(Option<ShortId>),
+    SeriateBookmarks,
+}
+
 impl InferenceEngine {
     pub fn new(
         runtime: Arc<Runtime>,
@@ -33,6 +39,13 @@ impl InferenceEngine {
     pub fn requests(&self, document: Ulid) -> usize {
         0 // TODO
     }
+    pub fn request(
+        &mut self,
+        document: Ulid,
+        weave: &mut LoggedTapestryWeave,
+        request: InferenceRequest,
+    ) {
+    }
     pub fn generate_children(
         &mut self,
         document: Ulid,
@@ -49,7 +62,15 @@ impl InferenceEngine {
     ) {
         // TODO
     }
-    pub fn update(&mut self, document: Ulid, weave: &mut Option<LoggedTapestryWeave>) {}
+    pub fn update(
+        &mut self,
+        document: Ulid,
+        weave: &mut Option<LoggedTapestryWeave>,
+    ) -> Vec<ShortId> {
+        let mut updated = Vec::new();
+
+        updated
+    }
     pub fn cancel(&mut self, document: Ulid) {}
 }
 

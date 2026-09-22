@@ -186,7 +186,14 @@ impl EditorShared {
             DiskTask::None => {}
         }
 
-        shared.inference.update(self.id, &mut self.weave);
+        if let Some(updated) = shared
+            .inference
+            .update(self.id, &mut self.weave)
+            .last()
+            .copied()
+        {
+            self.ui.scroll_to = Some(updated);
+        };
 
         if let Some(weave) = &mut self.weave {
             self.ui.logic(
