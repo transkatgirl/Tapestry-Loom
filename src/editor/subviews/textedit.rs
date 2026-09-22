@@ -4,7 +4,7 @@ use tapestry_weave::{
 };
 
 use crate::{
-    common::{ui::from_utf8_lossy_in_place, view::View},
+    common::view::View,
     editor::{EditorShared, shared::ui::WeaveUi},
 };
 
@@ -97,4 +97,23 @@ impl View<EditorShared> for TextEditView {
             // TODO
         }
     }
+}
+
+fn from_utf8_lossy_in_place(input: &[u8], output: &mut String) {
+    output.clear();
+    output.reserve(input.len());
+
+    const REPLACEMENT: char = '\u{1A}';
+
+    debug_assert_eq!(REPLACEMENT.len_utf8(), 1);
+
+    for chunk in input.utf8_chunks() {
+        output.push_str(chunk.valid());
+
+        for _ in chunk.invalid() {
+            output.push(REPLACEMENT);
+        }
+    }
+
+    debug_assert_eq!(input.len(), output.len());
 }

@@ -69,9 +69,7 @@ impl EditorShared {
             let _runtime = shared.runtime.enter();
             disk_task = DiskTask::read(path, disk_task_data.clone());
         } else {
-            weave = Some(LoggedTapestryWeave::new(TapestryWeave::with_capacity(
-                16384,
-            )));
+            weave = Some(LoggedTapestryWeave::new(TapestryWeave::new()));
         }
 
         Self {
