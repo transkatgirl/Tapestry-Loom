@@ -154,6 +154,13 @@ impl TapestryWeave {
     pub fn is_empty_including_metadata(&self) -> bool {
         self.0.is_empty() && self.0.metadata().is_empty()
     }
+    /// Convenience method which returns `id`'s primary parent using [`Weave::get_path_from`]'s output.
+    pub fn get_primary_parent(&mut self, id: &ShortId) -> Option<ShortId> {
+        self.0.inner_scratchpad_mut(|weave, scratchpad| {
+            weave.get_path_from(id, scratchpad);
+            scratchpad.get(1).copied()
+        })
+    }
     /// Convenience method which returns the siblings of the node corresponding to the identifier.
     pub fn get_siblings(
         &self,
@@ -409,7 +416,7 @@ impl TapestryWeave {
     ///
     /// The token being split out must not be empty.
     ///
-    /// If successful, returns a tuple of identifiers corresponding to (token_parent, token, token_child).
+    /// If successful, returns a tuple of identifiers corresponding to (token_parent, token, token_child). If the returned `token` equals the `id` argument, token_parent will be None.
     pub fn split_out_token(
         &mut self,
         id: &ShortId,
@@ -460,13 +467,6 @@ impl TapestryWeave {
                         Some((Some(*id), middle_id, None))
                     }
                 } else {
-                    let chosen_parent = node
-                        .from
-                        .iter()
-                        .copied()
-                        .find(|id| self.0.contains_active(id))
-                        .or_else(|| node.from.first().copied());
-
                     if let Some(second_split_index) = second_split_index
                         && second_split_index > 0
                     {
@@ -478,9 +478,9 @@ impl TapestryWeave {
                             assert!(self.0.set_active(&tail_id, true));
                         }
 
-                        Some((chosen_parent, *id, Some(tail_id)))
+                        Some((None, *id, Some(tail_id)))
                     } else {
-                        Some((chosen_parent, *id, None))
+                        Some((None, *id, None))
                     }
                 }
             } else {
@@ -502,10 +502,35 @@ impl TapestryWeave {
             }
         })
     }
+    /// Convenience function which provides an empty `&mut Vec<K>` for path operations.
+    ///
+    /// **Operations on the callback's [`TapestryWeaveInner`] may skip content normalization performed by [`TapestryWeave`].**
+    #[inline]
+    pub fn inner_scratchpad_mut<F, O>(&mut self, callback: F) -> O
+    where
+        F: FnOnce(&mut TapestryWeaveInner, &mut Vec<ShortId>) -> O,
+    {
+        self.0.inner_scratchpad_mut(callback)
+    }
+    /// Convenience function which returns the output of [`Weave::get_path_from`].
+    #[inline]
+    pub fn path_vec(&mut self, id: &ShortId) -> &mut Vec<ShortId> {
+        self.0.path_vec(id)
+    }
+    /// Convenience function which returns the output of [`Weave::get_active_path`].
+    #[inline]
+    pub fn active_path_vec(&mut self) -> &mut Vec<ShortId> {
+        self.0.active_path_vec()
+    }
     /// Convenience function which returns an iterator over the content corresponding to the active path.
     #[inline]
     pub fn active_content(&mut self) -> impl Iterator<Item = &NodeContent> {
         self.0.active_content()
+    }
+    /// Convenience function which returns an iterator over the content corresponding to `id`'s path.
+    #[inline]
+    pub fn path_content(&mut self, id: &ShortId) -> impl Iterator<Item = &NodeContent> {
+        self.0.path_content(id)
     }
     /// Convenience function which returns an iterator over the text bytes corresponding to the active path.
     #[inline]

@@ -528,6 +528,11 @@ impl LoggedTapestryWeave {
     pub fn is_empty_including_metadata(&self) -> bool {
         self.weave.is_empty_including_metadata()
     }
+    /// Convenience method which returns `id`'s primary parent using [`Weave::get_path_from`]'s output.
+    #[inline]
+    pub fn get_primary_parent(&mut self, id: &ShortId) -> Option<ShortId> {
+        self.weave.get_primary_parent(id)
+    }
     /// Convenience method which returns the siblings of the node corresponding to the identifier.
     #[inline]
     pub fn get_siblings(
@@ -646,10 +651,25 @@ impl LoggedTapestryWeave {
     pub fn is_mergeable_with_parent(&self, id: &ShortId) -> bool {
         self.weave.is_mergeable_with_parent(id)
     }
+    /// Convenience function which returns the output of [`Weave::get_path_from`].
+    #[inline]
+    pub fn path_vec(&mut self, id: &ShortId) -> &mut Vec<ShortId> {
+        self.weave.path_vec(id)
+    }
+    /// Convenience function which returns the output of [`Weave::get_active_path`].
+    #[inline]
+    pub fn active_path_vec(&mut self) -> &mut Vec<ShortId> {
+        self.weave.active_path_vec()
+    }
     /// Convenience function which returns an iterator over the content corresponding to the active path.
     #[inline]
     pub fn active_content(&mut self) -> impl Iterator<Item = &NodeContent> {
         self.weave.active_content()
+    }
+    /// Convenience function which returns an iterator over the content corresponding to `id`'s path.
+    #[inline]
+    pub fn path_content(&mut self, id: &ShortId) -> impl Iterator<Item = &NodeContent> {
+        self.weave.path_content(id)
     }
     /// Convenience function which returns an iterator over the text bytes corresponding to the active path.
     #[inline]
