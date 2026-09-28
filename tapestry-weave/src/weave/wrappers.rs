@@ -533,6 +533,11 @@ impl LoggedTapestryWeave {
     pub fn get_primary_parent(&mut self, id: &ShortId) -> Option<ShortId> {
         self.weave.get_primary_parent(id)
     }
+    /// Convenience method which returns `id`'s primary child using [`Weave::get_active_path`], falling back to the first child if none of the node's children are on the active path.
+    #[inline]
+    pub fn get_primary_child(&mut self, id: &ShortId) -> Option<ShortId> {
+        self.weave.get_primary_child(id)
+    }
     /// Convenience method which returns the siblings of the node corresponding to the identifier.
     #[inline]
     pub fn get_siblings(
@@ -541,6 +546,16 @@ impl LoggedTapestryWeave {
         include_roots: bool,
     ) -> Option<impl Iterator<Item = ShortId>> {
         self.weave.get_siblings(id, include_roots)
+    }
+    /// Convenience method which returns the sibling before `id`.
+    #[inline]
+    pub fn get_previous_sibling(&self, id: &ShortId, include_roots: bool) -> Option<ShortId> {
+        self.weave.get_previous_sibling(id, include_roots)
+    }
+    /// Convenience method which returns the sibling after `id`.
+    #[inline]
+    pub fn get_next_sibling(&self, id: &ShortId, include_roots: bool) -> Option<ShortId> {
+        self.weave.get_next_sibling(id, include_roots)
     }
     /// A wrapper around [`Weave::insert`] which prevents nodes with duplicate siblings from being inserted.
     #[must_use]

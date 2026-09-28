@@ -157,8 +157,34 @@ impl TapestryWeave {
     /// Convenience method which returns `id`'s primary parent using [`Weave::get_path_from`]'s output.
     pub fn get_primary_parent(&mut self, id: &ShortId) -> Option<ShortId> {
         self.0.inner_scratchpad_mut(|weave, scratchpad| {
-            weave.get_path_from(id, scratchpad);
-            scratchpad.get(1).copied()
+            let parents = weave.get_parents(id)?;
+            if parents.len() < 2 {
+                parents.first().copied()
+            } else {
+                weave.get_path_from(id, scratchpad);
+                scratchpad.get(1).copied()
+            }
+        })
+    }
+    /// Convenience method which returns `id`'s primary child using [`Weave::get_active_path`], falling back to the first child if none of the node's children are on the active path.
+    pub fn get_primary_child(&mut self, id: &ShortId) -> Option<ShortId> {
+        self.0.inner_scratchpad_mut(|weave, scratchpad| {
+            let children = weave.get_children(id)?;
+            if children.len() < 2 {
+                children.first().copied()
+            } else {
+                weave.get_active_path(scratchpad);
+
+                let children = weave.get_children(id)?;
+
+                scratchpad
+                    .iter()
+                    .position(|x| x == id)
+                    .and_then(|index| index.checked_sub(1))
+                    .or_else(|| scratchpad.iter().rposition(|x| children.contains(x)))
+                    .map(|index| scratchpad[index])
+                    .or(children.first().copied())
+            }
         })
     }
     /// Convenience method which returns the siblings of the node corresponding to the identifier.
@@ -190,6 +216,61 @@ impl TapestryWeave {
             }
             .into_iter()
         })
+    }
+    /// Convenience method which returns the sibling before `id`.
+    #[inline]
+    pub fn get_previous_sibling(&self, id: &ShortId, include_roots: bool) -> Option<ShortId> {
+        self.get_adjacent_sibling(id, include_roots, true)
+    }
+    /// Convenience method which returns the sibling after `id`.
+    #[inline]
+    pub fn get_next_sibling(&self, id: &ShortId, include_roots: bool) -> Option<ShortId> {
+        self.get_adjacent_sibling(id, include_roots, false)
+    }
+    fn get_adjacent_sibling(
+        &self,
+        id: &ShortId,
+        include_roots: bool,
+        reverse: bool,
+    ) -> Option<ShortId> {
+        let node = self.0.get(id)?;
+
+        let adjacent = |siblings: &IndexSet<ShortId, BuildHasherDefault<RandomIdHasher>>| {
+            let index = siblings.get_index_of(id)?;
+
+            if reverse {
+                siblings
+                    .get_range(..index)?
+                    .iter()
+                    .rev()
+                    .copied()
+                    .find(|id| !node.from.contains(id) && !node.to.contains(id))
+            } else {
+                siblings
+                    .get_range(index + 1..)?
+                    .iter()
+                    .copied()
+                    .find(|id| !node.from.contains(id) && !node.to.contains(id))
+            }
+        };
+
+        match node.from.len() {
+            0 => {
+                if include_roots {
+                    adjacent(self.0.roots())
+                } else {
+                    None
+                }
+            }
+            1 => adjacent(self.0.get_children(&node.from[0])?),
+            _ => adjacent(&IndexSet::from_iter(
+                node.from
+                    .iter()
+                    .filter_map(|id| self.0.get_children(id))
+                    .flatten()
+                    .copied(),
+            )),
+        }
     }
     /// A wrapper around [`Weave::insert`] which prevents nodes with duplicate siblings from being inserted.
     #[must_use]
