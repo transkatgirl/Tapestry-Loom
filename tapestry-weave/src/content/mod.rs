@@ -6,6 +6,7 @@ use jiff::Zoned;
 use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
 use universal_weave::{
     DeduplicatableContents, DiscreteContentResult, DiscreteContents, IndependentContents,
+    indexmap::IndexSet,
     rkyv::{
         Archive, Deserialize, Serialize, niche::niching, option::ArchivedOption, with::NicheInto,
     },
@@ -15,6 +16,7 @@ use crate::{
     metadata::MetadataMap,
     util::{AsBinaryZoned, Base64Standard, IAsVec},
     weave::LongId,
+    weave::{ShortId, TapestryNode},
 };
 
 pub mod sort;
@@ -1363,14 +1365,39 @@ impl Author {
     }
 }
 
+/// Returns a new, empty user node with the current timestamp.
 #[inline]
+pub fn empty_user_node(
+    id: ShortId,
+    from: impl IntoIterator<Item = ShortId>,
+    to: impl IntoIterator<Item = ShortId>,
+    active: bool,
+    user: Option<Author>,
+) -> TapestryNode {
+    TapestryNode {
+        id,
+        from: IndexSet::from_iter(from),
+        to: IndexSet::from_iter(to),
+        active,
+        bookmarked: false,
+        contents: NodeContent {
+            timestamp: Zoned::now(),
+            modified: false,
+            content: InnerNodeContent::Snippet(Vec::new()),
+            metadata: MetadataMap::default(),
+            creator: Creator::User(user),
+        },
+    }
+}
+
 /// Normalizes infinite and NaN values to None and Some(-0.0) to Some(0.0).
+#[inline]
 pub fn normalize_f32(item: Option<f32>) -> Option<f32> {
     item.filter(|item| item.is_finite()).map(|item| item + 0.0)
 }
 
-#[inline]
 /// Normalizes infinite and NaN values to None and Some(-0.0) to Some(0.0).
+#[inline]
 pub fn normalize_f64(item: Option<f64>) -> Option<f64> {
     item.filter(|item| item.is_finite()).map(|item| item + 0.0)
 }

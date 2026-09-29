@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::TapestryNode;
+use crate::weave::TapestryNode;
 
 pub fn by_model(a: &TapestryNode, b: &TapestryNode) -> Ordering {
     a.contents.creator.label().cmp(&b.contents.creator.label())
