@@ -1,11 +1,11 @@
 //! Document format implementations.
 
 use std::{
-    cmp::Ordering,
+    cmp::{Ordering, Reverse},
     hash::BuildHasherDefault,
     iter,
     num::NonZeroU128,
-    ops::Range,
+    ops::{ControlFlow, Range},
     time::{Duration, Instant},
 };
 
@@ -187,90 +187,177 @@ impl TapestryWeave {
             }
         })
     }
-    /// Convenience method which returns the siblings of the node corresponding to the identifier.
-    pub fn get_siblings(
-        &self,
-        id: &ShortId,
-        include_roots: bool,
-    ) -> Option<impl Iterator<Item = ShortId>> {
-        self.0.get(id).map(|node| {
-            if include_roots && node.from.is_empty() {
-                IndexSet::<ShortId, BuildHasherDefault<RandomIdHasher>>::from_iter(
-                    self.0
-                        .roots()
-                        .iter()
-                        .copied()
-                        .filter(|id| node.id != *id && !node.to.contains(id)),
-                )
-            } else {
-                IndexSet::<ShortId, BuildHasherDefault<RandomIdHasher>>::from_iter(
-                    node.from
-                        .iter()
-                        .filter_map(|id| self.0.get_children(id))
-                        .flatten()
-                        .copied()
-                        .filter(|id| {
-                            node.id != *id && !node.from.contains(id) && !node.to.contains(id)
-                        }),
-                )
-            }
-            .into_iter()
-        })
+    /// Convenience method which returns the siblings of the node corresponding to the identifier using the same ordering as [`Self::get_ordered_identifiers`].
+    pub fn get_siblings(&mut self, id: &ShortId, include_roots: bool) -> Option<Vec<ShortId>> {
+        let node = self.0.get(id)?;
+
+        let siblings = self.sibling_set(node, include_roots, false);
+        let mut ordered = Vec::with_capacity(siblings.len());
+
+        self.visit_ordered_siblings(node.from.len() < 2, siblings, |id| {
+            ordered.push(id);
+            ControlFlow::Continue(())
+        });
+
+        Some(ordered)
     }
-    /// Convenience method which returns the sibling before `id`.
+    /// Convenience method which returns the sibling before `id` using the same ordering as [`Self::get_ordered_identifiers`].
     #[inline]
-    pub fn get_previous_sibling(&self, id: &ShortId, include_roots: bool) -> Option<ShortId> {
+    pub fn get_previous_sibling(&mut self, id: &ShortId, include_roots: bool) -> Option<ShortId> {
         self.get_adjacent_sibling(id, include_roots, true)
     }
-    /// Convenience method which returns the sibling after `id`.
+    /// Convenience method which returns the sibling after `id` using the same ordering as [`Self::get_ordered_identifiers`].
     #[inline]
-    pub fn get_next_sibling(&self, id: &ShortId, include_roots: bool) -> Option<ShortId> {
+    pub fn get_next_sibling(&mut self, id: &ShortId, include_roots: bool) -> Option<ShortId> {
         self.get_adjacent_sibling(id, include_roots, false)
     }
     fn get_adjacent_sibling(
-        &self,
+        &mut self,
         id: &ShortId,
         include_roots: bool,
         reverse: bool,
     ) -> Option<ShortId> {
         let node = self.0.get(id)?;
 
-        let adjacent = |siblings: &IndexSet<ShortId, BuildHasherDefault<RandomIdHasher>>| {
-            let index = siblings.get_index_of(id)?;
+        let siblings = self.sibling_set(node, include_roots, true);
 
-            if reverse {
-                siblings
-                    .get_range(..index)?
-                    .iter()
-                    .rev()
-                    .copied()
-                    .find(|id| !node.from.contains(id) && !node.to.contains(id))
+        if siblings.len() < 2 {
+            return None;
+        }
+
+        if reverse {
+            let mut previous = None;
+
+            self.visit_ordered_siblings(node.from.len() < 2, siblings, |sibling| {
+                if sibling == *id {
+                    ControlFlow::Break(())
+                } else {
+                    previous = Some(sibling);
+                    ControlFlow::Continue(())
+                }
+            });
+
+            previous
+        } else {
+            let mut next = None;
+            let mut found = false;
+
+            self.visit_ordered_siblings(node.from.len() < 2, siblings, |sibling| {
+                if found {
+                    next = Some(sibling);
+                    ControlFlow::Break(())
+                } else {
+                    found |= sibling == *id;
+                    ControlFlow::Continue(())
+                }
+            });
+
+            next
+        }
+    }
+    fn sibling_set(
+        &self,
+        node: &TapestryNode,
+        include_roots: bool,
+        include_self: bool,
+    ) -> IndexSet<ShortId, BuildHasherDefault<RandomIdHasher>> {
+        let filter = |id: &ShortId| {
+            if node.id == *id {
+                include_self
             } else {
-                siblings
-                    .get_range(index + 1..)?
-                    .iter()
-                    .copied()
-                    .find(|id| !node.from.contains(id) && !node.to.contains(id))
+                !node.from.contains(id) && !node.to.contains(id)
             }
         };
 
-        match node.from.len() {
-            0 => {
-                if include_roots {
-                    adjacent(self.0.roots())
-                } else {
-                    None
-                }
+        if node.from.is_empty() {
+            if include_roots {
+                IndexSet::from_iter(self.0.roots().iter().copied().filter(filter))
+            } else {
+                IndexSet::default()
             }
-            1 => adjacent(self.0.get_children(&node.from[0])?),
-            _ => adjacent(&IndexSet::from_iter(
+        } else {
+            IndexSet::from_iter(
                 node.from
                     .iter()
-                    .filter_map(|id| self.0.get_children(id))
-                    .flatten()
-                    .copied(),
-            )),
+                    .flat_map(|id| self.0.get_children(id).unwrap())
+                    .copied()
+                    .filter(filter),
+            )
         }
+    }
+    fn visit_ordered_siblings(
+        &mut self,
+        single_parent: bool,
+        siblings: IndexSet<ShortId, BuildHasherDefault<RandomIdHasher>>,
+        mut visit: impl FnMut(ShortId) -> ControlFlow<()>,
+    ) {
+        if siblings.len() < 2
+            || (single_parent
+                && siblings
+                    .iter()
+                    .all(|id| self.0.get_parents(id).unwrap().len() < 2))
+        {
+            for sibling in siblings {
+                if visit(sibling).is_break() {
+                    return;
+                }
+            }
+
+            return;
+        }
+
+        self.0.inner_scratchpad_mut(|weave, stack| {
+            let mut remaining_parents =
+            HashMap::<ShortId, usize, BuildHasherDefault<RandomIdHasher>>::with_capacity_and_hasher(
+                siblings.len(),
+                BuildHasherDefault::default(),
+            );
+            let mut roots = Vec::with_capacity(1);
+
+            stack.extend(siblings.iter().copied());
+
+            while let Some(id) = stack.pop() {
+                let parents = weave.get_parents(&id).unwrap();
+
+                if remaining_parents.insert(id, parents.len()).is_none() {
+                    if parents.is_empty() {
+                        roots.push(id);
+                    } else {
+                        stack.extend(parents.iter().copied());
+                    }
+                }
+            }
+
+            roots.sort_unstable_by_key(|id| Reverse(weave.roots().get_index_of(id)));
+
+            stack.extend(roots);
+
+            let mut unvisited = siblings.len();
+
+            while let Some(id) = stack.pop() {
+                if siblings.contains(&id) {
+                    if visit(id).is_break() {
+                        return;
+                    }
+
+                    unvisited -= 1;
+
+                    if unvisited == 0 {
+                        return;
+                    }
+                }
+
+                for child in weave.get_children(&id).unwrap().iter().rev() {
+                    if let Some(remaining) = remaining_parents.get_mut(child) {
+                        *remaining -= 1;
+
+                        if *remaining == 0 {
+                            stack.push(*child);
+                        }
+                    }
+                }
+            }
+        });
     }
     /// A wrapper around [`Weave::insert`] which prevents nodes with duplicate siblings from being inserted.
     #[must_use]

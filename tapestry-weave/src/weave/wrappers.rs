@@ -538,23 +538,19 @@ impl LoggedTapestryWeave {
     pub fn get_primary_child(&mut self, id: &ShortId) -> Option<ShortId> {
         self.weave.get_primary_child(id)
     }
-    /// Convenience method which returns the siblings of the node corresponding to the identifier.
+    /// Convenience method which returns the siblings of the node corresponding to the identifier using the same ordering as [`Self::get_ordered_identifiers`].
     #[inline]
-    pub fn get_siblings(
-        &self,
-        id: &ShortId,
-        include_roots: bool,
-    ) -> Option<impl Iterator<Item = ShortId>> {
+    pub fn get_siblings(&mut self, id: &ShortId, include_roots: bool) -> Option<Vec<ShortId>> {
         self.weave.get_siblings(id, include_roots)
     }
-    /// Convenience method which returns the sibling before `id`.
+    /// Convenience method which returns the sibling before `id` using the same ordering as [`Self::get_ordered_identifiers`].
     #[inline]
-    pub fn get_previous_sibling(&self, id: &ShortId, include_roots: bool) -> Option<ShortId> {
+    pub fn get_previous_sibling(&mut self, id: &ShortId, include_roots: bool) -> Option<ShortId> {
         self.weave.get_previous_sibling(id, include_roots)
     }
-    /// Convenience method which returns the sibling after `id`.
+    /// Convenience method which returns the sibling after `id` using the same ordering as [`Self::get_ordered_identifiers`].
     #[inline]
-    pub fn get_next_sibling(&self, id: &ShortId, include_roots: bool) -> Option<ShortId> {
+    pub fn get_next_sibling(&mut self, id: &ShortId, include_roots: bool) -> Option<ShortId> {
         self.weave.get_next_sibling(id, include_roots)
     }
     /// A wrapper around [`Weave::insert`] which prevents nodes with duplicate siblings from being inserted.
