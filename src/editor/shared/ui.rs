@@ -70,7 +70,7 @@ impl WeaveUi {
             self.cursor = None;
         }
 
-        self.handle_shortcuts(weave, inference, id, shortcuts);
+        self.handle_shortcuts(weave, shortcuts);
 
         self.scroll_to = None;
         if self.last_hovered != self.hovered && self.hovered.is_some() {
@@ -106,13 +106,7 @@ impl WeaveUi {
 
         // TODO
     }
-    fn handle_shortcuts(
-        &mut self,
-        weave: &mut LoggedTapestryWeave,
-        inference: &mut InferenceEngine,
-        id: Ulid,
-        shortcuts: FlagSet<Shortcuts>,
-    ) {
+    fn handle_shortcuts(&mut self, weave: &mut LoggedTapestryWeave, shortcuts: FlagSet<Shortcuts>) {
         if shortcuts.contains(Shortcuts::AddChild) {
             let identifier = self.generate_id(weave);
 
@@ -167,7 +161,7 @@ impl WeaveUi {
                     identifier,
                     node.from.iter().copied(),
                     [],
-                    node.active,
+                    active,
                     self.user.clone(),
                 )) && active
                 {
@@ -178,40 +172,33 @@ impl WeaveUi {
             if shortcuts.contains(Shortcuts::DeleteCurrent) {
                 let parent = weave.get_primary_parent(&cursor);
 
-                if weave.remove(&cursor).is_some()
-                    && let Some(parent) = parent
-                {
-                    self.cursor = Some(parent);
+                if weave.remove(&cursor).is_some() {
+                    self.cursor = parent;
                 }
             }
 
             if shortcuts.contains(Shortcuts::DeleteChildren) {
-                let children: Vec<ShortId> = weave
+                for child in weave
                     .get_children(&cursor)
-                    .map(|children| children.iter().copied().collect())
-                    .unwrap_or_default();
-
-                for child in children {
+                    .unwrap()
+                    .iter()
+                    .copied()
+                    .collect::<Vec<_>>()
+                {
                     weave.remove(&child);
                 }
             }
 
             if shortcuts.contains(Shortcuts::DeleteSiblings) {
-                let siblings: Vec<ShortId> = weave
-                    .get_siblings(&cursor, false, false)
-                    .unwrap_or_default();
-
-                for sibling in siblings {
+                for sibling in weave.get_siblings(&cursor, true, false).unwrap() {
                     weave.remove(&sibling);
                 }
             }
 
             if shortcuts.contains(Shortcuts::DeleteSiblingsAndCurrent) {
                 let parent = weave.get_primary_parent(&cursor);
-                let siblings: Vec<ShortId> =
-                    weave.get_siblings(&cursor, false, true).unwrap_or_default();
 
-                for sibling in siblings {
+                for sibling in weave.get_siblings(&cursor, true, true).unwrap() {
                     weave.remove(&sibling);
                 }
 
@@ -219,7 +206,6 @@ impl WeaveUi {
             }
 
             if shortcuts.contains(Shortcuts::MergeWithParent)
-                && weave.is_mergeable_with_parent(&cursor)
                 && let Some(merged) = weave.merge_with_parent(&cursor)
             {
                 self.cursor = Some(merged);
@@ -229,53 +215,40 @@ impl WeaveUi {
                 // TODO
             }
 
-            let mut target = None;
-
             if shortcuts.contains(Shortcuts::MoveToParent)
                 && let Some(parent) = weave.get_primary_parent(&cursor)
             {
-                target = Some(parent);
+                self.cursor = Some(parent);
             }
             if shortcuts.contains(Shortcuts::MoveToChild)
                 && let Some(child) = weave.get_primary_child(&cursor)
             {
-                target = Some(child);
+                self.cursor = Some(child);
             }
             if shortcuts.contains(Shortcuts::MoveToPreviousSibling)
                 && let Some(previous) = weave.get_previous_sibling(&cursor, true)
             {
-                target = Some(previous);
+                self.cursor = Some(previous);
             }
             if shortcuts.contains(Shortcuts::MoveToNextSibling)
                 && let Some(next) = weave.get_next_sibling(&cursor, true)
             {
-                target = Some(next);
-            }
-
-            if let Some(target) = target {
-                //weave.set_active(&target, true);
-                self.cursor = Some(target);
+                self.cursor = Some(next);
             }
 
             if shortcuts.contains(Shortcuts::ToggleNodeCollapsed) {
-                self.opened.insert(
-                    cursor,
-                    !self.opened.get(&cursor).copied().unwrap_or(DEFAULT_OPEN),
-                );
+                let entry = self.opened.entry(cursor).or_insert(DEFAULT_OPEN);
+                *entry = !*entry;
             }
 
-            if shortcuts.contains(Shortcuts::CollapseChildren)
-                && let Some(children) = weave.get_children(&cursor)
-            {
-                for child in children.iter().copied() {
+            if shortcuts.contains(Shortcuts::CollapseChildren) {
+                for child in weave.get_children(&cursor).unwrap().iter().copied() {
                     self.opened.insert(child, false);
                 }
             }
 
-            if shortcuts.contains(Shortcuts::ExpandChildren)
-                && let Some(children) = weave.get_children(&cursor)
-            {
-                for child in children.iter().copied() {
+            if shortcuts.contains(Shortcuts::ExpandChildren) {
+                for child in weave.get_children(&cursor).unwrap().iter().copied() {
                     self.opened.insert(child, true);
                 }
             }
