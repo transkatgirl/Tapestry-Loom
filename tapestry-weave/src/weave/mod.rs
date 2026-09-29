@@ -188,10 +188,15 @@ impl TapestryWeave {
         })
     }
     /// Convenience method which returns the siblings of the node corresponding to the identifier using the same ordering as [`Self::get_ordered_identifiers`].
-    pub fn get_siblings(&mut self, id: &ShortId, include_roots: bool) -> Option<Vec<ShortId>> {
+    pub fn get_siblings(
+        &mut self,
+        id: &ShortId,
+        include_roots: bool,
+        include_self: bool,
+    ) -> Option<Vec<ShortId>> {
         let node = self.0.get(id)?;
 
-        let siblings = self.sibling_set(node, include_roots, false);
+        let siblings = self.sibling_set(node, include_roots, include_self);
         let mut ordered = Vec::with_capacity(siblings.len());
 
         self.visit_ordered_siblings(node.from.len() < 2, siblings, |id| {
@@ -272,6 +277,8 @@ impl TapestryWeave {
         if node.from.is_empty() {
             if include_roots {
                 IndexSet::from_iter(self.0.roots().iter().copied().filter(filter))
+            } else if include_self {
+                IndexSet::from_iter([node.id])
             } else {
                 IndexSet::default()
             }

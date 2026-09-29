@@ -540,8 +540,13 @@ impl LoggedTapestryWeave {
     }
     /// Convenience method which returns the siblings of the node corresponding to the identifier using the same ordering as [`Self::get_ordered_identifiers`].
     #[inline]
-    pub fn get_siblings(&mut self, id: &ShortId, include_roots: bool) -> Option<Vec<ShortId>> {
-        self.weave.get_siblings(id, include_roots)
+    pub fn get_siblings(
+        &mut self,
+        id: &ShortId,
+        include_roots: bool,
+        include_self: bool,
+    ) -> Option<Vec<ShortId>> {
+        self.weave.get_siblings(id, include_roots, include_self)
     }
     /// Convenience method which returns the sibling before `id` using the same ordering as [`Self::get_ordered_identifiers`].
     #[inline]
