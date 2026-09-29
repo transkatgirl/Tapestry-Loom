@@ -699,6 +699,16 @@ impl LoggedTapestryWeave {
     pub fn active_text_string(&mut self) -> String {
         self.weave.active_text_string()
     }
+    /// Convenience function which toggles the active status of the node corresponding to the identifier `id`.
+    #[inline]
+    pub fn toggle_active(&mut self, id: &ShortId) -> bool {
+        self.set_active(id, !self.weave.contains_active(id))
+    }
+    /// Convenience function which toggles the bookmarked status of the node corresponding to the identifier `id`.
+    #[inline]
+    pub fn toggle_bookmarked(&mut self, id: &ShortId) -> bool {
+        self.set_bookmarked(id, !self.weave.contains_bookmark(id))
+    }
     /// Removes the specified range from the active path without removing the content from the underlying Weave.
     ///
     /// If the range is empty or starts past the end of the active path, this function does nothing. If the range extends beyond the active path, its length is clamped to the active path's length.

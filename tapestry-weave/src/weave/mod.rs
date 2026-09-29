@@ -721,6 +721,16 @@ impl TapestryWeave {
     pub fn active_text_string(&mut self) -> String {
         from_utf8_lossy(&self.active_text().collect::<Vec<u8>>()).into_owned()
     }
+    /// Convenience function which toggles the active status of the node corresponding to the identifier `id`.
+    #[inline]
+    pub fn toggle_active(&mut self, id: &ShortId) -> bool {
+        self.0.set_active(id, !self.0.contains_active(id))
+    }
+    /// Convenience function which toggles the bookmarked status of the node corresponding to the identifier `id`.
+    #[inline]
+    pub fn toggle_bookmarked(&mut self, id: &ShortId) -> bool {
+        self.0.set_bookmarked(id, !self.0.contains_bookmark(id))
+    }
     /// Removes the specified range from the active path without removing the content from the underlying Weave.
     ///
     /// If the range is empty or starts past the end of the active path, this function does nothing. If the range extends beyond the active path, its length is clamped to the active path's length.
