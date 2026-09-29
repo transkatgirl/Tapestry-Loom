@@ -1,6 +1,12 @@
 use eframe::egui::{Context, Ui, WidgetText};
 
-use crate::{common::view::View, editor::EditorShared};
+use crate::{
+    common::view::View,
+    editor::{
+        EditorShared,
+        shared::ui::{LayoutFit, VisibilityFlags},
+    },
+};
 
 #[derive(Default, Debug)]
 pub struct GraphView {}
@@ -11,6 +17,14 @@ impl View<EditorShared> for GraphView {
     }
     fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
+        shared.ui.visible |= VisibilityFlags::Graph;
+
+        match shared.ui.fit {
+            LayoutFit::Cursor => {}
+            LayoutFit::Weave => {}
+            LayoutFit::None => {}
+        }
+
         if let Some(weave) = &mut shared.weave {
             // TODO
         }

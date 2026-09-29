@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     common::{
-        ui::{consume_shortcut, shortcut_ui},
+        ui::{shortcut_ui, update_shortcut_flag},
         view::Edit,
     },
     editor::settings::shortcuts::{
@@ -66,11 +66,7 @@ impl GlobalShortcutSettings {
         Self::clear(shortcuts);
 
         ctx.input_mut(|input| {
-            if let Some(shortcut) = &self.save
-                && consume_shortcut(input, shortcut)
-            {
-                *shortcuts |= GlobalShortcuts::Save;
-            }
+            update_shortcut_flag(input, shortcuts, &self.save, GlobalShortcuts::Save);
         });
     }
 }

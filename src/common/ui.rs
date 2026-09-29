@@ -1,4 +1,4 @@
-use std::{borrow::Cow, path::Path};
+use std::path::Path;
 
 use color::{AlphaColor, Oklch, PremulColor, PremulRgba8, Srgb};
 use eframe::egui::{
@@ -6,6 +6,7 @@ use eframe::egui::{
     PointerButton, Response, Sense, TextEdit, Ui, UiBuilder, Vec2, Widget, response::Flags, vec2,
 };
 use egui_keybind::Keybind;
+use flagset::FlagSet;
 
 pub fn clicked_rising_edge(response: &Response) -> bool {
     // egui default is falling-edge
@@ -58,8 +59,23 @@ pub fn shortcut_ui(
     );
 }
 
+pub fn update_shortcut_flag<T>(
+    input: &mut InputState,
+    shortcuts: &mut FlagSet<T>,
+    shortcut: &Option<KeyboardShortcut>,
+    flag: T,
+) where
+    T: flagset::Flags,
+{
+    if let Some(shortcut) = shortcut
+        && consume_shortcut(input, shortcut)
+    {
+        *shortcuts |= flag;
+    }
+}
+
 // Copied from egui source code
-pub fn consume_shortcut(input: &mut InputState, shortcut: &KeyboardShortcut) -> bool {
+fn consume_shortcut(input: &mut InputState, shortcut: &KeyboardShortcut) -> bool {
     let KeyboardShortcut {
         modifiers,
         logical_key,
@@ -67,7 +83,22 @@ pub fn consume_shortcut(input: &mut InputState, shortcut: &KeyboardShortcut) -> 
     count_and_consume_key(input, modifiers, logical_key) > 0
 }
 
-pub fn is_shortcut_pressed(input: &mut InputState, shortcut: &KeyboardShortcut) -> bool {
+pub fn update_shortcut_flag_held<T>(
+    input: &mut InputState,
+    shortcuts: &mut FlagSet<T>,
+    shortcut: &Option<KeyboardShortcut>,
+    flag: T,
+) where
+    T: flagset::Flags,
+{
+    if let Some(shortcut) = shortcut
+        && is_shortcut_pressed(input, shortcut)
+    {
+        *shortcuts |= flag;
+    }
+}
+
+fn is_shortcut_pressed(input: &mut InputState, shortcut: &KeyboardShortcut) -> bool {
     let KeyboardShortcut {
         modifiers,
         logical_key,

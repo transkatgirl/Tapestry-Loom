@@ -5,7 +5,10 @@ use tapestry_weave::{
 
 use crate::{
     common::view::View,
-    editor::{EditorShared, shared::ui::WeaveUi},
+    editor::{
+        EditorShared,
+        shared::ui::{VisibilityFlags, WeaveUi},
+    },
 };
 
 #[derive(Debug)]
@@ -92,8 +95,9 @@ impl View<EditorShared> for TextEditView {
         }
     }
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
-        if let Some(weave) = &mut shared.weave {
+        shared.ui.visible |= VisibilityFlags::TextEdit;
 
+        if let Some(weave) = &mut shared.weave {
             // TODO
         }
     }

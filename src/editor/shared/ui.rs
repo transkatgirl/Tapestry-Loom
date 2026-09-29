@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Range, sync::Arc};
+use std::{collections::HashMap, mem, ops::Range, sync::Arc};
 
 use eframe::egui::{
     Align, Button, Color32, FontFamily, Frame, Layout, Pos2, Rect, RichText, ScrollArea, Sense,
@@ -8,14 +8,12 @@ use eframe::egui::{
 };
 use flagset::{FlagSet, flags};
 use tapestry_weave::{
-    Author, Creator, InnerNodeContent, InnerNodeToken, MetadataMap, NodeContent, OriginalToken,
-    ShortId, TapestryNode, UNKNOWN_MODEL_LABEL,
-    content::{from_utf8_lossy, sort},
-    jiff::Zoned,
+    Author, Creator, InnerNodeContent, InnerNodeToken, OriginalToken, ShortId, TapestryNode,
+    UNKNOWN_MODEL_LABEL,
+    content::{empty_user_node, from_utf8_lossy, sort},
     nanorand::WyRand,
     universal_weave::{
         BookmarkableWeave, DiscreteWeave, SortableBookmarkableWeave, SortableWeave, Weave,
-        indexmap::IndexSet,
     },
     weave::wrappers::LoggedTapestryWeave,
 };
@@ -32,16 +30,19 @@ use crate::{
 
 #[derive(Default)]
 pub struct WeaveUi {
+    pub user: Option<Author>, // TODO
     pub cursor: Option<ShortId>,
     last_cursor: Option<ShortId>,
     pub opened: HashMap<ShortId, bool>,
     hovered: Option<ShortId>,
     last_hovered: Option<ShortId>,
     pub(super) scroll_to: Option<ShortId>,
+    pub fit: LayoutFit,
+    pub visible: FlagSet<VisibilityFlags>,
+    pub(super) last_visible: FlagSet<VisibilityFlags>, // TODO
 
     requests: Vec<InferenceRequest>,
     rendered_collapsing_labels: Vec<ShortId>,
-    path_buffer: Vec<ShortId>,
     rng: WyRand,
 
     settings: InterfaceSettings,
@@ -53,27 +54,6 @@ impl WeaveUi {
     fn generate_id(&mut self, weave: &LoggedTapestryWeave) -> ShortId {
         tapestry_weave::generate_id(&mut self.rng, weave)
     }
-    fn new_user_node(
-        id: ShortId,
-        from: impl IntoIterator<Item = ShortId>,
-        active: bool,
-        user: &Option<Author>,
-    ) -> TapestryNode {
-        TapestryNode {
-            id,
-            from: IndexSet::from_iter(from),
-            to: IndexSet::default(),
-            active,
-            bookmarked: false,
-            contents: NodeContent {
-                timestamp: Zoned::now(),
-                modified: false,
-                content: InnerNodeContent::MetadataOnly,
-                metadata: MetadataMap::default(),
-                creator: Creator::User(user.clone()),
-            },
-        }
-    }
     pub fn logic(
         &mut self,
         weave: &mut LoggedTapestryWeave,
@@ -82,12 +62,7 @@ impl WeaveUi {
         id: Ulid,
         shortcuts: FlagSet<Shortcuts>,
     ) {
-        self.scroll_to = None;
-        if self.last_hovered != self.hovered && self.hovered.is_some() {
-            self.scroll_to = self.hovered;
-        }
-        self.last_hovered = self.hovered;
-        self.hovered = None;
+        self.last_visible = mem::take(&mut self.visible);
 
         if let Some(cursor) = self.cursor
             && !weave.contains(&cursor)
@@ -95,12 +70,18 @@ impl WeaveUi {
             self.cursor = None;
         }
 
-        if self.cursor.is_none() {
-            weave.get_active_path(&mut self.path_buffer);
+        self.handle_shortcuts(weave, inference, id, shortcuts);
 
-            if let Some(thread_tail) = self.path_buffer.first().copied() {
-                self.cursor = Some(thread_tail);
-            }
+        self.scroll_to = None;
+        if self.last_hovered != self.hovered && self.hovered.is_some() {
+            self.scroll_to = self.hovered;
+        }
+        self.last_hovered = mem::take(&mut self.hovered);
+
+        if self.cursor.is_none()
+            && let Some(thread_tail) = weave.active_path_vec().first().copied()
+        {
+            self.cursor = Some(thread_tail);
         }
 
         if self.last_cursor != self.cursor
@@ -108,9 +89,7 @@ impl WeaveUi {
         {
             self.scroll_to = Some(cursor);
 
-            weave.get_path_from(&cursor, &mut self.path_buffer);
-
-            for node in self.path_buffer.iter().copied() {
+            for node in weave.path_vec(&cursor).drain(..) {
                 self.opened.insert(node, true);
             }
         }
@@ -127,7 +106,233 @@ impl WeaveUi {
 
         // TODO
     }
+    fn handle_shortcuts(
+        &mut self,
+        weave: &mut LoggedTapestryWeave,
+        inference: &mut InferenceEngine,
+        id: Ulid,
+        shortcuts: FlagSet<Shortcuts>,
+    ) {
+        if shortcuts.contains(Shortcuts::AddChild) {
+            let identifier = self.generate_id(weave);
+
+            let active = self
+                .cursor
+                .map(|id| weave.contains_active(&id))
+                .unwrap_or(true);
+
+            if weave.insert_deduplicated(empty_user_node(
+                identifier,
+                self.cursor,
+                [],
+                active,
+                self.user.clone(),
+            )) {
+                if let Some(cursor) = self.cursor {
+                    self.opened.insert(cursor, true);
+                }
+
+                if active {
+                    self.cursor = Some(identifier);
+                }
+            }
+        }
+
+        if shortcuts.contains(Shortcuts::ActivateHovered)
+            && let Some(hovered) = self.hovered
+        {
+            weave.set_active_tree_semantics(&hovered, true);
+            self.cursor = Some(hovered);
+        }
+
+        if let Some(cursor) = self.cursor {
+            if shortcuts.contains(Shortcuts::GenerateAtCursor) {
+                // TODO
+            }
+
+            if shortcuts.contains(Shortcuts::ToggleNodeActive) {
+                weave.toggle_active(&cursor);
+            }
+
+            if shortcuts.contains(Shortcuts::ToggleNodeBookmarked) {
+                weave.toggle_bookmarked(&cursor);
+            }
+
+            if shortcuts.contains(Shortcuts::AddSibling) {
+                let identifier = self.generate_id(weave);
+                let node = weave.get(&cursor).unwrap();
+                let active = node.active;
+
+                if weave.insert_deduplicated(empty_user_node(
+                    identifier,
+                    node.from.iter().copied(),
+                    [],
+                    node.active,
+                    self.user.clone(),
+                )) && active
+                {
+                    self.cursor = Some(identifier);
+                }
+            }
+
+            if shortcuts.contains(Shortcuts::DeleteCurrent) {
+                let parent = weave.get_primary_parent(&cursor);
+
+                if weave.remove(&cursor).is_some()
+                    && let Some(parent) = parent
+                {
+                    self.cursor = Some(parent);
+                }
+            }
+
+            if shortcuts.contains(Shortcuts::DeleteChildren) {
+                let children: Vec<ShortId> = weave
+                    .get_children(&cursor)
+                    .map(|children| children.iter().copied().collect())
+                    .unwrap_or_default();
+
+                for child in children {
+                    weave.remove(&child);
+                }
+            }
+
+            if shortcuts.contains(Shortcuts::DeleteSiblings) {
+                let siblings: Vec<ShortId> = weave
+                    .get_siblings(&cursor, false, false)
+                    .unwrap_or_default();
+
+                for sibling in siblings {
+                    weave.remove(&sibling);
+                }
+            }
+
+            if shortcuts.contains(Shortcuts::DeleteSiblingsAndCurrent) {
+                let parent = weave.get_primary_parent(&cursor);
+                let siblings: Vec<ShortId> =
+                    weave.get_siblings(&cursor, false, true).unwrap_or_default();
+
+                for sibling in siblings {
+                    weave.remove(&sibling);
+                }
+
+                self.cursor = parent;
+            }
+
+            if shortcuts.contains(Shortcuts::MergeWithParent)
+                && weave.is_mergeable_with_parent(&cursor)
+                && let Some(merged) = weave.merge_with_parent(&cursor)
+            {
+                self.cursor = Some(merged);
+            }
+
+            if shortcuts.contains(Shortcuts::SplitAtCursor) {
+                // TODO
+            }
+
+            let mut target = None;
+
+            if shortcuts.contains(Shortcuts::MoveToParent)
+                && let Some(parent) = weave.get_primary_parent(&cursor)
+            {
+                target = Some(parent);
+            }
+            if shortcuts.contains(Shortcuts::MoveToChild)
+                && let Some(child) = weave.get_primary_child(&cursor)
+            {
+                target = Some(child);
+            }
+            if shortcuts.contains(Shortcuts::MoveToPreviousSibling)
+                && let Some(previous) = weave.get_previous_sibling(&cursor, true)
+            {
+                target = Some(previous);
+            }
+            if shortcuts.contains(Shortcuts::MoveToNextSibling)
+                && let Some(next) = weave.get_next_sibling(&cursor, true)
+            {
+                target = Some(next);
+            }
+
+            if let Some(target) = target {
+                //weave.set_active(&target, true);
+                self.cursor = Some(target);
+            }
+
+            if shortcuts.contains(Shortcuts::ToggleNodeCollapsed) {
+                self.opened.insert(
+                    cursor,
+                    !self.opened.get(&cursor).copied().unwrap_or(DEFAULT_OPEN),
+                );
+            }
+
+            if shortcuts.contains(Shortcuts::CollapseChildren)
+                && let Some(children) = weave.get_children(&cursor)
+            {
+                for child in children.iter().copied() {
+                    self.opened.insert(child, false);
+                }
+            }
+
+            if shortcuts.contains(Shortcuts::ExpandChildren)
+                && let Some(children) = weave.get_children(&cursor)
+            {
+                for child in children.iter().copied() {
+                    self.opened.insert(child, true);
+                }
+            }
+        }
+
+        const PRESETS: [(Shortcuts, usize); 10] = [
+            (Shortcuts::ParameterPreset10, 10),
+            (Shortcuts::ParameterPreset9, 9),
+            (Shortcuts::ParameterPreset8, 8),
+            (Shortcuts::ParameterPreset7, 7),
+            (Shortcuts::ParameterPreset6, 6),
+            (Shortcuts::ParameterPreset5, 5),
+            (Shortcuts::ParameterPreset4, 4),
+            (Shortcuts::ParameterPreset3, 3),
+            (Shortcuts::ParameterPreset2, 2),
+            (Shortcuts::ParameterPreset1, 1),
+        ];
+
+        for (flag, preset) in PRESETS {
+            if shortcuts.contains(flag) {
+                // TODO
+            }
+        }
+
+        if shortcuts.contains(Shortcuts::ResetParameters) {
+            // TODO
+        }
+
+        if shortcuts.contains(Shortcuts::CollapseAllVisibleInactive) {
+            for node in self.rendered_collapsing_labels.iter().copied() {
+                if !weave.contains_active(&node) {
+                    self.opened.insert(node, false);
+                }
+            }
+        }
+
+        if shortcuts.contains(Shortcuts::ExpandAllVisible) {
+            for node in self.rendered_collapsing_labels.iter().copied() {
+                self.opened.insert(node, true);
+            }
+        }
+
+        self.fit = LayoutFit::None;
+
+        if shortcuts.contains(Shortcuts::FitToCursor) {
+            self.fit = LayoutFit::Cursor;
+        }
+
+        if shortcuts.contains(Shortcuts::FitToWeave) {
+            self.fit = LayoutFit::Weave;
+        }
+    }
     pub fn calculate_autoscroll(&mut self, ui: &mut Ui) -> Option<AutoscrollData> {
+        if !self.settings.auto_scroll {
+            return None;
+        }
+
         let contains_pointer = ui
             .clip_rect()
             .contains(ui.ctx().pointer_hover_pos().unwrap_or_default());
@@ -146,7 +351,6 @@ impl WeaveUi {
         node: &TapestryNode,
         ui: &mut Ui,
         options: &LabelOptions,
-        user: &Option<Author>,
         in_place: bool,
     ) {
         let mut mouse_hovered = false;
@@ -220,7 +424,7 @@ impl WeaveUi {
                     }
 
                     label_button_response.context_menu(|ui| {
-                        self.node_context_menu(weave, node, ui, options.collapsing, user);
+                        self.node_context_menu(weave, node, ui, options.collapsing);
                     });
 
                     if label_button_response.contains_pointer() {
@@ -266,7 +470,6 @@ impl WeaveUi {
                                         node,
                                         ui,
                                         options.buttons | ButtonFlags::Rtl,
-                                        user,
                                     );
 
                                     ui.add_space(0.0);
@@ -297,7 +500,7 @@ impl WeaveUi {
             .response;
 
         response.context_menu(|ui| {
-            self.node_context_menu(weave, node, ui, options.collapsing, user);
+            self.node_context_menu(weave, node, ui, options.collapsing);
         });
 
         if response.contains_pointer() {
@@ -305,7 +508,11 @@ impl WeaveUi {
         }
 
         if response.clicked() {
-            weave.set_active_tree_semantics(&node.id, true);
+            if response.clicked_with_open_in_background() == in_place {
+                weave.set_active(&node.id, true);
+            } else {
+                weave.set_active_tree_semantics(&node.id, true);
+            }
             self.cursor = Some(node.id);
         }
     }
@@ -377,7 +584,6 @@ impl WeaveUi {
         &mut self,
         weave: &mut LoggedTapestryWeave,
         ui: &mut Ui,
-        user: &Option<Author>,
     ) {
         let response = ui
             .scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
@@ -391,12 +597,7 @@ impl WeaveUi {
                     );
 
                     label_button_response.context_menu(|ui| {
-                        self.document_context_menu(
-                            weave,
-                            ui,
-                            DocumentContextFlags::Roots.into(),
-                            user,
-                        )
+                        self.document_context_menu(weave, ui, DocumentContextFlags::Roots.into())
                     });
 
                     let hover_rect = Rect {
@@ -427,11 +628,12 @@ impl WeaveUi {
                                     if add_response.clicked() {
                                         let identifier = self.generate_id(weave);
 
-                                        if weave.insert_deduplicated(Self::new_user_node(
+                                        if weave.insert_deduplicated(empty_user_node(
                                             identifier,
                                             [],
+                                            [],
                                             true,
-                                            user,
+                                            self.user.clone(),
                                         )) {
                                             self.cursor = Some(identifier);
                                         }
@@ -449,7 +651,7 @@ impl WeaveUi {
             .response;
 
         response.context_menu(|ui| {
-            self.document_context_menu(weave, ui, DocumentContextFlags::Roots.into(), user)
+            self.document_context_menu(weave, ui, DocumentContextFlags::Roots.into())
         });
     }
     pub fn node_text(
@@ -651,7 +853,6 @@ impl WeaveUi {
         node: &TapestryNode,
         ui: &mut Ui,
         collapsing: bool,
-        user: &Option<Author>,
     ) {
         let style = ui.style_mut();
         style.wrap_mode = Some(TextWrapMode::Extend);
@@ -693,7 +894,13 @@ impl WeaveUi {
             let identifier = self.generate_id(weave);
             let active = add_child_response.clicked_with_open_in_background() || node.active;
 
-            if weave.insert_deduplicated(Self::new_user_node(identifier, [node.id], active, user)) {
+            if weave.insert_deduplicated(empty_user_node(
+                identifier,
+                [node.id],
+                [],
+                active,
+                self.user.clone(),
+            )) {
                 if active {
                     self.cursor = Some(identifier);
                 }
@@ -711,11 +918,12 @@ impl WeaveUi {
             let identifier = self.generate_id(weave);
             let active = add_sibling_response.clicked_with_open_in_background();
 
-            if weave.insert_deduplicated(Self::new_user_node(
+            if weave.insert_deduplicated(empty_user_node(
                 identifier,
                 node.from.iter().copied(),
+                [],
                 active,
-                user,
+                self.user.clone(),
             )) && active
             {
                 self.cursor = Some(identifier);
@@ -767,8 +975,7 @@ impl WeaveUi {
 
         if ui.button("Delete all siblings").clicked() {
             let siblings: Vec<ShortId> = weave
-                .get_siblings(&node.id, false)
-                .map(Iterator::collect)
+                .get_siblings(&node.id, false, false)
                 .unwrap_or_default();
 
             for sibling in siblings {
@@ -791,7 +998,6 @@ impl WeaveUi {
         weave: &mut LoggedTapestryWeave,
         ui: &mut Ui,
         flags: FlagSet<DocumentContextFlags>,
-        user: &Option<Author>,
     ) {
         let style = ui.style_mut();
         style.wrap_mode = Some(TextWrapMode::Extend);
@@ -810,8 +1016,13 @@ impl WeaveUi {
                 let active = add_child_response.clicked_with_open_in_background()
                     || weave.roots().is_empty();
 
-                if weave.insert_deduplicated(Self::new_user_node(identifier, [], active, user))
-                    && active
+                if weave.insert_deduplicated(empty_user_node(
+                    identifier,
+                    [],
+                    [],
+                    active,
+                    self.user.clone(),
+                )) && active
                 {
                     self.cursor = Some(identifier);
                 }
@@ -1094,7 +1305,6 @@ impl WeaveUi {
         node: &TapestryNode,
         ui: &mut Ui,
         flags: FlagSet<ButtonFlags>,
-        user: &Option<Author>,
     ) {
         let is_modifier_pressed = ui.input(|input| input.modifiers.any());
 
@@ -1151,11 +1361,12 @@ impl WeaveUi {
                     let identifier = self.generate_id(weave);
                     let active = add_response.clicked_with_open_in_background() || node.active;
 
-                    if weave.insert_deduplicated(Self::new_user_node(
+                    if weave.insert_deduplicated(empty_user_node(
                         identifier,
                         [node.id],
+                        [],
                         active,
-                        user,
+                        self.user.clone(),
                     )) {
                         if active {
                             self.cursor = Some(identifier);
@@ -1264,11 +1475,12 @@ impl WeaveUi {
                         node.active
                     };
 
-                    if weave.insert_deduplicated(Self::new_user_node(
+                    if weave.insert_deduplicated(empty_user_node(
                         identifier,
                         [node.id],
+                        [],
                         active,
-                        user,
+                        self.user.clone(),
                     )) {
                         if active {
                             self.cursor = Some(identifier);
@@ -1322,6 +1534,14 @@ impl WeaveUi {
     }
 }
 
+#[derive(Default)]
+pub enum LayoutFit {
+    #[default]
+    None,
+    Cursor,
+    Weave,
+}
+
 pub struct LabelOptions {
     pub buttons: FlagSet<ButtonFlags>,
     pub collapsing: bool,
@@ -1335,6 +1555,16 @@ pub struct AutoscrollData {
 }
 
 flags! {
+    pub enum VisibilityFlags: u8 {
+        Canvas,
+        Graph,
+        TreeList,
+        List,
+        BookmarkList,
+        TextEdit,
+        Menu,
+        Info,
+    }
     pub enum ButtonFlags: u8 {
         Rtl,
         Hoist,

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{mem, path::PathBuf};
 
 use eframe::egui::{CentralPanel, Context, Frame, Ui, WidgetText};
 use egui_tiles::{Container, Linear, LinearDir, Tabs, Tile, Tiles, Tree};
@@ -13,6 +13,7 @@ use crate::{
     AppShared,
     common::view::{View, ViewContainer},
     editor::{
+        settings::shortcuts::Shortcuts,
         shared::EditorShared,
         subviews::{
             canvas::CanvasView,
@@ -27,6 +28,7 @@ use crate::{
 pub struct Editor {
     container: ViewContainer<EditorShared, Pane>,
     bulk_close: bool,
+    hovered: bool,
 }
 
 impl From<EditorShared> for Editor {
@@ -88,6 +90,7 @@ impl From<EditorShared> for Editor {
                 None,
             ),
             bulk_close: false,
+            hovered: false,
         }
     }
 }
@@ -114,6 +117,14 @@ impl View<AppShared> for Editor {
     fn logic(&mut self, shared: &mut AppShared, force_close: impl FnOnce(), ctx: &Context) {
         self.bulk_close = false;
 
+        if mem::take(&mut self.hovered)
+            && shared.shortcuts.editor.contains(Shortcuts::CloseFocusedTab)
+            && self.close(shared)
+        {
+            force_close();
+            return;
+        }
+
         let mut close = false;
 
         self.container.behavior.shared.logic(
@@ -137,6 +148,8 @@ impl View<AppShared> for Editor {
         a || b
     }
     fn ui(&mut self, shared: &mut AppShared, ui: &mut Ui) {
+        self.hovered = ui.rect_contains_pointer(ui.max_rect());
+
         self.container.behavior.shared.ui(ui, shared);
 
         CentralPanel::default()

@@ -45,6 +45,11 @@ impl View<AppShared> for SettingsView {
 
         if !self.visible {
             shared.settings.shortcuts.update(&mut shared.shortcuts, ctx);
+            shared
+                .settings
+                .interface
+                .editor
+                .update(shared.shortcuts.editor);
         } else {
             self.visible = false;
         }

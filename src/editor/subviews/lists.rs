@@ -15,7 +15,8 @@ use crate::{
     editor::{
         EditorShared,
         shared::ui::{
-            AutoscrollData, ButtonFlags, DEFAULT_OPEN, DocumentContextFlags, LabelOptions, WeaveUi,
+            AutoscrollData, ButtonFlags, DEFAULT_OPEN, DocumentContextFlags, LabelOptions,
+            VisibilityFlags, WeaveUi,
         },
     },
 };
@@ -36,7 +37,6 @@ impl TreeListView {
         autoscroll: Option<AutoscrollData>,
         editor_id: Ulid,
         indent_level: usize,
-        omittion_level: usize,
         parent: Option<ShortId>,
     ) {
         for (index, node) in nodes.enumerate() {
@@ -82,7 +82,6 @@ impl TreeListView {
                                 show_info: true,
                                 autoscroll,
                             },
-                            &None,
                             true,
                         );
                     });
@@ -118,12 +117,10 @@ impl TreeListView {
                                     autoscroll,
                                     editor_id,
                                     indent_level + 1,
-                                    omittion_level,
                                     Some(node.id),
                                 );
 
                                 if node.from.len() > 1
-                                    && indent_level > omittion_level
                                     && let Some(omitted_parent) = node
                                         .from
                                         .iter()
@@ -167,6 +164,8 @@ impl View<EditorShared> for TreeListView {
     }
     fn logic(&mut self, _shared: &mut EditorShared, _force_close: impl FnOnce(), _ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
+        shared.ui.visible |= VisibilityFlags::TreeList;
+
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
@@ -176,41 +175,28 @@ impl View<EditorShared> for TreeListView {
                         let autoscroll = shared.ui.calculate_autoscroll(ui);
 
                         let mut hoisted = true;
-                        let (roots, omittion_level): (Vec<ShortId>, usize) = if let Some(cursor) =
-                            shared.ui.cursor
+                        let roots = if let Some(cursor) = shared.ui.cursor
                             && let Some(cursor_node) = weave.get(&cursor)
                             && cursor_node
                                 .from
                                 .iter()
                                 .any(|cursor_parent| !weave.roots().contains(cursor_parent))
                         {
-                            if !cursor_node.to.is_empty() {
-                                (cursor_node.from.iter().copied().collect(), 1)
+                            vec![if !cursor_node.to.is_empty() {
+                                weave.get_primary_parent(&cursor).unwrap()
                             } else {
-                                (
-                                    cursor_node
-                                        .from
-                                        .iter()
-                                        .flat_map(|cursor_parent| {
-                                            weave
-                                                .get_parents(cursor_parent)
-                                                .unwrap()
-                                                .iter()
-                                                .copied()
-                                        })
-                                        .collect(),
-                                    2,
-                                )
-                            }
+                                let cursor_parent = weave.get_primary_parent(&cursor).unwrap();
+                                weave.get_primary_parent(&cursor_parent).unwrap()
+                            }]
                         } else {
                             hoisted = false;
 
-                            (weave.roots().iter().copied().collect(), 0)
+                            weave.roots().iter().copied().collect()
                         };
 
                         if weave.roots().is_empty() {
                             ui.horizontal_wrapped(|ui| {
-                                shared.ui.horizontal_empty_document_label(weave, ui, &None);
+                                shared.ui.horizontal_empty_document_label(weave, ui);
                             });
                         } else {
                             self.render_row(
@@ -221,7 +207,6 @@ impl View<EditorShared> for TreeListView {
                                 autoscroll,
                                 shared.id,
                                 0,
-                                omittion_level,
                                 None,
                             );
                         }
@@ -240,7 +225,6 @@ impl View<EditorShared> for TreeListView {
                                     } else {
                                         DocumentContextFlags::Roots.into()
                                     },
-                                    &None,
                                 );
                             },
                         );
@@ -283,7 +267,6 @@ impl ListView {
                     show_info: true,
                     autoscroll,
                 },
-                &None,
                 false,
             );
         });
@@ -296,6 +279,8 @@ impl View<EditorShared> for ListView {
     }
     fn logic(&mut self, _shared: &mut EditorShared, _force_close: impl FnOnce(), _ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
+        shared.ui.visible |= VisibilityFlags::List;
+
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
@@ -340,7 +325,6 @@ impl View<EditorShared> for ListView {
                                     } else {
                                         DocumentContextFlags::Roots.into()
                                     },
-                                    &None,
                                 );
                             },
                         );
@@ -381,7 +365,6 @@ impl BookmarkView {
                     show_info: false,
                     autoscroll,
                 },
-                &None,
                 false,
             );
         });
@@ -394,6 +377,8 @@ impl View<EditorShared> for BookmarkView {
     }
     fn logic(&mut self, _shared: &mut EditorShared, _force_close: impl FnOnce(), _ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
+        shared.ui.visible |= VisibilityFlags::BookmarkList;
+
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
@@ -427,7 +412,6 @@ impl View<EditorShared> for BookmarkView {
                                     weave,
                                     ui,
                                     DocumentContextFlags::Bookmarks.into(),
-                                    &None,
                                 );
                             },
                         );
