@@ -205,13 +205,11 @@ impl EditorShared {
                     FlagSet::empty()
                 },
             );
-        }
 
-        if let Some(weave) = &mut self.weave
-            && !weave.actions.is_empty()
-        {
-            weave.clear_actions();
-            self.weave_changed = true;
+            if !weave.actions.is_empty() {
+                weave.clear_actions();
+                self.weave_changed = true;
+            }
         }
 
         self.last_visible = false;

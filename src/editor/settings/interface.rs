@@ -65,14 +65,14 @@ impl InterfaceSettings {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NodeColors {
     None,
     #[default]
     Creator,
 }
 
-#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenColors {
     None,
     Logprob,

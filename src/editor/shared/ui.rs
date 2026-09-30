@@ -1507,7 +1507,7 @@ impl WeaveUi {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LayoutFit {
     #[default]
     None,
