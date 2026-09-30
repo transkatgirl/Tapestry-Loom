@@ -1174,6 +1174,9 @@ impl ArchivedCreator {
 /// A label used to represent an unknown model name.
 pub const UNKNOWN_MODEL_LABEL: &str = "Unknown Model";
 
+/// A finish_reason used to represent an in-progess or interrupted generation.
+pub const INTERRUPTED_FINISH_REASON: &str = "interrupted";
+
 /// Information about a generative model which produced an [`InnerNodeContent`]'s value.
 ///
 /// *This should not be used to represent a user, regardless of their identity.*
@@ -1386,6 +1389,29 @@ pub fn empty_user_node(
             content: InnerNodeContent::Snippet(Vec::new()),
             metadata: MetadataMap::default(),
             creator: Creator::User(user),
+        },
+    }
+}
+
+/// Returns a new, empty model node with the current timestamp.
+pub fn empty_model_node(
+    id: ShortId,
+    from: impl IntoIterator<Item = ShortId>,
+    to: impl IntoIterator<Item = ShortId>,
+    model: Model,
+) -> TapestryNode {
+    TapestryNode {
+        id,
+        from: IndexSet::from_iter(from),
+        to: IndexSet::from_iter(to),
+        active: false,
+        bookmarked: false,
+        contents: NodeContent {
+            timestamp: Zoned::now(),
+            modified: false,
+            content: InnerNodeContent::Tokens(Vec::new()),
+            metadata: MetadataMap::default(),
+            creator: Creator::Model(Some(model)),
         },
     }
 }
