@@ -67,7 +67,7 @@ impl View<EditorShared> for GraphView {
         let view_size = ui.available_size().at_least(egui::Vec2::splat(64.0)) / 15.0;
         let contains_pointer = ui.rect_contains_pointer(ui.clip_rect());
 
-        let anchor = if self.arranged {
+        let anchor = if mem::replace(&mut self.arranged, true) {
             None
         } else {
             let anchor = shared.ui.cursor.and_then(|cursor| {
@@ -76,7 +76,6 @@ impl View<EditorShared> for GraphView {
                     .map(|position| position.to_array().into())
             });
             self.layouter.layout(weave, |_| Vec2::ONE);
-            self.arranged = true;
             anchor
         };
 
@@ -94,7 +93,7 @@ impl View<EditorShared> for GraphView {
 
         let mut view = if mem::take(&mut self.fit_weave) || shared.ui.fit == LayoutFit::Weave {
             weave_view()
-        } else if shared.ui.fit == LayoutFit::Cursor
+        } else if (shared.ui.fit == LayoutFit::Cursor || self.view.is_none())
             && let Some(position) = cursor_position
         {
             Rect::from_center_size(position, view_size)
@@ -124,9 +123,7 @@ impl View<EditorShared> for GraphView {
 
             view
         } else {
-            cursor_position.map_or_else(weave_view, |position| {
-                Rect::from_center_size(position, view_size)
-            })
+            weave_view()
         };
 
         let InnerResponse {

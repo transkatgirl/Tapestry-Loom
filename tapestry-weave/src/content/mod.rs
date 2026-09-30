@@ -1394,6 +1394,8 @@ pub fn empty_user_node(
 }
 
 /// Returns a new, empty model node with the current timestamp.
+///
+/// (If the content is currently being generated, model.finish_reason should be set to [`INTERRUPTED_FINISH_REASON`].)
 pub fn empty_model_node(
     id: ShortId,
     from: impl IntoIterator<Item = ShortId>,
