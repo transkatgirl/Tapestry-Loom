@@ -14,14 +14,16 @@ impl View<EditorShared> for CanvasView {
     }
     fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
+        let Some(weave) = &mut shared.weave else {
+            return;
+        };
+
         match shared.ui.fit {
             LayoutFit::Cursor => {}
             LayoutFit::Weave => {}
             LayoutFit::None => {}
         }
 
-        if let Some(weave) = &mut shared.weave {
-            // TODO
-        }
+        // TODO
     }
 }

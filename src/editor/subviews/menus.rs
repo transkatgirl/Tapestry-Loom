@@ -137,8 +137,10 @@ impl View<EditorShared> for MenuView {
     }
     fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
-        if let Some(weave) = &mut shared.weave {
-            // TODO
-        }
+        let Some(weave) = &mut shared.weave else {
+            return;
+        };
+
+        // TODO
     }
 }

@@ -163,69 +163,71 @@ impl View<EditorShared> for TreeListView {
     }
     fn logic(&mut self, _shared: &mut EditorShared, _force_close: impl FnOnce(), _ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
+        let Some(weave) = &mut shared.weave else {
+            return;
+        };
+
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
             .show(ui, |ui| {
                 listing(ui, |ui| {
-                    if let Some(weave) = &mut shared.weave {
-                        let autoscroll = shared.ui.calculate_autoscroll(ui);
+                    let autoscroll = shared.ui.calculate_autoscroll(ui);
 
-                        let mut hoisted = true;
-                        let roots = if let Some(cursor) = shared.ui.cursor
-                            && let Some(cursor_node) = weave.get(&cursor)
-                            && cursor_node
-                                .from
-                                .iter()
-                                .any(|cursor_parent| !weave.roots().contains(cursor_parent))
-                        {
-                            vec![if !cursor_node.to.is_empty() {
-                                weave.get_primary_parent(&cursor).unwrap()
-                            } else {
-                                let cursor_parent = weave.get_primary_parent(&cursor).unwrap();
-                                weave.get_primary_parent(&cursor_parent).unwrap()
-                            }]
+                    let mut hoisted = true;
+                    let roots = if let Some(cursor) = shared.ui.cursor
+                        && let Some(cursor_node) = weave.get(&cursor)
+                        && cursor_node
+                            .from
+                            .iter()
+                            .any(|cursor_parent| !weave.roots().contains(cursor_parent))
+                    {
+                        vec![if !cursor_node.to.is_empty() {
+                            weave.get_primary_parent(&cursor).unwrap()
                         } else {
-                            hoisted = false;
+                            let cursor_parent = weave.get_primary_parent(&cursor).unwrap();
+                            weave.get_primary_parent(&cursor_parent).unwrap()
+                        }]
+                    } else {
+                        hoisted = false;
 
-                            weave.roots().iter().copied().collect()
-                        };
+                        weave.roots().iter().copied().collect()
+                    };
 
-                        if weave.roots().is_empty() {
-                            ui.horizontal_wrapped(|ui| {
-                                shared.ui.horizontal_empty_document_label(weave, ui);
-                            });
-                        } else {
-                            self.render_row(
-                                weave,
-                                roots.into_iter(),
-                                ui,
-                                &mut shared.ui,
-                                autoscroll,
-                                shared.id,
-                                0,
-                                None,
-                            );
-                        }
-
-                        with_context_menu(
+                    if weave.roots().is_empty() {
+                        ui.horizontal_wrapped(|ui| {
+                            shared.ui.horizontal_empty_document_label(weave, ui);
+                        });
+                    } else {
+                        self.render_row(
+                            weave,
+                            roots.into_iter(),
                             ui,
-                            |ui| {
-                                ui.take_available_space();
-                            },
-                            |ui| {
-                                shared.ui.document_context_menu(
-                                    weave,
-                                    ui,
-                                    if hoisted {
-                                        FlagSet::empty()
-                                    } else {
-                                        DocumentContextFlags::Roots.into()
-                                    },
-                                );
-                            },
+                            &mut shared.ui,
+                            autoscroll,
+                            shared.id,
+                            0,
+                            None,
                         );
                     }
+
+                    with_context_menu(
+                        ui,
+                        |ui| {
+                            ui.take_available_space();
+                        },
+                        |ui| {
+                            shared.ui.document_context_menu(
+                                weave,
+                                ui,
+                                if hoisted {
+                                    FlagSet::empty()
+                                } else {
+                                    DocumentContextFlags::Roots.into()
+                                },
+                            );
+                        },
+                    );
                 });
             });
     }
@@ -276,54 +278,56 @@ impl View<EditorShared> for ListView {
     }
     fn logic(&mut self, _shared: &mut EditorShared, _force_close: impl FnOnce(), _ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
+        let Some(weave) = &mut shared.weave else {
+            return;
+        };
+
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
             .show(ui, |ui| {
                 listing(ui, |ui| {
-                    if let Some(weave) = &mut shared.weave {
-                        let autoscroll = shared.ui.calculate_autoscroll(ui);
+                    let autoscroll = shared.ui.calculate_autoscroll(ui);
 
-                        let items: Vec<ShortId> = if let Some(cursor) = shared.ui.cursor {
-                            weave
-                                .get_children(&cursor)
-                                .map(|c| c.iter().copied().collect())
-                                .unwrap_or_default()
-                        } else {
-                            weave.roots().iter().copied().collect()
-                        };
+                    let items: Vec<ShortId> = if let Some(cursor) = shared.ui.cursor {
+                        weave
+                            .get_children(&cursor)
+                            .map(|c| c.iter().copied().collect())
+                            .unwrap_or_default()
+                    } else {
+                        weave.roots().iter().copied().collect()
+                    };
 
-                        for (index, item) in items.into_iter().enumerate() {
-                            if let Some(node) = weave.get(&item).cloned() {
-                                self.render_item(
-                                    weave,
-                                    &node,
-                                    ui,
-                                    &mut shared.ui,
-                                    autoscroll,
-                                    index == 0,
-                                );
-                            }
+                    for (index, item) in items.into_iter().enumerate() {
+                        if let Some(node) = weave.get(&item).cloned() {
+                            self.render_item(
+                                weave,
+                                &node,
+                                ui,
+                                &mut shared.ui,
+                                autoscroll,
+                                index == 0,
+                            );
                         }
-
-                        with_context_menu(
-                            ui,
-                            |ui| {
-                                ui.take_available_space();
-                            },
-                            |ui| {
-                                shared.ui.document_context_menu(
-                                    weave,
-                                    ui,
-                                    if shared.ui.cursor.is_some() {
-                                        FlagSet::empty()
-                                    } else {
-                                        DocumentContextFlags::Roots.into()
-                                    },
-                                );
-                            },
-                        );
                     }
+
+                    with_context_menu(
+                        ui,
+                        |ui| {
+                            ui.take_available_space();
+                        },
+                        |ui| {
+                            shared.ui.document_context_menu(
+                                weave,
+                                ui,
+                                if shared.ui.cursor.is_some() {
+                                    FlagSet::empty()
+                                } else {
+                                    DocumentContextFlags::Roots.into()
+                                },
+                            );
+                        },
+                    );
                 })
             });
     }
@@ -372,43 +376,45 @@ impl View<EditorShared> for BookmarkView {
     }
     fn logic(&mut self, _shared: &mut EditorShared, _force_close: impl FnOnce(), _ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
+        let Some(weave) = &mut shared.weave else {
+            return;
+        };
+
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
             .show(ui, |ui| {
                 listing(ui, |ui| {
-                    if let Some(weave) = &mut shared.weave {
-                        let autoscroll = shared.ui.calculate_autoscroll(ui);
+                    let autoscroll = shared.ui.calculate_autoscroll(ui);
 
-                        let bookmarks: Vec<ShortId> = weave.bookmarks().iter().copied().collect();
+                    let bookmarks: Vec<ShortId> = weave.bookmarks().iter().copied().collect();
 
-                        for (index, bookmark) in bookmarks.into_iter().enumerate() {
-                            if let Some(node) = weave.get(&bookmark).cloned() {
-                                self.render_item(
-                                    weave,
-                                    &node,
-                                    ui,
-                                    &mut shared.ui,
-                                    autoscroll,
-                                    index == 0,
-                                );
-                            }
+                    for (index, bookmark) in bookmarks.into_iter().enumerate() {
+                        if let Some(node) = weave.get(&bookmark).cloned() {
+                            self.render_item(
+                                weave,
+                                &node,
+                                ui,
+                                &mut shared.ui,
+                                autoscroll,
+                                index == 0,
+                            );
                         }
-
-                        with_context_menu(
-                            ui,
-                            |ui| {
-                                ui.take_available_space();
-                            },
-                            |ui| {
-                                shared.ui.document_context_menu(
-                                    weave,
-                                    ui,
-                                    DocumentContextFlags::Bookmarks.into(),
-                                );
-                            },
-                        );
                     }
+
+                    with_context_menu(
+                        ui,
+                        |ui| {
+                            ui.take_available_space();
+                        },
+                        |ui| {
+                            shared.ui.document_context_menu(
+                                weave,
+                                ui,
+                                DocumentContextFlags::Bookmarks.into(),
+                            );
+                        },
+                    );
                 })
             });
     }
