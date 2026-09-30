@@ -86,9 +86,11 @@ impl View<EditorShared> for GraphView {
         });
         let weave_view = || {
             let size = egui::Vec2::from(self.layouter.size().to_array());
-            let scale = (size / view_size).max_elem().max(1.0) * 1.05;
 
-            Rect::from_center_size((size * 0.5).to_pos2(), view_size * scale)
+            Rect::from_center_size(
+                (size * 0.5).to_pos2(),
+                (size / view_size).max_elem().max(1.0) * 1.05 * view_size,
+            )
         };
 
         let mut view = if mem::take(&mut self.fit_weave) || shared.ui.fit == LayoutFit::Weave {
@@ -99,8 +101,10 @@ impl View<EditorShared> for GraphView {
             Rect::from_center_size(position, view_size)
         } else if let Some(mut view) = self.view {
             let visible = |view: Rect| {
-                let scale = (view.size() / view_size).max_elem();
-                Rect::from_center_size(view.center(), view_size * scale)
+                Rect::from_center_size(
+                    view.center(),
+                    view_size * (view.size() / view_size).max_elem(),
+                )
             };
 
             if let Some(anchor) = anchor
