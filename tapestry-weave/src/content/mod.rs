@@ -1174,7 +1174,7 @@ impl ArchivedCreator {
 /// A label used to represent an unknown model name.
 pub const UNKNOWN_MODEL_LABEL: &str = "Unknown Model";
 
-/// A finish_reason used to represent an in-progess or interrupted generation.
+/// A finish_reason used to represent an in-progress or interrupted generation.
 pub const INTERRUPTED_FINISH_REASON: &str = "interrupted";
 
 /// Information about a generative model which produced an [`InnerNodeContent`]'s value.
