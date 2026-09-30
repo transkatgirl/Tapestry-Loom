@@ -25,7 +25,7 @@ pub mod sort;
 pub const SUBSTITUTION_CHARACTER: &str = "\u{1A}";
 const _: () = assert!(SUBSTITUTION_CHARACTER.len() == 1);
 
-/// The contents of a [`TapestryNode`](crate::weave::TapestryNode).
+/// The contents of a [`TapestryNode`].
 ///
 /// **This should not be used to store sensitive information**, such as endpoint URLs or API keys, as the user may choose to share documents publicly.
 #[derive(
@@ -147,7 +147,7 @@ impl DeduplicatableContents for NodeContent {
     }
 }
 
-/// The inner contents of a [`TapestryNode`](crate::weave::TapestryNode).
+/// The inner contents of a [`TapestryNode`].
 ///
 /// # Text Encoding
 ///
