@@ -15,8 +15,7 @@ use crate::{
     editor::{
         EditorShared,
         shared::ui::{
-            AutoscrollData, ButtonFlags, DEFAULT_OPEN, DocumentContextFlags, LabelOptions,
-            VisibilityFlags, WeaveUi,
+            AutoscrollData, ButtonFlags, DEFAULT_OPEN, DocumentContextFlags, LabelOptions, WeaveUi,
         },
     },
 };
@@ -164,8 +163,6 @@ impl View<EditorShared> for TreeListView {
     }
     fn logic(&mut self, _shared: &mut EditorShared, _force_close: impl FnOnce(), _ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
-        shared.ui.visible |= VisibilityFlags::TreeList;
-
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
@@ -279,8 +276,6 @@ impl View<EditorShared> for ListView {
     }
     fn logic(&mut self, _shared: &mut EditorShared, _force_close: impl FnOnce(), _ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
-        shared.ui.visible |= VisibilityFlags::List;
-
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)
@@ -377,8 +372,6 @@ impl View<EditorShared> for BookmarkView {
     }
     fn logic(&mut self, _shared: &mut EditorShared, _force_close: impl FnOnce(), _ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
-        shared.ui.visible |= VisibilityFlags::BookmarkList;
-
         ScrollArea::vertical()
             .auto_shrink(false)
             .animated(false)

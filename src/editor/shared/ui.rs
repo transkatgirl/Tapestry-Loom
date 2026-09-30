@@ -38,8 +38,6 @@ pub struct WeaveUi {
     last_hovered: Option<ShortId>,
     pub(super) scroll_to: Option<ShortId>,
     pub fit: LayoutFit,
-    pub visible: FlagSet<VisibilityFlags>,
-    pub(super) last_visible: FlagSet<VisibilityFlags>, // TODO
 
     requests: Vec<InferenceRequest>,
     rendered_collapsing_labels: Vec<ShortId>,
@@ -62,8 +60,6 @@ impl WeaveUi {
         id: Ulid,
         shortcuts: FlagSet<Shortcuts>,
     ) {
-        self.last_visible = mem::take(&mut self.visible);
-
         if let Some(cursor) = self.cursor
             && !weave.contains(&cursor)
         {
@@ -1528,16 +1524,6 @@ pub struct AutoscrollData {
 }
 
 flags! {
-    pub enum VisibilityFlags: u8 {
-        Canvas,
-        Graph,
-        TreeList,
-        List,
-        BookmarkList,
-        TextEdit,
-        Menu,
-        Info,
-    }
     pub enum ButtonFlags: u8 {
         Rtl,
         Hoist,

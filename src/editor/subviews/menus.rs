@@ -3,7 +3,7 @@ use tapestry_weave::universal_weave::MetadataWeave;
 
 use crate::{
     common::{ui::config_map, view::View},
-    editor::{EditorShared, shared::ui::VisibilityFlags},
+    editor::EditorShared,
 };
 
 #[derive(Default, Debug)]
@@ -15,8 +15,6 @@ impl View<EditorShared> for InfoView {
     }
     fn logic(&mut self, _shared: &mut EditorShared, _force_close: impl FnOnce(), _ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
-        shared.ui.visible |= VisibilityFlags::Info;
-
         let Some(weave) = &mut shared.weave else {
             return;
         };
@@ -139,8 +137,6 @@ impl View<EditorShared> for MenuView {
     }
     fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
-        shared.ui.visible |= VisibilityFlags::Menu;
-
         if let Some(weave) = &mut shared.weave {
             // TODO
         }
