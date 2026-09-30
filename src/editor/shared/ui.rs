@@ -1,8 +1,8 @@
 use std::{collections::HashMap, mem, ops::Range, sync::Arc};
 
 use eframe::egui::{
-    Align, Button, Color32, FontFamily, Frame, Layout, Pos2, Rect, RichText, ScrollArea, Sense,
-    TextFormat, TextStyle, TextWrapMode, Ui, UiBuilder, WidgetText,
+    Align, Button, Color32, FontFamily, Frame, Layout, Pos2, Rect, Response, RichText, ScrollArea,
+    Sense, TextFormat, TextStyle, TextWrapMode, Ui, UiBuilder, WidgetText,
     containers::menu::SubMenuButton,
     text::{ByteIndex, LayoutJob, LayoutSection},
 };
@@ -314,6 +314,33 @@ impl WeaveUi {
             None
         }
     }
+    pub fn autoscroll_target(&self) -> Option<ShortId> {
+        if self.settings.auto_scroll {
+            self.scroll_to
+        } else {
+            None
+        }
+    }
+    pub fn is_hovered(&self, node: &ShortId) -> bool {
+        self.last_hovered.as_ref() == Some(node)
+    }
+    pub fn set_hovered(&mut self, node: ShortId) {
+        self.hovered = Some(node);
+    }
+    pub fn activate_node(
+        &mut self,
+        weave: &mut LoggedTapestryWeave,
+        node: ShortId,
+        response: &Response,
+        in_place: bool,
+    ) {
+        if response.clicked_with_open_in_background() == in_place {
+            weave.set_active(&node, true);
+        } else {
+            weave.set_active_tree_semantics(&node, true);
+        }
+        self.cursor = Some(node);
+    }
     pub fn horizontal_node_label(
         &mut self,
         weave: &mut LoggedTapestryWeave,
@@ -372,15 +399,12 @@ impl WeaveUi {
                     };
 
                     let label_button_response = ui.add(label_button).on_hover_ui(|ui| {
-                        if let InnerNodeContent::Tokens(tokens) = &node.contents.content
-                            && tokens.len() == 1
-                            && let Some(token) = tokens.first()
-                        {
-                            self.token_tooltip(token, ui, TokenTooltipFlags::WarnModified.into());
-                            ui.separator();
-                        }
-
-                        self.node_tooltip(node, ui);
+                        self.node_hover_tooltip(
+                            ui,
+                            node,
+                            /*TokenTooltipFlags::Counterfactual |*/
+                            TokenTooltipFlags::WarnModified.into(),
+                        ); // TODO
                     });
 
                     if let Some(autoscroll) = &options.autoscroll
@@ -402,12 +426,7 @@ impl WeaveUi {
                     }
 
                     if label_button_response.clicked() {
-                        if label_button_response.clicked_with_open_in_background() == in_place {
-                            weave.set_active(&node.id, true);
-                        } else {
-                            weave.set_active_tree_semantics(&node.id, true);
-                        }
-                        self.cursor = Some(node.id);
+                        self.activate_node(weave, node.id, &label_button_response, in_place);
                     }
 
                     let hover_rect = Rect {
@@ -477,12 +496,7 @@ impl WeaveUi {
         }
 
         if response.clicked() {
-            if response.clicked_with_open_in_background() == in_place {
-                weave.set_active(&node.id, true);
-            } else {
-                weave.set_active_tree_semantics(&node.id, true);
-            }
-            self.cursor = Some(node.id);
+            self.activate_node(weave, node.id, &response, in_place);
         }
     }
     pub fn horizontal_omitted_node_label(&mut self, node: ShortId, ui: &mut Ui, message: &str) {
@@ -1037,6 +1051,21 @@ impl WeaveUi {
         }
 
         // TODO
+    }
+    pub fn node_hover_tooltip(
+        &mut self,
+        ui: &mut Ui,
+        node: &TapestryNode,
+        token_flags: FlagSet<TokenTooltipFlags>,
+    ) {
+        if let InnerNodeContent::Tokens(tokens) = &node.contents.content
+            && let [token] = tokens.as_slice()
+        {
+            self.token_tooltip(token, ui, token_flags);
+            ui.separator();
+        }
+
+        self.node_tooltip(node, ui);
     }
     pub fn node_tooltip(&mut self, node: &TapestryNode, ui: &mut Ui) {
         ui.set_max_width(ui.spacing().tooltip_width);
