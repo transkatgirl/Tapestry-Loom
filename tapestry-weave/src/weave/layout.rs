@@ -95,7 +95,7 @@ impl Layouter<TapestryWeave, ShortId, TapestryNode, NodeContent, Vec2, ArrayVec<
     for TapestryLayouter
 {
     #[inline]
-    fn layout(&mut self, weave: &mut TapestryWeave, sizes: impl FnMut(&ShortId) -> Vec2) {
+    fn layout(&mut self, weave: &mut TapestryWeave, sizes: impl FnMut(&TapestryNode) -> Vec2) {
         self.0.layout(&mut weave.0.weave, sizes);
     }
     #[inline]
@@ -116,7 +116,11 @@ impl Layouter<LoggedTapestryWeave, ShortId, TapestryNode, NodeContent, Vec2, Arr
     for TapestryLayouter
 {
     #[inline]
-    fn layout(&mut self, weave: &mut LoggedTapestryWeave, sizes: impl FnMut(&ShortId) -> Vec2) {
+    fn layout(
+        &mut self,
+        weave: &mut LoggedTapestryWeave,
+        sizes: impl FnMut(&TapestryNode) -> Vec2,
+    ) {
         self.0.layout(&mut weave.weave.0.weave, sizes);
     }
     #[inline]
