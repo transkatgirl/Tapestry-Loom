@@ -29,7 +29,6 @@ pub struct GraphView {
     layouter: TapestryLayouter,
     arranged: bool,
     view: Option<Rect>,
-    fit_weave: bool,
     context_node: Option<ShortId>,
 }
 
@@ -44,7 +43,6 @@ impl Default for GraphView {
             }),
             arranged: false,
             view: None,
-            fit_weave: false,
             context_node: None,
         }
     }
@@ -84,16 +82,15 @@ impl View<EditorShared> for GraphView {
                 .center(&cursor)
                 .map(|position| position.to_array().into())
         });
+        let size = egui::Vec2::from(self.layouter.size().to_array());
         let weave_view = || {
-            let size = egui::Vec2::from(self.layouter.size().to_array());
-
             Rect::from_center_size(
                 (size * 0.5).to_pos2(),
                 (size / view_size).max_elem().max(1.0) * 1.05 * view_size,
             )
         };
 
-        let mut view = if mem::take(&mut self.fit_weave) || shared.ui.fit == LayoutFit::Weave {
+        let mut view = if shared.ui.fit == LayoutFit::Weave {
             weave_view()
         } else if (shared.ui.fit == LayoutFit::Cursor || self.view.is_none())
             && let Some(position) = cursor_position
@@ -294,7 +291,7 @@ impl View<EditorShared> for GraphView {
                 shared.ui.set_hovered(id);
             }
         } else if response.double_clicked() {
-            self.fit_weave = true;
+            self.view = Some(weave_view());
             ui.ctx().request_repaint();
         }
     }
