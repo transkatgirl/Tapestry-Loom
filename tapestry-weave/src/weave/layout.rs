@@ -86,8 +86,8 @@ impl TapestryLayouter {
     }
     /// Returns [`TapestryLayoutItem`]s within the specified bounds in the order that they should be rendered.
     #[inline]
-    pub fn view(&mut self, min: Vec2, max: Vec2, callback: impl FnMut(TapestryLayoutItem)) {
-        pinned_mut(&mut self.0).view(min, max, callback);
+    pub fn view(&self, min: Vec2, max: Vec2, callback: impl FnMut(TapestryLayoutItem)) {
+        pinned(&self.0).view(min, max, callback);
     }
 }
 
@@ -107,8 +107,8 @@ impl Layouter<TapestryWeave, ShortId, TapestryNode, NodeContent, Vec2, ArrayVec<
         pinned(&self.0).center(id)
     }
     #[inline]
-    fn view(&mut self, min: Vec2, max: Vec2, callback: impl FnMut(TapestryLayoutItem)) {
-        pinned_mut(&mut self.0).view(min, max, callback);
+    fn view(&self, min: Vec2, max: Vec2, callback: impl FnMut(TapestryLayoutItem)) {
+        pinned(&self.0).view(min, max, callback);
     }
 }
 
@@ -132,8 +132,8 @@ impl Layouter<LoggedTapestryWeave, ShortId, TapestryNode, NodeContent, Vec2, Arr
         pinned(&self.0).center(id)
     }
     #[inline]
-    fn view(&mut self, min: Vec2, max: Vec2, callback: impl FnMut(TapestryLayoutItem)) {
-        pinned_mut(&mut self.0).view(min, max, callback);
+    fn view(&self, min: Vec2, max: Vec2, callback: impl FnMut(TapestryLayoutItem)) {
+        pinned(&self.0).view(min, max, callback);
     }
 }
 
@@ -141,14 +141,6 @@ impl Layouter<LoggedTapestryWeave, ShortId, TapestryNode, NodeContent, Vec2, Arr
 fn pinned(
     layouter: &IndependentLayouter<ShortId, BuildHasherDefault<RandomIdHasher>>,
 ) -> &impl Layouter<TapestryWeaveInner, ShortId, TapestryNode, NodeContent, Vec2, ArrayVec<[Vec2; 6]>>
-{
-    layouter
-}
-
-#[inline]
-fn pinned_mut(
-    layouter: &mut IndependentLayouter<ShortId, BuildHasherDefault<RandomIdHasher>>,
-) -> &mut impl Layouter<TapestryWeaveInner, ShortId, TapestryNode, NodeContent, Vec2, ArrayVec<[Vec2; 6]>>
 {
     layouter
 }
