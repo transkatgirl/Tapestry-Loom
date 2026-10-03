@@ -4,7 +4,6 @@ use eframe::egui::{
     Align, Button, Color32, Direction, FontFamily, Frame, Layout, Pos2, Rect, Response, Rgba,
     RichText, ScrollArea, Sense, Stroke, TextFormat, TextStyle, TextWrapMode, Ui, UiBuilder, Vec2,
     containers::menu::SubMenuButton,
-    pos2,
     text::{ByteIndex, LayoutJob, LayoutSection},
 };
 use flagset::{FlagSet, flags};
@@ -425,6 +424,8 @@ impl WeaveUi {
                         let label_button_response = ui.add(label_button);
 
                         scrollable_hover_ui(&label_button_response, |ui| {
+                            self.hovered = Some(node.id);
+
                             self.node_hover_tooltip(
                                 ui,
                                 node,
@@ -663,6 +664,200 @@ impl WeaveUi {
         response.context_menu(|ui| {
             self.document_context_menu(weave, ui, DocumentContextFlags::Roots.into())
         });
+    }
+    pub fn canvas_node(
+        &mut self,
+        weave: &mut LoggedTapestryWeave,
+        node: &TapestryNode,
+        ui: &mut Ui,
+        rect: Rect,
+    ) {
+        self.rendered_collapsing_labels.push(node.id);
+
+        let is_hovered = self.is_hovered(&node.id);
+
+        let inactive_color = ui.visuals().widgets.inactive.bg_fill;
+        let stroke_width = ui.visuals().widgets.inactive.fg_stroke.width;
+
+        let active_color = ui.visuals().widgets.active.fg_stroke.color;
+        let inactive_stroke = Stroke::new(stroke_width * 1.5, inactive_color);
+        let base_fill = ui.visuals().widgets.noninteractive.bg_fill;
+        let hover_fill = ui.visuals().widgets.hovered.weak_bg_fill;
+
+        let fill = if node.active
+            && let Some(color) = self.node_color(node)
+        {
+            Rgba::from(multiply_color_alpha(color, 0.2)).into()
+        } else if is_hovered {
+            hover_fill
+        } else {
+            base_fill
+        };
+
+        let response = ui
+            .scope_builder(
+                UiBuilder::new()
+                    .max_rect(rect)
+                    .layout(Layout::centered_and_justified(Direction::TopDown))
+                    .id(ui.id().with((node.id, "node"))),
+                |ui| {
+                    ui.add(
+                        Button::new(self.node_text(ui, node, TextFlags::EmptyNotice.into()))
+                            .fill(fill)
+                            .stroke(Stroke::new(
+                                inactive_stroke.width
+                                    * if self.cursor == Some(node.id) {
+                                        2.0
+                                    } else {
+                                        1.0
+                                    },
+                                match (node.bookmarked, node.active) {
+                                    (true, true) => ui.visuals().selection.stroke.color,
+                                    (true, false) => ui.visuals().selection.bg_fill,
+                                    (false, active) => {
+                                        if active {
+                                            active_color
+                                        } else {
+                                            inactive_color
+                                        }
+                                    }
+                                },
+                            ))
+                            .min_size(rect.size())
+                            .wrap(),
+                    )
+                },
+            )
+            .inner;
+
+        response.context_menu(|ui| {
+            self.node_context_menu(weave, node, ui, true);
+        });
+
+        if response.contains_pointer() {
+            self.hovered = Some(node.id);
+        }
+
+        if response.clicked() {
+            self.activate_node(weave, node.id, &response, true);
+        }
+
+        let pad = ui.text_style_height(&TextStyle::Monospace);
+
+        let gutter_hover = ui
+            .interact(
+                Rect::from_min_max(
+                    rect.right_top(),
+                    Pos2 {
+                        x: rect.max.x + 5.0 * pad,
+                        y: rect.max.y,
+                    },
+                ),
+                ui.id().with((node.id, "gutter")),
+                Sense::hover(),
+            )
+            .contains_pointer();
+
+        scrollable_hover_ui(&response, |ui| {
+            self.hovered = Some(node.id);
+
+            ui.horizontal(|ui| {
+                let mut flags = ButtonFlags::Merge
+                    | ButtonFlags::Generate
+                    | ButtonFlags::Add
+                    | ButtonFlags::Bookmark
+                    | ButtonFlags::Delete;
+
+                if !node.to.is_empty() {
+                    flags |= ButtonFlags::Collapse;
+                }
+
+                self.node_buttons(weave, node, ui, flags);
+            });
+
+            ui.separator();
+
+            self.node_hover_tooltip(
+                ui,
+                node,
+                TokenTooltipFlags::Contents
+                    | TokenTooltipFlags::Counterfactual
+                    | TokenTooltipFlags::WarnModified,
+            );
+        });
+
+        let gutter_button =
+            |ui: &mut Ui, text: &str, hover_text: &str, hovered: bool, active: bool| {
+                let button_rect = Rect::from_min_max(
+                    Pos2 {
+                        x: rect.max.x + pad,
+                        y: rect.min.y,
+                    },
+                    Pos2 {
+                        x: rect.max.x + 4.0 * pad,
+                        y: rect.max.y,
+                    },
+                );
+
+                ui.painter().line_segment(
+                    [rect.right_center(), button_rect.left_center()],
+                    Stroke::new(
+                        stroke_width,
+                        if active { active_color } else { inactive_color },
+                    ),
+                );
+
+                ui.scope_builder(
+                    UiBuilder::new()
+                        .max_rect(button_rect)
+                        .layout(Layout::left_to_right(Align::Center))
+                        .id(ui.id().with((node.id, text))),
+                    |ui| {
+                        ui.add(
+                            Button::new(RichText::new(text).size(pad))
+                                .min_size(Vec2::splat(pad * 1.75))
+                                .fill(if hovered { hover_fill } else { base_fill })
+                                .stroke(inactive_stroke),
+                        )
+                        .on_hover_text(hover_text)
+                    },
+                )
+                .inner
+            };
+
+        if !self.is_open(&node.id)
+            && let Some(child) = weave.get_primary_child(&node.id)
+        {
+            let response = gutter_button(
+                ui,
+                "...",
+                "Expand node",
+                self.is_hovered(&child),
+                weave.contains_active(&child),
+            );
+
+            if response.contains_pointer() {
+                self.hovered = Some(child);
+            }
+
+            if response.clicked() {
+                self.set_open(node.id, true);
+            }
+        } else if gutter_hover || (response.contains_pointer() && is_hovered) {
+            let response = gutter_button(ui, "+", "Generate children", false, node.active);
+
+            if response.clicked() {
+                self.requests
+                    .push(InferenceRequest::GenerateAfter(Some(node.id)));
+
+                if response.clicked_with_open_in_background() {
+                    weave.set_active_tree_semantics(&node.id, true);
+                    self.cursor = Some(node.id);
+                }
+
+                self.set_open(node.id, true);
+            }
+        }
     }
     pub fn node_text(
         &mut self,
