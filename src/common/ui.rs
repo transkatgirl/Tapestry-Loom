@@ -2,8 +2,9 @@ use std::path::Path;
 
 use color::{AlphaColor, Oklch, PremulColor, PremulRgba8, Srgb};
 use eframe::egui::{
-    self, Color32, Event, Frame, InnerResponse, InputState, Key, KeyboardShortcut, Modifiers,
-    PointerButton, Response, Sense, TextEdit, Ui, UiBuilder, Vec2, Widget, response::Flags, vec2,
+    self, AreaState, Color32, Event, Frame, InnerResponse, InputState, Key, KeyboardShortcut,
+    Modifiers, PointerButton, Response, Sense, TextEdit, Tooltip, Ui, UiBuilder, Vec2, Widget,
+    response::Flags, vec2,
 };
 use egui_keybind::Keybind;
 use flagset::FlagSet;
@@ -16,6 +17,32 @@ pub fn clicked_rising_edge(response: &Response) -> bool {
             && response
                 .ctx
                 .input(|i| i.pointer.button_pressed(PointerButton::Primary)))
+}
+
+pub fn scrollable_hover_ui<R>(
+    response: &Response,
+    add_contents: impl FnOnce(&mut Ui) -> R,
+) -> Option<InnerResponse<R>> {
+    let pointer_over_tooltip = response.is_tooltip_open()
+        && AreaState::load(
+            &response.ctx,
+            Tooltip::next_tooltip_id(&response.ctx, response.id),
+        )
+        .is_some_and(|area| {
+            response
+                .ctx
+                .input(|i| i.pointer.hover_pos())
+                .is_some_and(|pos| area.rect().contains(pos))
+        });
+
+    let mut tooltip = Tooltip::for_widget(response);
+
+    tooltip.popup = tooltip.popup.open(
+        response.enabled()
+            && (pointer_over_tooltip || Tooltip::should_show_tooltip(response, true)),
+    );
+
+    tooltip.show(add_contents)
 }
 
 // Copied from egui source code and modified to use Modifiers::matches_exact()

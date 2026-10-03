@@ -21,7 +21,7 @@ use tapestry_weave::{
 use ulid::Ulid;
 
 use crate::{
-    common::ui::multiply_color_alpha,
+    common::ui::{multiply_color_alpha, scrollable_hover_ui},
     editor::settings::{
         interface::{InterfaceSettings, NodeColors, TokenColors},
         shortcuts::Shortcuts,
@@ -381,129 +381,137 @@ impl WeaveUi {
         }
 
         let response = ui
-            .scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
-                let mut frame = Frame::new();
+            .scope_builder(
+                UiBuilder::new()
+                    .sense(Sense::CLICK)
+                    .id(ui.id().with((node.id, "node"))),
+                |ui| {
+                    let mut frame = Frame::new();
 
-                let is_hovered = self.last_hovered == Some(node.id);
-                let is_cursor = self.cursor == Some(node.id);
-                let is_focus = self.scroll_to == Some(node.id);
+                    let is_hovered = self.last_hovered == Some(node.id);
+                    let is_cursor = self.cursor == Some(node.id);
+                    let is_focus = self.scroll_to == Some(node.id);
 
-                if is_hovered {
-                    frame = frame.fill(ui.visuals().widgets.hovered.weak_bg_fill);
-                }
-
-                frame.show(ui, |ui| {
-                    // TODO: Cache node LayoutJobs
-                    let label_color = self.node_color(node);
-
-                    let mut label_button =
-                        Button::new(self.node_text(ui, node, TextFlags::EmptyNotice.into()));
-
-                    if
-                    /*is_hovered ||*/
-                    is_cursor {
-                        label_button = label_button.stroke(ui.visuals().widgets.hovered.bg_stroke);
+                    if is_hovered {
+                        frame = frame.fill(ui.visuals().widgets.hovered.weak_bg_fill);
                     }
 
-                    label_button = if node.active {
-                        if let Some(label_color) = label_color {
-                            label_button
-                                .fill(multiply_color_alpha(label_color, 0.2))
-                                .selected(true)
-                        } else {
-                            label_button.selected(true)
+                    frame.show(ui, |ui| {
+                        // TODO: Cache node LayoutJobs
+                        let label_color = self.node_color(node);
+
+                        let mut label_button =
+                            Button::new(self.node_text(ui, node, TextFlags::EmptyNotice.into()));
+
+                        if
+                        /*is_hovered ||*/
+                        is_cursor {
+                            label_button =
+                                label_button.stroke(ui.visuals().widgets.hovered.bg_stroke);
                         }
-                    } else {
-                        label_button.fill(Color32::TRANSPARENT)
-                    };
 
-                    let label_button_response = ui.add(label_button).on_hover_ui(|ui| {
-                        self.node_hover_tooltip(
-                            ui,
-                            node,
-                            /*TokenTooltipFlags::Counterfactual |*/
-                            TokenTooltipFlags::WarnModified.into(),
-                        ); // TODO
-                    });
-
-                    if let Some(autoscroll) = &options.autoscroll
-                        && is_focus
-                        && (autoscroll.max_autoscroll_height >= label_button_response.rect.height()
-                            || ui.input(|i| i.modifiers.any()))
-                    {
-                        // TODO: handle the same node being displayed multiple times in the same subview (eg. if a treelist is displaying the node once for every parent it has, only scroll to the node label above the parent before the node in the active path)
-                        label_button_response.scroll_to_me(None);
-                    }
-
-                    label_button_response.context_menu(|ui| {
-                        self.node_context_menu(weave, node, ui, options.collapsing);
-                    });
-
-                    if label_button_response.contains_pointer() {
-                        mouse_hovered = true;
-                        self.hovered = Some(node.id);
-                    }
-
-                    if label_button_response.clicked() {
-                        self.activate_node(weave, node.id, &label_button_response, in_place);
-                    }
-
-                    let hover_rect = Rect {
-                        min: Pos2 {
-                            x: ui.min_rect().min.x,
-                            y: ui.max_rect().min.y,
-                        },
-                        max: Pos2 {
-                            x: ui.max_rect().max.x,
-                            y: ui.min_rect().max.y,
-                        },
-                    };
-
-                    if ui.rect_contains_pointer(hover_rect) {
-                        mouse_hovered = true;
-                        self.hovered = Some(node.id);
-                    }
-
-                    ui.scope_builder(
-                        UiBuilder::new()
-                            .max_rect(hover_rect)
-                            .layout(Layout::right_to_left(Align::Center)),
-                        |ui| {
-                            if mouse_hovered {
-                                ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
-                                    ui.add_space(ui.spacing().icon_spacing);
-                                    self.node_buttons(
-                                        weave,
-                                        node,
-                                        ui,
-                                        options.buttons | ButtonFlags::Rtl,
-                                    );
-
-                                    ui.add_space(0.0);
-                                });
-                            } else if options.show_info {
-                                ui.add_space(ui.spacing().icon_spacing);
-
-                                if node.bookmarked {
-                                    ui.label("\u{E060}");
-                                }
-
-                                if let InnerNodeContent::Tokens(tokens) = &node.contents.content
-                                    && tokens.len() == 1
-                                    && let Some(logprob) = tokens[0].logprob
-                                    && logprob.is_finite()
-                                {
-                                    ui.label(format!("{:.1}%", logprob.exp() * 100.0));
-                                }
-
-                                ui.add_space(ui.spacing().icon_spacing);
+                        label_button = if node.active {
+                            if let Some(label_color) = label_color {
+                                label_button
+                                    .fill(multiply_color_alpha(label_color, 0.2))
+                                    .selected(true)
                             } else {
-                                ui.add_space(0.0);
+                                label_button.selected(true)
                             }
-                        },
-                    );
-                });
-            })
+                        } else {
+                            label_button.fill(Color32::TRANSPARENT)
+                        };
+
+                        let label_button_response = ui.add(label_button);
+
+                        scrollable_hover_ui(&label_button_response, |ui| {
+                            self.node_hover_tooltip(
+                                ui,
+                                node,
+                                TokenTooltipFlags::Counterfactual | TokenTooltipFlags::WarnModified,
+                            );
+                        });
+
+                        if let Some(autoscroll) = &options.autoscroll
+                            && is_focus
+                            && (autoscroll.max_autoscroll_height
+                                >= label_button_response.rect.height()
+                                || ui.input(|i| i.modifiers.any()))
+                        {
+                            // TODO: handle the same node being displayed multiple times in the same subview (eg. if a treelist is displaying the node once for every parent it has, only scroll to the node label above the parent before the node in the active path)
+                            label_button_response.scroll_to_me(None);
+                        }
+
+                        label_button_response.context_menu(|ui| {
+                            self.node_context_menu(weave, node, ui, options.collapsing);
+                        });
+
+                        if label_button_response.contains_pointer() {
+                            mouse_hovered = true;
+                            self.hovered = Some(node.id);
+                        }
+
+                        if label_button_response.clicked() {
+                            self.activate_node(weave, node.id, &label_button_response, in_place);
+                        }
+
+                        let hover_rect = Rect {
+                            min: Pos2 {
+                                x: ui.min_rect().min.x,
+                                y: ui.max_rect().min.y,
+                            },
+                            max: Pos2 {
+                                x: ui.max_rect().max.x,
+                                y: ui.min_rect().max.y,
+                            },
+                        };
+
+                        if ui.rect_contains_pointer(hover_rect) {
+                            mouse_hovered = true;
+                            self.hovered = Some(node.id);
+                        }
+
+                        ui.scope_builder(
+                            UiBuilder::new()
+                                .max_rect(hover_rect)
+                                .layout(Layout::right_to_left(Align::Center)),
+                            |ui| {
+                                if mouse_hovered {
+                                    ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
+                                        ui.add_space(ui.spacing().icon_spacing);
+                                        self.node_buttons(
+                                            weave,
+                                            node,
+                                            ui,
+                                            options.buttons | ButtonFlags::Rtl,
+                                        );
+
+                                        ui.add_space(0.0);
+                                    });
+                                } else if options.show_info {
+                                    ui.add_space(ui.spacing().icon_spacing);
+
+                                    if node.bookmarked {
+                                        ui.label("\u{E060}");
+                                    }
+
+                                    if let InnerNodeContent::Tokens(tokens) = &node.contents.content
+                                        && tokens.len() == 1
+                                        && let Some(logprob) = tokens[0].logprob
+                                        && logprob.is_finite()
+                                    {
+                                        ui.label(format!("{:.1}%", logprob.exp() * 100.0));
+                                    }
+
+                                    ui.add_space(ui.spacing().icon_spacing);
+                                } else {
+                                    ui.add_space(0.0);
+                                }
+                            },
+                        );
+                    });
+                },
+            )
             .response;
 
         response.context_menu(|ui| {
@@ -1104,7 +1112,7 @@ impl WeaveUi {
         if let InnerNodeContent::Tokens(tokens) = &node.contents.content
             && let [token] = tokens.as_slice()
         {
-            self.token_tooltip(token, ui, token_flags);
+            self.token_tooltip(token, ui, token_flags); // TODO
             ui.separator();
         }
 
