@@ -47,9 +47,7 @@ impl TreeListView {
                 let id = Id::new((editor_id.0, node.id));
                 let mut collapsing =
                     CollapsingState::load_with_default_open(ui.ctx(), id, DEFAULT_OPEN);
-                if let Some(opened) = shared.opened.get(&node.id).copied() {
-                    collapsing.set_open(opened);
-                }
+                collapsing.set_open(shared.is_open(&node.id));
 
                 let mut render_label = |ui: &mut Ui| {
                     ui.horizontal_wrapped(|ui| {
@@ -145,7 +143,7 @@ impl TreeListView {
                         });
 
                     if collapsing_response.0.clicked() {
-                        shared.opened.insert(
+                        shared.set_open(
                             node.id,
                             CollapsingState::load_with_default_open(ui.ctx(), id, DEFAULT_OPEN)
                                 .is_open(),

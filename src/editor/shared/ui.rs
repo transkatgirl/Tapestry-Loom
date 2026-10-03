@@ -1,9 +1,10 @@
-use std::{collections::HashMap, mem, ops::Range, sync::Arc};
+use std::{collections::HashMap, mem, ops::Range};
 
 use eframe::egui::{
-    Align, Button, Color32, FontFamily, Frame, Layout, Pos2, Rect, Response, RichText, ScrollArea,
-    Sense, TextFormat, TextStyle, TextWrapMode, Ui, UiBuilder, WidgetText,
+    Align, Button, Color32, Direction, FontFamily, Frame, Layout, Pos2, Rect, Response, Rgba,
+    RichText, ScrollArea, Sense, Stroke, TextFormat, TextStyle, TextWrapMode, Ui, UiBuilder, Vec2,
     containers::menu::SubMenuButton,
+    pos2,
     text::{ByteIndex, LayoutJob, LayoutSection},
 };
 use flagset::{FlagSet, flags};
@@ -33,7 +34,9 @@ pub struct WeaveUi {
     pub user: Option<Author>, // TODO
     pub cursor: Option<ShortId>,
     last_cursor: Option<ShortId>,
-    pub opened: HashMap<ShortId, bool>,
+    opened: HashMap<ShortId, bool>,
+    opened_changed: bool,
+    last_opened_changed: bool,
     hovered: Option<ShortId>,
     last_hovered: Option<ShortId>,
     pub(super) scroll_to: Option<ShortId>,
@@ -86,9 +89,11 @@ impl WeaveUi {
             self.scroll_to = Some(cursor);
 
             for node in weave.path_vec(&cursor).drain(..) {
-                self.opened.insert(node, true);
+                self.set_open(node, true);
             }
         }
+
+        self.last_opened_changed = mem::take(&mut self.opened_changed);
 
         self.last_cursor = self.cursor;
 
@@ -119,7 +124,7 @@ impl WeaveUi {
                 self.user.clone(),
             )) {
                 if let Some(cursor) = self.cursor {
-                    self.opened.insert(cursor, true);
+                    self.set_open(cursor, true);
                 }
 
                 if active {
@@ -233,19 +238,18 @@ impl WeaveUi {
             }
 
             if shortcuts.contains(Shortcuts::ToggleNodeCollapsed) {
-                let entry = self.opened.entry(cursor).or_insert(DEFAULT_OPEN);
-                *entry = !*entry;
+                self.toggle_open(cursor);
             }
 
             if shortcuts.contains(Shortcuts::CollapseChildren) {
                 for child in weave.get_children(&cursor).unwrap().iter().copied() {
-                    self.opened.insert(child, false);
+                    self.set_open(child, false);
                 }
             }
 
             if shortcuts.contains(Shortcuts::ExpandChildren) {
                 for child in weave.get_children(&cursor).unwrap().iter().copied() {
-                    self.opened.insert(child, true);
+                    self.set_open(child, true);
                 }
             }
         }
@@ -275,15 +279,17 @@ impl WeaveUi {
 
         if shortcuts.contains(Shortcuts::CollapseAllVisibleInactive) {
             for node in self.rendered_collapsing_labels.iter().copied() {
-                if !weave.contains_active(&node) {
-                    self.opened.insert(node, false);
+                if !weave.contains_active(&node) && self.opened.insert(node, false) != Some(false) {
+                    self.opened_changed = true;
                 }
             }
         }
 
         if shortcuts.contains(Shortcuts::ExpandAllVisible) {
             for node in self.rendered_collapsing_labels.iter().copied() {
-                self.opened.insert(node, true);
+                if self.opened.insert(node, true) != Some(true) {
+                    self.opened_changed = true;
+                }
             }
         }
 
@@ -320,6 +326,23 @@ impl WeaveUi {
         } else {
             None
         }
+    }
+    #[allow(clippy::misnamed_getters)]
+    pub fn opened_changed(&self) -> bool {
+        self.last_opened_changed
+    }
+    pub fn is_open(&self, id: &ShortId) -> bool {
+        self.opened.get(id).copied().unwrap_or(DEFAULT_OPEN)
+    }
+    pub fn set_open(&mut self, id: ShortId, open: bool) {
+        if self.opened.insert(id, open) != Some(open) {
+            self.opened_changed = true;
+        }
+    }
+    pub fn toggle_open(&mut self, id: ShortId) {
+        let entry = self.opened.entry(id).or_insert(DEFAULT_OPEN);
+        *entry = !*entry;
+        self.opened_changed = true;
     }
     pub fn is_hovered(&self, node: &ShortId) -> bool {
         self.last_hovered.as_ref() == Some(node)
@@ -371,14 +394,10 @@ impl WeaveUi {
 
                 frame.show(ui, |ui| {
                     // TODO: Cache node LayoutJobs
-                    let label = WidgetText::LayoutJob(Arc::new(self.node_text(
-                        ui,
-                        node,
-                        TextFlags::EmptyNotice.into(),
-                    )));
                     let label_color = self.node_color(node);
 
-                    let mut label_button = Button::new(label);
+                    let mut label_button =
+                        Button::new(self.node_text(ui, node, TextFlags::EmptyNotice.into()));
 
                     if
                     /*is_hovered ||*/
@@ -389,7 +408,7 @@ impl WeaveUi {
                     label_button = if node.active {
                         if let Some(label_color) = label_color {
                             label_button
-                                .fill(multiply_color_alpha(label_color, 0.5))
+                                .fill(multiply_color_alpha(label_color, 0.2))
                                 .selected(true)
                         } else {
                             label_button.selected(true)
@@ -852,7 +871,7 @@ impl WeaveUi {
                 self.cursor = Some(node.id);
             }
 
-            self.opened.insert(node.id, true);
+            self.set_open(node.id, true);
         }
 
         if ui
@@ -888,7 +907,7 @@ impl WeaveUi {
                     self.cursor = Some(identifier);
                 }
 
-                self.opened.insert(node.id, true);
+                self.set_open(node.id, true);
             }
         };
 
@@ -919,13 +938,13 @@ impl WeaveUi {
             if collapsing {
                 if ui.button("Collapse all children").clicked() {
                     for child in node.to.iter().copied() {
-                        self.opened.insert(child, false);
+                        self.set_open(child, false);
                     }
                 }
 
                 if ui.button("Expand all children").clicked() {
                     for child in node.to.iter().copied() {
-                        self.opened.insert(child, true);
+                        self.set_open(child, true);
                     }
                 }
 
@@ -944,6 +963,14 @@ impl WeaveUi {
 
                 if ui.button("Metadata").clicked() {
                     weave.sort_children_by(&node.id, sort::grouped);
+                }
+
+                if ui.button("Contents").clicked() {
+                    weave.sort_children_by(&node.id, sort::by_contents);
+                }
+
+                if ui.button("Timestamp").clicked() {
+                    weave.sort_children_by(&node.id, sort::by_timestamp);
                 }
             });
 
@@ -1026,6 +1053,14 @@ impl WeaveUi {
                     if ui.button("Metadata").clicked() {
                         weave.sort_roots_by(sort::grouped);
                     }
+
+                    if ui.button("Contents").clicked() {
+                        weave.sort_roots_by(sort::by_contents);
+                    }
+
+                    if ui.button("Timestamp").clicked() {
+                        weave.sort_roots_by(sort::by_timestamp);
+                    }
                 });
             }
         }
@@ -1046,6 +1081,14 @@ impl WeaveUi {
 
                 if ui.button("Metadata").clicked() {
                     weave.sort_bookmarks_by(sort::grouped);
+                }
+
+                if ui.button("Contents").clicked() {
+                    weave.sort_bookmarks_by(sort::by_contents);
+                }
+
+                if ui.button("Timestamp").clicked() {
+                    weave.sort_bookmarks_by(sort::by_timestamp);
                 }
             });
         }
@@ -1308,7 +1351,7 @@ impl WeaveUi {
 
         if flags.contains(ButtonFlags::Rtl) {
             if flags.contains(ButtonFlags::Collapse) {
-                let is_open = self.opened.get(&node.id).copied().unwrap_or(DEFAULT_OPEN);
+                let is_open = self.is_open(&node.id);
 
                 let label = if is_open { "\u{E43C}" } else { "\u{E43E}" };
                 let hover_text = if is_open {
@@ -1317,7 +1360,7 @@ impl WeaveUi {
                     "Expand node"
                 };
                 if ui.button(label).on_hover_text(hover_text).clicked() {
-                    self.opened.insert(node.id, !is_open);
+                    self.set_open(node.id, !is_open);
                 };
             }
 
@@ -1370,7 +1413,7 @@ impl WeaveUi {
                             self.cursor = Some(identifier);
                         }
 
-                        self.opened.insert(node.id, true);
+                        self.set_open(node.id, true);
                     }
                 };
             }
@@ -1392,7 +1435,7 @@ impl WeaveUi {
                         self.cursor = Some(node.id);
                     }
 
-                    self.opened.insert(node.id, true);
+                    self.set_open(node.id, true);
                 }
             }
 
@@ -1453,7 +1496,7 @@ impl WeaveUi {
                         self.cursor = Some(node.id);
                     }
 
-                    self.opened.insert(node.id, true);
+                    self.set_open(node.id, true);
                 }
             }
 
@@ -1484,7 +1527,7 @@ impl WeaveUi {
                             self.cursor = Some(identifier);
                         }
 
-                        self.opened.insert(node.id, true);
+                        self.set_open(node.id, true);
                     }
                 };
             }
@@ -1516,7 +1559,7 @@ impl WeaveUi {
             };
 
             if flags.contains(ButtonFlags::Collapse) {
-                let is_open = self.opened.get(&node.id).copied().unwrap_or(DEFAULT_OPEN);
+                let is_open = self.is_open(&node.id);
 
                 let label = if is_open { "\u{E43C}" } else { "\u{E43E}" };
                 let hover_text = if is_open {
@@ -1525,7 +1568,7 @@ impl WeaveUi {
                     "Expand node"
                 };
                 if ui.button(label).on_hover_text(hover_text).clicked() {
-                    self.opened.insert(node.id, !is_open);
+                    self.set_open(node.id, !is_open);
                 };
             }
         }

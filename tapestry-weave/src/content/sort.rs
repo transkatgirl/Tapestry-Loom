@@ -54,6 +54,13 @@ pub fn by_timestamp(a: &TapestryNode, b: &TapestryNode) -> Ordering {
         .then_with(|| a.id.cmp(&b.id))
 }
 
+pub fn by_contents(a: &TapestryNode, b: &TapestryNode) -> Ordering {
+    a.contents
+        .content
+        .as_bytes()
+        .cmp(&b.contents.content.as_bytes())
+}
+
 pub fn grouped(a: &TapestryNode, b: &TapestryNode) -> Ordering {
     by_model(a, b)
         .then_with(|| by_single_token(a, b))
