@@ -13,6 +13,7 @@ use ulid::Ulid;
 
 mod disk;
 pub mod preload;
+pub(super) mod scene;
 pub(super) mod ui;
 
 use crate::{
@@ -184,14 +185,11 @@ impl EditorShared {
             DiskTask::None => {}
         }
 
-        if let Some(updated) = shared
+        let updated = shared
             .inference
             .update(self.id, &mut self.weave)
             .last()
-            .copied()
-        {
-            self.ui.scroll_to = Some(updated);
-        };
+            .copied();
 
         if let Some(weave) = &mut self.weave {
             self.ui.logic(
@@ -204,6 +202,7 @@ impl EditorShared {
                 } else {
                     FlagSet::empty()
                 },
+                updated,
             );
 
             if !weave.actions.is_empty() {

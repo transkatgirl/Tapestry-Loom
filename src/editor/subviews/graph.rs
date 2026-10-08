@@ -1,18 +1,10 @@
-use std::mem;
-
 use eframe::egui::{
-    self, Color32, Context, InnerResponse, NumExt, Rect, Scene, Shape, Stroke, StrokeKind, Tooltip,
-    Ui, WidgetText,
-    epaint::{CubicBezierShape, RectShape},
-    vec2,
+    Context, InnerResponse, Pos2, Rect, Shape, Stroke, StrokeKind, Tooltip, Ui, Vec2, WidgetText,
+    epaint::RectShape,
 };
 use tapestry_weave::{
     ShortId,
-    universal_weave::{
-        LayoutItem, Layouter, Weave,
-        glam::Vec2,
-        layout::{Spacing, smooth},
-    },
+    universal_weave::{Weave, layout::Spacing},
     weave::layout::TapestryLayouter,
 };
 
@@ -20,29 +12,33 @@ use crate::{
     common::view::View,
     editor::{
         EditorShared,
-        shared::ui::{DocumentContextFlags, LayoutFit, TextFlags, TokenTooltipFlags},
+        shared::{
+            scene::{Axes, EdgePainter, SceneCamera, SceneItem, SceneState},
+            ui::{DocumentContextFlags, TextFlags, TokenTooltipFlags},
+        },
     },
 };
 
 #[derive(Debug)]
 pub struct GraphView {
-    layouter: TapestryLayouter,
-    arranged: bool,
-    view: Option<Rect>,
+    scene: SceneState,
+    camera: SceneCamera,
     context_node: Option<ShortId>,
 }
 
 impl Default for GraphView {
     fn default() -> Self {
         Self {
-            layouter: TapestryLayouter::new(Spacing {
-                node: 1.0,
-                layer: 2.0,
-                corridor: 0.0,
-                edge: 0.25,
-            }),
-            arranged: false,
-            view: None,
+            scene: SceneState::new(
+                Axes::Identity,
+                TapestryLayouter::new(Spacing {
+                    node: 1.0,
+                    layer: 2.0,
+                    corridor: 0.0,
+                    edge: 0.25,
+                }),
+            ),
+            camera: SceneCamera::new(f32::EPSILON..=240.0, 15.0),
             context_node: None,
         }
     }
@@ -54,7 +50,7 @@ impl View<EditorShared> for GraphView {
     }
     fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), _ctx: &Context) {
         if shared.weave_changed {
-            self.arranged = false;
+            self.scene.invalidate();
         }
     }
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
@@ -62,142 +58,56 @@ impl View<EditorShared> for GraphView {
             return;
         };
 
-        let view_size = ui.available_size().at_least(egui::Vec2::splat(64.0)) / 15.0;
-        let contains_pointer = ui.rect_contains_pointer(ui.clip_rect());
+        let shift = self
+            .scene
+            .arrange(weave, shared.ui.cursor, |_| Vec2::splat(1.0));
 
-        let anchor = if mem::replace(&mut self.arranged, true) {
-            None
-        } else {
-            let anchor = shared.ui.cursor.and_then(|cursor| {
-                self.layouter
-                    .center(&cursor)
-                    .map(|position| position.to_array().into())
-            });
-            self.layouter.layout(weave, |_| Vec2::ONE);
-            anchor
-        };
-
-        let cursor_position = shared.ui.cursor.and_then(|cursor| {
-            self.layouter
-                .center(&cursor)
-                .map(|position| position.to_array().into())
-        });
-        let size = egui::Vec2::from(self.layouter.size().to_array());
-        let weave_view = || {
-            Rect::from_center_size(
-                (size * 0.5).to_pos2(),
-                (size / view_size).max_elem().max(1.0) * 1.05 * view_size,
-            )
-        };
-
-        let mut view = if shared.ui.fit == LayoutFit::Weave {
-            weave_view()
-        } else if (shared.ui.fit == LayoutFit::Cursor || self.view.is_none())
-            && let Some(position) = cursor_position
-        {
-            Rect::from_center_size(position, view_size)
-        } else if let Some(mut view) = self.view {
-            let visible = |view: Rect| {
-                Rect::from_center_size(
-                    view.center(),
-                    view_size * (view.size() / view_size).max_elem(),
-                )
-            };
-
-            if let Some(anchor) = anchor
-                && let Some(position) = cursor_position
-                && visible(view).contains(anchor)
-            {
-                view = view.translate(position - anchor);
-            }
-
-            if let Some(node) = shared.ui.autoscroll_target()
-                && let Some(position) = self
-                    .layouter
-                    .center(&node)
-                    .map(|position| position.to_array().into())
-                && (!contains_pointer
-                    || (shared.ui.cursor == Some(node) && !visible(view).contains(position)))
-            {
-                view = Rect::from_center_size(position, view_size);
-            }
-
-            view
-        } else {
-            weave_view()
-        };
+        let weave_view =
+            Rect::from_min_size(Pos2::ZERO, self.scene.size()).expand2(self.scene.size() * 0.025);
 
         let InnerResponse {
             response,
             inner: painter,
-        } = Scene::new()
-            .zoom_range(f32::EPSILON..=240.0)
-            .show(ui, &mut view, |ui| ui.painter().clone());
+        } = self.camera.show(
+            ui,
+            &mut shared.ui,
+            shift,
+            weave_view,
+            |id: &ShortId| {
+                self.scene
+                    .node_center(id)
+                    .map(|center| Rect::from_center_size(center, Vec2::splat(1.0)))
+            },
+            |ui, _| ui.painter().clone(),
+        );
 
-        self.view = Some(view);
-
-        let zoom = ui
+        let zoom = painter
             .ctx()
             .layer_transform_to_global(painter.layer_id())
             .map_or(1.0, |transform| transform.scaling);
 
         let default_color = ui.visuals().widgets.inactive.text_color();
-        let stroke_color = ui.visuals().widgets.inactive.bg_fill;
-        let active_stroke_color = ui.visuals().widgets.noninteractive.fg_stroke.color;
         let icon_color = ui.visuals().panel_fill;
 
-        let edge_width = 2.0 / zoom;
-        let hover_stroke = Stroke::new(2.75 / zoom, active_stroke_color);
-        let cursor_stroke = Stroke::new(hover_stroke.width, stroke_color);
+        let hover_stroke = Stroke::new(
+            2.75 / zoom,
+            ui.visuals().widgets.noninteractive.fg_stroke.color,
+        );
+        let cursor_stroke = Stroke::new(hover_stroke.width, ui.visuals().widgets.inactive.bg_fill);
 
-        let view = painter.clip_rect().expand(hover_stroke.width);
         let pointer = response.hover_pos().filter(|_| !response.dragged());
 
         let mut pointer_node = None;
+        let mut edges = EdgePainter::new(&painter, ui.visuals(), 2.0 / zoom);
 
-        let inactive_edges_idx = painter.add(Shape::Noop);
-        let mut inactive_edges = Vec::new();
-
-        self.layouter.view(
-            Vec2::from_array(view.min.into()),
-            Vec2::from_array(view.max.into()),
+        self.scene.view(
+            painter.clip_rect().expand(hover_stroke.width),
             |item| match item {
-                LayoutItem::Polyline { from, to, points } => {
-                    let smoothed = smooth(points)
-                        .into_iter()
-                        .map(|segment| segment.map(|segment| segment.to_array().into()));
-
-                    if weave.contains_active(&from) && weave.contains_active(&to) {
-                        painter.extend(smoothed.flat_map(|segment| {
-                            CubicBezierShape::from_points_stroke(
-                                segment,
-                                false,
-                                Color32::TRANSPARENT,
-                                Stroke::new(edge_width, active_stroke_color),
-                            )
-                            .to_path_shapes(Some(0.25 / zoom), None)
-                            .into_iter()
-                            .map(Shape::Path)
-                        }));
-                    } else {
-                        inactive_edges.extend(smoothed.flat_map(|segment| {
-                            CubicBezierShape::from_points_stroke(
-                                segment,
-                                false,
-                                Color32::TRANSPARENT,
-                                Stroke::new(edge_width, stroke_color),
-                            )
-                            .to_path_shapes(Some(0.25 / zoom), None)
-                            .into_iter()
-                            .map(Shape::Path)
-                        }));
-                    }
-                }
-                LayoutItem::Node { id, center, size } => {
-                    let node = weave.get(&id).unwrap();
-
-                    let bounds =
-                        Rect::from_center_size(center.to_array().into(), size.to_array().into());
+                SceneItem::Edge { from, to, segments } => edges.edge(weave, &from, &to, segments),
+                SceneItem::Node { id, rect: bounds } => {
+                    let Some(node) = weave.get(&id) else {
+                        return;
+                    };
 
                     let hovered = if pointer.is_some_and(|pointer| bounds.contains(pointer)) {
                         pointer_node = Some(id);
@@ -228,11 +138,11 @@ impl View<EditorShared> for GraphView {
                             shape,
                             Shape::convex_polygon(
                                 [
-                                    vec2(0.25, 0.15),
-                                    vec2(0.75, 0.15),
-                                    vec2(0.75, 0.85),
-                                    vec2(0.5, 0.7),
-                                    vec2(0.25, 0.85),
+                                    Vec2 { x: 0.25, y: 0.15 },
+                                    Vec2 { x: 0.75, y: 0.15 },
+                                    Vec2 { x: 0.75, y: 0.85 },
+                                    Vec2 { x: 0.5, y: 0.7 },
+                                    Vec2 { x: 0.25, y: 0.85 },
                                 ]
                                 .into_iter()
                                 .map(|point| bounds.lerp_inside(point))
@@ -248,7 +158,7 @@ impl View<EditorShared> for GraphView {
             },
         );
 
-        painter.set(inactive_edges_idx, Shape::Vec(inactive_edges));
+        edges.finish();
 
         if response
             .context_menu(|ui| {
@@ -291,8 +201,7 @@ impl View<EditorShared> for GraphView {
                 shared.ui.set_hovered(id);
             }
         } else if response.double_clicked() {
-            self.view = Some(weave_view());
-            ui.ctx().request_repaint();
+            self.camera.reset(ui, weave_view);
         }
     }
 }

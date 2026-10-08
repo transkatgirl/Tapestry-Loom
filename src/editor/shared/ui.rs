@@ -38,7 +38,7 @@ pub struct WeaveUi {
     last_opened_changed: bool,
     hovered: Option<ShortId>,
     last_hovered: Option<ShortId>,
-    pub(super) scroll_to: Option<ShortId>,
+    scroll_to: Option<ShortId>,
     pub fit: LayoutFit,
 
     requests: Vec<InferenceRequest>,
@@ -61,6 +61,7 @@ impl WeaveUi {
         inference: &mut InferenceEngine,
         id: Ulid,
         shortcuts: FlagSet<Shortcuts>,
+        updated: Option<ShortId>,
     ) {
         if let Some(cursor) = self.cursor
             && !weave.contains(&cursor)
@@ -70,7 +71,7 @@ impl WeaveUi {
 
         self.handle_shortcuts(weave, shortcuts);
 
-        self.scroll_to = None;
+        self.scroll_to = updated;
         if self.last_hovered != self.hovered && self.hovered.is_some() {
             self.scroll_to = self.hovered;
         }
