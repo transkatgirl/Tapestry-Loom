@@ -14,7 +14,10 @@ use tapestry_weave::{
     weave::{layout::TapestryLayouter, wrappers::LoggedTapestryWeave},
 };
 
-use crate::editor::shared::ui::{LayoutFit, WeaveUi};
+use crate::{
+    common::ui::view_contains_pointer,
+    editor::shared::ui::{LayoutFit, WeaveUi},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Axes {
@@ -189,7 +192,7 @@ impl SceneCamera {
             shift,
             weave_view,
             node_bounds,
-            ui.rect_contains_pointer(ui.clip_rect()),
+            view_contains_pointer(ui),
         );
 
         let response = Scene::new()

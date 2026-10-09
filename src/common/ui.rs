@@ -3,8 +3,8 @@ use std::path::Path;
 use color::{AlphaColor, Oklch, PremulColor, PremulRgba8, Srgb};
 use eframe::egui::{
     self, AreaState, Color32, Event, Frame, InnerResponse, InputState, Key, KeyboardShortcut,
-    Modifiers, PointerButton, Response, Sense, TextEdit, Tooltip, Ui, UiBuilder, Vec2, Widget,
-    response::Flags, vec2,
+    Modifiers, Order, PointerButton, Response, Sense, TextEdit, Tooltip, Ui, UiBuilder, Vec2,
+    Widget, response::Flags, vec2,
 };
 use egui_keybind::Keybind;
 use flagset::FlagSet;
@@ -43,6 +43,19 @@ pub fn scrollable_hover_ui<R>(
     );
 
     tooltip.show(add_contents)
+}
+
+pub fn view_contains_pointer(ui: &Ui) -> bool {
+    let Some(pointer) = ui.ctx().pointer_hover_pos() else {
+        return false;
+    };
+
+    ui.clip_rect().contains(pointer)
+        || ui.ctx().layer_id_at(pointer).is_some_and(|layer| {
+            layer.order == Order::Tooltip
+                && AreaState::load(ui.ctx(), layer.id)
+                    .is_some_and(|area| area.rect().intersects(ui.clip_rect()))
+        })
 }
 
 // Copied from egui source code and modified to use Modifiers::matches_exact()

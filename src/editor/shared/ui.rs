@@ -20,7 +20,7 @@ use tapestry_weave::{
 use ulid::Ulid;
 
 use crate::{
-    common::ui::{multiply_color_alpha, scrollable_hover_ui},
+    common::ui::{multiply_color_alpha, scrollable_hover_ui, view_contains_pointer},
     editor::settings::{
         interface::{InterfaceSettings, NodeColors, TokenColors},
         shortcuts::Shortcuts,
@@ -308,11 +308,7 @@ impl WeaveUi {
             return None;
         }
 
-        let contains_pointer = ui
-            .clip_rect()
-            .contains(ui.ctx().pointer_hover_pos().unwrap_or_default());
-
-        if !contains_pointer || self.cursor == self.scroll_to {
+        if !view_contains_pointer(ui) || self.cursor == self.scroll_to {
             Some(AutoscrollData {
                 max_autoscroll_height: ui.available_size_before_wrap().y,
             })
