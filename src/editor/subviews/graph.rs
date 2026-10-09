@@ -179,7 +179,7 @@ impl View<EditorShared> for GraphView {
 
         if let Some(id) = pointer_node {
             if response.clicked() {
-                shared.ui.activate_node(weave, id, &response, false);
+                shared.ui.activate_node(weave, id, &response, true);
             }
 
             if !response.context_menu_opened() {

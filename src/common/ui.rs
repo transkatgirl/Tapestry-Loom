@@ -2,9 +2,9 @@ use std::path::Path;
 
 use color::{AlphaColor, Oklch, PremulColor, PremulRgba8, Srgb};
 use eframe::egui::{
-    self, AreaState, Color32, Event, Frame, InnerResponse, InputState, Key, KeyboardShortcut,
-    Modifiers, Order, PointerButton, Response, Sense, TextEdit, Tooltip, Ui, UiBuilder, Vec2,
-    Widget, response::Flags, vec2,
+    self, AreaState, Color32, Context, Event, Frame, InnerResponse, InputState, Key,
+    KeyboardShortcut, Modifiers, Order, PointerButton, Pos2, Rect, Response, Sense, TextEdit,
+    Tooltip, Ui, UiBuilder, Vec2, Widget, response::Flags, vec2,
 };
 use egui_keybind::Keybind;
 use flagset::FlagSet;
@@ -50,12 +50,22 @@ pub fn view_contains_pointer(ui: &Ui) -> bool {
         return false;
     };
 
-    ui.clip_rect().contains(pointer)
-        || ui.ctx().layer_id_at(pointer).is_some_and(|layer| {
-            layer.order == Order::Tooltip
-                && AreaState::load(ui.ctx(), layer.id)
-                    .is_some_and(|area| area.rect().intersects(ui.clip_rect()))
-        })
+    ui.clip_rect().contains(pointer) || tooltip_intersects(ui.ctx(), pointer, ui.clip_rect())
+}
+
+pub fn rect_contains_pointer(ctx: &Context, rect: Rect) -> bool {
+    let Some(pointer) = ctx.pointer_latest_pos() else {
+        return false;
+    };
+
+    rect.contains(pointer) || tooltip_intersects(ctx, pointer, rect)
+}
+
+fn tooltip_intersects(ctx: &Context, pointer: Pos2, rect: Rect) -> bool {
+    ctx.layer_id_at(pointer).is_some_and(|layer| {
+        layer.order == Order::Tooltip
+            && AreaState::load(ctx, layer.id).is_some_and(|area| area.rect().intersects(rect))
+    })
 }
 
 // Copied from egui source code and modified to use Modifiers::matches_exact()

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{common::view::Edit, editor::settings::shortcuts::Shortcuts};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub struct InterfaceSettings {
     pub node_colors: NodeColors,
     pub token_colors: TokenColors,

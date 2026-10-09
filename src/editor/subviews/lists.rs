@@ -79,7 +79,7 @@ impl TreeListView {
                                 show_info: true,
                                 autoscroll,
                             },
-                            true,
+                            false,
                         );
                     });
                 };
@@ -264,7 +264,7 @@ impl ListView {
                     show_info: true,
                     autoscroll,
                 },
-                false,
+                true,
             );
         });
     }
@@ -362,7 +362,7 @@ impl BookmarkView {
                     show_info: false,
                     autoscroll,
                 },
-                false,
+                true,
             );
         });
     }

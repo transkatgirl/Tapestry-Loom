@@ -354,9 +354,9 @@ impl WeaveUi {
         in_place: bool,
     ) {
         if response.clicked_with_open_in_background() == in_place {
-            weave.set_active(&node, true);
-        } else {
             weave.set_active_tree_semantics(&node, true);
+        } else {
+            weave.toggle_active(&node);
         }
         self.cursor = Some(node);
     }
