@@ -97,6 +97,9 @@ impl SceneState {
             .center(id)
             .map(|center| self.axes.to_screen(center).to_pos2())
     }
+    pub fn is_arranged(&self) -> bool {
+        self.arranged
+    }
     pub fn arrange(
         &mut self,
         weave: &mut LoggedTapestryWeave,

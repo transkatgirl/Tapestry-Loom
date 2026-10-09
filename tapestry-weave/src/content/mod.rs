@@ -1,6 +1,10 @@
 //! [`Node`](universal_weave::Node) content representations.
 
-use std::{borrow::Cow, iter};
+use std::{
+    borrow::Cow,
+    hash::{DefaultHasher, Hasher},
+    iter,
+};
 
 use jiff::Zoned;
 use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
@@ -872,6 +876,21 @@ impl InnerNodeContent {
             }
             Self::MetadataOnly => Box::new(iter::empty()),
         }
+    }
+    pub fn fingerprint(&self) -> u64 {
+        let mut hasher = DefaultHasher::new();
+
+        match self {
+            Self::Snippet(snippet) => hasher.write(snippet),
+            Self::Tokens(tokens) => {
+                for token in tokens {
+                    hasher.write(&token.bytes);
+                }
+            }
+            Self::MetadataOnly => {}
+        }
+
+        hasher.finish()
     }
     pub fn len(&self) -> usize {
         match self {
