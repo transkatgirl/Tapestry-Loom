@@ -192,16 +192,22 @@ impl EditorShared {
             .copied();
 
         if let Some(weave) = &mut self.weave {
+            let shortcuts = if self.last_visible {
+                shared.shortcuts.editor
+            } else {
+                FlagSet::empty()
+            };
+
+            if !shortcuts.is_empty() || !shared.shortcuts.global.is_empty() {
+                self.ui.apply_actions(weave);
+            }
+
             self.ui.logic(
                 weave,
                 &shared.settings.interface.editor,
                 &mut shared.inference,
                 self.id,
-                if self.last_visible {
-                    shared.shortcuts.editor
-                } else {
-                    FlagSet::empty()
-                },
+                shortcuts,
                 updated,
             );
 
@@ -427,7 +433,9 @@ impl EditorShared {
         &self.path
     }
     pub(super) fn check_close(&mut self, shared: &mut AppShared) -> bool {
-        if let Some(weave) = &self.weave {
+        if let Some(weave) = &mut self.weave {
+            self.ui.apply_actions(weave);
+
             if weave.is_empty_including_metadata() {
                 true
             } else if let Some(path) = self.path.clone() {

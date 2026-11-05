@@ -194,6 +194,7 @@ impl View<EditorShared> for GraphView {
                         shared.ui.node_hover_tooltip(
                             ui,
                             node,
+                            None,
                             TokenTooltipFlags::WarnModified.into(),
                         );
                     }

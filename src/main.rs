@@ -249,6 +249,11 @@ impl eframe::App for App {
         }
     }
     fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
+        if ui.input(|input| !input.events.is_empty()) {
+            // Always repainting after user interaction drastically simplifies UI logic and might(?) reduce input latency
+            ui.request_repaint();
+        }
+
         self.container.behavior.shared.ui(ui);
         if self.container.modals(ui)
             && let Some(window) = frame.winit_window()

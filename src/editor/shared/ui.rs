@@ -8,19 +8,21 @@ use eframe::egui::{
 };
 use flagset::{FlagSet, flags};
 use tapestry_weave::{
-    Author, Creator, InnerNodeContent, InnerNodeToken, OriginalToken, ShortId, TapestryNode,
-    UNKNOWN_MODEL_LABEL,
+    Author, Creator, InnerNodeContent, InnerNodeToken, NodeContent, OriginalToken, ShortId,
+    TapestryNode, UNKNOWN_MODEL_LABEL,
     content::{empty_user_node, from_utf8_lossy, sort},
-    nanorand::WyRand,
+    jiff::Zoned,
+    nanorand::{Rng, WyRand},
     universal_weave::{
-        BookmarkableWeave, DiscreteWeave, SortableBookmarkableWeave, SortableWeave, Weave,
+        ActivePathWeave, BookmarkableWeave, DiscreteWeave, SortableBookmarkableWeave,
+        SortableWeave, Weave,
     },
     weave::wrappers::LoggedTapestryWeave,
 };
 use ulid::Ulid;
 
 use crate::{
-    common::ui::{multiply_color_alpha, scrollable_hover_ui, view_contains_pointer},
+    common::ui::{hover_ui, multiply_color_alpha, view_contains_pointer},
     editor::settings::{
         interface::{InterfaceSettings, NodeColors, TokenColors},
         shortcuts::Shortcuts,
@@ -32,6 +34,8 @@ use crate::{
 pub struct WeaveUi {
     pub user: Option<Author>, // TODO
     pub cursor: Option<ShortId>,
+    pub selection: Option<Range<usize>>,
+    pub text: PendingText,
     last_cursor: Option<ShortId>,
     opened: HashMap<ShortId, bool>,
     opened_changed: bool,
@@ -39,6 +43,7 @@ pub struct WeaveUi {
     hovered: Option<ShortId>,
     last_hovered: Option<ShortId>,
     scroll_to: Option<ShortId>,
+    pending_counterfactual: Option<(ShortId, usize, usize)>,
     pub fit: LayoutFit,
 
     requests: Vec<InferenceRequest>,
@@ -46,6 +51,7 @@ pub struct WeaveUi {
     rng: WyRand,
 
     settings: InterfaceSettings,
+    pub settings_changed: bool,
 }
 
 pub const DEFAULT_OPEN: bool = false;
@@ -53,6 +59,15 @@ pub const DEFAULT_OPEN: bool = false;
 impl WeaveUi {
     fn generate_id(&mut self, weave: &LoggedTapestryWeave) -> ShortId {
         tapestry_weave::generate_id(&mut self.rng, weave)
+    }
+    pub fn apply_text(&mut self, weave: &mut LoggedTapestryWeave) {
+        if mem::take(&mut self.text.dirty) {
+            weave.update_active_text_str(&self.text.buffer, &self.user, || self.rng.generate());
+            self.text.applied = true;
+        }
+    }
+    pub fn apply_actions(&mut self, weave: &mut LoggedTapestryWeave) {
+        self.apply_text(weave);
     }
     pub fn logic(
         &mut self,
@@ -63,6 +78,55 @@ impl WeaveUi {
         shortcuts: FlagSet<Shortcuts>,
         updated: Option<ShortId>,
     ) {
+        if let Some((node, token_index, choice)) = self.pending_counterfactual {
+            self.apply_text(weave);
+
+            if let Some(original) = weave.get(&node)
+                && let InnerNodeContent::Tokens(tokens) = &original.contents.content
+                && let Some(token) = tokens.get(token_index)
+                && let Some(counterfactual) = token.counterfactual.get(choice).cloned()
+            {
+                let alternatives = token.counterfactual.clone();
+                let metadata = original.contents.metadata.clone();
+                let creator = original.contents.creator.clone();
+
+                if let Some((_, token_node, _)) =
+                    weave.split_out_token(&node, token_index, || self.rng.generate())
+                    && let Some(token_node) = weave.get(&token_node)
+                {
+                    let id = self.generate_id(weave);
+                    let from = token_node.from.clone();
+                    let active = token_node.active;
+
+                    if weave.insert_deduplicated(TapestryNode {
+                        id,
+                        from,
+                        to: Default::default(),
+                        active: false,
+                        bookmarked: false,
+                        contents: NodeContent {
+                            timestamp: Zoned::now(),
+                            modified: false,
+                            content: InnerNodeContent::Tokens(vec![
+                                InnerNodeToken::from_counterfactual_pair(
+                                    counterfactual,
+                                    alternatives,
+                                ),
+                            ]),
+                            metadata,
+                            creator,
+                        },
+                    }) {
+                        if active {
+                            weave.set_active_tree_semantics(&id, true);
+                        }
+
+                        self.cursor = Some(id);
+                    }
+                }
+            }
+        }
+
         if let Some(cursor) = self.cursor
             && !weave.contains(&cursor)
         {
@@ -71,6 +135,7 @@ impl WeaveUi {
 
         self.handle_shortcuts(weave, shortcuts);
 
+        self.selection = None;
         self.scroll_to = updated;
         if self.last_hovered != self.hovered && self.hovered.is_some() {
             self.scroll_to = self.hovered;
@@ -103,6 +168,7 @@ impl WeaveUi {
             inference.request(id, weave, request);
         }
 
+        self.settings_changed = self.settings != *settings;
         self.settings = *settings;
 
         // TODO
@@ -142,7 +208,62 @@ impl WeaveUi {
 
         if let Some(cursor) = self.cursor {
             if shortcuts.contains(Shortcuts::GenerateAtCursor) {
-                // TODO
+                let (parent, child) = match self.selection.clone() {
+                    Some(selection) => {
+                        let parent = self.split_at_caret(weave, selection.start);
+
+                        let child = if selection.is_empty() {
+                            None
+                        } else {
+                            let last = self.split_at_caret(weave, selection.end);
+
+                            let path = weave.active_path_vec();
+
+                            match last {
+                                Some(last) => path.iter().position(|id| *id == last),
+                                None => Some(path.len()),
+                            }
+                            .and_then(|index| index.checked_sub(1))
+                            .map(|index| path[index])
+                        };
+
+                        (parent, child)
+                    }
+                    None => (Some(cursor), None),
+                };
+
+                let prefix = parent.map_or_else(Vec::new, |parent| {
+                    weave
+                        .path_content(&parent)
+                        .flat_map(|contents| contents.content.iter_bytes())
+                        .collect()
+                });
+
+                let suffix = child.and_then(|child| {
+                    let mut path = Vec::with_capacity(weave.active().len());
+                    weave.get_active_path(&mut path);
+
+                    let index = path.iter().position(|id| *id == child)?;
+                    let suffix: Vec<u8> = path[..=index]
+                        .iter()
+                        .rev()
+                        .filter_map(|id| weave.get_contents(id))
+                        .flat_map(|contents| contents.content.iter_bytes())
+                        .collect();
+
+                    (!suffix.is_empty()).then_some(suffix)
+                });
+
+                self.requests.push(InferenceRequest::Generate {
+                    parent,
+                    child: suffix.as_ref().and(child),
+                    prefix,
+                    suffix,
+                });
+
+                if let Some(parent) = parent {
+                    self.set_open(parent, true);
+                }
             }
 
             if shortcuts.contains(Shortcuts::ToggleNodeActive) {
@@ -212,8 +333,10 @@ impl WeaveUi {
                 self.cursor = Some(merged);
             }
 
-            if shortcuts.contains(Shortcuts::SplitAtCursor) {
-                // TODO
+            if shortcuts.contains(Shortcuts::SplitAtCursor)
+                && let Some(selection) = &self.selection
+            {
+                self.split_at_caret(weave, selection.start);
             }
 
             if shortcuts.contains(Shortcuts::MoveToParent)
@@ -302,6 +425,42 @@ impl WeaveUi {
         if shortcuts.contains(Shortcuts::FitToWeave) {
             self.fit = LayoutFit::Weave;
         }
+    }
+    fn split_at_caret(&mut self, weave: &mut LoggedTapestryWeave, caret: usize) -> Option<ShortId> {
+        let mut start = 0;
+        let mut before = None;
+        let mut path = Vec::with_capacity(weave.active().len());
+        weave.get_active_path(&mut path);
+
+        for id in path.into_iter().rev() {
+            let end = start
+                + weave
+                    .get_contents(&id)
+                    .map_or(0, |contents| contents.content.len());
+
+            if end > caret {
+                if start < caret
+                    && let Some((_, right)) =
+                        weave.split_tokenized(&id, caret - start, || self.rng.generate())
+                {
+                    before = weave
+                        .get_parents(&right)
+                        .and_then(|parents| parents.first().copied());
+                    self.cursor = before;
+                }
+
+                break;
+            }
+
+            before = Some(id);
+            start = end;
+
+            if end == caret && self.cursor == Some(id) {
+                break;
+            }
+        }
+
+        before
     }
     pub fn calculate_autoscroll(&mut self, ui: &mut Ui) -> Option<AutoscrollData> {
         if !self.settings.auto_scroll {
@@ -420,15 +579,27 @@ impl WeaveUi {
 
                         let label_button_response = ui.add(label_button);
 
-                        scrollable_hover_ui(&label_button_response, |ui| {
-                            self.hovered = Some(node.id);
+                        hover_ui(
+                            &label_button_response,
+                            if let InnerNodeContent::Tokens(tokens) = &node.contents.content
+                                && tokens.len() == 1
+                            {
+                                true
+                            } else {
+                                false
+                            },
+                            |ui| {
+                                self.hovered = Some(node.id);
 
-                            self.node_hover_tooltip(
-                                ui,
-                                node,
-                                TokenTooltipFlags::Counterfactual | TokenTooltipFlags::WarnModified,
-                            );
-                        });
+                                self.node_hover_tooltip(
+                                    ui,
+                                    node,
+                                    None,
+                                    TokenTooltipFlags::Counterfactual
+                                        | TokenTooltipFlags::WarnModified,
+                                );
+                            },
+                        );
 
                         if let Some(autoscroll) = &options.autoscroll
                             && is_focus
@@ -755,7 +926,7 @@ impl WeaveUi {
             )
             .contains_pointer();
 
-        scrollable_hover_ui(&response, |ui| {
+        hover_ui(&response, true, |ui| {
             self.hovered = Some(node.id);
 
             ui.horizontal(|ui| {
@@ -777,6 +948,7 @@ impl WeaveUi {
             self.node_hover_tooltip(
                 ui,
                 node,
+                None,
                 TokenTooltipFlags::Contents
                     | TokenTooltipFlags::Counterfactual
                     | TokenTooltipFlags::WarnModified,
@@ -844,8 +1016,15 @@ impl WeaveUi {
             let response = gutter_button(ui, "+", "Generate children", false, node.active);
 
             if response.clicked() {
-                self.requests
-                    .push(InferenceRequest::GenerateAfter(Some(node.id)));
+                self.requests.push(InferenceRequest::Generate {
+                    parent: Some(node.id),
+                    child: None,
+                    prefix: weave
+                        .path_content(&node.id)
+                        .flat_map(|c| c.content.iter_bytes())
+                        .collect(), // TODO: take prefix as argument
+                    suffix: None,
+                });
 
                 if response.clicked_with_open_in_background() {
                     weave.set_active_tree_semantics(&node.id, true);
@@ -1063,8 +1242,15 @@ impl WeaveUi {
 
         let generate_response = ui.button("Generate completions");
         if generate_response.clicked() {
-            self.requests
-                .push(InferenceRequest::GenerateAfter(Some(node.id)));
+            self.requests.push(InferenceRequest::Generate {
+                parent: Some(node.id),
+                child: None,
+                prefix: weave
+                    .path_content(&node.id)
+                    .flat_map(|c| c.content.iter_bytes())
+                    .collect(), // TODO: take prefix as argument
+                suffix: None,
+            });
 
             if generate_response.clicked_with_open_in_background() {
                 weave.set_active_tree_semantics(&node.id, true);
@@ -1299,12 +1485,16 @@ impl WeaveUi {
         &mut self,
         ui: &mut Ui,
         node: &TapestryNode,
+        token_index: Option<usize>,
         token_flags: FlagSet<TokenTooltipFlags>,
     ) {
         if let InnerNodeContent::Tokens(tokens) = &node.contents.content
-            && let [token] = tokens.as_slice()
+            && let Some(token_index) = token_index.or((tokens.len() == 1).then_some(0))
+            && let Some(token) = tokens.get(token_index)
         {
-            self.token_tooltip(token, ui, token_flags); // TODO
+            if let Some(choice) = self.token_tooltip(token, ui, token_flags) {
+                self.pending_counterfactual = Some((node.id, token_index, choice));
+            }
             ui.separator();
         }
 
@@ -1627,8 +1817,15 @@ impl WeaveUi {
                             "Generate completions & focus node"
                         });
                 if generate_response.clicked() {
-                    self.requests
-                        .push(InferenceRequest::GenerateAfter(Some(node.id)));
+                    self.requests.push(InferenceRequest::Generate {
+                        parent: Some(node.id),
+                        child: None,
+                        prefix: weave
+                            .path_content(&node.id)
+                            .flat_map(|c| c.content.iter_bytes())
+                            .collect(), // TODO: take prefix as argument
+                        suffix: None,
+                    });
 
                     if generate_response.clicked_with_open_in_background() {
                         weave.set_active_tree_semantics(&node.id, true);
@@ -1688,8 +1885,15 @@ impl WeaveUi {
                             "Generate completions & focus node"
                         });
                 if generate_response.clicked() {
-                    self.requests
-                        .push(InferenceRequest::GenerateAfter(Some(node.id)));
+                    self.requests.push(InferenceRequest::Generate {
+                        parent: Some(node.id),
+                        child: None,
+                        prefix: weave
+                            .path_content(&node.id)
+                            .flat_map(|c| c.content.iter_bytes())
+                            .collect(), // TODO: take prefix as argument
+                        suffix: None,
+                    });
 
                     if generate_response.clicked_with_open_in_background() {
                         weave.set_active_tree_semantics(&node.id, true);
@@ -1795,6 +1999,13 @@ pub struct AutoscrollData {
     max_autoscroll_height: f32,
 }
 
+#[derive(Default, Debug)]
+pub struct PendingText {
+    pub buffer: String,
+    pub dirty: bool,
+    pub applied: bool,
+}
+
 flags! {
     pub enum ButtonFlags: u8 {
         Rtl,
@@ -1812,7 +2023,7 @@ flags! {
     }
     pub enum TokenTooltipFlags: u8 {
         WarnModified,
-        Counterfactual,
+        Counterfactual, // TODO: ensure consistent & sane flag definition
         Contents,
     }
     pub enum DocumentContextFlags: u8 {

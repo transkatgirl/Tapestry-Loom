@@ -19,11 +19,13 @@ pub fn clicked_rising_edge(response: &Response) -> bool {
                 .input(|i| i.pointer.button_pressed(PointerButton::Primary)))
 }
 
-pub fn scrollable_hover_ui<R>(
+pub fn hover_ui<R>(
     response: &Response,
+    sticky: bool,
     add_contents: impl FnOnce(&mut Ui) -> R,
 ) -> Option<InnerResponse<R>> {
-    let pointer_over_tooltip = response.is_tooltip_open()
+    let pointer_over_tooltip = sticky
+        && response.is_tooltip_open()
         && AreaState::load(
             &response.ctx,
             Tooltip::next_tooltip_id(&response.ctx, response.id),

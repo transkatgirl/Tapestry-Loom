@@ -21,7 +21,14 @@ pub struct InferenceEngine {
 }
 
 pub enum InferenceRequest {
-    GenerateAfter(Option<ShortId>),
+    Generate {
+        parent: Option<ShortId>,
+        child: Option<ShortId>,
+
+        // TODO: add support for passing token IDs (and their corresponding model identifier) to the inference backend rather than only u8 bytes
+        prefix: Vec<u8>,
+        suffix: Option<Vec<u8>>,
+    },
     SeriateChildren(Option<ShortId>),
     SeriateBookmarks,
 }
@@ -50,12 +57,12 @@ impl InferenceEngine {
         request: InferenceRequest,
     ) {
         match request {
-            InferenceRequest::GenerateAfter(tail) => {
-                let mut path = Vec::new();
-                if let Some(tail) = tail {
-                    weave.get_path_from(&tail, &mut path);
-                }
-
+            InferenceRequest::Generate {
+                parent,
+                child,
+                prefix,
+                suffix,
+            } => {
                 // TODO
             }
             InferenceRequest::SeriateChildren(node) => {
