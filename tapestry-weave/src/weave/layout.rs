@@ -84,11 +84,6 @@ impl TapestryLayouter {
     pub fn center(&self, id: &ShortId) -> Option<Vec2> {
         pinned(&self.0).center(id)
     }
-    /// Returns [`TapestryLayoutItem`]s within the specified bounds in the order that they should be rendered.
-    #[inline]
-    pub fn view(&self, min: Vec2, max: Vec2, callback: impl FnMut(TapestryLayoutItem)) {
-        pinned(&self.0).view(min, max, callback);
-    }
 }
 
 impl Layouter<TapestryWeave, ShortId, TapestryNode, NodeContent, Vec2, ArrayVec<[Vec2; 6]>>
@@ -107,8 +102,14 @@ impl Layouter<TapestryWeave, ShortId, TapestryNode, NodeContent, Vec2, ArrayVec<
         pinned(&self.0).center(id)
     }
     #[inline]
-    fn view(&self, min: Vec2, max: Vec2, callback: impl FnMut(TapestryLayoutItem)) {
-        pinned(&self.0).view(min, max, callback);
+    fn view(
+        &mut self,
+        weave: &mut TapestryWeave,
+        min: Vec2,
+        max: Vec2,
+        callback: impl FnMut(TapestryLayoutItem),
+    ) {
+        self.0.view(&mut weave.0.weave, min, max, callback);
     }
 }
 
@@ -132,8 +133,14 @@ impl Layouter<LoggedTapestryWeave, ShortId, TapestryNode, NodeContent, Vec2, Arr
         pinned(&self.0).center(id)
     }
     #[inline]
-    fn view(&self, min: Vec2, max: Vec2, callback: impl FnMut(TapestryLayoutItem)) {
-        pinned(&self.0).view(min, max, callback);
+    fn view(
+        &mut self,
+        weave: &mut LoggedTapestryWeave,
+        min: Vec2,
+        max: Vec2,
+        callback: impl FnMut(TapestryLayoutItem),
+    ) {
+        self.0.view(&mut weave.weave.0.weave, min, max, callback);
     }
 }
 
