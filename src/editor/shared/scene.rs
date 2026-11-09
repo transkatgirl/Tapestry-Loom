@@ -1,13 +1,10 @@
 use std::mem;
 
-use eframe::egui::{
-    Color32, InnerResponse, Painter, Pos2, Rangef, Rect, Scene, Shape, Stroke, Ui, Vec2, Visuals,
-    epaint::CubicBezierShape, layers::ShapeIdx,
-};
+use eframe::egui::{InnerResponse, Pos2, Rangef, Rect, Scene, Ui, Vec2};
 use tapestry_weave::{
     ShortId, TapestryNode,
     universal_weave::{
-        LayoutItem, Layouter, Weave, glam,
+        LayoutItem, Layouter, glam,
         layout::{Spacing, smooth},
         tinyvec::ArrayVec,
     },
@@ -57,6 +54,7 @@ pub enum SceneItem {
     Edge {
         from: ShortId,
         to: ShortId,
+        active: bool,
         segments: ArrayVec<[[Pos2; 4]; 5]>,
     },
     Node {
@@ -125,32 +123,43 @@ impl SceneState {
             to: to?,
         })
     }
-    pub fn view(&self, clip: Rect, mut f: impl FnMut(SceneItem)) {
-        let axes = self.axes;
+    pub fn view(&mut self, weave: &mut LoggedTapestryWeave, clip: Rect) -> Vec<SceneItem> {
+        let mut items = Vec::new();
 
         self.layouter.view(
-            axes.to_layout(clip.min.to_vec2()),
-            axes.to_layout(clip.max.to_vec2()),
+            weave,
+            self.axes.to_layout(clip.min.to_vec2()),
+            self.axes.to_layout(clip.max.to_vec2()),
             |item| {
-                f(match item {
-                    LayoutItem::Polyline { from, to, points } => SceneItem::Edge {
+                items.push(match item {
+                    LayoutItem::Polyline {
                         from,
                         to,
+                        active,
+                        points,
+                    } => SceneItem::Edge {
+                        from,
+                        to,
+                        active,
                         segments: smooth(points)
                             .into_iter()
-                            .map(|segment| segment.map(|point| axes.to_screen(point).to_pos2()))
+                            .map(|segment| {
+                                segment.map(|point| self.axes.to_screen(point).to_pos2())
+                            })
                             .collect(),
                     },
                     LayoutItem::Node { id, center, size } => SceneItem::Node {
                         id,
                         rect: Rect::from_center_size(
-                            axes.to_screen(center).to_pos2(),
-                            axes.to_screen(size),
+                            self.axes.to_screen(center).to_pos2(),
+                            self.axes.to_screen(size),
                         ),
                     },
                 });
             },
         );
+
+        items
     }
 }
 
@@ -175,14 +184,16 @@ impl SceneCamera {
             focus_zoom,
         }
     }
-    pub fn show<R>(
+    #[allow(clippy::too_many_arguments, reason = "TODO")]
+    pub fn show<T, R>(
         &mut self,
         ui: &mut Ui,
         weave_ui: &mut WeaveUi,
         shift: Option<Shift>,
         weave_view: Rect,
-        node_bounds: impl Fn(&ShortId) -> Option<Rect>,
-        contents: impl FnOnce(&mut Ui, &mut WeaveUi) -> R,
+        passthrough: &mut T,
+        node_bounds: impl Fn(&mut T, &ShortId) -> Option<Rect>,
+        contents: impl FnOnce(&mut T, &mut Ui, &mut WeaveUi) -> R,
     ) -> InnerResponse<R> {
         self.outer = ui.available_size_before_wrap();
 
@@ -191,13 +202,13 @@ impl SceneCamera {
             weave_ui,
             shift,
             weave_view,
-            node_bounds,
+            |id| node_bounds(passthrough, id),
             view_contains_pointer(ui),
         );
 
         let response = Scene::new()
             .zoom_range(self.zoom_range)
-            .show(ui, &mut view, |ui| contents(ui, weave_ui));
+            .show(ui, &mut view, |ui| contents(passthrough, ui, weave_ui));
 
         self.view = Some(view);
 
@@ -209,7 +220,7 @@ impl SceneCamera {
         weave_ui: &WeaveUi,
         shift: Option<Shift>,
         weave_view: Rect,
-        node_bounds: impl Fn(&ShortId) -> Option<Rect>,
+        mut node_bounds: impl FnMut(&ShortId) -> Option<Rect>,
         contains_pointer: bool,
     ) -> Rect {
         let focus = |outer: Vec2, bounds: Rect| {
@@ -258,66 +269,5 @@ impl SceneCamera {
             bounds.size().max(self.outer / self.focus_zoom),
         ));
         ui.ctx().request_repaint();
-    }
-}
-
-pub struct EdgePainter<'a> {
-    painter: &'a Painter,
-    inactive_idx: ShapeIdx,
-    inactive: Vec<Shape>,
-    active_stroke: Stroke,
-    inactive_stroke: Stroke,
-    tolerance: f32,
-}
-
-impl<'a> EdgePainter<'a> {
-    pub fn new(painter: &'a Painter, visuals: &Visuals, width: f32) -> Self {
-        Self {
-            painter,
-            inactive_idx: painter.add(Shape::Noop),
-            inactive: Vec::new(),
-            active_stroke: Stroke::new(width, visuals.widgets.noninteractive.fg_stroke.color),
-            inactive_stroke: Stroke::new(width, visuals.widgets.inactive.bg_fill),
-            tolerance: 0.25
-                / painter
-                    .ctx()
-                    .layer_transform_to_global(painter.layer_id())
-                    .map_or(1.0, |transform| transform.scaling),
-        }
-    }
-    pub fn edge(
-        &mut self,
-        weave: &LoggedTapestryWeave,
-        from: &ShortId,
-        to: &ShortId,
-        segments: impl IntoIterator<Item = [Pos2; 4]>,
-    ) {
-        let active = weave.contains_active(from) && weave.contains_active(to);
-
-        let shapes = segments.into_iter().flat_map(|segment| {
-            CubicBezierShape::from_points_stroke(
-                segment,
-                false,
-                Color32::TRANSPARENT,
-                if active {
-                    self.active_stroke
-                } else {
-                    self.inactive_stroke
-                },
-            )
-            .to_path_shapes(Some(self.tolerance), None)
-            .into_iter()
-            .map(Shape::Path)
-        });
-
-        if active {
-            self.painter.extend(shapes);
-        } else {
-            self.inactive.extend(shapes);
-        }
-    }
-    pub fn finish(self) {
-        self.painter
-            .set(self.inactive_idx, Shape::Vec(self.inactive));
     }
 }

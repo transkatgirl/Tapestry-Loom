@@ -3,10 +3,13 @@ use std::{
     hash::BuildHasherDefault,
 };
 
-use eframe::egui::{
-    Context, Pos2, Rect, TextStyle, Ui, Vec2, WidgetText,
-    text::TextWrapping,
-    widget_style::{Classes, WidgetState},
+use eframe::{
+    egui::{
+        Color32, Context, Pos2, Rect, Shape, Stroke, TextStyle, Ui, Vec2, WidgetText,
+        text::TextWrapping,
+        widget_style::{Classes, WidgetState},
+    },
+    epaint::CubicBezierShape,
 };
 use tapestry_weave::{
     ShortId, TapestryNode,
@@ -20,7 +23,7 @@ use crate::{
     editor::{
         EditorShared,
         shared::{
-            scene::{Axes, EdgePainter, SceneCamera, SceneItem, SceneState},
+            scene::{Axes, SceneCamera, SceneItem, SceneState},
             ui::{DocumentContextFlags, TextFlags, WeaveUi},
         },
     },
@@ -159,47 +162,71 @@ impl View<EditorShared> for CanvasView {
                 &mut shared.ui,
                 shift,
                 weave_view,
-                |id| {
+                &mut self.scene,
+                |scene, id| {
                     if !self.visible.contains(id) {
                         return None;
                     }
 
                     Some(Rect::from_center_size(
-                        self.scene.node_center(id)?,
+                        scene.node_center(id)?,
                         Vec2 {
                             x: self.metrics.width,
                             y: self.sizes.get(id)?.1,
                         },
                     ))
                 },
-                |ui, weave_ui| {
+                |scene, ui, weave_ui| {
                     let mut clip = ui.clip_rect().expand(self.metrics.pad);
                     clip.min.x -= 5.0 * self.metrics.pad;
 
                     let painter = ui.painter().clone();
 
-                    let mut edges = EdgePainter::new(
-                        &painter,
-                        ui.visuals(),
-                        ui.visuals().widgets.inactive.fg_stroke.width,
-                    );
+                    let width = ui.visuals().widgets.inactive.fg_stroke.width;
+                    let active_stroke =
+                        Stroke::new(width, ui.visuals().widgets.noninteractive.fg_stroke.color);
+                    let inactive_stroke = Stroke::new(width, ui.visuals().widgets.inactive.bg_fill);
+                    let tolerance = 0.25
+                        / painter
+                            .ctx()
+                            .layer_transform_to_global(painter.layer_id())
+                            .map_or(1.0, |transform| transform.scaling);
 
-                    self.scene.view(clip, |item| match item {
-                        SceneItem::Edge { from, to, segments } => {
-                            if self.visible.contains(&from) && weave_ui.is_open(&from) {
-                                edges.edge(weave, &from, &to, segments);
+                    for item in scene.view(weave, clip) {
+                        match item {
+                            SceneItem::Edge {
+                                from,
+                                to: _,
+                                active,
+                                segments,
+                            } => {
+                                if self.visible.contains(&from) && weave_ui.is_open(&from) {
+                                    painter.extend(segments.into_iter().flat_map(|segment| {
+                                        CubicBezierShape::from_points_stroke(
+                                            segment,
+                                            false,
+                                            Color32::TRANSPARENT,
+                                            if active {
+                                                active_stroke
+                                            } else {
+                                                inactive_stroke
+                                            },
+                                        )
+                                        .to_path_shapes(Some(tolerance), None)
+                                        .into_iter()
+                                        .map(Shape::Path)
+                                    }));
+                                }
+                            }
+                            SceneItem::Node { id, rect } => {
+                                if self.visible.contains(&id)
+                                    && let Some(node) = weave.get(&id).cloned()
+                                {
+                                    weave_ui.canvas_node(weave, &node, ui, rect);
+                                }
                             }
                         }
-                        SceneItem::Node { id, rect } => {
-                            if self.visible.contains(&id)
-                                && let Some(node) = weave.get(&id).cloned()
-                            {
-                                weave_ui.canvas_node(weave, &node, ui, rect);
-                            }
-                        }
-                    });
-
-                    edges.finish();
+                    }
                 },
             )
             .response;

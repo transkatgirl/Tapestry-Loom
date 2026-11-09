@@ -1,6 +1,9 @@
-use eframe::egui::{
-    Context, InnerResponse, Pos2, Rect, Shape, Stroke, StrokeKind, Tooltip, Ui, Vec2, WidgetText,
-    epaint::RectShape,
+use eframe::{
+    egui::{
+        Color32, Context, InnerResponse, Pos2, Rect, Shape, Stroke, StrokeKind, Tooltip, Ui, Vec2,
+        WidgetText, epaint::RectShape,
+    },
+    epaint::CubicBezierShape,
 };
 use tapestry_weave::{
     ShortId,
@@ -13,7 +16,7 @@ use crate::{
     editor::{
         EditorShared,
         shared::{
-            scene::{Axes, EdgePainter, SceneCamera, SceneItem, SceneState},
+            scene::{Axes, SceneCamera, SceneItem, SceneState},
             ui::{DocumentContextFlags, TextFlags, TokenTooltipFlags},
         },
     },
@@ -73,12 +76,13 @@ impl View<EditorShared> for GraphView {
             &mut shared.ui,
             shift,
             weave_view,
-            |id: &ShortId| {
-                self.scene
+            &mut self.scene,
+            |scene, id: &ShortId| {
+                scene
                     .node_center(id)
                     .map(|center| Rect::from_center_size(center, Vec2::splat(1.0)))
             },
-            |ui, _| ui.painter().clone(),
+            |_, ui, _| ui.painter().clone(),
         );
 
         let zoom = painter
@@ -98,12 +102,43 @@ impl View<EditorShared> for GraphView {
         let pointer = response.hover_pos().filter(|_| !response.dragged());
 
         let mut pointer_node = None;
-        let mut edges = EdgePainter::new(&painter, ui.visuals(), 2.0 / zoom);
 
-        self.scene.view(
-            painter.clip_rect().expand(hover_stroke.width),
-            |item| match item {
-                SceneItem::Edge { from, to, segments } => edges.edge(weave, &from, &to, segments),
+        let width = 2.0 / zoom;
+        let active_stroke = Stroke::new(width, ui.visuals().widgets.noninteractive.fg_stroke.color);
+        let inactive_stroke = Stroke::new(width, ui.visuals().widgets.inactive.bg_fill);
+        let tolerance = 0.25
+            / painter
+                .ctx()
+                .layer_transform_to_global(painter.layer_id())
+                .map_or(1.0, |transform| transform.scaling);
+
+        for item in self
+            .scene
+            .view(weave, painter.clip_rect().expand(hover_stroke.width))
+        {
+            match item {
+                SceneItem::Edge {
+                    from: _,
+                    to: _,
+                    active,
+                    segments,
+                } => {
+                    painter.extend(segments.into_iter().flat_map(|segment| {
+                        CubicBezierShape::from_points_stroke(
+                            segment,
+                            false,
+                            Color32::TRANSPARENT,
+                            if active {
+                                active_stroke
+                            } else {
+                                inactive_stroke
+                            },
+                        )
+                        .to_path_shapes(Some(tolerance), None)
+                        .into_iter()
+                        .map(Shape::Path)
+                    }));
+                }
                 SceneItem::Node { id, rect: bounds } => {
                     let Some(node) = weave.get(&id) else {
                         return;
@@ -155,10 +190,8 @@ impl View<EditorShared> for GraphView {
                         painter.add(shape);
                     }
                 }
-            },
-        );
-
-        edges.finish();
+            }
+        }
 
         if response
             .context_menu(|ui| {
