@@ -468,9 +468,7 @@ impl WeaveUi {
         }
 
         if !view_contains_pointer(ui) || self.cursor == self.scroll_to {
-            Some(AutoscrollData {
-                max_autoscroll_height: ui.available_size_before_wrap().y,
-            })
+            Some(AutoscrollData::new(ui))
         } else {
             None
         }
@@ -603,9 +601,7 @@ impl WeaveUi {
 
                         if let Some(autoscroll) = &options.autoscroll
                             && is_focus
-                            && (autoscroll.max_autoscroll_height
-                                >= label_button_response.rect.height()
-                                || ui.input(|i| i.modifiers.any()))
+                            && autoscroll.allows(ui, label_button_response.rect.height())
                         {
                             // TODO: handle the same node being displayed multiple times in the same subview (eg. if a treelist is displaying the node once for every parent it has, only scroll to the node label above the parent before the node in the active path)
                             label_button_response.scroll_to_me(None);
@@ -1997,6 +1993,17 @@ pub struct LabelOptions {
 #[derive(Debug, Clone, Copy)]
 pub struct AutoscrollData {
     max_autoscroll_height: f32,
+}
+
+impl AutoscrollData {
+    pub fn new(ui: &Ui) -> Self {
+        Self {
+            max_autoscroll_height: ui.available_size_before_wrap().y,
+        }
+    }
+    pub fn allows(&self, ui: &Ui, height: f32) -> bool {
+        self.max_autoscroll_height >= height && !ui.input(|input| input.modifiers.any())
+    }
 }
 
 #[derive(Default, Debug)]
