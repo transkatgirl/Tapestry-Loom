@@ -1102,7 +1102,7 @@ fn calculate_text_diff(old: &[u8], editable: &[bool], new: &[u8], deadline: Inst
         (range.start - before, after - range.end)
     };
 
-    let old_words = segment_text_bytes(old, str::split_word_bound_indices);
+    /*let old_words = segment_text_bytes(old, str::split_word_bound_indices);
     let new_words = segment_text_bytes(new, str::split_word_bound_indices);
 
     Hunk::expand_ordered(&mut hunks, old.len(), |hunk| {
@@ -1110,7 +1110,7 @@ fn calculate_text_diff(old: &[u8], editable: &[bool], new: &[u8], deadline: Inst
         let (new_left, new_right) = slack(&new_words, &hunk.new);
 
         (old_left.max(new_left), old_right.max(new_right))
-    });
+    });*/
 
     let mut boundaries = segment_text_bytes(old, |text| text.grapheme_indices(true));
 
