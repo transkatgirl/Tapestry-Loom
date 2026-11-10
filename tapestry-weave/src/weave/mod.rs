@@ -3,7 +3,7 @@
 use std::{
     cmp::{Ordering, Reverse},
     hash::BuildHasherDefault,
-    iter,
+    iter, mem,
     num::NonZeroU128,
     ops::{ControlFlow, Range},
     time::{Duration, Instant},
@@ -46,6 +46,7 @@ pub const HEADER_MAGIC_BYTES: [u8; 24] = *b"VersionedTapestryWeave__";
 pub(crate) const FORMAT_VERSION: u64 = 1;
 
 const DIFF_DEADLINE: Duration = Duration::from_millis(20); // 60% of the frame budget in a 30fps UI.
+const DIFF_SLIDE_LIMIT: usize = 256;
 
 /// A *randomly generated* node identifier used within a [`TapestryWeave`].
 ///
@@ -939,28 +940,9 @@ impl TapestryWeave {
     /// The exact diff calculation and semantic post-processing algorithms used are implementation-specific and subject to change.
     pub fn diff_active_text(&mut self, new: &[u8]) -> Vec<Hunk> {
         let deadline = Instant::now() + DIFF_DEADLINE;
+        let (old, seams, tokenized) = self.active_text_structure(new.len());
 
-        let mut old = Vec::with_capacity(new.len());
-        let mut editable = vec![true];
-
-        for content in self.0.active_content() {
-            match &content.content {
-                InnerNodeContent::Tokens(tokens) => {
-                    for token in tokens {
-                        old.extend(token.bytes.iter().copied());
-                        editable.resize(old.len(), false);
-                        editable.push(true);
-                    }
-                }
-                InnerNodeContent::Snippet(snippet) => {
-                    old.extend(snippet.iter().copied());
-                    editable.resize(old.len() + 1, true);
-                }
-                InnerNodeContent::MetadataOnly => {}
-            }
-        }
-
-        calculate_text_diff(&old, &editable, new, deadline)
+        calculate_text_diff(&old, &seams, &tokenized, new, deadline)
     }
     /// Calculates a readable diff between `new` and [`Self::active_text_string`].
     ///
@@ -969,30 +951,46 @@ impl TapestryWeave {
     /// The exact diff calculation and semantic post-processing algorithms used are implementation-specific and subject to change.
     pub fn diff_active_text_str(&mut self, new: &str) -> Vec<Hunk> {
         let deadline = Instant::now() + DIFF_DEADLINE;
+        let (old, seams, tokenized) = self.active_text_structure(new.len());
 
-        let mut old = Vec::with_capacity(new.len());
-        let mut editable = vec![true];
+        calculate_text_diff(
+            from_utf8_lossy(&old).as_bytes(),
+            &seams,
+            &tokenized,
+            new.as_bytes(),
+            deadline,
+        )
+    }
+    fn active_text_structure(&mut self, capacity: usize) -> (Vec<u8>, Vec<Seam>, Vec<bool>) {
+        let mut bytes = Vec::with_capacity(capacity);
+        let mut seams = Vec::with_capacity(capacity + 1);
+        let mut tokenized = Vec::with_capacity(capacity);
+
+        seams.push(Seam::BetweenNodes);
 
         for content in self.0.active_content() {
             match &content.content {
                 InnerNodeContent::Tokens(tokens) => {
-                    for token in tokens {
-                        old.extend(token.bytes.iter().copied());
-                        editable.resize(old.len(), false);
-                        editable.push(true);
+                    for token in tokens.iter().filter(|token| !token.bytes.is_empty()) {
+                        bytes.extend_from_slice(&token.bytes);
+                        seams.resize(bytes.len(), Seam::WithinToken);
+                        seams.push(Seam::BetweenTokens);
                     }
+
+                    tokenized.resize(bytes.len(), true);
                 }
                 InnerNodeContent::Snippet(snippet) => {
-                    old.extend(snippet.iter().copied());
-                    editable.resize(old.len() + 1, true);
+                    bytes.extend_from_slice(snippet);
+                    seams.resize(bytes.len() + 1, Seam::WithinSnippet);
+                    tokenized.resize(bytes.len(), false);
                 }
                 InnerNodeContent::MetadataOnly => {}
             }
+
+            seams[bytes.len()] = Seam::BetweenNodes;
         }
 
-        let old = from_utf8_lossy(&old);
-
-        calculate_text_diff(old.as_bytes(), &editable, new.as_bytes(), deadline)
+        (bytes, seams, tokenized)
     }
     /// Updates the text bytes corresponding to the active path using [`Self::diff_active_text`] followed by calls to [`Self::split_out`] and [`Self::replace`].
     ///
@@ -1066,6 +1064,14 @@ impl TapestryWeave {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Seam {
+    WithinToken,
+    WithinSnippet,
+    BetweenTokens,
+    BetweenNodes,
+}
+
 fn segment_text_bytes<'a, I>(bytes: &'a [u8], segment: impl Fn(&'a str) -> I) -> Vec<usize>
 where
     I: Iterator<Item = (usize, &'a str)>,
@@ -1088,35 +1094,182 @@ where
     boundaries
 }
 
-fn calculate_text_diff(old: &[u8], editable: &[bool], new: &[u8], deadline: Instant) -> Vec<Hunk> {
-    let mut hunks = Hunk::calculate_diff(old, new, Some(deadline));
+struct Boundaries<'a, S, K> {
+    bytes: &'a [u8],
+    segment: S,
+    keep: K,
+    found: Vec<usize>,
+    other: Vec<usize>,
+}
 
-    if hunks.is_empty() {
-        return hunks;
+impl<'a, S, I, K> Boundaries<'a, S, K>
+where
+    S: Fn(&'a str) -> I,
+    I: Iterator<Item = (usize, &'a str)>,
+    K: Fn(usize) -> bool,
+{
+    fn new(bytes: &'a [u8], segment: S, keep: K) -> Self {
+        Self {
+            bytes,
+            segment,
+            keep,
+            found: Vec::new(),
+            other: Vec::new(),
+        }
+    }
+    fn slack(&mut self, range: &Range<usize>) -> (usize, usize) {
+        (
+            range.start - self.before(range.start),
+            self.after(range.end) - range.end,
+        )
+    }
+    fn before(&mut self, at: usize) -> usize {
+        self.seek(at);
+
+        self.found[self.found.partition_point(|boundary| boundary <= &at) - 1]
+    }
+    fn after(&mut self, at: usize) -> usize {
+        self.seek(at);
+
+        self.found[self.found.partition_point(|boundary| boundary < &at)]
+    }
+    fn seek(&mut self, at: usize) {
+        let covers =
+            |found: &[usize]| matches!(found, [start, .., end] if (*start..=*end).contains(&at));
+
+        if covers(&self.found) {
+            return;
+        }
+
+        mem::swap(&mut self.found, &mut self.other);
+
+        if covers(&self.found) {
+            return;
+        }
+
+        let line_start = |at: &usize| self.bytes[at - 1] == b'\n' && (self.keep)(*at);
+        let start = (1..=at).rev().find(&line_start).unwrap_or(0);
+        let end = (at + 1..=self.bytes.len())
+            .find(&line_start)
+            .unwrap_or(self.bytes.len());
+
+        self.found = segment_text_bytes(&self.bytes[start..end], &self.segment);
+        self.found.retain_mut(|boundary| {
+            *boundary += start;
+
+            (self.keep)(*boundary)
+        });
+    }
+}
+
+fn seam_affinity(text: &[u8], at: usize) -> u8 {
+    if at == 0 || at == text.len() {
+        return 6;
     }
 
-    let slack = |boundaries: &[usize], range: &Range<usize>| {
-        let before = boundaries[boundaries.partition_point(|b| *b <= range.start) - 1];
-        let after = boundaries[boundaries.partition_point(|b| *b < range.end)];
+    let before = (1..=at.min(4))
+        .find_map(|len| str::from_utf8(&text[at - len..at]).ok())
+        .and_then(|before| before.chars().next());
+    let after = text[at..text.len().min(at + 4)]
+        .utf8_chunks()
+        .next()
+        .and_then(|chunk| chunk.valid().chars().next());
 
-        (range.start - before, after - range.end)
-    };
+    if let (Some(before), Some(after)) = (before, after) {
+        if before == '\n' {
+            5
+        } else if after == '\n' || after == '\r' {
+            4
+        } else if after.is_whitespace() && !before.is_whitespace() {
+            3
+        } else if before.is_whitespace() && !after.is_whitespace() {
+            2
+        } else if !(before.is_alphanumeric() && after.is_alphanumeric()) {
+            1
+        } else {
+            0
+        }
+    } else {
+        0
+    }
+}
 
-    /*let old_words = segment_text_bytes(old, str::split_word_bound_indices);
-    let new_words = segment_text_bytes(new, str::split_word_bound_indices);
+fn calculate_text_diff(
+    old: &[u8],
+    seams: &[Seam],
+    tokenized: &[bool],
+    new: &[u8],
+    deadline: Instant,
+) -> Vec<Hunk> {
+    let mut hunks = Hunk::calculate_diff(old, new, Some(deadline));
+
+    let mut old_units = Boundaries::new(
+        old,
+        |text| text.grapheme_indices(true),
+        |at| seams[at] != Seam::WithinToken,
+    );
+    let mut new_units = Boundaries::new(new, |text| text.grapheme_indices(true), |_| true);
+    let mut old_words = Boundaries::new(old, str::split_word_bound_indices, |_| true);
+    let mut new_words = Boundaries::new(new, str::split_word_bound_indices, |_| true);
+
+    let widest = |old: (usize, usize), new: (usize, usize)| (old.0.max(new.0), old.1.max(new.1));
+    let mut unit_slack =
+        |hunk: &Hunk| widest(old_units.slack(&hunk.old), new_units.slack(&hunk.new));
+    let mut word_slack =
+        |hunk: &Hunk| widest(old_words.slack(&hunk.old), new_words.slack(&hunk.new));
+
+    Hunk::slide_ordered(&mut hunks, old, new, DIFF_SLIDE_LIMIT, |hunk| {
+        let (left, right) = unit_slack(hunk);
+
+        let added_nodes: usize = [hunk.old.start, hunk.old.end]
+            .into_iter()
+            .map(|at| match seams[at] {
+                Seam::BetweenNodes if at == 0 => 2,
+                Seam::BetweenNodes => 0,
+                _ => 1,
+            })
+            .sum();
+
+        let affinity = if hunk.old.is_empty() {
+            seam_affinity(new, hunk.new.start) + seam_affinity(new, hunk.new.end)
+        } else {
+            seam_affinity(old, hunk.old.start) + seam_affinity(old, hunk.old.end)
+        };
+
+        (left + right, added_nodes, Reverse(affinity))
+    });
 
     Hunk::expand_ordered(&mut hunks, old.len(), |hunk| {
-        let (old_left, old_right) = slack(&old_words, &hunk.old);
-        let (new_left, new_right) = slack(&new_words, &hunk.new);
+        let (mut left, mut right) = unit_slack(hunk);
+        let within_snippet = |at: usize| seams[at] == Seam::WithinSnippet;
 
-        (old_left.max(new_left), old_right.max(new_right))
-    });*/
+        if (left == 0 && within_snippet(hunk.old.start))
+            || (right == 0 && within_snippet(hunk.old.end))
+        {
+            let (word_left, word_right) = word_slack(hunk);
 
-    let mut boundaries = segment_text_bytes(old, |text| text.grapheme_indices(true));
+            if left == 0 {
+                left = (0..word_left)
+                    .take_while(|by| within_snippet(hunk.old.start - by))
+                    .count();
+            }
 
-    boundaries.retain(|b| editable[*b]);
+            if right == 0 {
+                right = (0..word_right)
+                    .take_while(|by| within_snippet(hunk.old.end + by))
+                    .count();
+            }
+        }
 
-    Hunk::expand_ordered(&mut hunks, old.len(), |hunk| slack(&boundaries, &hunk.old));
+        (left, right)
+    });
+
+    Hunk::merge_ordered(&mut hunks, |previous, next| {
+        let size = |hunk: &Hunk| hunk.old.len().max(hunk.new.len());
+        let unchanged = previous.old.end..next.old.start;
+
+        unchanged.len() <= size(previous).min(size(next)) && !tokenized[unchanged].contains(&true)
+    });
 
     hunks
 }

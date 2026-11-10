@@ -384,10 +384,86 @@ impl Hunk {
             })
             .collect()
     }
+    fn shift(&mut self, by: isize) {
+        for bound in [
+            &mut self.old.start,
+            &mut self.old.end,
+            &mut self.new.start,
+            &mut self.new.end,
+        ] {
+            *bound = bound.strict_add_signed(by);
+        }
+    }
+    pub(crate) fn slide_ordered<T, K>(
+        hunks: &mut [Self],
+        old: &[T],
+        new: &[T],
+        limit: usize,
+        mut key: impl FnMut(&Self) -> K,
+    ) where
+        T: Eq,
+        K: Ord,
+    {
+        let mut last_end = 0;
+
+        for index in 0..hunks.len() {
+            let next_start = hunks
+                .get(index + 1)
+                .map_or(old.len(), |next| next.old.start);
+            let hunk = &mut hunks[index];
+
+            if hunk.old.is_empty() != hunk.new.is_empty() {
+                let first_start = hunk.old.start.saturating_sub(limit).max(last_end);
+                let last_start = hunk
+                    .old
+                    .start
+                    .saturating_add(limit)
+                    .min(next_start - hunk.old.len());
+
+                while hunk.old.start > first_start && old[hunk.old.end - 1] == new[hunk.new.end - 1]
+                {
+                    hunk.shift(-1);
+                }
+
+                let mut best = (key(hunk), hunk.clone());
+
+                while hunk.old.start < last_start && old[hunk.old.start] == new[hunk.new.start] {
+                    hunk.shift(1);
+
+                    let candidate = key(hunk);
+
+                    if candidate <= best.0 {
+                        best = (candidate, hunk.clone());
+                    }
+                }
+
+                *hunk = best.1;
+            }
+
+            last_end = hunk.old.end;
+        }
+    }
+    pub(crate) fn merge_ordered(
+        hunks: &mut Vec<Self>,
+        mut mergeable: impl FnMut(&Self, &Self) -> bool,
+    ) {
+        let mut merged: Vec<Self> = Vec::with_capacity(hunks.len());
+
+        for mut hunk in hunks.drain(..) {
+            while let Some(previous) = merged.pop_if(|previous| mergeable(previous, &hunk)) {
+                hunk.old.start = previous.old.start;
+                hunk.new.start = previous.new.start;
+            }
+
+            merged.push(hunk);
+        }
+
+        *hunks = merged;
+    }
     pub(crate) fn expand_ordered(
         hunks: &mut Vec<Self>,
         old_len: usize,
-        delta: impl Fn(&Self) -> (usize, usize),
+        mut delta: impl FnMut(&Self) -> (usize, usize),
     ) {
         let mut last_end = 0;
 

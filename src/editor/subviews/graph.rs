@@ -37,7 +37,7 @@ impl Default for GraphView {
                 TapestryLayouter::new(Spacing {
                     node: 1.0,
                     layer: 2.0,
-                    corridor: 0.0,
+                    corridor: 1.0,
                     edge: 0.25,
                 }),
             ),
