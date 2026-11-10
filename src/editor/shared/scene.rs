@@ -204,6 +204,7 @@ impl SceneCamera {
             weave_view,
             |id| node_bounds(passthrough, id),
             view_contains_pointer(ui),
+            ui.input(|input| input.modifiers.any()),
         );
 
         let response = Scene::new()
@@ -222,6 +223,7 @@ impl SceneCamera {
         weave_view: Rect,
         mut node_bounds: impl FnMut(&ShortId) -> Option<Rect>,
         contains_pointer: bool,
+        is_modifier_pressed: bool,
     ) -> Rect {
         let focus = |outer: Vec2, bounds: Rect| {
             Rect::from_center_size(bounds.center(), bounds.size().max(outer / self.focus_zoom))
@@ -253,7 +255,8 @@ impl SceneCamera {
             view = view.translate(shift.to - shift.from);
         }
 
-        if let Some(target) = weave_ui.autoscroll_target()
+        if !is_modifier_pressed
+            && let Some(target) = weave_ui.autoscroll_target()
             && let Some(bounds) = node_bounds(&target)
             && (!contains_pointer
                 || (weave_ui.cursor == Some(target) && !visible(outer, view).contains_rect(bounds)))

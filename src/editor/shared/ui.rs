@@ -60,11 +60,14 @@ impl WeaveUi {
     fn generate_id(&mut self, weave: &LoggedTapestryWeave) -> ShortId {
         tapestry_weave::generate_id(&mut self.rng, weave)
     }
-    pub fn apply_text(&mut self, weave: &mut LoggedTapestryWeave) {
-        if mem::take(&mut self.text.dirty) {
+    pub fn apply_text(&mut self, weave: &mut LoggedTapestryWeave) -> bool {
+        let dirty = mem::take(&mut self.text.dirty);
+
+        if dirty {
             weave.update_active_text_str(&self.text.buffer, &self.user, || self.rng.generate());
-            self.text.applied = true;
         }
+
+        dirty
     }
     pub fn apply_actions(&mut self, weave: &mut LoggedTapestryWeave) {
         self.apply_text(weave);
@@ -2010,7 +2013,6 @@ impl AutoscrollData {
 pub struct PendingText {
     pub buffer: String,
     pub dirty: bool,
-    pub applied: bool,
 }
 
 flags! {
