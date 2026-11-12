@@ -170,10 +170,10 @@ impl TextEditView {
         });
     }
     fn highlight(&self, ui: &Ui, weave_ui: &WeaveUi, font_id: &FontId) -> Vec<LayoutSection> {
-        let valign = ui.text_valign();
-        let visuals = ui.visuals();
-        let hovered = &visuals.widgets.hovered;
-        let inserted = Stroke::new(hovered.fg_stroke.width, visuals.warn_fg_color);
+        let inserted = Stroke::new(
+            ui.visuals().widgets.hovered.fg_stroke.width,
+            ui.visuals().warn_fg_color,
+        );
 
         let mut sections = Vec::with_capacity(self.edited_snippets.len());
         let mut start = 0;
@@ -182,17 +182,17 @@ impl TextEditView {
             let mut format = TextFormat {
                 font_id: font_id.clone(),
                 color: snippet.color,
-                valign,
+                valign: ui.text_valign(),
                 ..Default::default()
             };
 
             if let Some(node) = &snippet.node {
                 if weave_ui.is_hovered(node) {
-                    format.background = hovered.weak_bg_fill;
+                    format.background = ui.visuals().widgets.hovered.weak_bg_fill;
 
                     if self.hovered_snippet == Some(snippet_index) && snippet.token_index.is_some()
                     {
-                        format.underline = hovered.bg_stroke;
+                        format.underline = ui.visuals().widgets.hovered.bg_stroke;
                     }
                 }
             } else {
@@ -216,10 +216,9 @@ impl TextEditView {
         ui: &Ui,
         output: &TextEditOutput,
     ) -> Mesh {
-        let visuals = ui.visuals();
-        let boundary_color = visuals.widgets.inactive.bg_fill;
-        let removed_color = visuals.error_fg_color;
-        let stroke_width = visuals.widgets.hovered.fg_stroke.width;
+        let boundary_color = ui.visuals().widgets.inactive.bg_fill;
+        let removed_color = ui.visuals().error_fg_color;
+        let stroke_width = ui.visuals().widgets.hovered.fg_stroke.width;
 
         let mut mesh = Mesh::default();
         let mut paint = |rect: Rect, color: Color32| {
@@ -228,7 +227,6 @@ impl TextEditView {
             }
         };
 
-        let mut hovered = None;
         let mut last_node = None;
 
         for (row, snippet_index, snippet, bounds) in
@@ -247,41 +245,37 @@ impl TextEditView {
                 );
             }
 
-            let Some(node_id) = snippet.node else {
-                continue;
-            };
+            if let Some(id) = snippet.node
+                && ui.is_rect_visible(bounds)
+            {
+                let response = ui.interact(
+                    bounds,
+                    output.response.id.with((snippet_index, row)),
+                    Sense::hover(),
+                );
 
-            if !ui.is_rect_visible(bounds) {
-                continue;
-            }
+                let tooltip = hover_ui(&response, true, |ui| {
+                    if let Some(node) = weave.get(&id) {
+                        weave_ui.node_hover_tooltip(
+                            ui,
+                            node,
+                            snippet.token_index,
+                            TokenTooltipFlags::Contents
+                                | TokenTooltipFlags::Counterfactual
+                                | TokenTooltipFlags::WarnModified,
+                        )
+                    }
+                });
 
-            let response = ui.interact(
-                bounds,
-                output.response.id.with((snippet_index, row)),
-                Sense::hover(),
-            );
-
-            let tooltip = hover_ui(&response, true, |ui| {
-                if let Some(node) = weave.get(&node_id) {
-                    weave_ui.node_hover_tooltip(
-                        ui,
-                        node,
-                        snippet.token_index,
-                        TokenTooltipFlags::Contents
-                            | TokenTooltipFlags::Counterfactual
-                            | TokenTooltipFlags::WarnModified,
-                    )
+                if response.contains_pointer() || tooltip.is_some() {
+                    weave_ui.set_hovered(id);
+                    self.hovered_snippet = Some(snippet_index);
                 }
-            });
-
-            if response.contains_pointer() || tooltip.is_some() {
-                weave_ui.set_hovered(node_id);
-                hovered = Some(snippet_index);
             }
         }
 
-        for mark in &self.removal_marks {
-            let caret = cursor_rect(output, *mark);
+        for mark in self.removal_marks.iter().copied() {
+            let caret = cursor_rect(output, mark);
             let half_length = caret.height() / 4.0;
 
             paint(
@@ -292,8 +286,6 @@ impl TextEditView {
                 removed_color,
             );
         }
-
-        self.hovered_snippet = hovered;
 
         mesh
     }
@@ -306,9 +298,8 @@ impl TextEditView {
                 && let Some(cursor) = weave_ui.cursor
                 && let Some(range) = self.node_ranges.get(&cursor)
             {
-                let text = &weave_ui.text.buffer;
-                let byte_index = text.floor_char_boundary(range.end);
-                let text_cursor = char_index(text, byte_index);
+                let byte_index = weave_ui.text.buffer.floor_char_boundary(range.end);
+                let text_cursor = char_index(&weave_ui.text.buffer, byte_index);
                 let cursor_range = CCursorRange::one(text_cursor);
 
                 let mut state = output.state.clone();
@@ -323,8 +314,13 @@ impl TextEditView {
         } else if let Some(cursor_range) = output.cursor_range
             && Some(cursor_range) != self.last_text_cursor
         {
-            let text = &weave_ui.text.buffer;
-            let to_byte_index = |cursor: CCursor| text.byte_index_from_char_index(cursor.index).0;
+            let to_byte_index = |cursor: CCursor| {
+                weave_ui
+                    .text
+                    .buffer
+                    .byte_index_from_char_index(cursor.index)
+                    .0
+            };
             let byte_index = to_byte_index(cursor_range.primary);
             let [start, end] = cursor_range.sorted_cursors().map(to_byte_index);
 
