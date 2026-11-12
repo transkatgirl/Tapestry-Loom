@@ -58,10 +58,10 @@ impl Metrics {
     }
     fn spacing(&self) -> Spacing {
         Spacing {
-            node: self.pad,
             layer: 7.0 * self.pad,
-            corridor: self.pad,
-            edge: self.pad * 0.5,
+            node_node: self.pad,
+            node_edge: self.pad * 1.5,
+            edge_edge: self.pad,
         }
     }
     fn height(&self, ui: &Ui, weave_ui: &mut WeaveUi, node: &TapestryNode) -> f32 {

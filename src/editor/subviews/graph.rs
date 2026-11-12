@@ -35,10 +35,10 @@ impl Default for GraphView {
             scene: SceneState::new(
                 Axes::Identity,
                 TapestryLayouter::new(Spacing {
-                    node: 1.0,
                     layer: 2.0,
-                    corridor: 1.0,
-                    edge: 0.5,
+                    node_node: 1.0,
+                    node_edge: 1.0,
+                    edge_edge: 1.0,
                 }),
             ),
             camera: SceneCamera::new(f32::EPSILON..=240.0, 15.0),
