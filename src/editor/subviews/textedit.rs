@@ -115,29 +115,26 @@ impl TextEditView {
         if self.edited.as_deref() == Some(text) {
             return;
         }
-
         self.edited = Some(text.to_owned());
-        self.edited_snippets.clear();
-        self.removal_marks.clear();
 
         let hunks = weave.diff_active_text_str(text);
 
+        self.edited_snippets.clear();
+        self.removal_marks.clear();
         self.divergence = hunks.first().map_or(text.len(), |hunk| hunk.new.start);
 
-        let shifted =
-            |snippet: &Snippet, shift| snippet.with_end(snippet.end.wrapping_add_signed(shift));
+        let mut rest = self.snippets.as_slice();
+        let mut old_end = 0;
+        let mut new_end = 0;
 
-        let mut snippets = self.snippets.iter().peekable();
-        let mut shift = 0;
+        for hunk in hunks {
+            let (replaced, kept) =
+                rest.split_at(rest.partition_point(|snippet| snippet.end <= hunk.old.end));
 
-        for hunk in &hunks {
-            while let Some(snippet) = snippets.next_if(|snippet| snippet.end <= hunk.old.start) {
-                self.edited_snippets.push(shifted(snippet, shift));
-            }
-
-            if let Some(snippet) = snippets.peek() {
-                self.edited_snippets.push(snippet.with_end(hunk.new.start));
-            }
+            self.edited_snippets
+                .extend(replaced.iter().chain(kept.first()).map(|snippet| {
+                    snippet.with_end(snippet.end.min(hunk.old.start) - old_end + new_end)
+                }));
 
             if hunk.new.is_empty() {
                 self.removal_marks.push(char_index(text, hunk.new.start));
@@ -150,16 +147,14 @@ impl TextEditView {
                 });
             }
 
-            while snippets
-                .next_if(|snippet| snippet.end <= hunk.old.end)
-                .is_some()
-            {}
-
-            shift = hunk.new.end.cast_signed() - hunk.old.end.cast_signed();
+            rest = kept;
+            (old_end, new_end) = (hunk.old.end, hunk.new.end);
         }
 
-        self.edited_snippets
-            .extend(snippets.map(|snippet| shifted(snippet, shift)));
+        self.edited_snippets.extend(
+            rest.iter()
+                .map(|snippet| snippet.with_end(snippet.end - old_end + new_end)),
+        );
 
         let mut start = 0;
 
