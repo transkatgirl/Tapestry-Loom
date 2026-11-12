@@ -1,6 +1,10 @@
 # Tapestry Loom
 
-A power user focused interface for LLM base models, inspired by the designs of [loom](https://github.com/socketteer/loom), [loomsidian](https://github.com/cosmicoptima/loom), [exoloom](https://exoloom.io), [logitloom](https://github.com/vgel/logitloom), [wool](https://github.com/lyramakesmusic/wool), and [mikupad](https://github.com/lmg-anon/mikupad).
+A power user focused interface for LLM base models, inspired by the designs of [loom](https://github.com/socketteer/loom), [loomsidian](https://github.com/cosmicoptima/loom), [exoloom](https://exoloom.io), [logitloom](https://github.com/vgel/logitloom), [bonsai (unreleased)](https://youtu.be/xDPKR271jas), [wool](https://github.com/lyramakesmusic/wool), and [mikupad](https://github.com/lmg-anon/mikupad).
+
+This is a work-in-progress rewrite; See the `main` branch for the stable version.
+
+<!--
 
 <details>
 
@@ -374,7 +378,7 @@ The below items may be implemented in a 1.x release, or they may be delayed to b
 	- [ ] Controllers / Gamepads
 	- [ ] USB DDR Pads
 
-<!--
+####
 - [ ] Server-client, multi-user WebUI
 	- [ ] Support collaborating on Weaves
 	- [ ] User authentication
@@ -398,6 +402,7 @@ The below items may be implemented in a 1.x release, or they may be delayed to b
 		- [ ] Allow adjusting proportion of completions from each model
 		- [ ] When working with multiple models, allow dynamically adjusting proportions based on usage
 			- [ ] Flatten proportion bias when increasing number of completions, do the inverse when reducing completion count
--->
 
 See also: the [original rewrite plans](https://github.com/transkatgirl/Tapestry-Loom/blob/c8ccca0079ae186fcc7a70b955b2d2b123082d63/README.md)
+
+-->
