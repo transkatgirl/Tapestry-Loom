@@ -16,7 +16,7 @@ use universal_weave::{
     hashbrown::{HashMap, HashSet},
     indexmap::IndexSet,
     rkyv::{Archive, Deserialize, Serialize, with::Map},
-    wrappers::WeaveAction,
+    wrappers::{PositionAlignment, WeaveAction},
 };
 
 use crate::{
@@ -545,20 +545,26 @@ impl LoggedTapestryWeave {
     pub fn replace_position_counter(&mut self, counter: Arc<AtomicU64>) {
         self.weave.replace_position_counter(counter);
     }
-    /// Returns a reference to the mapping between tracked positions and their corresponding node identifiers.
+    /// Returns a reference to the mapping between tracked positions and their corresponding node identifiers and alignments.
     #[inline]
-    pub const fn positions(&self) -> &HashMap<u64, ShortId> {
+    pub const fn positions(&self) -> &HashMap<u64, (ShortId, PositionAlignment)> {
         self.weave.positions()
     }
-    /// Returns the position of the node with the specified identifier if it is already tracked.
+    /// Returns `true` if a position with the specified alignment is already tracked for the node with the specified identifier.
     #[must_use]
     #[inline]
-    pub fn get_position(&self, id: &ShortId) -> Option<u64> {
-        self.weave.get_position(id)
+    pub fn contains_position(&self, id: &ShortId, alignment: PositionAlignment) -> bool {
+        self.weave.contains_position(id, alignment)
     }
-    /// Returns the position of the node with the specified identifier, starting to track the position if it is not already tracked.
+    /// Returns the position with the specified alignment of the node with the specified identifier if it is already tracked.
+    #[must_use]
+    #[inline]
+    pub fn get_position(&self, id: &ShortId, alignment: PositionAlignment) -> Option<u64> {
+        self.weave.get_position(id, alignment)
+    }
+    /// Returns the position with the specified alignment of the node with the specified identifier, starting to track the position if it is not already tracked.
     ///
-    /// Tracked positions are unique incremental identifiers which map to the node whose contents end at that position, following that position across actions performed on the [`TapestryWeave`]. Once a position stops existing, it no longer maps to a node. Each node can have at most one tracked position.
+    /// Tracked positions are unique incremental identifiers which map to the node whose contents start or end at that position (see [`PositionAlignment`]), following that position across actions performed on the [`TapestryWeave`]. Once a position stops existing, it no longer maps to a node. Each node can have at most one tracked position per [`PositionAlignment`].
     ///
     /// Returns `None` if the Weave does not contain a node with the specified identifier.
     ///
@@ -567,18 +573,22 @@ impl LoggedTapestryWeave {
     /// May panic if the position counter has gone backwards.
     #[must_use]
     #[inline]
-    pub fn get_or_insert_position(&mut self, id: &ShortId) -> Option<u64> {
-        self.weave.get_or_insert_position(id)
+    pub fn get_or_insert_position(
+        &mut self,
+        id: &ShortId,
+        alignment: PositionAlignment,
+    ) -> Option<u64> {
+        self.weave.get_or_insert_position(id, alignment)
     }
-    /// Returns the identifier of the position's corresponding node, if any.
+    /// Returns the identifier of the position's corresponding node along with the position's alignment, if any.
     #[must_use]
     #[inline]
-    pub fn resolve_position(&self, position: u64) -> Option<ShortId> {
+    pub fn resolve_position(&self, position: u64) -> Option<(ShortId, PositionAlignment)> {
         self.weave.resolve_position(position)
     }
-    /// Stops tracking the specified position, returning the identifier of the corresponding node.
+    /// Stops tracking the specified position, returning the identifier of the corresponding node along with the position's alignment.
     #[inline]
-    pub fn remove_position(&mut self, position: u64) -> Option<ShortId> {
+    pub fn remove_position(&mut self, position: u64) -> Option<(ShortId, PositionAlignment)> {
         self.weave.remove_position(position)
     }
     /// Stops tracking all positions.
