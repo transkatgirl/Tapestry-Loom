@@ -91,7 +91,7 @@ impl Layouter<TapestryWeave, ShortId, TapestryNode, NodeContent, Vec2, ArrayVec<
 {
     #[inline]
     fn layout(&mut self, weave: &mut TapestryWeave, sizes: impl FnMut(&TapestryNode) -> Vec2) {
-        self.0.layout(&mut weave.0.weave, sizes);
+        self.0.layout(&mut weave.0.weave.weave, sizes);
     }
     #[inline]
     fn size(&self) -> Vec2 {
@@ -109,7 +109,7 @@ impl Layouter<TapestryWeave, ShortId, TapestryNode, NodeContent, Vec2, ArrayVec<
         max: Vec2,
         callback: impl FnMut(TapestryLayoutItem),
     ) {
-        self.0.view(&mut weave.0.weave, min, max, callback);
+        self.0.view(&mut weave.0.weave.weave, min, max, callback);
     }
 }
 
@@ -122,7 +122,7 @@ impl Layouter<LoggedTapestryWeave, ShortId, TapestryNode, NodeContent, Vec2, Arr
         weave: &mut LoggedTapestryWeave,
         sizes: impl FnMut(&TapestryNode) -> Vec2,
     ) {
-        self.0.layout(&mut weave.weave.0.weave, sizes);
+        self.0.layout(&mut weave.weave.0.weave.weave, sizes);
     }
     #[inline]
     fn size(&self) -> Vec2 {
@@ -140,7 +140,8 @@ impl Layouter<LoggedTapestryWeave, ShortId, TapestryNode, NodeContent, Vec2, Arr
         max: Vec2,
         callback: impl FnMut(TapestryLayoutItem),
     ) {
-        self.0.view(&mut weave.weave.0.weave, min, max, callback);
+        self.0
+            .view(&mut weave.weave.0.weave.weave, min, max, callback);
     }
 }
 

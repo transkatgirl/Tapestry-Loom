@@ -1,6 +1,12 @@
 //! Wrappers which add functionality to a [`TapestryWeave`].
 
-use std::{cmp::Ordering, collections::VecDeque, hash::BuildHasherDefault, ops::Range};
+use std::{
+    cmp::Ordering,
+    collections::VecDeque,
+    hash::BuildHasherDefault,
+    ops::Range,
+    sync::{Arc, atomic::AtomicU64},
+};
 
 use jiff::Zoned;
 use serde::{Deserialize as SerdeDeserialize, Serialize as SerdeSerialize};
@@ -522,6 +528,63 @@ impl LoggedTapestryWeave {
             .unwrap();
 
         Some(timestamp)
+    }
+    /// Returns a reference to the counter used to generate tracked positions.
+    #[inline]
+    pub const fn position_counter(&self) -> &Arc<AtomicU64> {
+        self.weave.position_counter()
+    }
+    /// Replaces the counter used to generate tracked positions.
+    ///
+    /// Sharing the same counter between multiple [`TapestryWeave`]s keeps tracked positions unique across all of them.
+    ///
+    /// The counter must stay monotonic for positions to be guaranteed as unique. Thus, the counter should only be incremented and overflows must be avoided.
+    ///
+    /// This function always drops all tracked positions.
+    #[inline]
+    pub fn replace_position_counter(&mut self, counter: Arc<AtomicU64>) {
+        self.weave.replace_position_counter(counter);
+    }
+    /// Returns a reference to the mapping between tracked positions and their corresponding node identifiers.
+    #[inline]
+    pub const fn positions(&self) -> &HashMap<u64, ShortId> {
+        self.weave.positions()
+    }
+    /// Returns the position of the node with the specified identifier if it is already tracked.
+    #[must_use]
+    #[inline]
+    pub fn get_position(&self, id: &ShortId) -> Option<u64> {
+        self.weave.get_position(id)
+    }
+    /// Returns the position of the node with the specified identifier, starting to track the position if it is not already tracked.
+    ///
+    /// Tracked positions are unique incremental identifiers which map to the node whose contents end at that position, following that position across actions performed on the [`TapestryWeave`]. Once a position stops existing, it no longer maps to a node. Each node can have at most one tracked position.
+    ///
+    /// Returns `None` if the Weave does not contain a node with the specified identifier.
+    ///
+    /// # Panics
+    ///
+    /// May panic if the position counter has gone backwards.
+    #[must_use]
+    #[inline]
+    pub fn get_or_insert_position(&mut self, id: &ShortId) -> Option<u64> {
+        self.weave.get_or_insert_position(id)
+    }
+    /// Returns the identifier of the position's corresponding node, if any.
+    #[must_use]
+    #[inline]
+    pub fn resolve_position(&self, position: u64) -> Option<ShortId> {
+        self.weave.resolve_position(position)
+    }
+    /// Stops tracking the specified position, returning the identifier of the corresponding node.
+    #[inline]
+    pub fn remove_position(&mut self, position: u64) -> Option<ShortId> {
+        self.weave.remove_position(position)
+    }
+    /// Stops tracking all positions.
+    #[inline]
+    pub fn clear_positions(&mut self) {
+        self.weave.clear_positions();
     }
     /// Convenience method for `self.is_empty() && self.metadata().is_empty()`
     #[inline]

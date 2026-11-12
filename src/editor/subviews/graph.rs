@@ -38,7 +38,7 @@ impl Default for GraphView {
                     node: 1.0,
                     layer: 2.0,
                     corridor: 1.0,
-                    edge: 0.25,
+                    edge: 0.5,
                 }),
             ),
             camera: SceneCamera::new(f32::EPSILON..=240.0, 15.0),

@@ -6,6 +6,7 @@ use std::{
     iter, mem,
     num::NonZeroU128,
     ops::{ControlFlow, Range},
+    sync::{Arc, atomic::AtomicU64},
     time::{Duration, Instant},
 };
 
@@ -23,7 +24,7 @@ use universal_weave::{
         Archive,
         collections::swiss_table::{ArchivedHashMap, ArchivedHashSet, ArchivedIndexSet},
     },
-    wrappers::PatchablePathWeave,
+    wrappers::{PatchablePathWeave, PositionedWeave},
 };
 
 use crate::{
@@ -74,19 +75,33 @@ pub type TapestryWeaveInner =
 /// The inner contents of an [`ArchivedTapestryWeave`].
 pub type ArchivedTapestryWeaveInner = <TapestryWeaveInner as Archive>::Archived;
 
-/// An [`IndependentWeave`] + [`PatchablePathWeave`] wrapper which implements Tapestry Loom's document format.
-///
-/// This wrapper is guaranteed to be stateless; `TapestryWeave::from(weave.into_inner())` does not result in data loss.
+/// An [`IndependentWeave`] + [`PositionedWeave`] + [`PatchablePathWeave`] wrapper which implements Tapestry Loom's document format.
 ///
 /// All identifiers *must be* randomly generated because the underlying [`Weave`]'s hashmaps use an identity hasher.
+///
+/// # Wrapper State
+///
+/// Tracked positions are dropped when [`TapestryWeave`] is cloned or converted into its underlying [`TapestryWeaveInner`].
 ///
 /// # DoS Resistance
 ///
 /// This Weave implementation does not make use of DoS-resistant hashers.
 #[derive(Debug, Clone)]
+#[allow(clippy::type_complexity)]
 #[must_use]
 pub struct TapestryWeave(
-    PatchablePathWeave<TapestryWeaveInner, ShortId, TapestryNode, NodeContent>,
+    PatchablePathWeave<
+        PositionedWeave<
+            TapestryWeaveInner,
+            ShortId,
+            TapestryNode,
+            NodeContent,
+            BuildHasherDefault<RandomIdHasher>,
+        >,
+        ShortId,
+        TapestryNode,
+        NodeContent,
+    >,
 );
 
 impl Default for TapestryWeave {
@@ -99,21 +114,21 @@ impl Default for TapestryWeave {
 impl From<TapestryWeaveInner> for TapestryWeave {
     #[inline]
     fn from(value: TapestryWeaveInner) -> Self {
-        Self(PatchablePathWeave::new(value))
+        Self(PatchablePathWeave::new(PositionedWeave::from_weave(value)))
     }
 }
 
 impl From<TapestryWeave> for TapestryWeaveInner {
     #[inline]
     fn from(value: TapestryWeave) -> Self {
-        value.0.weave
+        value.0.weave.weave
     }
 }
 
 impl AsRef<TapestryWeaveInner> for TapestryWeave {
     #[inline]
     fn as_ref(&self) -> &TapestryWeaveInner {
-        &self.0.weave
+        &self.0.weave.weave
     }
 }
 
@@ -141,14 +156,73 @@ impl TapestryWeave {
         Self::from(IndependentWeave::with_capacity(capacity, metadata))
     }
     /// Converts a [`TapestryWeave`] into the underlying [`TapestryWeaveInner`].
+    ///
+    /// This drops all tracked positions.
     #[inline]
     pub fn into_inner(self) -> TapestryWeaveInner {
-        self.0.weave
+        self.0.weave.weave
     }
     /// Returns a reference to the underlying [`TapestryWeaveInner`].
     #[inline]
     pub const fn as_inner(&self) -> &TapestryWeaveInner {
-        &self.0.weave
+        &self.0.weave.weave
+    }
+    /// Returns a reference to the counter used to generate tracked positions.
+    #[inline]
+    pub const fn position_counter(&self) -> &Arc<AtomicU64> {
+        self.0.weave.counter()
+    }
+    /// Replaces the counter used to generate tracked positions.
+    ///
+    /// Sharing the same counter between multiple [`TapestryWeave`]s keeps tracked positions unique across all of them.
+    ///
+    /// The counter must stay monotonic for positions to be guaranteed as unique. Thus, the counter should only be incremented and overflows must be avoided.
+    ///
+    /// This function always drops all tracked positions.
+    #[inline]
+    pub fn replace_position_counter(&mut self, counter: Arc<AtomicU64>) {
+        self.0.weave.replace_counter(counter);
+    }
+    /// Returns a reference to the mapping between tracked positions and their corresponding node identifiers.
+    #[inline]
+    pub const fn positions(&self) -> &HashMap<u64, ShortId> {
+        self.0.weave.positions()
+    }
+    /// Returns the position of the node with the specified identifier if it is already tracked.
+    #[must_use]
+    #[inline]
+    pub fn get_position(&self, id: &ShortId) -> Option<u64> {
+        self.0.weave.get_position(id)
+    }
+    /// Returns the position of the node with the specified identifier, starting to track the position if it is not already tracked.
+    ///
+    /// Tracked positions are unique incremental identifiers which map to the node whose contents end at that position, following that position across actions performed on the [`TapestryWeave`]. Once a position stops existing, it no longer maps to a node. Each node can have at most one tracked position.
+    ///
+    /// Returns `None` if the Weave does not contain a node with the specified identifier.
+    ///
+    /// # Panics
+    ///
+    /// May panic if the position counter has gone backwards.
+    #[must_use]
+    #[inline]
+    pub fn get_or_insert_position(&mut self, id: &ShortId) -> Option<u64> {
+        self.0.weave.get_or_insert_position(id)
+    }
+    /// Returns the identifier of the position's corresponding node, if any.
+    #[must_use]
+    #[inline]
+    pub fn resolve_position(&self, position: u64) -> Option<ShortId> {
+        self.0.weave.resolve_position(position)
+    }
+    /// Stops tracking the specified position, returning the identifier of the corresponding node.
+    #[inline]
+    pub fn remove_position(&mut self, position: u64) -> Option<ShortId> {
+        self.0.weave.remove_position(position)
+    }
+    /// Stops tracking all positions.
+    #[inline]
+    pub fn clear_positions(&mut self) {
+        self.0.weave.clear_positions();
     }
     /// Convenience method for `self.is_empty() && self.metadata().is_empty()`
     #[inline]
@@ -405,7 +479,7 @@ impl TapestryWeave {
     /// Sets the active status of a node with the specified identifier, using identical activation behavior to a tree-based Weave.
     #[inline]
     pub fn set_active_tree_semantics(&mut self, id: &ShortId, value: bool) -> bool {
-        self.0.weave.set_active_dependent_semantics(id, value)
+        self.0.weave.weave.set_active_dependent_semantics(id, value)
     }
     /// Convenience function which calls either [`Self::sort_roots_by`] or [`Self::sort_children_by`] depending on whether or not `id` is None
     #[inline]
@@ -677,16 +751,6 @@ impl TapestryWeave {
                 false
             }
         })
-    }
-    /// Convenience function which provides an empty `&mut Vec<K>` for path operations.
-    ///
-    /// **Operations on the callback's [`TapestryWeaveInner`] may skip content normalization performed by [`TapestryWeave`].**
-    #[inline]
-    pub fn inner_scratchpad_mut<F, O>(&mut self, callback: F) -> O
-    where
-        F: FnOnce(&mut TapestryWeaveInner, &mut Vec<ShortId>) -> O,
-    {
-        self.0.inner_scratchpad_mut(callback)
     }
     /// Convenience function which returns the output of [`Weave::get_path_from`].
     #[inline]
