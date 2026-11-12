@@ -5,14 +5,15 @@ use std::{
     mem,
     path::PathBuf,
     sync::Arc,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use eframe::{
     CreationContext, NativeOptions,
     egui::{
         self, CentralPanel, Context, CornerRadius, FontData, FontDefinitions, FontFamily, IconData,
-        Memory, Rangef, Ui, ViewportBuilder, ViewportCommand, WidgetText, style::ScrollAnimation,
+        Id, Memory, Rangef, Ui, ViewportBuilder, ViewportCommand, WidgetText,
+        style::ScrollAnimation,
     },
 };
 use egui_notify::{Toast, Toasts};
@@ -91,6 +92,7 @@ fn main() -> Result<(), anyhow::Error> {
 struct App {
     container: ViewContainer<AppShared, Pane>,
     new_panes: Vec<Pane>,
+    frame_start: Instant,
 }
 
 impl App {
@@ -191,11 +193,12 @@ impl App {
 
         let app = Self {
             container: ViewContainer::new(
-                Tree::new("global-tree", root, tiles),
+                Tree::new(Id::unique("global-tree"), root, tiles),
                 AppShared::new(runtime, Toasts::new(), cc.storage.unwrap())?,
                 Some(Box::new(|shared| Pane::Editor(Editor::new(None, shared)))),
             ),
             new_panes: Vec::with_capacity(1),
+            frame_start: Instant::now(),
         };
 
         debug!("Initialized application context");
@@ -225,6 +228,10 @@ impl eframe::App for App {
         }
     }
     fn logic(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        if !ctx.will_discard() {
+            self.frame_start = Instant::now();
+        }
+
         self.new_panes.clear();
 
         self.container.behavior.shared.logic(ctx, |pane| {
@@ -270,8 +277,13 @@ impl eframe::App for App {
 
         if ui.output(|output| !output.events.is_empty()) {
             if ui.current_pass_index() == 0 {
-                // Discard the frame to allow same-frame feedback (lower input latency)
-                ui.request_discard("UI Interaction");
+                if self.frame_start.elapsed() <= Duration::from_millis(4) {
+                    // Discard the frame to allow same-frame feedback (lower input latency)
+                    ui.request_discard("UI Interaction");
+                } else {
+                    trace!("frame logic took > 4ms, falling back to request_repaint()");
+                    ui.request_repaint();
+                }
             } else {
                 trace!("current_pass_index > 0, falling back to request_repaint()");
                 ui.request_repaint();

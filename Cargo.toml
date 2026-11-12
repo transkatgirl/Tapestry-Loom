@@ -22,19 +22,20 @@ donation-link = [  ]
 tapestry-weave = { path = "tapestry-weave", features = [
 	"v0",
 ], default-features = false }
-eframe = { version = "0.36.2", features = [ # egui 0.35.0 has a serious performance regression - likely https://github.com/emilk/egui/issues/8610
+eframe = { version = "0.37.0", features = [ # egui 0.35.0 has a serious performance regression - likely https://github.com/emilk/egui/issues/8610
 	"accesskit",
 	"wayland",
 	#"web_screen_reader",
 	"wgpu",
 	"x11",
 	"persistence",
+	"experimental",
 ], default-features = false }
 env_logger = { version = "0.11.11", features = [
 	"auto-color",
 	"humantime",
 ] }
-log = { version = "0.4.34", features = [
+log = { version = "0.4.35", features = [
 	"release_max_level_debug",
 ] }
 mimalloc = "0.1.52"
@@ -42,12 +43,12 @@ serde = { version = "1.0.229", features = [
 	"derive",
 	"rc",
 ] }
-serde_json = { version = "1.0.151", features = [
+serde_json = { version = "1.0.154", features = [
 	"preserve_order",
 	"float_roundtrip",
 	"arbitrary_precision",
 ] }
-ron = { version = "0.12.2", features = [
+ron = { version = "0.12.3", features = [
 	"indexmap",
 	"integer128",
 	"unicode-segmentation",
@@ -59,22 +60,22 @@ reqwest = { version = "0.13.5", features = [
 	"zstd",
 	"deflate",
 ] }
-parking_lot = { version = "0.12.5", features = [
+parking_lot = { version = "0.13.0", features = [
 	"serde",
 ] }
 anyhow = "1.0.104"
 dirs-next = "2.0.0"
-egui_tiles = "0.17.1"
-egui-notify = "0.23.0"
-tokio = { version = "1.53.1", features = [
+egui_tiles = "0.18.0"
+egui-notify = "0.24.0"
+tokio = { version = "1.54.1", features = [
 	"full",
 ] }
 futures = "0.3.34"
 walkdir = "2.5.0"
 unicode-segmentation = "1.13.3"
-trash = "5.2.9"
+trash = "5.3.0"
 ctrlc = "3.5.2"
-egui-keybind = { git = "https://github.com/transkatgirl/egui-keybind.git", rev = "8ff2975f8575ed216528e84e016741afcd346bea", features = [
+egui-keybind = { git = "https://github.com/transkatgirl/egui-keybind.git", rev = "fd814f1926ffcb9d7b2ae3cad7fae11d3edf1d64", features = [
 	"serde",
 ] }
 flagset = { version = "0.4.7", features = [

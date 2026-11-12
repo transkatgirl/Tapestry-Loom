@@ -6,8 +6,9 @@ use std::{
 use eframe::{
     egui::{
         Color32, Context, Pos2, Rect, Shape, Stroke, TextStyle, Ui, Vec2, WidgetText,
+        class::Classes,
         text::TextWrapping,
-        widget_style::{Classes, WidgetState},
+        widget_style::{ButtonStyle, StyleArgs, WidgetState},
     },
     epaint::CubicBezierShape,
 };
@@ -42,8 +43,14 @@ impl Metrics {
             pad: ui.text_style_height(&TextStyle::Monospace),
             width: ui.spacing().text_edit_width * 1.2,
             margin: ui
-                .style()
-                .button_style(&Classes::default(), WidgetState::Inactive)
+                .get_widget_style::<ButtonStyle>(&StyleArgs {
+                    classes: &Classes::default(),
+                    state: WidgetState::Inactive,
+                    stack: ui.stack(),
+                    style: ui.style(),
+                    ctx: ui.ctx(),
+                })
+                .atom_layout
                 .frame
                 .inner_margin
                 .sum(),

@@ -1,6 +1,8 @@
 use std::{fs, mem, path::PathBuf, sync::Arc};
 
-use eframe::egui::{Align, Context, Key, Layout, Modal, OutputCommand, Panel, Sides, Spinner, Ui};
+use eframe::egui::{
+    Align, Context, Id, Key, Layout, Modal, OutputCommand, Panel, Sides, Spinner, Ui,
+};
 use flagset::FlagSet;
 use log::debug;
 use parking_lot::Mutex;
@@ -227,11 +229,9 @@ impl EditorShared {
         match &mut self.modal {
             EditorModal::None => false,
             EditorModal::SaveAs(path) => {
-                if Modal::new(
-                    ["editor-", &self.id.to_string(), "-save-modal"]
-                        .concat()
-                        .into(),
-                )
+                if Modal::new(Id::unique(
+                    ["editor-", &self.id.to_string(), "-save-modal"].concat(),
+                ))
                 .show(ctx, |ui| {
                     ui.set_width(280.0);
                     ui.heading("Save Weave");
@@ -282,11 +282,9 @@ impl EditorShared {
                 true
             }
             EditorModal::ConfirmClose => {
-                if Modal::new(
-                    ["editor-", &self.id.to_string(), "-close-modal"]
-                        .concat()
-                        .into(),
-                )
+                if Modal::new(Id::unique(
+                    ["editor-", &self.id.to_string(), "-close-modal"].concat(),
+                ))
                 .show(ctx, |ui| {
                     ui.set_width(210.0);
                     ui.heading("Do you want to close this weave without saving?");
@@ -319,7 +317,7 @@ impl EditorShared {
         self.last_visible = true;
         self.close_ready = self.close_after_save;
 
-        Panel::bottom(ui.id()).show(ui, |ui| {
+        Panel::bottom(ui.scope_id()).show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                     if let Some(path) = &self.path {

@@ -1,6 +1,6 @@
 use std::{mem, path::PathBuf};
 
-use eframe::egui::{CentralPanel, Context, Frame, Ui, WidgetText};
+use eframe::egui::{CentralPanel, Context, Frame, Id, Ui, WidgetText};
 use egui_tiles::{Container, Linear, LinearDir, Tabs, Tile, Tiles, Tree};
 
 pub mod settings;
@@ -82,7 +82,7 @@ impl From<EditorShared> for Editor {
         Self {
             container: ViewContainer::new(
                 Tree::new(
-                    ["editor-", &value.id.to_string(), "-tree"].concat(),
+                    Id::unique(["editor-", &value.id.to_string(), "-tree"].concat()),
                     root,
                     tiles,
                 ),

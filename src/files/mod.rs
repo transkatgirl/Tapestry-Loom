@@ -133,7 +133,7 @@ impl View<AppShared> for FileManager {
 
         ui.scope_builder(
             UiBuilder::new()
-                .id(Id::new("filemanager-central-panel"))
+                .scope_id(Id::unique("filemanager-central-panel"))
                 .ui_stack_info(UiStackInfo::new(UiKind::CentralPanel))
                 .sense(Sense::CLICK),
             |ui| {
@@ -266,7 +266,7 @@ impl FileManager {
             };
 
             ui.scope_builder(
-                UiBuilder::new().id(Id::new(("filemanager-item-", &path))),
+                UiBuilder::new().scope_id(Id::unique(("filemanager-item-", &path))),
                 |ui| {
                     ui.horizontal(|ui| {
                         ui.scope_builder(UiBuilder::new().sense(Sense::CLICK), |ui| {
@@ -531,7 +531,7 @@ impl FileModal {
         match self {
             Self::None => {}
             Self::CreateWeave(path) => {
-                if Modal::new("filemanager-create-document-modal".into())
+                if Modal::new(Id::unique("filemanager-create-document-modal"))
                     .show(ctx, |ui| {
                         ui.set_width(280.0);
                         ui.heading("Create Weave");
@@ -569,7 +569,7 @@ impl FileModal {
                 };
             }
             Self::CreateDirectory(path) => {
-                if Modal::new("filemanager-create-directory-modal".into())
+                if Modal::new(Id::unique("filemanager-create-directory-modal"))
                     .show(ctx, |ui| {
                         ui.set_width(280.0);
                         ui.heading("Create Folder");
@@ -607,7 +607,7 @@ impl FileModal {
                 };
             }
             Self::Rename(from, to) => {
-                if Modal::new("filemanager-rename-item-modal".into())
+                if Modal::new(Id::unique("filemanager-rename-item-modal"))
                     .show(ctx, |ui| {
                         ui.set_width(280.0);
                         ui.heading("Move or Rename Item");
@@ -647,7 +647,7 @@ impl FileModal {
                 };
             }
             Self::Copy(from, to) => {
-                if Modal::new("filemanager-copy-item-modal".into())
+                if Modal::new(Id::unique("filemanager-copy-item-modal"))
                     .show(ctx, |ui| {
                         ui.set_width(280.0);
                         ui.heading("Duplicate Item");
@@ -687,7 +687,7 @@ impl FileModal {
                 };
             }
             Self::Delete(path) => {
-                if Modal::new("filemanager-confirm-deletion-modal".into())
+                if Modal::new(Id::unique("filemanager-confirm-deletion-modal"))
                     .show(ctx, |ui| {
                         ui.set_width(280.0);
                         ui.heading("Confirm Deletion");

@@ -44,7 +44,7 @@ impl TreeListView {
                     label_separator(ui, LABEL_SEPARATOR_OPACITY);
                 }
 
-                let id = Id::new((editor_id.0, node.id));
+                let id = Id::unique((editor_id.0, node.id));
                 let mut collapsing =
                     CollapsingState::load_with_default_open(ui.ctx(), id, DEFAULT_OPEN);
                 collapsing.set_open(shared.is_open(&node.id));

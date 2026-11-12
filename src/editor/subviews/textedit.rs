@@ -410,7 +410,7 @@ impl View<EditorShared> for TextEditView {
                 let mut buffer = mem::take(&mut shared.ui.text.buffer);
 
                 let output = TextEdit::multiline(&mut buffer)
-                    .id(Id::new((shared.id.0, "textedit")))
+                    .id(Id::unique((shared.id.0, "textedit")))
                     .frame(Frame::new().inner_margin(Margin::symmetric(4, 2)))
                     .font(font_id.clone())
                     .lock_focus(true)

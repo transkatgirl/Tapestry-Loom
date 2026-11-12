@@ -540,7 +540,7 @@ impl WeaveUi {
             .scope_builder(
                 UiBuilder::new()
                     .sense(Sense::CLICK)
-                    .id(ui.id().with((node.id, "node"))),
+                    .scope_id(ui.scope_id().with((node.id, "node"))),
                 |ui| {
                     let mut frame = Frame::new();
 
@@ -866,7 +866,7 @@ impl WeaveUi {
                 UiBuilder::new()
                     .max_rect(rect)
                     .layout(Layout::centered_and_justified(Direction::TopDown))
-                    .id(ui.id().with((node.id, "node"))),
+                    .scope_id(ui.scope_id().with((node.id, "node"))),
                 |ui| {
                     ui.add(
                         Button::new(self.node_text(ui, node, TextFlags::EmptyNotice.into()))
@@ -920,7 +920,7 @@ impl WeaveUi {
                         y: rect.max.y,
                     },
                 ),
-                ui.id().with((node.id, "gutter")),
+                ui.scope_id().with((node.id, "gutter")),
                 Sense::hover(),
             )
             .contains_pointer();
@@ -979,7 +979,7 @@ impl WeaveUi {
                     UiBuilder::new()
                         .max_rect(button_rect)
                         .layout(Layout::left_to_right(Align::Center))
-                        .id(ui.id().with((node.id, text))),
+                        .scope_id(ui.scope_id().with((node.id, text))),
                     |ui| {
                         ui.add(
                             Button::new(RichText::new(text).size(pad))

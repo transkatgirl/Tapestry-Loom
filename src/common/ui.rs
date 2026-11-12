@@ -2,7 +2,7 @@ use std::path::Path;
 
 use color::{AlphaColor, Oklch, PremulColor, PremulRgba8, Srgb};
 use eframe::egui::{
-    self, AreaState, Color32, Context, Event, Frame, InnerResponse, InputState, Key,
+    AreaState, Color32, Context, Event, Frame, Id, InnerResponse, InputState, Key,
     KeyboardShortcut, Modifiers, Order, PointerButton, Pos2, Rect, Response, Sense, TextEdit,
     Tooltip, Ui, UiBuilder, Vec2, Widget, response::Flags, vec2,
 };
@@ -97,14 +97,9 @@ pub fn count_and_consume_key(
     count
 }
 
-pub fn shortcut_ui(
-    ui: &mut Ui,
-    bind: &mut Option<KeyboardShortcut>,
-    id: impl Into<egui::Id>,
-    label: &str,
-) {
+pub fn shortcut_ui(ui: &mut Ui, bind: &mut Option<KeyboardShortcut>, id: &str, label: &str) {
     ui.add(
-        Keybind::new(bind, id)
+        Keybind::new(bind, Id::unique(id))
             .with_text(label)
             .with_reset(None)
             .with_reset_key(Some(Key::Escape)),
