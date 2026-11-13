@@ -22,14 +22,15 @@ donation-link = [  ]
 tapestry-weave = { path = "tapestry-weave", features = [
 	"v0",
 ], default-features = false }
-eframe = { version = "0.37.0", features = [ # egui 0.35.0 has a serious performance regression - likely https://github.com/emilk/egui/issues/8610
+eframe = { version = "0.37.0", features = [
 	"accesskit",
-	"wayland",
 	#"web_screen_reader",
+	"clipboard",
+	"links",
+	"persistence",
+	"wayland",
 	"wgpu",
 	"x11",
-	"persistence",
-	"experimental",
 ], default-features = false }
 env_logger = { version = "0.11.11", features = [
 	"auto-color",
