@@ -81,7 +81,7 @@ impl WeaveUi {
         shortcuts: FlagSet<Shortcuts>,
         updated: Option<ShortId>,
     ) {
-        if let Some((node, token_index, choice)) = self.pending_counterfactual {
+        if let Some((node, token_index, choice)) = self.pending_counterfactual.take() {
             self.apply_text(weave);
 
             if let Some(original) = weave.get(&node)
