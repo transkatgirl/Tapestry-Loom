@@ -752,17 +752,27 @@ impl LoggedTapestryWeave {
     }
     /// Convenience function which returns an iterator over the content corresponding to the active path.
     #[inline]
-    pub fn active_content(&mut self) -> impl Iterator<Item = &NodeContent> {
+    pub fn active_content(
+        &mut self,
+    ) -> impl ExactSizeIterator<Item = &NodeContent> + DoubleEndedIterator<Item = &NodeContent>
+    {
         self.weave.active_content()
     }
     /// Convenience function which returns an iterator over the nodes in the reversed active path.
     #[inline]
-    pub fn active_nodes(&mut self) -> impl Iterator<Item = &TapestryNode> {
+    pub fn active_nodes(
+        &mut self,
+    ) -> impl ExactSizeIterator<Item = &TapestryNode> + DoubleEndedIterator<Item = &TapestryNode>
+    {
         self.weave.active_nodes()
     }
     /// Convenience function which returns an iterator over the content corresponding to `id`'s path.
     #[inline]
-    pub fn path_content(&mut self, id: &ShortId) -> impl Iterator<Item = &NodeContent> {
+    pub fn path_content(
+        &mut self,
+        id: &ShortId,
+    ) -> impl ExactSizeIterator<Item = &NodeContent> + DoubleEndedIterator<Item = &NodeContent>
+    {
         self.weave.path_content(id)
     }
     /// Convenience function which returns an iterator over the content corresponding to `id`'s path, breaking if `stop` returns `true`.
@@ -783,7 +793,11 @@ impl LoggedTapestryWeave {
     }
     /// Convenience function which returns an iterator over the nodes in `id`'s reversed path.
     #[inline]
-    pub fn path_nodes(&mut self, id: &ShortId) -> impl Iterator<Item = &TapestryNode> {
+    pub fn path_nodes(
+        &mut self,
+        id: &ShortId,
+    ) -> impl ExactSizeIterator<Item = &TapestryNode> + DoubleEndedIterator<Item = &TapestryNode>
+    {
         self.weave.path_nodes(id)
     }
     /// Convenience function which returns an iterator over the nodes in `id`'s reversed path, breaking if `stop` returns `true`.

@@ -189,7 +189,7 @@ impl EditorShared {
 
         let updated = shared
             .inference
-            .update(self.id, &mut self.weave)
+            .update(self.id, &mut self.weave, &mut self.ui.rng)
             .last()
             .copied();
 

@@ -30,7 +30,7 @@ serde = { version = "1.0.229", features = [
 	"derive",
 	"rc",
 ] }
-universal-weave = { version = "0.13.0", features = [
+universal-weave = { git = "https://github.com/transkatgirl/universal-weave.git", rev = "7adb0b4de88b07629ef8fe44ccae0439acb584e4", features = [
 	"serde",
 ] }
 foldhash = "0.2.0"

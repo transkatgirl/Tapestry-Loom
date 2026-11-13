@@ -27,7 +27,7 @@ use crate::{
         interface::{InterfaceSettings, NodeColors, TokenColors},
         shortcuts::Shortcuts,
     },
-    inference::{InferenceEngine, InferenceRequest},
+    inference::{InferenceEngine, InferenceRequest, PromptSegment},
 };
 
 #[derive(Default)]
@@ -48,7 +48,7 @@ pub struct WeaveUi {
 
     requests: Vec<InferenceRequest>,
     rendered_collapsing_labels: Vec<ShortId>,
-    rng: WyRand,
+    pub rng: WyRand,
 
     settings: InterfaceSettings,
     pub settings_changed: bool,
@@ -171,6 +171,8 @@ impl WeaveUi {
             inference.request(id, weave, request);
         }
 
+        inference.cleanup(id, weave);
+
         self.settings_changed = self.settings != *settings;
         self.settings = *settings;
 
@@ -236,10 +238,7 @@ impl WeaveUi {
                 };
 
                 let prefix = parent.map_or_else(Vec::new, |parent| {
-                    weave
-                        .path_content(&parent)
-                        .flat_map(|contents| contents.content.iter_bytes())
-                        .collect()
+                    PromptSegment::from_contents(weave.path_content(&parent))
                 });
 
                 let suffix = child.and_then(|child| {
@@ -247,22 +246,23 @@ impl WeaveUi {
                     weave.get_active_path(&mut path);
 
                     let index = path.iter().position(|id| *id == child)?;
-                    let suffix: Vec<u8> = path[..=index]
-                        .iter()
-                        .rev()
-                        .filter_map(|id| weave.get_contents(id))
-                        .flat_map(|contents| contents.content.iter_bytes())
-                        .collect();
+                    let suffix = PromptSegment::from_contents(
+                        path[..=index]
+                            .iter()
+                            .rev()
+                            .filter_map(|id| weave.get_contents(id)),
+                    );
 
                     (!suffix.is_empty()).then_some(suffix)
                 });
 
-                self.requests.push(InferenceRequest::Generate {
+                self.requests.push(InferenceRequest::generate(
+                    weave,
                     parent,
-                    child: suffix.as_ref().and(child),
+                    suffix.as_ref().and(child),
                     prefix,
                     suffix,
-                });
+                ));
 
                 if let Some(parent) = parent {
                     self.set_open(parent, true);
@@ -1015,15 +1015,15 @@ impl WeaveUi {
             let response = gutter_button(ui, "+", "Generate children", false, node.active);
 
             if response.clicked() {
-                self.requests.push(InferenceRequest::Generate {
-                    parent: Some(node.id),
-                    child: None,
-                    prefix: weave
-                        .path_content(&node.id)
-                        .flat_map(|c| c.content.iter_bytes())
-                        .collect(), // TODO: take prefix as argument
-                    suffix: None,
-                });
+                let prefix = PromptSegment::from_contents(weave.path_content(&node.id)); // TODO: take prefix as argument
+
+                self.requests.push(InferenceRequest::generate(
+                    weave,
+                    Some(node.id),
+                    None,
+                    prefix,
+                    None,
+                ));
 
                 if response.clicked_with_open_in_background() {
                     weave.set_active_tree_semantics(&node.id, true);
@@ -1241,15 +1241,15 @@ impl WeaveUi {
 
         let generate_response = ui.button("Generate completions");
         if generate_response.clicked() {
-            self.requests.push(InferenceRequest::Generate {
-                parent: Some(node.id),
-                child: None,
-                prefix: weave
-                    .path_content(&node.id)
-                    .flat_map(|c| c.content.iter_bytes())
-                    .collect(), // TODO: take prefix as argument
-                suffix: None,
-            });
+            let prefix = PromptSegment::from_contents(weave.path_content(&node.id)); // TODO: take prefix as argument
+
+            self.requests.push(InferenceRequest::generate(
+                weave,
+                Some(node.id),
+                None,
+                prefix,
+                None,
+            ));
 
             if generate_response.clicked_with_open_in_background() {
                 weave.set_active_tree_semantics(&node.id, true);
@@ -1816,15 +1816,15 @@ impl WeaveUi {
                             "Generate completions & focus node"
                         });
                 if generate_response.clicked() {
-                    self.requests.push(InferenceRequest::Generate {
-                        parent: Some(node.id),
-                        child: None,
-                        prefix: weave
-                            .path_content(&node.id)
-                            .flat_map(|c| c.content.iter_bytes())
-                            .collect(), // TODO: take prefix as argument
-                        suffix: None,
-                    });
+                    let prefix = PromptSegment::from_contents(weave.path_content(&node.id)); // TODO: take prefix as argument
+
+                    self.requests.push(InferenceRequest::generate(
+                        weave,
+                        Some(node.id),
+                        None,
+                        prefix,
+                        None,
+                    ));
 
                     if generate_response.clicked_with_open_in_background() {
                         weave.set_active_tree_semantics(&node.id, true);
@@ -1884,15 +1884,15 @@ impl WeaveUi {
                             "Generate completions & focus node"
                         });
                 if generate_response.clicked() {
-                    self.requests.push(InferenceRequest::Generate {
-                        parent: Some(node.id),
-                        child: None,
-                        prefix: weave
-                            .path_content(&node.id)
-                            .flat_map(|c| c.content.iter_bytes())
-                            .collect(), // TODO: take prefix as argument
-                        suffix: None,
-                    });
+                    let prefix = PromptSegment::from_contents(weave.path_content(&node.id)); // TODO: take prefix as argument
+
+                    self.requests.push(InferenceRequest::generate(
+                        weave,
+                        Some(node.id),
+                        None,
+                        prefix,
+                        None,
+                    ));
 
                     if generate_response.clicked_with_open_in_background() {
                         weave.set_active_tree_semantics(&node.id, true);

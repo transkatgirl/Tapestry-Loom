@@ -3,8 +3,9 @@ use std::{cell::RefCell, rc::Rc, sync::Arc, time::Duration};
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize};
 use tapestry_weave::{
-    ShortId,
-    universal_weave::{BookmarkableWeave, Weave},
+    Creator, InnerNodeContent, InnerNodeToken, LongId, Model, NodeContent, ShortId,
+    nanorand::WyRand,
+    universal_weave::{BookmarkableWeave, Weave, wrappers::PositionAlignment},
     weave::wrappers::LoggedTapestryWeave,
 };
 use tokio::runtime::Runtime;
@@ -22,15 +23,105 @@ pub struct InferenceEngine {
 
 pub enum InferenceRequest {
     Generate {
+        parent: Option<u64>,
+        child: Option<u64>,
+        prefix: Vec<PromptSegment>,
+        suffix: Option<Vec<PromptSegment>>,
+    },
+    SeriateChildren(Option<u64>),
+    SeriateBookmarks,
+}
+
+impl InferenceRequest {
+    pub fn generate(
+        weave: &mut LoggedTapestryWeave,
         parent: Option<ShortId>,
         child: Option<ShortId>,
+        prefix: Vec<PromptSegment>,
+        suffix: Option<Vec<PromptSegment>>,
+    ) -> Self {
+        Self::Generate {
+            parent: parent.map(|id| {
+                weave
+                    .get_or_insert_position(&id, PositionAlignment::End)
+                    .unwrap()
+            }),
+            child: child.map(|id| {
+                weave
+                    .get_or_insert_position(&id, PositionAlignment::Start)
+                    .unwrap()
+            }),
+            prefix,
+            suffix,
+        }
+    }
+}
 
-        // TODO: add support for passing token IDs (and their corresponding model identifier) to the inference backend rather than only u8 bytes
-        prefix: Vec<u8>,
-        suffix: Option<Vec<u8>>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PromptSegment {
+    Bytes(Vec<u8>),
+    Tokens {
+        model: LongId,
+        ids: Vec<u64>,
+        bytes: Vec<u8>,
     },
-    SeriateChildren(Option<ShortId>),
-    SeriateBookmarks,
+}
+
+impl PromptSegment {
+    pub fn from_contents<'a>(contents: impl IntoIterator<Item = &'a NodeContent>) -> Vec<Self> {
+        let mut segments = Vec::new();
+
+        for contents in contents {
+            match &contents.content {
+                InnerNodeContent::Snippet(snippet) => segments.push(Self::Bytes(snippet.clone())),
+                InnerNodeContent::Tokens(tokens) => {
+                    if let Creator::Model(Some(Model {
+                        identifier: Some(model),
+                        ..
+                    })) = contents.creator
+                    {
+                        let is_usable =
+                            |token: &InnerNodeToken| token.id.is_some() && !token.is_modified();
+
+                        segments.extend(tokens.chunk_by(|a, b| is_usable(a) == is_usable(b)).map(
+                            |run| {
+                                let bytes =
+                                    run.iter().flat_map(|token| &token.bytes).copied().collect();
+
+                                if is_usable(&run[0]) {
+                                    Self::Tokens {
+                                        model,
+                                        ids: run.iter().filter_map(|token| token.id).collect(),
+                                        bytes,
+                                    }
+                                } else {
+                                    Self::Bytes(bytes)
+                                }
+                            },
+                        ));
+                    } else {
+                        segments.push(Self::Bytes(
+                            tokens
+                                .iter()
+                                .flat_map(|token| &token.bytes)
+                                .copied()
+                                .collect(),
+                        ));
+                    }
+                }
+                InnerNodeContent::MetadataOnly => {}
+            }
+        }
+
+        segments.retain(|segment| !segment.is_empty());
+        segments
+    }
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Self::Bytes(bytes) => bytes.is_empty(),
+            Self::Tokens { ids, .. } => ids.is_empty(),
+        }
+    }
 }
 
 impl InferenceEngine {
@@ -85,12 +176,20 @@ impl InferenceEngine {
         &mut self,
         document: Ulid,
         weave: &mut Option<LoggedTapestryWeave>,
+        rng: &mut WyRand,
     ) -> Vec<ShortId> {
-        let mut updated = Vec::new();
+        let updated = Vec::new();
 
         updated
     }
-    pub fn cancel(&mut self, document: Ulid) {}
+    pub fn cancel(&mut self, document: Ulid) {
+        // TODO
+    }
+    pub fn cleanup(&self, document: Ulid, weave: &mut LoggedTapestryWeave) {
+        if self.requests(document) == 0 {
+            weave.clear_positions();
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize, Default, Debug)]
