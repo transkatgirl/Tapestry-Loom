@@ -66,7 +66,7 @@ fn main() -> Result<(), anyhow::Error> {
                 .with_maximized(true)
                 .with_icon(Arc::new(IconData::default())),
             persist_window: true,
-            persistence_path: Some(storage_dir.clone()),
+            persistence_path: Some(storage_dir.join("app.ron")),
             ..Default::default()
         },
         Box::new(|cc| {
