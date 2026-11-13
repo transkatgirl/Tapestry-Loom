@@ -52,6 +52,7 @@ fn main() -> Result<(), anyhow::Error> {
 
     debug!("Initalizing...");
 
+    let storage_dir = eframe::storage_dir(crate::APP_NAME).unwrap();
     let runtime = Arc::new(runtime::Builder::new_multi_thread().enable_all().build()?);
     eframe::run_native(
         APP_NAME,
@@ -65,6 +66,7 @@ fn main() -> Result<(), anyhow::Error> {
                 .with_maximized(true)
                 .with_icon(Arc::new(IconData::default())),
             persist_window: true,
+            persistence_path: Some(storage_dir.clone()),
             ..Default::default()
         },
         Box::new(|cc| {
@@ -74,7 +76,7 @@ fn main() -> Result<(), anyhow::Error> {
                 ctrlc_context.send_viewport_cmd(ViewportCommand::Close);
             })?;
 
-            Ok(Box::new(App::new(cc, runtime.clone())?))
+            Ok(Box::new(App::new(cc, runtime.clone(), storage_dir)?))
         }),
     )?;
 
@@ -96,7 +98,11 @@ struct App {
 }
 
 impl App {
-    fn new(cc: &CreationContext<'_>, runtime: Arc<Runtime>) -> Result<Self, anyhow::Error> {
+    fn new(
+        cc: &CreationContext<'_>,
+        runtime: Arc<Runtime>,
+        storage_dir: PathBuf,
+    ) -> Result<Self, anyhow::Error> {
         cc.egui_ctx.memory_mut(|memory| {
             *memory = Memory::default();
         });
@@ -194,7 +200,7 @@ impl App {
         let app = Self {
             container: ViewContainer::new(
                 Tree::new(Id::unique("global-tree"), root, tiles),
-                AppShared::new(runtime, Toasts::new(), cc.storage.unwrap())?,
+                AppShared::new(runtime, storage_dir, Toasts::new(), cc.storage.unwrap())?,
                 Some(Box::new(|shared| Pane::Editor(Editor::new(None, shared)))),
             ),
             new_panes: Vec::with_capacity(1),
@@ -298,6 +304,7 @@ impl eframe::App for App {
 
 struct AppShared {
     runtime: Arc<Runtime>,
+    storage_dir: PathBuf,
     async_toasts: Arc<Mutex<Vec<Toast>>>,
 
     inference: InferenceEngine,
@@ -318,6 +325,7 @@ struct AppShared {
 impl AppShared {
     fn new(
         runtime: Arc<Runtime>,
+        storage_dir: PathBuf,
         mut toasts: Toasts,
         storage: &dyn eframe::Storage,
     ) -> Result<Self, anyhow::Error> {
@@ -334,11 +342,17 @@ impl AppShared {
             Settings::default()
         };
 
-        let inference = InferenceEngine::new(runtime.clone(), settings.inference.clone())?;
+        let async_toasts = Arc::new(Mutex::new(Vec::with_capacity(8)));
+        let inference = InferenceEngine::new(
+            runtime.clone(),
+            settings.inference.clone(),
+            async_toasts.clone(),
+        )?;
 
         Ok(Self {
             runtime,
-            async_toasts: Arc::new(Mutex::new(Vec::with_capacity(8))),
+            storage_dir,
+            async_toasts,
             toasts,
             inference,
             settings,

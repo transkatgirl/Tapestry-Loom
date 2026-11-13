@@ -135,11 +135,11 @@ impl View<EditorShared> for MenuView {
     fn title(&self, _shared: &EditorShared) -> WidgetText {
         WidgetText::Text("\u{E1B1} Menu".to_string())
     }
-    fn logic(&mut self, shared: &mut EditorShared, _force_close: impl FnOnce(), ctx: &Context) {}
+    fn logic(&mut self, _shared: &mut EditorShared, _force_close: impl FnOnce(), _ctx: &Context) {}
     fn ui(&mut self, shared: &mut EditorShared, ui: &mut Ui) {
-        let Some(weave) = &mut shared.weave else {
+        if shared.weave.is_none() {
             return;
-        };
+        }
 
         // TODO
     }

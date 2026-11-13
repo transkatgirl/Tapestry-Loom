@@ -63,6 +63,9 @@ impl View<AppShared> for SettingsView {
                     .outer_margin(ui.style().spacing.menu_margin)
                     .show(ui, |ui| {
                         shared.settings.ui(ui);
+
+                        #[cfg(debug_assertions)]
+                        ui.weak(format!("storage_dir = {:?}", shared.storage_dir));
                     })
             });
 

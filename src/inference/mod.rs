@@ -122,12 +122,18 @@ impl PromptSegment {
             Self::Tokens { ids, .. } => ids.is_empty(),
         }
     }
+    pub fn bytes(&self) -> &[u8] {
+        match self {
+            Self::Bytes(bytes) | Self::Tokens { bytes, .. } => bytes,
+        }
+    }
 }
 
 impl InferenceEngine {
     pub fn new(
         runtime: Arc<Runtime>,
         settings: Rc<RefCell<InferenceEngineSettings>>,
+        toasts: Arc<Mutex<Vec<Toast>>>,
     ) -> Result<Self, anyhow::Error> {
         Ok(Self {
             settings,
