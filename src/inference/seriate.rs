@@ -23,33 +23,40 @@ pub fn seriate<T>(embeddings: Vec<(T, Vec<f32>)>) -> Vec<T> {
 }
 
 fn seriate_inner(embeddings: Vec<Vec<f32>>) -> Vec<usize> {
-    let distances = embeddings
-        .iter()
-        .map(|row| {
-            embeddings
-                .iter()
-                .map(|column| cosine(column, row) + 1.0)
-                .collect::<Vec<f64>>()
-        })
-        .collect::<Vec<Vec<f64>>>();
+    let mut distances = vec![vec![0; embeddings.len() + 1]; embeddings.len() + 1];
 
-    drop(embeddings);
+    for (row, row_embedding) in embeddings.iter().enumerate() {
+        for (column, column_embedding) in embeddings.iter().enumerate().skip(row + 1) {
+            let distance = cosine_distance(row_embedding, column_embedding);
 
-    let mut solved = DistanceMatrix::new(distances.clone()).solve(10);
-
-    let mut max = (0.0, 0);
-
-    for (position, distance_index) in solved.iter().copied().enumerate() {
-        if let Some(next_distance_index) = solved.get(position + 1).copied() {
-            let distance = distances[distance_index][next_distance_index];
-
-            if distance > max.0 {
-                max = (distance, position)
-            }
+            distances[row][column] = distance;
+            distances[column][row] = distance;
         }
     }
 
-    solved.rotate_left(max.1 + 1);
+    let path_boundary = embeddings.len();
+
+    drop(embeddings);
+
+    let mut solved = DistanceMatrix::new(distances).solve(10);
+
+    if let Some(position) = solved.iter().position(|index| *index == path_boundary) {
+        solved.rotate_left(position);
+        solved.remove(0);
+    }
 
     solved
+}
+
+fn cosine_distance(a: &[f32], b: &[f32]) -> u32 {
+    /// must stay small enough to prevent the solver's internal calculations from overflowing i32
+    const DISTANCE_SCALE: f64 = 1_000_000.0;
+
+    let distance = 1.0 - cosine(a, b);
+
+    if distance.is_nan() {
+        return DISTANCE_SCALE as u32;
+    }
+
+    (distance.clamp(0.0, 2.0) * DISTANCE_SCALE).round() as u32
 }
