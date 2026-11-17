@@ -136,7 +136,7 @@ impl WeaveUi {
             self.cursor = None;
         }
 
-        self.handle_shortcuts(weave, shortcuts);
+        self.handle_shortcuts(weave, inference, shortcuts);
 
         self.selection = None;
         self.scroll_to = updated;
@@ -178,7 +178,12 @@ impl WeaveUi {
 
         // TODO
     }
-    fn handle_shortcuts(&mut self, weave: &mut LoggedTapestryWeave, shortcuts: FlagSet<Shortcuts>) {
+    fn handle_shortcuts(
+        &mut self,
+        weave: &mut LoggedTapestryWeave,
+        inference: &InferenceEngine,
+        shortcuts: FlagSet<Shortcuts>,
+    ) {
         if shortcuts.contains(Shortcuts::AddChild) {
             let identifier = self.generate_id(weave);
 
