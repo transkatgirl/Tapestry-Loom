@@ -23,67 +23,68 @@ pub fn parse_completion_response(
     response: Value,
     options: CompletionOptions,
 ) -> Result<Vec<EndpointResponse>, anyhow::Error> {
-    if let Value::Object(mut response) = response
-        && let Some(Value::Array(choices)) = response.remove("choices")
-    {
-        let system_fingerprint = if let Some(Value::String(system_fingerprint)) =
-            response.remove("system_fingerprint")
-            && !system_fingerprint.is_empty()
-        {
-            Some(system_fingerprint)
-        } else {
-            None
-        };
-
-        let mut items = Vec::with_capacity(choices.len());
-
-        for choice in choices {
-            if let Value::Object(value) = choice
-                && let Some(item) = parse_item(value)
+    if let Value::Object(mut response) = response {
+        if let Some(Value::Array(choices)) = response.remove("choices") {
+            let system_fingerprint = if let Some(Value::String(system_fingerprint)) =
+                response.remove("system_fingerprint")
+                && !system_fingerprint.is_empty()
             {
-                items.push(item);
+                Some(system_fingerprint)
+            } else {
+                None
+            };
+
+            let mut items = Vec::with_capacity(choices.len());
+
+            for choice in choices {
+                if let Value::Object(value) = choice
+                    && let Some(item) = parse_item(value)
+                {
+                    items.push(item);
+                }
             }
-        }
 
-        if !items.is_empty() {
-            items.sort_by_key(|item| item.index);
+            if !items.is_empty() {
+                items.sort_by_key(|item| item.index);
 
-            let base_metadata: Vec<_> = options
-                .parameters
-                .iter()
-                .filter(|&(key, _)| key != "seed")
-                .cloned()
-                .collect();
+                let base_metadata: Vec<_> = options
+                    .parameters
+                    .iter()
+                    .filter(|&(key, _)| key != "seed")
+                    .cloned()
+                    .collect();
 
-            return Ok(items
-                .into_iter()
-                .map(|mut item| {
-                    let mut metadata = base_metadata.clone();
+                return Ok(items
+                    .into_iter()
+                    .map(|mut item| {
+                        let mut metadata = base_metadata.clone();
 
-                    if let Some(role) = item.role
-                        && role != "assistant"
-                    {
-                        metadata.push(("role".to_string(), role));
-                    }
+                        if let Some(role) = item.role
+                            && role != "assistant"
+                        {
+                            metadata.push(("role".to_string(), role));
+                        }
 
-                    if options.single_token {
-                        item.contents.truncate_tokens(1);
-                    }
+                        if options.single_token && !options.echo {
+                            item.contents.truncate_tokens(1);
+                        }
 
-                    if let Some(requested_top) = options.requested_top {
-                        item.contents.truncate_counterfactual(requested_top);
-                    }
+                        if let Some(requested_top) = options.requested_top {
+                            item.contents.sort_counterfactual();
+                            item.contents.truncate_counterfactual(requested_top);
+                        }
 
-                    EndpointResponse {
-                        root: options.echo,
-                        content: item.contents,
-                        metadata,
-                        seed: options.seed,
-                        system_fingerprint: system_fingerprint.clone(),
-                        finish_reason: item.finish_reason,
-                    }
-                })
-                .collect());
+                        EndpointResponse {
+                            root: options.echo,
+                            content: item.contents,
+                            metadata,
+                            seed: options.seed,
+                            system_fingerprint: system_fingerprint.clone(),
+                            finish_reason: item.finish_reason,
+                        }
+                    })
+                    .collect());
+            }
         } else if let Some(error) = response.remove("error") {
             return Err(anyhow!("API Error: {:?}", error.to_string()));
         }
@@ -118,7 +119,9 @@ fn parse_item(mut json: Map<String, Value>) -> Option<ResponseItem> {
     let (text, role) = if let Some(Value::Object(mut message)) = json.remove("message") {
         (
             if let Some(content) = message.remove("content") {
-                if let Value::String(content) = content {
+                if content.is_null() {
+                    Some(String::new())
+                } else if let Value::String(content) = content {
                     Some(content)
                 } else {
                     None
@@ -260,7 +263,7 @@ fn parse_item_logprobs(
     {
         let parse_token = |token: String| {
             if let Some(escaped) = token.strip_prefix("bytes:")
-                && let Some(bytes) = unescape_bytes(escaped.trim())
+                && let Some(bytes) = unescape_bytes(escaped)
             {
                 bytes
             } else {
