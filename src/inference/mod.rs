@@ -151,6 +151,7 @@ impl InferenceEngine {
         &mut self,
         document: Ulid,
         weave: &mut LoggedTapestryWeave,
+        parameters: &InferenceParameters,
         request: InferenceRequest,
     ) {
         match request {

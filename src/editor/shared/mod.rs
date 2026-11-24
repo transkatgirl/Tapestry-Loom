@@ -86,7 +86,7 @@ impl EditorShared {
             close_ready: false,
             close_now: false,
             close_after_save: false,
-            ui: WeaveUi::default(),
+            ui: WeaveUi::new(shared.settings.inference.clone()),
             last_visible: false,
         }
     }
@@ -107,7 +107,7 @@ impl EditorShared {
             close_ready: false,
             close_now: false,
             close_after_save: false,
-            ui: WeaveUi::default(),
+            ui: WeaveUi::new(shared.settings.inference.clone()),
             last_visible: false,
         }
     }

@@ -3,8 +3,8 @@ use std::path::Path;
 use color::{AlphaColor, Oklch, PremulColor, PremulRgba8, Srgb};
 use eframe::egui::{
     AreaState, Color32, Context, Event, Frame, Id, InnerResponse, InputState, Key,
-    KeyboardShortcut, Modifiers, Order, PointerButton, Pos2, Rect, Response, Sense, TextEdit,
-    Tooltip, Ui, UiBuilder, Vec2, Widget, response::Flags, vec2,
+    KeyboardShortcut, Modifiers, Order, PointerButton, Pos2, Rect, Response, RichText, Sense,
+    TextEdit, Tooltip, Ui, UiBuilder, Vec2, Widget, response::Flags, vec2,
 };
 use egui_keybind::Keybind;
 use flagset::FlagSet;
@@ -292,6 +292,15 @@ pub fn label_separator(ui: &mut Ui, opacity: f32) {
     }
 }
 
+pub fn colored_text(text: &str, color: Option<Color32>) -> RichText {
+    let text = RichText::new(text);
+
+    match color {
+        Some(color) => text.color(color),
+        None => text,
+    }
+}
+
 pub fn config_map(
     ui: &mut Ui,
     value: &mut Vec<(String, String)>,
@@ -371,4 +380,64 @@ pub fn config_list(
     }
 
     changed
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ListAction {
+    MoveUp(usize),
+    MoveDown(usize),
+    Copy(usize),
+    Delete(usize),
+}
+
+impl ListAction {
+    pub fn buttons(
+        ui: &mut Ui,
+        name: &str,
+        index: usize,
+        length: usize,
+        action: &mut Option<Self>,
+    ) {
+        let mut buttons = [
+            (
+                index != 0,
+                "\u{E44E}",
+                format!("Move {name} up"),
+                Self::MoveUp(index),
+            ),
+            (
+                index + 1 != length,
+                "\u{E44D}",
+                format!("Move {name} down"),
+                Self::MoveDown(index),
+            ),
+            (true, "\u{E09E}", format!("Copy {name}"), Self::Copy(index)),
+            (
+                true,
+                "\u{E18E}",
+                format!("Delete {name}"),
+                Self::Delete(index),
+            ),
+        ];
+
+        if ui.layout().prefer_right_to_left() {
+            buttons.reverse();
+        }
+
+        for (visible, icon, hover_text, button_action) in buttons {
+            if visible && ui.button(icon).on_hover_text(hover_text).clicked() {
+                *action = Some(button_action);
+            }
+        }
+    }
+    pub fn apply<T: Clone>(self, items: &mut Vec<T>) {
+        match self {
+            Self::MoveUp(index) => items.swap(index, index - 1),
+            Self::MoveDown(index) => items.swap(index, index + 1),
+            Self::Copy(index) => items.insert(index, items[index].clone()),
+            Self::Delete(index) => {
+                items.remove(index);
+            }
+        }
+    }
 }

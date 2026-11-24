@@ -141,6 +141,18 @@ impl View<EditorShared> for MenuView {
             return;
         }
 
-        // TODO
+        ScrollArea::vertical()
+            .auto_shrink(false)
+            .animated(false)
+            .show(ui, |ui| {
+                Frame::new()
+                    .outer_margin(ui.style().spacing.menu_margin)
+                    .show(ui, |ui| {
+                        shared
+                            .ui
+                            .inference_parameters
+                            .ui(&shared.ui.inference_settings.borrow(), ui);
+                    });
+            });
     }
 }

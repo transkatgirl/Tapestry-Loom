@@ -1,4 +1,4 @@
-use std::{collections::HashMap, mem, ops::Range};
+use std::{cell::RefCell, collections::HashMap, mem, ops::Range, rc::Rc};
 
 use eframe::egui::{
     Align, Button, Color32, Direction, FontFamily, Frame, Layout, Pos2, Rect, Response, Rgba,
@@ -27,7 +27,10 @@ use crate::{
         interface::{InterfaceSettings, NodeColors, TokenColors},
         shortcuts::Shortcuts,
     },
-    inference::{InferenceEngine, InferenceRequest, PromptSegment},
+    inference::{
+        InferenceEngine, InferenceEngineSettings, InferenceParameters, InferenceRequest,
+        PromptSegment,
+    },
 };
 
 #[derive(Default)]
@@ -46,6 +49,8 @@ pub struct WeaveUi {
     pending_counterfactual: Option<(ShortId, usize, usize)>,
     pub fit: LayoutFit,
 
+    pub inference_settings: Rc<RefCell<InferenceEngineSettings>>,
+    pub inference_parameters: InferenceParameters,
     requests: Vec<InferenceRequest>,
     rendered_collapsing_labels: Vec<ShortId>,
     pub rng: WyRand,
@@ -57,6 +62,15 @@ pub struct WeaveUi {
 pub const DEFAULT_OPEN: bool = false;
 
 impl WeaveUi {
+    pub fn new(inference_settings: Rc<RefCell<InferenceEngineSettings>>) -> Self {
+        let inference_parameters = inference_settings.borrow().default_parameters.clone();
+
+        Self {
+            inference_settings,
+            inference_parameters,
+            ..Default::default()
+        }
+    }
     fn generate_id(&mut self, weave: &LoggedTapestryWeave) -> ShortId {
         tapestry_weave::generate_id(&mut self.rng, weave)
     }
@@ -136,7 +150,7 @@ impl WeaveUi {
             self.cursor = None;
         }
 
-        self.handle_shortcuts(weave, inference, shortcuts);
+        self.handle_shortcuts(weave, shortcuts);
 
         self.selection = None;
         self.scroll_to = updated;
@@ -168,7 +182,7 @@ impl WeaveUi {
         self.rendered_collapsing_labels.clear();
 
         for request in self.requests.drain(..) {
-            inference.request(id, weave, request);
+            inference.request(id, weave, &self.inference_parameters, request);
         }
 
         inference.cleanup(id, weave);
@@ -178,12 +192,7 @@ impl WeaveUi {
 
         // TODO
     }
-    fn handle_shortcuts(
-        &mut self,
-        weave: &mut LoggedTapestryWeave,
-        inference: &InferenceEngine,
-        shortcuts: FlagSet<Shortcuts>,
-    ) {
+    fn handle_shortcuts(&mut self, weave: &mut LoggedTapestryWeave, shortcuts: FlagSet<Shortcuts>) {
         if shortcuts.contains(Shortcuts::AddChild) {
             let identifier = self.generate_id(weave);
 
@@ -385,27 +394,30 @@ impl WeaveUi {
             }
         }
 
-        const PRESETS: [(Shortcuts, usize); 10] = [
-            (Shortcuts::ParameterPreset10, 10),
-            (Shortcuts::ParameterPreset9, 9),
-            (Shortcuts::ParameterPreset8, 8),
-            (Shortcuts::ParameterPreset7, 7),
-            (Shortcuts::ParameterPreset6, 6),
-            (Shortcuts::ParameterPreset5, 5),
-            (Shortcuts::ParameterPreset4, 4),
-            (Shortcuts::ParameterPreset3, 3),
-            (Shortcuts::ParameterPreset2, 2),
-            (Shortcuts::ParameterPreset1, 1),
+        const PRESETS: [Shortcuts; 10] = [
+            Shortcuts::ParameterPreset1,
+            Shortcuts::ParameterPreset2,
+            Shortcuts::ParameterPreset3,
+            Shortcuts::ParameterPreset4,
+            Shortcuts::ParameterPreset5,
+            Shortcuts::ParameterPreset6,
+            Shortcuts::ParameterPreset7,
+            Shortcuts::ParameterPreset8,
+            Shortcuts::ParameterPreset9,
+            Shortcuts::ParameterPreset10,
         ];
 
-        for (flag, preset) in PRESETS {
-            if shortcuts.contains(flag) {
-                // TODO
-            }
-        }
+        {
+            let inference_settings = &self.inference_settings.borrow();
 
-        if shortcuts.contains(Shortcuts::ResetParameters) {
-            // TODO
+            if let Some(index) = PRESETS.iter().position(|flag| shortcuts.contains(*flag)) {
+                self.inference_parameters
+                    .switch_preset(inference_settings, index);
+            }
+
+            if shortcuts.contains(Shortcuts::ResetParameters) {
+                self.inference_parameters.reset(inference_settings);
+            }
         }
 
         if shortcuts.contains(Shortcuts::CollapseAllVisibleInactive) {
