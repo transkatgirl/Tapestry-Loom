@@ -16,10 +16,10 @@ use crate::{
     common::ui::{config_list, config_map},
     inference::{
         PromptSegment,
-        openai::parser::parse_embedding_response,
+        openai::parser::{CompletionOptions, parse_completion_response, parse_embedding_response},
         shared::{
-            EndpointRequest, EndpointResponse, InferenceCache, ResponseOptions, build_json_list,
-            build_json_object, error_for_status, parse_response, segment_bytes, segment_text,
+            EndpointRequest, EndpointResponse, InferenceCache, build_json_list, build_json_object,
+            error_for_status, segment_bytes, segment_text,
         },
     },
 };
@@ -290,7 +290,7 @@ fn build_body(
     endpoint_parameters: &[(String, String)],
     request: &EndpointRequest,
     top_keys: &[&str],
-) -> (Map<String, Value>, ResponseOptions) {
+) -> (Map<String, Value>, CompletionOptions) {
     let mut body = Map::with_capacity(2 + request.parameters.len() + endpoint_parameters.len());
 
     build_json_object(&mut body, endpoint_parameters);
@@ -300,7 +300,7 @@ fn build_body(
         *stream = Value::Bool(false);
     }
 
-    let options = ResponseOptions {
+    let options = CompletionOptions {
         parameters: request.parameters.clone(),
         seed: body.get("seed").and_then(Value::as_u64),
         echo: body.get("echo").and_then(Value::as_bool).unwrap_or(false),
@@ -482,7 +482,7 @@ impl OpenAICompletionsConfig {
             }
         }
 
-        parse_response(
+        parse_completion_response(
             post_json(client, &self.endpoint, headers, body).await?,
             options,
         )
@@ -588,7 +588,7 @@ impl OpenAIChatCompletionsConfig {
 
         body.insert("messages".to_string(), Value::Array(messages));
 
-        parse_response(
+        parse_completion_response(
             post_json(client, &self.endpoint, headers, body).await?,
             options,
         )

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::anyhow;
 use base64::{Engine, prelude::BASE64_STANDARD};
 use log::trace;
@@ -6,26 +8,24 @@ use tapestry_weave::{
     CounterfactualToken, InnerNodeContent, InnerNodeToken, universal_weave::indexmap::IndexMap,
 };
 
+use crate::inference::EndpointResponse;
+
 #[derive(Debug)]
-pub struct CompletionResponse {
-    pub choices: Vec<ResponseItem>,
-    pub system_fingerprint: Option<String>,
+pub struct CompletionOptions {
+    pub parameters: Arc<Vec<(String, String)>>,
+    pub seed: Option<u64>,
+    pub echo: bool,
+    pub single_token: bool,
+    pub requested_top: Option<usize>,
 }
 
-pub fn parse_completion_response(response: Value) -> Result<CompletionResponse, anyhow::Error> {
+pub fn parse_completion_response(
+    response: Value,
+    options: CompletionOptions,
+) -> Result<Vec<EndpointResponse>, anyhow::Error> {
     if let Value::Object(mut response) = response
         && let Some(Value::Array(choices)) = response.remove("choices")
     {
-        let mut items = Vec::with_capacity(choices.len());
-
-        for choice in choices {
-            if let Value::Object(value) = choice
-                && let Some(value) = parse_item(value)
-            {
-                items.push(value);
-            }
-        }
-
         let system_fingerprint = if let Some(Value::String(system_fingerprint)) =
             response.remove("system_fingerprint")
             && !system_fingerprint.is_empty()
@@ -35,11 +35,55 @@ pub fn parse_completion_response(response: Value) -> Result<CompletionResponse, 
             None
         };
 
+        let mut items = Vec::with_capacity(choices.len());
+
+        for choice in choices {
+            if let Value::Object(value) = choice
+                && let Some(item) = parse_item(value)
+            {
+                items.push(item);
+            }
+        }
+
         if !items.is_empty() {
-            return Ok(CompletionResponse {
-                choices: items,
-                system_fingerprint,
-            });
+            items.sort_by_key(|item| item.index);
+
+            let base_metadata: Vec<_> = options
+                .parameters
+                .iter()
+                .filter(|&(key, _)| key != "seed")
+                .cloned()
+                .collect();
+
+            return Ok(items
+                .into_iter()
+                .map(|mut item| {
+                    let mut metadata = base_metadata.clone();
+
+                    if let Some(role) = item.role
+                        && role != "assistant"
+                    {
+                        metadata.push(("role".to_string(), role));
+                    }
+
+                    if options.single_token {
+                        item.contents.truncate_tokens(1);
+                    }
+
+                    if let Some(requested_top) = options.requested_top {
+                        item.contents.truncate_counterfactual(requested_top);
+                    }
+
+                    EndpointResponse {
+                        root: options.echo,
+                        content: item.contents,
+                        metadata,
+                        seed: options.seed,
+                        system_fingerprint: system_fingerprint.clone(),
+                        finish_reason: item.finish_reason,
+                    }
+                })
+                .collect());
         } else if let Some(error) = response.remove("error") {
             return Err(anyhow!("API Error: {:?}", error.to_string()));
         }
@@ -130,7 +174,7 @@ fn parse_item_logprobs(
         .remove("prompt_token_ids")
         .and_then(|v| serde_json::from_value::<Vec<u64>>(v).ok());
 
-    let mut tokens = if let Some(Value::Array(logprobs)) = logprobs.remove("content") {
+    let tokens = if let Some(Value::Array(logprobs)) = logprobs.remove("content") {
         let parse_item = |mut item: Map<String, Value>| {
             Some(CounterfactualToken {
                 bytes: if let Some(bytes) = item
@@ -204,6 +248,12 @@ fn parse_item_logprobs(
         } else {
             None
         }
+    } else {
+        None
+    };
+
+    let mut tokens = if let Some(tokens) = tokens {
+        Some(tokens)
     } else if let Some(tokens) = logprobs
         .remove("tokens")
         .and_then(|v| serde_json::from_value::<Vec<String>>(v).ok())
