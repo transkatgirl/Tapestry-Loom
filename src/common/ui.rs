@@ -1,13 +1,17 @@
-use std::path::Path;
+use std::{hash::Hash, path::Path};
 
 use color::{AlphaColor, Oklch, PremulColor, PremulRgba8, Srgb};
 use eframe::egui::{
-    AreaState, Color32, Context, Event, Frame, Id, InnerResponse, InputState, Key,
-    KeyboardShortcut, Modifiers, Order, PointerButton, Pos2, Rect, Response, RichText, Sense,
-    TextEdit, Tooltip, Ui, UiBuilder, Vec2, Widget, response::Flags, vec2,
+    Align, AreaState, Color32, Context, Event, Frame, Id, InnerResponse, InputState, Key,
+    KeyboardShortcut, Layout, Modifiers, Order, PointerButton, Pos2, Rect, Response, RichText,
+    Sense, TextEdit, Tooltip, Ui, UiBuilder, Vec2, Widget,
+    color_picker::{Alpha, color_edit_button_srgba},
+    response::Flags,
+    vec2,
 };
 use egui_keybind::Keybind;
 use flagset::FlagSet;
+use tapestry_weave::universal_weave::indexmap::IndexMap;
 
 pub fn clicked_rising_edge(response: &Response) -> bool {
     // egui default is falling-edge
@@ -440,4 +444,65 @@ impl ListAction {
             }
         }
     }
+    pub fn apply_indexmap<K: Hash + Eq, T: Clone, F: FnMut(&T) -> K>(
+        self,
+        items: &mut IndexMap<K, T>,
+        mut generate_key: F,
+    ) {
+        match self {
+            Self::MoveUp(index) => items.swap_indices(index, index - 1),
+            Self::MoveDown(index) => items.swap_indices(index, index + 1),
+            Self::Copy(index) => {
+                let value = items[index].clone();
+                items.insert_before(index, generate_key(&value), value);
+            }
+            Self::Delete(index) => {
+                items.shift_remove_index(index);
+            }
+        }
+    }
+}
+
+pub fn list_item_buttons(
+    ui: &mut Ui,
+    name: &str,
+    index: usize,
+    length: usize,
+    action: &mut Option<ListAction>,
+) {
+    ui.set_max_width(ui.min_rect().width());
+
+    ui.horizontal_wrapped(|ui| {
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            ListAction::buttons(ui, name, index, length, action);
+        });
+    });
+}
+
+pub fn label_editor(ui: &mut Ui, label: &mut String, hint_text: &str, color: &mut Option<Color32>) {
+    ui.horizontal_wrapped(|ui| {
+        let label_text_id = ui.label("Label:").id;
+
+        TextEdit::singleline(label)
+            .hint_text(hint_text)
+            .ui(ui)
+            .labelled_by(label_text_id);
+
+        if let Some(label_color) = color {
+            color_edit_button_srgba(ui, label_color, Alpha::Opaque).on_hover_text("Label color");
+            if ui
+                .button("\u{E148}")
+                .on_hover_text("Remove label color")
+                .clicked()
+            {
+                *color = None;
+            }
+        } else if ui
+            .button("\u{E1DD}")
+            .on_hover_text("Add label color")
+            .clicked()
+        {
+            *color = Some(ui.style().visuals.hyperlink_color);
+        }
+    });
 }
