@@ -40,7 +40,7 @@ fn default_scale() -> f32 {
 }
 
 impl InterfaceSettings {
-    pub(super) fn apply(&mut self, ctx: &Context) {
+    pub fn apply(&mut self, ctx: &Context) {
         ctx.options_mut(|options| {
             options.theme_preference = self.theme;
             options.zoom_factor = self.scale;

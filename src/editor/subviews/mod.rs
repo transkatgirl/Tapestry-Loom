@@ -1,5 +1,5 @@
-pub(super) mod canvas;
-pub(super) mod graph;
-pub(super) mod lists;
-pub(super) mod menus;
-pub(super) mod textedit;
+pub mod canvas;
+pub mod graph;
+pub mod lists;
+pub mod menus;
+pub mod textedit;

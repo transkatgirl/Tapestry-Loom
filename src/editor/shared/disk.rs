@@ -19,7 +19,7 @@ use tokio::{
 use crate::common::task::AbortableBlockingTaskHandle;
 
 #[derive(Default)]
-pub(super) enum DiskTask {
+pub enum DiskTask {
     #[default]
     None,
     Read(AbortableBlockingTaskHandle<Result<TapestryWeave, String>>),
@@ -27,10 +27,10 @@ pub(super) enum DiskTask {
 }
 
 impl DiskTask {
-    pub(super) fn is_none(&self) -> bool {
+    pub fn is_none(&self) -> bool {
         matches!(self, Self::None)
     }
-    pub(super) fn read(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Self {
+    pub fn read(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Self {
         Self::Read(AbortableBlockingTaskHandle::new(move |abort| {
             debug!("Started read task for {:?}", path);
 
@@ -68,11 +68,7 @@ impl DiskTask {
             }
         }))
     }
-    pub(super) fn write(
-        path: PathBuf,
-        data: Arc<Mutex<DiskTaskData>>,
-        weave: &TapestryWeave,
-    ) -> Self {
+    pub fn write(path: PathBuf, data: Arc<Mutex<DiskTaskData>>, weave: &TapestryWeave) -> Self {
         let serialization_result = {
             let mut data = data.try_lock().unwrap();
             data.buffer.clear();
@@ -108,7 +104,7 @@ impl DiskTask {
     }
 }
 
-pub(super) fn block_until_read(
+pub fn block_until_read(
     runtime: &Runtime,
     task: AbortableBlockingTaskHandle<Result<TapestryWeave, String>>,
 ) -> Result<TapestryWeave, String> {
@@ -122,7 +118,7 @@ pub(super) fn block_until_read(
     }
 }
 
-pub(super) fn block_until_write(
+pub fn block_until_write(
     runtime: &Runtime,
     task: JoinHandle<Result<(), String>>,
 ) -> Result<(), String> {
@@ -136,7 +132,7 @@ pub(super) fn block_until_write(
     }
 }
 
-pub(super) struct DiskPreloadTask {
+pub struct DiskPreloadTask {
     handle: AbortableBlockingTaskHandle<Result<TapestryWeave, String>>,
 }
 
@@ -147,7 +143,7 @@ impl From<DiskPreloadTask> for DiskTask {
 }
 
 impl DiskPreloadTask {
-    pub(super) fn new(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Self {
+    pub fn new(path: PathBuf, data: Arc<Mutex<DiskTaskData>>) -> Self {
         Self {
             handle: AbortableBlockingTaskHandle::new(move |abort| {
                 debug!("Started read task for {:?}", path);
@@ -189,19 +185,19 @@ impl DiskPreloadTask {
     }
 }
 
-pub(super) struct DiskTaskData {
+pub struct DiskTaskData {
     file: Option<File>,
     buffer: AlignedVec,
 }
 
 impl DiskTaskData {
-    pub(super) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             file: None,
             buffer: AlignedVec::with_capacity(16384),
         }
     }
-    pub(super) fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.buffer.len()
     }
     fn open(&mut self, path: &Path, create: bool, abort: &AtomicBool) -> Result<(), io::Error> {

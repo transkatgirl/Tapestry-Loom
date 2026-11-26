@@ -146,14 +146,14 @@ fn model_label<'a>(parameters: &'a [(String, String)], endpoint: &'a str) -> &'a
 }
 
 #[derive(Default, Debug, PartialEq)]
-pub(super) struct OpenAICompletionsTemplate {
+pub struct OpenAICompletionsTemplate {
     endpoint: String,
     model: String,
     api_key: String,
 }
 
 impl OpenAICompletionsTemplate {
-    pub(super) fn ui(&mut self, ui: &mut Ui) {
+    pub fn ui(&mut self, ui: &mut Ui) {
         template_ui(
             ui,
             &mut self.endpoint,
@@ -163,7 +163,7 @@ impl OpenAICompletionsTemplate {
             &mut self.api_key,
         );
     }
-    pub(super) fn build(&self) -> Option<OpenAICompletionsConfig> {
+    pub fn build(&self) -> Option<OpenAICompletionsConfig> {
         Some(OpenAICompletionsConfig {
             endpoint: normalize_endpoint(
                 &self.endpoint,
@@ -178,7 +178,7 @@ impl OpenAICompletionsTemplate {
 }
 
 #[derive(Default, Debug, PartialEq)]
-pub(super) struct TapestryTokenizeOpenAICompletionsTemplate {
+pub struct TapestryTokenizeOpenAICompletionsTemplate {
     endpoint: String,
     model: String,
     api_key: String,
@@ -187,7 +187,7 @@ pub(super) struct TapestryTokenizeOpenAICompletionsTemplate {
 }
 
 impl TapestryTokenizeOpenAICompletionsTemplate {
-    pub(super) fn ui(&mut self, ui: &mut Ui) {
+    pub fn ui(&mut self, ui: &mut Ui) {
         template_ui(
             ui,
             &mut self.endpoint,
@@ -203,7 +203,7 @@ impl TapestryTokenizeOpenAICompletionsTemplate {
                 .on_hover_text("Tokenization base URL");
         });
     }
-    pub(super) fn build(&self) -> Option<OpenAICompletionsConfig> {
+    pub fn build(&self) -> Option<OpenAICompletionsConfig> {
         if self.model.is_empty() {
             return None;
         }
@@ -234,14 +234,14 @@ impl TapestryTokenizeOpenAICompletionsTemplate {
 }
 
 #[derive(Default, Debug, PartialEq)]
-pub(super) struct OpenAIChatCompletionsTemplate {
+pub struct OpenAIChatCompletionsTemplate {
     endpoint: String,
     model: String,
     api_key: String,
 }
 
 impl OpenAIChatCompletionsTemplate {
-    pub(super) fn ui(&mut self, ui: &mut Ui) {
+    pub fn ui(&mut self, ui: &mut Ui) {
         template_ui(
             ui,
             &mut self.endpoint,
@@ -251,7 +251,7 @@ impl OpenAIChatCompletionsTemplate {
             &mut self.api_key,
         );
     }
-    pub(super) fn build(&self) -> Option<OpenAIChatCompletionsConfig> {
+    pub fn build(&self) -> Option<OpenAIChatCompletionsConfig> {
         Some(OpenAIChatCompletionsConfig {
             endpoint: normalize_endpoint(
                 &self.endpoint,
@@ -335,7 +335,7 @@ async fn post_json<T: DeserializeOwned>(
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub(super) struct OpenAICompletionsConfig {
+pub struct OpenAICompletionsConfig {
     endpoint: String,
     parameters: Vec<(String, String)>,
     headers: Vec<(String, String)>,
@@ -345,7 +345,7 @@ pub(super) struct OpenAICompletionsConfig {
 }
 
 impl OpenAICompletionsConfig {
-    pub(super) fn ui(&mut self, ui: &mut Ui, id: &Ulid) {
+    pub fn ui(&mut self, ui: &mut Ui, id: &Ulid) {
         TextEdit::singleline(&mut self.endpoint)
             .hint_text("Endpoint URL")
             .desired_width(ui.spacing().text_edit_width * 2.0)
@@ -358,10 +358,10 @@ impl OpenAICompletionsConfig {
 
         config_map_group(ui, "Request headers:", &mut self.headers, 0.9, 1.1);
     }
-    pub(super) fn label(&self) -> &str {
+    pub fn label(&self) -> &str {
         model_label(&self.parameters, &self.endpoint)
     }
-    pub(super) fn default_parameters(&self) -> Vec<(String, String)> {
+    pub fn default_parameters(&self) -> Vec<(String, String)> {
         default_parameters(&self.endpoint, &[("logprobs", "20")])
     }
     async fn tokenize(
@@ -383,7 +383,7 @@ impl OpenAICompletionsConfig {
         .json()
         .await?)
     }
-    pub(super) async fn perform_request(
+    pub async fn perform_request(
         &self,
         client: &Client,
         cache: &InferenceCache,
@@ -490,7 +490,7 @@ impl OpenAICompletionsConfig {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub(super) struct OpenAIChatCompletionsConfig {
+pub struct OpenAIChatCompletionsConfig {
     endpoint: String,
 
     #[serde(default)]
@@ -514,7 +514,7 @@ fn default_message_role() -> String {
 }
 
 impl OpenAIChatCompletionsConfig {
-    pub(super) fn ui(&mut self, ui: &mut Ui, id: &Ulid) {
+    pub fn ui(&mut self, ui: &mut Ui, id: &Ulid) {
         TextEdit::singleline(&mut self.endpoint)
             .hint_text("Endpoint URL")
             .desired_width(ui.spacing().text_edit_width * 2.0)
@@ -544,16 +544,16 @@ impl OpenAIChatCompletionsConfig {
 
         config_map_group(ui, "Request headers:", &mut self.headers, 0.9, 1.1);
     }
-    pub(super) fn label(&self) -> &str {
+    pub fn label(&self) -> &str {
         model_label(&self.parameters, &self.endpoint)
     }
-    pub(super) fn default_parameters(&self) -> Vec<(String, String)> {
+    pub fn default_parameters(&self) -> Vec<(String, String)> {
         default_parameters(
             &self.endpoint,
             &[("logprobs", "true"), ("top_logprobs", "20")],
         )
     }
-    pub(super) async fn perform_request(
+    pub async fn perform_request(
         &self,
         client: &Client,
         request: EndpointRequest,
@@ -597,7 +597,7 @@ impl OpenAIChatCompletionsConfig {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(default)]
-pub(super) struct NonStandardOpenAIModifications {
+pub struct NonStandardOpenAIModifications {
     tokenization_endpoint: String,
     reuse_tokens: bool,
     #[serde(default)]
@@ -658,7 +658,7 @@ impl NonStandardOpenAIModifications {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub(super) struct OpenAIEmbeddingsConfig {
+pub struct OpenAIEmbeddingsConfig {
     endpoint: String,
     parameters: Vec<(String, String)>,
     headers: Vec<(String, String)>,
@@ -682,7 +682,7 @@ impl Default for OpenAIEmbeddingsConfig {
 }
 
 impl OpenAIEmbeddingsConfig {
-    pub(super) fn ui(&mut self, ui: &mut Ui) {
+    pub fn ui(&mut self, ui: &mut Ui) {
         TextEdit::singleline(&mut self.endpoint)
             .hint_text("Endpoint URL")
             .desired_width(ui.spacing().text_edit_width * 2.0)
@@ -702,7 +702,7 @@ impl OpenAIEmbeddingsConfig {
                 .labelled_by(label);
         });
     }
-    pub(super) async fn perform_request(
+    pub async fn perform_request(
         &self,
         client: &Client,
         request: &[u8],

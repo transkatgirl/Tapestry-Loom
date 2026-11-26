@@ -15,8 +15,8 @@ use ulid::Ulid;
 
 mod disk;
 pub mod preload;
-pub(super) mod scene;
-pub(super) mod ui;
+pub mod scene;
+pub mod ui;
 
 use crate::{
     AppShared,
@@ -35,7 +35,7 @@ use crate::{
     },
 };
 
-pub(super) struct EditorShared {
+pub struct EditorShared {
     pub id: Ulid,
     path: Option<PathBuf>,
     modal: EditorModal,
@@ -53,7 +53,7 @@ pub(super) struct EditorShared {
 }
 
 impl EditorShared {
-    pub(super) fn new(mut path: Option<PathBuf>, shared: &mut AppShared) -> Self {
+    pub fn new(mut path: Option<PathBuf>, shared: &mut AppShared) -> Self {
         if let Some(unwrapped_path) = &path {
             if shared.open_documents.insert(unwrapped_path.clone()) {
                 shared.open_documents_updated = true;
@@ -134,12 +134,7 @@ impl EditorShared {
 
         debug!("Closed Editor (path = {:?})", self.path);
     }
-    pub(super) fn logic(
-        &mut self,
-        ctx: &Context,
-        force_close: impl FnOnce(),
-        shared: &mut AppShared,
-    ) {
+    pub fn logic(&mut self, ctx: &Context, force_close: impl FnOnce(), shared: &mut AppShared) {
         self.weave_changed = false;
 
         if self.close_now {
@@ -225,7 +220,7 @@ impl EditorShared {
             ctx.request_repaint_after(BACKGROUND_REFRESH_INTERVAL);
         }
     }
-    pub(super) fn modals(&mut self, ctx: &Context, shared: &mut AppShared) -> bool {
+    pub fn modals(&mut self, ctx: &Context, shared: &mut AppShared) -> bool {
         match &mut self.modal {
             EditorModal::None => false,
             EditorModal::SaveAs(path) => {
@@ -313,7 +308,7 @@ impl EditorShared {
             }
         }
     }
-    pub(super) fn ui(&mut self, ui: &mut Ui, shared: &mut AppShared) {
+    pub fn ui(&mut self, ui: &mut Ui, shared: &mut AppShared) {
         self.last_visible = true;
         self.close_ready = self.close_after_save;
 
@@ -398,7 +393,7 @@ impl EditorShared {
             });
         });
     }
-    pub(super) fn save(&mut self, shared: &mut AppShared) {
+    pub fn save(&mut self, shared: &mut AppShared) {
         if let Some(path) = &self.path
             && self.disk_task.is_none()
             && let Some(weave) = &self.weave
@@ -409,7 +404,7 @@ impl EditorShared {
             self.close_ready = true;
         }
     }
-    pub(super) fn title(&self, _shared: &AppShared) -> String {
+    pub fn title(&self, _shared: &AppShared) -> String {
         match &self.path {
             Some(path) => {
                 if let Some(weave) = &self.weave
@@ -427,10 +422,10 @@ impl EditorShared {
             None => "New Weave".to_string(),
         }
     }
-    pub(super) fn path(&self) -> &Option<PathBuf> {
+    pub fn path(&self) -> &Option<PathBuf> {
         &self.path
     }
-    pub(super) fn check_close(&mut self, shared: &mut AppShared) -> bool {
+    pub fn check_close(&mut self, shared: &mut AppShared) -> bool {
         if let Some(weave) = &mut self.weave {
             self.ui.apply_actions(weave);
 
@@ -456,7 +451,7 @@ impl EditorShared {
             true
         }
     }
-    pub(super) fn close(&mut self, shared: &mut AppShared, bulk_close: bool) -> bool {
+    pub fn close(&mut self, shared: &mut AppShared, bulk_close: bool) -> bool {
         if let Some(path) = &self.path
             && let Some(weave) = &self.weave
         {
