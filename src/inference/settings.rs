@@ -57,7 +57,7 @@ impl Edit for InferenceEngineSettings {
                         label: String::new(),
                         color: None,
                         endpoint,
-                        tokenization_identifier: identifier,
+                        identifier,
                     },
                 );
             }
@@ -174,7 +174,7 @@ pub struct InferenceModel {
     pub endpoint: EndpointConfig,
 
     #[serde(default = "Ulid::generate")]
-    pub tokenization_identifier: Ulid,
+    pub identifier: Ulid,
 }
 
 impl InferenceModel {
@@ -192,7 +192,7 @@ impl InferenceModel {
         Model {
             label: self.label().to_string(),
             color: self.color.map(|color| color.to_hex()),
-            identifier: LongId::new(self.tokenization_identifier.0),
+            identifier: LongId::new(self.identifier.0),
             seed: None,
             system_fingerprint: None,
             finish_reason: None,
@@ -210,8 +210,8 @@ impl InferenceModel {
         self.endpoint.ui(ui, id);
 
         if self.endpoint != old {
-            trace!("Updating tokenization identifier for {}", id);
-            self.tokenization_identifier = Ulid::generate();
+            trace!("Updating identifier for {}", id);
+            self.identifier = Ulid::generate();
         }
     }
 }

@@ -18,8 +18,8 @@ use crate::{
         PromptSegment,
         openai::parser::{CompletionOptions, parse_completion_response, parse_embedding_response},
         shared::{
-            EndpointRequest, EndpointResponse, InferenceCache, build_json_list, build_json_object,
-            error_for_status, segment_bytes, segment_text,
+            EndpointRequest, EndpointResponse, InferenceCache, error_for_status, segment_bytes,
+            segment_text,
         },
     },
 };
@@ -286,6 +286,29 @@ fn default_parameters(endpoint: &str, logprobs: &[(&str, &str)]) -> Vec<(String,
     parameters
 }
 
+fn build_json_list(list: &mut Vec<Value>, items: &[String]) {
+    for item in items {
+        list.push(if let Ok(value) = serde_json::from_str(item) {
+            value
+        } else {
+            Value::String(item.clone())
+        });
+    }
+}
+
+fn build_json_object(map: &mut Map<String, Value>, parameters: &[(String, String)]) {
+    for (key, value) in parameters {
+        map.insert(
+            key.clone(),
+            if let Ok(value) = serde_json::from_str(value) {
+                value
+            } else {
+                Value::String(value.clone())
+            },
+        );
+    }
+}
+
 fn build_body(
     endpoint_parameters: &[(String, String)],
     request: &EndpointRequest,
@@ -393,7 +416,7 @@ impl OpenAICompletionsConfig {
 
         let (mut body, options) = build_body(&self.parameters, &request, &["logprobs"]);
 
-        let model_identifier = LongId::new(request.tokenization_identifier.0);
+        let model_identifier = LongId::new(request.model_identifier.0);
 
         let prefix_tokens = if self.nonstandard.tokenization_endpoint.is_empty() {
             Vec::new()
@@ -409,7 +432,7 @@ impl OpenAICompletionsConfig {
                     }
                     segment => tokens.extend(
                         cache
-                            .tokenize(request.tokenization_identifier, segment.bytes(), |bytes| {
+                            .tokenize(request.model_identifier, segment.bytes(), |bytes| {
                                 self.tokenize(client, &headers, bytes)
                             })
                             .await?,
@@ -439,11 +462,9 @@ impl OpenAICompletionsConfig {
                         }
                         segment => tokens.extend(
                             cache
-                                .tokenize(
-                                    request.tokenization_identifier,
-                                    segment.bytes(),
-                                    |bytes| self.tokenize(client, &headers, bytes),
-                                )
+                                .tokenize(request.model_identifier, segment.bytes(), |bytes| {
+                                    self.tokenize(client, &headers, bytes)
+                                })
                                 .await?,
                         ),
                     }

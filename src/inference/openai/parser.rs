@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use anyhow::anyhow;
 use base64::{Engine, prelude::BASE64_STANDARD};
 use log::trace;
@@ -12,7 +10,7 @@ use crate::inference::EndpointResponse;
 
 #[derive(Debug)]
 pub struct CompletionOptions {
-    pub parameters: Arc<Vec<(String, String)>>,
+    pub parameters: Vec<(String, String)>,
     pub seed: Option<u64>,
     pub echo: bool,
     pub single_token: bool,
