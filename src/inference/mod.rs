@@ -260,7 +260,7 @@ impl InferenceEngine {
                 self.generate(document, target, parameters, parameters.recursion_depth);
             }
             InferenceRequest::Seriate(target) => {
-                let items: Vec<ShortId> = match &target {
+                let mut items: Vec<ShortId> = match &target {
                     SeriationTarget::Children(Some(parent)) => {
                         if let Some(node) = weave.get_position(parent, PositionAlignment::End) {
                             weave.get_children(&node).unwrap()
@@ -283,6 +283,8 @@ impl InferenceEngine {
                 if items.len() < 3 {
                     return;
                 }
+
+                items.sort_unstable();
 
                 self.seriate(
                     document,
@@ -437,6 +439,73 @@ impl InferenceEngine {
         if self.requests(document) == 0 {
             weave.clear_positions();
         }
+    }
+    fn generate(
+        &mut self,
+        document: Ulid,
+        target: GenerationTarget,
+        parameters: &InferenceParameters,
+        depth: usize,
+    ) {
+        let settings = self.settings.borrow();
+        let requests = self.documents.entry(document).or_default();
+
+        for model_parameters in &parameters.models {
+            if let Some(model) = settings.models.get(&model_parameters.model) {
+                let content_model = model.content_model();
+
+                for _ in 0..model_parameters.requests {
+                    let endpoint = model.endpoint.clone();
+                    let request = EndpointRequest {
+                        prefix: target.prefix.clone(),
+                        suffix: target.suffix.clone(),
+                        parameters: model_parameters.parameters.clone(),
+                        model_identifier: model.identifier,
+                    };
+                    let client = self.client.clone();
+                    let cache = self.cache.clone();
+
+                    requests.generation.push(GenerationHandle {
+                        target: target.clone(),
+                        parameters: parameters.clone(),
+                        depth,
+                        model: content_model.clone(),
+                        task: AbortOnDropHandle::from(self.runtime.spawn(async move {
+                            endpoint.perform_request(&client, &cache, request).await
+                        })),
+                    });
+                }
+            } else {
+                warn!("Inference failed: Invalid model");
+                self.toasts
+                    .lock()
+                    .push(Toast::error("Inference failed: Invalid model"));
+            }
+        }
+    }
+    fn seriate(&mut self, document: Ulid, target: SeriationTarget, items: Vec<(ShortId, Vec<u8>)>) {
+        let requests = self.documents.entry(document).or_default();
+
+        requests.seriation.retain(|handle| handle.target != target);
+
+        let endpoint = self.embedding_config.clone();
+        let client = self.client.clone();
+        let cache = self.cache.clone();
+
+        requests.seriation.push(SeriationHandle {
+            target,
+            task: AbortOnDropHandle::from(self.runtime.spawn(async move {
+                let embeddings = try_join_all(items.into_iter().map(async |(id, text)| {
+                    endpoint
+                        .perform_request(&client, &cache, text)
+                        .await
+                        .map(|embedding| (id, embedding))
+                }))
+                .await?;
+
+                Ok(task::block_in_place(|| seriate::seriate(embeddings)))
+            })),
+        });
     }
     fn sync_settings(&mut self) {
         let mut settings = self.settings.borrow_mut();
