@@ -67,6 +67,7 @@ fn main() -> Result<(), anyhow::Error> {
                 .with_icon(Arc::new(IconData::default())),
             persist_window: true,
             persistence_path: Some(storage_dir.join("app.ron")),
+            system_font_fallback: false, // TODO
             ..Default::default()
         },
         Box::new(|cc| {
@@ -147,9 +148,9 @@ impl App {
                     ))),
                 ),
                 (
-                    "noto-emoji".to_owned(),
+                    "noto-color-emoji".to_owned(),
                     Arc::new(FontData::from_static(include_bytes!(
-                        "../fonts/NotoEmoji-Regular.ttf"
+                        "../fonts/NotoColorEmoji-Regular.ttf"
                     ))),
                 ),
                 (
@@ -171,7 +172,17 @@ impl App {
                     vec![
                         "ubuntu-light".to_owned(),
                         "lucide".to_owned(),
-                        "noto-emoji".to_owned(),
+                        "noto-color-emoji".to_owned(),
+                        "unifontex".to_owned(),
+                    ],
+                ),
+                (
+                    FontFamily::Name("MonospaceUI".into()),
+                    vec![
+                        "hack".to_owned(),
+                        "ubuntu-light".to_owned(),
+                        "lucide".to_owned(),
+                        "noto-color-emoji".to_owned(),
                         "unifontex".to_owned(),
                     ],
                 ),
@@ -180,7 +191,7 @@ impl App {
                     vec![
                         "hack".to_owned(),
                         "ubuntu-light".to_owned(),
-                        "noto-emoji".to_owned(),
+                        "noto-color-emoji".to_owned(),
                         "unifontex".to_owned(),
                     ],
                 ),

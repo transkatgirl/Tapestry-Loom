@@ -28,6 +28,7 @@ eframe = { version = "0.37.0", features = [
 	"clipboard",
 	"links",
 	"persistence",
+	"system_fonts",
 	"wayland",
 	"wgpu",
 	"x11",

@@ -128,7 +128,17 @@ impl FontPreference {
                     vec![
                         "ubuntu-light".to_owned(),
                         "lucide".to_owned(),
-                        "noto-emoji".to_owned(),
+                        "noto-color-emoji".to_owned(),
+                        "unifontex".to_owned(),
+                    ],
+                ),
+                (
+                    FontFamily::Name("MonospaceUI".into()),
+                    vec![
+                        "hack".to_owned(),
+                        "ubuntu-light".to_owned(),
+                        "lucide".to_owned(),
+                        "noto-color-emoji".to_owned(),
                         "unifontex".to_owned(),
                     ],
                 ),
@@ -137,7 +147,7 @@ impl FontPreference {
                     vec![
                         "hack".to_owned(),
                         "ubuntu-light".to_owned(),
-                        "noto-emoji".to_owned(),
+                        "noto-color-emoji".to_owned(),
                         "unifontex".to_owned(),
                     ],
                 ),
@@ -149,7 +159,17 @@ impl FontPreference {
                         "hack".to_owned(),
                         "ubuntu-light".to_owned(),
                         "lucide".to_owned(),
-                        "noto-emoji".to_owned(),
+                        "noto-color-emoji".to_owned(),
+                        "unifontex".to_owned(),
+                    ],
+                ),
+                (
+                    FontFamily::Name("MonospaceUI".into()),
+                    vec![
+                        "hack".to_owned(),
+                        "ubuntu-light".to_owned(),
+                        "lucide".to_owned(),
+                        "noto-color-emoji".to_owned(),
                         "unifontex".to_owned(),
                     ],
                 ),
@@ -158,7 +178,7 @@ impl FontPreference {
                     vec![
                         "hack".to_owned(),
                         "ubuntu-light".to_owned(),
-                        "noto-emoji".to_owned(),
+                        "noto-color-emoji".to_owned(),
                         "unifontex".to_owned(),
                     ],
                 ),
@@ -166,6 +186,10 @@ impl FontPreference {
             FontPreference::UnifontEX => BTreeMap::from([
                 (
                     FontFamily::Proportional,
+                    vec!["unifontex".to_owned(), "lucide".to_owned()],
+                ),
+                (
+                    FontFamily::Name("MonospaceUI".into()),
                     vec!["unifontex".to_owned(), "lucide".to_owned()],
                 ),
                 (FontFamily::Monospace, vec!["unifontex".to_owned()]),

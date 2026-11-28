@@ -251,9 +251,9 @@ impl FileManager {
             };
 
             let (icon, suffix) = match item_type {
-                FileType::Directory => ("📂", MAIN_SEPARATOR_STR),
-                FileType::File => ("📄", ""),
-                FileType::Other => ("❔", ""),
+                FileType::Directory => ("\u{E247}", MAIN_SEPARATOR_STR),
+                FileType::File => ("\u{E0C0}", ""),
+                FileType::Other => ("\u{E851}", ""),
             };
 
             let mut spacing = ch * padding as f32;
@@ -278,8 +278,9 @@ impl FileManager {
                                 }
 
                                 let mut button = Button::new(
-                                    RichText::new(format!("{icon} {label}{suffix}"))
-                                        .family(eframe::egui::FontFamily::Monospace),
+                                    RichText::new(format!("{icon} {label}{suffix}")).family(
+                                        eframe::egui::FontFamily::Name("MonospaceUI".into()),
+                                    ),
                                 );
                                 let mut enabled = item_type != FileType::Other;
 
