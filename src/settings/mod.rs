@@ -121,14 +121,13 @@ impl Edit for Settings {
         }
 
         ui.separator();
-        ui.heading("Document");
-        self.documents.ui(ui);
-        ui.separator();
         ui.heading("Inference");
         self.inference.borrow_mut().ui(ui);
         ui.separator();
-        ui.heading("Shortcuts*")
-            .on_hover_text("All listed shortcuts are disabled while the Settings view is open.");
+        ui.heading("Document");
+        self.documents.ui(ui);
+        ui.separator();
+        ui.heading("Shortcuts");
         self.shortcuts.ui(ui);
         ui.separator();
         ui.hyperlink_to(
