@@ -338,25 +338,36 @@ fn parse_item_logprobs(
 }
 
 fn unescape_bytes(escaped: &str) -> Option<Vec<u8>> {
-    if escaped.is_empty() || !escaped.len().is_multiple_of(4) {
-        return None;
-    }
+    let mut input = escaped.bytes();
+    let mut bytes = Vec::with_capacity(escaped.len());
+    let mut contains_escaped = false;
 
-    let chunks = escaped.as_bytes().as_chunks::<4>().0;
-    let mut bytes = Vec::with_capacity(chunks.len());
-
-    for chunk in chunks {
-        if chunk[0] != b'\\' || chunk[1] != b'x' {
-            return None;
+    while let Some(byte) = input.next() {
+        if byte != b'\\' {
+            bytes.push(byte);
+            continue;
         }
 
-        let high = char::from(chunk[2]).to_digit(16)?;
-        let low = char::from(chunk[3]).to_digit(16)?;
+        bytes.push(match input.next()? {
+            b'x' => {
+                let high = char::from(input.next()?).to_digit(16)?;
+                let low = char::from(input.next()?).to_digit(16)?;
 
-        bytes.push((high * 16 + low) as u8);
+                contains_escaped = true;
+
+                (high * 16 + low) as u8
+            }
+            b'\\' => b'\\',
+            b'\'' => b'\'',
+            b'"' => b'"',
+            b'n' => b'\n',
+            b'r' => b'\r',
+            b't' => b'\t',
+            _ => return None,
+        });
     }
 
-    Some(bytes)
+    contains_escaped.then_some(bytes)
 }
 
 fn normalize_logprob(logprob: f32) -> Option<f32> {
