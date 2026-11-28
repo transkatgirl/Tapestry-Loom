@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{fmt::Write, str::FromStr};
 
 use anyhow::anyhow;
 use eframe::egui::{CollapsingHeader, TextEdit, Ui, Widget};
@@ -69,6 +69,20 @@ fn normalize_endpoint(endpoint: &str, default: &str, path: &str) -> String {
     }
 }
 
+fn encode_path_segment(segment: &str) -> String {
+    let mut encoded = String::with_capacity(segment.len());
+
+    for byte in segment.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
+            encoded.push(char::from(byte));
+        } else {
+            write!(encoded, "%{byte:02X}").unwrap();
+        }
+    }
+
+    encoded
+}
+
 fn model_parameters(model: &str) -> Vec<(String, String)> {
     if model.is_empty() {
         Vec::new()
@@ -131,6 +145,10 @@ fn build_headers(headers: &[(String, String)]) -> Result<HeaderMap, anyhow::Erro
     let mut map = HeaderMap::with_capacity(headers.len());
 
     for (key, value) in headers {
+        if key.trim().is_empty() {
+            continue;
+        }
+
         map.insert(HeaderName::from_str(key)?, HeaderValue::from_str(value)?);
     }
 
@@ -224,7 +242,7 @@ impl TapestryTokenizeOpenAICompletionsTemplate {
                         &self.tokenization_endpoint
                     },
                     "/",
-                    &self.model,
+                    &encode_path_segment(&self.model),
                 ]
                 .concat(),
                 ..Default::default()
@@ -298,6 +316,10 @@ fn build_json_list(list: &mut Vec<Value>, items: &[String]) {
 
 fn build_json_object(map: &mut Map<String, Value>, parameters: &[(String, String)]) {
     for (key, value) in parameters {
+        if key.trim().is_empty() {
+            continue;
+        }
+
         map.insert(
             key.clone(),
             if let Ok(value) = serde_json::from_str(value) {
@@ -324,7 +346,12 @@ fn build_body(
     }
 
     let options = CompletionOptions {
-        parameters: request.parameters.clone(),
+        parameters: request
+            .parameters
+            .iter()
+            .filter(|(key, _)| !key.trim().is_empty())
+            .cloned()
+            .collect(),
         seed: body.get("seed").and_then(Value::as_u64),
         echo: body.get("echo").and_then(Value::as_bool).unwrap_or(false),
         single_token: body.get("max_tokens").and_then(Value::as_u64) == Some(1),
@@ -559,9 +586,7 @@ impl OpenAIChatCompletionsConfig {
             });
         });
 
-        if !self.suffix_messages.is_empty() {
-            message_list_group(ui, "Suffix messages:", &mut self.suffix_messages);
-        }
+        message_list_group(ui, "Suffix messages:", &mut self.suffix_messages);
 
         config_map_group(ui, "Request headers:", &mut self.headers, 0.9, 1.1);
     }

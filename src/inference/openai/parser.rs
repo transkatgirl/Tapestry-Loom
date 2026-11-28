@@ -84,7 +84,7 @@ pub fn parse_completion_response(
                     .collect());
             }
         } else if let Some(error) = response.remove("error") {
-            return Err(anyhow!("API Error: {:?}", error.to_string()));
+            return Err(anyhow!("API Error: {}", error));
         }
     }
 

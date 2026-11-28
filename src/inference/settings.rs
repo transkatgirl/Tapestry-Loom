@@ -1,9 +1,7 @@
 use std::time::Duration;
 
 use anyhow::anyhow;
-use eframe::egui::{
-    Color32, ComboBox, RichText, Slider, SliderClamping, TextStyle, Ui, WidgetText,
-};
+use eframe::egui::{Color32, ComboBox, RichText, Slider, TextStyle, Ui, WidgetText};
 use log::trace;
 use reqwest::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize};
@@ -152,7 +150,6 @@ impl ClientConfig {
         ui.add(
             Slider::new(&mut self.timeout_minutes, 1.0..=1440.0)
                 .logarithmic(true)
-                .clamping(SliderClamping::Never)
                 .text("Request timeout")
                 .suffix(" minutes"),
         ).on_hover_text("The maximum length of time to wait for a HTTP request to finish. Requests exceeding this duration will be dropped.");
