@@ -28,7 +28,7 @@ use crate::common::{
 #[serde(default)]
 pub struct InferenceEngineSettings {
     pub client: ClientConfig,
-    pub models: IndexMap<Ulid, InferenceModel>,
+    pub models: IndexMap<Ulid, InferenceModel>, // key uuid is only used for UI; use model.identifier outside of this module
     pub embedding_model: EmbeddingEndpointConfig,
 
     pub default_parameters: InferenceParameters,

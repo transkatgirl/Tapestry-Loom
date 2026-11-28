@@ -1356,7 +1356,7 @@ impl WeaveUi {
             SubMenuButton::new("Sort children by...").ui(ui, |ui| {
                 if ui.button("Seriation").clicked() {
                     self.requests
-                        .push(InferenceRequest::SeriateChildren(Some(node.id)));
+                        .push(InferenceRequest::seriate_children(weave, Some(node.id)));
                 }
 
                 if ui.button("Confidence").clicked() {
@@ -1445,7 +1445,8 @@ impl WeaveUi {
 
                 SubMenuButton::new("Sort roots by...").ui(ui, |ui| {
                     if ui.button("Seriation").clicked() {
-                        self.requests.push(InferenceRequest::SeriateChildren(None));
+                        self.requests
+                            .push(InferenceRequest::seriate_children(weave, None));
                     }
 
                     if ui.button("Confidence").clicked() {
@@ -1474,7 +1475,7 @@ impl WeaveUi {
 
             SubMenuButton::new("Sort bookmarks by...").ui(ui, |ui| {
                 if ui.button("Seriation").clicked() {
-                    self.requests.push(InferenceRequest::SeriateBookmarks);
+                    self.requests.push(InferenceRequest::seriate_bookmarks());
                 }
 
                 if ui.button("Confidence").clicked() {

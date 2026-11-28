@@ -182,13 +182,13 @@ impl EditorShared {
             DiskTask::None => {}
         }
 
-        let updated = shared
-            .inference
-            .update(self.id, &mut self.weave, &mut self.ui.rng)
-            .last()
-            .copied();
-
         if let Some(weave) = &mut self.weave {
+            let updated = shared
+                .inference
+                .update(self.id, weave, &mut self.ui.rng)
+                .last()
+                .copied();
+
             let shortcuts = if self.last_visible {
                 shared.shortcuts.editor
             } else {
