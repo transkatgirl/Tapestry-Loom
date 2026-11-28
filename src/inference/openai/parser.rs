@@ -259,6 +259,8 @@ fn parse_item_logprobs(
         .remove("tokens")
         .and_then(|v| serde_json::from_value::<Vec<String>>(v).ok())
     {
+        // text_offset is intentionally ignored, as its behavior varies too much between backends to be relied upon
+
         let parse_token = |token: String| {
             if let Some(escaped) = token.strip_prefix("bytes:")
                 && let Some(bytes) = unescape_bytes(escaped)
