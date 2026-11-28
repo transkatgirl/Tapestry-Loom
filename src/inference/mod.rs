@@ -260,9 +260,9 @@ impl InferenceEngine {
                 self.generate(document, target, parameters, parameters.recursion_depth);
             }
             InferenceRequest::Seriate(target) => {
-                let mut items: Vec<ShortId> = match &target {
+                let mut items: Vec<ShortId> = match target {
                     SeriationTarget::Children(Some(parent)) => {
-                        if let Some(node) = weave.get_position(parent, PositionAlignment::End) {
+                        if let Some((node, _)) = weave.resolve_position(parent) {
                             weave.get_children(&node).unwrap()
                         } else {
                             return;
